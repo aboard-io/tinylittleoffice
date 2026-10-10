@@ -34,10 +34,16 @@ export const WORDS: Shortcut[] = [
   k('Mod+K', () => t('Link')),
 ];
 
+/** Share… and Download, the drawer's This document (kit/drawer.ts writes them beside its rows). */
+export const SHARE_KEYS = 'Mod+Shift+S';
+export const DOWNLOAD_KEYS = 'Mod+Shift+D';
+
 /** The page's own keys, the shell's. */
 export const PAGE: Shortcut[] = [
   k('Mod+F', () => t('Find in this document')),
   k('Mod+S', () => t('Keep this document on the device')),
+  k(SHARE_KEYS, () => t('Share…')),
+  k(DOWNLOAD_KEYS, () => t('Download')),
   k('Mod+P', () => t('Print, or save as PDF')),
   k('Mod+/', () => t('Show these shortcuts')),
 ];
@@ -77,6 +83,9 @@ export interface Page {
   shortcuts(): void;
   find(): void;
   keep(): void;
+  /** The Share dialog; the drawer with its Download table open. */
+  share(): void;
+  download(): void;
   /** A document is open (Mod+P), and for editing, not as its pages (Mod+F, Mod+S). */
   doc: boolean;
   editing: boolean;
@@ -84,7 +93,8 @@ export interface Page {
 }
 
 /**
- * The page's keys (PAGE): Mod+P prints, Mod+/ the shortcuts, Mod+F finds, Mod+S keeps. Undo and redo are the
+ * The page's keys (PAGE): Mod+P prints, Mod+/ the shortcuts, Mod+F finds, Mod+S keeps, Mod+Shift+S shares, Mod+Shift+D
+ * downloads. Undo and redo are the
  * editor's (the kernel's history): the keys are only passed on, and only from the editor itself (or from nowhere, the
  * page's body). Typed in a dialog, a popover, the header, the link or note box, or a field of the kit's own, Mod+Z is
  * that place's own; during an IME composition it is the IME's.
@@ -93,7 +103,7 @@ export function pageKey(e: KeyboardEvent, page: Page): void {
   if ((e.metaKey || e.ctrlKey || e.altKey) && !['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) page.flush();
   if (!(e.metaKey || e.ctrlKey) || e.altKey || e.isComposing) return;
   const k = e.key.toLowerCase();
-  const act = k === 'p' && page.doc ? page.print : k === '/' || k === '?' ? page.shortcuts : k === 'f' && !e.shiftKey && page.editing && page.editor ? page.find : k === 's' && !e.shiftKey && page.editing ? page.keep : null;
+  const act = k === 'p' && page.doc ? page.print : k === '/' || k === '?' ? page.shortcuts : k === 'f' && !e.shiftKey && page.editing && page.editor ? page.find : k === 's' && !e.shiftKey && page.editing ? page.keep : k === 's' && page.editing ? page.share : k === 'd' && e.shiftKey && page.editing ? page.download : null;
   if (act) {
     e.preventDefault();
     return act();

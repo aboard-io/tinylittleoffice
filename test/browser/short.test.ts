@@ -2,7 +2,7 @@
 // dialog's short-link section offers Update (once changed), Extend over the lifetimes, and Forget, in that
 // order; a short link made here comes big with Copy, the owner link folded under it.
 import { test, expect, afterEach, vi } from 'vitest';
-import { mount, tick, until } from './helpers.ts';
+import { mount, tick, until, openShare } from './helpers.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { parse, write } from '../../src/doc/index.ts';
@@ -18,7 +18,7 @@ afterEach(() => {
 });
 const section = (shell: HTMLElement) => shell.querySelector<HTMLElement>('to-dialog.to-share-dialog .to-share-short')!;
 async function open(shell: ToShell) {
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShare(shell);
   const dialog = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
   await until(() => dialog.dialog.open && !!section(shell));
   return dialog;

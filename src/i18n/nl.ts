@@ -12,7 +12,6 @@ export default {
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'Nieuw: {noun}',
   'Untitled {noun}': 'Zonder naam: {noun}',
-  'Share': 'Delen',
   'Download': 'Downloaden',
   'Loading…': 'Laden…',
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Deze link bevat iets wat niet te lezen is. Misschien is hij afgekapt bij het kopiëren.',

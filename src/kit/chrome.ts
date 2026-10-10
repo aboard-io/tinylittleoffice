@@ -13,10 +13,18 @@
  * Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger. The secondary nav is now aligned
  * bottom." Under a coarse pointer, while a box has the focus (a `<to-text>`, a field in an app, a page in a frame)
  * from a person's tap or key (not the focus a document opens with, which raises no keyboard), `editing` is set and
- * the header hides; the menu button alone stays, floating on a card at the column's top inline
- * end, and the header comes back when the focus leaves (a tap outside, Escape out of the box, Done). The menu button
- * is at the inline end on every screen (the right in a left-to-right language): the words begin at the inline start,
- * so a button there would cover the first line and the caret, and on an iPhone the left edge is Safari's back swipe.
+ * the header hides; the menu button alone stays, slid into the column's very top inline corner and translucent there
+ * ("Make the hamburger translucent when I'm editing. Maybe even move it further top right animating it so that it
+ * doesn't bump text or content I'm editing"), opaque again under a hover or a key's focus, and the header comes back
+ * when the focus leaves (a tap outside, Escape out of the box, Done), the button sliding back into its row. The menu
+ * button is at the inline end on every screen (the right in a left-to-right language): the words begin at the inline
+ * start, so a button there would cover the first line and the caret, and on an iPhone the left edge is Safari's back swipe.
+ *
+ * The bar glides (Paul: "When the keyboard appears and disappears it jumps and it's overwhelming. Could move briskly or
+ * fade in and fade out"): under a finger the column's height follows the visible window through a transition of a
+ * fifth of a second (kit.css), and while it moves `gliding` is set and the bar fades out, back when the column settles
+ * (its transitionend, a timer as the fallback). Under reduced motion the height changes at once and the fade alone
+ * remains. The caret is kept in sight once the column has settled, not in flight (kit/scroll.ts gliding(), which kit/text.ts asks).
  *
  * Why a column: Safari on iOS does not make the page shorter for the keyboard, only the visible window, so a bar
  * stuck to the page's top had to be measured into place after events that came late or never (round seven's
@@ -25,22 +33,22 @@
  * page itself never does (docs/kernel.md §9).
  *
  * The shell hands it what to draw: `doc`, the document the header names (none: the home page's name), with its
- * title, its signed state, how much of the link it uses and its Download; `main` (the column's content) with its
+ * title, its signed state and how much of the link it uses (Share and Download are the drawer's, kit/drawer.ts: Paul,
+ * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
- * events: `to-drawer-open` (the menu button), `to-share-open` (Share, the meter, a short link's Extend: detail.short),
+ * events: `to-drawer-open` (the menu button), `to-share-open` (the meter, a short link's Extend: detail.short),
  * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import type { AppDef } from './app.ts';
 import { budgetFor } from './codec.ts';
-import type { MenuItem } from './menu.ts';
 import { routeHash } from './route.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { ago, type Kept } from './library.ts';
 import { expiresSentence, timeLeft } from './short.ts';
-import { pinWindow } from './scroll.ts';
+import { pinWindow, reveal } from './scroll.ts';
 
 /** The document the header names. */
 export interface DocHead {
@@ -54,7 +62,6 @@ export interface DocHead {
   trust: TemplateResult;
   /** How much of the link the document uses. */
   used: number;
-  downloads: MenuItem[];
 }
 /** The Display Link's line, or the embed's: the title, and Edit or Open in Tiny Little Office. */
 export interface Plain {
@@ -67,6 +74,9 @@ export interface Plain {
 
 /** What a person types in: while one of these has the focus, the header steps aside on a phone. */
 const BOX = 'to-text, input, textarea, select, [contenteditable="true"], iframe';
+/** The column's glide, a little longer than its transition (kit.css): the fallback should transitionend never come. */
+const GLIDE_MS = 260;
+
 /** What a box hands the focus to and back from without the person having left it: the bar, a menu, a popover, a dialog. */
 const ASIDE = 'to-bar, to-context, [popover], dialog, to-dialog, to-link-pop, to-complete';
 
@@ -140,6 +150,7 @@ export class ToChrome extends LitElement {
     for (const type of ['focusin', 'focusout', 'beforeinput']) document.addEventListener(type, this.onFocus);
     for (const type of ['pointerdown', 'keydown']) document.addEventListener(type, this.onPerson, true);
     window.addEventListener('hashchange', this.opened);
+    this.addEventListener('transitionend', this.onGlided);
     this.fit();
   }
   disconnectedCallback() {
@@ -150,6 +161,8 @@ export class ToChrome extends LitElement {
     for (const type of ['focusin', 'focusout', 'beforeinput']) document.removeEventListener(type, this.onFocus);
     for (const type of ['pointerdown', 'keydown']) document.removeEventListener(type, this.onPerson, true);
     window.removeEventListener('hashchange', this.opened);
+    this.removeEventListener('transitionend', this.onGlided);
+    clearTimeout(this.settleTimer);
     this.sized?.disconnect();
   }
 
@@ -161,10 +174,31 @@ export class ToChrome extends LitElement {
   /** The column the visible window's height (the layout viewport's while a desktop's pinch has zoomed in), the window at its top. */
   private fit = () => {
     const vv = window.visualViewport;
-    const h = vv && vv.scale <= 1.01 ? vv.height : window.innerHeight;
-    this.style.height = `${h}px`;
+    const h = `${vv && vv.scale <= 1.01 ? vv.height : window.innerHeight}px`;
+    // Under a finger a change of height is the keyboard: the bar fades while the column glides (kit.css), back when it settles.
+    if (this.style.height && this.style.height !== h && matchMedia('(pointer: coarse)').matches) this.glide();
+    this.style.height = h;
     pinWindow();
   };
+  private settleTimer = 0;
+  private glide() {
+    this.toggleAttribute('gliding', true);
+    clearTimeout(this.settleTimer);
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.settleTimer = window.setTimeout(this.settle, reduced ? 140 : GLIDE_MS);
+  }
+  /** The column settled: the bar back, and the caret (where a box has it) kept in sight of what is left above the keyboard. */
+  private settle = () => {
+    clearTimeout(this.settleTimer);
+    if (!this.hasAttribute('gliding')) return;
+    this.removeAttribute('gliding');
+    const at = document.activeElement;
+    const sel = document.getSelection();
+    if (!this.editing || !at || !this.contains(at) || !sel?.rangeCount || !at.contains(sel.anchorNode)) return;
+    const r = sel.getRangeAt(0).getBoundingClientRect();
+    if (r.height) reveal(at, { rect: r, margin: 8 });
+  };
+  private onGlided = (e: TransitionEvent) => e.target === this && e.propertyName === 'height' && this.settle();
 
   /** When the person last touched, clicked or pressed a key: a box focused by the page itself (a document opening) is not editing. */
   private touched = -Infinity;
@@ -256,7 +290,7 @@ export class ToChrome extends LitElement {
     </div>`;
   }
 
-  /** The header's words for a document: a new one of its app, the title, the signed state, the room left in the link, Share, Download. */
+  /** The header's words for a document: a new one of its app, the title (which has the room), the signed state, the room left in the link (a tap: Share). */
   private renderDoc(d: DocHead) {
     const noun = t('New {noun}', { noun: d.def.noun });
     const here = html`<a class="to-here" href=${routeHash(d.def.id)} title=${noun} aria-label=${noun}>${icon(d.def.icon, 24)}</a>`;
@@ -272,9 +306,7 @@ export class ToChrome extends LitElement {
       ${d.trust}
       <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${room} title=${room} @click=${share}>
         <svg class="to-icon" width="24" height="24" style="--i:1.5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
-      </button>
-      <button type="button" class="to-btn to-tool to-share" aria-label=${t('Share')} title=${t('Share')} aria-haspopup="dialog" @click=${share}>${icon(UI.share, 22)}</button>
-      <to-menu class="to-download" icon-only .label=${t('Download')} .icon=${UI.download} .items=${d.downloads}></to-menu>`;
+      </button>`;
   }
 
   /** The Display Link: its pages under a line with the title and Edit. The embed: the pages under the title and Open in Tiny Little Office. */

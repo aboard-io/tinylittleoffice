@@ -12,6 +12,7 @@
  *   room()                where a menu, the context bar, the link box or the completion list may sit: the column's
  *                         box (<to-chrome>) within what can be seen
  *   pinWindow()           the window put back at its top, should the browser have slid it (iOS does, for a box focused)
+ *   gliding()             the column is moving for a phone's keyboard (kit/chrome.ts): the caret is kept in sight once it settles
  *
  * test/scroll.test.ts fails if any other module reads `window.scrollY` or scrolls the window.
  */
@@ -124,3 +125,6 @@ export function reveal(el: Element | null | undefined, opts: Reveal = {}): void 
 export function pinWindow(): void {
   if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
 }
+
+/** The column is gliding to a keyboard's height (kit/chrome.ts): where the caret should be kept is known once it settles, and it is kept then. */
+export const gliding = (): boolean => !!document.querySelector('to-chrome[gliding]');

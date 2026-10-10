@@ -5,7 +5,7 @@
 // every string a third longer) stand in; a language file in src/i18n/ is tested as it arrives, through its lazy chunk.
 import { test, expect, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until } from './helpers.ts';
+import { mount, tick, until, openShare } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { directionOf, languages, missed, register, setLanguage, type Strings } from '../../src/kit/i18n.ts';
 import { pseudo } from '../pseudo.ts';
@@ -94,7 +94,7 @@ async function check(strings: Strings): Promise<string[]> {
     if (span && span.textContent!.trim() && span.getBoundingClientRect().height >= parseFloat(getComputedStyle(span).fontSize) * 2) problems.push(`bar, wraps: "${keyOf(strings, span.textContent!)}"`);
   }
   // The Share dialog.
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShare(shell);
   const share = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
   await until(() => share.dialog.open && !!share.querySelector('.to-share-links'));
   await tick(100);

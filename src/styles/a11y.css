@@ -15,6 +15,10 @@
       transition: none !important;
       animation: none !important;
     }
+    /* The bar's fade while the column takes a keyboard's height is no motion: it stays, the height changing at once (kit/chrome.ts). */
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+      transition: opacity 0.12s ease !important;
+    }
   }
   @media (prefers-contrast: more) {
     :root {

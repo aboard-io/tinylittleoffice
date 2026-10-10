@@ -49,6 +49,7 @@ import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
+import type { ToMenu } from './menu.ts';
 import type { ToFind } from './find.ts';
 import { pageKey, renderShortcuts } from './keys.ts';
 import { pinchSizes } from './pinch.ts';
@@ -403,7 +404,7 @@ export class ToShell extends LitElement {
 
   /** The page's keys (kit/keys.ts pageKey): print, the shortcuts, find, keep, and undo passed to the editor. */
   private onKey = (e: KeyboardEvent) =>
-    pageKey(e, { flush: this.flushLink, print: () => void printDoc(this.current()), shortcuts: this.showKeys, find: () => this.showFind(), keep: () => this.keepNow(), doc: !!this.def, editing: !!this.def && !this.display, editor: this.editor });
+    pageKey(e, { flush: this.flushLink, print: () => void printDoc(this.current()), shortcuts: this.showKeys, find: () => this.showFind(), keep: () => this.keepNow(), share: () => void (!this.sealed && this.openShare()), download: () => void this.openDownload(), doc: !!this.def, editing: !!this.def && !this.display, editor: this.editor });
 
   /* ---------- sharing (the dialog is <to-share>'s) ---------- */
 
@@ -414,6 +415,13 @@ export class ToShell extends LitElement {
     this.requestUpdate();
     await this.updateComplete;
     await this.querySelector<ToShare>('to-share')?.show(short);
+  }
+  /** Download, by its key: the drawer, its table open (the drawer's This document holds it, the header being the title). */
+  private async openDownload() {
+    const drawer = this.querySelector<ToDrawer>('to-drawer');
+    if (!drawer?.downloads) return;
+    await drawer.show();
+    drawer.querySelector<ToMenu>('to-menu.to-drawer-download')?.open();
   }
   /** A short link made, updated or forgotten: the address carries the owner's tie to it, or no longer. */
   private onOwned = (e: CustomEvent<{ owned: Owned | null; expires: number }>) => {
@@ -484,7 +492,7 @@ export class ToShell extends LitElement {
     const page = plain
       ? this.renderPlain(def)
       : html`<button type="button" class="to-btn to-skip" @click=${this.skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>
-          <to-chrome .doc=${def ? { def, title: this.docTitle, value: def.title(this.doc) || this.fresh, locked: !!this.sealed, trust: this.trust(), used: this.payloadLength, downloads: downloads ?? [] } : null} .main=${this.renderMain(def)} .mainClass=${`to-main ${editing ? 'to-wide' : ''}`} .label=${def?.name ?? ''} ?barred=${editing} .fresh=${this.fresh && !def?.title(this.doc) ? this.fresh : ''}
+          <to-chrome .doc=${def ? { def, title: this.docTitle, value: def.title(this.doc) || this.fresh, locked: !!this.sealed, trust: this.trust(), used: this.payloadLength } : null} .main=${this.renderMain(def)} .mainClass=${`to-main ${editing ? 'to-wide' : ''}`} .label=${def?.name ?? ''} ?barred=${editing} .fresh=${this.fresh && !def?.title(this.doc) ? this.fresh : ''}
             .expires=${this.arrived ? this.expires : 0} ?extend=${!!this.owned} .other=${this.other} ?newer=${this.newer && !this.unreadable}
             @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads}></to-drawer>`}<to-toast></to-toast>

@@ -17,7 +17,8 @@ test('a tap opens where the link fits; the size steps; Insert narrows; a trip pr
   await page.goto('/#/v1/write');
   await expect(page.locator('to-write-editor to-text .tx')).toBeVisible();
 
-  await page.locator('.to-header .to-share').tap();
+  await page.locator('.to-burger').tap();
+  await page.locator('.to-drawer-share').tap();
   const dialog = page.locator('to-dialog.to-share-dialog dialog[open]');
   await dialog.locator('.to-fit-words').tap();
   const rooms = page.locator('.to-rooms');
@@ -54,27 +55,24 @@ test('a tap opens where the link fits; the size steps; Insert narrows; a trip pr
   expect(errors).toEqual([]);
 });
 
-test('at size 2 the Download button stays at the header\'s right and its table comes down under it, every target whole', async ({ page }, info) => {
+test('at size 2 the drawer\'s Download row opens its table under it, every target whole', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   await page.addInitScript(() => (localStorage.setItem('tinyoffice.keep', '1'), localStorage.setItem('tinyoffice.size', '2')));
   await page.goto(`/#/v1/write/${encodeDoc('# Notes\n\nWords.\n')}`);
   await expect(page.locator('to-write-editor to-text .tx')).toBeVisible();
-  const button = page.locator('.to-download > button');
+  // The header is the title (round nine): Download is the drawer's.
+  await expect(page.locator('.to-header .to-download')).toHaveCount(0);
+  await page.locator('.to-burger').tap();
+  const button = page.locator('.to-drawer-download > button');
   const b = (await button.boundingBox())!;
-  // At the header's right, beside the menu button at the inline end (round eight).
-  const burger = (await page.locator('.to-burger').boundingBox())!;
-  expect(b.x + b.width).toBeGreaterThan(burger.x - 16);
-  expect(b.x + b.width).toBeLessThanOrEqual(burger.x);
   await button.tap();
-  const menu = page.locator('.to-download [popover]');
+  const menu = page.locator('.to-drawer-download [popover]');
   await expect(menu).toBeVisible();
   const m = (await menu.boundingBox())!;
   expect(m.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
   expect(m.y).toBeLessThan(b.y + b.height + 20);
-  // Under it: its right edge near the button's, or past it where the table is wider than the room to its left.
-  expect(m.x + m.width).toBeGreaterThan(b.x + b.width - 16);
-  expect(m.x).toBeLessThanOrEqual(b.x);
   expect(m.x).toBeGreaterThanOrEqual(0);
+  expect(m.x + m.width).toBeLessThanOrEqual(390.5);
   expect(m.y + m.height).toBeLessThanOrEqual(844);
   const pdf = menu.locator('.to-menu-row[aria-label="PDF file"] [role=menuitem]');
   const labels = await pdf.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));

@@ -88,7 +88,8 @@ test('390×844 with a finger: a visual viewport 300px shorter (a keyboard) makes
   expect(bar().bottom).toBeCloseTo(vv.height, 0);
   vv.height -= 300;
   vv.dispatchEvent(new Event('resize'));
-  await frame();
+  // The column glides there (a fifth of a second).
+  await until(() => Math.abs(chrome.getBoundingClientRect().height - (full - 300)) < 0.5 && !chrome.hasAttribute('gliding'));
   expect(chrome.getBoundingClientRect().height).toBeCloseTo(full - 300, 0);
   expect(bar().bottom).toBeCloseTo(vv.offsetTop + vv.height, 0);
   // One row, the whole width.
@@ -98,7 +99,7 @@ test('390×844 with a finger: a visual viewport 300px shorter (a keyboard) makes
   expect([document.documentElement, document.body, ...document.querySelectorAll('*')].some((el) => style(el).includes('--to-vv-top') || style(el).includes('--to-stuck-h'))).toBe(false);
   vv.height += 300;
   vv.dispatchEvent(new Event('resize'));
-  await frame();
+  await until(() => Math.abs(bar().bottom - full) < 0.5 && !chrome.hasAttribute('gliding'));
   expect(bar().bottom).toBeCloseTo(full, 0);
 });
 
@@ -217,10 +218,165 @@ test('presenting a deck covers the chrome: the header, the burger and the bar ar
   expect(r.left).toBe(0);
   expect(r.width).toBeCloseTo(innerWidth, 0);
   expect(r.height).toBeCloseTo(innerHeight, 0);
-  for (const sel of ['.to-burger', '.to-header .to-share', '.to-editor to-bar']) {
+  for (const sel of ['.to-burger', '.to-header .to-here', '.to-editor to-bar']) {
     const b = shell.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
     expect(show.contains(document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2))).toBe(true);
   }
   await userEvent.keyboard('{Escape}');
   await until(() => !shell.querySelector('.deck-show'));
+});
+
+/* ---- round nine (Paul, 2026-10-10, from his iPhone): the bar glides, the header is the title, the burger keeps out of the way, the drawer is tidy ---- */
+
+const barOf = () => document.querySelector<HTMLElement>('.to-editor to-bar')!;
+
+test('390×844 with a finger: the keyboard coming up glides the column (a height transition) and the bar fades out while it moves and back when it settles', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const vv = fakeViewport();
+  const { chrome } = await write();
+  const full = chrome.getBoundingClientRect().height;
+  expect(getComputedStyle(barOf()).opacity).toBe('1');
+  vv.height -= 300;
+  vv.dispatchEvent(new Event('resize'));
+  await frame();
+  const look = getComputedStyle(chrome);
+  expect(look.transitionProperty).toContain('height');
+  expect(parseFloat(look.transitionDuration)).toBeGreaterThan(0.1);
+  expect(parseFloat(look.transitionDuration)).toBeLessThanOrEqual(0.3);
+  // Mid-flight: not yet where it is going.
+  expect(chrome.getBoundingClientRect().height).toBeGreaterThan(full - 299);
+  // The bar dips to nothing while the column moves…
+  let least = 1;
+  const end = performance.now() + 600;
+  while (performance.now() < end && least > 0.02) {
+    least = Math.min(least, parseFloat(getComputedStyle(barOf()).opacity));
+    await new Promise((r) => requestAnimationFrame(r));
+  }
+  expect(least).toBeLessThan(0.05);
+  // …and is back once it settles, at the keyboard's top.
+  await until(() => getComputedStyle(barOf()).opacity === '1' && !chrome.hasAttribute('gliding'));
+  expect(chrome.getBoundingClientRect().height).toBeCloseTo(full - 300, 0);
+  expect(barOf().getBoundingClientRect().bottom).toBeCloseTo(full - 300, 0);
+});
+
+test('390×844 with a finger, reduced motion: the column takes the keyboard’s height at once (only the fade remains)', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  await cdp().send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  try {
+    const vv = fakeViewport();
+    const { chrome } = await write();
+    const full = chrome.getBoundingClientRect().height;
+    vv.height -= 300;
+    vv.dispatchEvent(new Event('resize'));
+    await frame();
+    expect(chrome.getBoundingClientRect().height).toBeCloseTo(full - 300, 0);
+    await until(() => !chrome.hasAttribute('gliding') && getComputedStyle(barOf()).opacity === '1');
+  } finally {
+    await cdp().send('Emulation.setEmulatedMedia', { features: [] });
+  }
+});
+
+for (const [w, h] of [
+  [390, 844],
+  [1440, 900],
+] as const) {
+  test(`${w}×${h}: the header is the title: no Share, no Download, and the title field takes the room they left`, async () => {
+    await page.viewport(w, h);
+    const { chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+    const header = chrome.querySelector<HTMLElement>('.to-header')!;
+    expect(header.querySelector('.to-share, .to-download, to-menu')).toBeNull();
+    const title = header.querySelector<HTMLElement>('.to-title')!;
+    // The rest of the row: the app's icon, the trust pill, the meter, whichever are drawn.
+    const look = getComputedStyle(header);
+    const inner = header.clientWidth - parseFloat(look.paddingLeft) - parseFloat(look.paddingRight);
+    const others = [...header.children].filter((el) => el !== title && (el as HTMLElement).getBoundingClientRect().width > 0 && getComputedStyle(el).position !== 'absolute');
+    const gap = parseFloat(look.columnGap);
+    const rest = others.reduce((sum, el) => sum + el.getBoundingClientRect().width + gap, 0);
+    expect(title.getBoundingClientRect().width).toBeGreaterThanOrEqual(inner - rest - 1);
+    // Wider than the two buttons it lost would have left it: two 44px targets and their gaps.
+    expect(title.getBoundingClientRect().width).toBeGreaterThan(w === 390 ? 150 : 900);
+  });
+}
+
+test('390×844 with a finger: a tap in the words slides the burger to the very corner, translucent; a tap outside slides it back', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { text, main, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
+  const em = parseFloat(getComputedStyle(burger).fontSize);
+  const home = burger.getBoundingClientRect();
+  expect(getComputedStyle(burger).opacity).toBe('1');
+  expect(getComputedStyle(burger).transitionProperty).toMatch(/top|inset|transform|all/);
+  text.tx.blur();
+  await userEvent.click(text.tx.querySelector('p')!);
+  await until(() => chrome.editing);
+  await until(() => burger.getBoundingClientRect().top <= 0.5 * em && 390 - burger.getBoundingClientRect().right <= 0.5 * em && parseFloat(getComputedStyle(burger).opacity) < 0.7, 2000);
+  const b = burger.getBoundingClientRect();
+  // Still a finger's target.
+  expect(b.width).toBeGreaterThanOrEqual(44);
+  expect(b.height).toBeGreaterThanOrEqual(44);
+  await userEvent.click(main, { position: { x: 5, y: main.clientHeight - 5 } });
+  await until(() => !chrome.editing);
+  await until(() => Math.abs(burger.getBoundingClientRect().top - home.top) < 0.5 && getComputedStyle(burger).opacity === '1', 2000);
+  expect(burger.getBoundingClientRect().right).toBeCloseTo(home.right, 0);
+});
+
+test('390×844 with a finger: the drawer’s This document is a heading over two full-width rows, above the search; the dialog draws no ring and sits flush', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const drawer = shell.querySelector<ToDrawer>('to-drawer')!;
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => drawer.dialog.open && !!drawer.querySelector('.to-drawer-doc'));
+  await frame();
+  // On a touch screen the dialog holds the focus (not the search: the keyboard), and draws no ring for it.
+  expect(document.activeElement).toBe(drawer.dialog);
+  expect(getComputedStyle(drawer.dialog).outlineStyle).toBe('none');
+  // One hairline against the backdrop, the panel flush with the dialog's edge.
+  const inner = drawer.querySelector<HTMLElement>('.to-drawer-inner')!;
+  expect(inner.getBoundingClientRect().left).toBeCloseTo(drawer.dialog.getBoundingClientRect().left, 0);
+  expect(getComputedStyle(inner).borderInlineStartWidth).toBe('1px');
+  expect(drawer.dialog.getBoundingClientRect().right).toBeCloseTo(390, 0);
+  const doc = drawer.querySelector<HTMLElement>('.to-drawer-doc')!;
+  const head = doc.querySelector<HTMLElement>('.to-drawer-head3')!.getBoundingClientRect();
+  const share = doc.querySelector<HTMLElement>('.to-drawer-share')!.getBoundingClientRect();
+  const download = doc.querySelector<HTMLElement>('.to-drawer-download > button')!.getBoundingClientRect();
+  expect(head.bottom).toBeLessThanOrEqual(share.top + 0.5);
+  expect(share.bottom).toBeLessThanOrEqual(download.top + 0.5);
+  // Full width: the drawer's less the gutters, both alike, from the same edge.
+  const d = drawer.dialog.getBoundingClientRect();
+  for (const row of [share, download]) {
+    expect(row.width).toBeGreaterThan(d.width - 3 * parseFloat(getComputedStyle(doc).fontSize));
+    expect(row.left).toBeCloseTo(share.left, 0);
+    expect(row.right).toBeCloseTo(share.right, 0);
+    expect(row.height).toBeGreaterThanOrEqual(44);
+  }
+  // The heading's words begin where the rows' do: no empty column beside it.
+  expect(head.left).toBeLessThan(share.left + d.width / 4);
+  // The order: the head, This document, the search, the apps.
+  expect(doc.compareDocumentPosition(drawer.querySelector('.to-find')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(drawer.querySelector('.to-drawer-head')!.compareDocumentPosition(doc) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  // The keys are written at the rows' right.
+  expect(doc.querySelector('.to-drawer-share kbd')).not.toBeNull();
+  expect(doc.querySelector('.to-drawer-download kbd')).not.toBeNull();
+  drawer.close();
+});
+
+test('the keys: Mod+Shift+S opens Share, Mod+Shift+D the drawer with its Download table open', async () => {
+  await page.viewport(1440, 900);
+  const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const press = (key: string) => window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
+  press('S');
+  await until(() => !!shell.querySelector('to-dialog.to-share-dialog dialog[open]'));
+  shell.querySelector<HTMLElement>('to-dialog.to-share-dialog')!.querySelector<HTMLButtonElement>('.to-dialog-head button')!.click();
+  await until(() => !shell.querySelector('to-dialog.to-share-dialog dialog[open]'));
+  press('D');
+  const drawer = shell.querySelector<ToDrawer>('to-drawer')!;
+  await until(() => drawer.dialog.open && !!drawer.querySelector('.to-drawer-download [popover]:popover-open'));
+  // By a key: the first item has the focus.
+  await until(() => drawer.querySelector('.to-drawer-download [popover]')!.contains(document.activeElement));
+  drawer.querySelector<HTMLElement>('.to-drawer-download [popover]')!.hidePopover();
+  drawer.close();
 });

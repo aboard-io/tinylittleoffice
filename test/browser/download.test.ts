@@ -1,8 +1,9 @@
-// The Download menu: placed under its button at every size, and a table of formats, each with view, share,
-// download and copy link (kit/exports.ts exportItems, kit/menu.ts's rows of actions).
+// The Download menu: the drawer's This document row (round nine: the header is the title), placed under its row at
+// every size, and a table of formats, each with view, share, download and copy link (kit/exports.ts exportItems,
+// kit/menu.ts's rows of actions).
 import { test, expect, afterEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, until } from './helpers.ts';
+import { mount, openDrawerDoc, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { appOf } from '../../src/kit/apps.ts';
 import { parseHash } from '../../src/kit/route.ts';
@@ -16,38 +17,33 @@ afterEach(() => {
   history.replaceState(null, '', location.pathname);
 });
 
-const menu = (shell: HTMLElement) => shell.querySelector<HTMLElement>('.to-download [popover]')!;
+const menu = (shell: HTMLElement) => shell.querySelector<HTMLElement>('.to-drawer-download [popover]')!;
+/** Download, from the drawer (opened first, unless it is). */
 async function openDownload(shell: ToShell) {
-  shell.querySelector<HTMLButtonElement>('.to-download > button')!.click();
+  if (!shell.querySelector('dialog.to-drawer[open]')) await openDrawerDoc(shell);
+  shell.querySelector<HTMLButtonElement>('.to-drawer-download > button')!.click();
   await until(() => menu(shell).matches(':popover-open'));
   await until(() => !!menu(shell).style.top).catch(() => {});
 }
 
-test('at every size on a phone the Download button stays at the header\'s right and its menu comes down under it, never at the left edge', async () => {
+test('at every size on a phone the drawer\'s Download row opens its menu under it, inside the screen, never off its left edge', async () => {
   await page.viewport(390, 844);
   for (const at of [1, 1.5, 2, 2.5]) {
     keepSize(at);
     const shell = await mount(`#/v1/write/${encodeDoc('# Notes\n\nWords.\n')}`);
     await until(() => !!shell.querySelector('to-write-editor'));
     await openDownload(shell);
-    const b = shell.querySelector('.to-download > button')!.getBoundingClientRect();
+    const b = shell.querySelector('.to-drawer-download > button')!.getBoundingClientRect();
     const m = menu(shell).getBoundingClientRect();
-    // The button itself stays in the header's one row, at the screen's right, beside the menu button at the inline end
-    // (Paul: "the download button just hovers in the left").
-    const header = shell.querySelector('.to-header')!.getBoundingClientRect();
-    const burger = shell.querySelector('.to-burger')!.getBoundingClientRect();
-    expect(b.right, `size ${at}`).toBeGreaterThan(burger.left - 16);
-    expect(b.right, `size ${at}`).toBeLessThanOrEqual(burger.left);
-    expect(b.bottom, `size ${at}`).toBeLessThanOrEqual(header.bottom);
-    expect(shell.querySelector('.to-share')!.getBoundingClientRect().top, `size ${at}`).toBe(b.top);
+    // The row is the drawer's, under Share…; no Share or Download in the header.
+    expect(shell.querySelector('.to-header .to-share, .to-header .to-download')).toBeNull();
+    expect(b.top, `size ${at}`).toBeGreaterThanOrEqual(shell.querySelector('.to-drawer-share')!.getBoundingClientRect().bottom - 0.5);
     expect(m.top, `size ${at}`).toBeGreaterThanOrEqual(b.bottom - 1);
     expect(m.top, `size ${at}`).toBeLessThan(b.bottom + 20);
     expect(m.right, `size ${at}`).toBeLessThanOrEqual(390);
-    // Under the button: its right edge near the button's, or past it where the menu is wider than the room to its left.
-    expect(m.right, `size ${at}`).toBeGreaterThan(b.right - 16);
-    expect(m.left, `size ${at}`).toBeLessThanOrEqual(b.left);
     expect(m.left, `size ${at}`).toBeGreaterThanOrEqual(0);
     menu(shell).hidePopover();
+    shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.close();
   }
 });
 
@@ -90,7 +86,7 @@ async function shareSheet(body: (shared: ShareData[]) => Promise<void>) {
 }
 
 const NOTES = `#/v1/write/${encodeDoc('---\ntitle: Notes\n---\n# Notes\n\nWords.\n')}`;
-const rows = (shell: HTMLElement) => [...shell.querySelectorAll<HTMLElement>('.to-download .to-menu-row')];
+const rows = (shell: HTMLElement) => [...shell.querySelectorAll<HTMLElement>('.to-drawer-download .to-menu-row')];
 const row = (shell: HTMLElement, name: string) => rows(shell).find((r) => r.getAttribute('aria-label') === name)!;
 const acts = (r: HTMLElement) => [...r.querySelectorAll<HTMLButtonElement>('[role=menuitem]')];
 
@@ -187,7 +183,8 @@ test('the keys: Up and Down between rows, Left and Right between a row\'s action
   await page.viewport(390, 844);
   const shell = await mount(NOTES);
   await until(() => !!shell.querySelector('to-write-editor'));
-  const button = shell.querySelector<HTMLButtonElement>('.to-download > button')!;
+  await openDrawerDoc(shell);
+  const button = shell.querySelector<HTMLButtonElement>('.to-drawer-download > button')!;
   button.focus();
   button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   button.click();

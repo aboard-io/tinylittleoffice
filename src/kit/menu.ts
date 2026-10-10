@@ -168,7 +168,7 @@ export function hoverFocus(e: PointerEvent) {
 }
 
 export class ToMenu extends LitElement {
-  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keep: { type: Boolean }, filter: { type: Boolean }, query: { state: true } };
+  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keys: {}, keep: { type: Boolean }, filter: { type: Boolean }, query: { state: true } };
   declare label: string;
   /** Another button the menu was opened from (openAt): placed beside it, focus goes back to it. */
   private anchor: HTMLElement | null = null;
@@ -178,6 +178,8 @@ export class ToMenu extends LitElement {
   declare caret: boolean;
   /** The icon alone; the label is the button's name. */
   declare iconOnly: boolean;
+  /** The key that opens it, written at the button's end (the drawer's Download row). */
+  declare keys: string;
   /** Never takes the focus by a pointer (it acts on an editor's selection). */
   declare keep: boolean;
   /** Letters typed narrow the items (Insert ▾). */
@@ -195,6 +197,7 @@ export class ToMenu extends LitElement {
     this.items = [];
     this.caret = false;
     this.iconOnly = false;
+    this.keys = '';
     this.keep = false;
     this.filter = false;
     this.query = '';
@@ -347,7 +350,7 @@ export class ToMenu extends LitElement {
     }
     flush();
     return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
-        ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
+        ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${this.keys ? html`<kbd class="to-menu-keys">${keysText(this.keys)}</kbd>` : nothing}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
       </button>
       <div id=${this.uid} popover="auto" class="to-menu" role="menu" tabindex="-1" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${this.query ? html`<div class="to-menu-filter" role="status">${parts.length ? t('Starting “{q}”', { q: this.query }) : t('Nothing starts “{q}”', { q: this.query })}</div>` : nothing}${parts}</div>`;
   }
