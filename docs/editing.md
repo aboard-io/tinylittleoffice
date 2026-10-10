@@ -324,8 +324,8 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Comic | format ▾ |
 |  | Poster | format ▾ |
 |  | Name badges | format ▾ |
-|  | One-sided: fold and cut | format ▾ |
-|  | Two-sided: cut and nest | format ▾ |
+|  | One-sided | format ▾ |
+|  | Two-sided | format ▾ |
 |  | End with a QR code of this deck | bar, drawer on a phone |
 | `Alt+ArrowUp` | Move slide up | bar, at: words |
 | `Alt+ArrowDown` | Move slide down | bar, at: words |
@@ -422,8 +422,8 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `A` | Arrow | bar, at: canvas |
 | `T` | Text | bar, at: canvas |
 | `K`, `Shift+K` | Join two shapes | bar, at: canvas |
-| `P` | Pen: any shape, a tap for each corner | bar, at: canvas |
-| `F` | Freehand: drag to draw a line or a shape | bar, at: canvas |
+| `P` | Pen | bar, at: canvas |
+| `F` | Freehand | bar, at: canvas |
 |  | Rectangle | insert ▾ |
 |  | Rounded box | insert ▾ |
 |  | Ellipse | insert ▾ |
@@ -437,8 +437,8 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Arrow | insert ▾ |
 |  | Join two shapes | insert ▾ |
 |  | Icon… | insert ▾ |
-|  | Pen: any shape, a tap for each corner | insert ▾ |
-|  | Freehand: drag to draw a line or a shape | insert ▾ |
+|  | Pen | insert ▾ |
+|  | Freehand | insert ▾ |
 |  | Shapes | mode ▾ |
 |  | Pixels 8×8 | mode ▾ |
 |  | Pixels 16×16 | mode ▾ |
