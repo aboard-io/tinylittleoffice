@@ -2,7 +2,7 @@
 // covers exactly as the old tree's (a contract the old tree signed verifies here), two signers, a change after
 // signing breaking both, the row this key signed before put right, and the signature block in every file.
 import { unzipSync, strFromU8 } from 'fflate';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { applyAll, parse, write } from '../../../doc/index.ts';
 import { createSigner, verify } from '../../../kit/sign.ts';
 import { checkContract, contractText, keyMark, parseContract, printedSignatures, readSignatures, serializeContract, signaturesAt, signaturesOf, signedMessage, signOps, verdictOf, writeSignatures } from '../contract.ts';
@@ -118,4 +118,17 @@ test('the printed block and every file: name, day, key and whether it verified w
   await checkContract(changed);
   expect(printedSignatures(changed, signaturesAt(changed))[0].detail).toContain('does not match these words');
   expect(pages(changed).map((pg) => pg.svg).join('')).toContain('#b91c1c');
+});
+
+test('where Ed25519 is missing an Ed25519 signature cannot be checked, which is not the same as not matching; printed, it is "not checked"', async () => {
+  const real = crypto.subtle.importKey.bind(crypto.subtle);
+  const spy = vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((fmt: string, data: unknown, alg: AlgorithmIdentifier, ...rest: unknown[]) =>
+    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof crypto.subtle.importKey);
+  try {
+    const doc = parse(OLD.replace('Biscuit', 'Rex'));
+    expect(await checkContract(doc)).toEqual(['unchecked', 'unchecked']);
+    expect(printedSignatures(doc, signaturesAt(doc)).map((p) => [p.verdict, p.detail.split(' · ').at(-1)])).toEqual([['unchecked', 'not checked'], ['unchecked', 'not checked']]);
+  } finally {
+    spy.mockRestore();
+  }
 });

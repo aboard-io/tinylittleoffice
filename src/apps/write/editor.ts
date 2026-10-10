@@ -43,6 +43,7 @@ import { language, t } from '../../kit/i18n.ts';
 import { noteIndex, noteMarks, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import { myKey, signerName, signWords } from '../../kit/privacy.ts';
+import { signatureIcon, signatureTone, signatureWords, uncheckedHint } from '../../kit/privacy-dialog.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
@@ -639,10 +640,13 @@ export class ToWriteEditor extends DocElement<Doc> {
         ? html`<div class="write-sig-list" role="list">
             ${rows.map((s) => {
               const v = verdictOf(text, s) ?? 'checking';
-              return html`<div class="write-sig ${v}" role="listitem">
+              // A kind of signature this browser cannot check is said as the Privacy dialog says it: grey, never red.
+              const cannot = v === 'unchecked' ? ({ state: 'unchecked' } as const) : null;
+              return html`<div class="write-sig ${v} ${cannot ? signatureTone(cannot) : ''}" role="listitem">
                 <b>${s.name || t('Unnamed')}</b>
-                <span class="write-sig-state">${icon(v === 'valid' ? UI.shield : v === 'mismatch' ? UI.mismatch : UI.unsigned, 14)}<span>${words[v]}</span></span>
+                <span class="write-sig-state">${icon(cannot ? signatureIcon(cannot) : v === 'valid' ? UI.shield : v === 'mismatch' ? UI.mismatch : UI.unsigned, 14)}<span>${cannot ? signatureWords(cannot) : words[v]}</span></span>
                 ${s.key ? html`<small>${[s.date, t('key {fp}', { fp: printOf(s.key) })].filter(Boolean).join(' · ')}</small>` : nothing}
+                ${cannot ? html`<small class="to-unchecked-hint">${uncheckedHint()}</small>` : nothing}
               </div>`;
             })}
           </div>`

@@ -16,7 +16,7 @@
  * the editor checks on open and after every change, so the printed page, drawn at once, says what it found.
  */
 import { parse, write, type Block, type Doc, type Op } from '../../doc/index.ts';
-import { fingerprintOf, verify } from '../../kit/sign.ts';
+import { canCheck, fingerprintOf, verify } from '../../kit/sign.ts';
 import { t } from '../../kit/i18n.ts';
 import { fieldsOf } from './model.ts';
 
@@ -92,18 +92,21 @@ export function signOps(doc: Doc, s: Signature): Op[] {
 
 /* ---------- checked ---------- */
 
-/** A row as it stands against the words: signed and holding, signed and not (the words changed), not signed yet. */
-export type Verdict = 'valid' | 'mismatch' | 'unsigned';
+/**
+ * A row as it stands against the words: signed and holding, signed and not (the words changed), not signed yet,
+ * or signed with a kind of key this browser cannot check (Ed25519 where it has none), which is not the same as
+ * not matching (kit/sign.ts canCheck, as the document's own signature: kit/privacy.ts checkSignature).
+ */
+export type Verdict = 'valid' | 'mismatch' | 'unsigned' | 'unchecked';
 
-const verdicts = new Map<string, boolean>();
+const verdicts = new Map<string, Verdict>();
 const prints = new Map<string, string>();
 const keyOf = (text: string, s: Signature) => `${s.key}\u0000${s.sig}\u0000${signedMessage(text, s.name)}`;
 
 /** What is known of a row against these words; undefined while it has not been checked. */
 export function verdictOf(text: string, s: Signature): Verdict | undefined {
   if (!s.key || !s.sig) return 'unsigned';
-  const ok = verdicts.get(keyOf(text, s));
-  return ok === undefined ? undefined : ok ? 'valid' : 'mismatch';
+  return verdicts.get(keyOf(text, s));
 }
 
 /** A key's fingerprint as the Privacy dialog shows it, once checked; its last characters before. */
@@ -118,9 +121,12 @@ export async function checkContract(doc: Doc): Promise<Verdict[]> {
     rows.map(async (s) => {
       if (!s.key || !s.sig) return 'unsigned' as const;
       const k = keyOf(text, s);
-      if (!verdicts.has(k)) verdicts.set(k, await verify(s.key, s.sig, signedMessage(text, s.name)));
+      if (!verdicts.has(k)) {
+        const [ok, can] = await Promise.all([verify(s.key, s.sig, signedMessage(text, s.name)), canCheck(s.key)]);
+        verdicts.set(k, ok ? 'valid' : can ? 'mismatch' : 'unchecked');
+      }
       if (!prints.has(s.key)) prints.set(s.key, await fingerprintOf(s.key).catch(() => keyMark(s.key)));
-      return verdicts.get(k) ? ('valid' as const) : ('mismatch' as const);
+      return verdicts.get(k)!;
     }),
   );
 }
@@ -135,7 +141,8 @@ export function today(now = new Date()): string {
 export interface Printed {
   name: string;
   detail: string;
-  verdict: Verdict | 'unchecked';
+  /** 'unchecked' when it has not been checked here, or cannot be. */
+  verdict: Verdict;
 }
 
 /** The signatures as print and the files draw them: each checked as last verified, here, before printing. */

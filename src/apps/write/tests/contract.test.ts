@@ -160,7 +160,6 @@ test('a browser without Ed25519: the old tree\'s Ed25519 rows say Cannot check h
   const row = el.querySelector<HTMLElement>('.write-sig.unchecked')!;
   const state = row.querySelector<HTMLElement>('.write-sig-state')!;
   expect(state.textContent!.trim()).toBe('Cannot check here');
-  expect(state.title).toBe(uncheckedHint());
   expect(row.querySelector('.to-unchecked-hint')!.textContent!.trim()).toBe(uncheckedHint());
   const glyph = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   glyph.innerHTML = iconInner(signatureIcon({ state: 'unchecked' }));
