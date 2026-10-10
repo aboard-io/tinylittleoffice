@@ -108,6 +108,7 @@ export class ToShell extends LitElement {
   private checkRun = 0;
   private presentSoon = false; // a deck's show link: presenting starts once the editor is up
   private focusSoon = false; // just opened for editing: once drawn, the focus goes where a person starts
+  private refocus = false; // the address changed under the focus: a page with no editor puts it in its column once drawn
   private displayOwner = false; // a short link's owner arrived with "?d": the short link goes on opening the pages
   private edited: Doc = ''; // what the editor was last given or gave: without the new name the link carries for it
   private offs: (() => void)[] = [];
@@ -193,6 +194,8 @@ export class ToShell extends LitElement {
     clearTimeout(this.projectTimer);
     this.staged = null;
     this.kept.flush();
+    // Something of the page had the focus (the way home, a link, a field): what replaces it is given the focus once drawn.
+    this.refocus = !!document.activeElement && document.activeElement !== document.body && this.contains(document.activeElement);
     unplain(this.pageApp());
     this.comparing = parseCompare(location.hash);
     const { app, payload, view: asked, owned, display, arrived, sealed, show, version } = parseHash(location.hash);
@@ -317,6 +320,9 @@ export class ToShell extends LitElement {
     if (this.focusSoon && editor && !this.sealed) void drawn.then(() => this.editor === editor && !document.activeElement?.closest('dialog[open]') && editor.focusFirst?.());
     if (this.presentSoon && editor) void drawn.then(() => editor.present?.(true));
     if (editor) this.focusSoon = this.presentSoon = false;
+    // The home page (or a link that holds no editor) arrived from the keys: the focus goes to its column, not to nothing.
+    if (this.refocus && !this.def && (!document.activeElement || document.activeElement === document.body)) this.querySelector<HTMLElement>('main.to-main')?.focus({ preventScroll: true });
+    if (!this.def || editor) this.refocus = false;
   };
 
   /**
@@ -405,6 +411,8 @@ export class ToShell extends LitElement {
   private async ask(hash: string) {
     this.flushLink();
     this.leaving = hash;
+    // Asked from the drawer (a template chosen there): the drawer closes first, so one modal is open at a time.
+    this.querySelector<ToDrawer>('to-drawer')?.close();
     await this.updateComplete;
     await this.leaveDialog?.show();
   }

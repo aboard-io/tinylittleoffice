@@ -8,7 +8,8 @@
  * keyboard as one scrolling row, wherever the words are scrolled. Every scroll-to goes through kit/scroll.ts. The
  * title, tapped or focused, opens a second row of the header with the field across it, at a size that can be read
  * (Paul: "The title is too small to edit"), a new document's automatic name (`fresh`) chosen whole so typing replaces
- * it; Enter keeps what was typed, Escape puts back what was there, a tap elsewhere closes it.
+ * it; Enter keeps what was typed, Escape puts back what was there (either gives the focus back where it was, or to the
+ * column), a tap elsewhere closes it.
  *
  * On a phone the bar comes with the focus (Paul, 2026-10-10: "We could also just hide the secondary bar unless we are
  * editing"): `indoc` says something in the document has the focus from the person's own tap or key (words, a cell, a
@@ -123,6 +124,8 @@ export class ToChrome extends LitElement {
   /** The title being edited: the header's second row. */
   declare titling: boolean;
   private titleWas = '';
+  /** What had the focus before the title: it has it again after Enter or Escape. */
+  private titleFrom: HTMLElement | null = null;
   /** A box has the focus: on a phone the header steps aside (kit.css). */
   declare editing: boolean;
   /** Something in the document has the focus (words, a cell, a canvas, a chosen row, its bar): on a phone the bar is shown (kit.css). */
@@ -167,6 +170,7 @@ export class ToChrome extends LitElement {
     for (const type of ['pointerdown', 'keydown']) document.addEventListener(type, this.onPerson, true);
     window.addEventListener('hashchange', this.opened);
     this.addEventListener('transitionend', this.onGlided);
+    this.addEventListener('scroll', this.pinSelf, true);
     this.fit();
   }
   disconnectedCallback() {
@@ -178,6 +182,7 @@ export class ToChrome extends LitElement {
     for (const type of ['pointerdown', 'keydown']) document.removeEventListener(type, this.onPerson, true);
     window.removeEventListener('hashchange', this.opened);
     this.removeEventListener('transitionend', this.onGlided);
+    this.removeEventListener('scroll', this.pinSelf, true);
     clearTimeout(this.settleTimer);
     this.sized?.disconnect();
   }
@@ -195,6 +200,15 @@ export class ToChrome extends LitElement {
     if (this.style.height && this.style.height !== h && matchMedia('(pointer: coarse)').matches) this.glide();
     this.style.height = h;
     pinWindow();
+  };
+  /**
+   * The chrome and its column hold still: only `main` scrolls. The browser scrolls any box to bring a focused element
+   * into view, a hidden one too (the bar's button, focused while the bar is away under the column's foot, scrolled the
+   * chrome up by the header's height: the walks found it); so as the window is pinned (scroll.ts pinWindow), these are.
+   */
+  private pinSelf = (e: Event) => {
+    const box = e.target as HTMLElement;
+    if ((box === this || box.classList?.contains('to-column')) && (box.scrollTop || box.scrollLeft)) box.scrollTo(0, 0);
   };
   private settleTimer = 0;
   private glide() {
@@ -267,6 +281,7 @@ export class ToChrome extends LitElement {
     const field = e.target as HTMLInputElement;
     if (!field.matches('input.to-title')) return;
     this.titleWas = field.value;
+    this.titleFrom = e.relatedTarget instanceof HTMLElement && !this.querySelector('.to-header')?.contains(e.relatedTarget) ? e.relatedTarget : null;
     this.titling = true;
     if (!this.fresh) return;
     field.select();
@@ -283,7 +298,10 @@ export class ToChrome extends LitElement {
       e.stopPropagation();
       field.value = this.titleWas;
     }
-    field.blur();
+    // The focus goes back where it was (the words, a cell), or to the column, never to nothing (the walks found it on the body).
+    const back = this.titleFrom?.isConnected ? this.titleFrom : this.column;
+    if (back) back.focus({ preventScroll: true });
+    else field.blur();
   };
 
   private say(name: string, detail?: unknown) {

@@ -128,6 +128,25 @@ test('Escape puts back the title it had and closes the row; a tap elsewhere clos
   expect(css(header.getBoundingClientRect().height)).toBeCloseTo(56, 0);
 });
 
+test('Enter or Escape in the title gives the focus back where it was (the words), or to the document; never to nothing (walks: lists at a phone, seed 919315657)', async () => {
+  const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nWords.\n')}`);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  const words = shell.querySelector<HTMLElement>('to-write-editor to-text .tx')!;
+  words.focus();
+  const field = shell.querySelector<HTMLInputElement>('input.to-title')!;
+  field.focus();
+  await userEvent.keyboard('{Escape}');
+  expect(document.activeElement).toBe(words);
+  field.focus();
+  await userEvent.keyboard('{Enter}');
+  expect(document.activeElement).toBe(words);
+  // Come to from nothing (the page's body): the column, which holds the document.
+  (document.activeElement as HTMLElement).blur();
+  field.focus();
+  await userEvent.keyboard('{Escape}');
+  expect(document.activeElement).toBe(column(shell));
+});
+
 // On a desktop the document has the window, not a 1080px column (Paul, 2026-10-10): the editor's main and its bar
 // span it, the gutter the only inset; the Word Processor's paper runs edge to edge, its words at the page's measure.
 test('desktop: the editor has the window; the bar starts at the gutter and holds still as the column scrolls', async () => {

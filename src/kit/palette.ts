@@ -3,7 +3,8 @@
  * registry (kit/commands.ts) as it stands where the person was: the words' commands when words had the focus, the
  * open app's, the page's; each with its keys beside it. Letters typed narrow it to the commands with a word that
  * starts with them (case and accents aside); Up and Down move, round the ends; Enter or a tap runs one, after the
- * focus has gone back where it was, so a command on the words finds them selected as they were. Escape closes it.
+ * focus has gone back where it was, so a command on the words finds them selected as they were. Escape closes it, and
+ * the focus goes back where it was (a menu's button, when the tap that opened it closed that menu), never to nothing.
  * A native modal <dialog>, the kit's dialog's look; the input is a combobox over a listbox (the ARIA pattern).
  */
 import { LitElement, html, nothing } from 'lit';
@@ -12,6 +13,7 @@ import { t } from './i18n.ts';
 import { icon } from './icons.ts';
 import { fold } from './search.ts';
 import { reveal } from './scroll.ts';
+import { focusBack } from './dialog.ts';
 
 /** A command and the context it is run in. */
 export interface Offer {
@@ -45,7 +47,10 @@ export class ToPalette extends LitElement {
   }
   /** Open over these commands, the box empty and the first highlighted. */
   async show(offers: Offer[]) {
-    this.from = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const at = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // Opened by the tap that closed a menu: the focus is still in the menu, gone; it was the menu's button's.
+    const closed = at?.closest<HTMLElement>('[popover]:not(:popover-open)');
+    this.from = closed ? (closed.closest('to-menu')?.querySelector<HTMLElement>(':scope > button') ?? null) : at;
     this.offers = offers;
     this.query = '';
     this.at = 0;
@@ -72,6 +77,13 @@ export class ToPalette extends LitElement {
     this.from?.focus({ preventScroll: true });
     void run(o.cmd, o.c);
   }
+  /** Closed: the focus is where it was when the palette opened (the browser's own restoring can find that gone), else in the document's column. */
+  private onClose = () => {
+    this.offers = [];
+    const at = document.activeElement;
+    if (at && at !== document.body && !this.contains(at)) return;
+    focusBack(this.from);
+  };
   private onKey = (e: KeyboardEvent) => {
     if (e.isComposing) return;
     const n = this.shown().length;
@@ -92,7 +104,7 @@ export class ToPalette extends LitElement {
   render() {
     const shown = this.isOpen || this.offers.length ? this.shown() : [];
     const active = Math.min(this.at, shown.length - 1);
-    return html`<dialog class="to-dialog to-palette" aria-label=${t('All commands…')} @close=${() => (this.offers = [])} @click=${(e: Event) => e.target === this.dialog && this.close()}>
+    return html`<dialog class="to-dialog to-palette" aria-label=${t('All commands…')} @close=${this.onClose} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-dialog-inner">
         <input
           class="to-palette-find"
