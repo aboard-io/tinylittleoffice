@@ -373,7 +373,7 @@ kind: venn
 
 As a link: <https://tinylittleoffice.com/diagram/#doc=---%0Atitle%3A+Cats+and+dogs%0Akind%3A+venn%0A---%0A-+Cats%3A+purr%2C+climb+curtains%2C+use+a+litter+tray%0A-+Dogs%3A+fetch%2C+need+walks%2C+guard+the+house%0A-+Cats+%26+Dogs%3A+shed+on+the+sofa%2C+love+a+warm+spot%2C+wake+you+at+six>
 
-Templates: Blank mind map, Launch plan, The garden this year, Blank org chart, A small company, Blank family tree, Three generations, Blank swimlanes, From order to doorstep, Hiring someone, Blank timeline, Computing, briefly, A building project, Blank venn, Fast, cheap, good, Cats and dogs, Blank seating chart, A wedding dinner, Blank network, How an app hangs together. Its own files: `.svg`.
+Templates: Blank mind map, Launch plan, The garden this year, Moving abroad, Revising for an exam, Blank org chart, A small company, A primary school, A restaurant kitchen, Blank family tree, Three generations, The Brontës, A family with a godmother, Blank swimlanes, From order to doorstep, Hiring someone, An expenses claim, Blank timeline, Computing, briefly, A building project, Apollo 11, Blank venn, Fast, cheap, good, Cats and dogs, Who can do what, Blank seating chart, A wedding dinner, Board game night, A classroom, Blank network, How an app hangs together, The water cycle, The house network. Its own files: `.svg`.
 
 ### anim: a drawing that moves
 
