@@ -434,3 +434,34 @@ test('§1 display mode and a locked document focus nothing; unlocked, the docume
   shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
   await until(() => !!shell.querySelector<ToText>('to-write-editor to-text')?.hasFocus());
 });
+
+test('a phone keyboard going: the bar comes back to the top even where iOS keeps reporting the old offset', async () => {
+  await page.viewport(390, 844);
+  const shell = await mount(`#/v1/outline/${encodeDoc('- One\n- Two\n')}`);
+  await until(() => !!shell.querySelector('to-text .tx'));
+  const vv = window.visualViewport!;
+  let offset = 0;
+  Object.defineProperty(vv, 'offsetTop', { configurable: true, get: () => offset });
+  try {
+    const text = shell.querySelector<HTMLElement>('to-text .tx')!;
+    text.focus();
+    // The keyboard up: iOS slides the page up under it, the bar's top follows the visual viewport.
+    offset = 300;
+    vv.dispatchEvent(new Event('resize'));
+    await until(() => shell.style.getPropertyValue('--to-vv-top') === '300px');
+    // The keyboard going while the words keep the focus: at the resize the old offset is still reported, and it
+    // settles to 0 only afterwards, with no further event. The bar must not stay a third of the way down.
+    vv.dispatchEvent(new Event('resize'));
+    await tick(40);
+    offset = 0;
+    await until(() => shell.style.getPropertyValue('--to-vv-top') === '0px', 1500);
+    // And the focus leaving the box with the stale offset still reported: nothing focused means no keyboard.
+    offset = 300;
+    vv.dispatchEvent(new Event('resize'));
+    await until(() => shell.style.getPropertyValue('--to-vv-top') === '300px');
+    text.blur();
+    await until(() => shell.style.getPropertyValue('--to-vv-top') === '0px', 1500);
+  } finally {
+    delete (vv as unknown as Record<string, unknown>).offsetTop;
+  }
+});

@@ -241,7 +241,8 @@ export class ToShell extends LitElement {
     onFlush(this.flushLink);
     window.addEventListener('scroll', this.onScroll, { passive: true });
     window.visualViewport?.addEventListener('scroll', this.onScroll);
-    window.visualViewport?.addEventListener('resize', this.onScroll);
+    window.visualViewport?.addEventListener('resize', this.onViewport);
+    this.addEventListener('focusout', this.onViewport);
     window.addEventListener('dragover', this.onDragOver);
     window.addEventListener('drop', this.onDrop);
     this.addEventListener('to-keys', this.showKeys);
@@ -270,7 +271,9 @@ export class ToShell extends LitElement {
     onFlush(() => {});
     window.removeEventListener('scroll', this.onScroll);
     window.visualViewport?.removeEventListener('scroll', this.onScroll);
-    window.visualViewport?.removeEventListener('resize', this.onScroll);
+    window.visualViewport?.removeEventListener('resize', this.onViewport);
+    this.removeEventListener('focusout', this.onViewport);
+    for (const id of this.settling) clearTimeout(id);
     window.removeEventListener('dragover', this.onDragOver);
     window.removeEventListener('drop', this.onDrop);
     this.removeEventListener('to-keys', this.showKeys);
@@ -745,11 +748,26 @@ export class ToShell extends LitElement {
    * then too (--to-stuck-h), for the opaque strip the screen's width behind it once it is stuck.
    */
   private scrollFrame = 0;
+  /**
+   * The viewport resized (a phone's keyboard coming or going) or the focus left a box (the keyboard going): measured
+   * now and again over the next half second. iOS reports the keyboard's offset while the keyboard is still sliding
+   * away and sends nothing more once it has gone, so one reading leaves the bar stuck mid-screen (Paul, 2026-10-10,
+   * an Outliner on an iPhone: the bar parked a third of the way down with the words scrolling under it).
+   */
+  private settling: number[] = [];
+  private onViewport = () => {
+    this.onScroll();
+    for (const id of this.settling) clearTimeout(id);
+    this.settling = [120, 300, 600].map((ms) => window.setTimeout(this.onScroll, ms));
+  };
   private onScroll = () => {
     if (this.scrollFrame) return;
     this.scrollFrame = requestAnimationFrame(() => {
       this.scrollFrame = 0;
-      const top = Math.max(0, window.visualViewport?.offsetTop ?? 0);
+      // With nothing focused no keyboard is up, so unless the page is pinched in the offset can only be a stale one.
+      const vv = window.visualViewport;
+      const focused = !!document.activeElement && document.activeElement !== document.body;
+      const top = !vv || (!focused && vv.scale <= 1.01) ? 0 : Math.max(0, vv.offsetTop);
       this.style.setProperty('--to-vv-top', `${top}px`);
       const bar = this.querySelector<HTMLElement>('.to-editor to-bar');
       this.style.setProperty('--to-stuck-h', `${bar?.offsetHeight ?? 0}px`);
