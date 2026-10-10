@@ -642,11 +642,13 @@ export function outlineToDeck(v: OutlineView, head: Doc['head'] = {}): string {
   live.forEach((it, i) => {
     if (it.doc) return void slides.push([it.doc.startsWith('web\n') ? { k: 'p', runs: [{ t: it.doc.slice(4) }] } : refFence(it.doc)]);
     if (!hasChildren(live, i)) return;
+    // The one root is the title slide, and a title slide is the title alone: its children are the slides that follow (Paul, 2026-10-11).
     const title = it.depth === 0 && roots.length === 1 && i === 0;
-    slides.push([
-      { k: 'h', level: 2, runs: it.runs, ...(title ? { a: { cls: ['title'] } } : {}) },
-      ...kids(i).map((k): Block => ({ k: 'li', depth: 0, ...(k.ord ? { ord: true as const } : {}), runs: k.runs })),
-    ]);
+    slides.push(
+      title
+        ? [{ k: 'h', level: 2, runs: it.runs, a: { cls: ['title'] } }]
+        : [{ k: 'h', level: 2, runs: it.runs }, ...kids(i).map((k): Block => ({ k: 'li', depth: 0, ...(k.ord ? { ord: true as const } : {}), runs: k.runs }))],
+    );
   });
   return write({ head: head.title ? { title: head.title } : {}, blocks: slides.flatMap((s, n) => (n ? [{ k: 'hr' } as Block, ...s] : s)) });
 }

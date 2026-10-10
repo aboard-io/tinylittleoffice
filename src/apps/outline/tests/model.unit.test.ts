@@ -421,12 +421,10 @@ test('a mind map gets the tree and its joins as cross-links; an org chart its jo
   const deck = outlineToDeck(
     readOutline(parse('- Launch\n  - Product\n    - Pricing\n      - Tiers\n    - Onboarding\n  - Marketing\n    - Press\n\n```sheet {depth=1}\na | b\n--- | ---\n```\n\n  - Done\n')),
   );
-  expect(deck).toBe(
-    '## Launch {.title}\n\n- Product\n- Marketing\n- Done\n\n---\n\n## Product\n\n- Pricing\n- Onboarding\n\n---\n\n## Pricing\n\n- Tiers\n\n---\n\n## Marketing\n\n- Press\n\n---\n\n```sheet\na | b\n--- | ---\n```\n',
-  );
+  expect(deck).toBe('## Launch {.title}\n\n---\n\n## Product\n\n- Pricing\n- Onboarding\n\n---\n\n## Pricing\n\n- Tiers\n\n---\n\n## Marketing\n\n- Press\n\n---\n\n```sheet\na | b\n--- | ---\n```\n');
   expect(outlineToDeck(readOutline(parse('- A\n  - a1\n- B\n  - b1\n')))).toBe('## A\n\n- a1\n\n---\n\n## B\n\n- b1\n');
   expect(def.handoffs!.map((h) => h.to)).toEqual(['deck', 'diagram', 'diagram', 'diagram', 'diagram']);
-  expect(def.handoffs![0].convert('---\ntitle: Plan\n---\n' + TREE)).toBe('---\ntitle: Plan\n---\n## Launch {.title}\n\n- Product\n- Marketing\n\n---\n\n## Product\n\n- Pricing\n');
+  expect(def.handoffs![0].convert('---\ntitle: Plan\n---\n' + TREE)).toBe('---\ntitle: Plan\n---\n## Launch {.title}\n\n---\n\n## Product\n\n- Pricing\n');
 });
 
 test('OPML, plain text and Markdown, and the page', () => {
@@ -443,7 +441,8 @@ test('OPML, plain text and Markdown, and the page', () => {
   // A numbered item's number is drawn where its dot would be; the hand-offs keep the numbers.
   expect(def.view('1. A\n2. B\n')[0].svg).toContain('>2.</text>');
   expect(outlineToMind(readOutline(parse('1. A\n2. B\n')))).toBe('---\nkind: mind\n---\n1. A\n2. B\n');
-  expect(outlineToDeck(readOutline(parse('- A\n  1. a\n  2. b\n')))).toBe('## A {.title}\n\n1. a\n2. b\n');
+  expect(outlineToDeck(readOutline(parse('- A\n  1. a\n  2. b\n')))).toBe('## A {.title}\n');
+  expect(outlineToDeck(readOutline(parse('- A\n  - a\n    1. x\n')))).toBe('## A {.title}\n\n---\n\n## a\n\n1. x\n');
   // An item's note is a numbered item right under it, first among its children.
   expect(built('md', '- A^[a note]\n  - B\n')).toBe('- A[1]\n  1. a note\n  - B\n');
   expect(built('opml', TREE)).toContain('<title>Launch</title>');
