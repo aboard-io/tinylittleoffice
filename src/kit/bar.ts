@@ -8,6 +8,9 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { ChevronLeft, ChevronRight } from 'lucide';
 import { icon, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
+import { keysText, run, type Command } from './commands.ts';
+
+export { keysText };
 
 export class ToBar extends HTMLElement {
   private watch: ResizeObserver | null = null;
@@ -62,10 +65,6 @@ export interface BtnOpts {
 // cancelling the compatibility mousedown (which is what would move the focus) still lets the click through.
 const keepFocus = (e: Event) => e.preventDefault();
 
-const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-/** "Mod+B" as this device writes it: ⌘B on a Mac, Ctrl+B elsewhere. */
-export const keysText = (keys: string) => (mac ? keys.replace('Mod+', '⌘').replace('Shift+', '⇧').replace('Alt+', '⌥') : keys.replace('Mod+', 'Ctrl+'));
-
 const tip = (o: BtnOpts) => (o.keys ? `${o.hint ?? o.label} (${keysText(o.keys)})` : (o.hint ?? o.label));
 
 /** A button with its words on it (two at most, so the bar never wraps them; `hint` says the rest), and an icon before them if it has one. */
@@ -75,6 +74,28 @@ export const btn = (o: BtnOpts): TemplateResult =>
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
   html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+
+/**
+ * A command of the registry (kit/commands.ts) as a bar's icon button, in its context: its words, icon and keys, its
+ * pressed state, disabled where it is not to be done now (or where there is no context: nothing in hand), and nothing
+ * at all where it is not in force (`when`). `over` changes what the bar needs changed (a class).
+ */
+export function cmdTool<C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing {
+  const has = c !== null && c !== undefined;
+  if (has && cmd.when && !cmd.when(c)) return nothing;
+  return tool({
+    label: cmd.label(has ? c : undefined),
+    icon: cmd.icon,
+    keys: cmd.keys,
+    hint: cmd.hint?.(),
+    keep: !cmd.takesFocus,
+    pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
+    disabled: !has || !!cmd.disabled?.(c),
+    does: (e) => void (has && run(cmd, c, e)),
+    ...over,
+    cls: `${over.cls ?? ''} cmd-${cmd.id.replace(/\./g, '-')}`.trim(),
+  });
+}
 
 export interface DateNavOpts {
   /** What is on view: "March 2027". */

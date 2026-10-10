@@ -111,6 +111,48 @@ export function copyData(blocks: Block[], sel: Sel): { text: string; html: strin
   return { text: write({ head: {}, blocks: picked }), html: one ? html.replace(MARKER, `${MARKER}\n<meta name="${RUNS}" content="${esc(JSON.stringify(one.runs))}">`) : html };
 }
 
+/** What the clipboard holds or is to hold: the words (our TLO), and the HTML (ours carries the marker). */
+export interface Clip {
+  text: string;
+  html: string;
+}
+
+/**
+ * A copy put on the system clipboard as a page may put it, from a button rather than the keys (a phone's Copy, a
+ * card's): the TLO and our HTML together, the words alone where the browser takes no HTML. False where it refuses.
+ */
+export async function writeClip(c: Clip): Promise<boolean> {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([c.text], { type: 'text/plain' }), 'text/html': new Blob([c.html], { type: 'text/html' }) })]);
+    return true;
+  } catch {
+    try {
+      await navigator.clipboard.writeText(c.text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+/** The system clipboard read as a page may read it, for a Paste button: its words and its HTML; null where the browser refuses (then only the keyboard's paste reaches it). */
+export async function readClip(): Promise<Clip | null> {
+  try {
+    const items = await navigator.clipboard.read();
+    const got: Clip = { text: '', html: '' };
+    for (const item of items) {
+      if (!got.html && item.types.includes('text/html')) got.html = await (await item.getType('text/html')).text();
+      if (!got.text && item.types.includes('text/plain')) got.text = await (await item.getType('text/plain')).text();
+    }
+    return { text: got.text.replace(/\r\n?/g, '\n'), html: got.html };
+  } catch {
+    try {
+      return { text: (await navigator.clipboard.readText()).replace(/\r\n?/g, '\n'), html: '' };
+    } catch {
+      return null;
+    }
+  }
+}
+
 /** The meta our HTML carries the exact runs of a fragment in. */
 const RUNS = 'tlo-runs';
 const RUN_KEYS = ['b', 'i', 'u', 's', 'h'] as const;

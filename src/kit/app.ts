@@ -8,6 +8,7 @@
  * text, and `Doc` here is that string: the shell hands an editor the text and takes the text back.
  */
 import type { IconNode } from 'lucide';
+import type { Command } from './commands.ts';
 
 /** A document: its TLO text. (The kernel's parse/write will sit at either end of this string.) */
 export type Doc = string;
@@ -44,13 +45,6 @@ export interface ViewOpts {
 
 /** Whether a page is drawn where nothing can move: `still`, or a thumbnail (which always is). */
 export const isStill = (opts?: ViewOpts): boolean => !!(opts?.still || opts?.thumb);
-
-/** A key the app answers, for the shortcuts dialog (Mod+/): "Mod+Alt+Enter", "V". */
-export interface Shortcut {
-  keys: string;
-  /** What it does, through t(). */
-  does: () => string;
-}
 
 /** A way to start: Blank first on the home page (unless the app's `blankInTemplates`), then these, each drawn small from its own document. */
 export interface Template {
@@ -142,8 +136,12 @@ export interface AppDef {
   page?(doc: Doc, base: string): string;
   exports?: Export[];
   handoffs?: Handoff[];
-  /** The app's own keys, beyond the standard's (docs/editing.md §1): listed in the shortcuts dialog. */
-  keys?: Shortcut[];
+  /**
+   * The app's commands (kit/commands.ts), lazily: its bar, its menus, its context bars and its keys are drawn and
+   * answered from them, and the shortcuts dialog, the palette and docs/editing.md's tables list them. A module of its
+   * own beside the editor (commands.ts), which the editor imports too, so the home page carries none of it.
+   */
+  commands?: () => Promise<{ default: readonly Command[] }>;
   /** How many steps the document builds up in when presented (a list an item a step, a trip a stop a step); `view(doc, { upTo })` draws a part of it. Absent or 0: shown whole. */
   steps?(doc: Doc): number;
 }

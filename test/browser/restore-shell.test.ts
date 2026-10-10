@@ -9,7 +9,7 @@ import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { setKeeping } from '../../src/kit/store.ts';
 import { remScale, size, stepSize } from '../../src/kit/zoom.ts';
 import { place } from '../../src/kit/menu.ts';
-import { keysWritten } from '../../src/kit/keys.ts';
+import { keysText } from '../../src/kit/commands.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToFind } from '../../src/kit/find.ts';
 
@@ -148,7 +148,7 @@ test('Mod+/ and the menu open the keyboard shortcuts: the standard’s table, th
   expect(dialog().querySelector('kbd')!.textContent).toBe('V');
   // The alignment keys, as this device writes them: the Drawing Tool's Align, round left, centre and right.
   const rows = (d: HTMLDialogElement) => [...d.querySelectorAll('.to-keys')[0].querySelectorAll('tr')].map((r) => [r.querySelector('kbd')!.textContent, r.querySelector('td')!.textContent]);
-  const shift = (k: string) => keysWritten(`Mod+Shift+${k}`);
+  const shift = (k: string) => keysText(`Mod+Shift+${k}`);
   expect(rows(dialog())).toContainEqual([[shift('L'), shift('E'), shift('R')].join(' / '), 'Align a text left, centred or right (the bar’s Align goes round the three)']);
   dialog().close();
   await until(() => !dialog().open);

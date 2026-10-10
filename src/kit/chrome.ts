@@ -37,7 +37,7 @@
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
- * events: `to-drawer-open` (the menu button), `to-share-open` (the meter, a short link's Extend: detail.short),
+ * events: `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter, a short link's Extend: detail.short),
  * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -49,6 +49,8 @@ import { t } from './i18n.ts';
 import { ago, type Kept } from './library.ts';
 import { expiresSentence, timeLeft } from './short.ts';
 import { pinWindow, reveal } from './scroll.ts';
+import { cmdTool } from './bar.ts';
+import { PALETTE } from './keys.ts';
 
 /** The document the header names. */
 export interface DocHead {
@@ -325,8 +327,10 @@ export class ToChrome extends LitElement {
     // The menu button is a hamburger (Paul, 2026-10-10: "Make the hamburger a hamburger"); the mark is the drawer's.
     const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${() => this.say('to-drawer-open')}>${icon(UI.menu, 24)}</button>`;
     const head = html`<header class="to-header ${this.titling ? 'titling' : ''}" aria-label=${t('Tiny Little Office')} @focusin=${this.openTitle} @focusout=${() => (this.titling = false)} @keydown=${this.titleKey}>${this.doc ? this.renderDoc(this.doc) : html`<a class="to-brand" href="#/">${t('Tiny Little Office')}</a>`}</header>`;
+    // The command palette's button at the bar's end (kit/palette.ts): the kit's, in the bar's row, after whatever the app's bar holds.
+    const palette = this.barred ? cmdTool(PALETTE, { palette: () => this.say('to-palette-open') }, { cls: 'to-palette-btn' }) : nothing;
     return html`${burger}${head}${this.renderArrival()}${this.renderOther()}<div class="to-column ${this.barred ? 'barred' : ''}">
-      <main class=${this.mainClass} tabindex="-1" aria-label=${this.label || nothing}>${this.main}</main>
+      <main class=${this.mainClass} tabindex="-1" aria-label=${this.label || nothing}>${this.main}</main>${palette}
     </div>`;
   }
 }

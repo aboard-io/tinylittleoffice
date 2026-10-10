@@ -18,7 +18,8 @@
  * nothing. A Display Link ("?d") shows the pages, to read or print, with Edit; ".embed" the pages alone, for another
  * site's frame; "…?show" opens a deck presenting; ".<ext>" downloads (exports.ts viewAs); a plain-parameter link
  * (kit/plain.ts) becomes the packed link on arrival; "#/compare/…" is the compare view; a file dropped on the page
- * opens (kit/open.ts). Mod+F finds, Mod+/ the shortcuts, Mod+S keeps (kit/keys.ts pageKey).
+ * opens (kit/open.ts). Mod+F finds, Mod+/ the shortcuts, Mod+S keeps, Mod+K the command palette (kit/keys.ts, the page's
+ * commands; kit/palette.ts).
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -51,7 +52,12 @@ import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
 import type { ToMenu } from './menu.ts';
 import type { ToFind } from './find.ts';
-import { pageKey, renderShortcuts } from './keys.ts';
+import { KIT_COMMANDS, PALETTE, pageKey, renderShortcuts, type Page } from './keys.ts';
+import { inScope, live, register } from './commands.ts';
+import { TEXT_COMMANDS } from './text-commands.ts';
+import type { ToText } from './text.ts';
+import type { Offer, ToPalette } from './palette.ts';
+import './palette.ts';
 import { pinchSizes } from './pinch.ts';
 import { applySize } from './zoom.ts';
 import './chrome.ts';
@@ -209,7 +215,9 @@ export class ToShell extends LitElement {
     this.setTitle();
     if (def && this.tag !== `to-${def.id}-editor`) {
       this.tag = '';
-      void def.editor().then(({ tag }) => {
+      // The app's commands with it (kit/commands.ts): the shortcuts dialog, the palette and the drawer read them.
+      void Promise.all([def.editor(), def.commands?.()]).then(([{ tag }, cmds]) => {
+        if (cmds) register(cmds.default);
         if (this.app === def.id) this.tag = tag;
       });
     }
@@ -402,9 +410,43 @@ export class ToShell extends LitElement {
   }
   private current = () => (this.flushLink(), { doc: this.doc, ctx: { def: this.def!, title: this.def!.title(this.doc) || this.fresh, link: this.link } });
 
-  /** The page's keys (kit/keys.ts pageKey): print, the shortcuts, find, keep, and undo passed to the editor. */
-  private onKey = (e: KeyboardEvent) =>
-    pageKey(e, { flush: this.flushLink, print: () => void printDoc(this.current()), shortcuts: this.showKeys, find: () => this.showFind(), keep: () => this.keepNow(), share: () => void (!this.sealed && this.openShare()), download: () => void this.openDownload(), doc: !!this.def, editing: !!this.def && !this.display, editor: this.editor });
+  /** What the page's commands act on (kit/keys.ts): print, the shortcuts, find, keep, share, download, the palette, and undo passed to the editor. */
+  get page(): Page {
+    return { flush: this.flushLink, print: () => void printDoc(this.current()), shortcuts: this.showKeys, find: () => this.showFind(), keep: () => this.keepNow(), share: () => void (!this.sealed && this.openShare()), download: () => void this.openDownload(), palette: () => void this.showPalette(), doc: !!this.def, editing: !!this.def && !this.display, editor: this.editor };
+  }
+  /** The page's keys (kit/keys.ts pageKey), answered after the words' and the app's. */
+  private onKey = (e: KeyboardEvent) => pageKey(e, this.page);
+
+  /**
+   * The commands in force where the person is, for the palette and the drawer: the words' when a <to-text> of the
+   * document has the focus (or `text`), the open app's with its editor, the page's.
+   */
+  offers(text: ToText | null = (document.activeElement?.closest('to-text') as ToText | null) ?? null): Offer[] {
+    const page = this.page;
+    const editor = this.editor;
+    const def = this.def;
+    const out: Offer[] = [];
+    if (text && editor?.contains(text)) out.push(...TEXT_COMMANDS.filter((c) => live(c, text)).map((cmd) => ({ cmd, c: text })));
+    if (editor && def) out.push(...inScope(def.id).filter((c) => !c.menu && live(c, editor)).map((cmd) => ({ cmd, c: editor as unknown })));
+    out.push(...KIT_COMMANDS.filter((c) => c !== PALETTE && live(c, page)).map((cmd) => ({ cmd, c: page as unknown })));
+    return out;
+  }
+  /** The command palette (Mod+K, the button at a bar's end). */
+  async showPalette() {
+    const pal = this.querySelector<ToPalette>('to-palette');
+    if (!pal || pal.isOpen) return;
+    this.flushLink();
+    await pal.show(this.offers());
+  }
+  /** The open app's commands that need nothing in hand, for the drawer's This document on a phone (the bar is away while reading). */
+  private docCommands = (): Offer[] => {
+    const editor = this.editor;
+    const def = this.def;
+    if (!editor || !def) return [];
+    return inScope(def.id)
+      .filter((c) => c.document && c.where.includes('bar') && (!c.when || c.when(editor)))
+      .map((cmd) => ({ cmd, c: editor as unknown }));
+  };
 
   /* ---------- sharing (the dialog is <to-share>'s) ---------- */
 
@@ -494,8 +536,8 @@ export class ToShell extends LitElement {
       : html`<button type="button" class="to-btn to-skip" @click=${this.skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>
           <to-chrome .doc=${def ? { def, title: this.docTitle, value: def.title(this.doc) || this.fresh, locked: !!this.sealed, trust: this.trust(), used: this.payloadLength } : null} .main=${this.renderMain(def)} .mainClass=${`to-main ${editing ? 'to-wide' : ''}`} .label=${def?.name ?? ''} ?barred=${editing} .fresh=${this.fresh && !def?.title(this.doc) ? this.fresh : ''}
             .expires=${this.arrived ? this.expires : 0} ?extend=${!!this.owned} .other=${this.other} ?newer=${this.newer && !this.unreadable}
-            @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
-    return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads}></to-drawer>`}<to-toast></to-toast>
+            @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-palette-open=${() => void this.showPalette()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
+    return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands}></to-drawer><to-palette></to-palette>`}<to-toast></to-toast>
       ${def
         ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.docTitle} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
             <to-privacy doc .app=${def.id} .sealed=${this.sealed} .signature=${this.signature} ?protected=${!!this.locker} .by=${this.envelope.by ?? ''} ?signed=${!!this.envelope.sig} .signable=${this.signable} @to-unlock=${this.onUnlock} @to-lock=${this.onLock} @to-signed=${this.onSigned}></to-privacy>`
