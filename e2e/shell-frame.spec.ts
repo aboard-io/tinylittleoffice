@@ -2,9 +2,10 @@
  * The document is the page (Paul, 2026-10-10): on a phone (WebKit, 390 by 844) the Word Processor's paper is as wide
  * as the screen with no border, and a long document scrolled has its bar at the top, the header gone and the menu
  * button still there; a tap on the title opens it wide, its automatic name chosen whole. On a desktop the words keep
- * the page's measure. Run on its own:
+ * the page's measure, and the editor has the window's width, not a column: a five-stage board is never cut off. Run
+ * on its own:
  *
- *   PW_PORT=4433 npx playwright test e2e/shell-frame.spec.ts --workers=1
+ *   PW_PORT=4436 npx playwright test e2e/shell-frame.spec.ts --workers=1
  */
 import { test, expect } from '@playwright/test';
 import { encodeDoc } from '../src/kit/codec.ts';
@@ -71,4 +72,34 @@ test('desktop: no frame round the paper, and the words no wider than the page’
   // A letter page is 816px with an inch (96px) each side: 624px of words.
   expect(words.width).toBeLessThanOrEqual(624.5);
   expect(words.width).toBeGreaterThan(600);
+});
+
+const FIVE = `---\ntitle: Five stages\n---\n${['Ideas', 'To do', 'Doing', 'Waiting on', 'Done'].map((s, i) => `## ${s}\n\n- A card in ${s.toLowerCase()}\n- Another card, number ${i + 1}\n`).join('\n')}`;
+
+test('desktop: a five-stage board at 1280 is never clipped by the main; its last stage shows or scrolls in its own scroller', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'desktop only');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`/#/v1/board/${encodeDoc(FIVE)}`);
+  const cols = page.locator('.board-col');
+  await expect(cols).toHaveCount(5);
+  const m = await page.evaluate(() => {
+    const main = document.querySelector('.to-main')!.getBoundingClientRect();
+    const board = document.querySelector<HTMLElement>('.board')!;
+    const last = [...document.querySelectorAll('.board-col')].at(-1)!.getBoundingClientRect();
+    return { main: [main.left, main.width], board: [board.getBoundingClientRect().left, board.getBoundingClientRect().right], scrolls: board.scrollWidth > board.clientWidth, overflow: getComputedStyle(board).overflowX, last: [last.left, last.right], page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  // The editor's main is the window's width.
+  expect(m.main).toEqual([0, 1280]);
+  expect(m.page).toBeLessThanOrEqual(0);
+  // The stages' scroller is the window's width less the gutters.
+  expect(m.board[0]).toBeLessThanOrEqual(16);
+  expect(m.board[1]).toBeGreaterThanOrEqual(1264);
+  if (m.last[1] > m.board[1]) {
+    expect(m.scrolls).toBe(true);
+    expect(m.overflow).toBe('auto');
+    await page.locator('.board').evaluate((el) => (el.scrollLeft = el.scrollWidth));
+    const last = (await cols.last().boundingBox())!;
+    expect(last.x + last.width).toBeLessThanOrEqual(m.board[1] + 0.5);
+    expect(last.x).toBeGreaterThanOrEqual(m.board[0]);
+  } else expect(m.last[1]).toBeLessThanOrEqual(1280);
 });

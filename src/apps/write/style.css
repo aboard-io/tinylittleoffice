@@ -9,17 +9,20 @@
     min-height: 0;
   }
 
-  /* The paper is the page, not a card on it (Paul, 2026-10-10): its colour runs the column's width, to the screen's
-     edges on a phone, and the words keep the measure of a page at 96 px to the inch with its inch of margin (less
-     where the screen is narrower than the page, 16px on a phone). */
+  /* The paper is the page, not a card on it (Paul, 2026-10-10): its colour runs the window's width, edge to edge
+     under the bar at any size (the main's side insets, negated; none outside the main), and the words keep the
+     measure of a page at 96 px to the inch with its inch of margin, centred (less where the screen is narrower
+     than the page, 16px on a phone). */
   .write-page {
     touch-action: manipulation;
     --write-w: 816px;
     --write-m: 96px;
     --write-mx: clamp(16px, 6vw, var(--write-m));
-    margin-left: var(--to-bleed-l);
-    margin-right: var(--to-bleed-r);
-    padding: clamp(20px, 6vw, var(--write-m)) max(var(--write-mx), calc((100% - var(--write-w)) / 2 + var(--write-m)));
+    --write-bl: var(--to-inset-l, 0px);
+    --write-br: var(--to-inset-r, 0px);
+    margin-left: calc(-1 * var(--write-bl));
+    margin-right: calc(-1 * var(--write-br));
+    padding: clamp(20px, 6vw, var(--write-m)) max(var(--write-mx), calc((100% + var(--write-bl) + var(--write-br) - var(--write-w)) / 2 + var(--write-m)));
     color: var(--to-paper-ink);
     background: var(--to-paper);
     font-family: var(--to-font);

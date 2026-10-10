@@ -1200,6 +1200,7 @@ export class ToShell extends LitElement {
     if (def && this.embed && !this.unreadable) return this.renderEmbed(def);
     if (def && this.display && !this.unreadable && !this.sealed) return this.renderDisplay(def);
     let main;
+    let wide = false;
     if (this.comparing) main = html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>`;
     else if (!def) main = html`<to-home></to-home>`;
     else if (this.sealed) main = html`<div class="to-empty to-locked">${icon(UI.lock, 32)}<p>${t('This document is locked with a password.')}</p><button type="button" class="to-btn primary to-unlock-open" @click=${() => void this.askPassword()}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button></div>`;
@@ -1208,6 +1209,7 @@ export class ToShell extends LitElement {
     else {
       const tag = unsafeStatic(this.tag);
       main = staticHtml`<${tag} class="to-editor" .value=${this.edited} @docchange=${this.onDocChange}></${tag}>`;
+      wide = true;
     }
     const skip = () => {
       // The first place to type or act in the document itself, past the app's bar; else the page's main part.
@@ -1215,7 +1217,7 @@ export class ToShell extends LitElement {
       const to = inDoc ?? this.querySelector<HTMLElement>('.to-main');
       to?.focus();
     };
-    return html`<button type="button" class="to-btn to-skip" @click=${skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>${this.renderHeader()}${this.renderArrival()}${this.renderOther()}<main class="to-main" tabindex="-1" aria-label=${this.def?.name ?? nothing}>${main}</main><to-find></to-find><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}<to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>`;
+    return html`<button type="button" class="to-btn to-skip" @click=${skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>${this.renderHeader()}${this.renderArrival()}${this.renderOther()}<main class="to-main ${wide ? 'to-wide' : ''}" tabindex="-1" aria-label=${this.def?.name ?? nothing}>${main}</main><to-find></to-find><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}<to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>`;
   }
 }
 customElements.define('to-shell', ToShell);

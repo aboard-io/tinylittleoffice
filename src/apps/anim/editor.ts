@@ -685,7 +685,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     const reach = (drawn: number) => (coarse ? Math.max(drawn, FINGER / 2 / this.scale()) : drawn);
     return html`<div class="anim-wrap" @wheel=${this.onWheel}>
-      <svg class="anim-stage ${this.held ? 'held' : ''}" style=${this.zoom === 1 ? '' : `width:${this.zoom * 100}%;max-height:none`} viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="application" aria-label=${t('Stage: {alt}. Arrow keys move the shape in hand (or the time), comma and full stop step a frame, Space plays, K keeps a key.', { alt: altOf(a) })} tabindex="0"
+      <svg class="anim-stage ${this.held ? 'held' : ''}" style=${this.zoom === 1 ? '' : `width:${this.zoom * 100}%;max-height:none;max-width:none`} viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="application" aria-label=${t('Stage: {alt}. Arrow keys move the shape in hand (or the time), comma and full stop step a frame, Space plays, K keeps a key.', { alt: altOf(a) })} tabindex="0"
         @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         ${unsafeSVG(frameSvg(a, now, THEME))}
         ${this.playing

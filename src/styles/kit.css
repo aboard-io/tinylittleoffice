@@ -1171,7 +1171,7 @@
   /* Once the header has gone, the app's bar makes room for the menu button: narrowed rather than padded, so a bar
      that scrolls sideways on a phone never slides under it (none needed where the page's margin already holds it). */
   to-shell[scrolled] .to-editor to-bar {
-    margin-left: calc(max(0px, var(--to-burger-w) - max(0px, (100vw - var(--to-max-w)) / 2)) - var(--to-gutter));
+    margin-left: calc(var(--to-burger-w) - var(--to-gutter));
   }
   /* Behind the stuck bar the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
   to-shell[scrolled]::before {
@@ -1254,7 +1254,10 @@
   }
   /* The document is the page, not a card on it (Paul, 2026-10-10: "we shouldn't really have viewports"). On a phone
      an app's frame runs to the screen's edges through --to-bleed-l and --to-bleed-r (its margins: the main column's
-     side padding, negated; responsive.css); on a desktop they are 0 and the frame is the column's width. */
+     side padding, negated; responsive.css); on a desktop they are 0 and the frame is the main's width. An editor's
+     main (.to-wide) is the window's width at any size, the gutter its only inset: each app sets its own measure
+     where it is words (the Word Processor's paper still runs edge to edge, its words at the page's measure). The
+     home page, the compare page and the empty states keep the column. */
   .to-main {
     --to-inset-l: max(var(--to-gutter), env(safe-area-inset-left));
     --to-inset-r: max(var(--to-gutter), env(safe-area-inset-right));
@@ -1265,6 +1268,9 @@
     padding: var(--to-gutter);
     padding-left: var(--to-inset-l);
     padding-right: var(--to-inset-r);
+  }
+  .to-main.to-wide {
+    max-width: none;
   }
   .to-editor {
     display: block;

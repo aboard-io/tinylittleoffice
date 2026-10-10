@@ -33,6 +33,10 @@
     container-type: inline-size;
     width: 100%;
     aspect-ratio: var(--deck-w) / var(--deck-h);
+    /* The window's width is the deck's, but the slide is never taller than what can be seen under the bar: as
+       wide as that allows, centred. */
+    max-width: max(320px, (100dvh - 180px) * var(--deck-w) / var(--deck-h));
+    margin-inline: auto;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
