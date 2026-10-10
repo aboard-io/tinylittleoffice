@@ -38,6 +38,7 @@ export default defineApp({
   // A blank page a kind, the mind map first: no generic Blank above them (Paul, 2026-10-10).
   blankInTemplates: true,
   editor: () => import('./editor.ts'),
+  commands: () => import('./commands.ts'),
   title: titleOf,
   retitle,
   view: (doc, opts) => [diagramPage(parse(doc), opts?.upTo, opts?.thumb)],
