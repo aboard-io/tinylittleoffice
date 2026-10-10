@@ -95,10 +95,12 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
+    /* Stuck to the top of what can be seen (a phone's keyboard slides the page up under it: --to-vv-top, kit/shell.ts). */
     position: sticky;
-    top: 0;
+    top: var(--to-vv-top, 0px);
     z-index: 2;
     background: var(--to-bg);
+    transition: margin-left 0.2s ease;
   }
   to-bar::-webkit-scrollbar {
     display: none;
@@ -886,10 +888,10 @@
     grid-column: 2;
   }
 
-  /* ---- arriving by a short link: how long it has left, big and coloured, sticky under the header ---- */
+  /* ---- arriving by a short link: how long it has left, big and coloured; once the header has gone, small and stuck under the bar ---- */
   .to-arrival {
     position: sticky;
-    top: var(--to-header-h);
+    top: calc(var(--to-vv-top, 0px) + var(--to-stuck-h, 0px));
     z-index: 2;
     display: grid;
     grid-template-columns: 1fr auto auto;
@@ -1132,20 +1134,74 @@
   /* ---- the shell ---- */
   to-shell {
     display: block;
+    /* Where the menu button sits, fixed at the top left, and the room it takes. */
+    --to-edge-l: max(var(--to-gutter), env(safe-area-inset-left));
+    --to-burger-w: calc(var(--to-edge-l) + var(--to-touch));
   }
+  /* The header goes up with the page (Paul, 2026-10-10); the menu button stays, fixed, and the app's bar sticks. */
   .to-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    align-content: flex-start;
+    gap: 8px 6px;
     height: var(--to-header-h);
-    padding: 0 var(--to-gutter);
-    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
+    padding: calc((var(--to-header-h) - var(--to-touch)) / 2) var(--to-gutter);
+    padding-left: calc(var(--to-burger-w) + 6px);
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 3;
+    transition: height 0.2s ease;
+  }
+  /* The menu, always at the very top left wherever the page is scrolled to; over the bar once the header has gone, on a card of its own. */
+  .to-header .to-burger {
+    position: fixed;
+    left: var(--to-edge-l);
+    top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0px));
+    z-index: 4;
+    transition: box-shadow 0.2s ease;
+  }
+  to-shell[scrolled] .to-header .to-burger {
+    background: var(--to-surface);
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 16%);
+  }
+  /* Once the header has gone, the app's bar makes room for the menu button: narrowed rather than padded, so a bar
+     that scrolls sideways on a phone never slides under it (none needed where the page's margin already holds it). */
+  to-shell[scrolled] .to-editor to-bar {
+    margin-left: calc(max(0px, var(--to-burger-w) - max(0px, (100vw - var(--to-max-w)) / 2)) - var(--to-gutter));
+  }
+  /* Behind the stuck bar the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
+  to-shell[scrolled]::before {
+    content: '';
+    position: fixed;
+    top: var(--to-vv-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--to-stuck-h, 0px);
+    background: var(--to-bg);
+    box-shadow: 0 1px 0 var(--to-border);
+    z-index: 2;
+  }
+  /* The title edited wide (Paul: "The title is too small to edit"): the header opens a second row, the field across
+     it at 20px; the first row keeps the rest, pushed to the right. The header holds still meanwhile. */
+  .to-header.titling {
+    height: calc(var(--to-header-h) + 8px + var(--to-touch));
+    overflow: hidden;
+    position: sticky;
+    top: var(--to-vv-top, 0px);
+  }
+  .to-header.titling .to-title {
+    order: 1;
+    flex: 0 0 calc(100% + var(--to-touch) + 6px);
+    margin-left: calc(-1 * (var(--to-touch) + 6px));
+    height: var(--to-touch);
+    font-size: 20px;
+  }
+  .to-header.titling .to-title + * {
+    margin-left: auto;
   }
   .to-burger,
   .to-header .to-tool,
@@ -1159,6 +1215,8 @@
     height: var(--to-touch);
     border-color: var(--to-border-strong);
     color: var(--to-ink);
+    /* Opaque: whatever slides under it as the header goes is behind it. */
+    background: var(--to-surface);
   }
   .to-header .to-tool:hover {
     background: var(--to-surface-2);
@@ -1178,6 +1236,7 @@
     border-color: transparent;
     background: transparent;
     font-weight: 600;
+    text-overflow: ellipsis;
   }
   .to-title:hover,
   .to-title:focus {
@@ -1193,12 +1252,19 @@
   .to-meter.over {
     color: var(--to-danger);
   }
+  /* The document is the page, not a card on it (Paul, 2026-10-10: "we shouldn't really have viewports"). On a phone
+     an app's frame runs to the screen's edges through --to-bleed-l and --to-bleed-r (its margins: the main column's
+     side padding, negated; responsive.css); on a desktop they are 0 and the frame is the column's width. */
   .to-main {
+    --to-inset-l: max(var(--to-gutter), env(safe-area-inset-left));
+    --to-inset-r: max(var(--to-gutter), env(safe-area-inset-right));
+    --to-bleed-l: 0px;
+    --to-bleed-r: 0px;
     max-width: var(--to-max-w);
     margin: 0 auto;
     padding: var(--to-gutter);
-    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
-    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
+    padding-left: var(--to-inset-l);
+    padding-right: var(--to-inset-r);
   }
   .to-editor {
     display: block;

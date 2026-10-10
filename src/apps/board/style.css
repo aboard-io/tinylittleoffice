@@ -13,9 +13,12 @@
     align-items: flex-start;
     gap: 12px;
     overflow-x: auto;
-    padding: 4px 2px 16px;
+    /* The stages scroll to the screen's edges on a phone, the first starting at the page's margin. */
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
+    padding: 4px calc(2px - var(--to-bleed-r)) 16px calc(2px - var(--to-bleed-l));
     scroll-snap-type: x proximity;
-    scroll-padding-inline: 2px;
+    scroll-padding-inline: calc(2px - var(--to-bleed-l)) calc(2px - var(--to-bleed-r));
     overscroll-behavior-x: contain;
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;

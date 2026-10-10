@@ -18,8 +18,6 @@
     z-index: 0;
     height: max(240px, 42dvh);
     background: var(--to-surface-2);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     font: 14px var(--to-font);
   }
   .trip-privacy {
@@ -59,8 +57,6 @@
     margin: 0;
     padding: 0;
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     /* A double tap selects a word; it never zooms the page. */
     touch-action: manipulation;
   }
@@ -195,6 +191,14 @@
   .trip-found span {
     font-size: 13px;
     color: var(--to-ink-3);
+  }
+  /* One column: the map and the stops run to the screen's edges on a phone (no frame round either, at any width). */
+  @media (max-width: 899px) {
+    .trip .trip-map,
+    .trip-stops {
+      margin-left: var(--to-bleed-l);
+      margin-right: var(--to-bleed-r);
+    }
   }
   @media (min-width: 900px) {
     .trip:not(.no-map) {

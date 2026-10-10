@@ -14,10 +14,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* The canvas is the page: no frame round it, to the screen's edges on a phone (the pixel grid keeps its frame). */
   .draw-wrap {
-    padding: 12px;
-    background: var(--to-surface-2);
-    border-radius: var(--to-radius);
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
     overflow: auto;
     max-height: calc(100dvh - var(--to-header-h) - 150px);
     min-height: 200px;
@@ -37,8 +37,6 @@
     height: auto;
     margin: 0 auto;
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     /* A finger on empty canvas pans a zoomed drawing (or the page); a pinch is the editor's, and so is a double tap. */
     touch-action: pan-x pan-y;
     user-select: none;
@@ -150,6 +148,10 @@
   }
   /* The pixel grid: one picture, square, as wide as the frame allows; its squares are hit by where the pointer is. */
   .draw-pixel-wrap {
+    margin: 0;
+    padding: 12px;
+    background: var(--to-surface-2);
+    border-radius: var(--to-radius);
     display: grid;
     gap: 16px;
     justify-items: center;

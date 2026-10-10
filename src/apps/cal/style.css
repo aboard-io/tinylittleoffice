@@ -15,9 +15,9 @@
 
   /* ---- the month ---- */
   .cal-grid {
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
@@ -140,11 +140,9 @@
   }
   .cal-agenda {
     list-style: none;
-    margin: 12px 0 0;
+    margin: 12px var(--to-bleed-r) 0 var(--to-bleed-l);
     padding: 0;
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
   }
   .cal-agenda li + li {
     border-top: 1px solid var(--to-border);
@@ -231,9 +229,9 @@
   .cal-gantt {
     display: grid;
     grid-template-columns: minmax(112px, 32%) minmax(0, 1fr);
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     overflow: hidden;
   }
   .cal-tasks {

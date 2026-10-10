@@ -30,9 +30,8 @@
     height: 44px;
     flex: none;
     padding: 0 10px;
-    border: 1px solid var(--to-border);
-    border-bottom: 0;
-    border-radius: var(--to-radius) var(--to-radius) 0 0;
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
     background: var(--to-surface);
   }
   .sheet-fx .ref {
@@ -69,8 +68,9 @@
     max-height: calc(100dvh - var(--to-header-h) - 190px);
     min-height: 220px;
     overscroll-behavior: contain;
-    border: 1px solid var(--to-border);
-    border-radius: 0 0 var(--to-radius) var(--to-radius);
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
+    border-top: 1px solid var(--to-border);
     background: var(--to-surface);
   }
   table.sheet {

@@ -10,7 +10,9 @@
   }
   .site-page {
     min-width: 0;
-    border-radius: var(--to-radius);
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
+
     touch-action: manipulation;
   }
   /* A thing in hand: the focus is on the box round the frame, and the page outlines the thing itself. */
@@ -26,14 +28,8 @@
     width: 100%;
     height: calc(100dvh - var(--to-header-h) - 96px);
     min-height: 420px;
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
+    border: 0;
     background: #fff;
-    box-shadow: var(--to-shadow);
-  }
-  to-site-editor[preview] .site-frame {
-    border-color: transparent;
-    box-shadow: none;
   }
   .site-preview-btn {
     margin-left: auto;
