@@ -51,23 +51,36 @@ export function register(code: string, strings: Strings) {
   dicts.set(code, strings);
 }
 
-const plural = (code: string, n: number, forms: string[]): string => {
-  let rules: Intl.PluralRules;
-  try {
-    rules = new Intl.PluralRules(code);
-  } catch {
-    rules = new Intl.PluralRules('en');
+/** A language's plural rules, the categories it has in ORDER's order, and its numbers: made once per language (each is costly to make, and a word count is plural on every keystroke). */
+const counting = new Map<string, { rules: Intl.PluralRules; have: string[]; format: (n: number) => string }>();
+function countingIn(code: string) {
+  let c = counting.get(code);
+  if (!c) {
+    let rules: Intl.PluralRules;
+    try {
+      rules = new Intl.PluralRules(code);
+    } catch {
+      rules = new Intl.PluralRules('en');
+    }
+    const cats = rules.resolvedOptions().pluralCategories;
+    let format: (n: number) => string;
+    try {
+      const nf = new Intl.NumberFormat(code);
+      format = (n) => nf.format(n);
+    } catch {
+      format = String;
+    }
+    c = { rules, have: ORDER.filter((x) => cats.includes(x as Intl.LDMLPluralRule)), format };
+    counting.set(code, c);
   }
-  const have = ORDER.filter((c) => rules.resolvedOptions().pluralCategories.includes(c as Intl.LDMLPluralRule));
+  return c;
+}
+
+const plural = (code: string, n: number, forms: string[]): string => {
+  const { rules, have, format } = countingIn(code);
   const at = have.indexOf(rules.select(n));
   const form = forms[at] ?? forms[forms.length - 1];
-  let number: string;
-  try {
-    number = new Intl.NumberFormat(code).format(n);
-  } catch {
-    number = String(n);
-  }
-  return form.replaceAll('#', number);
+  return form.replaceAll('#', format(n));
 };
 
 /** The string in the language in use, its placeholders filled. */

@@ -40,7 +40,7 @@ async function opened(): Promise<{ shell: ToShell; ed: ToWriteEditor; text: ToTe
   await shell.updateComplete;
   text.focus();
   const last = ed['doc'].blocks.length - 1;
-  const len = ed['doc'].blocks[last].runs.reduce((s: number, r: { t: string }) => s + r.t.length, 0);
+  const len = (ed['doc'].blocks[last] as { runs: { t: string }[] }).runs.reduce((s, r) => s + r.t.length, 0);
   text.sel = { anchor: { block: last, offset: len }, focus: { block: last, offset: len } };
   await text.updateComplete;
   return { shell, ed, text };
@@ -152,4 +152,5 @@ test('one keystroke in a 1,500-word document is under 12 ms of synchronous work'
   const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
   console.log(`keystroke, 1,500 words: ${median(sync).toFixed(2)} ms synchronous, ${median(drawn).toFixed(2)} ms drawn (medians of ${sync.length})`);
   expect(median(sync)).toBeLessThan(12);
+  expect(median(drawn)).toBeLessThan(12);
 });

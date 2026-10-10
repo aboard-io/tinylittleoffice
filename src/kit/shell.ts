@@ -50,7 +50,7 @@ import { ENVELOPE_KEYS, isoMinute, readEnvelope } from './envelope.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportAs, exportItems, picture, raster, withPictures, saveFile, slug, utf8 } from './exports.ts';
-import { LINK_VERSION, parseHash, routeHash, type Owned } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
 import { fitLine, roomFor } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, expiresSentence, forget, ownerLink, shorten, shortLink, timeLeft, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
@@ -95,6 +95,13 @@ const savedTtl = () => {
   const n = Number(store.get(TTL_KEY));
   return EXPIRIES.some((x) => x.seconds === n) ? n : DEFAULT_TTL;
 };
+
+/**
+ * How long typing pauses before the document is projected into the link. A keystroke changes the words and the
+ * editor alone; the link (packed, written into the address, kept, titled, its signature checked) follows once
+ * the person stops, and at once before anything reads it (flushLink).
+ */
+const PAUSE = 150;
 
 /** Where the site is served from: the page's folder, less an app's own page ("/sheet/") or the embed page's. */
 function siteDir(): string {
@@ -181,6 +188,9 @@ export class ToShell extends LitElement {
   /** The keep waiting out the debounce, and its timer. */
   private pending: Kept | null = null;
   private keepTimer = 0;
+  /** The text the editor last gave, not yet in the link (null: the link is the document); and the pause's timer. */
+  private staged: Doc | null = null;
+  private projectTimer = 0;
 
   constructor() {
     super();
@@ -221,7 +231,11 @@ export class ToShell extends LitElement {
     super.connectedCallback();
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onKey);
-    window.addEventListener('pagehide', this.flushKeep);
+    window.addEventListener('pagehide', this.onLeave);
+    window.addEventListener('blur', this.flushLink);
+    document.addEventListener('visibilitychange', this.onVisibility);
+    this.addEventListener('focusout', this.flushLink);
+    onFlush(this.flushLink);
     window.addEventListener('scroll', this.onScroll, { passive: true });
     window.visualViewport?.addEventListener('scroll', this.onScroll);
     window.visualViewport?.addEventListener('resize', this.onScroll);
@@ -241,14 +255,18 @@ export class ToShell extends LitElement {
     super.disconnectedCallback();
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onKey);
-    window.removeEventListener('pagehide', this.flushKeep);
+    window.removeEventListener('pagehide', this.onLeave);
+    window.removeEventListener('blur', this.flushLink);
+    document.removeEventListener('visibilitychange', this.onVisibility);
+    this.removeEventListener('focusout', this.flushLink);
+    onFlush(() => {});
     window.removeEventListener('scroll', this.onScroll);
     window.visualViewport?.removeEventListener('scroll', this.onScroll);
     window.visualViewport?.removeEventListener('resize', this.onScroll);
     window.removeEventListener('dragover', this.onDragOver);
     window.removeEventListener('drop', this.onDrop);
     this.removeEventListener('to-keys', this.showKeys);
-    this.flushKeep();
+    this.onLeave();
     this.offLanguage();
     this.offPictures();
     this.offPrivacy();
@@ -277,6 +295,10 @@ export class ToShell extends LitElement {
   }
 
   private onHash = () => {
+    // The address has already moved: what was typed in the last pause went into the link when the focus left the
+    // words (a link followed, the menu opened, a key with Alt or Mod), so nothing is left to put in the old one.
+    clearTimeout(this.projectTimer);
+    this.staged = null;
     this.flushKeep();
     this.unplain();
     this.comparing = parseCompare(location.hash);
@@ -382,6 +404,7 @@ export class ToShell extends LitElement {
   /** A password set or changed (the document sealed again at once), or taken off (`password` empty). */
   private async setPassword(password: string) {
     if (this.busyLock) return;
+    this.flushLink();
     this.busyLock = true;
     try {
       this.locker = password ? await lockWith(password) : null;
@@ -405,6 +428,7 @@ export class ToShell extends LitElement {
   /** Signed with this device's key under `name`: the envelope takes the name, the time, the key and the signature. */
   private async sign(name: string) {
     if (!this.app || this.signing) return;
+    this.flushLink();
     this.signing = true;
     try {
       const keys = await signText(this.app, this.envelopeOn(this.doc), name);
@@ -418,6 +442,7 @@ export class ToShell extends LitElement {
     }
   }
   private unsign() {
+    this.flushLink();
     this.envelope = { ...this.envelope, key: '', sig: '' };
     this.change(this.doc);
   }
@@ -470,6 +495,7 @@ export class ToShell extends LitElement {
     const file = e.dataTransfer?.files[0];
     if (!file) return;
     e.preventDefault();
+    this.flushLink();
     void openFile(file, this.app ?? this.pageApp());
   };
 
@@ -496,11 +522,38 @@ export class ToShell extends LitElement {
     this.setTitle();
   }
   /** The editor's change; a new document takes its name with the first one (and not while it is blank again). */
+  /**
+   * The editor's change: the text kept, and the link left until typing pauses (one timer; a burst of typing is one
+   * projection). Nothing here draws the shell: `edited` is not a reactive property.
+   */
   private onDocChange = (e: Event) => {
-    const doc = (e as DocChange).detail;
+    this.edited = (e as DocChange).detail;
+    this.staged = this.edited;
+    clearTimeout(this.projectTimer);
+    this.projectTimer = window.setTimeout(this.flushLink, PAUSE);
+  };
+  /**
+   * The document as the editor last gave it, into the link now: packed once, written into the address, kept, titled
+   * and its signature checked. Called when typing pauses, and before anything reads the link as the document (the
+   * window's blur, the focus leaving the words, leaving the page, Share and every copy of the link, Display, print and
+   * the exports, a short link, the library's keep, the password, the title box). A new document takes its name with
+   * the first one (and not while it is blank again). Under a password the seal is asynchronous and follows.
+   */
+  flushLink = () => {
+    clearTimeout(this.projectTimer);
+    const doc = this.staged;
+    if (doc === null) return;
+    this.staged = null;
     const def = this.def;
-    this.edited = doc;
     this.change(def && this.fresh && doc !== def.blank() && !def.title(doc) ? def.retitle(doc, this.fresh) : doc);
+  };
+  /** Leaving the page (or the shell): the link, then the library, brought up to date. */
+  private onLeave = () => {
+    this.flushLink();
+    this.flushKeep();
+  };
+  private onVisibility = () => {
+    if (document.visibilityState === 'hidden') this.onLeave();
   };
   /** "New Spreadsheet 2026-10-09 #2": the app's noun, today, and the first number the library leaves free. */
   private newName(def: AppDef): string {
@@ -547,6 +600,7 @@ export class ToShell extends LitElement {
   keepNow() {
     const def = this.def;
     if (!def) return;
+    this.flushLink();
     if (!keeping()) return void toast(t('Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.'));
     if (!this.doc.trim() || this.doc === def.blank()) return void toast(t('Nothing to keep yet'));
     this.keptId ??= crypto.randomUUID();
@@ -588,6 +642,7 @@ export class ToShell extends LitElement {
     return this.linkTo(true);
   }
   private linkTo(display: boolean): string {
+    this.flushLink();
     if (!this.app) return location.href;
     const u = new URL(location.href);
     u.hash = routeHash(this.app, parseHash(location.hash).payload, '', null, display);
@@ -601,7 +656,7 @@ export class ToShell extends LitElement {
   private get shortTarget() {
     return this.shortDisplay ? this.displayLink : this.link;
   }
-  private current = () => ({ def: this.def!, doc: this.doc, ctx: { title: this.def!.title(this.doc) || this.fresh, link: this.link } });
+  private current = () => (this.flushLink(), { def: this.def!, doc: this.doc, ctx: { title: this.def!.title(this.doc) || this.fresh, link: this.link } });
 
   /* ---------- keys ---------- */
 
@@ -612,6 +667,8 @@ export class ToShell extends LitElement {
    * IME's. Mod+P prints.
    */
   private onKey = (e: KeyboardEvent) => {
+    // A key with Alt or Mod may leave the page or the document (Back, a new tab): the link is made current first.
+    if ((e.metaKey || e.ctrlKey || e.altKey) && !['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) this.flushLink();
     if (!(e.metaKey || e.ctrlKey) || e.altKey || e.isComposing) return;
     const k = e.key.toLowerCase();
     if (k === 'p' && this.def) {
@@ -657,6 +714,7 @@ export class ToShell extends LitElement {
   }
   /** The Share dialog, open; `short` scrolls it to the short link's section (the banner's Extend). */
   async openShare(short = false) {
+    this.flushLink();
     this.sharing = true;
     await this.updateComplete;
     await this.shareDialog?.show();
@@ -721,6 +779,7 @@ export class ToShell extends LitElement {
   copyIntoNew = () => {
     const def = this.def;
     if (!def || this.sealed) return;
+    this.flushLink();
     // A copy is a new document: not signed, not yet written.
     const doc = withHead(def.retitle(this.doc, t('Copy of {title}', { title: this.docTitle })), { by: '', created: '', key: '', sig: '' });
     const open = (payload: string) => {
@@ -847,6 +906,7 @@ export class ToShell extends LitElement {
 
   /** The title box: the name given, in the head (and to the editor); a new document's own name is spent. */
   private retitle(def: AppDef, title: string) {
+    this.flushLink();
     const doc = def.retitle(this.doc, title);
     this.fresh = '';
     this.edited = doc;
@@ -1009,6 +1069,7 @@ export class ToShell extends LitElement {
   }
   /** The embed code: the document's pages in another site's page, in a frame. */
   get embedLink(): string {
+    this.flushLink();
     const u = new URL(location.href);
     u.pathname = `${siteDir()}embed/`;
     u.search = '';

@@ -225,7 +225,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private seenFocus: number | null = null;
   /** A value from outside: ours is nothing new; the same blocks with another head is the head edited (undoable); anything else is another document, loosened if written loosely. */
   private take(text: string) {
-    if (this.loaded && text === write(this.doc)) return;
+    if (this.loaded && (this.ours(text) || text === write(this.doc))) return;
     const parsed = parse(text);
     if (this.loaded && parsed.blocks.length === this.doc.blocks.length && write({ head: {}, blocks: parsed.blocks }) === write({ head: {}, blocks: this.doc.blocks })) {
       const keys = new Set([...Object.keys(this.doc.head), ...Object.keys(parsed.head)]);

@@ -212,6 +212,8 @@ test('a link opens its app, and every edit goes into the link', async () => {
     text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
     await text.updateComplete;
   }
+  // The link follows once typing pauses.
+  await tick(200);
   await shell.updateComplete;
   expect(location.hash).toMatch(/^#\/v1\/write\/[ryz]/);
   // The first change carries the name into the head, and the time it was first written (the editor's own document is left as it was typed).
@@ -254,6 +256,8 @@ test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, t
     text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
     await text.updateComplete;
   }
+  // The link follows once typing pauses.
+  await tick(200);
   await shell.updateComplete;
   const doc = () => decodeDoc(location.hash.split('/')[3] ?? '');
   expect(unstamped(doc())).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
@@ -279,6 +283,7 @@ test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, t
   // In the words, the document's undo; blank again, it is not named either.
   expect(z(text.tx).defaultPrevented).toBe(true);
   await text.updateComplete;
+  await tick(200);
   await shell.updateComplete;
   expect(doc()).toBe('');
 });

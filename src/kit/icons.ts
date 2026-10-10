@@ -78,12 +78,26 @@ function attrs(a: Record<string, string | number | undefined>): string {
     .join(' ');
 }
 
-/** Inner markup (paths etc.) of an icon, for any <svg>. */
-export const iconInner = (node: IconNode): string => node.map(([tag, a]) => `<${tag} ${attrs(a)}/>`).join('');
+/** Inner markup (paths etc.) of an icon, for any <svg>: written once per icon. */
+const inners = new WeakMap<IconNode, string>();
+export const iconInner = (node: IconNode): string => {
+  let inner = inners.get(node);
+  if (inner === undefined) inners.set(node, (inner = node.map(([tag, a]) => `<${tag} ${attrs(a)}/>`).join('')));
+  return inner;
+};
 
-/** A complete inline <svg> for an icon, decorative (its button or line carries the words). */
+/** A complete inline <svg> for an icon, decorative (its button or line carries the words): made once per icon, size and class, as a bar is drawn again and again. */
+const drawn = new WeakMap<IconNode, Map<string, TemplateResult>>();
 export function icon(node: IconNode, size = 20, cls = ''): TemplateResult {
-  return svg`<svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="to-icon ${cls}" aria-hidden="true">${unsafeSVG(iconInner(node))}</svg>`;
+  let sizes = drawn.get(node);
+  if (!sizes) drawn.set(node, (sizes = new Map()));
+  const key = `${size} ${cls}`;
+  let made = sizes.get(key);
+  if (!made) {
+    made = svg`<svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="to-icon ${cls}" aria-hidden="true">${unsafeSVG(iconInner(node))}</svg>`;
+    sizes.set(key, made);
+  }
+  return made;
 }
 
 /** An icon drawn into a picture (an SVG page), at x, y, `size` wide. A large one is drawn with a finer line. */

@@ -81,6 +81,14 @@ export abstract class DocElement<V> extends LitElement {
   /** After an undo or a redo: a chance to move the selection to what changed. */
   protected undone(_entry: Entry, _redo: boolean): void {}
 
+  /**
+   * Whether `text` is this editor's own, the text it last read or wrote: the shell's echo of a change, which a host
+   * compares by identity and never parses again (a keystroke costs what it changed, not the whole document).
+   */
+  protected ours(text: string): boolean {
+    return text === this.seen;
+  }
+
   protected willUpdate(changed: PropertyValues) {
     super.willUpdate(changed);
     if (this.seen === null || (changed.has('value') && this.value !== this.seen)) {
