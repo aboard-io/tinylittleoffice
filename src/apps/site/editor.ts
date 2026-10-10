@@ -124,8 +124,10 @@ export class ToSiteEditor extends DocElement<Site> {
   private stamp = 0;
   /** A form is open: the focus in it does not let the thing in hand go, and its bar waits. */
   private asking = false;
-  /** Once the page is drawn again, the words of this thing are opened in it, chosen (a thing just put in). */
-  private openNext: string | null = null;
+  /** Once the page is drawn again, the words of this thing are opened in it: chosen (`all`: a thing just put in), or the caret at their end. */
+  private openNext: { id: string; all: boolean } | null = null;
+  /** The stamp of the page that last said it was ready. */
+  private ready = -1;
 
   constructor() {
     super();
@@ -244,10 +246,11 @@ export class ToSiteEditor extends DocElement<Site> {
       this.held = c.id;
       this.cur = objectAt(this.view, c.id)?.n ?? this.cur;
     } else if (m.do === 'end') this.endWords(id);
-    else if (m.do === 'ready' && this.openNext !== null) {
+    else if (m.do === 'ready') {
+      this.ready = m.site;
       const next = this.openNext;
       this.openNext = null;
-      if (next === this.held) this.openWords(next, true);
+      if (next && next.id === this.held) this.openWords(next.id, next.all);
     }
     else if (m.do === 'at') {
       if (id === null || id !== this.held) return;
@@ -265,6 +268,19 @@ export class ToSiteEditor extends DocElement<Site> {
   };
 
   /* ---------- the thing in hand ---------- */
+
+  /** Where a person starts: the site's name (the first thing on the page) in hand, its words open in the page, the caret at their end. */
+  async focusFirst() {
+    await this.updateComplete;
+    const first = objectsOf(this.view)[0];
+    if (!first) return this.box?.focus({ preventScroll: true });
+    const id = objId(first);
+    this.hold(id);
+    // The frame focused from here first: WebKit lets a page in a frame take the focus only once the frame has it.
+    this.frame?.focus({ preventScroll: true });
+    if (this.ready === this.stamp) this.openWords(id);
+    else this.openNext = { id, all: false };
+  }
 
   /**
    * Thing `id` in hand: its bar beside it, and the focus on the box round the frame (`focus`; not when its words are
@@ -517,7 +533,7 @@ export class ToSiteEditor extends DocElement<Site> {
     const offered = (b: Block) => {
       const c = insertObj(this.doc, this.view, this.held, this.cur, b);
       this.change(c);
-      this.openNext = c.id;
+      this.openNext = c.id === null ? null : { id: c.id, all: true };
     };
     let block: Block | null = null;
     switch (k) {

@@ -575,3 +575,11 @@ test('the bar ends with Undo and Redo; the grip is the only thing a drag holds, 
   expect(g.classList.contains('to-rows-handle')).toBe(true);
   expect(getComputedStyle(g).touchAction).toBe('none');
 });
+
+test('§1 opens with the focus in the entry line, the page not scrolled', async () => {
+  const { el } = await editor('2 + 2\n');
+  await el.focusFirst();
+  expect(document.activeElement).toBe(display(el));
+  expect(display(el).selectionStart).toBe(display(el).value.length);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

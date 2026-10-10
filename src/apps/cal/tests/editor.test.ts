@@ -653,3 +653,20 @@ test('the What field is one line: Markdown markers typed there stay words, and a
   await settle(n.el);
   expect(n.last()).toBe(noted);
 });
+
+test('§1 opens with the focus on today\'s day, else the shown month\'s first; a Gantt chart in its first task\'s words; the page not scrolled', async () => {
+  const { el: blank } = await editor('');
+  await settle(blank);
+  await blank.focusFirst();
+  expect(document.activeElement).toBe(blank.querySelector('.cal-cell.today .cal-n'));
+  const { el } = await editor();
+  await settle(el);
+  await el.focusFirst();
+  expect(document.activeElement).toBe(cell(el, '2027-03-01').querySelector('.cal-n'));
+  const { el: plan } = await editor(PLAN);
+  await settle(plan);
+  await plan.focusFirst();
+  await until(() => !!plan.querySelector<ToText>('.cal-trow to-text')?.hasFocus());
+  expect(plan.querySelector<ToText>('.cal-trow to-text')!.sel?.focus.offset).toBe('Design'.length);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

@@ -178,7 +178,13 @@ test('the skip link is the first thing a Tab reaches, hidden until then, and tak
   expect(shell.firstElementChild).toBe(skip);
   expect(skip.textContent).toBe('Skip to the document');
   expect(skip.getBoundingClientRect().bottom).toBeLessThanOrEqual(0);
-  (document.activeElement as HTMLElement | null)?.blur();
+  // The document opened with the focus in its words (docs/editing.md §1); from the top of the page again, a Tab.
+  await until(() => !!shell.querySelector('to-write-editor to-text')!.contains(document.activeElement));
+  const top = document.createElement('span');
+  top.tabIndex = -1;
+  document.body.prepend(top);
+  top.focus();
+  top.remove();
   await userEvent.tab();
   expect(document.activeElement).toBe(skip);
   expect(skip.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);

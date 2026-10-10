@@ -196,8 +196,11 @@ abstract class DocElement<V> extends LitElement {
     this.doc = applyAll(this.doc, ops); this.view = this.read(this.doc); this.emit(write(this.doc));
   }
   protected load(doc: Doc): void { this.edit([{ op: 'splice', at: 0, n: this.doc.blocks.length, blocks: doc.blocks }, ...headOps(doc.head)]); }  // templates
+  focusFirst(): void | Promise<void> {}  // where a person starts (docs/editing.md §1); each app overrides it
 }
 ```
+
+`focusFirst()` is the editor's half of the open: the shell calls it once a document is first drawn for editing (a new one, a template, a link, after an unlock; not in display mode, an embed, a show link presenting, a locked document, or while a dialog is open), and each editor puts the focus in its own place with its own helper (`focusCell`, `focusBox`, `focusRow`, `focusTask`, `focusCanvas`…), `preventScroll` always: the Word Processor's first words (the caret at their start), the Spreadsheet's A1 (its words selected), the first slide's headline, the first row, the first task, the first card (else the stage's name), the Calculator's entry line, the Drawing Tool's canvas, the Animator's stage, the Diagram Maker's picture, the Calendar's today (else the month's first; a Gantt chart's first task), the Trip Planner's first stop's name (else the map), the Website Builder's site's name, open in the page. The shell never puts the focus on the title box or leaves it on the body.
 
 `commit(T)`/`serialize` go. The `docchange` contract with the shell (text in `value`, text out in the event; the shell's `History` of texts) is unchanged, so `test/dom/helpers.ts#mount` and every shell test keep passing.
 

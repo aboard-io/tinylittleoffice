@@ -755,3 +755,17 @@ test('stages as rows at phone width: the stages one under another, the cards top
     await page.viewport(1100, 800);
   }
 });
+
+test('§1 opens with the focus in the first stage\'s first card, else the stage\'s name; the page not scrolled', async () => {
+  const { el } = await editor();
+  await el.focusFirst();
+  const card = cardsOf(el, 0)[0].querySelector<ToText>('.board-main to-text')!;
+  expect(card.hasFocus()).toBe(true);
+  expect(card.sel?.focus.offset).toBe('Write the spec'.length);
+  const { el: blank } = await editor('## To do\n\n## Doing\n\n## Done\n');
+  await blank.focusFirst();
+  const name = cols(blank)[0].querySelector<ToText>('.board-head to-text')!;
+  expect(name.hasFocus()).toBe(true);
+  expect(name.sel?.focus.offset).toBe('To do'.length);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

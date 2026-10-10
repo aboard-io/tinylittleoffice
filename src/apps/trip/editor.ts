@@ -482,6 +482,19 @@ export class ToTripEditor extends DocElement<TripView> {
     this.edit(setText(this.doc, this.view, s, field, now), kind ? key : undefined, mark);
     this.requestUpdate();
   }
+  /** Where a person starts: the first stop's name, the caret at its end, else the map (the page held still). */
+  async focusFirst() {
+    await this.updateComplete;
+    const x = this.view.stops.length ? this.textOf(0, 'name') : null;
+    if (!x) {
+      // The map takes the focus once Leaflet has made it (the chunk is lazy).
+      await leaflet();
+      return this.querySelector<HTMLElement>('.trip-map')?.focus({ preventScroll: true });
+    }
+    this.cur = 0;
+    await x.updateComplete;
+    x.sel = caret(0, words(x.blocks).length);
+  }
   /** The words of a stop's name or note, once drawn, with the caret at `offset`. */
   private async focusField(i: number, field: Field, offset: number | 'end' = 'end') {
     this.cur = i;

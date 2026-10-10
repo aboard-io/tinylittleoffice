@@ -699,3 +699,23 @@ test('the frame’s own script: a tap takes a thing and outlines it and opens it
   await until(() => said.some((m) => m.do === 'undo'));
   f.remove();
 });
+
+test('§1 opens with the site\'s name in hand, its words open in the page with the caret at their end; before the page is ready too', async () => {
+  const { el, last } = await editor();
+  await ready(el);
+  await el.focusFirst();
+  await until(() => el.held === '0' && document.activeElement === frame(el));
+  await tick(60);
+  await typeKeys(' & Co');
+  await until(() => last().includes('# Harbor Coffee & Co\n'));
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+  // Asked before the page has said it is ready: opened once it does.
+  const blank = await editor('');
+  await blank.el.focusFirst();
+  expect(blank.el.held).toBe('-1');
+  await ready(blank.el);
+  await until(() => document.activeElement === frame(blank.el));
+  await tick(60);
+  await typeKeys('Harbor');
+  await until(() => blank.last().startsWith('# Harbor'));
+});

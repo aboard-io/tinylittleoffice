@@ -579,3 +579,17 @@ test('the location refused, or a trip with stops: the map stays where it was (th
     withStops.restore();
   }
 });
+
+test('§1 opens with the focus in the first stop\'s name, the caret at its end, else on the map; the page not scrolled', async () => {
+  const { el } = await editor();
+  await settle(el);
+  await el.focusFirst();
+  const name = el.querySelector<ToText>('.trip-stop[data-i="0"] to-text.trip-name')!;
+  expect(name.hasFocus()).toBe(true);
+  expect(name.sel?.focus.offset).toBe('Lisbon'.length);
+  const { el: blank } = await editor('');
+  await settle(blank);
+  await blank.focusFirst();
+  expect(document.activeElement).toBe(blank.querySelector('.trip-map'));
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

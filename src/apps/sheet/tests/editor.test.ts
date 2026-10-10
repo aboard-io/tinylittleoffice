@@ -686,3 +686,15 @@ test('a composition is left to the browser and written once, at its end', async 
   expect(changes.length).toBe(n + 1);
   expect(last()).toContain('日本 | 1200');
 });
+
+test('§1 opens with the focus in A1, its words selected, the page not scrolled', async () => {
+  const { el } = await editor(SHEET);
+  el.focusFirst();
+  await until(() => document.activeElement === cell(el, 'A1'));
+  const a1 = cell(el, 'A1');
+  expect([a1.selectionStart, a1.selectionEnd]).toEqual([0, 'Rent'.length]);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+  const { el: blank } = await editor('');
+  blank.focusFirst();
+  await until(() => document.activeElement === cell(blank, 'A1'));
+});

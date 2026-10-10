@@ -1,6 +1,6 @@
 /**
- * Website on a phone, in WebKit at 390 by 844 with a finger: one finger on the site's name puts the focus inside the
- * frame, in the words where they are drawn (16px or more, so nothing zooms), and what is typed there is the
+ * Website on a phone, in WebKit at 390 by 844 with a finger: a new site opens with the focus inside the frame, in
+ * the site's name where it is drawn (16px or more, so nothing zooms), and what is typed there is the
  * document; the heading in hand has its bar (Edit, Move up, Move down, Duplicate, Delete) inside the screen, 44px a
  * button. Insert ▾ is in reach and its Paragraph is put in after the thing in hand; a finger on its words types
  * them; a tap on the empty page lets go; Delete takes it away and Undo brings it back in hand; Preview and Edit by a
@@ -10,16 +10,13 @@
  */
 import { test, expect } from '@playwright/test';
 
-test('website: on a phone, the words typed inside the frame with the focus set by the tap; Insert, a thing in hand with its bar; Delete, Undo, Preview by a finger', async ({ page }, info) => {
+test('website: on a phone, the words typed inside the frame, the name open at once; Insert, a thing in hand with its bar; Delete, Undo, Preview by a finger', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/site');
   const site = page.frameLocator('to-site-editor iframe.site-frame');
-  const heading = site.getByRole('heading', { name: 'My site', level: 1 });
-  await expect(heading).toBeVisible();
-  // One finger on the name: the focus is in the frame, in its words, set by the tap itself; no form.
-  await heading.tap();
+  // A new site opens with its name in hand, the focus in the frame, in its words (docs/editing.md §1); no form.
   const words = site.locator('h1 to-text .tx');
   await expect(words).toBeFocused();
   await expect(page.locator('.site-form-dialog')).toHaveCount(0);

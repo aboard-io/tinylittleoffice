@@ -997,3 +997,14 @@ test('footnotes are listed under the outline, numbered as their marks are, and t
   input(notes()[0], 'insertText', 'x');
   await until(() => last() === '- One^[x]^[The first note]\n  - Two^[The **second** note!]\n');
 });
+
+test('§1 opens with the focus in the first row\'s words, the caret at their end, the page not scrolled', async () => {
+  const { el } = await editor(TREE);
+  await el.focusFirst();
+  await until(() => textOf(el, 0).hasFocus());
+  expect(textOf(el, 0).sel?.focus).toEqual({ block: 0, offset: 'Launch'.length });
+  const { el: blank } = await editor('');
+  await blank.focusFirst();
+  await until(() => !!blank.querySelector<ToText>('.ol-row to-text')?.hasFocus());
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

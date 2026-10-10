@@ -397,6 +397,13 @@ export class ToWriteEditor extends DocElement<Doc> {
     const b = this.doc.blocks[at];
     return !!b && !isWords(b);
   }
+  /** Where a person starts: the caret at the start of the first words (a card in hand when there are none). */
+  async focusFirst() {
+    await this.drawn();
+    const at = this.doc.blocks.findIndex(isWords);
+    if (at < 0 && this.doc.blocks.length) return this.holdCard(0);
+    this.text.sel = caret(Math.max(0, at), 0);
+  }
   /** The card at `at` taken in hand: it has the focus, and the bar comes up under it. */
   holdCard(at: number) {
     void this.drawn().then(() => this.cardEl(at)?.focus({ preventScroll: true }));

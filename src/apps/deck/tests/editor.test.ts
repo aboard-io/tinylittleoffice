@@ -600,3 +600,14 @@ test('a footnote is typed at the slide\'s foot, in the foot\'s own words (not th
   // The notes are drawn at the slide's foot when presenting too.
   expect(el.querySelector('.deck-thumb svg')!.innerHTML).toContain('first');
 });
+
+test('§1 opens with the focus in the first slide\'s headline, the caret at its end, the page not scrolled', async () => {
+  const doc = templates()[1].doc;
+  const { el } = await editor(doc);
+  el.focusFirst();
+  await until(() => el.querySelector('to-text.deck-title')!.contains(document.activeElement));
+  const title = el.text('title')!;
+  expect(title.sel?.focus.offset).toBeGreaterThan(0);
+  expect(el.querySelectorAll('.deck-thumb')[0].getAttribute('aria-current')).toBe('true');
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

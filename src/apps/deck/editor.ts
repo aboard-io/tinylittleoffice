@@ -350,6 +350,11 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.sel = e.detail;
     this.requestUpdate();
   }
+  /** Where a person starts: the first slide, the caret at the end of its headline. */
+  focusFirst() {
+    this.go(0);
+    this.focusBox('title', 'end');
+  }
   /** The caret into a box: at its start, its end, or a selection. */
   private focusBox(field: Field, at: 'start' | 'end' | Sel = 'end') {
     this.focusNext = { field, at };

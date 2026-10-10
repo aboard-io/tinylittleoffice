@@ -7,6 +7,8 @@
  * are answered here. An edit may carry a `mark` (the host's selection, whatever shape it has), handed back
  * with the entry to `undone()` so the selection comes back with the change; `firstAt()` says where the
  * change begins when there is no mark. `undoTools()` is the bar's last two buttons, the same in every app.
+ * `focusFirst()` is where a person starts (docs/editing.md §1): the shell calls it once a document is first
+ * drawn, and each app puts the focus in its own place with its own helper, never scrolling the page.
  */
 import { LitElement, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../doc/index.ts';
@@ -74,6 +76,8 @@ export abstract class DocElement<V> extends LitElement {
 
   /** The pure function from the document to what the app draws. */
   protected abstract read(doc: Doc): V;
+  /** The focus where a person starts in this document (the first words, A1, the canvas): the shell calls it after the first draw. */
+  focusFirst(): void | Promise<void> {}
   /** After an undo or a redo: a chance to move the selection to what changed. */
   protected undone(_entry: Entry, _redo: boolean): void {}
 
