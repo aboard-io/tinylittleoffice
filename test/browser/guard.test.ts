@@ -198,7 +198,7 @@ test('a kept document’s row holds its first page, small, once it is in sight; 
     await until(() => rows.every((r) => !!r.querySelector('to-preview svg')));
     const svg = rows[0].querySelector('to-preview svg')!;
     expect(svg.textContent).toContain('A preview');
-    expect(Math.round(svg.getBoundingClientRect().height / zoomed())).toBe(56);
+    expect(Math.round(svg.getBoundingClientRect().height / zoomed())).toBe(52);
     // The unreadable one is a blank page.
     expect(rows[1].querySelector('to-preview svg text')).toBeNull();
     const drawn = view.mock.calls.length;

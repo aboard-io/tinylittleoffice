@@ -229,6 +229,8 @@ test('the state beside the title, four ways: unsigned, signed (green), does not 
   shell = await mount(`#/v1/sheet/${encodeDoc('a | b\n--- | ---\n1 | 2\n')}`);
   await until(() => !!pill(shell));
   expect(pill(shell).classList.contains('quiet')).toBe(true);
+  // The test window is phone-narrow: a narrow header hides the quiet pill by design, so ask it at full width.
+  shell.querySelector<HTMLElement>('.to-header')!.style.containerType = 'normal';
   const box = pill(shell).getBoundingClientRect();
   expect(box.height).toBeGreaterThanOrEqual(44);
   expect(box.width).toBeGreaterThanOrEqual(44);
