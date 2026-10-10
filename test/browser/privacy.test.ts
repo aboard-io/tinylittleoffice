@@ -7,7 +7,8 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { mount, tick, until } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { exportKey, forgetKey, lockCost, lockWith, myFingerprint, pack, unlock } from '../../src/kit/privacy.ts';
+import { exportKey, forgetKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
+import { verify } from '../../src/kit/sign.ts';
 import { keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
@@ -338,4 +339,14 @@ test('what this device holds, item by item with Forget, and Download everything:
   await until(() => now('to-held-key') === 'None' && now('to-held-prefs') === 'None');
   expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
   await tick();
+});
+
+test('words signed with this device\'s key under a name (a contract\'s signature): the key is this device\'s, the name kept to sign under next time', async () => {
+  expect(await myKey()).toBe(null);
+  const { key, sig } = await signWords('tinyoffice-contract\nWords.\nPaul', '  Paul   Ford ');
+  expect(await myKey()).toBe(key);
+  expect(signerName()).toBe('Paul Ford');
+  expect(await verify(key, sig, 'tinyoffice-contract\nWords.\nPaul')).toBe(true);
+  forgetKey();
+  expect(await myKey()).toBe(null);
 });

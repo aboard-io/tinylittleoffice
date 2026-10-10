@@ -377,18 +377,50 @@
     color: var(--to-paper-muted);
   }
   .write-signatures {
-    flex-wrap: wrap;
-    gap: 12px 24px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     padding: 12px;
     border: 1px solid var(--to-paper-line);
     border-radius: 10px;
   }
-  .write-signatures > div {
+  .write-sig-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14em, 1fr));
+    gap: 12px 24px;
+  }
+  .write-sig {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     padding-top: 6px;
     border-top: 2px solid var(--to-paper-ink);
-    min-width: 12em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .write-sig-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    border-radius: var(--to-radius-pill);
+    color: var(--to-paper-muted);
+    background: var(--to-paper);
+  }
+  .write-sig.valid .write-sig-state {
+    color: var(--to-signed-ink);
+    background: var(--to-signed-bg);
+  }
+  .write-sig.mismatch {
+    border-top-color: var(--to-mismatch-ink);
+  }
+  .write-sig.mismatch .write-sig-state {
+    color: var(--to-mismatch-ink);
+    background: var(--to-mismatch-bg);
+  }
+  .write-signatures .write-sign {
+    align-self: flex-start;
   }
   .write-page .to-embed {
     color: var(--to-paper-ink);

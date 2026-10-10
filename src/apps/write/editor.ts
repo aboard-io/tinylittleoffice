@@ -17,6 +17,11 @@
  * and the keys are the same (Enter, Alt+Up/Down, Mod+D, Mod+C/X/V, Delete; Escape or an arrow back to the
  * words). Undo is DocElement's: each edit carries a mark of where the caret, the cell or the card was, and
  * an undo puts it back.
+ *
+ * A contract's signatures fence is a card of its own (contract.ts): each row with its state, checked on open
+ * and after every change (valid, with the day and the key's fingerprint; the words changed since, in red;
+ * not signed yet), and **Sign this contract** on it, which signs the words with this device's key under the
+ * name asked for and puts the row in, or puts it right where this key signed before.
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -35,11 +40,13 @@ import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { noteWords } from '../../kit/note-pop.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
+import { myKey, signerName, signWords } from '../../kit/privacy.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
 import def from './def.ts';
+import { checkContract, contractText, printOf, readSignatures, signaturesAt, signedMessage, signOps, today, verdictOf } from './contract.ts';
 import { fenceLink } from './view.ts';
 import type { TableCmd, ToWriteTable } from './table.ts';
 import '../../kit/bar.ts';
@@ -322,13 +329,7 @@ export class ToWriteEditor extends DocElement<Doc> {
       if (!v) return null;
       return html`<to-write-table commands .view=${v} currency=${this.doc.head.currency ?? ''} @wt-cell=${(e: CustomEvent<{ r: number; c: number; raw: string }>) => this.onCell(at, e)} @wt-do=${(e: CustomEvent<TableCmd>) => (e.preventDefault(), void this.onTable(at, e.detail))} @wt-exit=${() => this.afterCard(at)}></to-write-table>`;
     }
-    if (b.k === 'fence' && b.lang === 'signatures') {
-      const rows = parse(b.body).blocks.find((x) => x.k === 'table');
-      const signed = rows?.k === 'table' ? rows.rows.filter((r) => r[0]) : [];
-      return html`<div class="write-signatures" role="group" aria-label=${t('Signatures')}>
-        ${signed.length ? signed.map((r) => html`<div><b>${r[0]}</b><small>${t('Signed with the key ending {key}', { key: r[1].slice(-10) })}</small></div>`) : html`<span class="to-hint">${t('No one has signed yet.')}</span>`}
-      </div>`;
-    }
+    if (b.k === 'fence' && b.lang === 'signatures') return this.signaturesCard(b.body);
     if (b.k === 'fence' && b.lang) {
       const def = lookup.appOf(b.lang);
       const page = def?.view(b.body, { small: true })[0];
@@ -431,6 +432,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   private editOf(at: number): ContextEntry | null {
     const b = this.doc.blocks[at];
     if (!b) return null;
+    if (b.k === 'fence' && b.lang === 'signatures') return { label: t('Sign this contract'), icon: UI.sign, keys: 'Enter', does: () => void this.signContract() };
     if (b.k === 'table' || (b.k === 'fence' && b.lang && b.lang !== 'signatures' && lookup.appOf(b.lang))) return { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editCard(at) };
     if (b.k === 'img' || (b.k === 'p' && isEmbed(b))) {
       const swap = (next: Block) => this.change([{ op: 'splice', at, n: 1, blocks: [next] }], { before: null, after: null, card: at, cardAfter: at });
@@ -577,6 +579,60 @@ export class ToWriteEditor extends DocElement<Doc> {
     ];
   }
 
+  /* ---------- a contract's signatures ---------- */
+
+  /** The document last checked, so each is checked once. */
+  private checked: Doc | null = null;
+
+  private signaturesCard(body: string): TemplateResult {
+    const rows = readSignatures(body);
+    const text = contractText(this.doc);
+    const words: Record<string, string> = { valid: t('Signed these words'), mismatch: t('The words have changed since this was signed'), unsigned: t('Not signed yet'), checking: t('Checking…') };
+    return html`<div class="write-signatures" role="group" aria-label=${t('Signatures')}>
+      ${rows.length
+        ? html`<div class="write-sig-list" role="list">
+            ${rows.map((s) => {
+              const v = verdictOf(text, s) ?? 'checking';
+              return html`<div class="write-sig ${v}" role="listitem">
+                <b>${s.name || t('Unnamed')}</b>
+                <span class="write-sig-state">${icon(v === 'valid' ? UI.shield : v === 'mismatch' ? UI.mismatch : UI.unsigned, 14)}<span>${words[v]}</span></span>
+                ${s.key ? html`<small>${[s.date, t('key {fp}', { fp: printOf(s.key) })].filter(Boolean).join(' · ')}</small>` : nothing}
+              </div>`;
+            })}
+          </div>`
+        : html`<span class="to-hint">${t('No one has signed yet.')}</span>`}
+      <button type="button" class="to-btn write-sign" @click=${() => void this.signContract()}>${icon(UI.sign, 16)}<span>${t('Sign this contract')}</span></button>
+    </div>`;
+  }
+  /**
+   * The contract signed with this device's key, under the name asked for (the one this key signed under before,
+   * else the name this device signs under, else the document's own "by" when nobody has signed under it yet).
+   */
+  private async signContract() {
+    const at = signaturesAt(this.doc);
+    if (at < 0) return;
+    const b = this.doc.blocks[at];
+    const rows = b.k === 'fence' ? readSignatures(b.body) : [];
+    const me = await myKey();
+    const by = this.doc.head.by ?? '';
+    const guess = rows.find((r) => me && r.key === me)?.name || signerName() || (by && !rows.some((r) => r.sig && r.name === by) ? by : '');
+    const name = (await this.ask(t('Sign this contract'), t('Your name'), t('Your name, as it is signed'), guess, 'text'))?.replace(/\s+/g, ' ').trim();
+    if (!name) return void (signaturesAt(this.doc) >= 0 && this.holdCard(signaturesAt(this.doc)));
+    const { key, sig } = await signWords(signedMessage(contractText(this.doc), name), name);
+    const ops = signOps(this.doc, { name, key, sig, date: today() });
+    this.change(ops, { before: null, after: null, card: at, cardAfter: at });
+    await this.check();
+    this.holdCard(signaturesAt(this.doc));
+  }
+  /** Every signature verified against the words as they are now, then drawn with what was found. */
+  private async check() {
+    const doc = this.doc;
+    this.checked = doc;
+    if (signaturesAt(doc) < 0) return;
+    await checkContract(doc);
+    if (this.doc === doc) this.text?.requestUpdate();
+  }
+
   /* ---------- the notes ---------- */
 
   /** Back to a note's mark in the text: the mark takes the focus. */
@@ -645,6 +701,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   }
   protected updated(changed: PropertyValues) {
     super.updated(changed);
+    if (this.checked !== this.doc) void this.check();
     if (changed.has('asking') && this.asking) void this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.write-ask-form input')?.focus({ preventScroll: true }));
     const bar = this.querySelector<ToContext>('to-context.write-cardbar');
     const card = this.cardAt >= 0 ? this.cardEl(this.cardAt) : null;
