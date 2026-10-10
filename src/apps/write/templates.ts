@@ -10,9 +10,9 @@
 import type { Template } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
 
-const LETTER = `Mara Quill {.right}
-Harbor Studio, 14 Quay Street {.right}
-Portland, ME 04101 {.right}
+const LETTER = `Mara Quill
+Harbor Studio, 14 Quay Street
+Portland, ME 04101
 mara@harborstudio.example {.right}
 
 2 October 2026
@@ -150,8 +150,8 @@ Move any Friday afternoon calls you have in November by **Wednesday 21 October**
 const COVER = `---
 look: mixed
 ---
-Priya Raman {.right}
-22 Elm Row, Edinburgh EH7 4AA {.right}
+Priya Raman
+22 Elm Row, Edinburgh EH7 4AA
 priya.raman@example.com · 07700 900481 {.right}
 
 Thursday 15 October 2026
@@ -592,8 +592,8 @@ Not all of it works. "Northern Lights (Reprise)" is a minute of noise that goes 
 **For fans of:** The Weakerthans, Big Thief, a long walk by cold water.
 `;
 
-const COMPLAINT = `Ruth Abernathy {.right}
-7 Orchard Close {.right}
+const COMPLAINT = `Ruth Abernathy
+7 Orchard Close
 Bristol BS9 3PT {.right}
 
 Wednesday 14 October 2026
@@ -633,8 +633,8 @@ Ruth Abernathy
 const POLITICIAN = `---
 look: serif
 ---
-Marcus Bell {.right}
-1180 Garfield Avenue {.right}
+Marcus Bell
+1180 Garfield Avenue
 Duluth, MN 55805 {.right}
 
 Monday 19 October 2026
