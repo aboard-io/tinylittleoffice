@@ -325,6 +325,12 @@
   .to-menu-check {
     color: var(--to-accent);
   }
+  .to-menu-keys {
+    font: inherit;
+    font-size: 12px;
+    color: var(--to-ink-3);
+    white-space: nowrap;
+  }
   .to-menu-head {
     padding: 8px 10px 2px;
     font-size: 12px;

@@ -93,6 +93,10 @@ interface Clip {
 }
 /** How long a burst of typing stays one step (DocElement's own). */
 const BURST = 700;
+type Alignment = 'left' | 'center' | 'right' | 'justify';
+/** The alignment keys, with Shift and Mod: Google Docs' and Word's (docs/editing.md §1). */
+const KEY_OF: Record<Alignment, string> = { left: 'L', center: 'E', right: 'R', justify: 'J' };
+const ALIGN_KEYS: Record<string, Alignment> = { l: 'left', e: 'center', r: 'right', j: 'justify' };
 
 export class ToWriteEditor extends DocElement<Doc> {
   static properties: PropertyDeclarations = { ...DocElement.properties, asking: { state: true }, cardAt: { state: true } };
@@ -282,12 +286,19 @@ export class ToWriteEditor extends DocElement<Doc> {
         .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
     ];
   }
-  /** Mod+Shift+Enter in the words: a page break at the caret (the browser's own would be a line break). */
+  /**
+   * Mod+Shift+Enter in the words: a page break at the caret (the browser's own would be a line break). Mod+Shift+L, E, R
+   * and J: the block in hand left, centred, right or justified (Docs' and Word's keys, the Drawing Tool's too); taken
+   * only while the words have the focus, so Mod+Shift+R reloads the page from anywhere else.
+   */
   private onKey = (e: KeyboardEvent) => {
     const at = e.target as HTMLElement;
-    if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey) || !e.shiftKey || e.altKey || e.isComposing || !this.text?.tx.contains(at) || at.closest?.('.tx-card')) return;
+    if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.altKey || e.isComposing || e.defaultPrevented || !this.text?.tx.contains(at) || at.closest?.('.tx-card')) return;
+    const how = e.key === 'Enter' ? 'hr' : ALIGN_KEYS[e.key.toLowerCase()];
+    if (!how) return;
     e.preventDefault();
-    this.insertBlock({ k: 'hr' });
+    if (how === 'hr') this.insertBlock({ k: 'hr' });
+    else this.text.exec(how);
   };
 
   /* ---------- the paper and the fields ---------- */
@@ -309,7 +320,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   }
   private alignItems(): MenuItem[] {
     const now = this.sel ? this.text.alignment : 'left';
-    const pick = (how: 'left' | 'center' | 'right' | 'justify', label: string, ic: typeof UI.alignLeft) => ({ label, icon: ic, checked: now === how, does: () => this.text.exec(how) });
+    const pick = (how: Alignment, label: string, ic: typeof UI.alignLeft) => ({ label, icon: ic, keys: `Mod+Shift+${KEY_OF[how]}`, checked: now === how, does: () => this.text.exec(how) });
     return [pick('left', t('Align left'), UI.alignLeft), pick('center', t('Centre'), UI.alignCenter), pick('right', t('Align right'), UI.alignRight), pick('justify', t('Justify'), UI.alignJustify)];
   }
   private setField(key: string, value: string) {

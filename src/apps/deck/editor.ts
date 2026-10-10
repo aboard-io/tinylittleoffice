@@ -933,6 +933,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const on = (c: 'b' | 'i' | 'u' | 's' | 'h') => !!m[c];
     const canIndent = this.field !== 'title' && box?.kind === 'ul';
     const n = this.count;
+    const size = pageSize(st);
     return html`<to-bar class="deck-bar">
         <to-insert .items=${this.inserts()}></to-insert>
         ${g
@@ -961,7 +962,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       ${this.sheets && g
         ? this.renderSheets()
         : html`<div class="deck-body">
-            <div class="deck-stage">${this.renderCanvas(s, look)}</div>
+            <div class="deck-stage" style=${`--deck-w:${size.w};--deck-h:${size.h}`} data-format=${st.format || 'deck'}>${this.renderCanvas(s, look)}</div>
             ${this.renderRail(look)}
           </div>`}
       ${this.showing >= 0 ? this.renderShow(look) : nothing}

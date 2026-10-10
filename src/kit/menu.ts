@@ -18,6 +18,7 @@ import { icon, UI, type IconNode } from './icons.ts';
 import { zoomed } from './zoom.ts';
 import { t } from './i18n.ts';
 import { fold } from './search.ts';
+import { keysText } from './bar.ts';
 
 export interface MenuItem {
   label: string;
@@ -29,6 +30,8 @@ export interface MenuItem {
   /** A heading the item sits under. */
   group?: string;
   disabled?: boolean;
+  /** The keys that do the same, written at the item's end as the device writes them: "Mod+Shift+L". */
+  keys?: string;
   /** Given, the item is a checkbox (role=menuitemcheckbox). */
   checked?: boolean;
   does(): void;
@@ -272,7 +275,7 @@ export class ToMenu extends LitElement {
   };
   private renderItem(item: MenuItem): TemplateResult {
     return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
-      ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
+      ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.keys ? html`<kbd class="to-menu-keys">${keysText(item.keys)}</kbd>` : nothing}${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;
   }
   render() {

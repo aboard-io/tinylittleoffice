@@ -15,11 +15,26 @@
     align-items: start;
     min-width: 0;
   }
+  /* The slide, its speaker notes under it, one width: the window's, but the slide never taller than what can be
+     seen under the bar (as wide as that allows, centred in the room beside the rail). */
   .deck-stage {
     display: flex;
     flex-direction: column;
     gap: 10px;
     min-width: 0;
+    width: 100%;
+    max-width: max(320px, (100dvh - 180px) * var(--deck-w) / var(--deck-h));
+    margin-inline: auto;
+  }
+  .deck-stage[data-format='zine'],
+  .deck-stage[data-format='comic'],
+  .deck-stage[data-format='badges'] {
+    max-width: 520px;
+  }
+  .deck-stage[data-format='booklet'],
+  .deck-stage[data-format='brochure'],
+  .deck-stage[data-format='poster'] {
+    max-width: 560px;
   }
 
   /* ---- the canvas: the slide in its own shape, white paper in either theme, the deck's theme over it ---- */
@@ -33,10 +48,6 @@
     container-type: inline-size;
     width: 100%;
     aspect-ratio: var(--deck-w) / var(--deck-h);
-    /* The window's width is the deck's, but the slide is never taller than what can be seen under the bar: as
-       wide as that allows, centred. */
-    max-width: max(320px, (100dvh - 180px) * var(--deck-w) / var(--deck-h));
-    margin-inline: auto;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -50,18 +61,6 @@
     overflow: hidden;
     /* A double tap edits, it never zooms the page. */
     touch-action: manipulation;
-  }
-  .deck-canvas[data-format='zine'],
-  .deck-canvas[data-format='comic'],
-  .deck-canvas[data-format='badges'] {
-    max-width: 520px;
-    margin: 0 auto;
-  }
-  .deck-canvas[data-format='booklet'],
-  .deck-canvas[data-format='brochure'],
-  .deck-canvas[data-format='poster'] {
-    max-width: 560px;
-    margin: 0 auto;
   }
   .deck-canvas .tx {
     font-size: max(16px, var(--deck-body));

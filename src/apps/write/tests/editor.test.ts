@@ -758,6 +758,33 @@ test('a page break: from Insert ▾ or Mod+Shift+Enter at the caret, drawn as a 
   await until(() => last() === 'One\n\n two\n\n---\n\n<br>\n');
 });
 
+test('Mod+Shift+L, E, R and J align the block in hand left, centred, right and justified, each written on the menu; never taken outside the words', async () => {
+  const { el, last } = await editor('One two\n\nThree\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 2 }, focus: { block: 0, offset: 2 } };
+  await tick();
+  for (const [k, written] of [
+    ['E', 'One two {.center}\n\nThree\n'],
+    ['R', 'One two {.right}\n\nThree\n'],
+    ['J', 'One two {.justify}\n\nThree\n'],
+    ['L', 'One two\n\nThree\n'],
+  ] as const) {
+    // Ctrl on Windows and Linux, ⌘ on a Mac; the browser's own (Mod+Shift+R reloads) never happens.
+    expect(key(el.text.tx, k, { ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+    await until(() => last() === written);
+    expect(key(el.text.tx, k, { metaKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+  }
+  // The menu writes the keys beside each alignment.
+  el.querySelector<HTMLElement>('to-menu.write-align button')!.click();
+  await until(() => !!document.querySelector('[popover]:popover-open'));
+  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')];
+  expect(items.map((x) => x.querySelector('kbd')?.textContent?.replace(/^Ctrl\+|^⌘/, ''))).toEqual(['Shift+L', 'Shift+E', 'Shift+R', 'Shift+J'].map((x) => (navigator.platform.startsWith('Mac') ? x.replace('Shift+', '⇧') : x)));
+  key(document.querySelector('[popover]:popover-open')!, 'Escape');
+  await tick();
+  // Outside the words (the bar), Mod+Shift+R is the browser's.
+  expect(key(el.querySelector('to-bar')!, 'R', { ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(false);
+});
+
 /* ---------- Insert ▾: the kit's dialogs, and documents made and edited in place ---------- */
 
 const FENCE = '```draw\nrect 10 10 100 60\n```';
