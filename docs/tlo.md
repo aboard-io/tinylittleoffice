@@ -74,7 +74,8 @@ The examples are canonical: what the code writes.
 
 **write** (Word Processor): rich text. `# Words {.title}` is the title heading; `#`, `##`, `###` headings; lists
 nest by two spaces; `{.center}`, `{.right}`, `{.justify}` align a block; `---` is a page break; `paper: a4` in the
-head (letter where absent and the reader is in North America). A table is a table block worked out in place by
+head (letter where absent and the reader is in North America); `look: serif|mono|mixed|inverse|book|news` in the
+head sets the type (sans where absent). A table is a table block worked out in place by
 the formula engine. An invoice is a text whose fields are head keys (`from`, `to`, `number`, `date`, `due`,
 `tax`, `currency`, `terms`) and whose lines are a table.
 
