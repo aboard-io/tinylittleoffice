@@ -9,10 +9,10 @@
  *   node scripts/network-doc.ts           write both
  *   node scripts/network-doc.ts --check   write nothing; fail if either is not what the registry says
  */
-import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { NETWORK, reaches, type Reach } from '../src/kit/network.ts';
+import { generate } from './generated.ts';
 import { mediaSource } from './headers.ts';
 
 const PROXY = new URL(mediaSource(undefined)).host;
@@ -234,20 +234,4 @@ ${proseHtml()}
 `;
 }
 
-const root = resolve(fileURLToPath(import.meta.url), '../..');
-const files = { 'docs/network.md': networkDoc, 'public/network.html': networkPage };
-
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const check = process.argv.includes('--check');
-  let stale = false;
-  for (const [path, make] of Object.entries(files)) {
-    const want = make();
-    const at = resolve(root, path);
-    if (!check) writeFileSync(at, want);
-    else if (readFileSync(at, 'utf8') !== want) {
-      console.error(`${path} is out of date: run npm run docs:network`);
-      stale = true;
-    }
-  }
-  if (stale) process.exit(1);
-}
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) generate({ 'docs/network.md': networkDoc(), 'public/network.html': networkPage() }, 'npm run docs:network');

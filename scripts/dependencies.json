@@ -12,7 +12,7 @@
   "@types/node": "Types for the scripts and tests that run under node. Not built into the site.",
   "@vitest/browser-playwright": "Lets Vitest run the DOM tests in a real Chromium through Playwright (test/browser/, src/apps/*/tests/). A simulated DOM would pass what a browser fails. Tests only.",
   "playwright": "The browsers themselves (Chromium, WebKit) for the browser tests and e2e, pinned to @playwright/test's version. Tests only.",
-  "typescript": "The type check (npm run lint). Node strips types natively and runs the scripts as written, but checks none of them. Not built into the site.",
+  "typescript": "The type check (npm run lint), and its scanner reads the source for the lints of the code (test/lints.ts: the words in templates, the module graph). Node strips types natively and runs the scripts as written, but checks none of them, and has no tokenizer for TypeScript. Not built into the site.",
   "vite": "The build. Browsers load ES modules unbundled, but a page per app, hashed file names the offline copy can trust, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site.",
   "vitest": "The unit and browser tests. node:test runs the unit tests' shape but not in a browser; one runner for both layers keeps one way to write a test. Not built into the site.",
   "wrangler": "Deploys the three Workers and runs them locally (npm run deploy, tinier:dev, media:dev). Cloudflare's REST API could, by hand; wrangler is Cloudflare's own tool for it. Not built into the site.",

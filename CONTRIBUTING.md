@@ -14,11 +14,11 @@ Node 24 or later.
 ```sh
 npm ci                # the lockfile, exactly
 npm run dev           # the site at http://localhost:4178, every app
-npm run lint          # the type check (tsc is the lint)
+npm run lint          # the type check and the lints of the code (test/lints.test.ts, the stylesheets, the window's scroll)
 npm run i18n:check    # every string a person sees is in src/i18n/en.ts
 npm run test:unit     # the pure code, under node
 npm run test:browser  # the kit and every editor, in a real Chromium (npx playwright install chromium first)
-npm run build         # dist/, as the site ships
+npm run build         # the lint, then dist/ as the site ships, then the chunks held to budgets.json
 npm run test:e2e      # the built site, desktop Chromium and an iPhone-sized WebKit
 ```
 
@@ -60,8 +60,18 @@ A change in behaviour comes with its test, in the layer where it lives:
 - **End to end** (`e2e/`, Playwright on the built site): the smoke, the keyboard alone, axe in light and
   dark, the offline copy; a line on the phone for anything done by touch.
 
-A generated page (docs/exports.md, docs/dependencies.md, the skill) has a test that it is current: run its
-script and commit the result.
+A generated page (docs/exports.md, docs/dependencies.md, docs/network.md, docs/editing.md's tables, the skill) is
+never edited by hand: `npm run lint` runs each script with `--check` and fails on a stale one; run its script and
+commit the result.
+
+The lints (test/lints.test.ts) hold the code's rules: every word in an html`` or svg`` template goes through t();
+the import graph of src/ has no cycle, an app imports no other app, the kit imports the apps only in kit/apps.ts,
+the kernel (src/doc) imports nothing of the kit or the apps and names no window, document, navigator or
+localStorage; a language is loaded only by kit/i18n.ts. A failure names the file, the line and the rule.
+
+The build ends by weighing its chunks against budgets.json (scripts/budgets.ts; `npm run budgets` prints them).
+The budget is a tripwire against growth nobody meant, not a ceiling on clarity: growth that buys simplicity is
+raised into budgets.json in a commit of its own whose message says why.
 
 ## Commits and pull requests
 

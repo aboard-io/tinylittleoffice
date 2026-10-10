@@ -5,9 +5,10 @@
  * (test/commands.test.ts) fails when either is stale. The registry itself is loaded here whole: the kit's and the
  * words' commands, the rows', and each app's commands.ts, in the home page's order.
  *
- *   node scripts/commands.ts          write docs/editing.md's tables and the skill
+ *   node scripts/commands.ts           write docs/editing.md's tables and the skill
+ *   node scripts/commands.ts --check   write nothing; fail if any of them is stale
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { apps } from '../src/kit/apps.ts';
 import { labelOf, registered, type Command } from '../src/kit/commands.ts';
@@ -26,6 +27,7 @@ import '../src/apps/todo/commands.ts';
 import '../src/apps/cal/commands.ts';
 import '../src/apps/trip/commands.ts';
 import '../src/apps/site/commands.ts';
+import { generate } from './generated.ts';
 import { makeLlms, makeSkill } from './make-skill.ts';
 
 const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
@@ -86,8 +88,6 @@ export function editingDoc(text = readFileSync(at('docs/editing.md'), 'utf8')): 
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  writeFileSync(at('docs/editing.md'), editingDoc());
   const skill = makeSkill();
-  writeFileSync(at('skill/tinyoffice/SKILL.md'), skill);
-  writeFileSync(at('public/llms.txt'), makeLlms(skill));
+  generate({ 'docs/editing.md': editingDoc(), 'skill/tinyoffice/SKILL.md': skill, 'public/llms.txt': makeLlms(skill) }, 'npm run commands');
 }

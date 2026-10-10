@@ -4,8 +4,8 @@
  * files come from their definitions, so the guide cannot name an app, a template or a format the site does
  * not have. Every example is one of an app's own templates, and one that the kernel would not write back
  * byte for byte (write(parse(x)) === x), or whose plain link would not read back as itself, stops the build
- * of the guide: it cannot teach a shape the apps do not keep. `npm run skill` writes both; test/skill.test.ts
- * checks they are current.
+ * of the guide: it cannot teach a shape the apps do not keep. `npm run skill` writes both; with --check it
+ * writes nothing and fails when either is stale (test/lints.test.ts runs that).
  *
  *   {{apps}}                the apps, a row each: id, name, what for
  *   {{tpl:<app>:<id>}}      that template: its TLO, and its plain link
@@ -14,12 +14,13 @@
  *   {{functions}}           the sheet's functions
  *   {{commands}}            the keys each app answers, from the command registry (scripts/commands.ts)
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { apps, appOf } from '../src/kit/apps.ts';
 import { FUNCTIONS, parse, write } from '../src/doc/index.ts';
 import { plainLink, readPlain } from '../src/kit/plain.ts';
 import { skillCommands } from './commands.ts';
+import { generate } from './generated.ts';
 
 const SITE = 'https://tinylittleoffice.com/';
 const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
@@ -62,6 +63,5 @@ export const makeLlms = (skill = makeSkill()): string => skill.replace(/^---\n[\
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const skill = makeSkill();
-  writeFileSync(at('skill/tinyoffice/SKILL.md'), skill);
-  writeFileSync(at('public/llms.txt'), makeLlms(skill));
+  generate({ 'skill/tinyoffice/SKILL.md': skill, 'public/llms.txt': makeLlms(skill) }, 'npm run skill');
 }

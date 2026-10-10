@@ -1,16 +1,8 @@
-// The agent skill and /llms.txt are written from their template and the registry (npm run skill), and are current.
+// The agent skill and /llms.txt are written from their template and the registry (npm run skill); test/lints.test.ts holds them current.
 import { test, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { makeLlms, makeSkill } from '../scripts/make-skill.ts';
 import { apps } from '../src/kit/apps.ts';
 
-const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
-
-test('skill/tinyoffice/SKILL.md and public/llms.txt are current with the template and the apps (npm run skill)', () => {
-  const skill = makeSkill();
-  expect(read('skill/tinyoffice/SKILL.md')).toBe(skill);
-  expect(read('public/llms.txt')).toBe(makeLlms(skill));
-});
 
 test('the skill names every app, teaches the plain link, and leaves no placeholder behind', () => {
   const skill = makeSkill();

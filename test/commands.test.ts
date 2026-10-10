@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { keyList, keyOf, keysText, labelOf, normalKey, runKey, command } from '../src/kit/commands.ts';
 import { definedKeys } from '../scripts/i18n-extract.ts';
-import { editingDoc, editingTables } from '../scripts/commands.ts';
+import { editingTables } from '../scripts/commands.ts';
 import { makeSkill } from '../scripts/make-skill.ts';
 import { apps } from '../src/kit/apps.ts';
 import { allCommands, collisions } from './commands-graph.ts';
@@ -135,10 +135,8 @@ describe('the keys as the registry reads them', () => {
   });
 });
 
-describe('what the registry writes is current (npm run commands)', () => {
-  test('docs/editing.md’s tables are the registry’s', () => {
-    expect(read('docs/editing.md'), 'run npm run commands').toBe(editingDoc());
-  });
+// That docs/editing.md and the skill are current is test/lints.test.ts's (npm run commands writes them).
+describe('what the registry writes', () => {
   test('rows of data (themes, inks, a new document of each app) are drawn but left out of the tables, and none has keys', () => {
     const data = all.filter((c) => c.data);
     expect(data.length).toBeGreaterThan(20);
@@ -148,7 +146,6 @@ describe('what the registry writes is current (npm run commands)', () => {
   });
   test('the skill lists the keys of every app', () => {
     const skill = makeSkill();
-    expect(read('skill/tinyoffice/SKILL.md')).toBe(skill);
     for (const a of apps().filter((x) => all.some((c) => c.scope === x.id && c.keys))) expect(skill).toContain(`**${a.name}**:`);
   });
 });

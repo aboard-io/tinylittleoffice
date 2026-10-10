@@ -33,12 +33,12 @@ npm ci && npm run dev    # http://localhost:4178, every app
 ```
 
 ```sh
-npm run lint            # the type check (tsc is the lint); npm run typecheck adds the Workers
+npm run lint            # the type check and the lints of the code (CONTRIBUTING.md); npm run typecheck adds the Workers
 npm run i18n:check      # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
 npm run i18n:extract    # append the missing keys to en.ts, at the end, to be sorted by hand
 npm test                # unit (node) and browser (Chromium) tests
 npm run test:e2e        # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots
-npm run build           # typecheck, then dist/ with a page per app, the CSP hashes, files.json, sw.js
+npm run build           # the lint, then dist/ with a page per app, the CSP hashes, files.json, sw.js; then the chunk budgets
 npm run docs:exports    # docs/exports.md, from the apps' definitions
 npm run docs:network   # docs/network.md and /network, from src/kit/network.ts (the build runs it first)
 npm run docs:deps       # docs/dependencies.md, from package.json and the lockfile (-- --sizes measures a build)
@@ -140,8 +140,10 @@ src/sw.ts       the service worker, for the copy kept on the device
 public/         _headers (the Content-Security-Policy), manifest, icons, theme.js, network.html (written by scripts/network-doc.ts)
 scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), deploy.mjs (the
                 checks, then Cloudflare), check-build.ts (files.json, the worker's version, the policy's
-                hashes), exports-doc.ts, dependencies.ts and network-doc.ts (the generated pages in docs/)
-test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode)
+                hashes), exports-doc.ts, dependencies.ts and network-doc.ts (the generated pages in docs/,
+                each with --check: generated.ts), budgets.ts (the built chunks against budgets.json)
+test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode);
+                lints.ts and lints.test.ts the rules of the code (CONTRIBUTING.md), fixtures/lints/ what each catches
 e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
                 keyboard alone, axe over every app light and dark, the offline copy, and each app's own
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")

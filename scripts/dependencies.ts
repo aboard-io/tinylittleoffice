@@ -16,6 +16,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SOURCES as EMOJI_SOURCES } from './emoji.ts';
+import { generate } from './generated.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const DOC = resolve(root, 'docs/dependencies.md');
@@ -211,14 +212,8 @@ async function build(): Promise<Record<string, string>> {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
-  if (args.includes('--check')) {
-    const now = existsSync(DOC) ? readFileSync(DOC, 'utf8') : '';
-    if (now !== dependenciesDoc()) {
-      console.error('docs/dependencies.md is out of date: run npm run docs:deps.');
-      process.exit(1);
-    }
-    console.log('docs/dependencies.md is current.');
-  } else {
+  if (args.includes('--check')) generate({ 'docs/dependencies.md': dependenciesDoc() }, 'npm run docs:deps');
+  else {
     // Measured, a package the build holds none of adds none; otherwise the sizes the page holds are kept.
     writeFileSync(DOC, args.includes('--sizes') ? dependenciesDoc(await build(), 'none') : dependenciesDoc());
     console.log('Wrote docs/dependencies.md.');

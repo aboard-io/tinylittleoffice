@@ -1,13 +1,10 @@
-// docs/dependencies.md is what package.json, the lockfile and scripts/dependencies.json say (scripts/dependencies.ts writes it).
+// docs/dependencies.md is what package.json, the lockfile and scripts/dependencies.json say (scripts/dependencies.ts writes it;
+// test/lints.test.ts holds it current).
 import { test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { dependenciesDoc, measure, packageOf, sizesIn } from '../scripts/dependencies.ts';
+import { measure, packageOf, sizesIn } from '../scripts/dependencies.ts';
 
 const doc = () => readFileSync(new URL('../docs/dependencies.md', import.meta.url), 'utf8');
-
-test('docs/dependencies.md is up to date with package.json and the lockfile', () => {
-  expect(doc()).toBe(dependenciesDoc());
-});
 
 test('every dependency names the native API it beat', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as Record<string, Record<string, string>>;

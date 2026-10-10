@@ -107,9 +107,8 @@ test('the list: every entry says what, when, what it carries, what stops it and 
   expect(TRUSTED).toContain('upload.wikimedia.org');
 });
 
-test('docs/network.md and public/network.html are what the list says (npm run docs:network)', () => {
-  expect(readFileSync(join(root, 'docs/network.md'), 'utf8')).toBe(networkDoc());
-  expect(readFileSync(join(root, 'public/network.html'), 'utf8')).toBe(networkPage());
+// That docs/network.md and public/network.html are current is test/lints.test.ts's (npm run docs:network writes them).
+test('docs/network.md and public/network.html name every host, and the page runs nothing', () => {
   // The page runs nothing: no script, no request but the site's own icon.
   expect(networkPage()).not.toMatch(/<script/i);
   for (const r of reaches()) if (r.host !== '*') expect(networkDoc(), r.host).toContain(r.host);

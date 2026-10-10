@@ -6,11 +6,11 @@
  *   node scripts/exports-doc.ts           write docs/exports.md
  *   node scripts/exports-doc.ts --check   write nothing; fail if docs/exports.md is not what the defs say
  */
-import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { apps, appOf } from '../src/kit/apps.ts';
 import { KIT_FORMATS } from '../src/kit/exports.ts';
+import { generate } from './generated.ts';
 
 const cell = (s: string) => s.replace(/\|/g, '\\|');
 
@@ -65,15 +65,4 @@ ${opens.join('\n')}
 `;
 }
 
-const here = fileURLToPath(import.meta.url);
-if (process.argv[1] && resolve(process.argv[1]) === here) {
-  const file = resolve(here, '../../docs/exports.md');
-  const want = exportsDoc();
-  if (process.argv.includes('--check')) {
-    const have = readFileSync(file, 'utf8');
-    if (have !== want) {
-      console.error('docs/exports.md is out of date: node scripts/exports-doc.ts');
-      process.exit(1);
-    }
-  } else writeFileSync(file, want);
-}
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) generate({ 'docs/exports.md': exportsDoc() }, 'npm run docs:exports');
