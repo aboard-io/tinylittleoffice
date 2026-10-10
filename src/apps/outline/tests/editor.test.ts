@@ -971,11 +971,29 @@ test('Insert ▾ lists Web Embed, Tiny Little Office Doc and every other app; a 
   expect(last()).toBe('- One\n\n```draw {depth=0}\nrect 1 1 5 5\n```\n');
 });
 
-test('footnotes are listed under the outline, numbered as their marks are, as a slide lists them at its foot', async () => {
-  const { el } = await editor('- One^[The first note]\n  - Two^[The **second** note]\n');
+test('footnotes are listed under the outline, numbered as their marks are, and typed there: a mark tapped goes to its note, Enter comes back', async () => {
+  const { el, last } = await editor('- One^[The first note]\n  - Two^[The **second** note]\n');
   await until(() => !!el.querySelector('.ol-fn'));
-  const items = [...el.querySelectorAll('.ol-fn li')];
-  expect(items.map((li) => li.textContent!.trim())).toEqual(['The first note', 'The second note']);
-  expect(items[1].querySelector('b')!.textContent).toBe('second');
+  const notes = () => [...el.querySelectorAll<ToText>('.ol-fn to-text')];
+  expect(notes().map((n) => n.tx.textContent)).toEqual(['The first note', 'The second note']);
+  expect(notes()[1].tx.querySelector('b')!.textContent).toBe('second');
   expect(el.querySelector('.ol-fn')!.getAttribute('aria-label')).toBe('Footnotes');
+  expect(textOf(el, 1).tx.querySelector('.fn')!.textContent).toBe('2');
+  // The second mark tapped: the caret at the end of its note; the words typed are the note's.
+  textOf(el, 1).tx.querySelector<HTMLElement>('.fn')!.click();
+  await until(() => notes()[1].hasFocus());
+  expect(notes()[1].sel?.focus.offset).toBe('The second note'.length);
+  input(notes()[1], 'insertText', '!');
+  await until(() => last() === '- One^[The first note]\n  - Two^[The **second** note!]\n');
+  // Enter comes back to the row, after the mark.
+  input(notes()[1], 'insertParagraph');
+  await until(() => textOf(el, 1).hasFocus());
+  expect(textOf(el, 1).sel?.focus.offset).toBe(4);
+  // The Footnote button puts a mark at the caret and the caret in its new note, in its place among the others.
+  textOf(el, 0).sel = { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 3 } };
+  await tick();
+  button(el, 'Footnote').click();
+  await until(() => notes().length === 3 && notes()[0].hasFocus());
+  input(notes()[0], 'insertText', 'x');
+  await until(() => last() === '- One^[x]^[The first note]\n  - Two^[The **second** note!]\n');
 });

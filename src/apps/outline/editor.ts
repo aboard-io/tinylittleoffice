@@ -6,7 +6,9 @@
  * bullet is the line to its parent, tapped to turn it (plain, an arrow out, an arrow back, both ways) and to
  * name it; Connect joins any two items. Every change is operations on the document (model.ts): the kernel's
  * family helpers for the tree, splices for lines, joins and documents, and the row editor's own ops for words.
- * Folds, the zoom, the chosen row and connecting are the editor's state, not the document's.
+ * Folds, the zoom, the chosen row and connecting are the editor's state, not the document's. The footnotes are
+ * listed under the outline (<to-notes>, kit/notes.ts), each typed there: a mark tapped, or Footnote, puts the caret
+ * in its note; Enter or Escape come back to the mark.
  *
  * It behaves as a bulleted list does: Enter at the start of words pushes the row down, Backspace at the start joins
  * the row to the item before it and Delete at the end joins the next one in. Rows can be chosen whole, as nodes (a
@@ -33,11 +35,11 @@ import { pageSvg } from '../../kit/draw.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { noteWords } from '../../kit/note-pop.ts';
+import { noteMarks, type NoteMark, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { parseHash, routeHash } from '../../kit/route.ts';
-import type { Sel, TextOps, ToText } from '../../kit/text.ts';
+import type { NoteAt, Sel, TextOps, ToText } from '../../kit/text.ts';
 import { caret } from '../../kit/textops.ts';
 import { appendItem, connect, copySpan, docBlock, duplicateSpan, enterAt, familyEnd, hasChildren, indexAt, insertDoc, itemBlock, itemsEnd, joinBack, joinForward, listify, liveLinks, mapAt, moveItem, moveSpan, nameOf, parentOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, topsOf, unlink, webAddress, type Dir, type Item, type Link, type OutlineView } from './model.ts';
 import { appName, docGist, outlinePage } from './view.ts';
@@ -47,6 +49,7 @@ import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/dialog.ts';
 import '../../kit/doc-dialog.ts';
+import '../../kit/notes.ts';
 import '../../kit/text.ts';
 import '../../kit/context.ts';
 import './style.css';
@@ -68,7 +71,8 @@ export function refOfLink(words: string): string | null {
 }
 
 /** Where the selection was before an edit: rows chosen whole, or the caret in a row's words. What an undo puts back (the entry's mark). */
-type Mark = { range: RowRange<number> } | { at: number; offset: number };
+/** Where the selection was: the rows chosen, a caret in a row, or the footnote whose words were typed. */
+type Mark = { range: RowRange<number> } | { at: number; offset: number } | { note: number };
 type Ends = { from: string; to: string; dir: Dir; label?: string; edge: boolean };
 /** A line's two ends, as t() takes them. */
 const ft = (e: Ends) => ({ from: e.from, to: e.to });
@@ -153,10 +157,11 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.remap(redo ? entry.ops : entry.inverse);
     const mark = entry.mark as Mark | undefined;
     const ok = (at: number) => at >= 0 && indexAt(this.view, at) >= 0;
+    if (mark && 'note' in mark && mark.note < this.marks().length) return void this.updateComplete.then(() => this.notesEl?.focusNote(mark.note));
     if (mark && 'range' in mark) {
       const r = redo ? { anchor: mapAt(entry.ops, mark.range.anchor), focus: mapAt(entry.ops, mark.range.focus) } : mark.range;
       if (ok(r.anchor) && ok(r.focus)) return this.rows.select(r);
-    } else if (mark && !redo && ok(mark.at)) return this.focusRow(mark.at, mark.offset);
+    } else if (mark && 'at' in mark && !redo && ok(mark.at)) return this.focusRow(mark.at, mark.offset);
     // Else the row the change touched first.
     const first = firstAt(entry);
     if (first < 0 || !this.items.length) return;
@@ -835,7 +840,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${ends ? html`<span class="ol-bullet">${this.bullet(at, ends, n)}</span>${this.chip(at, it.label)}` : html`<span class="ol-bullet" @click=${(e: MouseEvent) => e.shiftKey && this.rows.choose(at, true)}><span class="ol-kind root" aria-hidden="true">${n ? html`<b class="ol-n">${n}.</b>` : html`<span></span>`}</span></span>`}
       ${asDoc
         ? this.renderDoc(it)
-        : html`<to-text shape="line" .blocks=${this.blocksFor(block)} .noteStart=${noteStart} label=${t('Item {n}', { n: i + 1 })} placeholder=${placeholder} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(at, e)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(at))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(at, e.detail.dir))} @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect(at, e)}></to-text>`}
+        : html`<to-text shape="line" notes .blocks=${this.blocksFor(block)} .noteStart=${noteStart} label=${t('Item {n}', { n: i + 1 })} placeholder=${placeholder} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(at, e)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(at))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(at, e.detail.dir))} @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect(at, e)} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote(at, e)} @focusin=${(e: FocusEvent) => (this.field = e.currentTarget as ToText)}></to-text>`}
       ${kids && shut ? html`<span class="ol-count" aria-hidden="true">${inside}</span>` : nothing}
       ${c && words && !it.doc && at !== c.from ? html`<button type="button" class="ol-pick" aria-label=${c.from < 0 ? t('Connect from “{words}”', { words }) : t('Connect “{from}” to “{to}”', { from: plainText(this.itemAt(c.from)?.runs ?? []).trim(), to: words })} @click=${() => this.pick(at)}></button>` : nothing}
     </div>`;
@@ -907,17 +912,47 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${this.renderLinks(liveLinks(this.view))}
       ${this.rows.renderContext()}
       <to-menu class="ol-line-menu" .label=${t('Kind of line')} .items=${this.lineItems()}></to-menu>
-      ${this.renderNotes(items)}
+      ${this.renderNotes()}
       ${this.renderPageDialog()}`;
   }
 
+  /* ---------- the footnotes, under the outline ---------- */
+
+  /** Every item's footnote marks, in the order of the outline (their blocks are the items' own). */
+  private marks(): NoteMark[] {
+    return this.items.flatMap((it) => (it.doc ? [] : noteMarks([this.doc.blocks[it.at]]).map((m) => ({ ...m, block: it.at }))));
+  }
+  get notesEl(): ToNotes | null {
+    return this.querySelector<ToNotes>('to-notes.ol-fn');
+  }
+  /** A mark tapped in a row, or a footnote just put in: the caret in its note's words under the outline. */
+  private onNote(at: number, e: CustomEvent<NoteAt>) {
+    e.stopPropagation();
+    const first = this.marks().findIndex((m) => m.block === at);
+    if (first >= 0) void this.updateComplete.then(() => this.notesEl?.focusNote(first + e.detail.nth));
+  }
+  private onNoteChange = (e: CustomEvent<{ nth: number; fn: string }>) => {
+    const m = this.marks()[e.detail.nth];
+    if (!m || m.fn === e.detail.fn) return;
+    this.edit([{ op: 'text', at: m.block, from: m.offset, to: m.offset + 1, runs: [{ t: '', fn: e.detail.fn }] }], `note:${e.detail.nth}`, { note: e.detail.nth } satisfies Mark);
+  };
+  /** Back from a note to its row, the caret after the mark. */
+  private onNoteBack = (e: CustomEvent<{ nth: number }>) => {
+    const m = this.marks()[e.detail.nth];
+    if (m) this.focusRow(m.block, m.offset + 1);
+  };
+  /** A note left empty: its mark goes (the caret where it was, when the note was left for the words). */
+  private onNoteRemove = (e: CustomEvent<{ nth: number; back: boolean }>) => {
+    const m = this.marks()[e.detail.nth];
+    if (!m) return;
+    this.edit([{ op: 'text', at: m.block, from: m.offset, to: m.offset + 1, runs: [] }], undefined, { at: m.block, offset: m.offset + 1 } satisfies Mark);
+    if (e.detail.back) this.focusRow(m.block, m.offset);
+  };
   /** The footnotes, under the outline, numbered as their marks are (as a slide's are at its foot). */
-  private renderNotes(items: Item[]) {
-    const notes = items.flatMap((it) => it.runs.filter((r) => r.fn !== undefined).map((r) => r.fn!));
+  private renderNotes() {
+    const notes = this.marks().map((m) => m.fn);
     if (!notes.length) return nothing;
-    return html`<ol class="ol-fn" aria-label=${t('Footnotes')}>
-      ${notes.map((fn) => html`<li>${noteWords(fn)}</li>`)}
-    </ol>`;
+    return html`<to-notes class="ol-fn" role="group" aria-label=${t('Footnotes')} .notes=${notes} @note-change=${this.onNoteChange} @note-back=${this.onNoteBack} @note-remove=${this.onNoteRemove}></to-notes>`;
   }
   private renderPageDialog() {
     return html`<to-dialog class="ol-page-dialog" heading=${t('As a page')} @to-close=${() => (this.showing = false)} .body=${this.showing ? html`<div class="ol-page">${unsafeSVG(gateSvg(pageSvg(outlinePage(this.doc))))}</div>` : nothing}></to-dialog>`;

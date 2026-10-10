@@ -1,6 +1,8 @@
 // <to-text> in a real Chromium: typing through beforeinput, Enter and Backspace per shape, marks, chips, cards, the
 // clipboard, the selection round trip for every kind of block, an IME composition, undo and redo through the op log,
-// the selection bubble, and a 390px run (no page scroll on focus; the note box and the bubble inside the visual viewport).
+// the selection bubble, footnote marks asking their host for the note (`text-note`: the notes are typed where the
+// host draws them, kit/notes.ts, tested with the hosts), and a 390px run (no page scroll on focus; the bubble inside
+// the visual viewport).
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
 import { applyAll, parse, write, type Doc } from '../../src/doc/index.ts';
@@ -8,7 +10,7 @@ import { htmlToBlocks } from '../../src/kit/clipboard.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { History } from '../../src/kit/history.ts';
 import { caret, type Sel, type Shape } from '../../src/kit/textops.ts';
-import type { TextOps, ToText } from '../../src/kit/text.ts';
+import type { NoteAt, TextOps, ToText } from '../../src/kit/text.ts';
 import { tick, until } from './helpers.ts';
 import '../../src/styles.css';
 import '../../src/kit/text.ts';
@@ -19,6 +21,8 @@ class Host {
   doc: Doc;
   history = new History();
   events: string[] = [];
+  /** What each `text-note` asked for. */
+  notes: NoteAt[] = [];
   el: ToText;
   constructor(tlo: string, shape: Shape) {
     this.doc = parse(tlo);
@@ -33,6 +37,7 @@ class Host {
       this.el.blocks = this.doc.blocks;
     });
     for (const name of ['text-enter', 'text-exit', 'text-select', 'text-embed']) this.el.addEventListener(name, () => this.events.push(name));
+    this.el.addEventListener('text-note', (e) => this.notes.push((e as CustomEvent<NoteAt>).detail));
   }
   get tlo() {
     return write(this.doc);
@@ -46,9 +51,10 @@ class Host {
   }
 }
 
-async function mount(tlo = '', shape: Shape = 'doc', sel: Sel | null = caret(0, 0)): Promise<Host> {
+async function mount(tlo = '', shape: Shape = 'doc', sel: Sel | null = caret(0, 0), notes = false): Promise<Host> {
   document.body.innerHTML = '';
   const h = new Host(tlo, shape);
+  h.el.notes = notes;
   document.body.append(h.el);
   await h.el.updateComplete;
   h.el.focus();
@@ -212,20 +218,33 @@ test('icon and footnote chips are atomic: one character each, skipped by the car
   h.el.sel = caret(0, 4);
   await key(h, 'Delete');
   expect(h.tlo).toBe('a  b c\n');
-  // A footnote put in opens its box; its number is drawn.
-  const n = await mount('x\n', 'doc', caret(0, 1));
+  // A footnote put in is its mark, numbered; the host is asked for its note (whose words it draws and takes, kit/notes.ts).
+  const n = await mount('x\n', 'doc', caret(0, 1), true);
   n.el.exec('fn');
   await n.el.updateComplete;
-  await until(() => !!document.querySelector('.to-note-pop:popover-open'));
   expect(n.tlo).toBe('x^[]\n');
-  const words = document.querySelector<ToText>('.to-note-words')!;
-  await words.updateComplete;
-  await until(() => words.hasFocus());
-  words.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: 'n', bubbles: true, cancelable: true }));
-  await until(() => n.tlo === 'x^[n]\n');
-  document.querySelector<HTMLButtonElement>('.to-note-pop [aria-label=Done]')!.click();
-  await until(() => !document.querySelector('.to-note-pop:popover-open'));
-  expect(n.tlo).toBe('x^[n]\n');
+  expect(n.notes).toEqual([{ block: 0, nth: 0 }]);
+  expect(n.el.tx.querySelector('.fn')!.textContent).toBe('1');
+  expect(document.querySelector('to-note-pop, .to-note-pop')).toBeNull();
+  // Where the host draws no notes, there is no footnote to put in.
+  const none = await mount('x\n', 'doc', caret(0, 1));
+  none.el.exec('fn');
+  await none.el.updateComplete;
+  expect(none.tlo).toBe('x\n');
+});
+
+test('a footnote mark asks its host for its note: a tap, or Enter on it, says text-note with the block and which of its marks', async () => {
+  const h = await mount('one^[a] two^[b]\n\nthree^[c]\n', 'doc', caret(0, 0), true);
+  const chips = h.el.tx.querySelectorAll<HTMLElement>('.fn');
+  expect([...chips].map((c) => c.textContent)).toEqual(['1', '2', '3']);
+  chips[1].click();
+  chips[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  expect(h.notes).toEqual([{ block: 0, nth: 1 }, { block: 1, nth: 0 }]);
+  // The mark numbers on from where the host says its span starts.
+  h.el.noteStart = 4;
+  await h.el.updateComplete;
+  expect(h.el.tx.querySelector('.fn')!.textContent).toBe('5');
+  expect(h.tlo).toBe('one^[a] two^[b]\n\nthree^[c]\n');
 });
 
 test('cards for what is not words: drawn non-editable, skipped by the caret, a tap says text-embed', async () => {
@@ -517,15 +536,17 @@ test('the selection bubble: the lists over whole blocks of a doc or lines editor
   await until(bubbleOpen);
   expect(inBubble('Bold')).not.toBeNull();
   expect(inBubble('Bulleted list')).toBeNull();
-  const fn = await mount('a word here\n', 'doc', range(0, 2, 6));
+  // Footnote is offered only where the host draws the notes; from the bubble the mark goes after the words, and the host is asked for its note.
+  expect(inBubble('Footnote')).toBeNull();
+  const fn = await mount('a word here\n', 'doc', range(0, 2, 6), true);
   await until(bubbleOpen);
   inBubble('Footnote')!.click();
-  await until(() => !!document.querySelector('.to-note-pop:popover-open'));
-  expect(fn.tlo).toBe('a word^[] here\n');
-  expect(bubbleOpen()).toBe(false);
+  await until(() => fn.tlo === 'a word^[] here\n');
+  expect(fn.notes).toEqual([{ block: 0, nth: 0 }]);
+  await until(() => !bubbleOpen());
 });
 
-test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the note box sits inside the visual viewport', async () => {
+test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the bubble sits inside the visual viewport', async () => {
   await page.viewport(390, 844);
   try {
     const h = await mount(`${'A long paragraph of words that wraps on a phone screen more than once. '.repeat(3)}\n\n${Array.from({ length: 30 }, (_, i) => `Line ${i}^[a note on line ${i}]`).join('\n\n')}\n`, 'doc', null);
@@ -537,21 +558,7 @@ test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the 
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     expect(parseFloat(getComputedStyle(h.el.tx).fontSize)).toBeGreaterThanOrEqual(16);
     expect(h.el.tx.getAttribute('enterkeyhint')).toBe('enter');
-    const chip = h.el.tx.querySelectorAll<HTMLElement>('.fn')[29];
-    chip.scrollIntoView();
-    chip.click();
-    await until(() => !!document.querySelector('.to-note-pop:popover-open'));
-    const r = document.querySelector('.to-note-pop')!.getBoundingClientRect();
     const vv = window.visualViewport!;
-    expect(r.left).toBeGreaterThanOrEqual(vv.offsetLeft);
-    expect(r.right).toBeLessThanOrEqual(vv.offsetLeft + vv.width + 0.5);
-    expect(r.top).toBeGreaterThanOrEqual(vv.offsetTop);
-    expect(r.bottom).toBeLessThanOrEqual(vv.offsetTop + vv.height + 0.5);
-    expect(parseFloat(getComputedStyle(document.querySelector('.to-note-words .tx')!).fontSize)).toBeGreaterThanOrEqual(16);
-    document.querySelector<HTMLButtonElement>('.to-note-pop [aria-label=Done]')!.click();
-    await until(() => !document.querySelector('.to-note-pop:popover-open'));
-    // The box's closing puts the caret after its mark (the toggle event comes a moment later).
-    await until(() => h.el.sel?.anchor.block === 30);
     // The selection bubble under words selected: inside the visual viewport, below the words (the native callout sits above), covering none of them.
     window.scrollTo(0, 0);
     h.el.sel = { anchor: { block: 0, offset: 20 }, focus: { block: 0, offset: 60 } };
@@ -835,37 +842,6 @@ test('no selection is written during an IME composition: a host\'s caret waits f
   p.dispatchEvent(new CompositionEvent('compositionend', { data: '', bubbles: true }));
   await tick(30);
   expect(h.tlo).toBe('hello world\n');
-});
-
-test('the footnote box has its own undo: Mod+Z there takes back the note\'s words, never the document\'s', async () => {
-  const h = await mount('words\n', 'doc', caret(0, 5));
-  let docUndo = 0;
-  h.el.addEventListener('docundo', () => docUndo++);
-  h.el.exec('fn');
-  await until(() => !!document.querySelector('.to-note-pop:popover-open'));
-  const inner = document.querySelector<ToText>('to-note-pop to-text')!;
-  await inner.updateComplete;
-  await tick(30);
-  for (const ch of 'abc') {
-    inner.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
-    await inner.updateComplete;
-    await h.el.updateComplete;
-  }
-  expect(h.tlo).toBe('words^[abc]\n');
-  expect(press(inner.tx, { key: 'z', ctrlKey: true }).defaultPrevented).toBe(true);
-  await inner.updateComplete;
-  await h.el.updateComplete;
-  expect(h.tlo).toBe('words^[]\n');
-  expect(inner.tx.textContent).toBe('');
-  press(inner.tx, { key: 'z', ctrlKey: true, shiftKey: true });
-  await inner.updateComplete;
-  await h.el.updateComplete;
-  expect(h.tlo).toBe('words^[abc]\n');
-  // The browser's own undo in the box (historyUndo) is the box's too.
-  inner.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'historyUndo', bubbles: true, cancelable: true }));
-  await h.el.updateComplete;
-  expect(h.tlo).toBe('words^[]\n');
-  expect(docUndo).toBe(0);
 });
 
 test('editing surfaces: touch-action manipulation on the box; under a finger the bubble\'s buttons and a task\'s box are 44px', async () => {

@@ -9,8 +9,9 @@
  * `cells` ops, worked out in place by the formula engine; another document as a picture of its first page;
  * a web address alone as a click-to-load card (<to-embed>); a page break (the kernel's `hr`, from Insert ▾ or
  * Mod+Shift+Enter) as a thin dashed rule with its name in the middle. The document's own head fields (an invoice's
- * from and to) are inputs over the text; the footnotes are listed under it from notesOf, and the words are
- * counted at the foot.
+ * from and to) are inputs over the text; the footnotes are listed under it (<to-notes>, kit/notes.ts), each
+ * note's words typed there, where they are drawn (a mark tapped, or a new footnote, puts the caret in its note;
+ * Enter, Escape or ↩ come back to the mark), and the words are counted at the foot.
  *
  * A card is a thing in hand when it has the focus (a tap, Tab, the table's corner handle, Escape from a
  * cell): the bar under it is Edit, Move up, Move down, Duplicate | Copy, Cut, Paste | Delete (§6's order),
@@ -27,7 +28,7 @@ import { html, nothing, type PropertyDeclarations, type PropertyValues, type Tem
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
 import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Palette, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
-import { isEmbed, notesOf, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { isEmbed, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { apps } from '../../kit/apps.ts';
 import { keysText, tool } from '../../kit/bar.ts';
@@ -38,12 +39,12 @@ import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { noteWords } from '../../kit/note-pop.ts';
+import { noteIndex, noteMarks, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import { myKey, signerName, signWords } from '../../kit/privacy.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
-import type { TextOps, ToText } from '../../kit/text.ts';
+import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
 import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
 import def from './def.ts';
 import { LOOK_IDS, LOOKS, lookOf, type LookId } from './look.ts';
@@ -57,6 +58,7 @@ import '../../kit/doc-dialog.ts';
 import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
+import '../../kit/notes.ts';
 import '../../kit/text.ts';
 import './table.ts';
 import './style.css';
@@ -81,6 +83,8 @@ interface Mark {
   /** The card in hand before the edit, and after it. */
   card?: number;
   cardAfter?: number;
+  /** The footnote whose words were typed: an undo puts the caret back in it. */
+  note?: number;
 }
 /** What a copy of a card holds. */
 interface Clip {
@@ -173,6 +177,7 @@ export class ToWriteEditor extends DocElement<Doc> {
       if (m?.cell && this.doc.blocks[m.cell.at]?.k === 'table') return void this.focusCell(m.cell.at, m.cell.r, m.cell.c, m.cell.end ?? null);
       const card = redo ? m?.cardAfter : m?.card;
       if (card !== undefined && this.isCard(card)) return this.holdCard(card);
+      if (m?.note !== undefined && m.note < noteMarks(this.doc.blocks).length) return void this.notesEl?.focusNote(m.note);
       const sel = redo ? m?.after : m?.before;
       if (sel) this.text.sel = sel;
       else this.text.sel = caret(Math.max(0, firstAt(entry)), 0);
@@ -640,20 +645,39 @@ export class ToWriteEditor extends DocElement<Doc> {
 
   /* ---------- the notes ---------- */
 
-  /** Back to a note's mark in the text: the mark takes the focus. */
-  private backTo(i: number) {
-    const chips = this.text.tx.querySelectorAll<HTMLElement>('.fn');
-    chips[i]?.focus({ preventScroll: true });
-    chips[i]?.scrollIntoView({ block: 'center' });
+  get notesEl(): ToNotes | null {
+    return this.querySelector<ToNotes>('to-notes.write-notes-list');
   }
+  /** A mark tapped, or a footnote just put in: the caret in its note's words, at the end of the page. */
+  private onNote = (e: CustomEvent<NoteAt>) => {
+    const i = noteIndex(noteMarks(this.doc.blocks), e.detail.block, e.detail.nth);
+    void this.updateComplete.then(() => this.notesEl?.focusNote(i));
+  };
+  /** A note's words typed: one `text` op on its mark, a burst of typing in one note one step. */
+  private onNoteChange = (e: CustomEvent<{ nth: number; fn: string }>) => {
+    const m = noteMarks(this.doc.blocks)[e.detail.nth];
+    if (!m || m.fn === e.detail.fn) return;
+    this.change([{ op: 'text', at: m.block, from: m.offset, to: m.offset + 1, runs: [{ t: '', fn: e.detail.fn }] }], { before: null, after: null, note: e.detail.nth }, `note:${e.detail.nth}`);
+  };
+  /** Back from a note to the words, the caret after its mark. */
+  private onNoteBack = (e: CustomEvent<{ nth: number }>) => {
+    const m = noteMarks(this.doc.blocks)[e.detail.nth];
+    if (m) this.text.sel = caret(m.block, m.offset + 1);
+  };
+  /** A note left empty: its mark goes (the caret where it was, when the note was left for the words). */
+  private onNoteRemove = (e: CustomEvent<{ nth: number; back: boolean }>) => {
+    const m = noteMarks(this.doc.blocks)[e.detail.nth];
+    if (!m) return;
+    const at = caret(m.block, m.offset);
+    this.change([{ op: 'text', at: m.block, from: m.offset, to: m.offset + 1, runs: [] }], { before: caret(m.block, m.offset + 1), after: at });
+    if (e.detail.back) void this.drawn().then(() => (this.text.sel = at));
+  };
   private renderNotes() {
-    const notes = notesOf(this.doc.blocks);
+    const notes = noteMarks(this.doc.blocks).map((m) => m.fn);
     if (!notes.length) return nothing;
     return html`<section class="write-notes" role="doc-endnotes" aria-label=${t('Footnotes')}>
       <hr />
-      <ol>
-        ${notes.map((fn, i) => html`<li>${noteWords(fn)} <button type="button" class="write-back" role="doc-backlink" aria-label=${t('Back to footnote {n} in the text', { n: i + 1 })} title=${t('Back to the text')} @click=${() => this.backTo(i)}>↩</button></li>`)}
-      </ol>
+      <to-notes class="write-notes-list" backs .notes=${notes} @note-change=${this.onNoteChange} @note-back=${this.onNoteBack} @note-remove=${this.onNoteRemove}></to-notes>
     </section>`;
   }
 
@@ -694,7 +718,7 @@ export class ToWriteEditor extends DocElement<Doc> {
       </to-bar>
       <div class="write-page" data-paper=${paper} data-look=${look.id}>
         ${this.renderFields()}
-        <to-text class="write-text" shape="doc" .blocks=${this.doc.blocks} .card=${this.card} label=${t('Document')} placeholder=${t('Write here.')} @text-ops=${this.onOps} @text-select=${this.onSelect} @text-embed=${this.onCardTap}></to-text>
+        <to-text class="write-text" shape="doc" notes .blocks=${this.doc.blocks} .card=${this.card} label=${t('Document')} placeholder=${t('Write here.')} @text-ops=${this.onOps} @text-select=${this.onSelect} @text-embed=${this.onCardTap} @text-note=${this.onNote}></to-text>
         ${this.renderNotes()}
       </div>
       <div class="write-foot"><span>${t('{n|one word|# words}', { n: words })}</span><span>${PAPERS[paper].name}</span></div>

@@ -5,6 +5,7 @@ import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { offlineList } from './scripts/offline-files.ts';
 import { fillHeaders, mediaSource } from './scripts/headers.ts';
+import { siteFrame } from './scripts/site-frame.ts';
 import type { AppDef } from './src/kit/app.ts';
 
 /**
@@ -73,7 +74,8 @@ export default defineConfig(({ mode }) => ({
       '/media/': { target: 'http://127.0.0.1:8788', rewrite: (p) => p.slice('/media'.length) },
     },
   },
-  plugins: [afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '', loadEnv(mode, import.meta.dirname).VITE_MEDIA_URL)],
+  // The Website Builder's frame script, /site-frame.js (scripts/site-frame.ts): emitted by the build, served by the dev server.
+  plugins: [siteFrame(import.meta.dirname), afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '', loadEnv(mode, import.meta.dirname).VITE_MEDIA_URL)],
   build: {
     target: 'es2022',
     outDir: 'dist',

@@ -5,9 +5,10 @@
  * Content-Security-Policy allows it by hash and nothing typed can run, not even in the editor's frame; a
  * page's data goes beside its script as JSON. A section's things are drawn in the order of the document (a
  * run of cards, of buttons or of small links in one row). In the editor's frame (`edit`) every thing is also
- * marked with its id and the EDIT script says what is tapped; the words are never edited in the page itself
- * but in each thing's form (docs/kernel.md §8, decision 3). (Ported from the old tree's apps/site.def.ts,
- * apps/links.def.ts and lib/pageedit.ts.)
+ * marked with its id, each run of its words with its part (data-w), and the page carries the frame's script
+ * (frame.ts, loaded from the site, never in a downloaded page) with every thing's words beside it as data: a
+ * tap says what is tapped, and words are typed where they are drawn (docs/editing.md §5, §6). (Ported from
+ * the old tree's apps/site.def.ts, apps/links.def.ts and lib/pageedit.ts.)
  */
 import { isAtomic, linkify, parse, plainText, write, type Doc, type Run } from '../../doc/index.ts';
 import { lookup, type Page as Picture } from '../../kit/app.ts';
@@ -17,7 +18,7 @@ import { iconInner, iconNamed, glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { pageData, pageScript } from '../../kit/page.ts';
 import { fenceLink } from '../write/view.ts';
-import { cardFields, iconOf, linesOf, linkFields, objId, readSite, ROW, safeUrl, type Embed, type Obj, type ObjKind, type Product, type Section, type Site } from './model.ts';
+import { cardFields, iconOf, linesOf, linkFields, objId, readSite, ROW, safeUrl, wordsOf, type Embed, type Obj, type ObjKind, type PartName, type Product, type Section, type Site } from './model.ts';
 import { paletteOf, themeCss } from './theme.ts';
 
 /* ---------- the scripts ---------- */
@@ -85,40 +86,6 @@ else if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){
 draw();})();`);
 
 /**
- * The editor's half of editing, in its frame: every thing on the page is marked with its id (data-o). A tap on a
- * thing takes it in hand (outlined; the editor is told which and where, and opens its form; told again as the page
- * scrolls), a tap on the page's empty room lets it go; nothing in the page is followed or bought meanwhile, but the
- * nav still goes from page to page. The editor says which thing is in hand by a message (Up and Down, Escape, a change made); undo and redo
- * keys go to the editor, and Select All never selects the page. Each thing (and the page, for a tap on its empty room)
- * listens for its own click, for WebKit counts a finger's tap as a click only on an element that does. The page keeps its place when drawn again ("y").
- * The editor checks that a message comes from its own frame, and this script that one comes from its parent.
- */
-export const EDIT = pageScript(`(function(){
-var D=JSON.parse(document.getElementById('site-edit').textContent),held=D.held,soon=0;
-function send(m){m.site=D.stamp;parent.postMessage(m,'*');}
-function el(id){return id===null?null:document.querySelector('[data-o="'+id+'"]');}
-function rect(id){var e=el(id);if(!e)return null;var r=e.getBoundingClientRect();return [r.left,r.top,r.width,r.height];}
-function mark(id){[].forEach.call(document.querySelectorAll('.site-cur'),function(e){e.classList.remove('site-cur');});var e=el(id);if(e)e.classList.add('site-cur');}
-function where(){soon=0;send({do:'at',o:held,r:rect(held),y:window.scrollY});}
-function later(){if(!soon)soon=requestAnimationFrame(where);}
-document.addEventListener('click',function(ev){var t=ev.target;if(!t||!t.closest)return;
-var o=t.closest('[data-o]');
-if(!o){var a=t.closest('a[href]');if(a){if(a.getAttribute('href').charAt(0)!=='#')ev.preventDefault();return;}if(held!==null){held=null;mark(null);send({do:'pick',o:null});}return;}
-ev.preventDefault();ev.stopPropagation();var id=o.getAttribute('data-o');
-held=id;mark(id);send({do:'pick',o:id,r:rect(id),y:window.scrollY});},true);
-window.addEventListener('message',function(ev){var m=ev.data;if(ev.source!==parent||!m||m.site!==D.stamp)return;
-held=m.held===undefined?null:m.held;mark(held);var e=el(held);if(e&&m.show)e.scrollIntoView({block:'nearest'});where();});
-document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase(),mod=ev.ctrlKey||ev.metaKey;
-if(mod&&(k==='z'||k==='y')){ev.preventDefault();send({do:k==='y'||ev.shiftKey?'redo':'undo'});return;}
-if(mod&&k==='a'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))ev.preventDefault();});
-window.addEventListener('scroll',later,{passive:true});window.addEventListener('resize',later);
-[].forEach.call(document.querySelectorAll('html,body,[data-o],[data-sec]'),function(e){e.addEventListener('click',function(){});});
-window.addEventListener('hashchange',function(){send({do:'page',id:decodeURIComponent(location.hash.slice(1))});});
-if(D.y)window.scrollTo(0,D.y);mark(held);var e0=el(held);if(e0&&D.show)e0.scrollIntoView({block:'nearest'});
-send({do:'ready'});where();
-})();`);
-
-/**
  * The editor's Preview: the page as a visitor has it, with one thing more. Escape in the page tells the editor
  * (which goes back to editing), and a link out of the site opens beside the editor, not in its frame.
  */
@@ -127,6 +94,9 @@ var D=JSON.parse(document.getElementById('site-peek').textContent);
 document.addEventListener('keydown',function(ev){if(ev.key==='Escape')parent.postMessage({site:D.stamp,do:'leave'},'*');});
 document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest?ev.target.closest('a[href]'):null;if(a&&a.getAttribute('href').charAt(0)!=='#'){a.target='_blank';a.rel='noopener noreferrer';}},true);
 })();`);
+
+/** Where the frame's editor is on the site (scripts/site-frame.ts builds it). */
+export const FRAME_SCRIPT = 'site-frame.js';
 
 /* ---------- words ---------- */
 
@@ -187,18 +157,31 @@ const LINKS_CSS = `main.hero{max-width:26rem;margin:0 auto;padding:3rem 1.25rem 
 h1{font-size:2rem;margin:0 0 .6rem}p{color:var(--ink2);margin:0 0 1rem}
 footer{border:0;padding:1rem 0 0;font-size:.85rem}`;
 
-/** The editor's marks: every thing a finger's target (a section's room too, where a tap lets go), the one under the pointer outlined lightly, the one in hand firmly. */
+/**
+ * The editor's marks: every thing a finger's target (a section's room too, where a tap lets go), the one under the
+ * pointer outlined lightly, the one in hand firmly; words with none yet show what goes there; the line under a big
+ * link and a small link's words (drawn as an icon alone) show while the thing is in hand, so they can be typed; a
+ * big link's words are not covered by its link's reach.
+ */
 const EDIT_CSS = `[data-o]{cursor:pointer}[data-o],[data-sec]{touch-action:manipulation}[data-o]:hover{outline:1px dashed var(--a);outline-offset:3px}
 .site-cur,.site-cur:hover{outline:2px solid var(--a);outline-offset:3px;border-radius:2px}
-h1[data-o]:empty::before{content:attr(data-empty);color:var(--ink3)}`;
+[data-w]:empty::before{content:attr(data-empty);color:var(--ink3)}.go-card strong a::after{content:none}
+.cards li>span[data-w]:empty,.social .site-label{display:none}.cards li.site-cur>span[data-w],.social .site-cur>.site-label{display:block}
+.social li{text-align:center}.social .site-label{margin-top:.3rem;font-size:.85rem;color:var(--ink2)}`;
+
+/** The strings the frame's editor shows (its selection bubble, the link box), in the language of the editor. */
+const FRAME_STRINGS = ['Bold', 'Italic', 'Underline', 'Strikethrough', 'Highlight', 'Link', 'Format', 'Address', 'Edit link', 'Not an address', 'Open link', 'Remove link', 'Set link'];
 
 export interface SitePageOpts {
   /** Where another document's link begins: the site the link is on. */
   base?: string;
   /** The section whose page shows first (the editor's frame and its Preview). */
   cur?: number;
-  /** The editor's frame: the thing in hand (`show`: scrolled into view), the scroll to keep, a stamp the frame's messages carry back. */
-  edit?: { stamp: number; held?: string | null; y?: number; show?: boolean };
+  /**
+   * The editor's frame: the thing in hand (`show`: scrolled into view), the scroll to keep, a stamp the frame's messages
+   * carry back, where the frame's script is (`src`, /site-frame.js by default) and whether the editor is dark.
+   */
+  edit?: { stamp: number; held?: string | null; y?: number; show?: boolean; src?: string; dark?: boolean };
   /** The editor's Preview: the page as a visitor has it, which tells the editor of Escape. */
   peek?: number;
 }
@@ -239,6 +222,7 @@ interface Ctx {
 function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
   const { doc, site, o } = c;
   const mark = (x: Obj) => (o.edit ? ` data-o="${objId(x)}"` : '');
+  const w = (x: Obj, part: PartName, empty = '') => (o.edit ? ` data-w="${objId(x)}:${part}"${empty ? ` data-empty="${xml(empty)}"` : ''}` : '');
   let out = '';
   for (let i = 0; i < items.length; ) {
     const x = items[i];
@@ -253,8 +237,8 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
           .map((y) => {
             const r = doc.blocks[y.at];
             const f = cardFields(r.k === 'li' ? r.runs : []);
-            const head = f.url ? `<a href="${xml(safeUrl(f.url))}">${prose(f.head)}</a>` : prose(f.head);
-            return `<li${mark(y)}${f.url ? ' class="go-card"' : ''}>${iconSvg(f.icon, 28)}<strong>${head}</strong>${f.detail.length ? `<span>${prose(f.detail)}</span>` : ''}</li>`;
+            const head = f.url ? `<strong><a href="${xml(safeUrl(f.url))}"${w(y, 'head', t('Heading'))}>${prose(f.head)}</a></strong>` : `<strong${w(y, 'head', t('Heading'))}>${prose(f.head)}</strong>`;
+            return `<li${mark(y)}${f.url ? ' class="go-card"' : ''}>${iconSvg(f.icon, 28)}${head}${f.detail.length || o.edit ? `<span${w(y, 'detail', t('A line about it'))}>${prose(f.detail)}</span>` : ''}</li>`;
           })
           .join('')}</ul>`;
         break;
@@ -264,7 +248,7 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
         const button = (y: Obj, k: number) => {
           const r = doc.blocks[y.at];
           const l = linkFields(r.k === 'quote' ? linesOf(r.runs)[y.line] : []);
-          return `<a class="btn${k && !stack ? ' quiet' : ''}"${mark(y)} href="${xml(safeUrl(l.url))}">${iconSvg(l.icon, 20)}${xml(l.label)}</a>`;
+          return `<a class="btn${k && !stack ? ' quiet' : ''}"${mark(y)} href="${xml(safeUrl(l.url))}">${iconSvg(l.icon, 20)}${o.edit ? `<span${w(y, 'label', t('Label'))}>${xml(l.label)}</span>` : xml(l.label)}</a>`;
         };
         out += `<p class="go${stack ? ' stack' : ''}">${row.map(button).join(' ')}</p>`;
         break;
@@ -274,15 +258,15 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
           .map((y) => {
             const r = doc.blocks[y.at];
             const l = linkFields(r.k === 'li' ? r.runs : []);
-            return `<li${mark(y)}><a href="${xml(safeUrl(l.url))}" aria-label="${xml(l.label)}" title="${xml(l.label)}">${iconSvg(l.icon && iconNamed(l.icon) ? l.icon : 'globe', 22)}</a></li>`;
+            return `<li${mark(y)}><a href="${xml(safeUrl(l.url))}" aria-label="${xml(l.label)}" title="${xml(l.label)}">${iconSvg(l.icon && iconNamed(l.icon) ? l.icon : 'globe', 22)}</a>${o.edit ? `<span class="site-label"${w(y, 'label', t('Label'))}>${xml(l.label)}</span>` : ''}</li>`;
           })
           .join('')}</ul>`;
         break;
       case 'heading':
-        out += `<h3${mark(x)}>${xml(words(b.k === 'h' ? b.runs : []))}</h3>`;
+        out += `<h3${mark(x)}${w(x, '0', t('Heading'))}>${xml(words(b.k === 'h' ? b.runs : []))}</h3>`;
         break;
       case 'p':
-        out += `<p${mark(x)}>${linesOf(b.k === 'p' ? b.runs : [])
+        out += `<p${mark(x)}${w(x, '0', t('Words for the page'))}>${linesOf(b.k === 'p' ? b.runs : [])
           .filter((l) => l.length)
           .map(prose)
           .join('<br>')}</p>`;
@@ -351,7 +335,7 @@ export function sitePage(doc: Doc, o: SitePageOpts = {}): string {
   const lead = site.sections[0];
   const about = lead.text[0] ? words(lead.text[0]) : name;
   const sec = (s: Section) => (edit ? ` data-sec="${objId(s.head)}"` : '');
-  const head = (s: Section) => (edit ? ` data-o="${objId(s.head)}"` : '');
+  const head = (s: Section) => (edit ? ` data-o="${objId(s.head)}" data-w="${objId(s.head)}:0"` : '');
   let body: string;
   if (site.links) {
     // One column: the front's pictures, the name, the words, the stacked buttons, the small links; anything else under them.
@@ -384,7 +368,12 @@ ${site.pages.map((_, i) => render(i)).join('\n')}
 <footer><div class="wrap">${xml(name)}</div></footer>`;
   }
   const shown = o.cur !== undefined && !site.links ? (site.pages[site.sections[o.cur]?.page ?? 0]?.id ?? '') : '';
-  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${edit ? pageData('site-edit', { stamp: edit.stamp, held: edit.held ?? null, y: edit.y ?? 0, show: !!edit.show }) + EDIT : ''}${
+  // The frame's editor: its data (the words of every thing, the strings it shows), and its script from the site.
+  const editing = edit
+    ? pageData('site-edit', { stamp: edit.stamp, held: edit.held ?? null, y: edit.y ?? 0, show: !!edit.show, dark: !!edit.dark, words: wordsOf(doc, site), strings: Object.fromEntries(FRAME_STRINGS.map((k) => [k, t(k)])) }) +
+      `<script src="${xml(edit.src ?? `/${FRAME_SCRIPT}`)}"></script>`
+    : '';
+  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${editing}${
     o.peek !== undefined && !edit ? pageData('site-peek', { stamp: o.peek }) + PEEK : ''
   }`;
   const lang = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';

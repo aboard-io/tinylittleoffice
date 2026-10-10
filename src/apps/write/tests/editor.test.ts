@@ -1,5 +1,5 @@
-// The Write editor in a real Chromium: typing is the document, the bar makes a title and marks the words, a footnote
-// opens its box and is listed under the text, a table from Insert ▾ is a grid whose cells are the document and whose
+// The Write editor in a real Chromium: typing is the document, the bar makes a title and marks the words, a footnote's
+// words are typed where they are listed, under the text (its mark tapped goes there; Escape comes back; emptied, it goes), a table from Insert ▾ is a grid whose cells are the document and whose
 // formulas work out in place, the invoice's Enter puts a line in inside the sum's reach, a web address alone is a
 // click-to-load card, a task is ticked by a tap, the paper is a head field, and at phone width the bar is one row and
 // the page never scrolls.
@@ -80,28 +80,81 @@ test('typing is the document; the bar makes the block a title and marks the word
   await until(() => last() === '# **Hello** there {.title}\n');
 });
 
-test('a footnote from the bar opens its box; its words are listed under the text and counted', async () => {
+const press = (target: EventTarget, k: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+const notes = (el: ToWriteEditor) => [...el.querySelectorAll<HTMLElement>('.write-notes to-text.to-note-words .tx')];
+
+test('a footnote from the bar: its mark in the words and the caret in its note at the end of the page, typed there; listed and counted', async () => {
   const { el, last } = await editor('Some words\n');
   el.text.focus();
   el.text.sel = { anchor: { block: 0, offset: 10 }, focus: { block: 0, offset: 10 } };
   await tick();
   button(el, 'Footnote').click();
-  await until(() => !!el.querySelector('.write-page .tx .fn'));
-  const pop = el.querySelector<HTMLElement>('to-note-pop')!;
-  await until(() => !!pop.querySelector('to-text .tx'));
-  await type(el, 'Said in passing', pop.querySelector<HTMLElement>('to-text .tx')!);
+  await until(() => !!el.querySelector('.write-page .write-text .tx .fn'));
+  expect(document.querySelector('to-note-pop, .to-note-pop')).toBeNull();
+  // The new note is at the foot, empty, with the caret in it.
+  await until(() => notes(el).length === 1 && document.activeElement === notes(el)[0]);
+  await type(el, 'Said in passing', notes(el)[0]);
   await until(() => last() === 'Some words^[Said in passing]\n');
-  // The note's box is the same one line everywhere: the page's own rules for its words (its height, its size) stay out of it.
-  const words = pop.querySelector<HTMLElement>('to-text .tx')!;
+  const words = notes(el)[0];
+  // The note keeps the foot's look: one line, never under 16px (an iPhone zooms on less), not the page's 50vh.
   expect(words.getBoundingClientRect().height).toBeLessThan(60);
-  expect(getComputedStyle(words).fontSize).toBe('16px');
-  const notes = el.querySelector('section[role="doc-endnotes"]')!;
-  expect(notes.querySelectorAll('li')).toHaveLength(1);
-  expect(notes.querySelector('li')!.textContent).toContain('Said in passing');
+  expect(parseFloat(getComputedStyle(words).fontSize)).toBeGreaterThanOrEqual(16);
+  const list = el.querySelector('section[role="doc-endnotes"]')!;
+  expect(list.querySelectorAll('li')).toHaveLength(1);
+  expect(list.querySelector('li')!.textContent).toContain('Said in passing');
   expect(el.querySelector('.write-foot')!.textContent).toContain('5 words');
-  // The way back from the note goes to its mark.
-  button(notes, 'Back to footnote 1 in the text').click();
-  expect(document.activeElement).toBe(el.querySelector('.write-page .tx .fn'));
+  // A typing burst in the note is one step: undone, the words go and the caret is back in the note.
+  expect(el.dispatchEvent(new CustomEvent('docundo', { cancelable: true, bubbles: true }))).toBe(false);
+  await until(() => last() === 'Some words^[]\n');
+  await until(() => document.activeElement === notes(el)[0]);
+  expect(el.dispatchEvent(new CustomEvent('docredo', { cancelable: true, bubbles: true }))).toBe(false);
+  await until(() => last() === 'Some words^[Said in passing]\n');
+  await until(() => notes(el)[0].textContent === 'Said in passing');
+  // Escape in the note goes back to the words, the caret after the mark.
+  el.querySelector<HTMLElement>('.write-notes .tx')!.focus();
+  press(notes(el)[0], 'Escape');
+  await until(() => el.text.hasFocus());
+  await until(() => el.text.sel?.focus.offset === 11);
+  // The way back from the note's ↩ goes to its mark too.
+  notes(el)[0].focus();
+  button(list, 'Back to footnote 1 in the text').click();
+  await until(() => el.text.hasFocus());
+  expect(last()).toBe('Some words^[Said in passing]\n');
+});
+
+test('a mark tapped puts the caret at the end of its note; a note emptied and left takes its mark; Backspace in an empty note takes it and comes back', async () => {
+  const { el, last } = await editor('One^[first] two^[second]\n\nThree^[third]\n');
+  const chips = () => [...el.querySelectorAll<HTMLElement>('.write-text .tx .fn')];
+  expect(notes(el).map((n) => n.textContent)).toEqual(['first', 'second', 'third']);
+  chips()[1].click();
+  await until(() => document.activeElement === notes(el)[1]);
+  expect(el.querySelector<import('../../../kit/text.ts').ToText>('.write-notes li:nth-child(2) to-text')!.sel?.focus.offset).toBe(6);
+  // Enter on a mark does the same.
+  press(chips()[2], 'Enter');
+  await until(() => document.activeElement === notes(el)[2]);
+  // Emptied and left: the note and its mark go.
+  for (let i = 0; i < 5; i++) {
+    input(notes(el)[2], 'deleteContentBackward');
+    await el.updateComplete;
+    await tick();
+  }
+  await until(() => last() === 'One^[first] two^[second]\n\nThree^[]\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  await until(() => last() === 'One^[first] two^[second]\n\nThree\n');
+  await until(() => notes(el).length === 2);
+  // Backspace at the start of an empty note takes it, and the caret goes where its mark was.
+  chips()[0].click();
+  await until(() => document.activeElement === notes(el)[0]);
+  for (let i = 0; i < 5; i++) {
+    input(notes(el)[0], 'deleteContentBackward');
+    await el.updateComplete;
+    await tick();
+  }
+  await until(() => last() === 'One^[] two^[second]\n\nThree\n');
+  input(notes(el)[0], 'deleteContentBackward');
+  await until(() => last() === 'One two^[second]\n\nThree\n');
+  await until(() => el.text.hasFocus() && el.text.sel?.focus.offset === 3);
 });
 
 test('Insert ▾ puts in a table: three by three, opened in the Spreadsheet first; then a grid whose cells are the document, a formula worked out in place', async () => {

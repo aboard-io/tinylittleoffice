@@ -220,8 +220,7 @@
     border-top: 1px solid var(--to-border-strong);
   }
 
-  /* ---- the two bubbles ---- */
-  .to-note-pop,
+  /* ---- the link bubble ---- */
   .to-link-pop {
     position: fixed;
     inset: auto;
@@ -238,9 +237,6 @@
     box-shadow: var(--to-shadow-pop);
     font-size: 14px;
   }
-  .to-note-pop:not([open]):not(:popover-open) {
-    display: none;
-  }
   .to-link-pop:not(:popover-open):not([popover]) {
     display: flex;
   }
@@ -249,32 +245,37 @@
   .to-link-pop[hidden] {
     display: none;
   }
-  .to-note-n {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--to-accent);
+
+  /* ---- the notes where they are drawn (<to-notes>, kit/notes.ts): each one a line of words typed in place ---- */
+  to-notes {
+    display: block;
   }
-  .to-note-words {
-    flex: 1 1 auto;
-    min-width: 0;
+  .to-notes {
+    margin: 0;
+    padding-left: 1.6em;
   }
-  /* The note's box is the same in every app: it sits inside the words it belongs to (a headline, a page, a
-     row), so what those set for their own words is kept out of it here (important in the kit's layer beats
-     an app's ordinary rules). */
-  .to-note-pop {
-    font: 400 16px/1.4 var(--to-font) !important;
-    color: var(--to-ink) !important;
-    text-align: start !important;
-    letter-spacing: normal !important;
-    text-transform: none !important;
+  .to-note > to-text.to-note-words {
+    display: inline-block;
+    vertical-align: top;
+    width: calc(100% - 2.5em);
   }
   .to-note-words .tx {
-    min-height: 0 !important;
-    padding: 6px 8px !important;
-    border-radius: 6px;
-    background: var(--to-bg);
-    font: inherit !important;
-    caret-color: auto;
+    min-height: 1.4em;
+    line-height: 1.4;
+    border-radius: 4px;
+  }
+  .to-note-words .tx:focus {
+    background: var(--to-accent-soft);
+    box-shadow: 0 0 0 3px var(--to-accent-soft);
+    color: var(--to-ink);
+  }
+  .to-note-back {
+    min-width: 2em;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
   }
   .to-link-pop {
     width: auto;
@@ -305,8 +306,8 @@
     outline-offset: -1px;
   }
   @media print {
-    .to-note-pop,
-    .to-link-pop {
+    .to-link-pop,
+    .to-note-back {
       display: none !important;
     }
   }

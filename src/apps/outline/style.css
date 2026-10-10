@@ -332,7 +332,7 @@
   .ol-fn {
     max-width: 820px;
     margin: 8px 0 20px 44px;
-    padding: 8px 8px 0 calc(var(--ol-step, 22px) + 1.4em);
+    padding: 8px 8px 0 var(--ol-step, 22px);
     font-size: 14px;
     color: var(--to-ink-2);
     border-top: 1px solid var(--to-border);

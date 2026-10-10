@@ -5,7 +5,9 @@
  * slide's heading block, the words a <to-text shape=lines> over its items and paragraphs (two of them for
  * two columns, either side of the "|"), the speaker notes a <to-text shape=lines> over its quote blocks.
  * Every op from an editor is offset by its span's start and applied through DocElement's edit(), with a mark
- * of the slide and the caret (or the slides chosen) that undone() puts back. A slide that shows another
+ * of the slide and the caret (or the slides chosen) that undone() puts back. The footnotes are at the slide's
+ * foot (<to-notes>, kit/notes.ts), their words typed there: a mark tapped, or Footnote, puts the caret in its
+ * note; Enter or Escape come back to the mark. A slide that shows another
  * document (a fence, a table, a picture, a web address alone) shows it as a card with a menu.
  *
  * The rail's thumbnails are the slides as rows (kit/rows.ts, docs/editing.md §6): a tap chooses one (Shift
@@ -32,14 +34,14 @@ import { pageSvg } from '../../kit/draw.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, iconNamed, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { noteWords } from '../../kit/note-pop.ts';
+import { noteMarks, type NoteMark, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { routeHash } from '../../kit/route.ts';
 import { Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import type { Sel } from '../../kit/textops.ts';
-import type { TextOps, ToText } from '../../kit/text.ts';
-import { addSlide, duplicateSlides, FORMATS, isBlank, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
+import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
+import { addSlide, duplicateSlides, FORMATS, isBlank, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
 import def from './def.ts';
 import { ICON_COLORS, THEMES } from './theme.ts';
 import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
@@ -47,6 +49,7 @@ import '../../kit/bar.ts';
 import '../../kit/doc-dialog.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
+import '../../kit/notes.ts';
 import '../../kit/text.ts';
 import './style.css';
 import { qrBlock } from '../../kit/qr-picture.ts';
@@ -61,6 +64,8 @@ interface Mark {
   range?: RowRange<number>;
   field?: Field;
   sel?: Sel | null;
+  /** The footnote whose words were typed: an undo puts the caret back in it. */
+  note?: number;
 }
 /** Two clicks closer together than this are a double click: show the whole slide. */
 const FAST = 350;
@@ -251,7 +256,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     if (m?.range) {
       const r = m.range;
       void this.updateComplete.then(() => (r.anchor < this.slides.length && r.focus < this.slides.length ? this.rows.select(r) : undefined));
-    } else if (m?.field && m.sel) this.focusNext = { field: m.field, at: m.sel };
+    } else if (m?.note !== undefined) void this.updateComplete.then(() => this.notesEl?.focusNote(m.note!));
+    else if (m?.field && m.sel) this.focusNext = { field: m.field, at: m.sel };
     else this.focusNext = { field: 'title', at: 'end' };
     this.requestUpdate();
   }
@@ -271,6 +277,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private onOps(field: Field, e: CustomEvent<TextOps>) {
     e.stopPropagation();
     const { ops, before, kind } = e.detail;
+    this.boxOps(field, ops, kind ? `type:${this.cur}:${field}` : undefined, { slide: this.cur, field, sel: before });
+  }
+  /** Ops over one of the boxes' blocks, as the box would send them. */
+  private boxOps(field: Field, ops: Op[], key: string | undefined, mark: Mark) {
     const s = this.slide;
     const made = this.ensure(this.cur);
     if (field === 'title') {
@@ -280,7 +290,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       const runs = next && 'runs' in next ? next.runs : [];
       const h: Block = { k: 'h', level: was?.level ?? 2, runs: joinHeadline(s.icon, runs), ...(was?.a ? { a: was.a } : {}) };
       const put: Op = was ? { op: 'splice', at: s.head, n: 1, blocks: [h] } : { op: 'splice', at: made.start >= 0 ? made.start : s.from, n: 0, blocks: [h] };
-      this.change([...made.ops, put], kind ? `type:${this.cur}:title` : undefined, { slide: this.cur, field, sel: before });
+      this.change([...made.ops, put], key, mark);
       return;
     }
     const start = made.start >= 0 ? made.start : field === 'words' ? s.words[0] : field === 'right' ? s.pipe + 1 : s.notes[0];
@@ -288,8 +298,44 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const first = moved[0];
     // The editor over an empty span puts a paragraph in first: here it is the block the box is for.
     if (first?.op === 'splice' && first.n === 0 && first.blocks.length === 1 && first.blocks[0].k === 'p' && !first.blocks[0].runs.length) moved = [{ ...first, blocks: [this.born(field, s)] }, ...moved.slice(1)];
-    this.change([...made.ops, ...moved], kind ? `type:${this.cur}:${field}` : undefined, { slide: this.cur, field, sel: before });
+    this.change([...made.ops, ...moved], key, mark);
   }
+
+  /* ---------- the footnotes, at the slide's foot ---------- */
+
+  /** The slide's footnote marks in order (the headline's, then the words', then the right column's), each with its box. */
+  private marks(s: Slide = this.slide): { field: Field; m: NoteMark }[] {
+    const b = this.boxes(s);
+    const fields: Field[] = s.sub >= 0 ? ['title'] : ['title', 'words', 'right'];
+    return fields.flatMap((field) => noteMarks(b[field]).map((m) => ({ field, m })));
+  }
+  get notesEl(): ToNotes | null {
+    return this.querySelector<ToNotes>('to-notes.deck-fn');
+  }
+  /** A mark tapped in a box, or a footnote just put in: the caret in its note's words at the foot. */
+  private onNote(field: Field, e: CustomEvent<NoteAt>) {
+    e.stopPropagation();
+    const first = this.marks().findIndex((x) => x.field === field && x.m.block === e.detail.block);
+    if (first >= 0) void this.updateComplete.then(() => this.notesEl?.focusNote(first + e.detail.nth));
+  }
+  private onNoteChange = (e: CustomEvent<{ nth: number; fn: string }>) => {
+    const x = this.marks()[e.detail.nth];
+    if (!x || x.m.fn === e.detail.fn) return;
+    this.boxOps(x.field, [{ op: 'text', at: x.m.block, from: x.m.offset, to: x.m.offset + 1, runs: [{ t: '', fn: e.detail.fn }] }], `note:${this.cur}:${e.detail.nth}`, { slide: this.cur, note: e.detail.nth });
+  };
+  /** Back from a note to its box, the caret after the mark. */
+  private onNoteBack = (e: CustomEvent<{ nth: number }>) => {
+    const x = this.marks()[e.detail.nth];
+    if (x) this.focusBox(x.field, { anchor: { block: x.m.block, offset: x.m.offset + 1 }, focus: { block: x.m.block, offset: x.m.offset + 1 } });
+  };
+  /** A note left empty: its mark goes (the caret where it was, when the note was left for the words). */
+  private onNoteRemove = (e: CustomEvent<{ nth: number; back: boolean }>) => {
+    const x = this.marks()[e.detail.nth];
+    if (!x) return;
+    const at = { block: x.m.block, offset: x.m.offset };
+    this.boxOps(x.field, [{ op: 'text', at: x.m.block, from: x.m.offset, to: x.m.offset + 1, runs: [] }], undefined, { slide: this.cur, field: x.field, sel: { anchor: at, focus: at } });
+    if (e.detail.back) this.focusBox(x.field, { anchor: at, focus: at });
+  };
   /** The block an empty box's first words make: a headline, a bullet (prose on a printed page), a note. */
   private born(field: Field, s: Slide): Block {
     if (field === 'title') return { k: 'h', level: 2, runs: [] };
@@ -304,8 +350,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.sel = e.detail;
     this.requestUpdate();
   }
-  /** The caret into a box: at its start or its end. */
-  private focusBox(field: Field, at: 'start' | 'end' = 'end') {
+  /** The caret into a box: at its start, its end, or a selection. */
+  private focusBox(field: Field, at: 'start' | 'end' | Sel = 'end') {
     this.focusNext = { field, at };
     this.requestUpdate();
   }
@@ -785,9 +831,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const size = pageSize(st);
     const n = this.count;
     const { title: titleBlocks, words: wordsBlocks, right: rightBlocks, notes: noteBlocks } = this.boxes(s);
-    const titleNotes = s.title.filter((r) => r.fn !== undefined).length;
-    const leftNotes = s.items.reduce((k, it) => k + it.runs.filter((r) => r.fn !== undefined).length, 0);
-    const notes = slideNotes(s);
+    const marks = this.marks(s);
+    const titleNotes = marks.filter((x) => x.field === 'title').length;
+    const leftNotes = marks.filter((x) => x.field === 'words').length;
+    const notes = marks.map((x) => x.m.fn);
     const sub = s.sub >= 0 ? subPage(this.doc, s) : null;
     const prose = !!st.format && st.format !== 'comic' && !s.layout;
     const wordsHint = st.format === 'comic' ? t('A panel a line: what is said | the caption. Icon gives it a picture.') : prose ? t('What this page says. The type shrinks to fit the page.') : s.layout === 't' ? t('A line or two under the title') : t('One bullet a line. Tab steps it in.');
@@ -797,24 +844,22 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     return html`<div class="deck-canvas lay-${s.layout || 'b'} ${look.themed ? 'themed' : ''} ${look.theme.dark ? 'dark' : ''} ${sub ? 'has-sub' : ''} ${prose ? 'prose' : ''}" style=${this.canvasStyle(s, look, size)} data-format=${st.format || 'deck'}>
         <div class="deck-head">
           ${s.layout === 'i' ? nothing : pick}
-          <to-text class="deck-title" shape="line" .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @focusin=${() => (this.field = 'title')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => this.onTitleExit(e)}></to-text>
+          <to-text class="deck-title" shape="line" notes .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @focusin=${() => (this.field = 'title')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => this.onTitleExit(e)} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('title', e)}></to-text>
         </div>
         ${sub
           ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
               <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(gateSvg(sub.svg))}</svg>
             </figure>`
           : html`<div class="deck-words-row">
-              <to-text class="deck-words" shape="lines" @paste=${this.onWordsPaste} .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')}></to-text>
+              <to-text class="deck-words" shape="lines" notes @paste=${this.onWordsPaste} .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('words', e)}></to-text>
               ${s.layout === '2'
-                ? html`<to-text class="deck-right" shape="lines" .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @focusin=${() => (this.field = 'right')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')}></to-text>`
+                ? html`<to-text class="deck-right" shape="lines" notes .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @focusin=${() => (this.field = 'right')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('right', e)}></to-text>`
                 : s.layout === 'i'
                   ? html`<button type="button" class="deck-big ${s.icon ? '' : 'empty'}" aria-label=${pickLabel} @click=${() => void this.pickIcon()}>${s.icon && iconNamed(s.icon) ? icon(iconNamed(s.icon)!, 120) : html`${icon(UI.icon, 40)}<span>${t('Pick an icon')}</span>`}</button>`
                   : nothing}
             </div>`}
         ${notes.length
-          ? html`<ol class="deck-fn" aria-label=${t('Footnotes')}>
-              ${notes.map((fn) => html`<li>${noteWords(fn)}</li>`)}
-            </ol>`
+          ? html`<to-notes class="deck-fn" role="group" aria-label=${t('Footnotes')} .notes=${notes} @note-change=${this.onNoteChange} @note-back=${this.onNoteBack} @note-remove=${this.onNoteRemove}></to-notes>`
           : nothing}
         <span class="deck-num">${foot}</span>
       </div>

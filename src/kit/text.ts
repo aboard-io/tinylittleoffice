@@ -17,8 +17,8 @@
  * `text-selectall` (the host takes everything). Shift+Enter is a line break
  * in a paragraph, an item or a quote; a heading splits.
  *
- * Escape steps out one step per press: the link or note box closes (and
- * the press stops there), else a range of words collapses to its focus,
+ * Escape steps out one step per press: the link box closes (and the
+ * press stops there), else a range of words collapses to its focus,
  * else `text-escape` (bubbles, cancelable) tells the host, and the key goes
  * on to it. Alt+Up/Down moves an item with its family past its neighbour;
  * Mod+Enter ticks a task item (in a doc or lines; a line's host decides);
@@ -32,10 +32,18 @@
  * A task item's box is tapped to tick.
  *
  * Words selected bring up the selection bubble (a <to-context> centred
- * under them): the marks, Link, Footnote and, over whole blocks of words in
- * a doc or lines editor, the two lists. It goes when the selection collapses
- * or leaves, while an IME composes, and while the link or note box is open;
- * `no-bubble` turns it off. `marks-only` keeps the five marks alone (words
+ * under them): the marks, Link, Footnote (where the host lists the notes:
+ * `notes`) and, over whole blocks of words in a doc or lines editor, the two
+ * lists. It goes when the selection collapses or leaves, while an IME
+ * composes, and while the link box is open; `no-bubble` turns it off.
+ *
+ * A footnote is a chip in the words (its mark, numbered on from
+ * `note-start`); its words are typed where the host draws the notes (the end
+ * of a page, a slide's foot, under an outline: kit/notes.ts), never here. A
+ * tap or Enter on a chip, and the Footnote command once it has put a new
+ * mark in, say `text-note` ({block, nth}: the block, and which of its marks)
+ * for the host to open that note. Only a host with `notes` is offered the
+ * Footnote command. `marks-only` keeps the five marks alone (words
  * that are drawn, not read: a shape's label): no Link, no Footnote, no
  * lists, Mod+K does nothing, and a paste brings its words without links or notes.
  *
@@ -52,10 +60,8 @@ import { UI, type IconNode } from './icons.ts';
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
-import type { ToNotePop } from './note-pop.ts';
 import './context.ts';
 import './link-pop.ts';
-import './note-pop.ts';
 
 export type { Command, Fmt, Pos, Sel, Shape } from './textops.ts';
 
@@ -65,6 +71,11 @@ export interface TextOps {
   sel: Sel;
   before: Sel | null;
   kind?: 'type';
+}
+/** What `text-note` carries: the block of the mark asked for, and which of the block's marks it is. */
+export interface NoteAt {
+  block: number;
+  nth: number;
 }
 
 const EMPTY: Block = { k: 'p', runs: [] };
@@ -126,7 +137,7 @@ export function domToRuns(el: HTMLElement): Run[] {
 }
 
 export class ToText extends LitElement {
-  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false }, noBubble: { type: Boolean, attribute: 'no-bubble' }, marksOnly: { type: Boolean, attribute: 'marks-only' } };
+  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false }, noBubble: { type: Boolean, attribute: 'no-bubble' }, marksOnly: { type: Boolean, attribute: 'marks-only' }, notes: { type: Boolean } };
   /** The blocks it owns; `at` in its ops counts from the first. */
   declare blocks: Block[];
   declare shape: Shape;
@@ -140,6 +151,8 @@ export class ToText extends LitElement {
   declare noBubble: boolean;
   /** The marks and nothing else: no links, no footnotes, no lists. */
   declare marksOnly: boolean;
+  /** The host draws the notes and answers `text-note`: the Footnote command is offered. */
+  declare notes: boolean;
 
   private _sel: Sel | null = null;
   /** The marks the next letter typed will carry. */
@@ -150,8 +163,6 @@ export class ToText extends LitElement {
   private pendingSel: 'keep' | 'focus' | null = null;
   /** A selection write is on its way (WebKit's is a frame later): what the DOM says meanwhile is stale and not read back. */
   private writing = false;
-  /** The footnote open in the popover: its block, and which of the block's marks it is. */
-  private noting: { block: number; nth: number } | null = null;
   /** The selection has left the editor (said once). */
   private away = false;
   /** The block an IME just composed in: drawn afresh on the next draw, not updated in place. */
@@ -167,6 +178,7 @@ export class ToText extends LitElement {
     this.card = null;
     this.noBubble = false;
     this.marksOnly = false;
+    this.notes = false;
   }
   createRenderRoot() {
     return this;
@@ -190,9 +202,6 @@ export class ToText extends LitElement {
   /** The editable box. */
   get tx(): HTMLElement {
     return this.querySelector<HTMLElement>(':scope > .tx')!;
-  }
-  private get notePop(): ToNotePop {
-    return this.querySelector<ToNotePop>(':scope > to-note-pop')!;
   }
   private get linkPop(): ToLinkPop {
     return this.querySelector<ToLinkPop>(':scope > to-link-pop')!;
@@ -516,7 +525,7 @@ export class ToText extends LitElement {
     const chip = (e.target as HTMLElement).closest?.('.fn');
     if (chip && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      return this.openNoteOf(chip as HTMLElement);
+      return this.askNote(chip as HTMLElement);
     }
     if (e.key === 'Escape') return this.escape(e);
     const mod = e.metaKey || e.ctrlKey;
@@ -599,7 +608,7 @@ export class ToText extends LitElement {
     if (this.ownEvent(e)) return;
     const el = e.target as HTMLElement;
     const chip = el.closest?.('.fn');
-    if (chip && this.tx.contains(chip)) return this.openNoteOf(chip as HTMLElement);
+    if (chip && this.tx.contains(chip)) return this.askNote(chip as HTMLElement);
     const card = el.closest?.('.tx-card');
     if (card && this.tx.contains(card)) {
       const block = this.blockEls().indexOf(card as HTMLElement);
@@ -710,13 +719,15 @@ export class ToText extends LitElement {
         return go(setMark(model, link?.sel ?? sel, 'href', ''));
       }
       case 'fn': {
-        // Over words selected, the mark goes after them (the words stay).
+        if (!this.notes || this.marksOnly) return;
+        // Over words selected, the mark goes after them (the words stay); then the host opens its note where the notes are.
         const [, a] = ordered(sel);
         const e = insertRuns(model, { anchor: a, focus: a }, [{ t: '', fn: '' }]);
         const b = model[a.block];
         const nth = isWords(b) ? b.runs.slice(0, runAt(b.runs, a.offset)?.index ?? b.runs.length).filter((r) => r.fn !== undefined).length : 0;
-        this.noting = { block: a.block, nth };
-        return this.emit(e.ops, e.sel, undefined, null);
+        this.bubble?.hide();
+        this.emit(e.ops, e.sel, undefined, null);
+        return void this.dispatchEvent(new CustomEvent<NoteAt>('text-note', { detail: { block: a.block, nth }, bubbles: true }));
       }
       case 'icon':
         return arg ? go(insertRuns(model, sel, [{ t: '', ic: arg }])) : undefined;
@@ -745,67 +756,19 @@ export class ToText extends LitElement {
 
   /* ---------- footnotes and links ---------- */
 
-  /** Which run of the block is its nth footnote mark, and the character offset it sits at. */
-  private fnAt(block: number, nth: number): { index: number; offset: number; fn: string } | null {
-    const b = this.model[block];
-    if (!b || !isWords(b)) return null;
-    let offset = 0;
-    let seen = 0;
-    for (let i = 0; i < b.runs.length; i++) {
-      const r = b.runs[i];
-      if (r.fn !== undefined && seen++ === nth) return { index: i, offset, fn: r.fn };
-      offset += isAtomic(r) ? 1 : r.t.length;
-    }
-    return null;
-  }
-  private chipOf(block: number, nth: number): HTMLElement | null {
-    return this.blockEls()[block]?.querySelectorAll<HTMLElement>('.fn')[nth] ?? null;
-  }
-  private openNoteOf(chip: HTMLElement) {
+  /** A footnote's mark tapped, or Enter on it: the host is asked to open its note (`text-note`), where it draws the notes. */
+  private askNote(chip: HTMLElement) {
     const el = this.blockElOf(chip);
     if (!el) return;
     const block = this.blockEls().indexOf(el);
     const nth = [...el.querySelectorAll('.fn')].indexOf(chip);
-    this.noting = { block, nth };
-    this.openNote();
-  }
-  private openNote() {
-    const n = this.noting;
-    const hit = n && this.fnAt(n.block, n.nth);
-    const chip = n && this.chipOf(n.block, n.nth);
-    if (!hit || !chip) return void (this.noting = null);
     this.linkPop.hide();
     this.bubble?.hide();
-    void this.notePop.open(chip, hit.fn, Number(chip.textContent));
+    this.dispatchEvent(new CustomEvent<NoteAt>('text-note', { detail: { block, nth }, bubbles: true }));
   }
-  private onNoteChange = (e: CustomEvent<string>) => {
-    e.stopPropagation();
-    const n = this.noting;
-    const hit = n && this.fnAt(n.block, n.nth);
-    if (!hit) return;
-    this.emit([{ op: 'text', at: n.block, from: hit.offset, to: hit.offset + 1, runs: [{ t: '', fn: e.detail }] }], caret(n.block, hit.offset + 1), undefined, null);
-  };
-  private onNoteRemove = (e: Event) => {
-    e.stopPropagation();
-    const n = this.noting;
-    const hit = n && this.fnAt(n.block, n.nth);
-    this.noting = null;
-    if (hit) this.emit([{ op: 'text', at: n.block, from: hit.offset, to: hit.offset + 1, runs: [] }], caret(n.block, hit.offset), undefined, 'focus');
-  };
-  /** The box closed: a note with no words goes with it; the caret lands after the mark. */
-  private onNoteClose = (e: Event) => {
-    e.stopPropagation();
-    const n = this.noting;
-    const hit = n && this.fnAt(n.block, n.nth);
-    this.noting = null;
-    if (!hit) return;
-    if (!hit.fn.trim()) this.emit([{ op: 'text', at: n.block, from: hit.offset, to: hit.offset + 1, runs: [] }], caret(n.block, hit.offset), undefined, 'focus');
-    else this.sel = caret(n.block, hit.offset + 1);
-  };
-  /** The link and note boxes closed, and the bubble; whether a box was open (an Escape that closed one goes no further). */
+  /** The link box closed, and the bubble; whether the box was open (an Escape that closed it goes no further). */
   private closePops(): boolean {
-    const open = !!this.notePop?.isOpen || !!this.linkPop?.shown;
-    this.notePop?.close();
+    const open = !!this.linkPop?.shown;
     this.linkPop?.hide();
     this.bubble?.hide();
     return open;
@@ -829,7 +792,7 @@ export class ToText extends LitElement {
     // A DOM selection inside a card is the card's own (a grid's cell, a web thing's words), not words of ours.
     const dom = !this.writing && !this.pendingSel ? document.getSelection() : null;
     const inCard = (n: Node | null | undefined) => !!(n && (n instanceof Element ? n : n.parentElement)?.closest('.tx-card'));
-    if (this.noBubble || this.composing || !sel || collapsed(sel) || !focused || this.linkPop?.shown || this.notePop?.isOpen || inCard(dom?.anchorNode) || inCard(dom?.focusNode)) return bub.hide();
+    if (this.noBubble || this.composing || !sel || collapsed(sel) || !focused || this.linkPop?.shown || inCard(dom?.anchorNode) || inCard(dom?.focusNode)) return bub.hide();
     const m = marksOf(this.model, sel);
     const mark = (cmd: Mark, label: string, icon: IconNode, keys?: string): ContextEntry => ({ label, icon, keys, pressed: !!m[cmd], does: () => this.exec(cmd) });
     const items: ContextEntry[] = [
@@ -839,7 +802,7 @@ export class ToText extends LitElement {
       mark('s', t('Strikethrough'), UI.strike, 'Mod+Shift+X'),
       mark('h', t('Highlight'), UI.highlight, 'Mod+Shift+H'),
     ];
-    if (!this.marksOnly) items.push(SEP, { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') }, { label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') });
+    if (!this.marksOnly) items.push(SEP, { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') }, ...(this.notes ? [{ label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') }] : []));
     if (!this.marksOnly && this.shape !== 'line' && this.wholeBlocks(sel)) {
       const kind = kindAt(this.model, sel);
       items.push(SEP, { label: t('Bulleted list'), icon: UI.list, pressed: kind === 'ul', does: () => this.exec('ul') }, { label: t('Numbered list'), icon: UI.listOrdered, pressed: kind === 'ol', does: () => this.exec('ol') });
@@ -885,8 +848,6 @@ export class ToText extends LitElement {
     if (this._sel) this.sel = this._sel;
     else this.focus();
   };
-  /** Events of the editors inside the popovers stay there. */
-  private swallow = (e: Event) => e.stopPropagation();
 
   /* ---------- drawing ---------- */
 
@@ -904,13 +865,6 @@ export class ToText extends LitElement {
       this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: this._sel, bubbles: true }));
     }
     this.syncBubble();
-    if (this.noting) {
-      const n = this.noting;
-      const chip = this.chipOf(n.block, n.nth);
-      if (!chip) this.noting = null;
-      else if (this.notePop.isOpen) this.notePop.anchorTo(chip);
-      else this.openNote();
-    }
   }
 
   private words(s: string): unknown[] {
@@ -1011,7 +965,6 @@ export class ToText extends LitElement {
         @cut=${this.onCopy}
         @paste=${this.onPaste}
       >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
-      <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @text-selectall=${this.swallow} @text-escape=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
       <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove} @link-cancel=${this.onLinkCancel}></to-link-pop>
       <to-context class="tx-bubble" .label=${t('Format')}></to-context>`;
   }

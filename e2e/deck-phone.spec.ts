@@ -142,3 +142,34 @@ test('deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   expect(errors).toEqual([]);
 });
+
+test('deck: on a phone, a footnote is typed at the slide\'s foot: Footnote puts the mark in and the caret in its note, 16px, nothing zoomed; a tap on the mark goes back to it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/deck');
+  const title = page.locator('to-deck-editor to-text.deck-title .tx');
+  await title.tap();
+  await page.keyboard.type('Sources');
+  await page.keyboard.press('Enter');
+  const words = page.locator('to-deck-editor to-text.deck-words .tx');
+  await expect(words).toBeFocused();
+  await page.keyboard.type('A claim');
+  await page.getByRole('button', { name: 'Footnote', exact: true }).tap();
+  const note = page.locator('to-deck-editor .deck-fn to-text .tx');
+  await expect(note).toBeFocused();
+  expect(await note.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  await page.keyboard.type('Where it comes from');
+  await expect(page.locator('.deck-thumb').first()).toHaveAttribute('aria-label', 'Slide 1: Sources');
+  await expect(note).toHaveText('Where it comes from');
+  const n = (await note.boundingBox())!;
+  expect(n.x).toBeGreaterThanOrEqual(0);
+  expect(n.x + n.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  // Enter in the note comes back to the words, after the mark; a tap on the mark goes to its note again.
+  await page.keyboard.press('Enter');
+  await expect(words).toBeFocused();
+  await words.locator('.fn').tap();
+  await expect(note).toBeFocused();
+  expect(errors).toEqual([]);
+});
