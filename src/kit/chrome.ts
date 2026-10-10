@@ -32,6 +32,10 @@
  * nothing measured but the window. The price: Safari's toolbar no longer collapses as the words scroll, since the
  * page itself never does (docs/kernel.md §9).
  *
+ * The app's icon at the header's inline start is the way home, "#/" (Paul, 2026-10-10: "I need a way to get back to the
+ * home state. Maybe the top left icon could do that"); a new document of the app is the drawer's first row under This
+ * document. A document that lives nowhere but its link is asked about before it is left: the shell's (kit/shell.ts).
+ *
  * The shell hands it what to draw: `doc`, the document the header names (none: the home page's name), with its
  * title, its signed state and how much of the link it uses (Share and Download are the drawer's, kit/drawer.ts: Paul,
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
@@ -290,10 +294,10 @@ export class ToChrome extends LitElement {
     </div>`;
   }
 
-  /** The header's words for a document: a new one of its app, the title (which has the room), the signed state, the room left in the link (a tap: Share). */
+  /** The header's words for a document: the way home (the app's icon), the title (which has the room), the signed state, the room left in the link (a tap: Share). */
   private renderDoc(d: DocHead) {
-    const noun = t('New {noun}', { noun: d.def.noun });
-    const here = html`<a class="to-here" href=${routeHash(d.def.id)} title=${noun} aria-label=${noun}>${icon(d.def.icon, 24)}</a>`;
+    const home = t('Home');
+    const here = html`<a class="to-here" href="#/" title=${home} aria-label=${home}>${icon(d.def.icon, 24)}</a>`;
     if (d.locked) return html`${here}<h1 class="to-title to-title-locked">${d.title}</h1>${d.trust}`;
     const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(d.def.id)}/`);
     const left = available - d.used;

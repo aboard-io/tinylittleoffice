@@ -1,0 +1,183 @@
+// The way home (round nine): the header's app icon goes to the home page, New is the drawer's first document row,
+// and a document that lives nowhere but its link (Private, changed) asks once before it is left; closing the tab then
+// gets the browser's own warning.
+import { test, expect, afterEach } from 'vitest';
+import { mount, until, openDrawerDoc } from './helpers.ts';
+import { keeping } from '../../src/kit/store.ts';
+import { setPrivate } from '../../src/kit/privacy.ts';
+import { library } from '../../src/kit/library.ts';
+import { go } from '../../src/kit/route.ts';
+import type { ToShell } from '../../src/kit/shell.ts';
+import type { ToText } from '../../src/kit/text.ts';
+
+afterEach(async () => {
+  if (keeping()) await setPrivate(true);
+  document.body.innerHTML = '';
+  history.replaceState(null, '', location.pathname);
+});
+
+/** Words typed into Write's editor, as a person types them, and into the link. */
+async function type(shell: ToShell, words: string) {
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  const text = shell.querySelector<ToText>('to-text')!;
+  await text.updateComplete;
+  text.focus();
+  text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  for (const ch of words) {
+    text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
+    await text.updateComplete;
+  }
+  shell.flushLink();
+  await shell.updateComplete;
+}
+/** A cancelable beforeunload, as the browser sends one when the tab is closed: whether the page asked to stay. */
+const unloadAsks = () => {
+  const e = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(e);
+  return e.defaultPrevented;
+};
+const icon = (shell: ToShell) => shell.querySelector<HTMLAnchorElement>('.to-header a.to-here')!;
+const asked = (shell: ToShell) => shell.querySelector<HTMLDialogElement>('to-dialog.to-leave-dialog dialog');
+
+test('the icon goes home, its name Home, in Write and in Draw', async () => {
+  for (const app of ['write', 'draw']) {
+    const shell = await mount(`#/v1/${app}`);
+    await until(() => !!icon(shell));
+    expect(icon(shell).getAttribute('href')).toBe('#/');
+    expect(icon(shell).getAttribute('aria-label')).toBe('Home');
+    expect(icon(shell).getAttribute('title')).toBe('Home');
+  }
+});
+
+test('New is the drawer’s first document row and opens a blank document', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Words');
+  await setPrivate(false);
+  const section = await openDrawerDoc(shell);
+  const rows = [...section.querySelectorAll<HTMLElement>(':scope > .to-btn, :scope > to-menu')];
+  expect(rows[0].matches('a.to-drawer-new')).toBe(true);
+  expect(rows[0].textContent!.trim()).toBe('New document');
+  expect(rows[1].matches('.to-drawer-share')).toBe(true);
+  rows[0].click();
+  await until(() => location.hash === '#/v1/write');
+  await until(() => shell.querySelector<HTMLInputElement>('.to-title')?.value.startsWith('New Document') ?? false);
+});
+
+test('Private and changed: the icon asks first, and the hash stays; Escape stays', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Only here');
+  const was = location.hash;
+  icon(shell).click();
+  await until(() => !!asked(shell)?.open);
+  expect(location.hash).toBe(was);
+  const d = shell.querySelector('to-dialog.to-leave-dialog')!;
+  expect(d.querySelector('h2')!.textContent).toBe('This document lives in its link');
+  expect([...d.querySelectorAll('.to-dialog-body button')].map((b) => b.textContent!.trim())).toEqual(['Copy the link and go', 'Keep on this device and go', 'Go without']);
+  asked(shell)!.close();
+  await until(() => !asked(shell)!.open);
+  expect(location.hash).toBe(was);
+});
+
+test('Copy the link and go: the link on the clipboard, then home', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Copy me');
+  const link = location.href;
+  let copied = '';
+  const clip = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async (s: string) => void (copied = s);
+  try {
+    icon(shell).click();
+    await until(() => !!asked(shell)?.open);
+    shell.querySelector<HTMLButtonElement>('.to-leave-copy')!.click();
+    await until(() => location.hash === '#/');
+    expect(copied).toBe(link);
+  } finally {
+    navigator.clipboard.writeText = clip;
+  }
+});
+
+test('Keep on this device and go: Saved turned on, the document kept, then home', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Keep me');
+  const hash = location.hash;
+  icon(shell).click();
+  await until(() => !!asked(shell)?.open);
+  shell.querySelector<HTMLButtonElement>('.to-leave-keep')!.click();
+  await until(() => location.hash === '#/');
+  expect(keeping()).toBe(true);
+  expect(library().map((k) => k.hash)).toContain(hash);
+});
+
+test('Go without goes home; so does a drawer row and a hand-off, asked the same way', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Leave me');
+  icon(shell).click();
+  await until(() => !!asked(shell)?.open);
+  shell.querySelector<HTMLButtonElement>('.to-leave-go')!.click();
+  await until(() => location.hash === '#/');
+  expect(keeping()).toBe(false);
+  // A drawer row that opens another app asks too.
+  history.replaceState(null, '', location.pathname);
+  const again = await mount('#/v1/write');
+  await type(again, 'Again');
+  const was = location.hash;
+  (await openDrawerDoc(again)).closest('dialog')!.querySelector<HTMLAnchorElement>('.to-app-open[href="#/v1/sheet"]')!.click();
+  await until(() => !!asked(again)?.open);
+  expect(location.hash).toBe(was);
+  // And the kit's own way of going elsewhere (a template, a file opened, a hand-off): go().
+  asked(again)!.close();
+  await until(() => !asked(again)!.open);
+  go('#/v1/sheet');
+  await until(() => !!asked(again)?.open);
+  expect(location.hash).toBe(was);
+  again.querySelector<HTMLButtonElement>('.to-leave-go')!.click();
+  await until(() => location.hash === '#/v1/sheet');
+});
+
+test('under Saved, or with nothing changed, the icon goes home at once', async () => {
+  let shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  icon(shell).click();
+  await until(() => location.hash === '#/');
+  expect(asked(shell)?.open ?? false).toBe(false);
+  await setPrivate(false);
+  shell = await mount('#/v1/write');
+  await type(shell, 'Saved here');
+  icon(shell).click();
+  await until(() => location.hash === '#/');
+  expect(asked(shell)?.open ?? false).toBe(false);
+});
+
+test('closing the tab warns exactly while the document is Private and changed', async () => {
+  const shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  expect(unloadAsks()).toBe(false);
+  await type(shell, 'Unsaved');
+  expect(unloadAsks()).toBe(true);
+  // Saved: the device has it.
+  await setPrivate(false);
+  await until(() => !unloadAsks());
+  await setPrivate(true);
+  await until(() => unloadAsks());
+  // The link copied through Share: it is somewhere now.
+  const clip = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async () => {};
+  try {
+    const { openShare } = await import('./helpers.ts');
+    await openShare(shell);
+    await until(() => !!shell.querySelector('to-share .to-copy-link'));
+    shell.querySelector<HTMLButtonElement>('to-share .to-copy-link')!.click();
+    await until(() => !unloadAsks());
+  } finally {
+    navigator.clipboard.writeText = clip;
+  }
+  // Changed again: the warning is back; another document, unchanged: gone.
+  shell.querySelector<HTMLDialogElement>('to-share dialog')?.close();
+  await type(shell, 'More ');
+  expect(unloadAsks()).toBe(true);
+  location.hash = '#/v1/sheet';
+  await until(() => !unloadAsks());
+  // And with the shell gone, no listener is left behind.
+  document.body.innerHTML = '';
+  expect(unloadAsks()).toBe(false);
+});

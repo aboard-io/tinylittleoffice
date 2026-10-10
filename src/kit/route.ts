@@ -83,3 +83,14 @@ export function routeHash(app: string, payload = '', view = '', owned: Owned | n
   const query = parts.length ? `?${parts.join('&')}` : '';
   return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + payload : ''}${query}`;
 }
+
+/**
+ * Go to another address in the site: a template chosen, a file opened, a hand-off. The shell may ask first
+ * (kit/shell.ts: a document that lives nowhere but its link); a link a person follows is asked about the same way.
+ * Whether it went now (false: asked, and it goes once the person says so).
+ */
+export function go(hash: string): boolean {
+  const now = window.dispatchEvent(new CustomEvent('to-leave', { cancelable: true, detail: hash }));
+  if (now) location.hash = hash;
+  return now;
+}

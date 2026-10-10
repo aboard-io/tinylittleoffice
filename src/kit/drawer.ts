@@ -1,8 +1,9 @@
 /**
  * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side the menu button is on
  * (the inline end), flush with that edge, one hairline against the backdrop. With a document open it begins, under
- * the head (the language, Close), with This document: a small heading over two full-width rows, Share… and Download
- * (the table of formats, `downloads`, its menu), each with its key at the right. They are here alone: the header is
+ * the head (the language, Close), with This document: a small heading over full-width rows, New {noun} (a blank
+ * document of the app, `def`: the header's icon goes home now, kit/chrome.ts), Share… and Download (the table of
+ * formats, `downloads`, its menu), the last two with their keys at the right. They are here alone: the header is
  * the title (Paul, 2026-10-10: "Let's get rid of share and download in the top nav and move that functionality to the
  * hamburger"), and on a phone, while a box has the focus, the header steps aside (kit/chrome.ts). On a touch screen the
  * dialog itself holds the focus (the search would raise the keyboard) and draws no ring for it: it is not a control,
@@ -16,6 +17,7 @@
  * kit/compare.ts) sit above the switches.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import type { AppDef } from './app.ts';
 import { apps } from './apps.ts';
 import { templateHash } from './home.ts';
 import { library } from './library.ts';
@@ -47,9 +49,11 @@ import { origin } from './network.ts';
 export const THREAT_MODEL = `${origin('github')}/ftrain/tinyoffice/blob/main/docs/threat-model.md`;
 
 export class ToDrawer extends LitElement {
-  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, downloads: { attribute: false } };
+  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, downloads: { attribute: false }, def: { attribute: false } };
   /** The open document's formats, for its Download; null on the home page (and no This document then). */
   declare downloads: MenuItem[] | null;
+  /** The open document's app, for its New row. */
+  declare def: AppDef | null;
   declare find: string;
   declare open: boolean;
   /** The build this is, once About has asked (null: there is no /version.json, as on the dev server). */
@@ -62,6 +66,7 @@ export class ToDrawer extends LitElement {
     this.open = false;
     this.version = null;
     this.downloads = null;
+    this.def = null;
   }
   createRenderRoot() {
     return this;
@@ -156,6 +161,7 @@ export class ToDrawer extends LitElement {
         ${this.open && this.downloads
           ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
+              ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => this.close()}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
               <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(UI.share, 18)}<span>${t('Share…')}</span><kbd class="to-menu-keys">${keysText(SHARE_KEYS)}</kbd></button>
               <to-menu class="to-drawer-download" .label=${t('Download')} .icon=${UI.download} .keys=${DOWNLOAD_KEYS} .items=${this.downloads}></to-menu>
             </section>`

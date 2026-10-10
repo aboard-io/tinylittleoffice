@@ -25,7 +25,7 @@ import { hoverFocus, menuKey, openedByPointer } from './menu.ts';
 import { CROPPED, pageSvg } from './draw.ts';
 import { gateSvg } from './pictures.ts';
 import './preview.ts';
-import { parseHash, routeHash } from './route.ts';
+import { go, parseHash, routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
 import { onPrivacy } from './privacy.ts';
 
@@ -105,7 +105,7 @@ export class ToTemplates extends LitElement {
   private choose(tpl: Template | null) {
     this.chosen = tpl?.id ?? '';
     this.hide();
-    location.hash = templateHash(this.app, tpl);
+    go(templateHash(this.app, tpl));
   }
   private option(tpl: Template | null) {
     const id = tpl?.id ?? '';

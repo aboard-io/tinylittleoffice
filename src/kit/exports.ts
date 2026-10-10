@@ -17,7 +17,7 @@ const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
 import { appOf } from './apps.ts';
 import { encodeDoc } from './codec.ts';
-import { parseHash, routeHash } from './route.ts';
+import { go, parseHash, routeHash } from './route.ts';
 import { parse, referenceNotes, write } from '../doc/index.ts';
 import { pdf } from './pdf.ts';
 import { tloText } from './plain.ts';
@@ -337,7 +337,7 @@ export function exportItems(current: () => Current): MenuItem[] {
   return [
     { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run(() => printDoc(current())) },
     ...formatsOf(def).map(row),
-    ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => void (location.hash = routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
+    ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => go(routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }
 

@@ -205,7 +205,7 @@ test('a link opens its app, and every edit goes into the link', async () => {
   expect(document.title).toBe(`${fresh()} · Tiny Little Office`);
   expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe(fresh());
   expect(location.hash).toBe('#/v1/write');
-  expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('New document');
+  expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('Home');
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
   text.focus();

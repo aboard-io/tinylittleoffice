@@ -9,7 +9,7 @@ import { appOf } from './apps.ts';
 import { encodeDoc } from './codec.ts';
 import { t } from './i18n.ts';
 import { readFile, readPlain } from './plain.ts';
-import { routeHash } from './route.ts';
+import { go, routeHash } from './route.ts';
 import { toast } from './toast.ts';
 
 /** What the picker offers. */
@@ -35,8 +35,7 @@ export async function openFile(file: File, fallback: string): Promise<boolean> {
     toast(t('That file is not words Tiny Little Office can read.'));
     return false;
   }
-  location.hash = hash;
-  toast(t('Opened {name}', { name: file.name }));
+  if (go(hash)) toast(t('Opened {name}', { name: file.name }));
   return true;
 }
 

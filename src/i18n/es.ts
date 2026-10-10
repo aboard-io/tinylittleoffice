@@ -17,6 +17,12 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Este enlace contiene algo que no se puede leer. Quizá se cortó al copiarlo.',
   '{n} of {max} link characters left': 'Quedan {n} de {max} caracteres del enlace',
   '{n} characters over the link limit': 'Hay {n} caracteres de más en el enlace',
+  // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
+  'This document lives in its link': 'Este documento vive en su enlace',
+  'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Nada se guarda en este dispositivo. Copia el enlace para conservarlo, o guárdalo en este dispositivo; Atrás también lo trae de vuelta.',
+  'Copy the link and go': 'Copiar el enlace e irse',
+  'Keep on this device and go': 'Guardar en este dispositivo e irse',
+  'Go without': 'Irse sin guardar',
 
   // ---- the home page ----
   'Blank': 'En blanco',

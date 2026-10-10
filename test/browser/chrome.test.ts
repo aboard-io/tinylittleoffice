@@ -323,7 +323,7 @@ test('390×844 with a finger: a tap in the words slides the burger to the very c
   expect(burger.getBoundingClientRect().right).toBeCloseTo(home.right, 0);
 });
 
-test('390×844 with a finger: the drawer’s This document is a heading over two full-width rows, above the search; the dialog draws no ring and sits flush', async () => {
+test('390×844 with a finger: the drawer’s This document is a heading over three full-width rows (New, Share…, Download), above the search; the dialog draws no ring and sits flush', async () => {
   await page.viewport(390, 844);
   await coarse(true);
   const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
@@ -341,13 +341,15 @@ test('390×844 with a finger: the drawer’s This document is a heading over two
   expect(drawer.dialog.getBoundingClientRect().right).toBeCloseTo(390, 0);
   const doc = drawer.querySelector<HTMLElement>('.to-drawer-doc')!;
   const head = doc.querySelector<HTMLElement>('.to-drawer-head3')!.getBoundingClientRect();
+  const fresh = doc.querySelector<HTMLElement>('.to-drawer-new')!.getBoundingClientRect();
   const share = doc.querySelector<HTMLElement>('.to-drawer-share')!.getBoundingClientRect();
   const download = doc.querySelector<HTMLElement>('.to-drawer-download > button')!.getBoundingClientRect();
-  expect(head.bottom).toBeLessThanOrEqual(share.top + 0.5);
+  expect(head.bottom).toBeLessThanOrEqual(fresh.top + 0.5);
+  expect(fresh.bottom).toBeLessThanOrEqual(share.top + 0.5);
   expect(share.bottom).toBeLessThanOrEqual(download.top + 0.5);
   // Full width: the drawer's less the gutters, both alike, from the same edge.
   const d = drawer.dialog.getBoundingClientRect();
-  for (const row of [share, download]) {
+  for (const row of [fresh, share, download]) {
     expect(row.width).toBeGreaterThan(d.width - 3 * parseFloat(getComputedStyle(doc).fontSize));
     expect(row.left).toBeCloseTo(share.left, 0);
     expect(row.right).toBeCloseTo(share.right, 0);

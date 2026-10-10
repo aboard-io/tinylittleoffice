@@ -564,6 +564,18 @@
   .to-dialog-body > :first-child {
     margin-top: 0;
   }
+  /* ---- Leaving a document that lives only in its link (shell.ts): one line, three answers stacked, narrow ---- */
+  .to-leave-dialog .to-dialog {
+    width: min(26.25em, calc(100vw - 2em));
+  }
+  .to-leave-acts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+  .to-leave-acts .to-btn {
+    justify-content: center;
+  }
   /* ---- A money column's currency (columns.ts): one field and OK, narrow ---- */
   .to-currency-dialog .to-dialog {
     width: min(26.25em, calc(100vw - 2em));
@@ -1134,8 +1146,8 @@
   .to-drawer:focus-visible {
     outline: none;
   }
-  /* This document: a small heading over two full-width rows like the apps' (Paul: "The hamburger design is janky"),
-     each its icon, its words and its key at the far end. */
+  /* This document: a small heading over full-width rows like the apps' (Paul: "The hamburger design is janky"),
+     each its icon, its words and its key (if any) at the far end: New, Share…, Download. */
   .to-drawer-section.to-drawer-doc {
     gap: 0.125em;
     padding: 0.75em;
@@ -1148,7 +1160,7 @@
   .to-drawer-doc to-menu {
     display: block;
   }
-  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn) {
+  .to-drawer-doc :is(.to-drawer-new, .to-drawer-share, .to-drawer-download > .to-btn) {
     width: 100%;
     justify-content: flex-start;
     gap: 0.625em;
@@ -1159,7 +1171,7 @@
     background: transparent;
     border-radius: var(--to-radius-sm);
   }
-  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn):hover {
+  .to-drawer-doc :is(.to-drawer-new, .to-drawer-share, .to-drawer-download > .to-btn):hover {
     background: var(--to-surface-2);
   }
   .to-drawer-doc .to-menu-keys {

@@ -17,6 +17,12 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'يحتوي هذا الرابط على شيء لا يمكن قراءته. ربما قُطع أثناء نسخه.',
   '{n} of {max} link characters left': 'بقي {n} من {max} حرفًا في الرابط',
   '{n} characters over the link limit': 'تجاوز الرابط الحد بمقدار {n} حرفًا',
+  // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
+  'This document lives in its link': 'هذا المستند يعيش في رابطه',
+  'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'لا شيء محفوظ على هذا الجهاز. انسخ الرابط لتحتفظ به، أو احفظه على هذا الجهاز؛ وزر الرجوع يعيده أيضًا.',
+  'Copy the link and go': 'نسخ الرابط والمغادرة',
+  'Keep on this device and go': 'الحفظ على هذا الجهاز والمغادرة',
+  'Go without': 'المغادرة دون حفظ',
 
   // ---- the home page ----
   'Blank': 'فارغ',

@@ -9,7 +9,8 @@
  *
  * It gets the document through properties (`app`, `doc`, `heading`, `owned`, `expires`, `changed`, `payloadLength`,
  * `signature`, and `linkTo`, the link the shell projects, made current first) and says back what changes the
- * document's link: `to-owned` (detail: the short link this document now owns, or null, and when it expires). It is
+ * document's link: `to-owned` (detail: the short link this document now owns, or null, and when it expires), and
+ * `to-link-copied` when the link (or the Display Link) is on the clipboard, so the document lives somewhere now. It is
  * drawn only while open. (Until round eight all of this was the shell's own.)
  */
 import { LitElement, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
@@ -150,6 +151,8 @@ export class ToShare extends LitElement {
   get link(): string {
     return this.linkTo(false);
   }
+  /** The link (or the Display Link) copied: said to the shell, which then no longer warns before the tab closes. */
+  private copyLink = async (link: string) => void ((await copyText(link)) && this.say('to-link-copied', null));
   get displayLink(): string {
     return this.linkTo(true);
   }
@@ -245,8 +248,8 @@ export class ToShare extends LitElement {
     const made = this.madeLine();
     return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}
       <div class="to-share-links">
-        <button type="button" class="to-btn to-share-copy to-copy-link" @click=${() => void copyText(this.link)}><span>${icon(UI.link, 18)}${t('Copy link')}</span><small>${t('Opens in the editor')}</small></button>
-        <button type="button" class="to-btn to-share-copy to-copy-display" @click=${() => void copyText(this.displayLink)}><span>${icon(UI.view, 18)}${t('Copy display link')}</span><small>${t('Opens as pages to read')}</small></button>
+        <button type="button" class="to-btn to-share-copy to-copy-link" @click=${() => void this.copyLink(this.link)}><span>${icon(UI.link, 18)}${t('Copy link')}</span><small>${t('Opens in the editor')}</small></button>
+        <button type="button" class="to-btn to-share-copy to-copy-display" @click=${() => void this.copyLink(this.displayLink)}><span>${icon(UI.view, 18)}${t('Copy display link')}</span><small>${t('Opens as pages to read')}</small></button>
         ${canShareNative() ? html`<button type="button" class="to-btn to-share-native" @click=${() => void share()}>${icon(UI.share, 18)}<span>${t('Share…')}</span></button>` : nothing}
       </div>
       ${this.protect}
@@ -338,7 +341,7 @@ export class ToShare extends LitElement {
         const btn = e.currentTarget as HTMLElement;
         requestAnimationFrame(() => this.querySelector<HTMLElement>('.to-rooms:popover-open') && place(this.querySelector<HTMLElement>('.to-rooms')!, btn));
       }}>${over > 0 ? t('{n} characters over the link limit', { n: n(over) }) : fitLine(this.link)}</button>
-      <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('Copy link')} title=${t('Copy link')} @click=${() => void copyText(this.link)}>${icon(UI.copy, 18)}</button>
+      <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('Copy link')} title=${t('Copy link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
       <div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('Where the link fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
         <table>
           <thead><tr><th scope="col">${t('Where')}</th><th scope="col">${t('Uses')}</th><th scope="col">${t('Left')}</th></tr></thead>

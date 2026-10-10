@@ -16,6 +16,12 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': '此链接的内容无法读取，可能是复制时被截断了。',
   '{n} of {max} link characters left': '链接还剩 {n} / {max} 个字符',
   '{n} characters over the link limit': '超出链接上限 {n} 个字符',
+  // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
+  'This document lives in its link': '这份文档只存在于它的链接中',
+  'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': '此设备上没有保存任何内容。复制链接即可留住它，或把它保存在此设备上；按“返回”也能回到它。',
+  'Copy the link and go': '复制链接并离开',
+  'Keep on this device and go': '保存在此设备上并离开',
+  'Go without': '直接离开',
 
   // ---- the home page ----
   'Blank': '空白',

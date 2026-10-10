@@ -25,6 +25,12 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'This link holds something that cannot be read. It may have been cut short when it was copied.',
   '{n} of {max} link characters left': '{n} of {max} link characters left',
   '{n} characters over the link limit': '{n} characters over the link limit',
+  // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
+  'This document lives in its link': 'This document lives in its link',
+  'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.',
+  'Copy the link and go': 'Copy the link and go',
+  'Keep on this device and go': 'Keep on this device and go',
+  'Go without': 'Go without',
 
   // ---- the home page ----
   'Blank': 'Blank',

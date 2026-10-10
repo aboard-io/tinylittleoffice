@@ -19,6 +19,14 @@
  * site's frame; "…?show" opens a deck presenting; ".<ext>" downloads (exports.ts viewAs); a plain-parameter link
  * (kit/plain.ts) becomes the packed link on arrival; "#/compare/…" is the compare view; a file dropped on the page
  * opens (kit/open.ts). Mod+F finds, Mod+/ the shortcuts, Mod+S keeps (kit/keys.ts pageKey).
+ *
+ * A document that lives nowhere but its link (Private, changed since it was opened or begun, the link not copied
+ * since) is asked about once before the shell leaves it (Paul, 2026-10-10: "if I've entered data it should tell me
+ * that I need to copy the link if I don't want to lose data"): a link to another place in the site that a person
+ * follows (the header's icon home, a drawer row, a kept document) and the kit's go() (a template, a file opened, a
+ * hand-off) open one dialog, Copy the link and go, Keep on this device and go, Go without; Escape stays. The browser's
+ * Back is not asked about: it is how the link comes back. Closing the tab in that state gets the browser's own warning
+ * (beforeunload), and only then. Under Saved the library has it, and an unchanged document is in the link that brought it.
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -34,7 +42,8 @@ import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportItems, printDoc, viewAs } from './exports.ts';
 import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
-import { checkSignature, keeping, onPrivacy, pack, reopen, type Signature } from './privacy.ts';
+import { checkSignature, keeping, onPrivacy, pack, reopen, setPrivate, type Signature } from './privacy.ts';
+import { copyText } from './share.ts';
 import { trustButton, type ToPrivacy } from './privacy-dialog.ts';
 import { openCopy, siteDir, type ToShare } from './share-dialog.ts';
 import { firstWords, Keeper, library, newName, type Kept } from './library.ts';
@@ -99,6 +108,9 @@ export class ToShell extends LitElement {
   private kept = new Keeper(); // this document's entry in the library
   private staged: Doc | null = null; // what the editor last gave, not yet in the link (null: the link is the document)
   private projectTimer = 0;
+  private copied = false; // the link copied (Share, or the leaving dialog) since the last change: it lives somewhere else now
+  private guarded = false; // the beforeunload warning is registered
+  private leaving = ''; // where the person was going when asked: the leaving dialog's
 
   constructor() {
     super();
@@ -127,6 +139,9 @@ export class ToShell extends LitElement {
     on(this, 'focusout', this.flushLink);
     on(this, 'to-keys', this.showKeys);
     on(this, 'to-share-open', ((e: CustomEvent<{ short?: boolean } | null>) => void this.openShare(!!e.detail?.short)) as EventListener);
+    on(this, 'to-link-copied', () => ((this.copied = true), this.guard()));
+    on(this, 'click', this.onFollow as EventListener);
+    on(window, 'to-leave', this.onGo);
     onFlush(this.flushLink);
     this.offs.push(() => onFlush(() => {}), opensDropped(this.flushLink, () => this.app ?? this.pageApp()));
     // The size of everything (kit/zoom.ts), and a pinch on a touch screen sets it outside the spatial canvases (kit/pinch.ts).
@@ -135,7 +150,7 @@ export class ToShell extends LitElement {
     // The rest of Lucide joined (an icon outside the starter set): the editor is drawn again; a key imported or
     // forgotten changes whose signature this is.
     const redraw = () => this.requestUpdate();
-    this.offs.push(onLanguage(() => (this.setTitle(), redraw())), onPictures(redraw), onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())), onPrivacy(() => void this.checkSignature()));
+    this.offs.push(onLanguage(() => (this.setTitle(), redraw())), onPictures(redraw), onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())), onPrivacy(() => (void this.checkSignature(), this.guard())));
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
     installLinkGuard();
     installPictures();
@@ -145,6 +160,8 @@ export class ToShell extends LitElement {
     super.disconnectedCallback();
     this.onLeave();
     for (const off of this.offs.splice(0)) off();
+    if (this.guarded) window.removeEventListener('beforeunload', this.onUnload);
+    this.guarded = false;
   }
 
   get def(): AppDef | undefined {
@@ -179,6 +196,7 @@ export class ToShell extends LitElement {
     this.pendingView = view;
     this.owned = def ? owned : null;
     this.changed = false;
+    this.copied = false;
     this.payloadLength = payload.length;
     this.sealed = def && sealed ? payload : '';
     this.locker = null;
@@ -275,6 +293,7 @@ export class ToShell extends LitElement {
 
   /** Once the editor is up, the focus goes where a person starts, or a show link starts presenting (an app with nothing to present ignores it). */
   protected updated() {
+    this.guard();
     void (this.querySelector('to-chrome') as LitElement | null)?.updateComplete.then(this.drawn);
   }
   /** What <to-chrome> drew this time is in the page. */
@@ -300,6 +319,7 @@ export class ToShell extends LitElement {
     const blank = doc === this.def!.blank() && !this.envelope.sig;
     this.doc = blank ? doc : this.envelopeOn(doc);
     this.changed = true;
+    this.copied = false;
     this.setTitle();
     void this.checkSignature();
     const run = ++this.sealRun;
@@ -318,6 +338,8 @@ export class ToShell extends LitElement {
     this.staged = this.edited;
     clearTimeout(this.projectTimer);
     this.projectTimer = window.setTimeout(this.flushLink, PAUSE);
+    this.copied = false;
+    this.guard();
   };
   /**
    * The document as the editor last gave it, into the link now: when typing pauses, and before anything reads the link
@@ -335,6 +357,64 @@ export class ToShell extends LitElement {
   /** Leaving the page (or the shell): the link, then the library, brought up to date. */
   private onLeave = () => (this.flushLink(), this.kept.flush());
   private onVisibility = () => document.visibilityState === 'hidden' && this.onLeave();
+
+  /* ---------- leaving a document that lives only in its link ---------- */
+
+  /** Private, the document changed (or being typed) and its link not copied since: leaving it loses it. */
+  private get onlyInLink(): boolean {
+    return !!this.def && !this.sealed && !this.display && !this.embed && !keeping() && (this.changed || this.staged !== null) && !this.copied;
+  }
+  /** The browser's own warning on closing the tab, registered exactly while the document lives only in its link. */
+  private guard() {
+    const want = this.isConnected && this.onlyInLink;
+    if (want === this.guarded) return;
+    this.guarded = want;
+    if (want) window.addEventListener('beforeunload', this.onUnload);
+    else window.removeEventListener('beforeunload', this.onUnload);
+  }
+  private onUnload = (e: Event) => e.preventDefault();
+  /** A link to another place in the site, followed: asked about first while the document lives only in its link. */
+  private onFollow = (e: MouseEvent) => {
+    const a = (e.target as Element | null)?.closest?.('a[href^="#/"]') as HTMLAnchorElement | null;
+    if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (a.target && a.target !== '_self') || !this.onlyInLink) return;
+    e.preventDefault();
+    void this.ask(a.getAttribute('href')!);
+  };
+  /** The kit's go() (kit/route.ts): asked about the same way. */
+  private onGo = (e: Event) => {
+    if (!this.onlyInLink) return;
+    e.preventDefault();
+    void this.ask((e as CustomEvent<string>).detail);
+  };
+  private get leaveDialog() {
+    return this.querySelector<ToDialog>('to-dialog.to-leave-dialog');
+  }
+  private async ask(hash: string) {
+    this.flushLink();
+    this.leaving = hash;
+    await this.updateComplete;
+    await this.leaveDialog?.show();
+  }
+  /** The person's answer: the link copied (and only then gone), kept on this device, or neither; then where they were going. */
+  private async leave(how: 'copy' | 'keep' | 'go') {
+    const to = this.leaving;
+    if (how === 'copy' && !(await copyText(this.link))) return;
+    if (how === 'keep') {
+      await setPrivate(false);
+      this.keepNow();
+    }
+    this.leaveDialog?.close();
+    this.leaving = '';
+    location.hash = to;
+  }
+  private renderLeave() {
+    return html`<p>${t('Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.')}</p>
+      <div class="to-leave-acts">
+        <button type="button" class="to-btn primary to-leave-copy" @click=${() => void this.leave('copy')}>${icon(UI.copy, 16)}<span>${t('Copy the link and go')}</span></button>
+        <button type="button" class="to-btn to-leave-keep" @click=${() => void this.leave('keep')}>${icon(UI.offline, 16)}<span>${t('Keep on this device and go')}</span></button>
+        <button type="button" class="to-btn to-leave-go" @click=${() => void this.leave('go')}><span>${t('Go without')}</span></button>
+      </div>`;
+  }
 
   /* ---------- the library ---------- */
 
@@ -495,12 +575,13 @@ export class ToShell extends LitElement {
           <to-chrome .doc=${def ? { def, title: this.docTitle, value: def.title(this.doc) || this.fresh, locked: !!this.sealed, trust: this.trust(), used: this.payloadLength } : null} .main=${this.renderMain(def)} .mainClass=${`to-main ${editing ? 'to-wide' : ''}`} .label=${def?.name ?? ''} ?barred=${editing} .fresh=${this.fresh && !def?.title(this.doc) ? this.fresh : ''}
             .expires=${this.arrived ? this.expires : 0} ?extend=${!!this.owned} .other=${this.other} ?newer=${this.newer && !this.unreadable}
             @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
-    return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads}></to-drawer>`}<to-toast></to-toast>
+    return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .def=${def ?? null}></to-drawer>`}<to-toast></to-toast>
       ${def
         ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.docTitle} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
             <to-privacy doc .app=${def.id} .sealed=${this.sealed} .signature=${this.signature} ?protected=${!!this.locker} .by=${this.envelope.by ?? ''} ?signed=${!!this.envelope.sig} .signable=${this.signable} @to-unlock=${this.onUnlock} @to-lock=${this.onLock} @to-signed=${this.onSigned}></to-privacy>`
         : nothing}
-      <to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>`;
+      <to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>
+      ${def && !plain ? html`<to-dialog class="to-leave-dialog" heading=${t('This document lives in its link')} .body=${this.renderLeave()}></to-dialog>` : nothing}`;
   }
 }
 customElements.define('to-shell', ToShell);

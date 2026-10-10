@@ -15,6 +15,12 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'このリンクには読み取れないものが入っています。コピーのときに途中で切れたのかもしれません。',
   '{n} of {max} link characters left': 'リンクの残り文字数 {n}/{max}',
   '{n} characters over the link limit': 'リンクの上限を{n}文字超えています',
+  // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
+  'This document lives in its link': 'この文書はリンクの中にだけあります',
+  'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'この端末には何も保存されていません。残すにはリンクをコピーするか、この端末に保存してください。「戻る」でも戻れます。',
+  'Copy the link and go': 'リンクをコピーして移動',
+  'Keep on this device and go': 'この端末に保存して移動',
+  'Go without': '保存せずに移動',
 
   // ---- the home page ----
   'Blank': '空白',

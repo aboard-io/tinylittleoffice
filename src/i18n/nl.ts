@@ -17,6 +17,12 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Deze link bevat iets wat niet te lezen is. Misschien is hij afgekapt bij het kopiëren.',
   '{n} of {max} link characters left': 'nog {n} van {max} tekens voor de link',
   '{n} characters over the link limit': '{n} tekens boven de limiet van de link',
+  // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
+  'This document lives in its link': 'Dit document leeft in zijn link',
+  'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Er wordt niets op dit apparaat opgeslagen. Kopieer de link om het te bewaren, of bewaar het op dit apparaat; Terug brengt het ook terug.',
+  'Copy the link and go': 'Link kopiëren en gaan',
+  'Keep on this device and go': 'Op dit apparaat bewaren en gaan',
+  'Go without': 'Gaan zonder',
 
   // ---- the home page ----
   'Blank': 'Leeg',
