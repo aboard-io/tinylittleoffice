@@ -215,8 +215,8 @@ function signatureBits(doc: Doc, at: number, M: number, inner: number): Bit[] {
   return bits;
 }
 
-/** The text laid out on pages of its paper, in its look's type. */
-export function pages(textOrDoc: string | Doc, small = false): Page[] {
+/** The text laid out on pages of its paper, in its look's type. `still`: drawn where nothing can move (print, a picture, a thumbnail), so a document placed in it is too. */
+export function pages(textOrDoc: string | Doc, small = false, still = false): Page[] {
   const doc = typeof textOrDoc === 'string' ? parse(textOrDoc) : textOrDoc;
   const { w: W, h: PAGE_H, m: M } = PAPERS[paperOf(doc)];
   const look: Look = lookOf(doc);
@@ -258,7 +258,7 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
       if (lang) {
         // Another document: its own app draws it small; an app not here yet shows its first lines.
         const def = appOfLazy(lang);
-        const page = def ? def.view(b.body, { small: true })[0] : null;
+        const page = def ? def.view(b.body, { small: true, ...(still ? { still } : {}) })[0] : null;
         const caption = (def ? placedTitle(b.lang, b.body) || def.name : lang) + (def && placedTitle(b.lang, b.body) ? ` · ${def.name}` : '');
         if (page) {
           const h = Math.min(360, (page.h * cw) / page.w);

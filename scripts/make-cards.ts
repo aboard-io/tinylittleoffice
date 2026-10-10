@@ -33,7 +33,7 @@ const markSvg = (size: number) => `<svg xmlns="http://www.w3.org/2000/svg" width
 /** The page a card shows: the first template's first page that is more than a blank one. */
 function pageOf(def: AppDef) {
   const tpl = def.templates.find((t) => t.doc.length > 60) ?? def.templates[0];
-  return def.view(tpl ? tpl.doc : def.blank())[0];
+  return def.view(tpl ? tpl.doc : def.blank(), { still: true })[0];
 }
 
 /** The card as a page for Chromium to draw: words at the left, the document's page at the right. */

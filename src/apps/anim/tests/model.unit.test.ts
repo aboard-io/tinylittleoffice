@@ -141,7 +141,10 @@ test('view: a frame drawn with its effects and the nearest last; the playing SVG
   expect(animPage(v, true).svg).toContain('fill="freeze"');
   const { pages, delayMs } = animFrames(parse(LIFT));
   expect([pages.length, delayMs, pages[0].w, pages[0].h]).toEqual([24, 125, 640, 400]);
-  expect(def.view(LIFT, { small: true })[0].svg).not.toContain('animateTransform');
+  // A thumbnail and a print stand still; placed in another document (small), it plays.
+  expect(def.view(LIFT, { small: true, thumb: true })[0].svg).not.toContain('animateTransform');
+  expect(def.view(LIFT, { still: true })[0].svg).not.toContain('animateTransform');
+  expect(def.view(LIFT, { small: true })[0].svg).toContain('animateTransform');
   expect(def.view(LIFT)[0].alt).toBe('A drawing of Lift off, rocket.');
   expect(def.view('')[0].alt).toBe('An empty stage');
   // A tile carried in the head is drawn behind.
@@ -167,7 +170,7 @@ test('the definition: Draw hands its drawing over, and the hand-off is live now 
     expect([tpl.name, tpl.blurb].every((w) => w && !/lorem|todo/i.test(w))).toBe(true);
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
     // The home page's preview is the first frame: something is on the stage then, and every icon named is one the library draws.
-    expect(def.view(tpl.doc, { small: true })[0].svg).toMatch(/<(text|ellipse|rect|polygon|path)/);
+    expect(def.view(tpl.doc, { small: true, thumb: true })[0].svg).toMatch(/<(text|ellipse|rect|polygon|path)/);
     for (const s of v.shapes) if (s.k === 'i') expect(iconNamed(s.text), s.text).toBeTruthy();
   }
   // What each template claims to use, it uses: the loops, a turn, and the effects.

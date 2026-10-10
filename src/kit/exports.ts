@@ -177,13 +177,16 @@ export function kitExports(): Export[] {
   ];
 }
 
+/** Paper, a PDF and a PNG cannot move: an animation in them is drawn still (ViewOpts.still). A web page moves, so the HTML is drawn as the browser shows it. */
+const STILL = { still: true } as const;
+
 /** Save the document as a kind of file; the file's name, or null when there is no such kind. */
 export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise<string | null> {
   const given = ctx.title || def.title(doc);
   const title = given || t('Untitled {noun}', { noun: def.noun });
   const name = fileName(given, slug(def.noun) || def.id, ext);
   if (ext === 'print') {
-    await printPages(await withPictures(def.view(doc)), title);
+    await printPages(await withPictures(def.view(doc, STILL)), title);
     return null;
   }
   // An app's own version of a kit format (a text as a real web page rather than pictures of its pages) comes first.
@@ -195,7 +198,7 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
     return name;
   }
   if (ext === 'pdf') {
-    const file = await pdfOf(await withPictures(def.view(doc)), title);
+    const file = await pdfOf(await withPictures(def.view(doc, STILL)), title);
     if (!file) return null;
     await saveFile(name, 'application/pdf', file);
     return name;
@@ -205,7 +208,7 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
     return name;
   }
   if (ext === 'png') {
-    const png = await picture(await withPictures(def.view(doc)));
+    const png = await picture(await withPictures(def.view(doc, STILL)));
     if (!png) return null;
     await saveFile(name, 'image/png', png);
     return name;

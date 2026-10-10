@@ -63,7 +63,7 @@ export function pictures(doc: Doc, slides: Slide[], look: Look): Record<string, 
   slides.forEach((s, i) => {
     const glyph = s.icon ? glyphNamed(s.icon, 0, 0, 256, look.icon) : '';
     if (glyph) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">${glyph}</svg>` };
-    const sub = subPage(doc, s);
+    const sub = subPage(doc, s, undefined, false, true);
     if (sub) out[`sub-${i + 1}`] = { w: sub.w * 2, h: sub.h * 2, svg: pageSvg(sub) };
   });
   return out;
@@ -106,7 +106,7 @@ export function deckToPptx(text: string, ctx: ExportContext, png: Record<string,
     // The theme's decoration is a picture behind each slide (pictures go under the words).
     addPicture('theme', { x: 0, y: 0, w: SW, h: SH }, '');
     if (L.icon) addPicture(`icon-${s.icon}`, L.icon, s.icon);
-    const sub = L.sub ? subPage(doc, s) : null;
+    const sub = L.sub ? subPage(doc, s, undefined, false, true) : null;
     if (L.sub && sub) {
       // Keep the picture's own shape inside the space the slide gives it.
       const k = Math.min(L.sub.w / sub.w, L.sub.h / sub.h);

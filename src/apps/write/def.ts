@@ -6,7 +6,7 @@
  */
 import { PenLine } from 'lucide';
 import { parse } from '../../doc/index.ts';
-import { defineApp } from '../../kit/app.ts';
+import { defineApp, isStill } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { checkContract } from './contract.ts';
@@ -44,7 +44,7 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => pages(doc, opts?.small),
+  view: (doc, opts) => pages(doc, opts?.small, isStill(opts)),
   exports: [
     { ext: 'docx', label: () => t('Word (DOCX)'), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', build: async (doc, ctx) => docToDocx(await checked(doc), ctx) },
     { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => docToMarkdown(parse(doc)) },

@@ -22,12 +22,18 @@ export interface Page {
 }
 
 export interface ViewOpts {
-  /** Drawn inside another document, or as a thumbnail: the gist rather than the whole thing. */
+  /** Drawn inside another document, or as a thumbnail: the gist rather than the whole thing. A view that places another document passes it, with its own `still`. */
   small?: boolean;
+  /**
+   * Drawn where nothing can move: print, a PDF, a PNG, a thumbnail. Absent, the page may move (an animation
+   * plays), as it does in a browser: the editor, the Display Link, an embed, a slideshow, a web page. A view
+   * that places another document passes its own `still` through. Read it with isStill(), which counts `thumb`.
+   */
+  still?: boolean;
   /**
    * Drawn as a thumbnail (the home page's templates, a kept document's preview), with `small`: a wide document
    * on a landscape page holding what can be read at that size, not the whole thing shrunk. Never passed on a
-   * slide, a site, a print or a file, so none of them changes with it.
+   * slide, a site, a print or a file, so none of them changes with it. A thumbnail is `still` too.
    */
   thumb?: boolean;
   /** Presented a step at a time (a slide that holds this document): draw only the first `upTo` of its `steps`, the rest keeping their places. */
@@ -35,6 +41,9 @@ export interface ViewOpts {
   /** Drawn in an editor: a document locked with a password and opened this visit is drawn open (kit/locked.ts); a page, a print or a file never passes it. */
   open?: boolean;
 }
+
+/** Whether a page is drawn where nothing can move: `still`, or a thumbnail (which always is). */
+export const isStill = (opts?: ViewOpts): boolean => !!(opts?.still || opts?.thumb);
 
 /** A key the app answers, for the shortcuts dialog (Mod+/): "Mod+Alt+Enter", "V". */
 export interface Shortcut {
@@ -116,7 +125,7 @@ export interface AppDef {
   title(doc: Doc): string;
   /** The document with this name. (Placeholder until the kernel: then one `head` op for every app.) */
   retitle(doc: Doc, title: string): Doc;
-  /** The document, drawn: always at least one page. For print, PDF, PNG, previews and thumbnails. */
+  /** The document, drawn: always at least one page. For the Display Link, an embed, print, PDF, PNG, previews and thumbnails (`still` where nothing can move). */
   view(doc: Doc, opts?: ViewOpts): Page[];
   /** The document as a web page of its own (a website): the Display Link shows it, in a sandboxed frame, in place of its pages. `base` is where another document's link begins. */
   page?(doc: Doc, base: string): string;
