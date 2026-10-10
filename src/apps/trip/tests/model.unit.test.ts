@@ -212,14 +212,27 @@ test('GPX and GeoJSON', () => {
   expect(def.exports!.map((e) => e.ext)).toEqual(['gpx', 'geojson']);
 });
 
-test('the templates: real routes, each canonical, in each way of measuring', () => {
+test('the templates: real routes, each canonical, every way of measuring among them', () => {
   const all = templates();
-  expect(all.map((x) => x.id)).toEqual(['portugal', 'coast', 'highlands', 'rome']);
+  expect(all.map((x) => x.id)).toEqual(['weekend', 'iceland', 'crawl', 'hike', 'cycling', 'colleges', 'portugal', 'coast', 'highlands', 'rome', 'japan', 'camino', 'films', 'wedding']);
   for (const x of all) {
     expect(write(parse(x.doc))).toBe(x.doc);
     expect(readTrip(parse(x.doc)).stops.length).toBeGreaterThanOrEqual(5);
     expect(readTrip(parse(x.doc)).stops.every((s) => s.name && s.note)).toBe(true);
   }
-  expect(all.map((x) => readTrip(parse(x.doc))).map((v) => [v.units, v.linked])).toEqual([['k', true], ['m', true], ['h', true], ['h', false]]);
+  const ways = all.map((x) => readTrip(parse(x.doc))).map((v) => `${v.units}${v.linked ? '' : ' dots'}`);
+  expect(new Set(ways)).toEqual(new Set(['k', 'm', 'h', 'h dots']));
+  // Every name and blurb said, none twice; a loop ends where it began.
+  expect(new Set(all.map((x) => x.name)).size).toBe(all.length);
+  expect(all.every((x) => x.name && x.blurb)).toBe(true);
+  const hike = readTrip(parse(all.find((x) => x.id === 'hike')!.doc)).stops;
+  expect([hike[0].lat, hike[0].lon]).toEqual([hike.at(-1)!.lat, hike.at(-1)!.lon]);
   expect(def.blank()).toBe('');
+});
+
+test('a walk fills its map as a road trip does: several stops a few streets apart are drawn far apart, one stop alone is a town', () => {
+  const pins = (doc: string) => [...tripPage(parse(doc), true).svg.matchAll(/<circle cx="([\d.-]+)"/g)].map((m) => +m[1]);
+  const crawl = pins(templates().find((x) => x.id === 'crawl')!.doc);
+  expect(Math.max(...crawl) - Math.min(...crawl)).toBeGreaterThan(300);
+  expect(pins('Place | Lat:number | Lon:number\n--- | --- | ---\nHere | 53.3446 | -6.2764\n')).toEqual([336]);
 });

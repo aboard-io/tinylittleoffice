@@ -15,6 +15,8 @@ const my = (lat: number) => {
   const s = Math.sin((Math.max(-85, Math.min(85, lat)) * Math.PI) / 180);
   return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI);
 };
+/** The least span of a map of several stops, in world widths: about two kilometres across at the equator. */
+const MIN_SPAN = 0.00005;
 const STEPS = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 45, 90];
 
 /** The stops on a map `w` × `h`: lines of latitude and longitude, the route, the numbered pins and their names. Presented, the first `upTo` of them, on the map that fits them all. */
@@ -25,8 +27,9 @@ function mapSvg(v: TripView, w: number, h: number, upTo = Infinity): string {
   const xs = s.map((p) => mx(p.lon));
   const ys = s.map((p) => my(p.lat));
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  // As close as fits every stop with room for its name, never closer than a town (one stop is a town's width).
-  const span = Math.max(x1 - x0, ((y1 - y0) * w) / h, 0.0004);
+  // As close as fits every stop with room for its name: one stop alone is a town's width; several, never closer
+  // than a few streets, so a walk or a pub crawl fills the map as a road trip does.
+  const span = Math.max(x1 - x0, ((y1 - y0) * w) / h, s.length > 1 ? MIN_SPAN : 0.0004);
   const scale = (w - 160) / span;
   const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
   const px = (lon: number) => w / 2 + (mx(lon) - cx) * scale;
