@@ -642,7 +642,7 @@ const press = (target: EventTarget, init: KeyboardEventInit) => {
   return ev;
 };
 
-test('Mod+A in lines: the first press is the browser\'s, with the box already whole the host is asked for everything', async () => {
+test('Mod+A in lines: the first press is the browser\'s, with the box already whole the host is asked for everything; a doc takes it itself', async () => {
   const h = await mount('- one\n- two\n', 'lines', caret(0, 1));
   let all = 0;
   h.el.addEventListener('text-selectall', () => all++);
@@ -652,10 +652,12 @@ test('Mod+A in lines: the first press is the browser\'s, with the box already wh
   await h.el.updateComplete;
   expect(press(h.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(true);
   expect(all).toBe(1);
-  // A doc keeps the browser's Select All, always.
-  const d = await mount('a\n', 'doc', range(0, 0, 1));
+  // A doc takes Select All itself, every press: the whole document as its own selection, the host not asked.
+  const d = await mount('a\n\nb\n', 'doc', range(0, 0, 1));
   d.el.addEventListener('text-selectall', () => all++);
-  expect(press(d.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(false);
+  expect(press(d.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(true);
+  expect(d.el.sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 1, offset: 1 } });
+  expect(press(d.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(true);
   expect(all).toBe(1);
 });
 

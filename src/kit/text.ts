@@ -14,8 +14,20 @@
  * `text-enter` ({shift}: whether it was Shift+Enter), Delete at its end says
  * `text-exit` ({dir: 'forward'}): the host owns what is around the line. In
  * a line or lines, Select All with the box already whole says
- * `text-selectall` (the host takes everything). Shift+Enter is a line break
+ * `text-selectall` (the host takes everything). In a doc the box is the
+ * document: Select All is the editor's own, the model's selection from the
+ * first words to the last, written to the DOM over every block, and an edit
+ * over it (typing, Backspace, Delete, a cut, a paste) takes the cards at its
+ * ends too and leaves one paragraph. Shift+Enter is a line break
  * in a paragraph, an item or a quote; a heading splits.
+ *
+ * The page scrolls to the caret only after something the person did here: a
+ * letter typed, a key, a paste, a command from a bar or a tap, and only when
+ * the caret is off the screen. A selection written for any other reason (a
+ * draw, a host putting a selection back, an autosave, a selectionchange the
+ * browser raised) leaves the page where the reader put it, and so does any
+ * written after they scrolled it themselves (a wheel, a finger, Page Up or
+ * Down). Every focus() here passes preventScroll.
  *
  * Escape steps out one step per press: the link box closes (and the
  * press stops there), else a range of words collapses to its focus,
@@ -57,7 +69,7 @@ import { SEP, type ContextEntry, type ToContext } from './context.ts';
 import { lookup } from './app.ts';
 import { t } from './i18n.ts';
 import { UI, type IconNode } from './icons.ts';
-import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
+import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, wholeSel, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import './context.ts';
@@ -101,6 +113,24 @@ function inherit(from: Block[] | undefined, to: Block[], fresh: number) {
     keys.set(b, keyOf(old));
   });
 }
+/**
+ * When the person last did something on the page (a key, an input, a paste, a tap or a click) and when they last
+ * scrolled it themselves (a wheel, a finger dragging, Page Up or Down): a selection written within a moment of the
+ * first, and with no scroll of theirs since, is answering them and may bring the caret into view; any other (a
+ * draw, a restore, an autosave) leaves the page where they put it.
+ */
+let acted = -Infinity;
+let scrolled = -Infinity;
+const ANSWER_MS = 800;
+if (typeof document !== 'undefined') {
+  const act = () => void (acted = performance.now());
+  const scroll = () => void (scrolled = performance.now());
+  for (const type of ['beforeinput', 'pointerdown', 'paste', 'cut', 'drop']) document.addEventListener(type, act, { capture: true, passive: true });
+  document.addEventListener('keydown', (e) => (e.key === 'PageUp' || e.key === 'PageDown' ? scroll() : act()), { capture: true, passive: true });
+  for (const type of ['wheel', 'touchmove']) document.addEventListener(type, scroll, { capture: true, passive: true });
+}
+/** Whether a selection written now answers something the person just did here. */
+const answering = () => acted > scrolled && performance.now() - acted < ANSWER_MS;
 const WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
 const DELETES = new Set(['deleteWordBackward', 'deleteWordForward', 'deleteSoftLineBackward', 'deleteSoftLineForward', 'deleteHardLineBackward', 'deleteHardLineForward', 'deleteContent', 'deleteByCut', 'deleteByDrag']);
 const FORMATS: Record<string, Command> = { formatBold: 'b', formatItalic: 'i', formatUnderline: 'u', formatStrikeThrough: 's', insertOrderedList: 'ol', insertUnorderedList: 'ul', formatIndent: 'indent', formatOutdent: 'outdent', formatJustifyLeft: 'left', formatJustifyCenter: 'center', formatJustifyRight: 'right', formatJustifyFull: 'justify' };
@@ -167,6 +197,8 @@ export class ToText extends LitElement {
   private away = false;
   /** The block an IME just composed in: drawn afresh on the next draw, not updated in place. */
   private fresh = -1;
+  /** Select All in a doc: the selection is the whole document, cards included; an edit over it takes everything. */
+  private whole = false;
 
   constructor() {
     super();
@@ -219,6 +251,7 @@ export class ToText extends LitElement {
   /** Put the selection here (and the focus with it). */
   set sel(s: Sel | null) {
     this._sel = s ? clampSel(this.model, s) : null;
+    this.whole = false;
     if (!s) return;
     this.pendingSel = 'focus';
     // Drawn and nothing pending: written now; otherwise updated() writes it after the draw.
@@ -359,6 +392,7 @@ export class ToText extends LitElement {
     }
     this.away = false;
     if (sameSel(s, this._sel)) return this.syncBubble();
+    this.whole = false;
     this._sel = s;
     this.fmt = marksOf(this.model, s);
     this.showLink();
@@ -377,18 +411,26 @@ export class ToText extends LitElement {
       if (!s || !this.isConnected || !this.tx) return;
       if (how === 'focus') this.focus();
       else if (!this.hasFocus()) return;
-      const a = this.domPoint(s.anchor);
-      const f = this.domPoint(s.focus);
       const dom = document.getSelection();
-      if (!a || !f || !dom) return;
-      dom.setBaseAndExtent(a[0], a[1], f[0], f[1]);
-      this.keepCaretVisible(dom);
+      if (!dom) return;
+      // The whole document: the box from its first child to its last, so the cards at the ends are in it too.
+      if (this.whole) dom.setBaseAndExtent(this.tx, 0, this.tx, this.tx.childNodes.length);
+      else {
+        const a = this.domPoint(s.anchor);
+        const f = this.domPoint(s.focus);
+        if (!a || !f) return;
+        const y = window.scrollY;
+        dom.setBaseAndExtent(a[0], a[1], f[0], f[1]);
+        if (answering()) this.keepCaretVisible(dom);
+        // Not answering anyone: the page stays where the reader put it, even where a browser reveals a selection written.
+        else if (window.scrollY !== y) window.scrollTo(window.scrollX, y);
+      }
       this.syncBubble();
     };
     // Safari drops a selection set in the same task as a DOM swap.
     WEBKIT ? requestAnimationFrame(go) : go();
   }
-  /** The caret kept inside the visual viewport (above a phone's keyboard) after a draw moved it. */
+  /** The caret kept inside the visual viewport (above a phone's keyboard) after an edit the person made moved it. */
   private keepCaretVisible(dom: Selection) {
     if (!dom.rangeCount) return;
     const r = dom.getRangeAt(0).getBoundingClientRect();
@@ -413,12 +455,18 @@ export class ToText extends LitElement {
     const before = this._sel;
     if (first && !this.blocks.length) ops = [{ op: 'splice', at: 0, n: 0, blocks: [EMPTY] }, ...ops];
     this._sel = sel;
+    this.whole = false;
     if (how) this.pendingSel = how;
     this.dispatchEvent(new CustomEvent<TextOps>('text-ops', { detail: { ops, sel, before, ...(kind ? { kind } : {}) }, bubbles: true }));
   }
   private current(): Sel {
     const m = this.model;
     return this._sel ? clampSel(m, this._sel) : this.readSel() ?? caret(m.length - 1, blockLength(m[m.length - 1]));
+  }
+
+  /** What an edit replaces: the selection, or with everything selected (Select All in a doc) the whole document, its cards too. */
+  private span(): Sel {
+    return this.whole ? wholeSel(this.model) : this.current();
   }
 
   /** Whether an event comes from a control the host put inside a card (an input, a button): its own, not the editor's. */
@@ -432,8 +480,9 @@ export class ToText extends LitElement {
     if (this.composing || e.isComposing || /Composition/.test(e.inputType)) return;
     e.preventDefault();
     const model = this.model;
-    const target = e.getTargetRanges?.()[0];
-    const sel = this.current();
+    // With everything selected the browser's own range is not asked: it stops at the cards.
+    const target = this.whole ? undefined : e.getTargetRanges?.()[0];
+    const sel = this.span();
     const type = e.inputType;
     const exit = (dir: 'back' | 'forward') => this.dispatchEvent(new CustomEvent<{ dir: 'back' | 'forward' }>('text-exit', { detail: { dir }, bubbles: true }));
     // Backspace at the very start says `text-exit` (back); in a line, Delete at the very end says it too (forward): the host owns what is around the line.
@@ -552,6 +601,11 @@ export class ToText extends LitElement {
     if (mod && !e.altKey) {
       const k = e.key.toLowerCase();
       // Select all in a line or lines: the first press takes the box (the browser's own); with the box already whole, or empty, the host is asked for everything (`text-selectall`).
+      // Select all in a doc: the whole document as the model's selection, cards and all, written to the DOM by us (the browser's own stops short of a card at either end).
+      if (k === 'a' && this.shape === 'doc' && !e.shiftKey) {
+        e.preventDefault();
+        return this.selectAll();
+      }
       if (k === 'a' && this.shape !== 'doc' && !e.shiftKey) {
         const m = this.model;
         const sel = this.current();
@@ -580,6 +634,16 @@ export class ToText extends LitElement {
       }
     }
   };
+  /** Everything selected: the model's selection runs from the first words to the last (what `sel` says), and an edit takes the cards too. */
+  selectAll() {
+    const m = this.model;
+    this._sel = clampSel(m, wholeSel(m));
+    this.whole = true;
+    this.fmt = marksOf(m, this._sel);
+    this.pendingSel = 'focus';
+    if (this.hasUpdated && !this.isUpdatePending) this.flushSel();
+    this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: this._sel, bubbles: true }));
+  }
   /** Escape, one step per press: a box closes; else a range collapses to its focus; else the host hears `text-escape` and the key goes on. */
   private escape(e: KeyboardEvent) {
     if (this.closePops()) {
@@ -628,7 +692,7 @@ export class ToText extends LitElement {
 
   private onCopy = (e: ClipboardEvent) => {
     if (this.ownEvent(e)) return;
-    const sel = this.readSel() ?? this._sel;
+    const sel = this.whole ? wholeSel(this.model) : (this.readSel() ?? this._sel);
     if (!sel || collapsed(sel) || !e.clipboardData) return;
     e.preventDefault();
     const { text, html } = copyData(this.model, sel);
@@ -643,7 +707,7 @@ export class ToText extends LitElement {
     if (this.ownEvent(e)) return;
     e.preventDefault();
     const dt = e.clipboardData;
-    if (dt) this.paste({ text: dt.getData('text/plain'), html: dt.getData('text/html') }, this.current());
+    if (dt) this.paste({ text: dt.getData('text/plain'), html: dt.getData('text/html') }, this.span());
   };
 
   private onFocusOut = (e: FocusEvent) => {
