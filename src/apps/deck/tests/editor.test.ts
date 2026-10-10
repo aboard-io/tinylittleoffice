@@ -45,6 +45,8 @@ async function type(el: ToDeckEditor, tx: HTMLElement, s: string) {
   }
 }
 const button = (root: ParentNode, label: string) => root.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+/** A footnote's words at the slide's foot. */
+const footNote = (el: ToDeckEditor, i: number) => el.querySelectorAll<HTMLElement>('.deck-fn to-text .tx')[i];
 const thumbs = (el: ToDeckEditor) => [...el.querySelectorAll<HTMLButtonElement>('.deck-thumb')];
 async function pick(el: ToDeckEditor, opener: HTMLElement, words: string) {
   opener.click();
@@ -81,16 +83,19 @@ test('typing a headline and words is the document; Enter in the headline goes on
   await until(() => last() === '## Hello\n\n- One\n  - Two\n\n> Say hi\n');
   expect(thumbs(el)[0].getAttribute('aria-label')).toBe('Slide 1: Hello');
   expect(thumbs(el)[0].querySelector('svg')!.innerHTML).toContain('Hello');
-  // A footnote from the bar: its mark in the words, its words at the slide's foot.
+  // A footnote from the bar: its mark in the words, the caret in its note at the slide's foot, its words typed there.
   el.text('words')!.sel = { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 3 } };
   await tick();
   button(el, 'Footnote').click();
   await until(() => !!el.querySelector('.deck-words .fn'));
-  const pop = el.querySelector<HTMLElement>('to-text.deck-words to-note-pop')!;
-  await until(() => !!pop.querySelector('to-text .tx'));
-  await type(el, pop.querySelector<HTMLElement>('to-text .tx')!, 'A note');
+  await until(() => document.activeElement === footNote(el, 0));
+  await type(el, footNote(el, 0), 'A note');
   await until(() => !!last()?.includes('- One^[A note]'));
   expect(el.querySelector('.deck-fn')!.textContent).toContain('A note');
+  // Enter in the note comes back to the words, after the mark.
+  input(footNote(el, 0), 'insertParagraph');
+  await until(() => el.text('words')!.hasFocus());
+  expect(el.text('words')!.sel?.focus).toEqual({ block: 0, offset: 4 });
 });
 
 test('Insert ▾ makes a slide of a layout after this one, with the caret in its headline; the Look menu is a head field; undo takes it back', async () => {
@@ -573,13 +578,25 @@ test('the speaker notes have room round them, as the words do: 12px, the hint in
   key(window, 'Escape');
 });
 
-test('a footnote\'s box is one line of 16px words, wherever its mark is (even in the headline)', async () => {
-  const { el } = await editor('## Big words\n');
+test('a footnote is typed at the slide\'s foot, in the foot\'s own words (not the headline\'s), numbered on through the slide', async () => {
+  const { el, last } = await editor('## Big words\n\n- One^[first]\n');
   await caretIn(el, 'title');
   button(el, 'Footnote').click();
-  await until(() => !!el.querySelector('to-note-pop to-text .tx'));
-  const words = el.querySelector<HTMLElement>('to-note-pop to-text .tx')!;
-  expect(getComputedStyle(words).fontSize).toBe('16px');
+  // The headline's note comes first at the foot: the caret is in it, the words' note second.
+  await until(() => el.querySelectorAll('.deck-fn to-text').length === 2 && document.activeElement === footNote(el, 0));
+  const words = footNote(el, 0);
+  expect(parseFloat(getComputedStyle(words).fontSize)).toBeGreaterThanOrEqual(16);
   expect(getComputedStyle(words).fontWeight).toBe('400');
   expect(words.getBoundingClientRect().height).toBeLessThan(60);
+  await type(el, words, 'Big');
+  await until(() => last() === '## Big words^[Big]\n\n- One^[first]\n');
+  // A mark tapped in the words goes to its note, the caret at its end; Escape comes back to the mark.
+  el.querySelector<HTMLElement>('.deck-words .fn')!.click();
+  await until(() => document.activeElement === footNote(el, 1));
+  expect(el.querySelector('.deck-words .fn')!.textContent).toBe('2');
+  footNote(el, 1).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await until(() => el.text('words')!.hasFocus());
+  expect(el.text('words')!.sel?.focus).toEqual({ block: 0, offset: 4 });
+  // The notes are drawn at the slide's foot when presenting too.
+  expect(el.querySelector('.deck-thumb svg')!.innerHTML).toContain('first');
 });

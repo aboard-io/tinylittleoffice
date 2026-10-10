@@ -127,7 +127,7 @@ export class ToDocDialog extends LitElement {
     }
     if (!(e.metaKey || e.ctrlKey) || e.altKey || e.isComposing) return;
     const ed = this.editor;
-    if (!ed || !ed.contains(at) || at.closest('[popover], to-link-pop, to-note-pop') || at.closest('dialog') !== this.dialog || at.matches('input[class*="to-"], textarea[class*="to-"]')) return;
+    if (!ed || !ed.contains(at) || at.closest('[popover], to-link-pop') || at.closest('dialog') !== this.dialog || at.matches('input[class*="to-"], textarea[class*="to-"]')) return;
     const k = e.key.toLowerCase();
     const which = k === 'z' && !e.shiftKey ? 'docundo' : (k === 'z' && e.shiftKey) || k === 'y' ? 'docredo' : '';
     if (!which) return;

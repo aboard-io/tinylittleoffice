@@ -246,16 +246,21 @@
     max-width: 100%;
     max-height: 100%;
   }
-  /* Footnotes at the slide's foot, numbered as their marks are. */
+  /* Footnotes at the slide's foot, numbered as their marks are, each typed where it is drawn (kit/notes.ts). */
   .deck-fn {
     margin: auto 0 0;
-    padding: 0.6em 0 0 1.6em;
+    padding: 0.6em 0 0;
     font-size: max(12px, 1.56cqw);
     color: var(--deck-muted);
     border-top: 1px solid color-mix(in srgb, var(--deck-muted) 40%, transparent);
   }
   .deck-fn li {
     margin: 0.15em 0;
+  }
+  .deck-canvas .deck-fn .tx {
+    font-size: max(16px, 1em);
+    line-height: 1.3;
+    caret-color: var(--deck-accent);
   }
   .deck-num {
     position: absolute;

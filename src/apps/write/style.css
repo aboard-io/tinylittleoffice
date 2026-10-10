@@ -29,7 +29,7 @@
     --write-w: 794px;
     --write-m: 94px;
   }
-  .write-page .tx {
+  .write-page .write-text > .tx {
     min-height: 50vh;
     font-size: 17px;
     line-height: 1.6;
@@ -55,7 +55,7 @@
   .write-page .tx .ic,
   .write-page .tx .fn,
   .write-notes li::marker,
-  .write-back {
+  .to-note-back {
     color: var(--to-paper-accent);
   }
   .write-page .tx .ic,
@@ -544,10 +544,6 @@
     border: 0;
     border-top: 1px solid var(--to-paper-line);
   }
-  .write-notes ol {
-    margin: 0;
-    padding-left: 1.6em;
-  }
   .write-notes li {
     margin: 0 0 4px;
   }
@@ -557,16 +553,12 @@
   .write-notes a {
     color: var(--to-paper-accent);
   }
-  .write-back {
-    border: 0;
-    background: none;
+  .write-notes .to-note-back {
     padding: 0 4px;
-    font: inherit;
-    cursor: pointer;
     border-radius: 4px;
   }
-  .write-back:hover,
-  .write-back:focus-visible {
+  .write-notes .to-note-back:hover,
+  .write-notes .to-note-back:focus-visible {
     background: color-mix(in srgb, var(--to-paper-accent) 12%, transparent);
     outline: none;
   }
@@ -599,7 +591,7 @@
   @media print {
     to-write-editor to-bar,
     .write-foot,
-    .write-back {
+    .to-note-back {
       display: none !important;
     }
   }

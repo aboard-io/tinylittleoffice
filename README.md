@@ -29,7 +29,8 @@ src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, 
                 palette), tile (a repeating background tile in one head field: `tile: 8:a..a/.a.a`), chart
                 (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded lines, escaped text), zip, xlsx (a table block as a workbook), embeds (a thing from the web by
                 its address: the providers and the click-to-load <to-embed> card); the editor: text (<to-text>), textops
-                (its maths), clipboard, history (the op log), note-pop, link-pop
+                (its maths), clipboard, history (the op log), notes (<to-notes>: footnotes typed where they are
+                drawn), link-pop
 src/doc/        the document kernel (docs/kernel.md)
 dev/            text.html: the editor alone, in its three shapes, at /dev/text.html on the dev server (not built)
 src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy chunk), style.css

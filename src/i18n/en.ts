@@ -277,7 +277,7 @@ export default {
   'Today': 'Today',
 
   // ---- the editor (<to-text>): chips, cards and the bubbles ----
-  // A footnote's mark, by its number: spoken.
+  // A footnote's mark, and its words where the notes are drawn, by its number: spoken.
   'Footnote {n}': 'Footnote {n}',
   // A card standing for another document held in this one, of a kind no app here reads: "abc document".
   '{app} document': '{app} document',
@@ -287,7 +287,6 @@ export default {
   'Connection': 'Connection',
   '{n|one row|# rows}': '{n|one row|# rows}',
   'The note\'s words': 'The note\'s words',
-  'Remove footnote': 'Remove footnote',
   'Done': 'Done',
   'Address': 'Address',
   'Not an address': 'Not an address',

@@ -49,7 +49,8 @@ Rules:
 - Tab/Shift+Tab on an item indents/outdents it; elsewhere Tab moves focus.
 - Mod+B/I/U/K; Mod+Shift+X strikethrough and Mod+Shift+H highlight are optional; the bar has them all.
 - Selecting words shows the **selection bubble** (B, I, U, S, highlight | link, footnote | list) centred under the selection; it hides when the selection collapses or leaves. Hosts may turn it off (`no-bubble`).
-- The caret in a link shows the link bubble (open, edit, remove). A footnote chip opens its note on tap or Enter.
+- The caret in a link shows the link bubble (open, edit, remove).
+- **Footnotes are typed at the foot**, where they are drawn (the Word Processor's endnotes at the end of the page, a slide's foot, the notes under an outline), never in a box beside the mark: each note is a one-line `<to-text>` (its marks and links; no blocks, no note in a note). A tap or Enter on a mark brings the foot into view with the caret at the end of that note; the Footnote command puts the mark at the caret and the caret in its new, empty note; Enter or Escape in a note returns to the words after its mark (the Word Processor's ↩ too); a note emptied and left takes its mark with it, and Backspace at the start of an empty note removes it and returns to where its mark was. The note's words are the document's like any others: Mod+Z undoes them, the caret back in the note.
 - Cards (tables, pictures, documents, web things) are one character to the caret: skipped by arrows, removed by one Backspace/Delete, tapped to open.
 - Paste: our HTML → blocks; other HTML → blocks (`htmlToBlocks`); Markdown/TLO text → blocks; a lone address → a card; words → words. A paste never brings styles the document cannot keep.
 - IME: a composition is left to the browser and read back at `compositionend` as one op; no selection is written during a composition.

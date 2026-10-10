@@ -617,7 +617,7 @@ export class ToShell extends LitElement {
     if (!at || at === document.body || at === document.documentElement) return true;
     if (!(at instanceof Element) || !editor.contains(at)) return false;
     // An app's own fields (a sheet's cells) are the app's to answer; the kit's (class to-…) keep their own undo.
-    return !at.closest('dialog, [popover], to-dialog, to-drawer, to-link-pop, to-note-pop, .to-header') && !at.matches('input[class*="to-"], textarea[class*="to-"]');
+    return !at.closest('dialog, [popover], to-dialog, to-drawer, to-link-pop, .to-header') && !at.matches('input[class*="to-"], textarea[class*="to-"]');
   }
 
   /* ---------- sharing ---------- */
