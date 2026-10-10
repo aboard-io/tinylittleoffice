@@ -1,0 +1,16 @@
+# RS-4: shell and kit pieces, and the app features
+
+Rows: docs/gap-analysis.md "Shell and kit" (missing and partial rows, except the link guard and the Insert dialogs, which have landed) and "Apps" (steps, Trip presenting, seating place cards). New tree: src/kit/{shell,drawer,home,library,limits,exports,menu,insert}.ts, src/apps/{deck,trip,diagram}/*.
+
+Build:
+1. **Search**: port lib/search.ts; a search box on the home page over the library (title and words, with a snippet) and **Find in this document** (Mod+F, a small bar under the app's bar with next/previous, matches highlighted through the kit's text views where the app shows words; in a sheet it moves between matching cells).
+2. **Keyboard shortcuts dialog** (Mod+/ and in the hamburger): generated from the standard's §1 table plus the app's own declared keys (each AppDef may list `keys`), grouped; **Mod+S** keeps the document on the device (Saved) or toasts why not.
+3. **Skip link** to the editor; **size of everything** (a zoom control in the hamburger: 90–150%, kept under Saved, `font-size` on the root); **install prompt** ("Add to home screen" in the hamburger where the browser offers it, with the iPhone how-to line); **newer-version warning** (a document opened from a link while the device holds a newer kept version of the same id: a quiet banner offering to open it).
+4. **URL meter**: the Share dialog's head line gets the copy button and the rooms on hover/tap (a small table in a popover) and the over-limit state in red. Tooltips on phones: none (a long press is not used, by the standard); the names live in aria-labels and the shortcuts dialog. Leave the `title`s as they are.
+5. **Open as another app**: every sensible hand-off from the old tree's list, as `handoffs` on the defs (write → deck/outline/site, sheet → chart-only drawing? no; sheet → calendar for dated rows, todo → board, board → todo, trip → calendar, cal → todo), each a pure convert with a node test.
+6. **Insert**: type-to-filter in Insert ▾ (the first letters narrow the list), **QR code of this document** as an insertable picture (Write, Deck, Site), and "A new blank …" items are the doc-dialog's (landed): verify every app's Insert ▾ offers them.
+7. **Steps**: `AppDef.steps(doc)` (how many steps a document builds up in when presented) for the apps that had it (lists reveal one item per step; the trip flies to each stop; the drawing adds a shape per step?) and Deck's presenting honours a sub-document's steps; **Trip presenting** (Present in its bar: the map flies stop to stop, one per step, Escape ends); **seating place cards** (Diagram's seating kind: Print place cards, 8 to a letter sheet, through the kit's print path).
+8. docs/tlo.md (the old tree's, updated for the kernel: the agent's reference), docs/exports.md.
+
+Tests: node for search, convert hand-offs, steps; DOM for the search bar, the shortcuts dialog, Mod+S, skip link, zoom, the newer-version banner, the meter popover, Insert filter and QR, Trip presenting (stubbed map), place cards (the print HTML); PW_PORT=4422.
+9. **Display mode's page width**: pages are drawn at their paper width (a letter page about 816px at 96dpi, scaled down to fit a narrower screen), centred, never stretched to the content width; a toolbar-less page with only the title line and Edit, as now.

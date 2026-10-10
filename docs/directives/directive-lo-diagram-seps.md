@@ -1,0 +1,12 @@
+# LO-2: the Diagram Maker's separators are never typed by a person, and never corrupt a thing's words
+
+Read first: directive-r4-common.md (rule 1: a person never types a marker or a separator), src/apps/diagram/model.ts (the header: lists `- Set: thing, thing`, `Name | Role`, `Ada + Charles | 1815`, `~ A -- B: label`, `->`, `<->`, `When: what`; the listed kinds cut at each comma; keyOf/lineOf; itemsOf), src/apps/diagram/editor.ts (the words editor on a thing: Enter = next thing, Shift+Enter = second line where drawn, commitDraft), src/doc/tlo.ts (how the kernel escapes a `|` in a table cell, as the model for escaping), docs/editing.md's Diagram Maker section, the diagram tests.
+
+The leftover (2026-10-09 audit): the separators the format uses (comma in a listed kind, `: ` after a key, ` | ` for a second line, ` + ` for a couple, `~`, `--`, `->`, `<->` in a connection) can be typed into a thing's words and then re-read as structure: "Smith, Jones" at a table becomes two people; "Sales: Q3" as a set's name loses its key; a role with " | " splits; a couple's names with " + " in one of them breaks the family line. A model change was needed.
+
+Build:
+1. Round-trip: a thing's words may hold any of those characters. The writer escapes what would re-read as structure (choose one escape, the kernel's backslash as tlo.ts does for `|`, and document it in the model's header and docs/tlo.md's diagram section); the reader unescapes; the drawn label shows the plain words. Every existing document reads as before (an unescaped separator still separates). Byte-stable through the corpus.
+2. Keys that act: in a listed kind (venn, seating) a comma typed at the end of a thing's words makes the next thing (as Enter does) and a comma typed inside the words is just a comma; in a family a `+` typed at the end of a person's words starts their partner (the couple's line), inside the words it is a plus; `:` and `|` are always plain characters (a key and a second line come from the thing's own form and Shift+Enter, as today). Say in docs/editing.md's Diagram Maker section which keys act and where.
+3. Connections' names resolve against the unescaped words (`~ A -- B` names things by their plain words; a name containing `--` or `->` is matched whole first).
+
+Tests: model round-trips for each separator in each kind (write → parse → same words; drawn label plain); a DOM test for the comma and plus at the end vs inside; a connection to a thing whose name holds `--`. PW_PORT=4444.
