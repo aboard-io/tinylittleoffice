@@ -511,7 +511,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     }
     if (hit.k === 'lane') out.push({ label: t('Add a step'), icon: UI.plus, does: () => add(newThing(this.doc, hit.name)) });
     if (joins(kind) && hit.k !== 'edge' && name) out.push({ label: t('Join'), icon: Spline, does: () => this.armJoin() });
-    if (hit.k === 'edge' && kind === 'net') {
+    if (hit.k === 'edge' && joins(kind)) {
       const e = edgesOf(this.doc).find((x) => x.at === hit.at);
       const arrow = e?.dir === '->' || e?.dir === '<-';
       out.push({ label: arrow ? t('Make it a plain line') : t('Make it an arrow'), icon: arrow ? Minus : ArrowRight, does: () => this.change(setEdge(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit) });
@@ -755,8 +755,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const hit = s.hit;
     const body = unsafeSVG(shapeSvg(s, all, THEME, !!hit));
     if (!hit) return svg`<g>${body}</g>`;
-    const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) ? t('a connection') : t('empty'));
-    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${i === on ? 'on' : ''}" data-i=${i} tabindex="0" role="button" aria-label=${words}>${body}</g>`;
+    const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) || hit.k === 'edge' ? t('a connection') : t('empty'));
+    // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.
+    const stop = hit.k === 'edge' && s.k === 't' ? '-1' : '0';
+    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${i === on ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}</g>`;
   }
   render() {
     const { kind, d } = this.view;

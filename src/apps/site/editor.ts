@@ -1,12 +1,13 @@
 /**
  * <to-site-editor>: the Website app, edited in the page itself. The site as it will look fills the editor, in a
- * sandboxed frame (the generated page with its editing script: every thing on it marked, view.ts's EDIT). A tap
- * on a thing takes it in hand: outlined in the page, the focus on the box round the frame, and a <to-context>
- * beside it with Edit, Move up, Move down (Move left and Move right in a row of cards, buttons or small links),
- * Duplicate and Delete, in the standard's order (docs/editing.md §6). A tap on the thing in hand, Enter or Edit
- * opens its mini form (forms.ts; a picture's, a thing from the web's and another document's are the kit's own
- * dialogs, a table's the Spreadsheet's), and Done writes it as one op; Escape writes nothing. Nobody types a
- * marker: the code writes every line.
+ * sandboxed frame (the generated page with its editing script: every thing on it marked, view.ts's EDIT). One tap
+ * on a thing opens its mini form at once (forms.ts; a picture's, a thing from the web's and another document's are
+ * the kit's own dialogs, a table's the Spreadsheet's), and the thing is in hand meanwhile: outlined in the page, and
+ * its <to-context> (Edit, Move up, Move down, Move left and Move right in a row of cards, buttons or small links,
+ * Duplicate and Delete, in the standard's order, docs/editing.md §6) under the form, inside it, so a move is a tap
+ * away (a move closes the form unwritten first). Done writes the form as one op; Escape writes nothing and leaves the
+ * thing in hand, its bar beside it; a tap on the page's empty room lets it go. Enter or Edit on the thing in hand
+ * opens the form again. Nobody types a marker: the code writes every line.
  *
  * The bar: Insert ▾ first, at the top left (what can go in here, put after the thing in hand, or at the end of
  * the section on view, its form opened at once and nothing written until Done), the look ▾, Preview (the page as
@@ -48,8 +49,8 @@ export const tag = 'to-site-editor';
 /** A message from the frame: what was done, to which thing. */
 interface FrameMessage {
   site: number;
-  do: 'pick' | 'edit' | 'at' | 'page' | 'undo' | 'redo' | 'ready' | 'leave';
-  /** The thing's id. */
+  do: 'pick' | 'at' | 'page' | 'undo' | 'redo' | 'ready' | 'leave';
+  /** The thing's id (null: a tap on the page's empty room). */
   o?: string | null;
   id?: string;
   /** Where the thing is in the frame: left, top, width, height. */
@@ -131,8 +132,31 @@ export class ToSiteEditor extends DocElement<Site> {
   get box(): HTMLElement | null {
     return this.querySelector<HTMLElement>('.site-page');
   }
+  /** The bar of the thing in hand: here, or lent to the form open on the thing. */
   private get ctx(): ToContext | null {
-    return this.querySelector<ToContext>('to-context.site-context');
+    return this.querySelector<ToContext>('to-context.site-context') ?? this.lent?.querySelector<ToContext>('to-context.site-context') ?? null;
+  }
+  /** The form the thing's bar is lent to, while it is open. */
+  private lent: HTMLDialogElement | null = null;
+  /** The thing's bar put inside its open form, under it; given back (here, where it was) when the form closes. */
+  private lend = (d: HTMLDialogElement): (() => void) => {
+    const ctx = this.ctx;
+    if (!ctx || this.held === null) return () => {};
+    this.lent = d;
+    d.append(ctx);
+    ctx.show(d);
+    return () => {
+      this.lent = null;
+      ctx.hide();
+      this.append(ctx);
+    };
+  };
+  /** A thing done from its bar while its form is open: the form closed first, unwritten. */
+  private fromBar(f: () => void): () => void {
+    return () => {
+      this.lent?.close();
+      f();
+    };
   }
 
   /* ---------- the frame ---------- */
@@ -166,12 +190,16 @@ export class ToSiteEditor extends DocElement<Site> {
     if (!m || typeof m !== 'object' || e.source !== this.frame?.contentWindow || m.site !== this.stamp) return;
     if (typeof m.y === 'number') this.frameY = m.y;
     const id = typeof m.o === 'string' ? m.o : null;
-    if (m.do === 'pick' && id !== null) this.hold(id, m.r ?? null);
-    else if (m.do === 'edit' && id !== null) void this.editObj(id);
+    if (m.do === 'pick' && id !== null) {
+      // One tap: the thing in hand and its form open at once.
+      this.hold(id, m.r ?? null);
+      void this.editObj(id);
+    } else if (m.do === 'pick') this.release();
     else if (m.do === 'at') {
       if (id === null || id !== this.held) return;
       this.heldRect = m.r ?? null;
-      if (this.heldRect && !this.asking) this.ctx?.show(this.heldAnchor);
+      if (this.lent) this.ctx?.show(this.lent);
+      else if (this.heldRect && !this.asking) this.ctx?.show(this.heldAnchor);
       else this.ctx?.hide();
     } else if (m.do === 'page') {
       const p = this.view.pages.find((x) => x.id === m.id) ?? this.view.pages[0];
@@ -192,7 +220,7 @@ export class ToSiteEditor extends DocElement<Site> {
     this.cur = o.n;
     this.heldRect = r;
     this.box?.focus({ preventScroll: true });
-    if (r) void this.updateComplete.then(() => this.held === id && this.ctx?.show(this.heldAnchor));
+    if (r) void this.updateComplete.then(() => this.held === id && !this.lent && this.ctx?.show(this.heldAnchor));
     else this.tell(show);
   }
   /** The thing in hand let go: its bar goes, its outline too. */
@@ -237,7 +265,7 @@ export class ToSiteEditor extends DocElement<Site> {
   }
   /** The keys of the thing in hand (docs/editing.md §6): never from a field or a button. */
   private onBoxKey = (e: KeyboardEvent) => {
-    if (e.defaultPrevented || e.target !== e.currentTarget || this.held === null || e.isComposing) return;
+    if (e.defaultPrevented || e.target !== e.currentTarget || this.held === null || e.isComposing || this.asking) return;
     const id = this.held;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
@@ -299,16 +327,16 @@ export class ToSiteEditor extends DocElement<Site> {
     if (!o || id === null) return [];
     const { doc, view } = this;
     const move = (dir: 'up' | 'down' | 'left' | 'right', label: string, icon: IconNode, keys: string): ContextEntry => ({
-      label, icon, keys, disabled: !moveObj(doc, view, id, dir), does: () => this.change(moveObj(this.doc, this.view, id, dir)),
+      label, icon, keys, disabled: !moveObj(doc, view, id, dir), does: this.fromBar(() => this.change(moveObj(this.doc, this.view, id, dir))),
     });
     return [
       { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editObj(id) },
       move('up', t('Move up'), ArrowUp, 'Alt+ArrowUp'),
       move('down', t('Move down'), ArrowDown, 'Alt+ArrowDown'),
       ...(ROW.has(o.kind) ? [move('left', t('Move left'), ArrowLeft, 'Mod+Alt+ArrowLeft'), move('right', t('Move right'), ArrowRight, 'Mod+Alt+ArrowRight')] : []),
-      { label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', disabled: !duplicateObj(doc, view, id), does: () => this.change(duplicateObj(this.doc, this.view, id)) },
+      { label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', disabled: !duplicateObj(doc, view, id), does: this.fromBar(() => this.change(duplicateObj(this.doc, this.view, id))) },
       SEP,
-      { label: t('Delete'), icon: UI.trash, keys: 'Delete', disabled: !removeObj(doc, view, id), does: () => this.change(removeObj(this.doc, this.view, id)) },
+      { label: t('Delete'), icon: UI.trash, keys: 'Delete', disabled: !removeObj(doc, view, id), does: this.fromBar(() => this.change(removeObj(this.doc, this.view, id))) },
     ];
   }
 
@@ -339,6 +367,7 @@ export class ToSiteEditor extends DocElement<Site> {
     const o = objectAt(this.view, id);
     if (!o || this.asking) return;
     const anchor: Anchor = this.held === id ? this.heldAnchor() : null;
+    const lend = this.held === id ? this.lend : undefined;
     const b = this.doc.blocks[o.at] as Block | undefined;
     const replace = (next: Block | null): Op[] => (!next || (b && same(b, next)) ? [] : [{ op: 'splice', at: o.at, n: 1, blocks: [next] }]);
     let ops: Op[] = [];
@@ -348,14 +377,14 @@ export class ToSiteEditor extends DocElement<Site> {
       case 'section':
       case 'heading': {
         const label = o.kind === 'page' && this.view.sections[o.n].page === 0 ? t('The site’s name') : t('Words');
-        const words = await this.asked(askWords({ heading: objName(o.kind), label, value: b?.k === 'h' ? plainText(b.runs) : '', anchor }));
+        const words = await this.asked(askWords({ heading: objName(o.kind), label, value: b?.k === 'h' ? plainText(b.runs) : '', anchor, lend }));
         if (words === null) return;
         if (b?.k === 'h') ops = replace({ ...b, runs: plainRuns(words) });
         else if (o.at < 0 && words.trim()) (ops = [{ op: 'splice', at: 0, n: 0, blocks: [{ k: 'h', level: 1, runs: plainRuns(words) }] }]), (after = '0');
         break;
       }
       case 'p': {
-        const runs = await this.asked(askParagraph({ runs: b?.k === 'p' ? b.runs : [], anchor }));
+        const runs = await this.asked(askParagraph({ runs: b?.k === 'p' ? b.runs : [], anchor, lend }));
         if (runs === null) return;
         if (runs.length) ops = replace({ k: 'p', runs });
         else (ops = [{ op: 'splice', at: o.at, n: 1, blocks: [] }]), (after = null);
@@ -363,19 +392,19 @@ export class ToSiteEditor extends DocElement<Site> {
       }
       case 'button': {
         if (b?.k !== 'quote') return;
-        const l = await this.asked(askLink({ heading: objName('button'), value: linkFields(linesOf(b.runs)[o.line]), anchors: this.places(), anchor }));
+        const l = await this.asked(askLink({ heading: objName('button'), value: linkFields(linesOf(b.runs)[o.line]), anchors: this.places(), anchor, lend }));
         if (l) ops = replace(withLine(b, o.line, linkRuns(l)));
         break;
       }
       case 'link': {
         if (b?.k !== 'li') return;
-        const l = await this.asked(askLink({ heading: objName('link'), value: linkFields(b.runs), anchors: this.places(), anchor }));
+        const l = await this.asked(askLink({ heading: objName('link'), value: linkFields(b.runs), anchors: this.places(), anchor, lend }));
         if (l) ops = replace({ ...b, runs: linkRuns(l) });
         break;
       }
       case 'card': {
         if (b?.k !== 'li') return;
-        const c = await this.asked(askCard({ value: cardFields(b.runs), anchors: this.places(), anchor }));
+        const c = await this.asked(askCard({ value: cardFields(b.runs), anchors: this.places(), anchor, lend }));
         if (c) ops = replace({ ...b, runs: cardRuns(c) });
         break;
       }
@@ -406,7 +435,7 @@ export class ToSiteEditor extends DocElement<Site> {
       case 'products': {
         if (b?.k !== 'table') return;
         const head = this.doc.head;
-        const shop = await this.asked(askShop({ value: { currency: head.currency ?? '', orders: head.orders ?? '', table: b }, anchor }));
+        const shop = await this.asked(askShop({ value: { currency: head.currency ?? '', orders: head.orders ?? '', table: b }, anchor, lend }));
         if (!shop) return;
         if (shop.currency.trim() !== (head.currency ?? '')) ops.push(settingOp('currency', shop.currency));
         if (shop.orders.trim() !== (head.orders ?? '')) ops.push(settingOp('orders', shop.orders));

@@ -11,7 +11,7 @@ import { pageSvg, textWidth, wrapText } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { shapesPage } from '../draw/view.ts';
-import { write, type Doc } from '../../doc/index.ts';
+import { write, type Dir, type Doc } from '../../doc/index.ts';
 import { edgesOf, kindOf, labelOf, linesOf, same, setNames, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
@@ -110,7 +110,7 @@ function placeTree(roots: Node[]): Placed[] {
 
 const whole = (l: Line): Hit => ({ k: 'line', at: l.at, part: 'all' });
 
-/** Org chart (and family tree): who reports to whom, boxes in rows; "~ A -- B: advises" a dotted line beside. */
+/** Org chart (and family tree): who reports to whom, boxes in rows; "~ A -- B: advises" a dotted line beside ("->" with an arrow). */
 function orgLayout(doc: Doc): Diagram {
   const BW = 156;
   const BH = 54;
@@ -119,7 +119,8 @@ function orgLayout(doc: Doc): Diagram {
   const at = (name: string) => placed.findIndex((p) => same(p.node.line.all.words, name));
   const dotted = edgesOf(doc).flatMap((e) => {
     const [a, b] = [at(e.from), at(e.to)];
-    return a >= 0 && b >= 0 && a !== b ? [join(a, b, false, e.label, 'p', 2, { k: 'edge', at: e.at })] : [];
+    const [x, y] = e.dir === '<-' ? [b, a] : [a, b];
+    return a >= 0 && b >= 0 && a !== b ? [join(x, y, e.dir === '->' || e.dir === '<-', e.label, 'p', 2, { k: 'edge', at: e.at })] : [];
   });
   return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false)])), ...dotted]);
 }
@@ -144,7 +145,80 @@ function mindLayout(doc: Doc): Diagram {
     const d = p.node.depth;
     return shape('o', d * 210, p.across * pitch, sized[i].w, sized[i].h, labelOf(p.node.line.all), d === 0 ? 2 : d === 1 ? 1 : 0, colour[i], d === 0 ? 3 : undefined, whole(p.node.line));
   });
-  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false, '', colour[i])]))]);
+  const at = (name: string) => placed.findIndex((p) => same(p.node.line.all.words, name));
+  const root = boxes[0] ? [boxes[0].x + boxes[0].w / 2, boxes[0].y + boxes[0].h / 2] : [0, 0];
+  const links = edgesOf(doc).flatMap((e) => {
+    const [a, b] = [at(e.from), at(e.to)];
+    return a >= 0 && b >= 0 && a !== b ? crossLink(boxes[a], boxes[b], boxes, root as [number, number], e.dir, e.label, { k: 'edge', at: e.at }) : [];
+  });
+  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false, '', colour[i])])), ...links]);
+}
+
+/** Where a line from a box's centre toward (tx, ty) leaves the box. */
+function rim(q: DShape, tx: number, ty: number): [number, number] {
+  const [cx, cy] = [q.x + q.w / 2, q.y + q.h / 2];
+  const [dx, dy] = [tx - cx, ty - cy];
+  if (!dx && !dy) return [cx, cy];
+  const k = Math.min(dx ? (q.w / 2 + 3) / Math.abs(dx) : Infinity, dy ? (q.h / 2 + 3) / Math.abs(dy) : Infinity, 1);
+  return [cx + dx * k, cy + dy * k];
+}
+/** Points as Draw's "any shape" keeps them: a box, and each point as hundredths of it. */
+function boxed(k: 'v' | 'w', pts: [number, number][], f: Fill, c: Color, hit?: Hit): DShape {
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const [x, y] = [Math.min(...xs), Math.min(...ys)];
+  const [w, h] = [Math.max(1, Math.max(...xs) - x), Math.max(1, Math.max(...ys) - y)];
+  const s = shape(k, x, y, w, h, '', f, c, undefined, hit);
+  s.pts = pts.flatMap(([px, py]) => [Math.round(((px - x) / w) * 1000) / 10, Math.round(((py - y) / h) * 1000) / 10]);
+  return s;
+}
+/** An arrowhead at (x, y), pointing along (dx, dy). */
+function head(x: number, y: number, dx: number, dy: number, c: Color): DShape {
+  const n = Math.hypot(dx, dy) || 1;
+  const [ux, uy] = [dx / n, dy / n];
+  const [L, Wd] = [11, 5];
+  return boxed('v', [[x, y], [x - ux * L - uy * Wd, y - uy * L + ux * Wd], [x - ux * L + uy * Wd, y - uy * L - ux * Wd]], 2, c);
+}
+/**
+ * A mind map's cross-link from box a to box b: a dashed quadratic curve bowing away from the idea in the middle (so it
+ * runs round the tree rather than through it where it can), an arrowhead at an end it points to, and its words at its
+ * middle. Drawn as Draw's own shapes (a stroke, a filled shape, a text), so the page, the SVG and Draw all have it.
+ */
+function crossLink(a: DShape, b: DShape, boxes: DShape[], root: [number, number], dir: Dir, label: string, hit: Hit): DShape[] {
+  const C: Color = 'p';
+  const [ax, ay, bx, by] = [a.x + a.w / 2, a.y + a.h / 2, b.x + b.w / 2, b.y + b.h / 2];
+  const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  // The normal to a→b, turned to the side away from the middle idea.
+  let [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
+  if (nx * (mx - root[0]) + ny * (my - root[1]) < 0) [nx, ny] = [-nx, -ny];
+  // Far enough out to clear the two boxes and every box between them: how far each reaches past the line from a to b,
+  // that way, against how far out the curve is over it (a quadratic is out 2u(1-u) of the way to its control point at u).
+  const [ux, uy] = [(bx - ax) / len, (by - ay) / len];
+  const reach = (q: DShape) => (q.x + q.w / 2 - ax) * nx + (q.y + q.h / 2 - ay) * ny + Math.abs(nx) * (q.w / 2) + Math.abs(ny) * (q.h / 2) + 16;
+  let bow = Math.max(48, len * 0.35, 2 * reach(a), 2 * reach(b));
+  for (const q of boxes) {
+    const u = ((q.x + q.w / 2 - ax) * ux + (q.y + q.h / 2 - ay) * uy) / len;
+    if (q === a || q === b || u <= 0 || u >= 1) continue;
+    const v = Math.min(Math.max(u, 0.2), 0.8);
+    bow = Math.max(bow, reach(q) / (2 * v * (1 - v)));
+  }
+  const [cx, cy] = [mx + nx * bow, my + ny * bow];
+  const p0 = rim(a, cx, cy);
+  const p2 = rim(b, cx, cy);
+  const at = (t: number): [number, number] => [(1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * cx + t * t * p2[0], (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * cy + t * t * p2[1]];
+  const curve = boxed('w', Array.from({ length: 25 }, (_, i) => at(i / 24)), 1, C, hit);
+  const out: DShape[] = [curve];
+  if (dir === '->' || dir === '<->') out.push(head(p2[0], p2[1], p2[0] - cx, p2[1] - cy, C));
+  if (dir === '<-' || dir === '<->') out.push(head(p0[0], p0[1], p0[0] - cx, p0[1] - cy, C));
+  if (label) {
+    // Its words just outside the curve's middle, clear of the line.
+    const w = Math.min(180, textWidth(label, 12) + 16);
+    const [px, py] = at(0.5);
+    const [lx, ly] = [px + nx * (w / 2 + 2), py + ny * 14];
+    out.push(shape('t', lx - w / 2, ly - 12, w, 24, label, 0, C, 1, hit));
+  }
+  return out;
 }
 
 /* ---------- swimlanes ---------- */

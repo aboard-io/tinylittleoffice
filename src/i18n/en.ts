@@ -1091,8 +1091,6 @@ export default {
   'Table: Ann, Bob, Cy': 'Table: Ann, Bob, Cy',
   'A thing': 'A thing',
   // The picture, and the line editor over a thing
-  'Tap a person to type, "Name + partner | years"; Enter for the next; drag one onto another to put them under.': 'Tap a person to type, "Name + partner | years"; Enter for the next; drag one onto another to put them under.',
-  'Tap empty space for a branch; tap an idea to type on it, Enter for the next; drag one onto another to put it under.': 'Tap empty space for a branch; tap an idea to type on it, Enter for the next; drag one onto another to put it under.',
   'Tap empty space for a person; tap one to type "Name | Role", Enter for the next; drag one onto another to put them under.': 'Tap empty space for a person; tap one to type "Name | Role", Enter for the next; drag one onto another to put them under.',
   'Tap empty space for a table; tap a table or a person to type; drag a person to another table.': 'Tap empty space for a table; tap a table or a person to type; drag a person to another table.',
   'Tap empty space for a thing; Join in the bar, then the two things, connects them; or drag one onto another.': 'Tap empty space for a thing; Join in the bar, then the two things, connects them; or drag one onto another.',
@@ -1398,4 +1396,6 @@ export default {
   'different apps': 'different apps',
   '{n|# block taken out|# blocks taken out}': '{n|# block taken out|# blocks taken out}',
   '{n|# put in|# put in}': '{n|# put in|# put in}',
+  'Tap a person to type, "Name + partner | years"; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.': 'Tap a person to type, "Name + partner | years"; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.',
+  'Tap empty space for a branch; tap an idea to type on it, Enter for the next; drag one onto another to put it under; Join links two across the map.': 'Tap empty space for a branch; tap an idea to type on it, Enter for the next; drag one onto another to put it under; Join links two across the map.',
 } satisfies Strings;

@@ -4,7 +4,9 @@
  * tree's eight diagram apps wrote them:
  *
  *   mind, org, family   a nested list: an idea and its branches; "Name | Role" under who they report to;
- *                       "Ada + Charles | 1815" over their children. Org's "~ A -- B: advises" is a dotted line.
+ *                       "Ada + Charles | 1815" over their children. "~ A -- B: advises" joins any two of them
+ *                       across the tree: a mind map's cross-link (a dashed curve; "->", "<-", "<->" arrows),
+ *                       an org chart's or a family's dotted line ("godparent", "adopted").
  *   lanes               "- Who: what they do", a step a line, in order; a step ending in "?" is a decision.
  *   timeline            "- When: what happened"; a span ("1990–1999") is an era, a band along the line.
  *   venn                "- Set: thing, thing"; "- A & B: what they share".
@@ -12,7 +14,8 @@
  *   net                 "- Thing" on its own, and "~ A -> B: label" or "~ A -- B" between two things.
  *
  * A line's words are rich text: an icon among them (`:rocket:`) is drawn on the thing. Where a line has a
- * key ("Sales: …", "Top table: …") the key is the words before the first ": ".
+ * key ("Sales: …", "Top table: …") the key is the words before the first ": ". A connection names its two
+ * things by their words ("Name | Role" by the name alone), as the Outliner's joins do.
  *
  * Every command is pure: the document and what to do in, the `Op[]` out. A line edited is `text` ops on its
  * item (from the line editor, plus the follow-ups when a name others refer to changes); a thing added is a
@@ -34,8 +37,8 @@ export const kindOf = (doc: Doc): KindId => {
 export const isTree = (k: KindId) => k === 'mind' || k === 'org' || k === 'family';
 /** Kinds whose line holds a list of things after its key: the people at a table, the things in a set. */
 export const isListed = (k: KindId) => k === 'venn' || k === 'seating';
-/** Kinds whose things may be joined by a connection of their own. */
-export const joins = (k: KindId) => k === 'org' || k === 'net';
+/** Kinds whose things may be joined by a connection of their own: across a tree, or a network's every line. */
+export const joins = (k: KindId) => isTree(k) || k === 'net';
 
 /* ---------- reading ---------- */
 
@@ -366,7 +369,7 @@ export function dropIn(doc: Doc, hit: Hit, key: string): Op[] {
   return [];
 }
 
-/** A connection from one named thing to another: an arrow in a network, a dotted line in an org chart. None to itself, none twice. */
+/** A connection from one named thing to another: an arrow in a network, a plain line across a tree (dashed in a mind map, dotted in an org chart or a family). None to itself, none twice. */
 export function connect(doc: Doc, from: string, to: string): Op[] {
   const [a, b] = [from.trim(), to.trim()];
   if (!a || !b || same(a, b)) return [];

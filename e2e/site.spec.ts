@@ -1,6 +1,6 @@
 /**
- * Website on the built site, at desktop size in Chromium: the page is the editor. A tap on the blank site's
- * heading takes it in hand, a tap again opens its form, and the name typed there is the site's; Insert ▾ makes a
+ * Website on the built site, at desktop size in Chromium: the page is the editor. One tap on the blank site's
+ * heading opens its form at once, the heading's bar under it, and the name typed there is the site's; Insert ▾ makes a
  * page through its form, then a button; the page's own nav goes between the pages; Preview shows it as a visitor
  * has it and Edit comes back. The bar is one row, nothing is wider than the screen, axe finds nothing. Run on its own:
  *
@@ -23,13 +23,11 @@ test('website: the name in its form, a page and a button from Insert, the nav go
       return { rows: tops.size, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     });
   expect(await measure()).toEqual({ rows: 1, wide: 0 });
-  // A tap takes the heading in hand (its bar comes), a tap again opens its form.
-  await name.click();
-  const bar = page.locator('to-site-editor to-context.site-context .to-context');
-  await expect(bar).toBeVisible();
+  // One tap opens the heading's form, the heading in hand, its bar under the form.
   await name.click();
   const form = page.locator('.site-form-dialog dialog');
   await expect(form).toBeVisible();
+  await expect(form.locator('to-context.site-context .to-context')).toBeVisible();
   await page.keyboard.type('Harbor Coffee');
   await page.keyboard.press('Enter');
   await expect(form).toHaveCount(0);

@@ -308,3 +308,46 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     expect(m.hit).toEqual({ k: 'line', at: 1, part: 1 });
   });
 });
+
+describe('joins across a tree: a mind map\'s cross-links, a family\'s dotted lines', () => {
+  const MIND = '- Launch\n  - Product\n    - Pricing\n  - Marketing\n    - Press\n';
+  test('read and written byte for byte, every kind of line; made once by Join, followed when a name changes, gone with the idea', () => {
+    for (const dir of ['--', '->', '<-', '<->']) {
+      const text = `---\nkind: mind\n---\n${MIND}\n~ Pricing ${dir} Press: feeds\n`;
+      expect(write(parse(text))).toBe(text);
+    }
+    const m = doc('mind', MIND);
+    expect(run(m, connect(m, 'Pricing', 'Press'))).toBe(`${MIND}\n~ Pricing -- Press\n`);
+    const joined = applyAll(m, connect(m, 'Pricing', 'Press'));
+    expect(connect(joined, 'Press', 'Pricing')).toEqual([]);
+    expect(run(joined, setEdge(joined, 5, { label: 'feeds', dir: '->' }))).toBe(`${MIND}\n~ Pricing -> Press: feeds\n`);
+    const typed: Op[] = [{ op: 'text', at: 2, from: 0, to: 7, runs: [{ t: 'Prices' }] }];
+    expect(run(joined, [...typed, ...follow(joined, applyAll(joined, typed), 2)])).toContain('~ Prices -- Press');
+    expect(run(joined, removeThing(joined, { k: 'line', at: 2, part: 'all' }))).not.toContain('~ ');
+    const fam = doc('family', '- Rose + Albert | m. 1948\n  - Helen | b. 1950\n- Ada | b. 1985\n');
+    expect(run(fam, connect(fam, 'Ada | b. 1985', 'Rose + Albert | m. 1948'))).toBe('- Rose + Albert | m. 1948\n  - Helen | b. 1950\n- Ada | b. 1985\n\n~ Ada -- Rose + Albert\n');
+  });
+  test('drawn: a dashed curve bowing away from the middle idea, an arrowhead where it points, its words at its middle, all tapped as the join', () => {
+    const plain = layout(doc('mind', `${MIND}\n~ Pricing -- Press\n`)).shapes;
+    const curve = plain.find((s) => s.k === 'w')!;
+    expect(curve).toMatchObject({ f: 1, hit: { k: 'edge', at: 5 } });
+    expect(curve.pts!.length).toBe(50);
+    expect(plain.filter((s) => s.k === 'v')).toEqual([]);
+    // Pricing and Press are both at depth 2, one above the other: the curve bows right, away from Launch.
+    const [pricing, press] = ['Pricing', 'Press'].map((w) => plain.find((s) => s.text === w)!);
+    expect(curve.x + curve.w).toBeGreaterThan(Math.max(pricing.x + pricing.w, press.x + press.w));
+    const arrows = layout(doc('mind', `${MIND}\n~ Pricing <-> Press: feeds\n`)).shapes;
+    expect(arrows.filter((s) => s.k === 'v' && s.f === 2)).toHaveLength(2);
+    expect(arrows.find((s) => s.k === 't' && s.text === 'feeds')?.hit).toEqual({ k: 'edge', at: 5 });
+    expect(layout(doc('mind', `${MIND}\n~ Pricing -> Press\n`)).shapes.filter((s) => s.k === 'v')).toHaveLength(1);
+    // A join naming no idea is not drawn; the page and the SVG have the curve.
+    expect(layout(doc('mind', `${MIND}\n~ Pricing -- Nowhere\n`)).shapes.some((s) => s.k === 'w')).toBe(false);
+    expect(diagramPage(doc('mind', `${MIND}\n~ Pricing -- Press: feeds\n`)).svg).toMatch(/<polyline[^>]*stroke-dasharray="6 4"/);
+    // A family's (and an org chart's) is a dotted line, an arrow where it points.
+    const fam = layout(doc('family', '- Rose + Albert | m. 1948\n  - Helen | b. 1950\n  - Ada | b. 1985\n\n~ Helen -- Ada: godparent\n')).shapes;
+    expect(fam.find((s) => s.k === 'j' && s.f === 2)).toMatchObject({ text: 'godparent', hit: { k: 'edge', at: 3 } });
+    const org = layout(doc('org', '- Ada\n  - Ben\n  - Eve\n\n~ Eve <- Ben\n')).shapes;
+    const k = org.find((s) => s.k === 'k')!;
+    expect([org[k.x].text, org[k.y].text]).toEqual(['Ben', 'Eve']);
+  });
+});

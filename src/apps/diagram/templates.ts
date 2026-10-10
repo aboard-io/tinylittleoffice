@@ -23,6 +23,8 @@ kind: mind
   - Support
     - Help pages
     - Who answers, and when
+
+~ A launch-day post -> Help pages: links to
 `;
 
 const GARDEN = `---

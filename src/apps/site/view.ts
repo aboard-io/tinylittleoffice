@@ -85,13 +85,12 @@ else if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){
 draw();})();`);
 
 /**
- * The editor's half of editing, in its frame: every thing on the page is marked with its id (data-o), and every
- * section with its heading's (data-sec). A tap on a thing takes it in hand (outlined; the editor is told where it
- * is, and again as the page scrolls), a tap on the thing in hand asks for its form, a tap on a section's empty
- * room takes its heading; nothing in the page is followed or bought meanwhile, but the nav still goes from page to
- * page. The editor says which thing is in hand by a message (Up and Down, Escape, a change made); undo and redo
- * keys go to the editor, and Select All never selects the page. Each thing listens for its own click, for WebKit
- * counts a finger's tap as a click only on an element that does. The page keeps its place when drawn again ("y").
+ * The editor's half of editing, in its frame: every thing on the page is marked with its id (data-o). A tap on a
+ * thing takes it in hand (outlined; the editor is told which and where, and opens its form; told again as the page
+ * scrolls), a tap on the page's empty room lets it go; nothing in the page is followed or bought meanwhile, but the
+ * nav still goes from page to page. The editor says which thing is in hand by a message (Up and Down, Escape, a change made); undo and redo
+ * keys go to the editor, and Select All never selects the page. Each thing (and the page, for a tap on its empty room)
+ * listens for its own click, for WebKit counts a finger's tap as a click only on an element that does. The page keeps its place when drawn again ("y").
  * The editor checks that a message comes from its own frame, and this script that one comes from its parent.
  */
 export const EDIT = pageScript(`(function(){
@@ -103,10 +102,9 @@ function mark(id){[].forEach.call(document.querySelectorAll('.site-cur'),functio
 function where(){soon=0;send({do:'at',o:held,r:rect(held),y:window.scrollY});}
 function later(){if(!soon)soon=requestAnimationFrame(where);}
 document.addEventListener('click',function(ev){var t=ev.target;if(!t||!t.closest)return;
-var o=t.closest('[data-o]');if(!o){var sec=t.closest('[data-sec]');if(sec&&!t.closest('nav'))o=el(sec.getAttribute('data-sec'));}
-if(!o){var a=t.closest('a[href]');if(a&&a.getAttribute('href').charAt(0)!=='#')ev.preventDefault();return;}
+var o=t.closest('[data-o]');
+if(!o){var a=t.closest('a[href]');if(a){if(a.getAttribute('href').charAt(0)!=='#')ev.preventDefault();return;}if(held!==null){held=null;mark(null);send({do:'pick',o:null});}return;}
 ev.preventDefault();ev.stopPropagation();var id=o.getAttribute('data-o');
-if(id===held)return send({do:'edit',o:id});
 held=id;mark(id);send({do:'pick',o:id,r:rect(id),y:window.scrollY});},true);
 window.addEventListener('message',function(ev){var m=ev.data;if(ev.source!==parent||!m||m.site!==D.stamp)return;
 held=m.held===undefined?null:m.held;mark(held);var e=el(held);if(e&&m.show)e.scrollIntoView({block:'nearest'});where();});
@@ -114,7 +112,7 @@ document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase(),mod=
 if(mod&&(k==='z'||k==='y')){ev.preventDefault();send({do:k==='y'||ev.shiftKey?'redo':'undo'});return;}
 if(mod&&k==='a'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))ev.preventDefault();});
 window.addEventListener('scroll',later,{passive:true});window.addEventListener('resize',later);
-[].forEach.call(document.querySelectorAll('[data-o],[data-sec]'),function(e){e.addEventListener('click',function(){});});
+[].forEach.call(document.querySelectorAll('html,body,[data-o],[data-sec]'),function(e){e.addEventListener('click',function(){});});
 window.addEventListener('hashchange',function(){send({do:'page',id:decodeURIComponent(location.hash.slice(1))});});
 if(D.y)window.scrollTo(0,D.y);mark(held);var e0=el(held);if(e0&&D.show)e0.scrollIntoView({block:'nearest'});
 send({do:'ready'});where();
@@ -189,8 +187,8 @@ const LINKS_CSS = `main.hero{max-width:26rem;margin:0 auto;padding:3rem 1.25rem 
 h1{font-size:2rem;margin:0 0 .6rem}p{color:var(--ink2);margin:0 0 1rem}
 footer{border:0;padding:1rem 0 0;font-size:.85rem}`;
 
-/** The editor's marks: every thing a finger's target, the one under the pointer outlined lightly, the one in hand firmly. */
-const EDIT_CSS = `[data-o],[data-sec]{cursor:pointer;touch-action:manipulation}[data-o]:hover{outline:1px dashed var(--a);outline-offset:3px}
+/** The editor's marks: every thing a finger's target (a section's room too, where a tap lets go), the one under the pointer outlined lightly, the one in hand firmly. */
+const EDIT_CSS = `[data-o]{cursor:pointer}[data-o],[data-sec]{touch-action:manipulation}[data-o]:hover{outline:1px dashed var(--a);outline-offset:3px}
 .site-cur,.site-cur:hover{outline:2px solid var(--a);outline-offset:3px;border-radius:2px}
 h1[data-o]:empty::before{content:attr(data-empty);color:var(--ink3)}`;
 

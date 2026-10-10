@@ -101,3 +101,41 @@ test('diagram: on a phone, Join in the bar joins the thing open to the next one 
   await expect(join).toHaveAttribute('aria-pressed', 'false');
   expect(errors).toEqual([]);
 });
+
+test('diagram: on a phone, a mind map joins two ideas across the tree, and a finger on the dashed curve opens its words', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/diagram');
+  await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
+  const line = page.locator('.dg-pop to-text .tx');
+  await expect(line).toBeFocused();
+  for (const [i, w] of ['Root', 'Left', 'Right'].entries()) {
+    if (i) await line.press('Enter');
+    await line.pressSequentially(w);
+  }
+  await page.locator('.dg-hint').tap();
+  await expect(page.locator('.dg-pop')).toBeHidden();
+  await page.locator('.dg-pic g.dg-thing[aria-label="Left"]').tap();
+  const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
+  await join.tap();
+  await expect(join).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.dg-pic g.dg-thing[aria-label="Right"]').tap();
+  const value = () => page.evaluate(() => (document.querySelector('to-diagram-editor') as HTMLElement & { value: string }).value);
+  await expect.poll(value).toContain('~ Left -- Right');
+  const curve = page.locator('.dg-pic g.dg-thing.edge polyline[stroke-dasharray]');
+  await expect(curve).toHaveCount(1);
+  // The curve's middle, by finger.
+  const mid = await curve.evaluate((el) => {
+    const pts = el.getAttribute('points')!.split(' ').map((p) => p.split(',').map(Number));
+    const [x, y] = pts[Math.floor(pts.length / 2)];
+    const p = new DOMPoint(x, y).matrixTransform((el as SVGGraphicsElement).getScreenCTM()!);
+    return { x: p.x, y: p.y };
+  });
+  await page.touchscreen.tap(mid.x, mid.y);
+  await expect(line).toBeFocused();
+  await line.pressSequentially('rhymes');
+  await expect.poll(value).toContain('~ Left -- Right: rhymes');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(errors).toEqual([]);
+});
