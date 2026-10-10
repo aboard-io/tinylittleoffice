@@ -25,6 +25,8 @@ const P = 'Porto | 41.1579 | -8.6291 | Port cellars\n';
 
 async function editor(value = ROUTE): Promise<{ el: ToTripEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
+  // At the top, whatever a test before left scrolled (the page is the size of everything's taller).
+  window.scrollTo(0, 0);
   const main = document.createElement('main');
   main.className = 'to-main';
   document.body.append(main);

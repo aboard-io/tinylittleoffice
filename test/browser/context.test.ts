@@ -7,7 +7,7 @@ import '../../src/styles.css';
 import '../../src/kit/context.ts';
 
 test('shows under the anchor, centred, follows it, keeps the focus, hides', async () => {
-  document.body.innerHTML = '<div id="box" tabindex="0" style="position:absolute;top:100px;left:200px;width:120px;height:40px;background:#ccc"></div>';
+  document.body.innerHTML = '<div id="box" tabindex="0" style="position:absolute;top:100px;left:100px;width:120px;height:40px;background:#ccc"></div>';
   const box = document.getElementById('box')!;
   box.focus();
   const ctx = document.createElement('to-context') as ToContext;

@@ -11,6 +11,9 @@ import type { ToBoardEditor } from '../editor.ts';
 import { caret } from '../../../kit/textops.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { zoomed } from '../../../kit/zoom.ts';
+/** A length on the screen in the stylesheet's own pixels (the normal size draws at kit/zoom.ts BASE). */
+const css = (px: number) => px / zoomed();
 
 const BOARD = `## To do {color=b}
 
@@ -627,8 +630,8 @@ test('at phone width: a stage and a bit across, controls a finger tall, the bar 
     expect(tops.size).toBe(1);
     expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
     // A card's words are one line tall, the row a finger: nothing of the editor's own adds lines.
-    expect(text(el, 1).tx.getBoundingClientRect().height).toBeLessThanOrEqual(30);
-    expect(el.querySelector<HTMLElement>('.board-main')!.getBoundingClientRect().height).toBe(44);
+    expect(css(text(el, 1).tx.getBoundingClientRect().height)).toBeLessThanOrEqual(30);
+    expect(css(el.querySelector<HTMLElement>('.board-main')!.getBoundingClientRect().height)).toBeCloseTo(44, 0);
     // The page starts at its top (a test before may have left it scrolled); focusing and typing keep it there.
     window.scrollTo(0, 0);
     await focusAt(el, 1);
@@ -652,7 +655,9 @@ test('every stage has its colour: the one chosen, else the palette by its place;
   expect(cols(el).map((c) => c.style.getPropertyValue('--c'))).toEqual(['#0072b2', '#009e73', '#009e73']);
   const edge = (card: HTMLElement) => getComputedStyle(card).borderTopColor;
   const card = cardsOf(el, 0)[0];
-  expect(parseFloat(getComputedStyle(card).borderTopWidth)).toBe(3);
+  // 3px, or the whole device pixels the browser snaps it to under the size of everything.
+  expect(parseFloat(getComputedStyle(card).borderTopWidth)).toBeGreaterThan(2);
+  expect(parseFloat(getComputedStyle(card).borderTopWidth)).toBeLessThanOrEqual(3);
   const blue = edge(card);
   expect(blue).not.toBe(edge(cardsOf(el, 1)[0]));
   expect(blue).not.toBe(getComputedStyle(card).borderLeftColor);

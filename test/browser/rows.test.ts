@@ -11,6 +11,7 @@ import { caret } from '../../src/kit/textops.ts';
 import '../../src/kit/text.ts';
 import '../../src/styles.css';
 import { tick } from './helpers.ts';
+import { BASE, zoomed } from '../../src/kit/zoom.ts';
 
 type It = { w: string; d: number };
 
@@ -352,7 +353,14 @@ test('a drag by the handle: past 6px it carries the row, the target is drawn aft
   expect(el.rows.drag).toMatchObject({ id: 0, over: 2, how: 'after' });
   const line = document.querySelector<HTMLElement>('.to-rows-target')!;
   expect(line.hidden).toBe(false);
+  // At the normal size, which is zoomed (kit/zoom.ts BASE): the line on the screen lies along the row's bottom edge,
+  // starting at its left padding, both measured on the screen (a line placed without dividing by the zoom misses).
+  expect(zoomed()).toBe(BASE);
+  const rowEl = el.querySelector<HTMLElement>('.row[data-i="2"]')!;
+  const pad = (parseFloat(getComputedStyle(rowEl).paddingLeft) || 0) * zoomed();
   expect(Math.abs(line.getBoundingClientRect().top - row(2).bottom)).toBeLessThan(3);
+  expect(Math.abs(line.getBoundingClientRect().left - (row(2).left + pad))).toBeLessThan(2);
+  expect(line.getBoundingClientRect().right).toBeLessThanOrEqual(row(2).right);
   const after = line.getBoundingClientRect().left;
   // Its right half: under it, the line stepped in.
   pointer(handle(el, 0), 'pointermove', row(2).right - 20, row(2).top + 20);

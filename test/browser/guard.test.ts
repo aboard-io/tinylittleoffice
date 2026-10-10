@@ -11,6 +11,7 @@ import { alwaysPictures, forgetPictures } from '../../src/kit/pictures.ts';
 import { askPicture } from '../../src/kit/insert-dialogs.ts';
 import { pictureSrc } from '../../src/kit/media.ts';
 import { openLink } from '../../src/kit/link-guard.ts';
+import { zoomed } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToDrawer } from '../../src/kit/drawer.ts';
 import indexHtml from '../../index.html?raw';
@@ -197,7 +198,7 @@ test('a kept document’s row holds its first page, small, once it is in sight; 
     await until(() => rows.every((r) => !!r.querySelector('to-preview svg')));
     const svg = rows[0].querySelector('to-preview svg')!;
     expect(svg.textContent).toContain('A preview');
-    expect(Math.round(svg.getBoundingClientRect().height)).toBe(56);
+    expect(Math.round(svg.getBoundingClientRect().height / zoomed())).toBe(56);
     // The unreadable one is a blank page.
     expect(rows[1].querySelector('to-preview svg text')).toBeNull();
     const drawn = view.mock.calls.length;
@@ -218,10 +219,13 @@ test('the Office mark is the menu: a bordered 44px button, in the drawer’s hea
   expect(burger.getAttribute('aria-label')).toBe('Menu');
   expect(burger.getAttribute('title')).toBe('Tiny Little Office menu');
   const box = burger.getBoundingClientRect();
-  expect(Math.round(box.width)).toBe(44);
-  expect(Math.round(box.height)).toBe(44);
+  // 44 of the stylesheet's pixels, drawn at the size of everything.
+  expect(Math.round(box.width / zoomed())).toBe(44);
+  expect(Math.round(box.height / zoomed())).toBe(44);
   const css = getComputedStyle(burger);
-  expect(css.borderTopWidth).toBe('1px');
+  // A pixel's border, or the whole device pixel the browser snaps it to under the zoom.
+  expect(parseFloat(css.borderTopWidth)).toBeGreaterThan(0.5);
+  expect(parseFloat(css.borderTopWidth)).toBeLessThanOrEqual(1);
   expect(css.borderTopColor).not.toBe('rgba(0, 0, 0, 0)');
   burger.click();
   const drawer = shell.querySelector<ToDrawer>('to-drawer')!;

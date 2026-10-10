@@ -24,6 +24,7 @@ import { embedPictures } from './media.ts';
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
 export { raster } from './raster.ts';
 import { jpeg, raster } from './raster.ts';
+import { zoomed } from './zoom.ts';
 
 /* ---------- handing a file over ---------- */
 
@@ -139,6 +140,8 @@ export async function printPages(pages: Page[], title: string): Promise<void> {
   frame.title = t('Print');
   frame.setAttribute('aria-hidden', 'true');
   frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  // A frame's page is drawn at its frame's zoom; paper takes none of the size of everything (kit/zoom.ts).
+  frame.style.zoom = String(1 / zoomed());
   frame.srcdoc = printHtml(pages, title);
   await new Promise<void>((loaded) => {
     frame.addEventListener('load', () => loaded(), { once: true });

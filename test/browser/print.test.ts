@@ -3,6 +3,7 @@
 // the first page's; where a rule is a page break (a text's, a deck's slides), one page per rule and one
 // more. And the Download menu's Print: a hidden frame with that page, gone when the dialog closes.
 import { test, expect, afterEach } from 'vitest';
+import { cdp } from 'vitest/browser';
 import { mount, until } from './helpers.ts';
 import { apps, appOf } from '../../src/kit/apps.ts';
 import { printHtml } from '../../src/kit/exports.ts';
@@ -10,6 +11,7 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { routeHash } from '../../src/kit/route.ts';
 import { pages as rules, parse } from '../../src/doc/index.ts';
 import type { Page } from '../../src/kit/app.ts';
+import { BASE, zoomOf, zoomed } from '../../src/kit/zoom.ts';
 
 afterEach(() => history.replaceState(null, '', location.pathname));
 
@@ -77,6 +79,32 @@ test('Print in the Download menu puts the page in a hidden frame, which goes whe
   await until(() => frame.contentDocument?.readyState === 'complete' && frame.contentDocument.querySelectorAll('figure').length > 0);
   expect(frame.getAttribute('aria-hidden')).toBe('true');
   expect(frame.contentDocument!.querySelectorAll('figure')).toHaveLength(2);
+  // Paper is not the screen: the page is drawn at the normal size's zoom (1.3), the frame's page at none of it.
+  expect(zoomed()).toBe(BASE);
+  expect(frame.contentDocument!.documentElement.style.zoom).toBe('');
+  expect(zoomOf(frame)).toBeCloseTo(1, 4);
+  expect(frame.contentWindow!.devicePixelRatio).toBeCloseTo(window.devicePixelRatio, 4);
   frame.contentWindow!.dispatchEvent(new Event('afterprint'));
   await until(() => !document.querySelector('iframe.to-print'));
+});
+
+test('a page printed from the screen has the size of everything taken off: in print the root draws at zoom 1, its inline zoom 1.3 kept', async () => {
+  const root = document.documentElement;
+  expect(root.style.getPropertyValue('zoom')).toBe(String(BASE));
+  expect(getComputedStyle(root).zoom).toBe(String(BASE));
+  const session = cdp();
+  await session.send('Emulation.setEmulatedMedia', { media: 'print' });
+  try {
+    expect(matchMedia('print').matches).toBe(true);
+    // kit.css's @media print rule outranks the root's inline zoom (an !important rule), and the lengths with it.
+    expect(root.style.getPropertyValue('zoom')).toBe(String(BASE));
+    const look = getComputedStyle(root);
+    expect(look.zoom).toBe('1');
+    expect(look.getPropertyValue('--to-size').trim()).toBe('1');
+    expect(look.getPropertyValue('--to-nav-size').trim()).toBe('1');
+    expect(look.getPropertyValue('--to-nav-zoom').trim()).toBe('1');
+  } finally {
+    await session.send('Emulation.setEmulatedMedia', { media: '' });
+  }
+  expect(getComputedStyle(root).zoom).toBe(String(BASE));
 });

@@ -7,7 +7,11 @@ import { page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { localDay } from '../../src/kit/library.ts';
+import { zoomed } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+
+/** A length on the screen in the stylesheet's own pixels: the normal size draws everything at the root's zoom (kit/zoom.ts BASE). */
+const css = (px: number) => px / zoomed();
 
 afterEach(() => {
   vi.useRealTimers();
@@ -55,11 +59,11 @@ test('the header scrolls with the page, the bar sticks, the menu button is fixed
   expect(b.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
   expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(b.right - 0.5);
   expect(getComputedStyle(burger).boxShadow).not.toBe('none');
-  // The strip behind the stuck bar is as tall as the bar, across the screen.
-  expect(shell.style.getPropertyValue('--to-stuck-h')).toBe(`${bar.offsetHeight}px`);
+  // The strip behind the stuck bar is as tall as the bar, across the screen (measured on the screen, drawn under the zoom).
+  expect(shell.style.getPropertyValue('--to-stuck-h')).toBe(`${Math.round(bar.getBoundingClientRect().height)}px`);
   const strip = getComputedStyle(shell, '::before');
   expect(strip.position).toBe('fixed');
-  expect(parseFloat(strip.height)).toBe(bar.offsetHeight);
+  expect(parseFloat(strip.height)).toBeCloseTo(bar.offsetHeight, 0);
 
   // Back to the top: the header is there again, and the bar where it was.
   await scrollTo(shell, 0);
@@ -109,14 +113,14 @@ test('the title, focused, opens a wide row: the automatic name chosen whole, Ent
   await until(() => header.classList.contains('titling'));
   await tick(300);
   const r = field.getBoundingClientRect();
-  expect(r.height).toBe(44);
+  expect(css(r.height)).toBeCloseTo(44, 0);
   expect(getComputedStyle(field).fontSize).toBe('20px');
   expect(r.width).toBeGreaterThan(small.width + 40);
   expect(r.top).toBeGreaterThanOrEqual(small.bottom);
   // Across the header, from one margin to the other; the rest stays on the first row.
   expect(r.width).toBeGreaterThanOrEqual(header.clientWidth - 2 * 16 - 1);
   expect(shell.querySelector('.to-share')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(r.top);
-  expect(header.getBoundingClientRect().height).toBe(56 + 8 + 44);
+  expect(css(header.getBoundingClientRect().height)).toBeCloseTo(56 + 8 + 44, 0);
   expect(field.value).toBe(`New Document ${localDay()} #1`);
   expect(field.value.slice(field.selectionStart!, field.selectionEnd!)).toBe(field.value);
 
@@ -147,7 +151,7 @@ test('Escape puts back the title it had and closes the row; a tap elsewhere clos
   field.blur();
   await until(() => !header.classList.contains('titling'));
   await tick(300);
-  expect(header.getBoundingClientRect().height).toBe(56);
+  expect(css(header.getBoundingClientRect().height)).toBeCloseTo(56, 0);
 });
 
 // On a desktop the document has the window, not a 1080px column (Paul, 2026-10-10): the editor's main and its bar
@@ -162,7 +166,7 @@ test('desktop: the editor has the window; the bar starts at the gutter and makes
   // The bar's box spans the window; what is on it starts at the gutter.
   expect(Math.round(bar.getBoundingClientRect().left)).toBe(0);
   expect(Math.round(bar.getBoundingClientRect().width)).toBe(document.documentElement.clientWidth);
-  expect(Math.round((bar.firstElementChild as HTMLElement).getBoundingClientRect().left)).toBe(16);
+  expect(Math.round(css((bar.firstElementChild as HTMLElement).getBoundingClientRect().left))).toBe(16);
   expect(document.documentElement.scrollWidth).toBe(document.documentElement.clientWidth);
 
   await scrollTo(shell, 1200);
@@ -185,8 +189,8 @@ test('desktop: the paper is as wide as the window, its words no wider than the p
   expect(Math.round(paper.left)).toBe(0);
   expect(Math.round(paper.width)).toBe(w);
   // A letter page is 816px with an inch (96px) each side: 624px of words, in the middle of the window.
-  expect(words.width).toBeLessThanOrEqual(624.5);
-  expect(words.width).toBeGreaterThan(600);
+  expect(css(words.width)).toBeLessThanOrEqual(624.5);
+  expect(css(words.width)).toBeGreaterThan(600);
   expect(Math.abs(words.left + words.width / 2 - w / 2)).toBeLessThanOrEqual(1);
   await page.viewport(414, 896);
 });
@@ -197,6 +201,6 @@ test('desktop: the home page keeps its column', async () => {
   const main = shell.querySelector<HTMLElement>('.to-main')!;
   expect(main.classList.contains('to-wide')).toBe(false);
   expect(getComputedStyle(main).maxWidth).toBe(getComputedStyle(document.documentElement).getPropertyValue('--to-max-w').trim());
-  expect(main.getBoundingClientRect().width).toBeLessThanOrEqual(1080);
+  expect(css(main.getBoundingClientRect().width)).toBeLessThanOrEqual(1080);
   await page.viewport(414, 896);
 });
