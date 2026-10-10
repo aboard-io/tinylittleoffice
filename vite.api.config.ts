@@ -3,7 +3,7 @@
  * after the site's (npm run build), so it shares no chunk with the pages and changes nothing they load. Its
  * lazy part (the apps' definitions, for apps() and templates()) is its own chunks under /api/. A program has no
  * use for the editors' styles the definitions bring along, so no stylesheet is written (it was a stray
- * dist/tinyoffice.css, after the site's files.json was made).
+ * dist/tinyoffice.css).
  */
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';

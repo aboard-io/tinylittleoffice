@@ -1,7 +1,7 @@
 /**
  * The one place the site keeps anything on the device. Private by default: settings live in memory for the
  * visit and nothing is written. Asked to keep things (the switch in the menu), it writes to localStorage
- * instead, and the preferences, the copy of the app (kit/offline.ts) and what comes later follow. Private
+ * instead, and the preferences and what comes later follow. Private
  * again, every trace goes. The one key written in either state is the choice itself, and only when it is
  * "keep": a private visit writes nothing at all, but the language chosen in the menu (kit/i18n.ts, its own key),
  * which stays through Private and Saved alike and is the one thing a private visit leaves.

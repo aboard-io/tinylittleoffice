@@ -58,9 +58,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Nothing is saved on this device: no cookies, no trace, only the language you chose.',
   'Saved on this device': 'Saved on this device',
   'Saved on this device from now on': 'Saved on this device from now on',
-  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': 'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.',
-  'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).',
-  'Keep the app on this device': 'Keep the app on this device',
+  'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Your preferences and the documents you open stay here. Turn off to forget all of it.',
+  'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).',
   'Language': 'Language',
   'Theme': 'Theme',
   'Match the device': 'Match the device',
@@ -101,14 +100,6 @@ export default {
   'Running commit {commit}': 'Running commit {commit}',
 
   // ---- the copy kept on the device (status lines under the switch) ----
-  'Only on the built site': 'Only on the built site',
-  'Not possible in this browser': 'Not possible in this browser',
-  'Saving…': 'Saving…',
-  'Ready to work offline': 'Ready to work offline',
-  'Updated, reload': 'Updated, reload',
-  'Could not save': 'Could not save',
-  'Not kept': 'Not kept',
-  '{mb} MB': '{mb} MB',
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'A copy opened in a new tab',
@@ -235,8 +226,6 @@ export default {
   'Signed by {name}': 'Signed by {name}',
   'Signed with this device’s key: anyone can check that the document is exactly what you signed.': 'Signed with this device’s key: anyone can check that the document is exactly what you signed.',
   'That is not a signing key.': 'That is not a signing key.',
-  'The app itself, to open with no connection. No documents are in it.': 'The app itself, to open with no connection. No documents are in it.',
-  'The offline copy': 'The offline copy',
   'The owner links that update short links you made.': 'The owner links that update short links you made.',
   'The two passwords differ': 'The two passwords differ',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.',

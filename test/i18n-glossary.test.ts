@@ -48,8 +48,8 @@ export const TERMS: Term[] = [
   // "Paper" alone is a colour of the looks; "Paper: {paper}" is the size of the paper.
   { term: 'paper', not: ['Paper'] },
   { term: 'Print' },
-  // A copy of a document, the offline copy: the noun, where Copy alone is the verb.
-  { term: 'Copy', not: [/copy of|offline copy/i] },
+  // A copy of a document: the noun, where Copy alone is the verb.
+  { term: 'Copy', not: [/copy of/i] },
   { term: 'Paste' },
   // The page's theme (light, dark); "the theme" of a document's colours is its look.
   { term: 'Theme', not: [/theme's colour|as the theme is/i] },

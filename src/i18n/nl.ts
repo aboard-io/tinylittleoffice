@@ -44,9 +44,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Er wordt niets op dit apparaat opgeslagen: geen cookies, geen sporen, alleen de taal die je koos.',
   'Saved on this device': 'Op dit apparaat opgeslagen',
   'Saved on this device from now on': 'Voortaan op dit apparaat opgeslagen',
-  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': 'Je voorkeuren, de offlinekopie en de documenten die je opent blijven hier. Zet uit om alles te vergeten.',
-  'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'Voortaan niets meer op dit apparaat opslaan? Je voorkeuren, de offlinekopie, de lijst met je documenten en je ondertekeningssleutel worden vergeten (de documenten zelf leven in hun links).',
-  'Keep the app on this device': 'De app op dit apparaat bewaren',
+  'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Je voorkeuren en de documenten die je opent blijven hier. Zet uit om alles te vergeten.',
+  'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'Voortaan niets meer op dit apparaat opslaan? Je voorkeuren, de lijst met je documenten en je ondertekeningssleutel worden vergeten (de documenten zelf leven in hun links).',
   'Language': 'Taal',
   'Theme': 'Thema',
   'Match the device': 'Zoals het apparaat',
@@ -86,14 +85,6 @@ export default {
   'Running commit {commit}': 'Versie {commit} in gebruik',
 
   // ---- the copy kept on the device (status lines under the switch) ----
-  'Only on the built site': 'Alleen op de gebouwde site',
-  'Not possible in this browser': 'Niet mogelijk in deze browser',
-  'Saving…': 'Opslaan…',
-  'Ready to work offline': 'Klaar voor offline gebruik',
-  'Updated, reload': 'Bijgewerkt, herlaad',
-  'Could not save': 'Opslaan mislukt',
-  'Not kept': 'Niet bewaard',
-  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'Een kopie in een nieuw tabblad',
@@ -220,8 +211,6 @@ export default {
   'Signed by {name}': 'Ondertekend door {name}',
   'Signed with this device’s key: anyone can check that the document is exactly what you signed.': 'Ondertekend met de sleutel van dit apparaat: iedereen kan nagaan dat het document precies is wat je ondertekende.',
   'That is not a signing key.': 'Dat is geen ondertekeningssleutel.',
-  'The app itself, to open with no connection. No documents are in it.': 'De app zelf, om zonder verbinding te openen. Er zitten geen documenten in.',
-  'The offline copy': 'De offlinekopie',
   'The owner links that update short links you made.': 'De eigenaarslinks waarmee je korte links bijwerkt die je maakte.',
   'The two passwords differ': 'De twee wachtwoorden verschillen',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'De woorden, de titel, de naam of de tijd zijn niet wat ondertekend is: iemand heeft het gewijzigd, of iets anders ondertekend.',

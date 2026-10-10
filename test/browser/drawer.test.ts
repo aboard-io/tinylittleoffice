@@ -3,7 +3,7 @@ import { test, expect } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { apps } from '../../src/kit/apps.ts';
 import { running } from '../../src/kit/version.ts';
-import { siteRoot } from '../../src/kit/offline.ts';
+import { siteRoot } from '../../src/kit/apps.ts';
 
 test("the hamburger opens the drawer, the home page's drawer has no app rows, Find narrows what there is, Escape closes it", async () => {
   const shell = await mount('');
@@ -28,7 +28,7 @@ test("the hamburger opens the drawer, the home page's drawer has no app rows, Fi
   expect(shell.querySelectorAll('.to-drawer-apps h3')[0].textContent).toBe('Apps');
   expect(shell.querySelector('.to-drawer-apps a span')!.textContent).toBe('Word Processor');
   // The switches and the selects are there.
-  expect(shell.querySelectorAll('.to-drawer input[role=switch]').length).toBe(2);
+  expect(shell.querySelectorAll('.to-drawer input[role=switch]').length).toBe(1);
   expect(shell.querySelectorAll('.to-drawer select').length).toBe(2);
   // Escape closes a native dialog; focus goes back where it was.
   dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
@@ -73,6 +73,8 @@ test('Find finds apps, templates by name or app, and kept documents by title, ea
     find.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     await until(() => location.hash === first);
     await until(() => !dialog.open);
+    // The document opened, and drawn: the shell is done with the address before the next test takes it.
+    await until(() => !!shell.querySelector('to-write-editor'));
   } finally {
     await setPrivate(true);
     history.replaceState(null, '', location.pathname);

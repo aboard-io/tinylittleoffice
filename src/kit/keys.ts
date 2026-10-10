@@ -88,7 +88,7 @@ export const KIT_COMMANDS = register([
     when: (p) => p.editing && !!p.editor,
     does: (p) => p.find(),
   }),
-  command<Page>({ id: 'kit.keep', scope: 'kit', label: 'Keep this document on the device', icon: UI.offline, keys: 'Mod+S', where: ['keys-only'], when: (p) => p.editing, does: (p) => p.keep() }),
+  command<Page>({ id: 'kit.keep', scope: 'kit', label: 'Keep this document on the device', icon: UI.device, keys: 'Mod+S', where: ['keys-only'], when: (p) => p.editing, does: (p) => p.keep() }),
   SHARE,
   DOWNLOAD,
   command<Page>({ id: 'kit.print', scope: 'kit', label: 'Print, or save as PDF', icon: UI.print, keys: 'Mod+P', where: ['keys-only'], when: (p) => p.doc, does: (p) => p.print() }),

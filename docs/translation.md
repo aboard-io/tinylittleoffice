@@ -112,7 +112,7 @@ Arabic and Urdu are the two RTL languages; mirroring is not enough, and some thi
   Bengali, Arabic, Urdu's Nastaliq is a choice: Noto Nastaliq Urdu is the native expectation but heavy;
   Noto Naskh Arabic as the fallback), Noto Sans SC for Chinese, system fonts first on every platform
   (`-apple-system`, `Segoe UI`, `Noto Sans …`) with the Noto subsets as self-hosted woff2 under
-  `public/fonts/` only for scripts the device lacks, listed in the offline copy. Line height and the 16px
+  `public/fonts/` only for scripts the device lacks. Line height and the 16px
   rule are revisited per script (Devanagari and Nastaliq need more leading; Chinese needs none of the
   letter-spacing).
 - **The SVG pages** embed the same fonts' metrics for wrapping: `kit/draw.ts`'s `textWidth` needs
@@ -146,7 +146,7 @@ Arabic and Urdu are the two RTL languages; mirroring is not enough, and some thi
 2. The glossary, the comments on ambiguous keys, the translation script and its tests; Spanish first as the
    proof (closest to English, easy to review), then Arabic (the RTL proof), then the other eight.
 3. Mirrored icons list, the keys' logical meaning, the SVG pages' direction, the exports.
-4. Fonts per script, measured width tables, the offline list.
+4. Fonts per script, measured width tables.
 5. Templates per language, reviewed as documents.
 6. The Language menu loses "(machine translated)" per language as reviews land.
 

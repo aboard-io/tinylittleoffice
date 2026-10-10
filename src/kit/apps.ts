@@ -25,3 +25,10 @@ export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
 // A document's QR code (kit/qr-picture.ts) and a document locked with a password (kit/locked.ts) are drawn by the hosts as documents they hold, though neither is an app.
 lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === LOCKED_LANG ? lockedDoc : undefined);
+
+/** The site's own address, whichever app page we were opened from ("/text/" is a page of the site at "/"). */
+export function siteRoot(): string {
+  const dir = location.pathname.split('/').slice(-2)[0];
+  const onAppPage = /\/[a-z]+\/$/.test(location.pathname) && ALL.some((a) => a.id === dir);
+  return new URL(onAppPage ? '..' : '.', location.origin + location.pathname).href;
+}

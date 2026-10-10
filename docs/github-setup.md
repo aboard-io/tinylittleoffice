@@ -16,7 +16,7 @@ change itself is last, and is Paul's click.
 - [ ] Description: `A free office suite where your document is the link. No account, nothing stored, the code open.`
 - [ ] Website: `https://tinylittleoffice.com`
 - [ ] Topics: `office-suite` `privacy` `local-first` `no-backend` `pwa` `web-components` `lit`
-      `cloudflare-workers` `typescript` `offline-first` `url-as-document` `markdown`
+      `cloudflare-workers` `typescript` `url-as-document` `markdown`
 - [ ] Include in the home page: **Releases** on, **Packages** off, **Deployments** off (the site deploys
       from this machine, not from GitHub).
 

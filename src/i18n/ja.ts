@@ -42,9 +42,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'この端末には何も保存されません。Cookieも痕跡も残らず、選んだ言語だけを覚えます。',
   'Saved on this device': 'この端末に保存',
   'Saved on this device from now on': '今後はこの端末に保存',
-  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': '設定、オフライン用のコピー、開いたドキュメントがここに残ります。オフにすると、すべて消えます。',
-  'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': '今後はこの端末に何も保存しないようにしますか？設定、オフライン用のコピー、ドキュメントの一覧、署名キーは消えます（ドキュメントそのものはリンクの中にあります）。',
-  'Keep the app on this device': 'アプリをこの端末に保管',
+  'Your preferences and the documents you open stay here. Turn off to forget all of it.': '設定と開いたドキュメントがここに残ります。オフにすると、すべて消えます。',
+  'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': '今後はこの端末に何も保存しないようにしますか？設定、ドキュメントの一覧、署名キーは消えます（ドキュメントそのものはリンクの中にあります）。',
   'Language': '言語',
   'Theme': 'テーマ',
   'Match the device': '端末に合わせる',
@@ -84,14 +83,6 @@ export default {
   'Running commit {commit}': 'コミット {commit} で実行中',
 
   // ---- the copy kept on the device (status lines under the switch) ----
-  'Only on the built site': 'ビルド済みのサイトでのみ利用可',
-  'Not possible in this browser': 'このブラウザでは利用できません',
-  'Saving…': '保存中…',
-  'Ready to work offline': 'オフラインで使えます',
-  'Updated, reload': '更新済み、再読み込みしてください',
-  'Could not save': '保存できませんでした',
-  'Not kept': '保管なし',
-  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'コピーを新しいタブで開きました',
@@ -218,8 +209,6 @@ export default {
   'Signed by {name}': '署名：{name}',
   'Signed with this device’s key: anyone can check that the document is exactly what you signed.': 'この端末のキーで署名済み。ドキュメントが署名したとおりの内容であることを、誰でも確かめられます。',
   'That is not a signing key.': '署名キーではありません。',
-  'The app itself, to open with no connection. No documents are in it.': 'アプリ本体です。接続なしで開けます。ドキュメントは含まれません。',
-  'The offline copy': 'オフライン用のコピー',
   'The owner links that update short links you made.': 'あなたが作った短縮リンクを更新するための、オーナーリンクです。',
   'The two passwords differ': '2つのパスワードが一致しません',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': '本文、タイトル、名前、時刻のどれかが署名したときと違います。誰かが変更したか、別のものに署名したかです。',

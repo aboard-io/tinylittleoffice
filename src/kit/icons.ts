@@ -186,7 +186,7 @@ export const UI = {
   text: FileText,
   folder: Folder,
   globe: Globe,
-  offline: HardDrive,
+  device: HardDrive,
   heading1: Heading1,
   heading: Heading2,
   highlight: Highlighter,

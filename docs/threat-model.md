@@ -72,7 +72,7 @@ picture's address; it writes neither down (no logs: observability is off and the
 exported file fetches nothing.
 
 **A lost phone with Saved on.** Private is the default and writes nothing to the device. With Saved on, the
-device keeps the preferences, an offline copy of the site, the documents opened there (`src/kit/library.ts`),
+device keeps the preferences, the documents opened there (`src/kit/library.ts`),
 the owner links of short links made there, and the signing key. A document under a password is kept as its
 ciphertext with no title and no first words, so the library does not give away even its name. Nothing else
 is encrypted by Tiny Little Office: the rest is as safe as the phone's lock and the operating system's own
@@ -155,8 +155,7 @@ The site, the shortener and the proxy run on Cloudflare, on one account. Cloudfl
 whatever reaches any of them, Cloudflare and the account's operator could see.
 
 - **The site.** Requests for the static files: the reader's IP address, the time, the user agent, the
-  path (which names the app: `/sheet/`), the files the page then loads, and, under Saved, the offline copy's
-  fetch of `files.json`. Not the fragment, so never the document, its title, its password or its signature.
+  path (which names the app: `/sheet/`), and the files the page then loads. Not the fragment, so never the document, its title, its password or its signature.
   Cloudflare keeps its own aggregate traffic counts for the account, as for any site it serves; per-request
   Worker logs are off (`wrangler.jsonc`, held by `test/tinier.test.ts`).
 - **The shortener.** For each short link: the ciphertext, its IV, its expiry, its version count, when it

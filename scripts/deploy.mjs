@@ -2,11 +2,11 @@
 /**
  * Ship the site and the shortener to Cloudflare, checking what the change can have broken. Always: the
  * types, the strings, the unit tests (node), the browser tests (the kit and every editor in Chromium), the
- * build, and what the build writes after the bundler (scripts/check-build.ts: files.json for the copy kept
- * on the device, the worker's version, the Content-Security-Policy's script hashes). When something on
+ * build, and what the build writes after the bundler (scripts/check-build.ts: the Content-Security-Policy's
+ * script hashes and version.json). When something on
  * screen changed since the last deploy (the kit, an editor, a style, a page the site serves): the smoke run
  * on the built site too, desktop Chromium and phone WebKit (the smoke, the keyboard alone, axe over every
- * app light and dark, the offline copy). The whole e2e suite only when asked.
+ * app light and dark). The whole e2e suite only when asked.
  *
  *   npm run deploy                 what the change calls for
  *   npm run deploy -- --visual     the smoke run whatever changed
@@ -51,7 +51,7 @@ try {
 /** Can this file change what is on screen? The kit, an editor or its style, the shell's page and what it serves; not a definition, a model, templates or tests. */
 const onScreen = (f) =>
   /\.css$/.test(f) ||
-  /^src\/(main|sw)\.ts$/.test(f) ||
+  /^src\/main\.ts$/.test(f) ||
   /^src\/(kit|styles|i18n)\//.test(f) ||
   (/^src\/apps\/[^/]+\/[^/]+\.ts$/.test(f) && !/\/(def|model|templates)\.ts$/.test(f)) ||
   /^(index\.html|vite\.config\.ts|package-lock\.json)$/.test(f) ||
@@ -72,9 +72,9 @@ run('unit tests', 'npm run -s test:unit');
 run('the kit and the editors, in Chromium', 'npm run -s test:browser');
 // Playwright builds the site itself (playwright.config.ts) and previews it; dist/ is that build afterwards.
 if (args.has('--full')) run('every e2e spec on the built site', 'npx playwright test');
-else if (smoke) run('the smoke run on the built site', 'npx playwright test e2e/smoke.spec.ts e2e/keyboard.spec.ts e2e/a11y.spec.ts e2e/offline.spec.ts');
+else if (smoke) run('the smoke run on the built site', 'npx playwright test e2e/smoke.spec.ts e2e/keyboard.spec.ts e2e/a11y.spec.ts');
 else run('build', 'npm run -s build');
-run('the offline copy and the policy', 'node scripts/check-build.ts');
+run('the policy and the version', 'node scripts/check-build.ts');
 
 if (dry) {
   console.log(`\nDry run: ${head.slice(0, 7)} checked, nothing deployed.`);

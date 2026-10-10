@@ -29,7 +29,6 @@ import {
   forgetEverything,
   forgetKey,
   forgetLinks,
-  forgetOffline,
   forgetPrefs,
   holdings,
   importKey,
@@ -336,10 +335,9 @@ export class ToPrivacy extends LitElement {
       html`<li class=${cls}><span class="to-held-words"><b>${what}</b><small>${about}</small></span><span class="to-held-now">${now}</span>${forget ? html`<button type="button" class="to-btn to-held-forget" @click=${forget}>${t('Forget')}</button>` : nothing}</li>`;
     return html`<section class="to-privacy-section to-privacy-device" aria-labelledby="to-privacy-device-h">
       <h3 id="to-privacy-device-h">${t('What this device holds')}</h3>
-      <p class="to-trust-line quiet">${icon(keeping() ? UI.offline : UI.unsigned, 18)}<span>${keeping() ? t('Saved on this device') : t('Private: nothing is written to this device. What is listed lasts for this visit.')}</span></p>
+      <p class="to-trust-line quiet">${icon(keeping() ? UI.device : UI.unsigned, 18)}<span>${keeping() ? t('Saved on this device') : t('Private: nothing is written to this device. What is listed lasts for this visit.')}</span></p>
       <ul class="to-held">
         ${row('to-held-prefs', t('Preferences'), t('Theme, language, the name you sign with, the lifetime of short links.'), held.prefs ? t('{n} set', { n: held.prefs }) : t('None'), held.prefs ? () => forgetPrefs() : null)}
-        ${row('to-held-offline', t('The offline copy'), t('The app itself, to open with no connection. No documents are in it.'), held.offline ? t('Kept') : t('None'), held.offline ? () => void forgetOffline() : null)}
         ${row('to-held-docs', t('Your documents'), t('Their names and links, for the home page.'), t('{n|# document|# documents}', { n: held.documents }), held.documents ? () => forgetDocuments() : null)}
         ${row('to-held-links', t('Short links'), t('The owner links that update short links you made.'), t('{n|# link|# links}', { n: held.links }), held.links ? () => forgetLinks() : null)}
         ${row('to-held-key', t('Your signing key'), t('Says a signature is yours.'), held.key ?? t('None'), held.key ? () => this.forgetKey() : null)}
