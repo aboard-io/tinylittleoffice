@@ -2,7 +2,7 @@
 // each of the editor's ops back exactly.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Block, type Doc } from '../src/doc/index.ts';
-import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, marksOf, moveItems, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, type Edit, type Sel } from '../src/kit/textops.ts';
+import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, marksOf, moveItems, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, wholeSel, type Edit, type Sel } from '../src/kit/textops.ts';
 import { rng } from './doc/helpers.ts';
 
 const doc = (tlo: string): Doc => parse(tlo);
@@ -266,3 +266,25 @@ test('Backspace on an empty item with children takes it away and lifts them a le
   const flat = blocks('- a\n- b\n');
   expect(after(flat, splitAt(flat, sel([0, 1]))).map((x) => (x.k === 'li' ? x.depth : -1))).toEqual([0, 0, 0]);
 });
+
+test('the whole document selected (Select All): an edit over it takes the cards at its ends too and leaves one paragraph', () => {
+  const W = blocks('![a](https://example.com/a.png)\n\n# Head\n\nWords.\n\nA | B\n--- | ---\n1 | 2\n');
+  const all = wholeSel(W);
+  expect(all).toEqual(sel([0, 0], [3, 0]));
+  expect(after(W, deleteSelOf(W))).toEqual([{ k: 'p', runs: [] }]);
+  expect(after(W, insertRuns(W, all, [{ t: 'x' }]))).toEqual([{ k: 'p', runs: [{ t: 'x' }] }]);
+  expect(insertRuns(W, all, [{ t: 'x' }]).sel).toEqual(caret(0, 1));
+  expect(tlo(after(W, insertBlocks(W, all, blocks('# One\n\nTwo\n'))))).toBe('# One\n\nTwo\n');
+  expect(after(W, splitAt(W, all))).toEqual([{ k: 'p', runs: [] }, { k: 'p', runs: [] }]);
+  // The words alone, a heading first, selected end to end: a paragraph is what is left there too.
+  const H = blocks('# Head\n\nWords.\n');
+  expect(after(H, insertRuns(H, wholeSel(H), []))).toEqual([{ k: 'p', runs: [] }]);
+  // Within one block, the block keeps its kind.
+  expect(tlo(after(H, insertRuns(H, sel([0, 0], [0, 4]), [])))).toBe('#\n\nWords.\n');
+  // Every one of these is taken back by the kernel's invert.
+  for (const e of [deleteSelOf(W), insertRuns(W, all, [{ t: 'x' }]), splitAt(W, all)]) {
+    const d = { head: {}, blocks: W };
+    expect(applyAll(applyAll(d, e.ops), invertAll(d, e.ops))).toEqual(d);
+  }
+});
+const deleteSelOf = (b: Block[]) => backspace(b, wholeSel(b), 'doc') as Edit;

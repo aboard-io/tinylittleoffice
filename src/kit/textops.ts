@@ -149,8 +149,8 @@ export function sliceBlocks(blocks: Block[], sel: Sel): Block[] {
 export function insertRuns(blocks: Block[], sel: Sel, runs: Run[]): Edit {
   const [a, b] = ordered(sel);
   const after = caret(a.block, a.offset + runLength(runs));
-  if (a.block === b.block) return { ops: [{ op: 'text', at: a.block, from: a.offset, to: b.offset, runs }], sel: after };
-  const first = text(blocks[a.block]);
+  if (a.block === b.block && isText(blocks[a.block])) return { ops: [{ op: 'text', at: a.block, from: a.offset, to: b.offset, runs }], sel: after };
+  const first = baseOf(blocks, a, b);
   const last = blocks[b.block];
   const left = sliceRuns(first.runs, 0, a.offset);
   const right = isText(last) ? sliceRuns(last.runs, b.offset, runLength(last.runs)) : [];
@@ -158,6 +158,20 @@ export function insertRuns(blocks: Block[], sel: Sel, runs: Run[]): Edit {
 }
 
 export const deleteSel = (blocks: Block[], sel: Sel): Edit => insertRuns(blocks, sel, []);
+
+/**
+ * The whole document as a selection (Select All in a doc): from the start of the first block to the end of the
+ * last, cards included, so its ends may rest on a card (the one place they do; clampSel would move them to the
+ * words). An edit over it (insertRuns, insertBlocks, splitAt) takes the cards at its ends with the words, and
+ * what is left is one block of words.
+ */
+export const wholeSel = (blocks: Block[]): Sel => ({ anchor: { block: 0, offset: 0 }, focus: { block: Math.max(0, blocks.length - 1), offset: blockLength(blocks[blocks.length - 1]) } });
+/** The block an edit from `a` to `b` builds on: the first block's own words; an empty paragraph when that is a card taken out, or when the edit takes the whole document (what is left of everything is a paragraph). */
+function baseOf(blocks: Block[], a: Pos, b: Pos): TextBlock {
+  const first = blocks[a.block];
+  const all = a.block === 0 && a.offset === 0 && b.block === blocks.length - 1 && b.offset >= blockLength(blocks[b.block]) && blocks.length > 1;
+  return first && isText(first) && !all ? first : { k: 'p', runs: [] };
+}
 
 /**
  * Blocks put in at the selection (a paste): the first one's words join the
@@ -171,7 +185,7 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const last = put[put.length - 1];
   // One block of words goes in as words; a paragraph that is one web address (a card) stands on its own.
   if (put.length === 1 && isText(first) && !isEmbed(first)) return insertRuns(blocks, sel, first.runs);
-  const cur = text(blocks[a.block]);
+  const cur = baseOf(blocks, a, b);
   const end = blocks[b.block];
   const left = sliceRuns(cur.runs, 0, a.offset);
   const right = isText(end) ? sliceRuns(end.runs, b.offset, runLength(end.runs)) : [];
@@ -200,7 +214,7 @@ const unlist = (b: Extract<Block, { k: 'li' }>): Block => (b.depth > 0 ? { ...b,
 /** Enter: the block split at the caret (a selection goes first). An empty list item comes out of its list instead; at the start of a block's words a paragraph opens above it. */
 export function splitAt(blocks: Block[], sel: Sel): Edit {
   const [a, b] = ordered(sel);
-  const cur = text(blocks[a.block]);
+  const cur = collapsed(sel) ? text(blocks[a.block]) : baseOf(blocks, a, b);
   if (collapsed(sel) && cur.k === 'li' && !cur.runs.length) return { ops: [{ op: 'splice', at: a.block, n: 1, blocks: [unlist(cur)] }], sel };
   // At the start of words that are not an item, an empty paragraph goes in above and the block stays as it is: a heading pushed down stays a heading, and nothing empty is left styled as one.
   if (collapsed(sel) && a.offset === 0 && cur.k !== 'li' && cur.runs.length) return { ops: [{ op: 'splice', at: a.block, n: 0, blocks: [{ k: 'p', runs: [] }] }], sel: caret(a.block + 1, 0) };
