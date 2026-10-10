@@ -768,4 +768,34 @@ test('each rule of the walks breaks on the fault it is for, naming it', async ()
     real.errors.push('boom');
     return () => undefined;
   })).toMatch(/^walk broke "errors": boom/);
+  // back: a dialog opened from the words, closed by Escape; the focus put back on the words is quiet, put elsewhere breaks.
+  const escape: Step = { kind: 'key', key: 'Escape' };
+  const elsewhere = [...real.shell.querySelectorAll<HTMLElement>('to-chrome button')].find((b) => visible(b) && !b.closest('to-write-editor'))!;
+  expect(elsewhere).toBeTruthy();
+  const closedOnto = (to: HTMLElement): string => {
+    words.focus();
+    const d = add('dialog', '');
+    d.setAttribute('aria-label', 'A dialog');
+    const inside = d.appendChild(document.createElement('button'));
+    d.showModal();
+    openedFrom.set(d, words);
+    inside.focus();
+    const before = openNow([]);
+    focusBefore = inside;
+    d.close();
+    d.remove();
+    to.focus();
+    try {
+      check(real, escape, before);
+      return '';
+    } catch (e) {
+      return (e as Error).message;
+    } finally {
+      focusBefore = null;
+      real.layers = openNow([]);
+      words.focus();
+    }
+  };
+  expect(closedOnto(words)).toBe('');
+  expect(closedOnto(elsewhere)).toMatch(/^walk broke "back": <dialog> "A dialog" closed and the focus is on .* not back on .*\.tx.* where it was when it opened/);
 });
