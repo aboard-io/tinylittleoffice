@@ -1,6 +1,6 @@
 /**
  * <to-write-editor>: the Write app. One bar (Insert ▾, the kinds of block, the marks, link, footnote, icon,
- * lists, indent, align, paper, undo and redo) over one <to-text shape=doc> that owns the whole document's
+ * lists, indent, align, the look (the type it is set in, look.ts), paper, undo and redo) over one <to-text shape=doc> that owns the whole document's
  * blocks and is drawn as paper. The editor's ops are applied here with the kernel, recorded in the op-log
  * history (src/kit/history.ts) and written back to the shell as TLO in "docchange"; the title the shell
  * edits is a head field, and comes back as a `head` op in the history like any other.
@@ -26,7 +26,7 @@
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
-import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
+import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Palette, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
 import { isEmbed, notesOf, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { apps } from '../../kit/apps.ts';
@@ -46,6 +46,7 @@ import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/t
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
 import def from './def.ts';
+import { LOOK_IDS, LOOKS, lookOf, type LookId } from './look.ts';
 import { checkContract, contractText, printOf, readSignatures, signaturesAt, signedMessage, signOps, today, verdictOf } from './contract.ts';
 import { fenceLink } from './view.ts';
 import type { TableCmd, ToWriteTable } from './table.ts';
@@ -292,6 +293,14 @@ export class ToWriteEditor extends DocElement<Doc> {
   private paperItems(): MenuItem[] {
     const now = paperOf(this.doc);
     return (Object.keys(PAPERS) as Paper[]).map((p) => ({ label: PAPERS[p].name, checked: p === now, does: () => this.setPaper(p) }));
+  }
+  /** The look: a head field, absent for sans; each item a sample in its own type (style.css sets each by its place). */
+  private setLook(look: LookId) {
+    this.apply([{ op: 'head', key: 'look', value: look === 'sans' ? undefined : look }]);
+  }
+  private lookItems(): MenuItem[] {
+    const now = lookOf(this.doc).id;
+    return LOOK_IDS.map((id) => ({ label: LOOKS[id].name(), hint: LOOKS[id].sample(), checked: id === now, does: () => this.setLook(id) }));
   }
   private alignItems(): MenuItem[] {
     const now = this.sel ? this.text.alignment : 'left';
@@ -660,6 +669,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     const kind = x?.kind ?? null;
     const on = (c: 'b' | 'i' | 'u' | 's' | 'h') => !!m[c];
     const paper = paperOf(this.doc);
+    const look = lookOf(this.doc);
     const words = wordCount(this.doc);
     const alignIcon = { left: UI.alignLeft, center: UI.alignCenter, right: UI.alignRight, justify: UI.alignJustify }[x?.alignment ?? 'left'];
     const a = this.asking;
@@ -682,10 +692,11 @@ export class ToWriteEditor extends DocElement<Doc> {
         ${tool({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', keep: true, disabled: kind !== 'ul' && kind !== 'ol', does: () => this.text.exec('outdent') })}
         ${tool({ label: t('Indent'), icon: UI.indent, keys: 'Tab', keep: true, disabled: kind !== 'ul' && kind !== 'ol', does: () => this.text.exec('indent') })}
         <to-menu class="write-align" icon-only keep .label=${t('Align')} .icon=${alignIcon} .items=${this.alignItems()}></to-menu>
+        <to-menu class="write-look" icon-only keep .label=${t('Look: {theme}', { theme: look.name() })} .icon=${Palette} .items=${this.lookItems()}></to-menu>
         <to-menu class="write-paper" icon-only keep .label=${t('Paper: {paper}', { paper: PAPERS[paper].name })} .icon=${Ruler} .items=${this.paperItems()}></to-menu>
         ${this.undoTools()}
       </to-bar>
-      <div class="write-page" data-paper=${paper}>
+      <div class="write-page" data-paper=${paper} data-look=${look.id}>
         ${this.renderFields()}
         <to-text class="write-text" shape="doc" .blocks=${this.doc.blocks} .card=${this.card} label=${t('Document')} placeholder=${t('Write here.')} @text-ops=${this.onOps} @text-select=${this.onSelect} @text-embed=${this.onCardTap}></to-text>
         ${this.renderNotes()}

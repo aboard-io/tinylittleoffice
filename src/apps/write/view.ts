@@ -6,7 +6,8 @@
  * Word (.docx), as RTF and as Markdown. A rule (`hr`) is a page break: the next page on paper, in print
  * and in .docx and .rtf; `---` in Markdown. A contract's signatures are a signature block: a line for each
  * party with their name under it, the day, the key's fingerprint and whether it was verified when drawn
- * (contract.ts). (Ported from the old tree's write.def.ts onto runs.)
+ * (contract.ts). The look (look.ts) sets the type in each: its faces, justified lines, indented paragraphs,
+ * small capitals, two columns on paper. (Ported from the old tree's write.def.ts onto runs.)
  */
 import { encodeDoc } from '../../kit/codec.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw.ts';
@@ -19,6 +20,7 @@ import { formatCell, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, par
 import { tablePage } from '../sheet/view.ts';
 import { PAPERS, fenceTitle, fieldsOf, money, paperOf, tableView, titleBlock } from './model.ts';
 import { printedSignatures } from './contract.ts';
+import { lookOf, NAMED, STACKS, WIDTH, type Look } from './look.ts';
 
 /* ---------- words on a page ---------- */
 
@@ -100,8 +102,10 @@ export function wrapSpans(spans: Span[], max: number, px: number, bold = false):
 }
 
 /** One line of spans as SVG text at a baseline. */
-function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boolean; anchor?: 'start' | 'middle' | 'end'; fill?: string } = {}): string {
+function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boolean; anchor?: 'start' | 'middle' | 'end'; fill?: string; font?: string; caps?: boolean; fit?: number } = {}): string {
   const { bold = false, anchor = 'start', fill = INK } = o;
+  // The look's face, small capitals, and a justified line stretched to its measure.
+  const type = (o.font ? ` font-family="${xml(o.font)}"` : '') + (o.caps ? ' font-variant="small-caps" letter-spacing="0.6"' : '') + (o.fit ? ` textLength="${r(o.fit)}" lengthAdjust="spacing"` : '');
   // Icons are drawn as glyphs over the space their span leaves, at the x the words before them reach (left-aligned lines).
   let glyphs = '';
   let at = x;
@@ -120,7 +124,7 @@ function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boo
       return a.length ? `<tspan ${a.join(' ')}>${xml(sp.t)}</tspan>` : xml(sp.t);
     })
     .join('');
-  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>${glyphs}`;
+  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${type}${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>${glyphs}`;
 }
 
 /** A page placed inside another at x, y, within w by h, keeping its shape. */
@@ -151,12 +155,14 @@ interface Bit {
   first: number;
   /** A page break: what follows starts the next page. */
   brk?: true;
+  /** Across the page when the look sets the body in columns (the title, the fields). */
+  wide?: true;
 }
 
 const SIZE: Record<string, [number, boolean, number]> = { title: [40, true, 20], h1: [28, true, 16], h2: [21, true, 12], h3: [17, true, 10], p: [16, false, 12], li: [16, false, 5], quote: [16, false, 12] };
 
 /** The document's own head fields as a block under the title: each a small label over its value, two to a row. */
-function fieldBits(doc: Doc, M: number, W: number): Bit[] {
+function fieldBits(doc: Doc, M: number, W: number, font?: string): Bit[] {
   const fields = fieldsOf(doc);
   if (!fields.length) return [];
   const colW = (W - 2 * M - 24) / 2;
@@ -173,13 +179,13 @@ function fieldBits(doc: Doc, M: number, W: number): Bit[] {
         drawn
           .map((d, j) => {
             const x = M + j * (colW + 24);
-            return svgText(x, y + 11, d.k.toUpperCase(), { px: 10, fill: FAINT }) + d.lines.map((ln, n) => lineSvg(x, y + 30 + n * 19, ln, 14, { bold: n === 0 && d.lines.length > 1 })).join('');
+            return svgText(x, y + 11, d.k.toUpperCase(), { px: 10, fill: FAINT }) + d.lines.map((ln, n) => lineSvg(x, y + 30 + n * 19, ln, 14, { bold: n === 0 && d.lines.length > 1, font })).join('');
           })
           .join(''),
     });
   }
   bits.push({ h: 8, first: 8, svg: () => '' });
-  return bits;
+  return bits.map((b) => ({ ...b, wide: true }));
 }
 
 /** A contract's signatures as a block on paper: two to a row, each a line to sign on with the name under it and what the check found. */
@@ -206,28 +212,38 @@ function signatureBits(doc: Doc, at: number, M: number, inner: number): Bit[] {
   return bits;
 }
 
-/** The text laid out on pages of its paper. */
+/** The text laid out on pages of its paper, in its look's type. */
 export function pages(textOrDoc: string | Doc, small = false): Page[] {
   const doc = typeof textOrDoc === 'string' ? parse(textOrDoc) : textOrDoc;
   const { w: W, h: PAGE_H, m: M } = PAPERS[paperOf(doc)];
+  const look: Look = lookOf(doc);
   const inner = W - 2 * M;
+  // Two columns when the look asks for them: everything but the title and the fields is set to a column's width.
+  const cols = look.columns ?? 1;
+  const GUTTER = 24;
+  const colW = cols > 1 ? (inner - GUTTER * (cols - 1)) / cols : inner;
+  const font = (f: 'head' | 'body') => (look[f] === 'sans' ? undefined : STACKS[look[f]]);
   const bits: Bit[] = [];
   const number = listNumbers();
   const next = noteNumbers();
   const title = titleBlock(doc);
-  const fields = fieldBits(doc, M, W);
+  const fields = fieldBits(doc, M, W, font('body'));
   // The head's fields sit under the title; with no title, at the top.
   if (!title) bits.push(...fields);
   let fieldsPlaced = !title;
+  let prev: Block | undefined;
   for (const b of doc.blocks) {
+    const before = prev;
+    prev = b;
     const n = number(b);
+    const cw = b === title ? inner : colW;
     if (b.k === 'table') {
       const v = tableView(doc, doc.blocks.indexOf(b));
       if (!v) continue;
       const page = tablePage(v);
       // Money as the sheet draws it, in the head's currency when it names one.
       if (doc.head.currency && doc.head.currency !== '$') page.svg = page.svg.replace(/(>-?)\$(?=\d)/g, `$1${xml(doc.head.currency)}`);
-      const scale = Math.min(1, inner / page.w);
+      const scale = Math.min(1, cw / page.w);
       const h = page.h * scale;
       bits.push({ h: h + 16, first: h + 16, svg: (y) => place(page, M, y, page.w * scale, h) });
       continue;
@@ -235,7 +251,7 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
     if (b.k === 'fence') {
       const lang = b.lang;
       if (lang === 'signatures') {
-        bits.push(...signatureBits(doc, doc.blocks.indexOf(b), M, inner));
+        bits.push(...signatureBits(doc, doc.blocks.indexOf(b), M, cw));
         continue;
       }
       if (lang) {
@@ -244,23 +260,23 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
         const page = def ? def.view(b.body, { small: true })[0] : null;
         const caption = (def ? fenceTitle(b.body) || def.name : lang) + (def && fenceTitle(b.body) ? ` · ${def.name}` : '');
         if (page) {
-          const h = Math.min(360, (page.h * inner) / page.w);
-          bits.push({ h: h + 40, first: h + 40, svg: (y) => `<rect x="${M}" y="${y}" width="${inner}" height="${r(h)}" fill="#fff" stroke="${LINE}" rx="6"/>` + place(page, M, y, inner, h) + svgText(M, y + h + 20, caption, { px: 12, fill: MUTED }) });
+          const h = Math.min(360, (page.h * cw) / page.w);
+          bits.push({ h: h + 40, first: h + 40, svg: (y) => `<rect x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" fill="#fff" stroke="${LINE}" rx="6"/>` + place(page, M, y, cw, h) + svgText(M, y + h + 20, caption, { px: 12, fill: MUTED }) });
           continue;
         }
         const lines = b.body.split('\n').filter((l) => l.trim() && !/^---/.test(l)).slice(0, 6);
         const h = 24 + lines.length * 18 + 12;
-        bits.push({ h: h + 24, first: h + 24, svg: (y) => rect(M, y, inner, h, SHADE, `stroke="${LINE}" rx="6"`) + svgText(M + 12, y + 17, caption, { px: 12, fill: MUTED }) + lines.map((l, i) => lineSvg(M + 12, y + 38 + i * 18, [{ t: l, mono: true }], 12)).join('') });
+        bits.push({ h: h + 24, first: h + 24, svg: (y) => rect(M, y, cw, h, SHADE, `stroke="${LINE}" rx="6"`) + svgText(M + 12, y + 17, caption, { px: 12, fill: MUTED }) + lines.map((l, i) => lineSvg(M + 12, y + 38 + i * 18, [{ t: l, mono: true }], 12)).join('') });
         continue;
       }
       const lines = b.body.split('\n');
       const h = lines.length * 18 + 20;
-      bits.push({ h: h + 12, first: h + 12, svg: (y) => rect(M, y, inner, h, SHADE, 'rx="6"') + lines.map((l, i) => lineSvg(M + 12, y + 23 + i * 18, [{ t: l, mono: true }], 13)).join('') });
+      bits.push({ h: h + 12, first: h + 12, svg: (y) => rect(M, y, cw, h, SHADE, 'rx="6"') + lines.map((l, i) => lineSvg(M + 12, y + 23 + i * 18, [{ t: l, mono: true }], 13)).join('') });
       continue;
     }
     if (b.k === 'img') {
-      const h = Math.min(360, inner * 0.6);
-      bits.push({ h: h + 36, first: h + 36, svg: (y) => `<image href="${xml(b.url)}" x="${M}" y="${y}" width="${inner}" height="${r(h)}" preserveAspectRatio="xMidYMid meet"/>` + (b.alt ? svgText(W / 2, y + h + 18, b.alt, { px: 12, fill: MUTED, anchor: 'middle' }) : '') });
+      const h = Math.min(360, cw * 0.6);
+      bits.push({ h: h + 36, first: h + 36, svg: (y) => `<image href="${xml(b.url)}" x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" preserveAspectRatio="xMidYMid meet"/>` + (b.alt ? svgText(M + cw / 2, y + h + 18, b.alt, { px: 12, fill: MUTED, anchor: 'middle' }) : '') });
       continue;
     }
     if (b.k === 'hr') {
@@ -275,27 +291,45 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
       // A thing from the web: a card with the provider and the address, which a reader can follow.
       const url = plainText(b.runs).trim();
       const { provider, title: what } = embedCaption(url);
-      bits.push({ h: 72, first: 72, svg: (y) => rect(M, y, inner, 56, '#fff', `stroke="${LINE}" rx="8"`) + svgText(M + 16, y + 24, what, { px: 14, bold: true }) + svgText(M + 16, y + 43, provider === what ? url : `${provider} · ${url}`, { px: 11, fill: MUTED }) });
+      bits.push({ h: 72, first: 72, svg: (y) => rect(M, y, cw, 56, '#fff', `stroke="${LINE}" rx="8"`) + svgText(M + 16, y + 24, what, { px: 14, bold: true }) + svgText(M + 16, y + 43, provider === what ? url : `${provider} · ${url}`, { px: 11, fill: MUTED }) });
       continue;
     }
     if (!isText(b)) continue;
     const kind = b.k === 'h' ? (b === title ? 'title' : b.level === 1 ? 'h1' : b.level === 2 ? 'h2' : 'h3') : b.k;
-    const [px, bold, gap] = SIZE[kind];
+    const [size, bold, gap0] = SIZE[kind];
+    const face = b.k === 'h' ? look.head : look.body;
+    // A newspaper's headline is larger; a typewriter's page a little smaller, as its letters are wider.
+    const px = kind === 'title' && cols > 1 ? 46 : look.body === 'mono' && kind !== 'title' ? size - 1 : size;
+    // A book's paragraphs run on with no gap, each after the first indented; its headings in small capitals, centred.
+    const run = look.indent && b.k === 'p' && doc.blocks[doc.blocks.indexOf(b) + 1]?.k === 'p';
+    const gap = run ? 0 : gap0;
+    const indent = look.indent && b.k === 'p' && before?.k === 'p';
+    const caps = look.caps && b.k === 'h' && b !== title;
     const d = b.k === 'li' ? b.depth : 0;
     const left = M + (b.k === 'li' ? 26 * (d + 1) : b.k === 'quote' ? 18 : 0);
     const spans = spansOf(b.runs, next);
-    const lines = wrapSpans(spans.length ? spans : [{ t: '' }], W - M - left, px, bold);
+    const lead: Span[] = indent ? [{ t: '  ' }] : [];
+    // Wrapped as the sans is estimated, the measure narrowed by how much wider the look's face sets.
+    const lines = wrapSpans([...lead, ...(spans.length ? spans : [{ t: '' }])], (M + cw - left) / WIDTH[face], px, bold);
     const lh = px * 1.45;
     const mark = b.k === 'li' ? (b.done !== undefined ? (b.done ? '☑' : '☐') : b.ord ? `${n}.` : '•') : '';
     const cls = b.a?.cls ?? [];
-    const [tx, anchor] = cls.includes('center') ? [(left + W - M) / 2, 'middle' as const] : cls.includes('right') ? [W - M, 'end' as const] : [left, 'start' as const];
+    const centred = cls.includes('center') || (caps && !cls.includes('right')) || (look.indent && b === title);
+    const [tx, anchor] = centred ? [(left + M + cw) / 2, 'middle' as const] : cls.includes('right') ? [M + cw, 'end' as const] : [left, 'start' as const];
+    const justify = !centred && anchor === 'start' && (cls.includes('justify') || (look.justify && (b.k === 'p' || b.k === 'quote')));
     const fill = b.k === 'quote' ? MUTED : INK;
+    const f = font(b.k === 'h' ? 'head' : 'body');
     bits.push({
       h: lines.length * lh + gap,
       first: lh + gap,
       keep: b.k === 'h',
-      svg: (y) => (mark ? svgText(left - 8, y + px, mark, { px, anchor: 'end', fill: b.k === 'li' && b.done ? FAINT : INK }) : '') + (b.k === 'quote' ? rect(M, y, 3, lines.length * lh, LINE) : '') + lines.map((l, i) => lineSvg(tx, y + px + i * lh, l, px, { bold, anchor, fill })).join(''),
+      ...(b === title ? { wide: true as const } : {}),
+      svg: (y) =>
+        (mark ? svgText(left - 8, y + px, mark, { px, anchor: 'end', fill: b.k === 'li' && b.done ? FAINT : INK }) : '') +
+        (b.k === 'quote' ? rect(M, y, 3, lines.length * lh, LINE) : '') +
+        lines.map((l, i) => lineSvg(tx, y + px + i * lh, l, px, { bold: bold && !caps, anchor, fill, font: f, caps, fit: justify && i < lines.length - 1 && !l.some((sp) => sp.ic) ? M + cw - left : undefined })).join(''),
     });
+    if (b === title && cols > 1) bits.push({ h: 18, first: 18, wide: true, svg: (y) => `<line x1="${M}" y1="${y + 2}" x2="${M + inner}" y2="${y + 2}" stroke="${INK}" stroke-width="2"/><line x1="${M}" y1="${y + 6}" x2="${M + inner}" y2="${y + 6}" stroke="${INK}" stroke-width="0.75"/>` });
     if (b === title && !fieldsPlaced) {
       bits.push(...fields);
       fieldsPlaced = true;
@@ -306,35 +340,55 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
   if (notes.length) {
     const px = 11;
     const lh = px * 1.45;
+    const f = font('body');
     bits.push({ h: 20, first: 20, keep: true, svg: (y) => `<line x1="${M}" y1="${y + 10}" x2="${M + 72}" y2="${y + 10}" stroke="${LINE}"/>` });
     notes.forEach((fn, i) => {
-      const lines = wrapSpans([{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...spansOf(noteRuns(fn), noteNumbers())], inner, px);
-      bits.push({ h: lines.length * lh + 4, first: lh + 4, svg: (y) => lines.map((l, k) => lineSvg(M, y + px + k * lh, l, px)).join('') });
+      const lines = wrapSpans([{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...spansOf(noteRuns(fn), noteNumbers())], colW / WIDTH[look.body], px);
+      bits.push({ h: lines.length * lh + 4, first: lh + 4, svg: (y) => lines.map((l, k) => lineSvg(M, y + px + k * lh, l, px, { font: f })).join('') });
     });
   }
   const out: Page[] = [];
   let svg = '';
-  let y = M;
+  let y: number = M;
+  // The column being filled, where the columns begin on this page (under the title), and the lowest any column reaches.
+  let col = 0;
+  let top: number = M;
+  let low: number = M;
   const alt = (title ? plainText(title.runs) : '') || doc.head.title || '';
+  const turn = () => {
+    out.push({ w: W, h: PAGE_H, svg, alt });
+    svg = '';
+    y = top = low = M;
+    col = 0;
+  };
   bits.forEach((b, i) => {
     // A page break: the next page, unless this one has nothing on it yet.
     if (b.brk) {
-      if (y > M) {
-        out.push({ w: W, h: PAGE_H, svg, alt });
-        svg = '';
-        y = M;
-      }
+      if (low > M || y > M) turn();
       return;
     }
-    // A heading goes to the next page rather than sit alone at the foot of this one.
+    // A heading goes to the next column or page rather than sit alone at the foot of this one.
     const need = b.keep ? b.h + (bits[i + 1]?.first ?? 0) : b.h;
-    if (y + need > PAGE_H - M && y > M) {
-      out.push({ w: W, h: PAGE_H, svg, alt });
-      svg = '';
-      y = M;
+    if (b.wide || cols === 1) {
+      // Across the page: under everything on it so far.
+      y = Math.max(y, low);
+      if (y + need > PAGE_H - M && y > M) turn();
+      svg += b.svg(y);
+      y += b.h;
+      low = top = y;
+      col = 0;
+      return;
     }
-    svg += b.svg(y);
+    if (y + need > PAGE_H - M && y > top) {
+      if (col < cols - 1) {
+        col++;
+        y = top;
+      } else turn();
+    }
+    const dx = col * (colW + GUTTER);
+    svg += dx ? `<g transform="translate(${r(dx)} 0)">${b.svg(y)}</g>` : b.svg(y);
     y += b.h;
+    low = Math.max(low, y);
   });
   out.push({ w: W, h: PAGE_H, svg, alt });
   if (small) return [out[0]];
@@ -467,10 +521,24 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
   return [...parts, ...(notes ? [notes] : [])].join('\n');
 }
 
+/** The look as CSS over the page's own: its faces, and a book's or a newspaper's setting (look.ts). */
+export function lookCss(look: Look): string {
+  const css: string[] = [];
+  if (look.body !== 'sans') css.push(`body{font-family:${STACKS[look.body]}}`);
+  if (look.head !== 'sans') css.push(`h1,h2,h3,h4,h5,h6{font-family:${STACKS[look.head]}}`);
+  if (look.body === 'mono') css.push('body{font-size:15px}h1.title{letter-spacing:0}');
+  if (look.justify) css.push('main>p,blockquote{text-align:justify;hyphens:auto}');
+  if (look.indent) css.push('main>p{margin:0}main>p+p{text-indent:1.5em}h1.title{text-align:center;font-weight:500;letter-spacing:0}');
+  if (look.caps) css.push('h1:not(.title),h2,h3{font-variant:small-caps;letter-spacing:.04em;text-align:center;font-weight:600}');
+  if (look.columns) css.push(`h1.title{font-size:3em;line-height:1.02;padding-bottom:.3em;border-bottom:3px double ${INK}}@media print{main{columns:${look.columns};column-gap:24px}main>h1.title,main>.fields{column-span:all}}`);
+  return css.join('\n');
+}
+
 /** The text as a standalone web page, the words still words. */
 export function docToHtml(doc: Doc, ctx: ExportContext): string {
   const title = ctx.title || (titleBlock(doc) ? plainText(titleBlock(doc)!.runs) : '') || 'Document';
   const paper = PAPERS[paperOf(doc)];
+  const look = lookOf(doc);
   return `<!doctype html>
 <html lang="${typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en'}">
 <head>
@@ -493,6 +561,7 @@ a{color:${ACCENT}}.fn a{text-decoration:none}.fn-notes{margin-top:2em;font-size:
 .signed{margin:2em 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:1.5em}.signed div{margin-top:2em;border-top:1.5px solid ${INK};padding-top:.4em}.signed .mismatch{border-top-color:#b91c1c}.signed strong,.signed small{display:block}.signed small{color:${MUTED};font-size:.82em;overflow-wrap:anywhere}.signed .mismatch small{color:#b91c1c}
 hr.page-break{margin:2em 0;border:0;border-top:1px dashed ${LINE}}@media print{hr.page-break{break-after:page;margin:0;border:0}}
 footer{margin-top:3em;color:${MUTED};font-size:.85em}
+${lookCss(look)}
 </style>
 </head>
 <body>
@@ -539,16 +608,27 @@ function rtfRun(run: Run, next: () => number = noteNumbers()): string {
 
 /** The text as RTF: paragraphs, headings, lists, a table as a table, links, footnotes as marks with the notes at the end. */
 export function docToRtf(doc: Doc, ctx: ExportContext): string {
-  const out: string[] = ['{\\rtf1\\ansi\\ansicpg1252\\deff0\\uc1{\\fonttbl{\\f0\\fswiss\\fcharset0 Helvetica;}}{\\colortbl;\\red79\\green70\\blue229;\\red82\\green82\\blue91;\\red253\\green230\\blue138;}', '\\f0\\fs24'];
+  const look = lookOf(doc);
+  // The look's faces: f0 the body, f1 the headings (Helvetica for the sans, as RTF readers have it).
+  const named = (f: Look['body']) => (f === 'sans' ? { name: 'Helvetica', rtf: 'fswiss' } : NAMED[f]);
+  const fonts = [named(look.body), named(look.head)].map((f, i) => `{\\f${i}\\${f.rtf}\\fcharset0 ${f.name};}`).join('');
+  const out: string[] = [`{\\rtf1\\ansi\\ansicpg1252\\deff0\\uc1{\\fonttbl${fonts}}{\\colortbl;\\red79\\green70\\blue229;\\red82\\green82\\blue91;\\red253\\green230\\blue138;}`, '\\f0\\fs24'];
   const number = listNumbers();
   const next = noteNumbers();
   const site = siteOf(ctx.link);
   const title = titleBlock(doc);
   const fields = () => fieldsOf(doc).map(([k, v]) => `{\\pard\\sa60 {\\fs16\\cf2 ${rtfText(k.toUpperCase())}}\\line ${v.split(' | ').map((l, i) => (i ? rtfText(l) : `{\\b ${rtfText(l)}}`)).join('\\line ')}\\par}`);
-  if (!title) out.push(...fields());
-  for (const b of doc.blocks) {
+  // Two columns after the title and its fields, a section of their own that does not start a page.
+  const columns = look.columns ? `\\sect\\sectd\\sbknone\\cols${look.columns}\\colsx360` : '';
+  if (!title) out.push(...fields(), ...(columns ? [columns] : []));
+  const blocks = doc.blocks;
+  for (const [at, b] of blocks.entries()) {
     const n = number(b);
-    const jc = b.a?.cls?.includes('center') ? '\\qc' : b.a?.cls?.includes('right') ? '\\qr' : b.a?.cls?.includes('justify') ? '\\qj' : '';
+    const own = b.a?.cls?.includes('center') ? '\\qc' : b.a?.cls?.includes('right') ? '\\qr' : b.a?.cls?.includes('justify') ? '\\qj' : '';
+    // A book's paragraphs: justified, run on with no gap, each after the first indented; its headings centred in small capitals.
+    const para = b.k === 'p' && !isEmbed(b);
+    const jc = own || (look.justify && para ? '\\qj' : '') || (look.caps && b.k === 'h' && b !== title ? '\\qc' : '');
+    const book = look.indent && para ? `${blocks[at - 1]?.k === 'p' ? '\\fi360' : ''}${blocks[at + 1]?.k === 'p' ? '\\sa0' : ''}` : '';
     if (b.k === 'table') {
       const v = tableView(doc, doc.blocks.indexOf(b));
       if (!v) continue;
@@ -600,10 +680,10 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
       const mark = b.done !== undefined ? (b.done ? '\\u9745?' : '\\u9744?') : b.ord ? `${n}.` : '\\bullet';
       out.push(`{\\pard\\li${li}\\fi-360\\sa60${jc} ${mark}\\tab ${runs}\\par}`);
     } else if (b.k === 'h' && b === title) {
-      out.push(`{\\pard\\sa240${jc}\\b\\fs64 ${runs}\\par}`, ...fields());
-    } else if (b.k === 'h') out.push(`{\\pard\\sb${b.level === 1 ? 240 : 200}\\sa${b.level === 1 ? 160 : 120}${jc}\\b\\fs${b.level === 1 ? 40 : b.level === 2 ? 30 : 26} ${runs}\\par}`);
+      out.push(`{\\pard\\sa240${jc || (look.indent ? '\\qc' : '')}\\f1\\b\\fs64 ${runs}\\par}`, ...fields(), ...(columns ? [columns] : []));
+    } else if (b.k === 'h') out.push(`{\\pard\\sb${b.level === 1 ? 240 : 200}\\sa${b.level === 1 ? 160 : 120}${jc}\\f1${look.caps ? '\\scaps' : '\\b'}\\fs${b.level === 1 ? 40 : b.level === 2 ? 30 : 26} ${runs}\\par}`);
     else if (b.k === 'quote') out.push(`{\\pard\\li360\\sa160${jc}\\cf2 ${runs}\\par}`);
-    else out.push(`{\\pard\\sa160${jc} ${runs}\\par}`);
+    else out.push(`{\\pard\\sa160${book}${jc} ${runs}\\par}`);
   }
   // The notes at the end, small, under a rule.
   notesOf(doc.blocks).forEach((fn, i) => out.push(`{\\pard${i ? '' : '\\brdrt\\brdrs\\brdrw10\\brsp120'}\\sa60\\fs18 {\\super ${i + 1}} ${noteRuns(fn).map((run) => rtfRun(run)).join('')}\\par}`));
@@ -651,12 +731,20 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
   const next = noteNumbers();
   const title = titleBlock(doc);
   const plain = (t: string, props = '') => `<w:r>${props ? `<w:rPr>${props}</w:rPr>` : ''}<w:t xml:space="preserve">${xml(t)}</w:t></w:r>`;
+  const look = lookOf(doc);
+  const paper = TWIPS[paperOf(doc)];
+  const page = `<w:pgSz w:w="${paper.w}" w:h="${paper.h}"/><w:pgMar w:top="${paper.m}" w:right="${paper.m}" w:bottom="${paper.m}" w:left="${paper.m}" w:header="720" w:footer="720" w:gutter="0"/>`;
+  // Two columns (a newspaper): the title and the fields a section of one column, the rest a section of two that does not start a page.
+  const oneColumn = look.columns ? `<w:p><w:pPr><w:sectPr><w:type w:val="continuous"/>${page}<w:cols w:space="720"/></w:sectPr></w:pPr></w:p>` : '';
   const fields = () => fieldsOf(doc).map(([k, v]) => `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr>${plain(k.toUpperCase(), '<w:sz w:val="16"/><w:color w:val="52525B"/>')}<w:r><w:br/></w:r>${v.split(' | ').map((l, i) => plain(l, i ? '' : '<w:b/>')).join('<w:r><w:br/></w:r>')}</w:p>`);
-  if (!title) paras.push(...fields());
-  for (const b of doc.blocks) {
+  if (!title) paras.push(...fields(), ...(oneColumn ? [oneColumn] : []));
+  const blocks = doc.blocks;
+  for (const [at, b] of blocks.entries()) {
     const cls = b.a?.cls ?? [];
-    const how = cls.includes('center') ? 'center' : cls.includes('right') ? 'right' : cls.includes('justify') ? 'both' : '';
-    const jc = how ? `<w:jc w:val="${how}"/>` : '';
+    const para = b.k === 'p' && !isEmbed(b);
+    // A book's paragraphs justified, run on with no gap, each after the first indented (its headings are their styles').
+    const how = cls.includes('center') ? 'center' : cls.includes('right') ? 'right' : cls.includes('justify') || (look.justify && para) ? 'both' : '';
+    const jc = (look.indent && para ? `${blocks[at + 1]?.k === 'p' ? '<w:spacing w:after="0"/>' : ''}${blocks[at - 1]?.k === 'p' ? '<w:ind w:firstLine="360"/>' : ''}` : '') + (how ? `<w:jc w:val="${how}"/>` : '');
     const last = prev;
     prev = b.k === 'li' ? (b.ord ? 'ol' : 'ul') : b.k;
     if (b.k === 'table') {
@@ -717,23 +805,28 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
     }
     const style = b.k === 'h' ? (b === title ? 'Title' : b.level === 1 ? 'Heading1' : 'Heading2') : b.k === 'quote' ? 'Quote' : '';
     paras.push(`<w:p>${style || jc ? `<w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${jc}</w:pPr>` : ''}${runs}</w:p>`);
-    if (b === title) paras.push(...fields());
+    if (b === title) paras.push(...fields(), ...(oneColumn ? [oneColumn] : []));
   }
   notesOf(doc.blocks).forEach((fn, i) =>
     paras.push(`<w:p><w:pPr>${i ? '<w:spacing w:after="60"/>' : '<w:pBdr><w:top w:val="single" w:sz="4" w:space="6" w:color="A1A1AA"/></w:pBdr><w:spacing w:before="360" w:after="60"/>'}</w:pPr>${docxRun({ t: '', fn }, rel, () => i + 1, true)}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve"> </w:t></w:r>${noteRuns(fn).map((run) => docxRun(run, rel, noteNumbers(), true)).join('')}</w:p>`),
   );
-  const paper = TWIPS[paperOf(doc)];
-  const sect = `<w:sectPr><w:pgSz w:w="${paper.w}" w:h="${paper.h}"/><w:pgMar w:top="${paper.m}" w:right="${paper.m}" w:bottom="${paper.m}" w:left="${paper.m}" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>`;
+  const sect = `<w:sectPr>${look.columns ? '<w:type w:val="continuous"/>' : ''}${page}${look.columns ? `<w:cols w:num="${look.columns}" w:space="360"/>` : ''}</w:sectPr>`;
   const bullets = ['•', '–', '·'];
   const level = (i: number, kind: 'bullet' | 'decimal') =>
     `<w:lvl w:ilvl="${i}"><w:start w:val="1"/><w:numFmt w:val="${kind}"/><w:lvlText w:val="${kind === 'bullet' ? bullets[i] : `%${i + 1}.`}"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="${720 * (i + 1)}" w:hanging="360"/></w:pPr>${kind === 'bullet' ? '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/></w:rPr>' : ''}</w:lvl>`;
   const levels = (kind: 'bullet' | 'decimal') => [0, 1, 2].map((i) => level(i, kind)).join('');
-  const heading = (id: string, name: string, size: number, before: number) => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="${before}" w:after="120"/><w:outlineLvl w:val="${id === 'Heading2' ? 1 : 0}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr></w:style>`;
+  // The look's faces by name: the body the default, the headings their styles'; a book's headings centred in small capitals.
+  const face = (f: Look['body']) => `<w:rFonts w:ascii="${NAMED[f].name}" w:hAnsi="${NAMED[f].name}" w:cs="${NAMED[f].name}"/>`;
+  const heading = (id: string, name: string, size: number, before: number) => {
+    const caps = look.caps && id !== 'Title';
+    const centred = caps || (look.indent && id === 'Title');
+    return `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="${before}" w:after="120"/>${centred ? '<w:jc w:val="center"/>' : ''}<w:outlineLvl w:val="${id === 'Heading2' ? 1 : 0}"/></w:pPr><w:rPr>${face(look.head)}${caps ? '<w:smallCaps/>' : '<w:b/>'}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr></w:style>`;
+  };
   return zip({
     '[Content_Types].xml': `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`,
     '_rels/.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/officeDocument" Target="word/document.xml"/></Relationships>`,
     'word/_rels/document.xml.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/styles" Target="styles.xml"/><Relationship Id="rId2" Type="${REL_NS}/numbering" Target="numbering.xml"/>${rels.map((url, i) => `<Relationship Id="rId${i + 3}" Type="${REL_NS}/hyperlink" Target="${xml(url)}" TargetMode="External"/>`).join('')}</Relationships>`,
-    'word/styles.xml': `${XML_HEAD}<w:styles ${W_NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>${heading('Title', 'Title', 52, 0)}${heading('Heading1', 'heading 1', 32, 360)}${heading('Heading2', 'heading 2', 26, 240)}<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/></w:pPr><w:rPr><w:i/><w:color w:val="52525B"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="60"/><w:contextualSpacing/></w:pPr></w:style><w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="4F46E5"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`,
+    'word/styles.xml': `${XML_HEAD}<w:styles ${W_NS}><w:docDefaults><w:rPrDefault><w:rPr>${face(look.body)}<w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>${heading('Title', 'Title', 52, 0)}${heading('Heading1', 'heading 1', 32, 360)}${heading('Heading2', 'heading 2', 26, 240)}<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/></w:pPr><w:rPr><w:i/><w:color w:val="52525B"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="60"/><w:contextualSpacing/></w:pPr></w:style><w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="4F46E5"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`,
     'word/numbering.xml': `${XML_HEAD}<w:numbering ${W_NS}><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>${levels('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>${levels('decimal')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>${nums.join('')}</w:numbering>`,
     'word/document.xml': `${XML_HEAD}<w:document ${W_NS}><w:body>${paras.join('')}${sect}</w:body></w:document>`,
   });

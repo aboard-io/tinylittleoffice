@@ -17,8 +17,8 @@ export const defaultPaper = (): Paper => (typeof navigator === 'undefined' || /-
 /** The paper the text says, in its header ("paper: a4"), or the reader's. */
 export const paperOf = (doc: Doc): Paper => (doc.head.paper && doc.head.paper in PAPERS ? (doc.head.paper as Paper) : defaultPaper());
 
-/** The head's fields that are the shell's or Write's own, not the document's (an invoice's from, to, number…). */
-export const SHELL_KEYS = new Set(['title', 'by', 'created', 'key', 'sig', 'app', 'paper']);
+/** The head's fields that are the shell's or Write's own (the paper, the look), not the document's (an invoice's from, to, number…). */
+export const SHELL_KEYS = new Set(['title', 'by', 'created', 'key', 'sig', 'app', 'paper', 'look']);
 /** The document's own head fields, in order: what an invoice says above its lines. */
 export const fieldsOf = (doc: Doc): [string, string][] => Object.entries(doc.head).filter(([k, v]) => !SHELL_KEYS.has(k) && v !== undefined);
 
