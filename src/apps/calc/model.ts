@@ -161,6 +161,14 @@ export function tape(lines: string[]): { results: number[]; texts: string[]; nam
   return { results, texts, names: numbersIn(scope), scope };
 }
 
+/**
+ * A line of words with no sum in it is a note on the tape, written as a sentence: it has no answer, it ends
+ * in a full stop, a colon or an exclamation mark, and it has two words or more ("Check every dose with a
+ * pharmacist."). Nothing marks it but the writing; a line that is neither (a typo, "3 inch to cmm") is a
+ * line with no answer, shown as one.
+ */
+export const isNote = (line: string, answer: string): boolean => !answer && /[.:!]$/.test(line) && (line.match(/\p{L}{2,}/gu) ?? []).length >= 2;
+
 /** What the line being typed comes to, after the tape: the words before "=" in "a = …" are its name, not the sum. */
 export function live(entry: string, lines: string[], mode: Mode): string {
   if (!entry.trim()) return '';

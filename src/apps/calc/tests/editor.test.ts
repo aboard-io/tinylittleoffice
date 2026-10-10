@@ -69,6 +69,16 @@ test('the tape from the document: each line a box, its answer beside it; an empt
   expect(bar(empty.el, 'Clear the tape').disabled).toBe(true);
 });
 
+test('a sentence on the tape is a note: words in the reading font, no answer beside it; a typo still has its "= ?"', async () => {
+  const { el } = await editor('Check the dose with a pharmacist.\nweight = 18\nweight * 15\n3 inch to cmm\n');
+  expect(lines(el)).toEqual(['Check the dose with a pharmacist.', 'weight = 18', 'weight * 15', '3 inch to cmm']);
+  const rows = [...el.querySelectorAll<HTMLElement>('.calc-row')];
+  expect(rows.map((r) => r.classList.contains('calc-note'))).toEqual([true, false, false, false]);
+  expect(rows[0].querySelector('.calc-ans')).toBeNull();
+  expect(answers(el)).toEqual(['= 18', '= 270', '= ?']);
+  expect(getComputedStyle(rows[0].querySelector('.calc-line')!).fontFamily).not.toBe(getComputedStyle(rows[1].querySelector('.calc-line')!).fontFamily);
+});
+
 test('typing: the answer as it is typed, Enter puts the line on the tape; a name is kept for the lines after', async () => {
   const { el, last, changes } = await editor('');
   await typeIn(el, display(el), 'price = 2.5 * 4');

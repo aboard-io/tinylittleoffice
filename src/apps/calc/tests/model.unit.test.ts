@@ -8,7 +8,7 @@ import { afterEach, expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
 import { engine } from '../math.ts';
-import { addLine, clearTape, dropLine, evaluate, live, moveLines, pastedLines, plot, readCalc, removeLine, replaceLines, result, setEngine, setLine, setMode, shown, tape, tidy, type CalcView } from '../model.ts';
+import { addLine, clearTape, dropLine, evaluate, isNote, live, moveLines, pastedLines, plot, readCalc, removeLine, replaceLines, result, setEngine, setLine, setMode, shown, tape, tidy, type CalcView } from '../model.ts';
 import { calcPage, graphPage, tapePage, tapeText } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -194,18 +194,51 @@ test('the pages: the tape with its answers, the graph with its curves; the text;
   expect(def.exports!.map((e) => e.ext)).toEqual(['txt']);
 });
 
-test('the templates: real working, canonical, a tape already, every line with an answer', () => {
+test('a note: a sentence with no answer, ending in a full stop, a colon or an exclamation mark; a word or a typo is not one', () => {
+  setEngine(engine);
+  expect(isNote('Check every dose with a pharmacist.', '')).toBe(true);
+  expect(isNote('Hours on a 24-hour clock:', '')).toBe(true);
+  expect(isNote('nope', '')).toBe(false);
+  expect(isNote('nope.', '')).toBe(false);
+  expect(isNote('3 inch to cmm', '')).toBe(false);
+  expect(isNote('Two words.', '2')).toBe(false);
+  const lines = ['Arithmetic only: check the label.', 'a = 6', 'a * 7'];
+  expect(tape(lines).texts).toEqual(['', '6', '42']);
+  const page = tapePage(lines);
+  expect(page.svg).toContain('Arithmetic only: check the label.');
+  expect(page.svg.match(/>= /g)).toHaveLength(2);
+});
+
+test('the templates: real working, canonical, a tape already, every line an answer or a note', () => {
   setEngine(engine);
   const all = templates();
-  expect(all.map((x) => x.id)).toEqual(['bill', 'paint', 'kitchen', 'break-even', 'waves']);
+  expect(all.map((x) => x.id)).toEqual([
+    'bill', 'shopping', 'tax', 'percent', 'kitchen', 'recipe', 'units', 'currency', 'fuel', 'paint',
+    'zones', 'pace', 'bmi', 'dose', 'power', 'loan', 'savings', 'break-even', 'slope', 'waves',
+  ]);
+  expect(new Set(all.map((x) => x.name)).size).toBe(all.length);
+  // The dose says plainly that it is arithmetic, not advice.
+  expect(all.find((x) => x.id === 'dose')!.doc).toMatch(/Arithmetic only: check every dose with a doctor, a pharmacist or the label\./);
   for (const tpl of all) {
     const doc = parse(tpl.doc);
     expect(write(doc)).toBe(tpl.doc);
     expect(tidy(doc)).toEqual([]);
     const v = readCalc(doc);
     expect(doc.head.title).toBeTruthy();
-    if (v.mode === 'calc') expect(tape(v.lines).texts.every(Boolean), tpl.id).toBe(true);
-    else expect((graphPage(v.lines).svg.match(/<path /g) ?? []).length, tpl.id).toBe(v.lines.length - 1);
+    expect(tpl.blurb, tpl.id).toBeTruthy();
+    expect(tpl.doc, tpl.id).not.toMatch(/lorem|TODO/i);
+    if (v.mode === 'calc') {
+      const { texts } = tape(v.lines);
+      v.lines.forEach((l, i) => expect(texts[i] !== '' || isNote(l, texts[i]), `${tpl.id}: ${l}`).toBe(true));
+      // A tape is drawn small in the home page's list: the last eight lines, the title above them.
+      expect(calcPage(doc, true).svg, tpl.id).toContain(tpl.doc.match(/title: (.*)/)![1].slice(0, 6));
+    } else expect((graphPage(v.lines).svg.match(/<path /g) ?? []).length, tpl.id).toBe(v.lines.length - 1);
   }
   expect(tape(readCalc(parse(all[0].doc)).lines).texts.at(-1)).toBe('43.75833333');
+  const answer = (id: string) => tape(readCalc(parse(all.find((x) => x.id === id)!.doc)).lines).texts;
+  expect(answer('loan')[3]).toBe('474.0972569');
+  expect(answer('recipe')[5]).toBe('1 cup');
+  expect(answer('dose')[4]).toBe('8.4375 mL');
+  expect(answer('zones')[5]).toBe('1');
+  expect(answer('power')[4]).toBe('75.6');
 });

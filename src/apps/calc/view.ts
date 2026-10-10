@@ -6,7 +6,7 @@
 import type { Doc } from '../../doc/index.ts';
 import type { Page } from '../../kit/app.ts';
 import { clip, FAINT, LINE, MUTED, rect, SERIES, text } from '../../kit/draw.ts';
-import { curves, plot, readCalc, shown, tape } from './model.ts';
+import { curves, isNote, plot, readCalc, shown, tape } from './model.ts';
 
 const W = 720;
 
@@ -19,8 +19,12 @@ export function tapePage(lines: string[], title = '', max = Infinity): Page {
   shownLines.forEach((l, i) => {
     y += 34;
     const answer = texts[i] ? `= ${texts[i]}` : '';
-    svg += text(48, y, clip(l, W - 96 - answer.length * 11 - 24, 17), { px: 17, fill: MUTED });
-    svg += text(W - 48, y, answer, { px: 19, bold: true, anchor: 'end' });
+    // A note is words across the tape, in ink; a sum is muted beside its answer.
+    if (isNote(l, texts[i])) svg += text(48, y, clip(l, W - 96, 17), { px: 17 });
+    else {
+      svg += text(48, y, clip(l, W - 96 - answer.length * 11 - 24, 17), { px: 17, fill: MUTED });
+      svg += text(W - 48, y, answer, { px: 19, bold: true, anchor: 'end' });
+    }
     svg += `<line x1="48" x2="${W - 48}" y1="${y + 12}" y2="${y + 12}" stroke="${LINE}"/>`;
   });
   return { w: W, h: Math.max(140, y + 40), svg, alt: shownLines.map((l, i) => `${l}${texts[i] ? ` = ${texts[i]}` : ''}`).join('; ') || undefined };
