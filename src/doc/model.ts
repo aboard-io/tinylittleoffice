@@ -6,8 +6,6 @@
  * raw cells, and anything else as what it is: a rule, an edge, an image,
  * a fence holding another document.
  */
-import { parseInline } from './tlo.ts';
-
 /** The header: lowercase keys, string values (title, by, created, key, sig; an app's own settings). */
 export type Head = Record<string, string>;
 
@@ -74,9 +72,6 @@ export interface Column {
 
 /** The words alone, marks and all taken away. */
 export const plainText = (runs: Run[]): string => runs.map((r) => r.t).join('');
-
-/** The one way a string of inline Markdown becomes runs. */
-export const text = (s: string): Run[] => parseInline(s);
 
 /** Whether a block holds words. */
 export const isText = (b: Block): b is TextBlock => b.k === 'h' || b.k === 'p' || b.k === 'li' || b.k === 'quote';

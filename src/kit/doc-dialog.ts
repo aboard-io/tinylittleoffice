@@ -8,7 +8,7 @@
  *   editDoc({ app, text })  the app's editor (its chunk loaded lazily) over `text`; resolves the text, or null.
  *   makeDoc(app)            a new document of the app, made there: the fence that holds it, or null.
  *   editFence(fence)        the document a fence holds, edited: the fence as it now is, or null when unchanged
- *                           (a locked one opened first, and sealed again: kit/locked-doc.ts).
+ *                           (a locked one opened first, by kit/locked-doc.ts, and sealed again under the same password).
  *   editTable(table)        the Spreadsheet's editor over a document of that one table block, with Rows and
  *                           Columns in the dialog's bar to set its size; resolves the table block, or null.
  */
@@ -16,8 +16,10 @@ import { LitElement, html, nothing } from 'lit';
 import { COL_NAMES, MAX_COLS, ROWS, parse, write, type Block, type TableBlock } from '../doc/index.ts';
 import { lookup, type AppDef, type Editor } from './app.ts';
 import { icon, UI } from './icons.ts';
-import { LOCKED_LANG } from './locked.ts';
-import { editLocked } from './locked-doc.ts';
+import { LOCKED_LANG, setOpened } from './locked.ts';
+import { openPlaced } from './locked-doc.ts';
+import { pack } from './privacy.ts';
+import { routeHash } from './route.ts';
 import { t } from './i18n.ts';
 
 let n = 0;
@@ -200,4 +202,15 @@ export async function editFence(fence: Fence): Promise<Fence | null> {
   const out = await editDoc({ app: fence.lang, text: asText(fence.body) });
   const body = out === null ? fence.body : asBody(out);
   return body === fence.body ? null : { ...fence, body };
+}
+
+/** A locked fence's document edited in its app, sealed again under its password: the fence with its new link, or null (not opened, cancelled, unchanged). */
+async function editLocked(fence: Fence): Promise<Fence | null> {
+  const o = await openPlaced(fence.body);
+  if (!o) return null;
+  const out = await editDoc({ app: o.app, text: o.text });
+  if (out === null || out === o.text) return null;
+  const payload = await pack(out, o.locker);
+  setOpened(payload, out);
+  return { ...fence, body: routeHash(o.app, payload) };
 }

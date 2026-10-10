@@ -450,6 +450,9 @@ const ICON = /^:([a-z][a-z0-9-]*):/;
 /** A web or mail address, as far as it can go without taking in a mark that follows it (read at a line's start, after a space, a "(" or a link's "["). */
 const URL = '(?:https?:\\/\\/|mailto:)(?:(?!\\*\\*|~~|==|\\+\\+|__|:[a-z][a-z0-9-]*:)[^\\s<`\\\\[\\]*])+';
 
+/** The one way a string of inline Markdown becomes runs (parseInline by its short name, for a model built by hand). */
+export const text = (s: string): Run[] => parseInline(s);
+
 /** One line of inline Markdown as runs of words with their marks. Lenient: what does not close is plain words. */
 export function parseInline(s: string): Run[] {
   const runs: Run[] = [];

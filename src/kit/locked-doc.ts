@@ -5,8 +5,6 @@
  *                      The shell's own unlock dialog draws it too, so there is one.
  *   openPlaced(body)   a locked fence's document opened: by a password already given this visit, or the
  *                      unlock dialog; its text kept for the visit (never written into the outer document).
- *   editLocked(fence)  opened, then edited in its own app in the dialog, and sealed again under the same
- *                      password: the fence with its new link, or null.
  *   <to-locked-doc>    the card in an editor: the locked card, a tap asks for the password; opened, the
  *                      document drawn small. With `caption`, its name and app under it.
  */
@@ -18,11 +16,8 @@ import type { ToDialog } from './dialog.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { lockedOf, lockedPage, openedText, setOpened } from './locked.ts';
-import { editDoc } from './doc-dialog.ts';
 import { gateSvg } from './pictures.ts';
-import { pack, reopen, unlock } from './privacy.ts';
-import { routeHash } from './route.ts';
-import type { Block } from '../doc/index.ts';
+import { reopen, unlock } from './privacy.ts';
 import './dialog.ts';
 
 /** Said on the window when a placed document is opened, so every card of it draws it open. */
@@ -89,18 +84,6 @@ export async function openPlaced(body: string): Promise<Opened | null> {
   setOpened(it.payload, r.text);
   if (fresh) window.dispatchEvent(new Event(OPENED_EVENT));
   return { ...it, ...r };
-}
-
-type Fence = Extract<Block, { k: 'fence' }>;
-/** A locked fence's document edited in its app, sealed again under its password: the fence with its new link, or null (not opened, cancelled, unchanged). */
-export async function editLocked(fence: Fence): Promise<Fence | null> {
-  const o = await openPlaced(fence.body);
-  if (!o) return null;
-  const out = await editDoc({ app: o.app, text: o.text });
-  if (out === null || out === o.text) return null;
-  const payload = await pack(out, o.locker);
-  setOpened(payload, out);
-  return { ...fence, body: routeHash(o.app, payload) };
 }
 
 /** The card of a locked document in an editor: locked, a button that asks for the password; opened, the document. */
