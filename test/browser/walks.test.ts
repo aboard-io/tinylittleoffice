@@ -8,7 +8,7 @@
 //   focus      the focus is inside whatever is open, else inside the document or the chrome; never under aria-hidden
 //   back       after Escape (or a tap on a dialog's backdrop) the focus is where it was when the thing opened (or on what
 //              was tapped to open it, or, for a command's dialog opened from a button, on the words it acts on)
-//   modal      at most one modal <dialog> is open
+//   modal      at most one modal <dialog> is open, and none is shown while another is (one hands over to the next)
 //   window     the window never scrolls, nor the chrome round the column (the column does)
 //   link       the address, flushed, is the document the shell holds, which the kernel writes back as it reads it
 //   bar        the app's bar, where it is shown, is one row inside the visible window
@@ -73,9 +73,14 @@ function fakeViewport(): FakeVV {
 
 /** Where the focus was when each dialog or popover opened: a dialog's showModal and a popover's beforetoggle say. */
 const openedFrom = new WeakMap<Element, Element | null>();
+/** Each showModal() made while another modal was open, said by the next check: stacked, even if closed again within the step. */
+const stacked: string[] = [];
 const showModal = HTMLDialogElement.prototype.showModal;
 function watchOpening() {
+  stacked.length = 0;
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    const under = [...document.querySelectorAll('dialog')].filter((d) => d !== this && d.matches(':modal'));
+    if (!this.open && under.length) stacked.push(`${describeEl(this)} was shown over ${under.map(describeEl).join(', ')}`);
     if (!this.open) openedFrom.set(this, document.activeElement);
     return showModal.call(this);
   };
@@ -422,10 +427,8 @@ function check(r: Real, s: Step, before: Layer[]) {
 
   // modal
   const modals = [...document.querySelectorAll('dialog')].filter((d) => d.matches(':modal'));
-  if (modals.length > 1) {
-    const nested = modals.slice(1).every((d, i) => !!openedFrom.get(d) && modals[i].contains(openedFrom.get(d)!));
-    broke(r, 'modal', `${modals.length} modal dialogs open: ${modals.map(describeEl).join(', ')}${nested ? ' (each opened from a control inside the one under it)' : ''}`);
-  }
+  if (modals.length > 1) broke(r, 'modal', `${modals.length} modal dialogs open: ${modals.map(describeEl).join(', ')}`);
+  if (stacked.length) broke(r, 'modal', stacked.splice(0).join('; '));
 
   // focus
   const inLayer = (l: Layer) => !!at && l.el.contains(at);
@@ -736,10 +739,15 @@ test('each rule of the walks breaks on the fault it is for, naming it', async ()
   expect(breaks(() => {
     const [a, b] = [add('dialog', ''), add('dialog', '')];
     for (const d of [a, b]) d.setAttribute('aria-label', 'A dialog'), d.showModal();
-    // Not opened from inside the first (that is a known finding's case: test/walks-known.ts).
-    openedFrom.delete(b);
-    return () => [a, b].forEach((d) => (d.close(), d.remove()));
+    return () => ((stacked.length = 0), [a, b].forEach((d) => (d.close(), d.remove())));
   })).toMatch(/^walk broke "modal": 2 modal dialogs open/);
+  // Shown over another and closed again before the step ended: still one modal over another.
+  expect(breaks(() => {
+    const [a, b] = [add('dialog', ''), add('dialog', '')];
+    for (const d of [a, b]) d.setAttribute('aria-label', 'A dialog'), d.showModal();
+    b.close();
+    return () => ((stacked.length = 0), [a, b].forEach((d) => (d.close(), d.remove())));
+  })).toMatch(/^walk broke "modal": <dialog> "A dialog" was shown over <dialog> "A dialog"/);
   expect(breaks(() => {
     const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
     const was = bar.style.cssText;

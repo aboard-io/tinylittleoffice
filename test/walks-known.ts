@@ -15,13 +15,6 @@ export interface Known {
 
 export const KNOWN: Known[] = [
   {
-    id: 'dialog-from-dialog',
-    rule: 'modal',
-    matches: /\(each opened from a control inside the one under it\)$/,
-    why: 'A modal <dialog> opened from a button inside another stacks on it: an app’s templates from its row in the drawer (kit/home.ts ToTemplates, over the whole screen: Paul 2026-10-09), Privacy and keys and About from the drawer (kit/drawer.ts), Password… from Share (kit/share-dialog.ts, kit/privacy-dialog.ts). Escape and the backdrop close the top one and the focus comes back to its button, so nothing is lost; but the rule is one modal at a time. The fix is a design choice for each: the drawer (or Share) closes and hands over, the second dialog given a Back to the first; or the second is a page of the first.',
-    replay: 'step "templates" from any state (VITE_WALK_SEED=1438393384, text at a phone); Share, Tab to Password…, Space (VITE_WALK_SEED=-445799283, canvas at a phone)',
-  },
-  {
     id: 'block-ends-unsayable',
     rule: 'link',
     matches: /\(only a block’s words ending in spaces or a line break\)/,

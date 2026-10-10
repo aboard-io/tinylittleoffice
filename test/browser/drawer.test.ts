@@ -80,18 +80,20 @@ test('Find finds apps, templates by name or app, and kept documents by title, ea
   }
 });
 
-test('a template from inside an app: the drawer\'s rows carry the templates listbox, and choosing one opens it and closes the drawer', async () => {
+test('a template from inside an app: each of the drawer\'s rows has its templates button, which closes the drawer and opens the templates listbox; choosing one opens it', async () => {
   const shell = await mount('#/v1/sheet');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
   await until(() => dialog.open);
   const row = shell.querySelectorAll('.to-drawer-apps .to-app-head')[0];
   row.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
-  await until(() => !!row.querySelector('[role=option] svg'));
-  const options = [...row.querySelectorAll<HTMLElement>('[role=option]')];
+  // The drawer hands over: closed, and the templates open alone (one modal at a time).
+  await until(() => !!shell.querySelector('to-templates.to-drawer-templates dialog[open]'));
+  const list = shell.querySelector('to-templates.to-drawer-templates')!;
+  await until(() => !dialog.open && !!list.querySelector('dialog[open] [role=option] svg'));
+  const options = [...list.querySelectorAll<HTMLElement>('[role=option]')];
   options[1].click();
   await until(() => location.hash.startsWith('#/v1/write/'));
-  await until(() => !dialog.open);
   history.replaceState(null, '', location.pathname);
 });
 
