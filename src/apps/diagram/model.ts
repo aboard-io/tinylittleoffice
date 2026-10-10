@@ -34,6 +34,7 @@
  * `move` (a family by the kernel's `placeFamily`) or the `text` ops that take it out of one list and put it
  * in another; a connection is a `splice` of an edge block; the kind is a `head` op.
  */
+import { plainText, write } from '../../doc/index.ts';
 import {
   apply,
   depthOf,
@@ -801,4 +802,23 @@ export function demoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null 
   while (sib >= 0 && !(depths[sib] >= 0 && depths[sib] <= depths[i])) sib--;
   if (sib < 0 || depths[sib] !== depths[i]) return null;
   return placed(doc, hit, sib, 'under');
+}
+
+/**
+ * The diagram as an outline: its list as the Outliner reads it, its connections as the outline's joins. In an org
+ * chart or a family tree a person's role or years, "Ada Diaz | Chief executive", goes back into brackets after the
+ * name, "Ada Diaz (Chief executive)", which is how the outline writes a person (outline/model.ts personOf); the
+ * kind stays behind, the title comes (Paul, 2026-10-11: a mind map had no way back to the outline).
+ */
+export function diagramToOutline(doc: Doc): string {
+  const kind = kindOf(doc);
+  const people = kind === 'org' || kind === 'family';
+  const blocks = doc.blocks.filter((b): b is Extract<Block, { k: 'li' | 'edge' }> => b.k === 'li' || b.k === 'edge');
+  const person = (runs: Run[]): Run[] => {
+    const words = plainText(runs);
+    const bar = words.indexOf(' | ');
+    return people && bar >= 0 && !runs.some(isAtomic) ? [{ t: `${words.slice(0, bar).trim()} (${words.slice(bar + 3).trim()})` }] : runs;
+  };
+  const out: Block[] = blocks.map((b) => (b.k === 'li' ? { ...b, runs: person(b.runs) } : b));
+  return write({ head: doc.head.title ? { title: doc.head.title } : {}, blocks: out });
 }

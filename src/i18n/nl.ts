@@ -899,6 +899,7 @@ export default {
   'Plain line': 'Gewone lijn',
   'Plain text': 'Platte tekst',
   'Show as slides': 'Tonen als dia’s',
+  'Show as outline': 'Tonen als overzicht',
   'Take away the connection from {from} to {to}': 'De verbinding van {from} naar {to} weghalen',
   'Take it away': 'Weghalen',
   'Take the connection away': 'De verbinding weghalen',

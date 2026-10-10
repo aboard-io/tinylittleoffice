@@ -540,11 +540,17 @@ export class ToText extends LitElement {
   private keepCaretVisible(dom: Selection) {
     // In flight for the keyboard, the column's box is not yet where it is going: it keeps the caret in sight when it settles.
     if (!dom.rangeCount || gliding()) return;
-    const r = dom.getRangeAt(0).getBoundingClientRect();
-    // A caret in a box with no words yet (the row Enter just made) has no rect of its own: the box stands in for it
-    // (Paul, 2026-10-10: the outline's new row appeared under the bar, out of reach).
-    if (r.height) reveal(this, { rect: r, margin: 8 });
-    else reveal(this, { margin: 8 });
+    const range = dom.getRangeAt(0);
+    const r = range.getBoundingClientRect();
+    // A caret in a block with no words yet (the row or the paragraph Enter just made) has no rect of its own: its
+    // block stands in for it, the element the caret sits in, never the whole box (a document's box is the document,
+    // and revealing it scrolled to the top: Paul, 2026-10-11, "the cursor goes beneath the nav"). Paul, 2026-10-10:
+    // the outline's new row appeared under the bar, out of reach.
+    if (r.height) return reveal(this, { rect: r, margin: 8 });
+    const node = range.startContainer;
+    const el =
+      (node instanceof Element ? node : node.parentElement)?.closest('[data-block], p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th') ?? (node instanceof Element ? node : node.parentElement);
+    reveal(el && this.contains(el) ? el : this, { margin: 8 });
   }
 
   /* ---------- edits ---------- */

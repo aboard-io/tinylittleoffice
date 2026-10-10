@@ -184,6 +184,32 @@ test('390×844 with a finger and a keyboard: Enter on the outline’s last row, 
   expect(Math.max(focused.bottom, caret.bottom)).toBeLessThanOrEqual(bar.top + 0.5);
 });
 
+test('390×844 with a finger and a keyboard: Enter at the end of a long text lands the new paragraph above the bar, the column not jumped to its top', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const vv = fakeViewport();
+  const shell = await mount(`#/v1/write/${encodeDoc(BIG)}`);
+  await until(() => !!shell.querySelector('to-write-editor to-bar') && shell.querySelectorAll('to-write-editor p').length > 100);
+  const last = [...shell.querySelectorAll<HTMLElement>('to-write-editor to-text p')].pop()!;
+  await userEvent.click(last);
+  vv.height = 844 - 300;
+  vv.dispatchEvent(new Event('resize'));
+  await until(() => !shell.querySelector('to-chrome')!.hasAttribute('gliding') && shell.querySelector('to-chrome')!.getBoundingClientRect().height <= 545);
+  await userEvent.keyboard('{End}');
+  const main = shell.querySelector<HTMLElement>('.to-main')!;
+  const before = main.scrollTop;
+  await userEvent.keyboard('{Enter}');
+  await until(() => shell.querySelectorAll('to-write-editor to-text p').length > 300);
+  await tick();
+  await tick();
+  const bar = shell.querySelector<HTMLElement>('to-write-editor to-bar')!.getBoundingClientRect();
+  const caret = document.getSelection()!.getRangeAt(0);
+  const block = (caret.startContainer instanceof Element ? caret.startContainer : caret.startContainer.parentElement!).closest('p')!.getBoundingClientRect();
+  expect(main.scrollTop).toBeGreaterThan(before - 50);
+  expect(block.bottom).toBeLessThanOrEqual(bar.top + 0.5);
+  expect(block.top).toBeGreaterThanOrEqual(0);
+});
+
 test('1440×900: the header stays while the words have the focus, and the bar is under it at the column’s top', async () => {
   await page.viewport(1440, 900);
   const { text, main, chrome } = await write();

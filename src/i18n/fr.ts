@@ -900,6 +900,7 @@ export default {
   'Plain line': 'Ligne simple',
   'Plain text': 'Texte brut',
   'Show as slides': 'Afficher en diapositives',
+  'Show as outline': 'Afficher en plan',
   'Take away the connection from {from} to {to}': 'Retirer la connexion de {from} à {to}',
   'Take it away': 'Le retirer',
   'Take the connection away': 'Retirer la connexion',

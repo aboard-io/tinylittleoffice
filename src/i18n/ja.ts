@@ -897,6 +897,7 @@ export default {
   'Plain line': 'ふつうの線',
   'Plain text': 'プレーンテキスト',
   'Show as slides': 'スライドで表示',
+  'Show as outline': 'アウトラインで表示',
   'Take away the connection from {from} to {to}': '{from}から{to}への接続を外す',
   'Take it away': '外す',
   'Take the connection away': '接続を外す',

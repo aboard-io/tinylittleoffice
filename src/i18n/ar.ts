@@ -899,6 +899,7 @@ export default {
   'Plain line': 'خط عادي',
   'Plain text': 'نص عادي',
   'Show as slides': 'عرض كشرائح',
+  'Show as outline': 'عرض كمخطط تفصيلي',
   'Take away the connection from {from} to {to}': 'إزالة الوصلة من {from} إلى {to}',
   'Take it away': 'أزله',
   'Take the connection away': 'أزل الوصلة',

@@ -899,6 +899,7 @@ export default {
   'Plain line': 'Línea simple',
   'Plain text': 'Texto sin formato',
   'Show as slides': 'Mostrar como diapositivas',
+  'Show as outline': 'Mostrar como esquema',
   'Take away the connection from {from} to {to}': 'Quitar la conexión de {from} a {to}',
   'Take it away': 'Quitarlo',
   'Take the connection away': 'Quitar la conexión',

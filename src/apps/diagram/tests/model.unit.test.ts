@@ -629,3 +629,16 @@ describe("the separators in a thing's words", () => {
     expect(layout(parse(write(dotted))).shapes.some((s) => s.hit?.k === 'edge')).toBe(true);
   });
 });
+
+test('a diagram shown as an outline: the list as the outline reads it, a role or years back in brackets, joins kept, the kind left behind', async () => {
+  const { diagramToOutline } = await import('../model.ts');
+  const org = '---\ntitle: Co\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n    - Cy Lund\n  - Eve Marsh | Design\n\n~ Cy Lund -- Eve Marsh: design partner\n';
+  expect(diagramToOutline(parse(org))).toBe(
+    '---\ntitle: Co\n---\n- Ada Diaz (Chief executive)\n  - Ben Okoro (Engineering)\n    - Cy Lund\n  - Eve Marsh (Design)\n\n~ Cy Lund -- Eve Marsh: design partner\n',
+  );
+  // A mind map is the tree itself; a bar in a mind map's words is words.
+  expect(diagramToOutline(parse('---\nkind: mind\n---\n- Centre\n  - A | B\n  - C\n'))).toBe('- Centre\n  - A | B\n  - C\n');
+  // The hand-off is the first of the Diagram's, to the Outliner.
+  expect(def.handoffs![0].to).toBe('outline');
+  expect(def.handoffs![0].convert('---\nkind: net\n---\n- A\n- B\n\n~ A -> B: to\n')).toBe('- A\n- B\n\n~ A -> B: to\n');
+});

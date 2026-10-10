@@ -898,6 +898,7 @@ export default {
   'Plain line': '普通线',
   'Plain text': '纯文本',
   'Show as slides': '显示为幻灯片',
+  'Show as outline': '显示为大纲',
   'Take away the connection from {from} to {to}': '去掉从{from}到{to}的连接',
   'Take it away': '去掉',
   'Take the connection away': '去掉连接',

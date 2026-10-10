@@ -10,6 +10,7 @@ import { defineApp, lookup, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
+import { diagramToOutline } from './model.ts';
 import { diagramPage, diagramSvg, layout, toDrawing } from './view.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
@@ -46,5 +47,8 @@ export default defineApp({
   steps: (doc) => layout(parse(doc)).shapes.length,
   exports: [{ ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', shows: 'own', build: (doc) => utf8(diagramSvg(parse(doc))) }],
   // Its picture as shapes to move about by hand.
-  handoffs: [{ to: 'draw', label: () => t('Open in {app}', { app: lookup.appOf('draw')?.name ?? t('Drawing Tool') }), convert: (doc) => toDrawing(parse(doc)) }],
+  handoffs: [
+    { to: 'outline', label: () => t('Show as outline'), convert: (doc) => diagramToOutline(parse(doc)) },
+    { to: 'draw', label: () => t('Open in {app}', { app: lookup.appOf('draw')?.name ?? t('Drawing Tool') }), convert: (doc) => toDrawing(parse(doc)) },
+  ],
 });
