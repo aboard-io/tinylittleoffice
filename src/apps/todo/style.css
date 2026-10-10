@@ -5,12 +5,14 @@
     display: block;
   }
   /* The list keeps its measure, centred in the window's width; on a phone it runs to the screen's edges. */
+  /* A list of words keeps a measure, the Outliner's 820px, centred; on a phone it runs to the edges. */
   .todo-list {
     list-style: none;
     margin: 0;
     padding: 0;
-    margin-left: max(var(--to-bleed-l), (100% - var(--to-max-w)) / 2);
-    margin-right: max(var(--to-bleed-r), (100% - var(--to-max-w)) / 2);
+    --todo-w: 820px;
+    margin-left: max(var(--to-bleed-l), (100% - var(--todo-w)) / 2);
+    margin-right: max(var(--to-bleed-r), (100% - var(--todo-w)) / 2);
     background: var(--to-surface);
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;
@@ -145,7 +147,7 @@
     }
   }
   .todo-empty {
-    max-width: var(--to-max-w);
+    max-width: 820px;
     margin-inline: auto;
     padding: 24px 0;
     text-align: center;
