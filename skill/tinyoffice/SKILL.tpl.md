@@ -225,6 +225,12 @@ await templates('deck');        // what a deck can start from
 
 A page of your own can import `https://tinylittleoffice.com/tinyoffice.js` instead: `link({ app, doc, title })` writes the plain link and `embed({ app, doc, title })` the `<iframe>` that shows the document's pages. In the API, `encode`/`decode` are the codec, `parse`/`write` the kernel (the document as a head and blocks, and back), `tlo`/`fromTlo` a `.tlo` file's text, `file(app, text, ext)` a file of the app's own formats that needs no browser. In a clone of github.com/ftrain/tinyoffice, `node packages/doc/tinyoffice.ts` is the same from the command line: `link`, `read`, `file`, `diff`, `apps`, `templates`.
 
+## Driving the editors
+
+For an agent working in the editors in a browser: the keys each app answers, written from the apps' command registry (`Mod` is ⌘ on a Mac and Ctrl elsewhere; `at:` places are inside the app). Every command in force is also in the command palette, Mod+K (outside words) or the button at the end of the bar.
+
+{{commands}}
+
 ## Choosing an app
 
 - Numbers, a table, a chart, a model: `sheet`. A quick sum or a conversion: `calc`.

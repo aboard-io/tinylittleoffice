@@ -12,12 +12,14 @@
  *   {{templates:<app>}}     the app's templates, by name
  *   {{exports:<app>}}       the app's own files, beyond the ones every app makes
  *   {{functions}}           the sheet's functions
+ *   {{commands}}            the keys each app answers, from the command registry (scripts/commands.ts)
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { apps, appOf } from '../src/kit/apps.ts';
 import { FUNCTIONS, parse, write } from '../src/doc/index.ts';
 import { plainLink, readPlain } from '../src/kit/plain.ts';
+import { skillCommands } from './commands.ts';
 
 const SITE = 'https://tinylittleoffice.com/';
 const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
@@ -45,6 +47,7 @@ export function makeSkill(): string {
   return readFileSync(at('skill/tinyoffice/SKILL.tpl.md'), 'utf8')
     .replace('{{apps}}', table)
     .replace('{{functions}}', FUNCTIONS.map(([name]) => `\`${name}\``).join(', '))
+    .replace('{{commands}}', () => skillCommands())
     .replace(/\{\{tpl:([a-z]+):([a-z0-9-]+)\}\}/g, (_, id: string, tpl: string) => example(id, tpl))
     .replace(/\{\{templates:([a-z]+)\}\}/g, (_, id: string) => `Templates: ${app(id).templates.map((t) => t.name).join(', ')}.`)
     .replace(/\{\{exports:([a-z]+)\}\}/g, (_, id: string) => {

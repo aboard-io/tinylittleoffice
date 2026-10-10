@@ -133,20 +133,20 @@ const SIZE: Command<Dr>[] = [
 ];
 /** Mod+Shift+L, E and R: the texts in hand (or the one being typed in) aligned. */
 export const ALIGN_KEYS: Command<Dr>[] = ALIGNS.map((x) =>
-  command<Dr>({ id: `draw.align.${x.key.toLowerCase()}`, scope: 'draw', label: x.name, icon: x.icon, keys: `Mod+Shift+${x.key}`, where: ['keys-only'], when: (d) => d.chosen.length > 0 || typing(d), does: (d) => d.alignSel(x.al, texts(d)) }),
+  command<Dr>({ id: `draw.align.${x.key.toLowerCase()}`, scope: 'draw', at: 'canvas', label: x.name, icon: x.icon, keys: `Mod+Shift+${x.key}`, where: ['keys-only'], when: (d) => d.chosen.length > 0 || typing(d), does: (d) => d.alignSel(x.al, texts(d)) }),
 );
 const ACT: Command<Dr>[] = [
-  command<Dr>({ id: 'draw.left', scope: 'draw', label: () => t('Rotate left'), icon: RotateCcw, keys: '[', where: ['context'], group: 'act', when: (d) => shapeAct(d) && d.turnable, does: (d) => d.turnBy(-TURN_STEP) }),
-  command<Dr>({ id: 'draw.right', scope: 'draw', label: () => t('Rotate right'), icon: RotateCw, keys: ']', where: ['context'], group: 'act', when: (d) => shapeAct(d) && d.turnable, does: (d) => d.turnBy(TURN_STEP) }),
-  command<Dr>({ id: 'draw.words', scope: 'draw', label: (d) => (d && held(d)?.k === 'i' ? t('Change the icon') : t('Edit the words')), icon: Tag, keys: 'Enter', where: ['context'], group: 'act', when: (d) => shapeAct(d) && !many(d), does: (d) => d.openWords() }),
+  command<Dr>({ id: 'draw.left', scope: 'draw', at: 'canvas', label: () => t('Rotate left'), icon: RotateCcw, keys: '[', where: ['context'], group: 'act', when: (d) => shapeAct(d) && d.turnable, does: (d) => d.turnBy(-TURN_STEP) }),
+  command<Dr>({ id: 'draw.right', scope: 'draw', at: 'canvas', label: () => t('Rotate right'), icon: RotateCw, keys: ']', where: ['context'], group: 'act', when: (d) => shapeAct(d) && d.turnable, does: (d) => d.turnBy(TURN_STEP) }),
+  command<Dr>({ id: 'draw.words', scope: 'draw', at: 'canvas', label: (d) => (d && held(d)?.k === 'i' ? t('Change the icon') : t('Edit the words')), icon: Tag, keys: 'Enter', where: ['context'], group: 'act', when: (d) => shapeAct(d) && !many(d), does: (d) => d.openWords() }),
   command<Dr>({ id: 'draw.join', scope: 'draw', label: () => t('Join two shapes'), icon: Spline, where: ['context'], group: 'act', when: (d) => shapeAct(d) && !!d.pair, does: (d) => d.join(d.pair![0], d.pair![1]) }),
-  command<Dr>({ id: 'draw.duplicate', scope: 'draw', label: () => t('Duplicate'), icon: Copy, keys: 'Mod+D', where: ['context', 'menu:arrange'], group: 'act', when: canvas, disabled: (d) => !!d.selected && !many(d) && isLink(d.selected.k), does: (d) => d.duplicateSel() }),
+  command<Dr>({ id: 'draw.duplicate', scope: 'draw', at: 'canvas', label: () => t('Duplicate'), icon: Copy, keys: 'Mod+D', where: ['context', 'menu:arrange'], group: 'act', when: canvas, disabled: (d) => !!d.selected && !many(d) && isLink(d.selected.k), does: (d) => d.duplicateSel() }),
   command<Dr>({ id: 'draw.front', scope: 'draw', label: () => t('Bring to front'), icon: ArrowUpToLine, where: ['context', 'menu:arrange'], group: 'act', when: canvas, disabled: (d) => !d.selected, does: (d) => d.reorder(true) }),
   command<Dr>({ id: 'draw.back', scope: 'draw', label: () => t('Send to back'), icon: ArrowDownToLine, where: ['context', 'menu:arrange'], group: 'act', when: canvas, disabled: (d) => !d.selected, does: (d) => d.reorder(false) }),
-  command<Dr>({ id: 'draw.copy', scope: 'draw', label: () => t('Copy'), icon: UI.copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: shapeAct, disabled: (d) => isLink(held(d).k) && d.chosen.length < 2, does: (d) => d.copyOut(false) }),
-  command<Dr>({ id: 'draw.cut', scope: 'draw', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: shapeAct, disabled: (d) => isLink(held(d).k) && d.chosen.length < 2, does: (d) => d.copyOut(true) }),
-  command<Dr>({ id: 'draw.paste', scope: 'draw', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context', 'menu:insert'], heading: () => t('More'), group: 'clip', when: (d) => canvas(d) && !typing(d), does: (d) => d.pasteIn() }),
-  command<Dr>({ id: 'draw.delete', scope: 'draw', label: () => t('Delete'), icon: Trash2, keys: 'Delete / Backspace', where: ['context', 'menu:arrange'], group: 'delete', when: canvas, disabled: (d) => !d.selected, does: (d) => d.removeSel() }),
+  command<Dr>({ id: 'draw.copy', scope: 'draw', at: 'canvas', label: () => t('Copy'), icon: UI.copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: shapeAct, disabled: (d) => isLink(held(d).k) && d.chosen.length < 2, does: (d) => d.copyOut(false) }),
+  command<Dr>({ id: 'draw.cut', scope: 'draw', at: 'canvas', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: shapeAct, disabled: (d) => isLink(held(d).k) && d.chosen.length < 2, does: (d) => d.copyOut(true) }),
+  command<Dr>({ id: 'draw.paste', scope: 'draw', at: 'canvas', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context', 'menu:insert'], heading: () => t('More'), group: 'clip', when: (d) => canvas(d) && !typing(d), does: (d) => d.pasteIn() }),
+  command<Dr>({ id: 'draw.delete', scope: 'draw', at: 'canvas', label: () => t('Delete'), icon: Trash2, keys: 'Delete / Backspace', where: ['context', 'menu:arrange'], group: 'delete', when: canvas, disabled: (d) => !d.selected, does: (d) => d.removeSel() }),
 ];
 
 const INSERTS: Command<Dr>[] = [
@@ -161,22 +161,23 @@ const INSERTS: Command<Dr>[] = [
 
 /** The canvas's own keys: a pen's, the Join tool's, a step out, the letters, and what acts on the shapes in hand. */
 const KEYS: Command<Dr>[] = [
-  command<Dr>({ id: 'draw.pen.close', scope: 'draw', label: () => t('Close the pen’s shape'), keys: 'Enter', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => d.closePen() }),
-  command<Dr>({ id: 'draw.pen.cancel', scope: 'draw', label: () => t('Let the pen’s shape go'), keys: 'Escape', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => void (d.pen = []) }),
-  command<Dr>({ id: 'draw.pen.back', scope: 'draw', label: () => t('Take the last corner back'), keys: 'Backspace', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => void (d.pen = d.pen.slice(0, -1)) }),
-  command<Dr>({ id: 'draw.out', scope: 'draw', label: () => t('Step out: a join begun, the shapes in hand, the tool'), keys: 'Escape', where: ['keys-only'], does: (d) => d.stepOut() }),
-  command<Dr>({ id: 'draw.joinkeys', scope: 'draw', label: () => t('Join: the arrows go from shape to shape, Enter takes each end'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown / Enter', where: ['keys-only'], when: (d) => d.tool === 'k', does: (d, e) => e instanceof KeyboardEvent && d.joinKey(e) }),
+  command<Dr>({ id: 'draw.pen.close', scope: 'draw', at: 'canvas', label: () => t('Done'), keys: 'Enter', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => d.closePen() }),
+  command<Dr>({ id: 'draw.pen.cancel', scope: 'draw', at: 'canvas', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => void (d.pen = []) }),
+  command<Dr>({ id: 'draw.pen.back', scope: 'draw', at: 'canvas', label: () => t('Delete'), keys: 'Backspace', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => void (d.pen = d.pen.slice(0, -1)) }),
+  command<Dr>({ id: 'draw.out', scope: 'draw', at: 'canvas', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], does: (d) => d.stepOut() }),
+  command<Dr>({ id: 'draw.joinkeys', scope: 'draw', at: 'canvas', label: () => t('Join two shapes'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown / Enter', where: ['keys-only'], when: (d) => d.tool === 'k', does: (d, e) => e instanceof KeyboardEvent && d.joinKey(e) }),
   ...TOOLS.map((x) =>
     // K with two shapes chosen joins them, Shift still held from the Shift+tap that chose the second.
-    command<Dr>({ id: `draw.tool.${x.id}`, scope: 'draw', label: x.name, icon: x.icon, keys: x.id === 'k' ? 'K / Shift+K' : x.key, where: ['bar'], pressed: (d) => d.tool === x.id, does: (d, e) => d.pickTool(x.id, e) }),
+    command<Dr>({ id: `draw.tool.${x.id}`, scope: 'draw', at: 'canvas', label: x.name, icon: x.icon, keys: x.id === 'k' ? 'K / Shift+K' : x.key, where: ['bar'], pressed: (d) => d.tool === x.id, does: (d, e) => d.pickTool(x.id, e) }),
   ),
-  command<Dr>({ id: 'draw.all', scope: 'draw', label: () => t('Choose every shape'), keys: 'Mod+A', where: ['keys-only'], does: (d) => d.chooseAll() }),
+  command<Dr>({ id: 'draw.all', scope: 'draw', at: 'canvas', label: () => t('Select all: the words of the box, then everything'), keys: 'Mod+A', where: ['keys-only'], does: (d) => d.chooseAll() }),
   ...ALIGN_KEYS,
-  command<Dr>({ id: 'draw.restack', scope: 'draw', label: () => t('A place forward or back in the stack'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], when: (d) => d.chosen.length > 0, does: (d, e) => d.reorder(!(e instanceof KeyboardEvent) || e.key === 'ArrowUp' ? 1 : -1) }),
+  command<Dr>({ id: 'draw.restack', scope: 'draw', at: 'canvas', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], when: (d) => d.chosen.length > 0, does: (d, e) => d.reorder(!(e instanceof KeyboardEvent) || e.key === 'ArrowUp' ? 1 : -1) }),
   command<Dr>({
     id: 'draw.nudge',
     scope: 'draw',
-    label: () => t('Nudge the shapes in hand (Shift: five steps; Mod: resize)'),
+    at: 'canvas',
+    label: () => t('Nudge the shapes in hand'),
     keys: ['', 'Shift+', 'Mod+'].map((m) => ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].map((k) => m + k).join(' / ')).join(' / '),
     where: ['keys-only'],
     when: (d) => d.chosen.length > 0,
@@ -191,8 +192,8 @@ const PIXELS: Command<Dr>[] = [
   command<Dr>({ id: 'draw.bucket', scope: 'draw', label: () => t('Fill'), icon: PaintBucket, where: ['bar'], when: (d) => !!d.view.grid, pressed: (d) => d.pmode === 'fill', does: (d) => d.paintWith('fill') }),
   command<Dr>({ id: 'draw.clear', scope: 'draw', label: () => t('Clear the grid'), icon: Trash2, where: ['bar'], when: (d) => !!d.view.grid, disabled: (d) => !tileFilled(d.view.pixels), does: (d) => d.clearPixels() }),
   command<Dr>({ id: 'draw.background', scope: 'draw', label: () => t('Background'), hint: () => t('Use as background'), icon: Wallpaper, where: ['bar'], when: (d) => !!d.view.grid, disabled: (d) => !tileFilled(d.view.pixels), does: (d) => d.useAsBackground() }),
-  command<Dr>({ id: 'draw.pixel.move', scope: 'draw', label: () => t('Move about the grid'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown', where: ['keys-only'], when: (d) => !!d.view.grid, does: (d, e) => e instanceof KeyboardEvent && d.moveCursor(e.key) }),
-  command<Dr>({ id: 'draw.pixel.paint', scope: 'draw', label: () => t('Paint the square'), keys: 'Enter / Space', where: ['keys-only'], when: (d) => !!d.view.grid, does: (d) => d.paintHere() }),
+  command<Dr>({ id: 'draw.pixel.move', scope: 'draw', at: 'pixels', label: () => t('Tap or drag to paint; the arrow keys move, Enter paints.'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown', where: ['keys-only'], when: (d) => !!d.view.grid, does: (d, e) => e instanceof KeyboardEvent && d.moveCursor(e.key) }),
+  command<Dr>({ id: 'draw.pixel.paint', scope: 'draw', at: 'pixels', label: () => t('Tap or drag to paint; the arrow keys move, Enter paints.'), keys: 'Enter / Space', where: ['keys-only'], when: (d) => !!d.view.grid, does: (d) => d.paintHere() }),
 ];
 
 const DRAW: Command<Dr>[] = [

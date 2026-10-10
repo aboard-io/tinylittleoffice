@@ -91,7 +91,7 @@ export class ToPalette extends LitElement {
   render() {
     const shown = this.isOpen || this.offers.length ? this.shown() : [];
     const active = Math.min(this.at, shown.length - 1);
-    return html`<dialog class="to-dialog to-palette" aria-label=${t('All commands')} @close=${() => (this.offers = [])} @click=${(e: Event) => e.target === this.dialog && this.close()}>
+    return html`<dialog class="to-dialog to-palette" aria-label=${t('All commands…')} @close=${() => (this.offers = [])} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-dialog-inner">
         <input
           class="to-palette-find"
@@ -110,14 +110,14 @@ export class ToPalette extends LitElement {
           @input=${(e: Event) => ((this.query = (e.target as HTMLInputElement).value), (this.at = 0))}
           @keydown=${this.onKey}
         />
-        <div id="to-palette-list" class="to-palette-list" role="listbox" aria-label=${t('Commands')}>
+        <div id="to-palette-list" class="to-palette-list" role="listbox" aria-label=${t('All commands…')}>
           ${shown.length
             ? shown.map(
                 (o, i) => html`<div id="to-palette-${i}" class="to-palette-item" role="option" aria-selected=${String(i === active)} @pointermove=${() => (this.at = i)} @click=${() => this.choose(o)}>
                   ${o.cmd.icon ? icon(o.cmd.icon, 18) : html`<span class="to-palette-noicon"></span>`}<span class="to-palette-words">${o.cmd.label(o.c)}</span>${o.cmd.keys ? html`<kbd class="to-menu-keys">${keysText(o.cmd.keys)}</kbd>` : nothing}
                 </div>`,
               )
-            : html`<p class="to-hint" role="status">${t('No command starts “{q}”', { q: this.query })}</p>`}
+            : html`<p class="to-hint" role="status">${t('Nothing starts “{q}”', { q: this.query })}</p>`}
         </div>
       </div>
     </dialog>`;

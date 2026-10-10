@@ -30,6 +30,7 @@
     "icons": "node scripts/icons.ts",
     "emoji": "node scripts/emoji.ts",
     "skill": "node scripts/make-skill.ts",
+    "commands": "node scripts/commands.ts",
     "cards": "node scripts/make-cards.ts",
     "tinyoffice": "node packages/doc/tinyoffice.ts",
     "tinier:types": "wrangler types -c tinier/wrangler.jsonc tinier/worker-configuration.d.ts",

@@ -37,7 +37,8 @@ const BOARD: Command<B>[] = [
   command<B>({ id: 'board.insert.stage', scope: 'board', label: () => t('Stage'), icon: Columns3, where: ['menu:insert'], does: (b) => b.newStage() }),
   command<B>({ id: 'board.icon', scope: 'board', label: () => t('Icon'), icon: UI.icon, where: ['bar'], disabled: (b) => !b.mark?.isConnected, does: (b) => b.insertIcon() }),
   command<B>({ id: 'board.rows', scope: 'board', label: () => t('Stages as rows'), icon: Rows3, where: ['bar'], document: true, pressed: (b) => b.view.rows, does: (b) => b.edit(setLook(b.doc, !b.view.rows)) }),
-  // A stage's menu.
+  // A stage's menu (its options button).
+  command<B>({ id: 'board.stage', scope: 'board', label: () => t('Stage options'), menu: 'stage', where: ['in-doc'], does: () => undefined }),
   stageMenu('card', () => t('Add a card'), { icon: UI.plus, does: (b) => menuStage(b).s && b.newCard(menuStage(b).s) }),
   stageMenu('left', () => t('Move left'), { icon: UI.outdent, when: (b) => !b.view.rows, disabled: (b) => menuStage(b).i === 0, does: (b) => b.edit(moveStage(b.view, menuStage(b).i, -1)) }),
   stageMenu('up', () => t('Move up'), { icon: ArrowUp, when: (b) => b.view.rows, disabled: (b) => menuStage(b).i === 0, does: (b) => b.edit(moveStage(b.view, menuStage(b).i, -1)) }),
@@ -52,9 +53,9 @@ const BOARD: Command<B>[] = [
   command<B>({ id: 'board.before', scope: 'board', at: 'rows', label: (b) => (b && beside(b, -1) ? t('Move to {stage}', { stage: beside(b, -1)!.name || t('Stage') }) : t('Move to the stage before')), icon: ArrowLeft, keys: 'Mod+Alt+ArrowLeft', where: ['context'], disabled: (b) => !beside(b, -1), does: (b) => b.carryChosen(-1) }),
   command<B>({ id: 'board.after', scope: 'board', at: 'rows', label: (b) => (b && beside(b, 1) ? t('Move to {stage}', { stage: beside(b, 1)!.name || t('Stage') }) : t('Move to the stage after')), icon: ArrowRight, keys: 'Mod+Alt+ArrowRight', where: ['context'], disabled: (b) => !beside(b, 1), does: (b) => b.carryChosen(1) }),
   // The keys in a card's words (or a stage's name, or a checklist item's).
-  command<B>({ id: 'board.carry', scope: 'board', at: 'words', label: () => t('Move the card to the stage before or after'), keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', where: ['keys-only'], does: (b, e) => b.carryKey(e instanceof KeyboardEvent && e.key === 'ArrowLeft' ? -1 : 1) }),
-  command<B>({ id: 'board.move', scope: 'board', at: 'words', label: () => t('Move the card or the item along'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], does: (b, e) => b.moveKey(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
-  command<B>({ id: 'board.line', scope: 'board', at: 'words', label: () => t('The line before or after, at the edge of the words'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], does: (b, e) => b.lineKey(e instanceof KeyboardEvent && e.key === 'ArrowUp') }),
+  command<B>({ id: 'board.carry', scope: 'board', at: 'words', label: () => t('Move the cards to the stage before or after'), keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', where: ['keys-only'], does: (b, e) => b.carryKey(e instanceof KeyboardEvent && e.key === 'ArrowLeft' ? -1 : 1) }),
+  command<B>({ id: 'board.move', scope: 'board', at: 'words', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], does: (b, e) => b.moveKey(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
+  command<B>({ id: 'board.line', scope: 'board', at: 'words', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], does: (b, e) => b.lineKey(e instanceof KeyboardEvent && e.key === 'ArrowUp') }),
   command<B>({ id: 'board.duplicate', scope: 'board', at: 'words', label: () => t('Duplicate'), keys: 'Mod+D', where: ['keys-only'], does: (b) => b.duplicateKey() }),
   command<B>({ id: 'board.tick', scope: 'board', at: 'words', label: () => t('Tick or untick a task'), keys: 'Mod+Enter', where: ['keys-only'], does: (b) => b.tickKey() }),
 ];

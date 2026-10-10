@@ -42,6 +42,8 @@ Rules:
 - **The title is edited wide, where it is drawn:** a tap or focus on the header's title opens a second row of the header with the field across it at 20px (no dialog, no popover), a new document's automatic name chosen whole so typing replaces it; Enter keeps what was typed, Escape puts back what was there, and a tap elsewhere closes it.
 - **The page is the visible window and the document scrolls in a column** (docs/kernel.md §9): the header, the menu button and the app's bar hold still while the words scroll, so the bar's tools are always a tap away however long the document. The menu button is at the top inline end on every screen (the right in a left-to-right language), where the words are not; the drawer slides in from that side. On a wide screen the bar is under the header; under a finger it is at the column's bottom, above the keyboard, as one scrolling row.
 - **The header is the title** on every screen: the app's icon (a new document), the title, the signed state, the meter and the menu button; Share and Download live in the drawer (Paul, 2026-10-10: "Let's get rid of share and download in the top nav and move that functionality to the hamburger … Now the title has room to breathe"). The drawer begins, under its head (the language, Close), with This document: a small heading over two full-width rows, Share… (Mod+Shift+S) and Download (Mod+Shift+D, which opens the drawer with the table of formats on its first item), the keys written at each row's right; then the search and the apps. On a touch screen the drawer's dialog holds the focus without a ring (it is not a control; the search would raise the keyboard), its edge one hairline against the backdrop.
+- **On a phone the bar comes with the focus and goes with it**: it is shown while something in the document has the focus (words with the caret, a cell of the Spreadsheet, a canvas touched or focused, a chosen row) and slides away while nothing does (reading), with the chrome's glide; the Calculator's always shows, its keys being the document. Whatever of the bar needs nothing in hand (Look, Present, Play, the zoom, the views, the registry's `document` commands) is also a row of the drawer's This document, under the app's name, so it is a tap away while reading. On a fine pointer the bar is always shown.
+- **On a phone the context bar is a row of the bottom bar**, not a bar floating by the thing in hand: iOS draws its selection callout over whatever floats near the words, and no page can stop it (Paul, 2026-10-10: "Our menu keeps getting obscured under the native copy paste menu"). While words are selected the row takes the bottom bar's place (the bar's own row slides back when the selection collapses) and begins with Cut, Copy and Paste, ours: Copy and Cut put our TLO and our HTML on the clipboard, Paste reads it where the browser allows (and, where it refuses, a line under the row says to use the keyboard's paste). On a fine pointer the context bar floats under the thing in hand, as ever.
 - **On a phone, while a box has the focus** (words, a field in an app, the Website Builder's page), the header steps aside and the menu button alone stays (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger. The secondary nav is now aligned bottom."), slid in a fifth of a second into the column's very top inline corner (0.25em in, within the safe area), on a card, translucent so the words under it show through, opaque under a hover, a key's focus and while the drawer is open, a 44px target as ever ("Make the hamburger translucent when I'm editing. Maybe even move it further top right"); it slides back into the header's row when the focus leaves the box (a tap outside, Escape, Done). The bar glides with the keyboard: the column's height follows the visible window through a fifth of a second, the bar fading out while it moves and back when it settles, and the caret is kept in sight once it has ("When the keyboard appears and disappears it jumps and it's overwhelming"). Under reduced motion nothing slides or glides: the height changes at once and only the bar's fade remains. The price of the column: Safari's toolbar no longer collapses as the words scroll, since the page never scrolls.
 
 ## 2. Words (`<to-text>`, everywhere words are typed)
@@ -108,6 +110,8 @@ Rules:
 ## 7. Pointer and finger
 
 - Every button is a real `<button>` with a name; icon buttons are 44px to the finger; a button that acts on an editor's selection never takes the focus (`keep: true`), so the phone keyboard stays up.
+- **The bar is a toolbar**: Left and Right walk its buttons and menus (Home and End to its ends), round the ends; Tab goes on out of it. So every command in a bar is reachable by the keys, whether or not it has keys of its own.
+- **Mod+K opens every command in force** (the command palette; a button at the bar's end does too): found by typing, each with its keys beside it, Enter runs it. In words Mod+K is Link (Docs' key, and every editor's); the palette is the bar's button there, and Mod+K everywhere else.
 - Every menu and list of choices (`<to-menu>`, Insert ▾, the templates) is a roving-focus menu (`menuKey` in menu.ts): Up and Down move, round the ends; Home and End; letters find an item; Enter or Space choose; Escape and Tab close to the opener; Shift, Alt, Ctrl and ⌘ change none of these. Opened by a key the first item has the focus; by a pointer the menu itself, and a mouse over an item takes the focus to it. A menu of rows (the Download menu: a row per format, its actions View, Share, Download and Copy link as icon buttons, each a menu item named for what it does to which file) is still one menu: Up and Down go between the rows, landing on a row's first action; Left and Right go between a row's actions, round its ends; Enter or Space does the action in hand; a screen reader hears the row's format, then the action.
 - Popovers and dialogs are native (`popover`, `<dialog>`), placed inside the column's box, the visual viewport's (kit/scroll.ts `room()`: a menu under its button, its right edge at the button's where the screen ends first; over it only where there is more room above; scrolling inside where neither side holds it, at every size), closed by Escape and by a tap outside (menus) or the Close button (dialogs), returning the focus to their opener.
 - A long press is not used for anything a tap cannot do (iOS owns it for the selection callout).
@@ -147,3 +151,674 @@ Paul, 2026-10-10: a low-vision reader wants big, scrollable nav, a useful menu, 
 ## 9. The audit
 
 For each app, walk every path above with the keyboard, then the mouse, then WebKit at 390px, and record: *works as written* / *missing* / *does something else* (what). Missing items with a bar or context-bar equivalent are gaps on the keyboard only; a shortcut that means something else is the worst kind of deviation and is fixed first. The audit's findings are fixed app by app and proven by a DOM test per path.
+
+## 10. The commands
+
+Every bar, menu, context bar and key in the apps is a command of one registry (src/kit/commands.ts): its words, its icon,
+its keys, the scope it is bound in (the page, the words, the rows, an app), where it is drawn and when it is in force,
+declared once beside the editor that does it (an app's `commands.ts`, the kit's `keys.ts`, `text-commands.ts` and
+`rows-commands.ts`). The bars, the menus, the context bars, the keys, the shortcuts dialog and the command palette are
+drawn from it as the page runs, and the tables below are written from it by `npm run commands`: the registry is this
+standard's source, and these tables are never edited by hand (a node test fails when they are stale). Its lints are node
+tests (test/commands.test.ts): no key is bound twice where the same keys reach (the page, then the app, then the
+words, each at its place), and a key an inner scope takes from an outer one is listed with its reason; every command in a
+bar or a menu has keys or is reached by the bar's arrows; every label is a string of en.ts; every command is run by a
+test; every key is spelled by one function, a Mac's way or Windows'; no two commands of a scope share a label unless
+one of them is in force only sometimes. Keys are written `Mod+Alt+Shift+Key`; `at:` is where in the app the key is
+answered (the canvas, a cell, the rail, the show).
+
+<!-- commands:begin (generated by `npm run commands` from the registry, src/kit/commands.ts: do not edit by hand) -->
+
+### Everywhere (the page) (`kit`)
+
+| Keys | Command | Where |
+|---|---|---|
+| `Mod+Z` | Undo | bar |
+| `Mod+Shift+Z`, `Mod+Y` | Redo | bar |
+| `Mod+F` | Find in this document | keys only |
+| `Mod+S` | Keep this document on the device | keys only |
+| `Mod+Shift+S` | Share… | drawer |
+| `Mod+Shift+D` | Download | drawer |
+| `Mod+P` | Print, or save as PDF | keys only |
+| `Mod+/` | Show these shortcuts | keys only |
+| `Mod+K` | All commands… | bar |
+
+### Words (wherever words are typed) (`text`)
+
+| Keys | Command | Where |
+|---|---|---|
+| `Mod+X` | Cut | context |
+| `Mod+C` | Copy | context |
+| `Mod+V` | Paste | context |
+| `Mod+B` | Bold | bar, context |
+| `Mod+I` | Italic | bar, context |
+| `Mod+U` | Underline | bar, context |
+| `Mod+Shift+X` | Strikethrough | bar, context |
+| `Mod+Shift+H` | Highlight | bar, context |
+| `Mod+K` | Link | bar, context |
+|  | Footnote | bar, context |
+|  | Bulleted list | bar, context |
+|  | Numbered list | bar, context |
+| `Tab` | Indent | bar |
+| `Shift+Tab` | Bring out | bar |
+| `Alt+ArrowUp` | Move up | keys only |
+| `Alt+ArrowDown` | Move down | keys only |
+| `Mod+Enter` | Tick or untick a task | keys only |
+| `Mod+A` | Select all: the words of the box, then everything | keys only |
+
+### Rows chosen whole (`rows`)
+
+| Keys | Command | Where |
+|---|---|---|
+| `Enter` | Edit | context |
+| `Escape` | Step out: close, collapse, let go | keys only |
+| `Alt+ArrowUp` | Move up | context |
+| `Alt+ArrowDown` | Move down | context |
+| `Tab` | Indent | context |
+| `Shift+Tab` | Bring out | context |
+| `Mod+D` | Duplicate | context |
+| `Mod+C` | Copy | context |
+| `Mod+X` | Cut | context |
+| `Mod+V` | Paste | context |
+| `Delete`, `Backspace` | Delete | context |
+| `Shift+ArrowUp`, `Shift+ArrowDown` | Extend the selection | keys only |
+| `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight` | Back to the words | keys only |
+| `Mod+A` | Select all: the words of the box, then everything | keys only |
+
+### Word Processor (`write`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Table | insert ▾ |
+|  | Web Picture… | insert ▾ |
+|  | Web Embed… | insert ▾ |
+|  | Tiny Little Office Doc… | insert ▾ |
+|  | QR code of this document | insert ▾ |
+|  | Date | insert ▾ |
+| `Mod+Shift+Enter` | Page break | insert ▾, at: words |
+|  | Outliner | insert ▾ |
+|  | Presentation Builder | insert ▾ |
+|  | Spreadsheet | insert ▾ |
+|  | Calculator | insert ▾ |
+|  | Drawing Tool | insert ▾ |
+|  | Diagram Maker | insert ▾ |
+|  | Animator | insert ▾ |
+|  | Kanban Board | insert ▾ |
+|  | To-Do List | insert ▾ |
+|  | Calendar | insert ▾ |
+|  | Trip Planner | insert ▾ |
+|  | Website Builder | insert ▾ |
+|  | Title | bar |
+|  | Heading | bar |
+|  | Subheading | bar |
+|  | Paragraph | bar |
+|  | Icon | bar |
+| `Mod+Shift+L` | Align left | align ▾, at: words |
+| `Mod+Shift+E` | Centre | align ▾, at: words |
+| `Mod+Shift+R` | Align right | align ▾, at: words |
+| `Mod+Shift+J` | Justify | align ▾, at: words |
+|  | Sans | look ▾ |
+|  | Serif | look ▾ |
+|  | Typewriter | look ▾ |
+|  | Serif and sans | look ▾ |
+|  | Sans and serif | look ▾ |
+|  | Book | look ▾ |
+|  | Newspaper | look ▾ |
+|  | Letter | paper ▾ |
+|  | A4 | paper ▾ |
+| `Enter` | Edit | context, at: card |
+|  | Open in a new tab | context |
+| `Alt+ArrowUp` | Move up | context, at: card |
+| `Alt+ArrowDown` | Move down | context, at: card |
+| `Mod+D` | Duplicate | context, at: card |
+| `Mod+C` | Copy | context, at: card |
+| `Mod+X` | Cut | context, at: card |
+| `Mod+V` | Paste | context, at: card |
+| `Delete`, `Backspace` | Delete | context, at: card |
+| `Escape`, `ArrowDown`, `ArrowRight` | Back to the words | keys only, at: card |
+| `ArrowUp`, `ArrowLeft` | Back to the words | keys only, at: card |
+
+### Outliner (`outline`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Item | insert ▾ |
+|  | Web Embed… | insert ▾ |
+|  | Tiny Little Office Doc… | insert ▾ |
+|  | Word Processor | insert ▾ |
+|  | Presentation Builder | insert ▾ |
+|  | Spreadsheet | insert ▾ |
+|  | Calculator | insert ▾ |
+|  | Drawing Tool | insert ▾ |
+|  | Diagram Maker | insert ▾ |
+|  | Animator | insert ▾ |
+|  | Kanban Board | insert ▾ |
+|  | To-Do List | insert ▾ |
+|  | Calendar | insert ▾ |
+|  | Trip Planner | insert ▾ |
+|  | Website Builder | insert ▾ |
+|  | Icon | bar |
+| `Tab` | Indent | bar, at: words |
+| `Shift+Tab` | Bring out | bar, at: words |
+| `Alt+ArrowUp` | Move up | bar, at: words |
+| `Alt+ArrowDown` | Move down | bar, at: words |
+|  | Numbered | bar |
+| `Mod+Shift+,` | Zoom out | bar, at: words, drawer on a phone |
+| `Mod+Shift+.` | Zoom in | bar, at: words |
+|  | Fold all | bar, drawer on a phone |
+|  | Unfold all | bar, drawer on a phone |
+|  | Connect | bar |
+|  | As a page | view ▾ |
+|  | Show as slides | view ▾ |
+|  | Draw as a mind map | view ▾ |
+|  | Draw as an org chart | view ▾ |
+|  | Draw as a family tree | view ▾ |
+|  | Draw as a network | view ▾ |
+| `Mod+Alt+ArrowUp`, `Mod+Alt+ArrowDown` | Fold, unfold | keys only, at: words |
+| `Mod+D` | Duplicate | keys only, at: words |
+| `Delete`, `Backspace` | Delete | keys only, at: words |
+| `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight` | The next or the one before | keys only, at: words |
+
+### Presentation Builder (`deck`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Bullets slide | insert ▾ |
+|  | Title slide | insert ▾ |
+|  | Two-column slide | insert ▾ |
+|  | Big icon slide | insert ▾ |
+|  | Four more pages | insert ▾ |
+|  | Web Picture… | insert ▾ |
+|  | Table | insert ▾ |
+|  | Web Embed… | insert ▾ |
+|  | Tiny Little Office Doc… | insert ▾ |
+|  | QR code of this document | insert ▾ |
+|  | Word Processor | insert ▾ |
+|  | Outliner | insert ▾ |
+|  | Spreadsheet | insert ▾ |
+|  | Calculator | insert ▾ |
+|  | Drawing Tool | insert ▾ |
+|  | Diagram Maker | insert ▾ |
+|  | Animator | insert ▾ |
+|  | Kanban Board | insert ▾ |
+|  | To-Do List | insert ▾ |
+|  | Calendar | insert ▾ |
+|  | Trip Planner | insert ▾ |
+|  | Website Builder | insert ▾ |
+| `Mod+Alt+Enter` | Present | bar, at: slide, drawer on a phone |
+|  | See the sheets to print | bar, drawer on a phone |
+|  | Icon | bar |
+|  | Bullets | layout ▾ |
+|  | Title | layout ▾ |
+|  | Two columns | layout ▾ |
+|  | Big icon | layout ▾ |
+|  | Plain | look ▾ |
+|  | Boardroom | look ▾ |
+|  | Ivory | look ▾ |
+|  | Midnight | look ▾ |
+|  | Graphite | look ▾ |
+|  | Confetti | look ▾ |
+|  | Sunset | look ▾ |
+|  | Ocean | look ▾ |
+|  | Bubblegum | look ▾ |
+|  | Arcade | look ▾ |
+|  | Chalkboard | look ▾ |
+|  | The theme's colour | look ▾ |
+|  | Black | look ▾ |
+|  | Red | look ▾ |
+|  | Orange | look ▾ |
+|  | Green | look ▾ |
+|  | Blue | look ▾ |
+|  | Purple | look ▾ |
+|  | Fade | transition ▾ |
+|  | Cut | transition ▾ |
+|  | Slide | transition ▾ |
+|  | Zoom | transition ▾ |
+|  | Slides | format ▾ |
+|  | Zine | format ▾ |
+|  | Booklet | format ▾ |
+|  | Brochure | format ▾ |
+|  | Comic | format ▾ |
+|  | Poster | format ▾ |
+|  | Name badges | format ▾ |
+|  | One-sided: fold and cut | format ▾ |
+|  | Two-sided: cut and nest | format ▾ |
+|  | End with a QR code of this deck | bar, drawer on a phone |
+| `Alt+ArrowUp` | Move slide up | bar, at: words |
+| `Alt+ArrowDown` | Move slide down | bar, at: words |
+|  | Delete slide | bar |
+| `Mod+Shift+Enter` | A new slide | keys only, at: slide |
+| `Mod+Enter` | Done | keys only, at: words |
+| `Mod+D` | Duplicate | keys only, at: slide |
+| `PageUp`, `PageDown` | The slide before, the slide after (on the rail) | keys only, at: rail |
+| `ArrowRight`, `Space`, `PageDown`, `Enter` | Presenting: the next line or slide | keys only, at: show |
+| `ArrowLeft`, `PageUp`, `Backspace` | Presenting: back | keys only, at: show |
+| `End` | Presenting: the whole slide | keys only, at: show |
+| `N`, `Shift+N` | Notes | keys only, at: show |
+| `Escape` | Stop presenting | keys only, at: show |
+
+### Spreadsheet (`sheet`)
+
+| Keys | Command | Where |
+|---|---|---|
+| `Mod+Alt+=` | Row above | insert ▾, at: cell |
+|  | Row below | insert ▾ |
+|  | Column after | insert ▾ |
+|  | Chart | insert ▾ |
+|  | No chart | chart ▾ |
+|  | Bars | chart ▾ |
+|  | Lines | chart ▾ |
+|  | Pie | chart ▾ |
+|  | Flows (Sankey) | chart ▾ |
+| `Mod+D` | Fill down from the top row | bar, context, at: cell |
+|  | Fill right from the first column | bar, context |
+|  | Fit the columns to the page | bar, drawer on a phone |
+|  | Show all the text | bar, drawer on a phone |
+|  | Lock these cells, so a reader leaves them be | bar |
+| `Mod+C` | Copy | context, at: cell |
+| `Mod+X` | Cut | context, at: cell |
+| `Mod+V` | Paste | context, at: cell |
+| `Delete`, `Backspace` | Clear these cells | context, at: cell |
+|  | Insert a row above | row ▾ |
+|  | Insert a row below | row ▾ |
+| `Alt+ArrowUp` | Move up | row ▾, at: cell |
+| `Alt+ArrowDown` | Move down | row ▾, at: cell |
+| `Mod+Alt+-` | Delete  | row ▾, at: cell |
+| `Mod+A` | Select all: the words of the box, then everything | keys only, at: cell |
+| `Mod+Enter` | Done | keys only, at: cell |
+| `Tab`, `Shift+Tab` | Indent or bring out in a list; the next cell in a grid | keys only, at: cell |
+| `F2` | Edit the cell, the caret at its end | keys only, at: cell |
+| `Shift+ArrowUp`, `Shift+ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight` | Extend the selection | keys only, at: cell |
+| `Space` | Tick or untick a task | keys only, at: cell |
+| `Escape` | Step out: close, collapse, let go | keys only, at: cell |
+| `Escape` | Put back what the cell held | keys only, at: cell |
+| `Enter`, `Shift+Enter`, `ArrowDown`, `ArrowUp`, `ArrowLeft`, `ArrowRight` | The next or the one before | keys only, at: cell |
+
+### Calculator (`calc`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Calculator | bar, drawer on a phone |
+|  | Graph | bar, drawer on a phone |
+|  | Sine | insert ▾ |
+|  | Cosine | insert ▾ |
+|  | Tangent | insert ▾ |
+|  | Natural log | insert ▾ |
+|  | Log base ten | insert ▾ |
+|  | Square root | insert ▾ |
+|  | Absolute value | insert ▾ |
+|  | Factorial | insert ▾ |
+|  | e, the number | insert ▾ |
+|  | x, for a graph | insert ▾ |
+|  | Convert to | insert ▾ |
+|  | Derivative | insert ▾ |
+|  | Simplify | insert ▾ |
+|  | Clear the tape | bar, drawer on a phone |
+| `Enter` | Done | keys only, at: entry |
+| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: entry |
+| `Escape` | Clear the line | keys only, at: entry |
+| `Mod+A` | Select all: the words of the box, then everything | keys only, at: entry |
+| `Enter` | Done | keys only, at: line |
+| `Escape` | Step out: close, collapse, let go | keys only, at: line |
+| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: line |
+| `Shift+ArrowUp`, `Shift+ArrowDown` | Extend the selection | keys only, at: line |
+| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: line |
+| `Mod+D` | Duplicate | keys only, at: line |
+| `Mod+A` | Select all: the words of the box, then everything | keys only, at: line |
+| `Backspace` | Delete | keys only, at: line |
+
+### Drawing Tool (`draw`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Rectangle | insert ▾ |
+|  | Rounded box | insert ▾ |
+|  | Ellipse | insert ▾ |
+|  | Diamond | insert ▾ |
+|  | Hexagon | insert ▾ |
+|  | Parallelogram | insert ▾ |
+|  | Cylinder | insert ▾ |
+|  | Note | insert ▾ |
+|  | Text | insert ▾ |
+|  | Line | insert ▾ |
+|  | Arrow | insert ▾ |
+|  | Join two shapes | insert ▾ |
+|  | Icon… | insert ▾ |
+|  | Pen: any shape, a tap for each corner | insert ▾ |
+|  | Freehand: drag to draw a line or a shape | insert ▾ |
+|  | Shapes | mode ▾ |
+|  | Pixels 8×8 | mode ▾ |
+|  | Pixels 16×16 | mode ▾ |
+|  | Pixels 32×32 | mode ▾ |
+|  | Pixels 64×64 | mode ▾ |
+|  | Remove the background tile | mode ▾ |
+|  | Place an icon | bar |
+|  | Add alt text: describe this drawing for people who cannot see it | bar, drawer on a phone |
+|  | Zoom out | bar, drawer on a phone |
+|  | Zoom in | bar, drawer on a phone |
+|  | Black | context |
+|  | Red | context |
+|  | Orange | context |
+|  | Green | context |
+|  | Blue | context |
+|  | Purple | context |
+|  | Solid line | context |
+|  | Dashed line | context |
+|  | Dotted line | context |
+|  | No fill | context |
+|  | Grey fill | context |
+|  | Solid fill | context |
+|  | Small text | context |
+|  | Medium text | context |
+|  | Large text | context |
+|  | Extra large text | context |
+|  | Align: left | context |
+| `[` | Rotate left | context, at: canvas |
+| `]` | Rotate right | context, at: canvas |
+| `Enter` | Edit the words | context, at: canvas |
+|  | Join two shapes | context |
+| `Mod+D` | Duplicate | context, arrange ▾, at: canvas |
+|  | Bring to front | context, arrange ▾ |
+|  | Send to back | context, arrange ▾ |
+| `Mod+C` | Copy | context, at: canvas |
+| `Mod+X` | Cut | context, at: canvas |
+| `Mod+V` | Paste | context, insert ▾, at: canvas |
+| `Delete`, `Backspace` | Delete | context, arrange ▾, at: canvas |
+| `Enter` | Done | keys only, at: canvas |
+| `Escape` | Step out: close, collapse, let go | keys only, at: canvas |
+| `Backspace` | Delete | keys only, at: canvas |
+| `Escape` | Step out: close, collapse, let go | keys only, at: canvas |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Enter` | Join two shapes | keys only, at: canvas |
+| `V` | Select | bar, at: canvas |
+| `R` | Rectangle | bar, at: canvas |
+| `E` | Ellipse | bar, at: canvas |
+| `D` | Diamond | bar, at: canvas |
+| `L` | Line | bar, at: canvas |
+| `A` | Arrow | bar, at: canvas |
+| `T` | Text | bar, at: canvas |
+| `K`, `Shift+K` | Join two shapes | bar, at: canvas |
+| `P` | Pen: any shape, a tap for each corner | bar, at: canvas |
+| `F` | Freehand: drag to draw a line or a shape | bar, at: canvas |
+| `Mod+A` | Select all: the words of the box, then everything | keys only, at: canvas |
+| `Mod+Shift+L` | Align: left | keys only, at: canvas |
+| `Mod+Shift+E` | Align: centre | keys only, at: canvas |
+| `Mod+Shift+R` | Align: right | keys only, at: canvas |
+| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: canvas |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown`, `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+ArrowUp`, `Mod+ArrowDown` | Nudge the shapes in hand | keys only, at: canvas |
+|  | Black | bar |
+|  | Indigo | bar |
+|  | Red | bar |
+|  | Orange | bar |
+|  | Yellow | bar |
+|  | Green | bar |
+|  | Sky | bar |
+|  | Pink | bar |
+|  | Eraser | bar |
+|  | Pencil | bar |
+|  | Fill | bar |
+|  | Clear the grid | bar |
+|  | Background | bar |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown` | Tap or drag to paint; the arrow keys move, Enter paints. | keys only, at: pixels |
+| `Enter`, `Space` | Tap or drag to paint; the arrow keys move, Enter paints. | keys only, at: pixels |
+
+### Diagram Maker (`diagram`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Mind map | kind ▾ |
+|  | Org chart | kind ▾ |
+|  | Family tree | kind ▾ |
+|  | Swimlanes | kind ▾ |
+|  | Timeline | kind ▾ |
+|  | Venn | kind ▾ |
+|  | Seating chart | kind ▾ |
+|  | Network | kind ▾ |
+|  | Idea | insert ▾ |
+|  | Join | bar |
+|  | Print place cards | bar, drawer on a phone |
+|  | Zoom out | bar, drawer on a phone |
+|  | Zoom in | bar, drawer on a phone |
+| `Alt+ArrowUp` | Move up | context, at: thing |
+| `Alt+ArrowDown` | Move down | context, at: thing |
+|  | Add after it | context |
+|  | Icon | context |
+|  | Add a step | context |
+|  | Join | context |
+|  | Make it an arrow | context |
+| `Tab` | Indent | context, at: thing |
+| `Shift+Tab` | Bring out | context, at: thing |
+| `Mod+D` | Duplicate | context, at: thing |
+| `Mod+C` | Copy | context, at: thing |
+| `Mod+X` | Cut | context, at: thing |
+| `Mod+V` | Paste | context, at: thing |
+| `Delete`, `Backspace` | Delete | context, at: thing |
+| `Enter`, `Space` | Edit | keys only, at: thing |
+| `Mod+Alt+ArrowLeft` | Move left | keys only, at: thing |
+| `Mod+Alt+ArrowRight` | Move right | keys only, at: thing |
+| `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight` | The next or the one before | keys only, at: thing |
+| `ArrowDown`, `ArrowRight` | The next or the one before | keys only, at: picture |
+| `Escape` | Step out: close, collapse, let go | keys only, at: picture |
+| `Mod+Enter` | Done | keys only, at: words |
+
+### Animator (`anim`)
+
+| Keys | Command | Where |
+|---|---|---|
+| `Space` | Play | bar, at: stage, drawer on a phone |
+|  | Impact | fx ▾ |
+|  | 3D | fx ▾ |
+|  | Shadow | fx ▾ |
+|  | Neon | fx ▾ |
+|  | Outline | fx ▾ |
+|  | Rainbow | fx ▾ |
+|  | Mirror | fx ▾ |
+|  | Wobble | fx ▾ |
+|  | Blur | fx ▾ |
+|  | Draw | drawer |
+|  | Move | drawer |
+|  | Loop for ever | loop ▾ |
+|  | Play once | loop ▾ |
+|  | Back and forth | loop ▾ |
+|  | 2 times | loop ▾ |
+|  | 3 times | loop ▾ |
+|  | 5 times | loop ▾ |
+|  | 10 times | loop ▾ |
+|  | Loop for ever | loop ▾ |
+| `K` | Add a key here | context, at: stage |
+|  | Remove this key | context |
+| `Enter` | Edit the words | context, at: stage |
+| `Mod+D` | Duplicate | context, at: stage |
+| `Mod+C` | Copy | context, at: stage |
+| `Mod+X` | Cut | context, at: stage |
+| `Mod+V` | Paste | context, at: stage |
+| `Delete`, `Backspace` | Delete | context, at: stage |
+| `,`, `.` | A frame back, a frame on | keys only, at: stage |
+| `Home`, `End` | The first frame, the last | keys only, at: stage |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown`, `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+ArrowUp`, `Mod+ArrowDown` | Nudge the shapes in hand; with none, step a frame | keys only, at: stage |
+| `Mod+A` | Select all: the words of the box, then everything | keys only, at: stage |
+| `Escape` | Step out: close, collapse, let go | keys only, at: stage |
+
+### Kanban Board (`board`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Card | insert ▾ |
+|  | Checklist item | insert ▾ |
+|  | Stage | insert ▾ |
+|  | Icon | bar |
+|  | Stages as rows | bar, drawer on a phone |
+|  | Add a card | stage ▾ |
+|  | Move left | stage ▾ |
+|  | Move up | stage ▾ |
+|  | Move right | stage ▾ |
+|  | Move down | stage ▾ |
+|  | No limit | stage ▾ |
+|  | 1 | stage ▾ |
+|  | 2 | stage ▾ |
+|  | 3 | stage ▾ |
+|  | 5 | stage ▾ |
+|  | 8 | stage ▾ |
+|  | Automatic | stage ▾ |
+|  | Blue | stage ▾ |
+|  | Sky | stage ▾ |
+|  | Green | stage ▾ |
+|  | Yellow | stage ▾ |
+|  | Orange | stage ▾ |
+|  | Red | stage ▾ |
+|  | Purple | stage ▾ |
+|  | Delete stage | stage ▾ |
+| `Mod+Alt+ArrowLeft` | Move to the stage before | context, at: rows |
+| `Mod+Alt+ArrowRight` | Move to the stage after | context, at: rows |
+| `Mod+Alt+ArrowLeft`, `Mod+Alt+ArrowRight` | Move the cards to the stage before or after | keys only, at: words |
+| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: words |
+| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: words |
+| `Mod+D` | Duplicate | keys only, at: words |
+| `Mod+Enter` | Tick or untick a task | keys only, at: words |
+
+### To-Do List (`todo`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Task | insert ▾ |
+|  | All | show ▾ |
+|  | Open | show ▾ |
+|  | Done | show ▾ |
+|  | Clear done | bar, drawer on a phone |
+|  | Due date… | task ▾ |
+|  | No due date | task ▾ |
+| `Alt+ArrowUp` | Move up | task ▾, at: words |
+| `Alt+ArrowDown` | Move down | task ▾, at: words |
+| `Mod+D` | Duplicate | task ▾, at: words |
+|  | Delete task | task ▾ |
+| `Mod+Enter` | Tick or untick a task | keys only, at: words |
+| `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight` | The next or the one before | keys only, at: words |
+
+### Calendar (`cal`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Previous month | bar, drawer on a phone |
+|  | Today | bar, drawer on a phone |
+|  | Next month | bar, drawer on a phone |
+|  | Month | view ▾ |
+|  | Year | view ▾ |
+|  | Schedule | view ▾ |
+|  | Event | insert ▾ |
+|  | Task | insert ▾ |
+|  | Indigo | ink ▾ |
+|  | Red | ink ▾ |
+|  | Orange | ink ▾ |
+|  | Green | ink ▾ |
+|  | Blue | ink ▾ |
+|  | Purple | ink ▾ |
+|  | Time zone | bar, drawer on a phone |
+| `Mod+Alt+ArrowLeft` | A day earlier | context, at: rows |
+| `Mod+Alt+ArrowRight` | A day later | context, at: rows |
+| `Alt+Enter` | Dates… | context, at: rows |
+| `Tab`, `Shift+Tab` | Indent or bring out in a list; the next cell in a grid | keys only, at: words |
+| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: words |
+| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: words |
+| `Mod+D` | Duplicate | keys only, at: words |
+| `Mod+Enter` | Tick or untick a task | keys only, at: words |
+| `Mod+Alt+ArrowLeft` | A day earlier | keys only, at: words |
+| `Mod+Alt+ArrowRight` | A day later | keys only, at: words |
+| `Alt+Enter` | Dates… | keys only, at: words |
+| `Enter` | Event | keys only, at: day |
+| `Escape` | Step out: close, collapse, let go | keys only, at: day |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown`, `Home`, `End`, `PageUp`, `PageDown` | The next or the one before | keys only, at: day |
+| `Delete`, `Backspace` | Delete | keys only, at: entry |
+| `Mod+D` | Duplicate | keys only, at: entry |
+
+### Trip Planner (`trip`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | A place by name… | insert ▾ |
+|  | A stop at the middle of the map | insert ▾ |
+|  | Hours of driving | units ▾ |
+|  | Miles | units ▾ |
+|  | Kilometres | units ▾ |
+|  | Join the stops in order | bar, drawer on a phone |
+|  | Show the whole route | bar, drawer on a phone |
+|  | Map | bar, drawer on a phone |
+| `Mod+Alt+Enter` | Present | bar, drawer on a phone |
+|  | Show on the map | context, at: rows |
+| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: words |
+| `Mod+D` | Duplicate | keys only, at: words |
+| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: words |
+| `ArrowRight`, `Space`, `PageDown`, `Enter` | Presenting: the next stop | keys only, at: show |
+| `ArrowLeft`, `PageUp`, `Backspace` | Presenting: the stop before | keys only, at: show |
+| `Home`, `End` | The first, the last | keys only, at: show |
+| `Escape` | Stop presenting | keys only, at: show |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown` | Nudge the shapes in hand | keys only, at: pin |
+| `Delete`, `Backspace` | Delete | keys only, at: pin |
+| `Escape` | Step out: close, collapse, let go | keys only, at: pin |
+
+### Website Builder (`site`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Page | insert ▾ |
+|  | Section | insert ▾ |
+|  | Heading | insert ▾ |
+|  | Paragraph | insert ▾ |
+|  | Button | insert ▾ |
+|  | Big link | insert ▾ |
+|  | Small link | insert ▾ |
+|  | Web Picture | insert ▾ |
+|  | Big icon | insert ▾ |
+|  | Web Embed | insert ▾ |
+|  | Tiny Little Office Doc | insert ▾ |
+|  | Products | insert ▾ |
+|  | QR code of this document | insert ▾ |
+|  | Word Processor | insert ▾ |
+|  | Outliner | insert ▾ |
+|  | Presentation Builder | insert ▾ |
+|  | Spreadsheet | insert ▾ |
+|  | Calculator | insert ▾ |
+|  | Drawing Tool | insert ▾ |
+|  | Diagram Maker | insert ▾ |
+|  | Animator | insert ▾ |
+|  | Kanban Board | insert ▾ |
+|  | To-Do List | insert ▾ |
+|  | Calendar | insert ▾ |
+|  | Trip Planner | insert ▾ |
+|  | Indigo | look ▾ |
+|  | Teal | look ▾ |
+|  | Rose | look ▾ |
+|  | Amber | look ▾ |
+|  | Ink | look ▾ |
+|  | Forest | look ▾ |
+|  | Ocean | look ▾ |
+|  | Sunset | look ▾ |
+|  | Plum | look ▾ |
+|  | Candy | look ▾ |
+|  | Olive | look ▾ |
+|  | Slate | look ▾ |
+|  | Paper | look ▾ |
+|  | Typewriter | look ▾ |
+|  | Midnight | look ▾ |
+|  | Coal | look ▾ |
+|  | As the theme is | look ▾ |
+|  | Light | look ▾ |
+|  | Dark | look ▾ |
+|  | Sans serif | look ▾ |
+|  | Serif | look ▾ |
+|  | Rounded | look ▾ |
+|  | Monospace | look ▾ |
+|  | A website of pages | look ▾ |
+|  | Quick links: one column | look ▾ |
+|  | Preview | bar, drawer on a phone |
+| `Escape` | Edit | bar, at: preview, drawer on a phone |
+| `Enter` | Edit | context, at: box |
+|  | Where it goes | context |
+| `Alt+ArrowUp` | Move up | context, at: box |
+| `Alt+ArrowDown` | Move down | context, at: box |
+| `Mod+Alt+ArrowLeft` | Move left | context, at: box |
+| `Mod+Alt+ArrowRight` | Move right | context, at: box |
+| `Mod+D` | Duplicate | context, at: box |
+| `Delete`, `Backspace` | Delete | context, at: box |
+| `Escape` | Step out: close, collapse, let go | keys only, at: box |
+| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: box |
+
+<!-- commands:end -->

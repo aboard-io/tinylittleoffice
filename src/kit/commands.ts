@@ -20,8 +20,8 @@
  */
 import type { IconNode } from 'lucide';
 
-/** Where a command is drawn: the app's bar, a menu of it (`menu:align`), the context bar, the drawer's This document, or nowhere (a key alone). */
-export type Where = 'bar' | `menu:${string}` | 'context' | 'drawer' | 'keys-only';
+/** Where a command is drawn: the app's bar, a menu of it (`menu:align`), the context bar, the drawer's This document, in the document itself (a row's number, a task's options), or nowhere (a key alone). */
+export type Where = 'bar' | `menu:${string}` | 'context' | 'drawer' | 'in-doc' | 'keys-only';
 
 // The context a command acts on is its scope's own (the shell, a <to-text>, an editor), typed by each scope's file.
 export interface Command<C = any> {

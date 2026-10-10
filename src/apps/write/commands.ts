@@ -27,7 +27,7 @@ const heldCard = (w: W) => w.cardAt >= 0 && w.isCard(w.cardAt);
 const block = (id: string, k: 'title' | 'h1' | 'h2' | 'p', label: () => string, icon: Command['icon']): Command<W> =>
   command<W>({ id: `write.${id}`, scope: 'write', label, icon, where: ['bar'], pressed: (w) => kind(w) === k, does: (w) => w.text.exec(k === 'p' || kind(w) !== k ? k : 'p') });
 const align = (how: Alignment, label: () => string, icon: Command['icon'], key: string): Command<W> =>
-  command<W>({ id: `write.${how}`, scope: 'write', label, icon, keys: `Mod+Shift+${key}`, where: ['menu:align'], pressed: (w) => (w.text?.sel ? w.text.alignment : 'left') === how, does: (w, e) => (inWords(w, e) ? w.text.exec(how) : false) });
+  command<W>({ id: `write.${how}`, scope: 'write', at: 'words', label, icon, keys: `Mod+Shift+${key}`, where: ['menu:align'], pressed: (w) => (w.text?.sel ? w.text.alignment : 'left') === how, does: (w, e) => (inWords(w, e) ? w.text.exec(how) : false) });
 const ALIGN_ICON = { left: UI.alignLeft, center: UI.alignCenter, right: UI.alignRight, justify: UI.alignJustify };
 
 /** Insert ▾: what goes in at the caret. */
@@ -38,7 +38,7 @@ const INSERTS: Command<W>[] = [
   command<W>({ id: 'write.insert.doc', scope: 'write', label: () => t('Tiny Little Office Doc…'), icon: UI.insert, where: ['menu:insert'], does: (w) => w.insertDocument() }),
   command<W>({ id: 'write.insert.qr', scope: 'write', label: () => t('QR code of this document'), icon: UI.qr, where: ['menu:insert'], does: (w) => w.insertQr() }),
   command<W>({ id: 'write.insert.date', scope: 'write', label: () => t('Date'), icon: UI.calendar, where: ['menu:insert'], does: (w) => w.text.exec('date') }),
-  command<W>({ id: 'write.insert.break', scope: 'write', label: () => t('Page break'), icon: SeparatorHorizontal, keys: 'Mod+Shift+Enter', where: ['menu:insert'], does: (w, e) => (inWords(w, e) ? w.insertBlock({ k: 'hr' }) : false) }),
+  command<W>({ id: 'write.insert.break', scope: 'write', at: 'words', label: () => t('Page break'), icon: SeparatorHorizontal, keys: 'Mod+Shift+Enter', where: ['menu:insert'], does: (w, e) => (inWords(w, e) ? w.insertBlock({ k: 'hr' }) : false) }),
   // A new document of every other app, made in its own editor in the dialog.
   ...apps()
     .filter((a) => a.id !== 'write')
@@ -47,17 +47,17 @@ const INSERTS: Command<W>[] = [
 
 /** The bar under a card in hand (§6's order), and its keys. */
 export const CARD: Command<W>[] = [
-  command<W>({ id: 'write.card.edit', scope: 'write', label: (w) => (w ? w.editLabel(w.cardAt) : t('Edit')), icon: UI.pen, keys: 'Enter', where: ['context'], group: 'edit', when: (w) => heldCard(w) && !!w.editLabel(w.cardAt), does: (w) => w.editHeld() }),
+  command<W>({ id: 'write.card.edit', scope: 'write', at: 'card', label: (w) => (w ? w.editLabel(w.cardAt) : t('Edit')), icon: UI.pen, keys: 'Enter', where: ['context'], group: 'edit', when: (w) => heldCard(w) && !!w.editLabel(w.cardAt), does: (w) => w.editHeld() }),
   command<W>({ id: 'write.card.open', scope: 'write', label: () => t('Open in a new tab'), icon: UI.open, where: ['context'], group: 'edit', when: (w) => heldCard(w) && w.opensIn(w.cardAt), does: (w) => w.openHeld() }),
-  command<W>({ id: 'write.card.up', scope: 'write', label: () => t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', where: ['context'], group: 'edit', when: heldCard, disabled: (w) => w.cardAt === 0, does: (w) => w.moveCard(w.cardAt, -1) }),
-  command<W>({ id: 'write.card.down', scope: 'write', label: () => t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', where: ['context'], group: 'edit', when: heldCard, disabled: (w) => w.cardAt >= w.blockCount - 1, does: (w) => w.moveCard(w.cardAt, 1) }),
-  command<W>({ id: 'write.card.duplicate', scope: 'write', label: () => t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', where: ['context'], group: 'edit', when: heldCard, does: (w) => w.duplicateCard(w.cardAt) }),
-  command<W>({ id: 'write.card.copy', scope: 'write', label: () => t('Copy'), icon: Copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.copyOut(w.cardAt, false) }),
-  command<W>({ id: 'write.card.cut', scope: 'write', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.copyOut(w.cardAt, true) }),
-  command<W>({ id: 'write.card.paste', scope: 'write', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.pasteIn(w.cardAt) }),
-  command<W>({ id: 'write.card.delete', scope: 'write', label: () => t('Delete'), icon: UI.trash, keys: 'Delete / Backspace', where: ['context'], group: 'delete', when: heldCard, does: (w) => w.removeCard(w.cardAt) }),
-  command<W>({ id: 'write.card.back', scope: 'write', label: () => t('Back to the words'), icon: CornerDownLeft, keys: 'Escape / ArrowDown / ArrowRight', where: ['keys-only'], when: heldCard, does: (w) => w.afterCard(w.cardAt, 1) }),
-  command<W>({ id: 'write.card.before', scope: 'write', label: () => t('To the words before it'), keys: 'ArrowUp / ArrowLeft', where: ['keys-only'], when: heldCard, does: (w) => w.afterCard(w.cardAt, -1) }),
+  command<W>({ id: 'write.card.up', scope: 'write', at: 'card', label: () => t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', where: ['context'], group: 'edit', when: heldCard, disabled: (w) => w.cardAt === 0, does: (w) => w.moveCard(w.cardAt, -1) }),
+  command<W>({ id: 'write.card.down', scope: 'write', at: 'card', label: () => t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', where: ['context'], group: 'edit', when: heldCard, disabled: (w) => w.cardAt >= w.blockCount - 1, does: (w) => w.moveCard(w.cardAt, 1) }),
+  command<W>({ id: 'write.card.duplicate', scope: 'write', at: 'card', label: () => t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', where: ['context'], group: 'edit', when: heldCard, does: (w) => w.duplicateCard(w.cardAt) }),
+  command<W>({ id: 'write.card.copy', scope: 'write', at: 'card', label: () => t('Copy'), icon: Copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.copyOut(w.cardAt, false) }),
+  command<W>({ id: 'write.card.cut', scope: 'write', at: 'card', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.copyOut(w.cardAt, true) }),
+  command<W>({ id: 'write.card.paste', scope: 'write', at: 'card', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.pasteIn(w.cardAt) }),
+  command<W>({ id: 'write.card.delete', scope: 'write', at: 'card', label: () => t('Delete'), icon: UI.trash, keys: 'Delete / Backspace', where: ['context'], group: 'delete', when: heldCard, does: (w) => w.removeCard(w.cardAt) }),
+  command<W>({ id: 'write.card.back', scope: 'write', at: 'card', label: () => t('Back to the words'), icon: CornerDownLeft, keys: 'Escape / ArrowDown / ArrowRight', where: ['keys-only'], when: heldCard, does: (w) => w.afterCard(w.cardAt, 1) }),
+  command<W>({ id: 'write.card.before', scope: 'write', at: 'card', label: () => t('Back to the words'), keys: 'ArrowUp / ArrowLeft', where: ['keys-only'], when: heldCard, does: (w) => w.afterCard(w.cardAt, -1) }),
 ];
 
 /** Every command of the Word Processor, the bar's in its order. */
@@ -77,7 +77,7 @@ const WRITE: Command<W>[] = [
   command<W>({ id: 'write.look', scope: 'write', label: (w) => t('Look: {theme}', { theme: (w ? lookOf(w.doc) : LOOKS.sans).name() }), icon: Palette, menu: 'look', where: ['bar'], document: true, does: () => undefined }),
   ...LOOK_IDS.map((id) => command<W>({ id: `write.look.${id}`, scope: 'write', label: () => LOOKS[id].name(), hint: () => LOOKS[id].sample(), where: ['menu:look'], pressed: (w) => lookOf(w.doc).id === id, does: (w) => w.setLook(id) })),
   command<W>({ id: 'write.paper', scope: 'write', label: (w) => t('Paper: {paper}', { paper: PAPERS[w ? paperOf(w.doc) : 'letter'].name }), icon: Ruler, menu: 'paper', where: ['bar'], document: true, does: () => undefined }),
-  ...(Object.keys(PAPERS) as Paper[]).map((p) => command<W>({ id: `write.paper.${p}`, scope: 'write', label: () => PAPERS[p].name, where: ['menu:paper'], pressed: (w) => paperOf(w.doc) === p, does: (w) => w.setPaper(p) })),
+  ...(Object.keys(PAPERS) as Paper[]).map((p) => command<W>({ id: `write.paper.${p}`, scope: 'write', label: () => (p === 'a4' ? t('A4') : t('Letter')), where: ['menu:paper'], pressed: (w) => paperOf(w.doc) === p, does: (w) => w.setPaper(p) })),
   ...CARD,
 ];
 

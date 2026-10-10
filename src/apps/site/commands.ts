@@ -78,9 +78,8 @@ const SITE: Command<S>[] = [
   move('right', () => t('Move right'), ArrowRight, 'Mod+Alt+ArrowRight'),
   command<S>({ id: 'site.duplicate', scope: 'site', at: 'box', label: () => t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', where: ['context'], group: 'edit', when: (s) => !!thing(s), disabled: (s) => !duplicateObj(s.doc, s.view, held(s)!), does: (s) => s.fromBarDo(() => s.change(duplicateObj(s.doc, s.view, held(s)!))) }),
   command<S>({ id: 'site.delete', scope: 'site', at: 'box', label: () => t('Delete'), icon: UI.trash, keys: 'Delete / Backspace', where: ['context'], group: 'delete', when: (s) => !!thing(s), disabled: (s) => !removeObj(s.doc, s.view, held(s)!), does: (s) => s.fromBarDo(() => s.change(removeObj(s.doc, s.view, held(s)!))) }),
-  command<S>({ id: 'site.letgo', scope: 'site', at: 'box', label: () => t('Let it go'), keys: 'Escape', where: ['keys-only'], when: (s) => !!thing(s), does: (s) => s.letGo() }),
-  command<S>({ id: 'site.step', scope: 'site', at: 'box', label: () => t('The thing before or after'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], when: (s) => !!thing(s), does: (s, e) => s.step(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
-  command<S>({ id: 'site.all', scope: 'site', at: 'box', label: () => t('Nothing more to choose'), keys: 'Mod+A', where: ['keys-only'], when: (s) => !!thing(s), does: () => undefined }),
+  command<S>({ id: 'site.letgo', scope: 'site', at: 'box', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], when: (s) => !!thing(s), does: (s) => s.letGo() }),
+  command<S>({ id: 'site.step', scope: 'site', at: 'box', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], when: (s) => !!thing(s), does: (s, e) => s.step(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
 ];
 export const BOX = SITE.filter((c) => c.at === 'box' && c.keys);
 export const PREVIEW = SITE.filter((c) => c.at === 'preview');

@@ -333,7 +333,9 @@ export class ToSiteEditor extends DocElement<Site> {
   /** The keys of the thing in hand (commands.ts; docs/editing.md §6): never from a field or a button. */
   private onBoxKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.target !== e.currentTarget || this.held === null || e.isComposing || this.asking) return;
-    runKey(e, BOX, this);
+    if (runKey(e, BOX, this)) return;
+    // Select all: there is nothing more to choose than the thing in hand, and never the page's words.
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'a') e.preventDefault();
   };
   /** Escape on the thing in hand: let go, the focus back to the page. */
   letGo() {

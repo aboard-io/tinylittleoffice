@@ -21,7 +21,6 @@ const gantt = (c?: C) => !!c?.view.gantt;
 const year = (c?: C) => !gantt(c) && c?.mode === 'year';
 const view = (id: 'month' | 'year' | 'gantt', label: () => string, icon: Command['icon'], hint?: () => string) =>
   command<C>({ id: `cal.view.${id}`, scope: 'cal', label, icon, hint, where: ['menu:view'], pressed: (c) => (id === 'gantt' ? gantt(c) : !gantt(c) && c.mode === id), does: (c) => c.setMode(id) });
-const arrow = (e?: Event) => (e instanceof KeyboardEvent && e.key === 'ArrowLeft' ? -1 : 1);
 
 const CAL: Command<C>[] = [
   command<C>({ id: 'cal.prev', scope: 'cal', label: (c) => (gantt(c) ? t('A week earlier') : year(c) ? t('Previous year') : t('Previous month')), icon: ChevronLeft, where: ['bar'], document: true, does: (c) => c.page(-1) }),
@@ -44,21 +43,22 @@ const CAL: Command<C>[] = [
   command<C>({ id: 'cal.later', scope: 'cal', at: 'rows', label: () => t('A day later'), icon: ArrowRight, keys: 'Mod+Alt+ArrowRight', where: ['context'], does: (c) => c.nudgeChosen(1) }),
   command<C>({ id: 'cal.dates', scope: 'cal', at: 'rows', label: () => t('Dates…'), icon: CalendarDays, keys: 'Alt+Enter', where: ['context'], takesFocus: true, does: (c) => c.datesChosen() }),
   // A task's words.
-  command<C>({ id: 'cal.task.nest', scope: 'cal', at: 'words', label: () => t('Indent, bring out'), keys: 'Tab / Shift+Tab', where: ['keys-only'], does: (c, e) => c.taskKey('nest', e) }),
-  command<C>({ id: 'cal.task.move', scope: 'cal', at: 'words', label: () => t('Move the task up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], does: (c, e) => c.taskKey('move', e) }),
-  command<C>({ id: 'cal.task.step', scope: 'cal', at: 'words', label: () => t('The task before or after'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], does: (c, e) => c.taskKey('step', e) }),
+  command<C>({ id: 'cal.task.nest', scope: 'cal', at: 'words', label: () => t('Indent or bring out in a list; the next cell in a grid'), keys: 'Tab / Shift+Tab', where: ['keys-only'], does: (c, e) => c.taskKey('nest', e) }),
+  command<C>({ id: 'cal.task.move', scope: 'cal', at: 'words', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], does: (c, e) => c.taskKey('move', e) }),
+  command<C>({ id: 'cal.task.step', scope: 'cal', at: 'words', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], does: (c, e) => c.taskKey('step', e) }),
   command<C>({ id: 'cal.task.duplicate', scope: 'cal', at: 'words', label: () => t('Duplicate'), keys: 'Mod+D', where: ['keys-only'], does: (c, e) => c.taskKey('duplicate', e) }),
   command<C>({ id: 'cal.task.tick', scope: 'cal', at: 'words', label: () => t('Tick or untick a task'), keys: 'Mod+Enter', where: ['keys-only'], does: (c, e) => c.taskKey('tick', e) }),
-  command<C>({ id: 'cal.task.day', scope: 'cal', at: 'words', label: () => t('A day earlier, a day later'), keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', where: ['keys-only'], does: (c, e) => c.taskKey(arrow(e) < 0 ? 'earlier' : 'later', e) }),
+  command<C>({ id: 'cal.task.earlier', scope: 'cal', at: 'words', label: () => t('A day earlier'), keys: 'Mod+Alt+ArrowLeft', where: ['keys-only'], does: (c, e) => c.taskKey('earlier', e) }),
+  command<C>({ id: 'cal.task.later', scope: 'cal', at: 'words', label: () => t('A day later'), keys: 'Mod+Alt+ArrowRight', where: ['keys-only'], does: (c, e) => c.taskKey('later', e) }),
   command<C>({ id: 'cal.task.dates', scope: 'cal', at: 'words', label: () => t('Dates…'), keys: 'Alt+Enter', where: ['keys-only'], does: (c, e) => c.taskKey('dates', e) }),
   // A day of the month.
-  command<C>({ id: 'cal.day.make', scope: 'cal', at: 'day', label: () => t('An event over the days swept'), keys: 'Enter', where: ['keys-only'], when: (c) => !!c.sweep, does: (c) => c.makeSweep() }),
-  command<C>({ id: 'cal.day.letgo', scope: 'cal', at: 'day', label: () => t('Let the sweep go'), keys: 'Escape', where: ['keys-only'], when: (c) => !!c.sweep, does: (c) => void (c.sweep = null) }),
+  command<C>({ id: 'cal.day.make', scope: 'cal', at: 'day', label: () => t('Event'), keys: 'Enter', where: ['keys-only'], when: (c) => !!c.sweep, does: (c) => c.makeSweep() }),
+  command<C>({ id: 'cal.day.letgo', scope: 'cal', at: 'day', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], when: (c) => !!c.sweep, does: (c) => void (c.sweep = null) }),
   command<C>({
     id: 'cal.day.walk',
     scope: 'cal',
     at: 'day',
-    label: () => t('A day, a week, a month; the week’s ends; with Shift, a sweep'),
+    label: () => t('The next or the one before'),
     keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown / Shift+ArrowLeft / Shift+ArrowRight / Shift+ArrowUp / Shift+ArrowDown / Home / End / PageUp / PageDown',
     where: ['keys-only'],
     does: (c, e) => e instanceof KeyboardEvent && c.walkDay(e),

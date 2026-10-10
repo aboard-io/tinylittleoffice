@@ -34,10 +34,10 @@ const FX_NAMES: Record<string, () => string> = {
 const any = (a: A) => a.sels.length > 0;
 const joins = (a: A) => a.sels.every((i) => isLink(a.view.shapes[i]?.k));
 const moving = (a: A) => a.mode === 'move';
-const loop = (l: Loop) => command<A>({ id: `anim.loop.${l}`, scope: 'anim', label: () => loopName(l), hint: () => (l === 'bounce' ? t('Forward, then back') : undefined), where: ['menu:loop'], pressed: (a) => a.view.loop === l, does: (a) => a.act(setLoop(a.doc, l)) });
+const loop = (l: Loop) => command<A>({ id: `anim.loop.${l}`, scope: 'anim', label: () => (typeof l === 'number' ? t('{n} times', { n: l }) : loopName(l)), hint: () => (l === 'bounce' ? t('Forward, then back') : undefined), where: ['menu:loop'], pressed: (a) => a.view.loop === l, does: (a) => a.act(setLoop(a.doc, l)) });
 
 const ANIM: Command<A>[] = [
-  command<A>({ id: 'anim.play', scope: 'anim', label: (a) => (a?.playing ? t('Pause') : t('Play')), icon: Play, keys: 'Space', at: 'stage', where: ['bar'], document: true, when: moving, pressed: (a) => a.playing, does: (a) => a.toggle() }),
+  command<A>({ id: 'anim.play', scope: 'anim', label: (a) => (a?.playing ? t('Pause') : t('Play')), hint: () => t('Play or pause'), icon: Play, keys: 'Space', at: 'stage', where: ['bar'], document: true, when: moving, pressed: (a) => a.playing, does: (a) => a.toggle() }),
   command<A>({ id: 'anim.fx', scope: 'anim', label: () => t('Effects'), icon: Sparkles, menu: 'fx', where: ['bar'], when: moving, does: () => undefined }),
   ...EFFECTS.map((f) => command<A>({ id: `anim.fx.${f.letter}`, scope: 'anim', label: () => FX_NAMES[f.letter](), where: ['menu:fx'], disabled: (a) => a.sel < 0, pressed: (a) => a.sel >= 0 && stateAt(a.view, a.sel, a.frame).fx.includes(f.letter), does: (a) => a.toggleFx(f.letter) })),
   command<A>({ id: 'anim.draw', scope: 'anim', label: () => t('Draw'), icon: PenTool, where: ['drawer'], document: true, pressed: (a) => !moving(a), does: (a) => a.setMode('draw') }),
@@ -53,16 +53,16 @@ const ANIM: Command<A>[] = [
   command<A>({ id: 'anim.unkey', scope: 'anim', label: () => t('Remove this key'), icon: UI.close, where: ['context'], group: 'keys', when: any, disabled: (a) => !a.sels.some((i) => hasKey(a.view, i, a.frame)), does: (a) => a.removeKeyHere() }),
   command<A>({ id: 'anim.words', scope: 'anim', label: () => t('Edit the words'), icon: Tag, keys: 'Enter', at: 'stage', where: ['context'], group: 'edit', when: any, disabled: (a) => a.sels.length !== 1 || isLink(a.view.shapes[a.sel]?.k), does: (a) => a.editWords() }),
   command<A>({ id: 'anim.duplicate', scope: 'anim', label: () => t('Duplicate'), icon: Copy, keys: 'Mod+D', at: 'stage', where: ['context'], group: 'edit', when: any, disabled: joins, does: (a) => a.duplicateSel() }),
-  command<A>({ id: 'anim.copy', scope: 'anim', label: () => t('Copy'), icon: UI.copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: any, disabled: joins, does: (a) => a.copyOut(false) }),
-  command<A>({ id: 'anim.cut', scope: 'anim', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: any, disabled: joins, does: (a) => a.copyOut(true) }),
-  command<A>({ id: 'anim.paste', scope: 'anim', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', when: any, does: (a) => a.pasteIn() }),
+  command<A>({ id: 'anim.copy', scope: 'anim', at: 'stage', label: () => t('Copy'), icon: UI.copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: any, disabled: joins, does: (a) => a.copyOut(false) }),
+  command<A>({ id: 'anim.cut', scope: 'anim', at: 'stage', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: any, disabled: joins, does: (a) => a.copyOut(true) }),
+  command<A>({ id: 'anim.paste', scope: 'anim', at: 'stage', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', when: any, does: (a) => a.pasteIn() }),
   command<A>({ id: 'anim.delete', scope: 'anim', label: () => t('Delete'), icon: UI.trash, keys: 'Delete / Backspace', at: 'stage', where: ['context'], group: 'delete', when: any, does: (a) => a.removeSel() }),
   // The stage's keys.
   command<A>({ id: 'anim.step', scope: 'anim', label: () => t('A frame back, a frame on'), keys: ', / .', at: 'stage', where: ['keys-only'], does: (a, e) => a.seek(a.frame + (e instanceof KeyboardEvent && (e.key === ',' || e.key === '<') ? -1 : 1)) }),
   command<A>({ id: 'anim.ends', scope: 'anim', label: () => t('The first frame, the last'), keys: 'Home / End', at: 'stage', where: ['keys-only'], does: (a, e) => a.seek(e instanceof KeyboardEvent && e.key === 'Home' ? 0 : a.view.frames - 1) }),
   command<A>({ id: 'anim.nudge', scope: 'anim', label: () => t('Nudge the shapes in hand; with none, step a frame'), keys: ['', 'Shift+', 'Mod+'].map((m) => ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].map((k) => m + k).join(' / ')).join(' / '), at: 'stage', where: ['keys-only'], does: (a, e) => e instanceof KeyboardEvent && a.arrowKey(e) }),
-  command<A>({ id: 'anim.all', scope: 'anim', label: () => t('Choose every shape'), keys: 'Mod+A', at: 'stage', where: ['keys-only'], does: (a) => a.selectAll() }),
-  command<A>({ id: 'anim.out', scope: 'anim', label: () => t('Stop the playing, then let the shapes go'), keys: 'Escape', at: 'stage', where: ['keys-only'], does: (a) => a.stepOut() }),
+  command<A>({ id: 'anim.all', scope: 'anim', label: () => t('Select all: the words of the box, then everything'), keys: 'Mod+A', at: 'stage', where: ['keys-only'], does: (a) => a.selectAll() }),
+  command<A>({ id: 'anim.out', scope: 'anim', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', at: 'stage', where: ['keys-only'], does: (a) => a.stepOut() }),
 ];
 
 export default register(ANIM) as Command<A>[];
