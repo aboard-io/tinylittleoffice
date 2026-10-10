@@ -2,7 +2,7 @@
 // dialog's short-link section offers Update (once changed), Extend over the lifetimes, and Forget, in that
 // order; a short link made here comes big with Copy, the owner link folded under it.
 import { test, expect, afterEach, vi } from 'vitest';
-import { mount, until } from './helpers.ts';
+import { mount, tick, until } from './helpers.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { parse, write } from '../../src/doc/index.ts';
@@ -53,6 +53,8 @@ test('opened from an owner link, the document can update its short link; the sha
     text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
     await text.updateComplete;
   }
+  // The link follows once typing pauses.
+  await tick(200);
   await shell.updateComplete;
   // (The first change stamps the time the document was first written into its head.)
   const again = parseHash(location.hash).payload;

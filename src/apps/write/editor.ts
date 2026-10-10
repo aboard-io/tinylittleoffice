@@ -26,6 +26,7 @@
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { guard } from 'lit/directives/guard.js';
 import { gateSvg } from '../../kit/pictures.ts';
 import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Palette, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
 import { isEmbed, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
@@ -38,7 +39,7 @@ import type { ToDialog } from '../../kit/dialog.ts';
 import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
-import { t } from '../../kit/i18n.ts';
+import { language, t } from '../../kit/i18n.ts';
 import { noteIndex, noteMarks, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import { myKey, signerName, signWords } from '../../kit/privacy.ts';
@@ -145,7 +146,7 @@ export class ToWriteEditor extends DocElement<Doc> {
 
   /** A value from outside with the same blocks and another head is the head edited (the title): an edit like any other, undoable. */
   protected willUpdate(changed: PropertyValues) {
-    if (changed.has('value') && this.hasUpdated && this.value !== write(this.doc)) {
+    if (changed.has('value') && this.hasUpdated && !this.ours(this.value) && this.value !== write(this.doc)) {
       const next = parse(this.value);
       if (write({ head: {}, blocks: next.blocks }) === write({ head: {}, blocks: this.doc.blocks })) {
         const keys = new Set([...Object.keys(this.doc.head), ...Object.keys(next.head)]);
@@ -194,10 +195,22 @@ export class ToWriteEditor extends DocElement<Doc> {
     await this.updateComplete;
     await this.text.updateComplete;
   }
+  /** The caret moved (or the words were drawn under it): drawn again only when the bar would show something else. */
   private onSelect = (e: CustomEvent<Sel | null>) => {
     this.sel = e.detail;
-    this.requestUpdate();
+    if (this.barKey() !== this.barDrawn) this.requestUpdate();
   };
+  /**
+   * Everything the bar shows, as one key: the block's kind, its alignment and the marks at the caret, the look, the
+   * paper, Undo and Redo, the language. The bar is drawn again only when it changes (`guard`), so a letter typed
+   * into a paragraph draws the words and not the bar.
+   */
+  private barKey(): string {
+    const x = this.sel ? this.text : null;
+    const m = x?.marks ?? {};
+    return [x?.kind ?? '', x?.alignment ?? 'left', m.b, m.i, m.u, m.s, m.h, !!m.href, lookOf(this.doc).id, paperOf(this.doc), this.canUndo, this.canRedo, language()].join('|');
+  }
+  private barDrawn = '';
 
   /* ---------- putting things in ---------- */
 
@@ -706,16 +719,15 @@ export class ToWriteEditor extends DocElement<Doc> {
 
   /* ---------- drawing ---------- */
 
-  render() {
+  /** The bar, drawn from what barKey() names. */
+  private renderBar(): TemplateResult {
     const x = this.sel ? this.text : null;
     const m = x?.marks ?? {};
     const kind = x?.kind ?? null;
     const on = (c: 'b' | 'i' | 'u' | 's' | 'h') => !!m[c];
     const paper = paperOf(this.doc);
     const look = lookOf(this.doc);
-    const words = wordCount(this.doc);
     const alignIcon = { left: UI.alignLeft, center: UI.alignCenter, right: UI.alignRight, justify: UI.alignJustify }[x?.alignment ?? 'left'];
-    const a = this.asking;
     return html`<to-bar class="write-bar">
         <to-insert .items=${this.inserts()}></to-insert>
         ${tool({ label: t('Title'), icon: UI.text, keep: true, pressed: kind === 'title', does: () => this.text.exec(kind === 'title' ? 'p' : 'title') })}
@@ -738,7 +750,16 @@ export class ToWriteEditor extends DocElement<Doc> {
         <to-menu class="write-look" icon-only keep .label=${t('Look: {theme}', { theme: look.name() })} .icon=${Palette} .items=${this.lookItems()}></to-menu>
         <to-menu class="write-paper" icon-only keep .label=${t('Paper: {paper}', { paper: PAPERS[paper].name })} .icon=${Ruler} .items=${this.paperItems()}></to-menu>
         ${this.undoTools()}
-      </to-bar>
+      </to-bar>`;
+  }
+
+  render() {
+    const paper = paperOf(this.doc);
+    const look = lookOf(this.doc);
+    const words = wordCount(this.doc);
+    const a = this.asking;
+    const key = (this.barDrawn = this.barKey());
+    return html`${guard([key], () => this.renderBar())}
       <div class="write-page" data-paper=${paper} data-look=${look.id}>
         ${this.renderFields()}
         <to-text class="write-text" shape="doc" notes .blocks=${this.doc.blocks} .card=${this.card} label=${t('Document')} placeholder=${t('Write here.')} @text-ops=${this.onOps} @text-select=${this.onSelect} @text-embed=${this.onCardTap} @text-note=${this.onNote}></to-text>

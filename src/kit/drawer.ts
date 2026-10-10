@@ -24,7 +24,7 @@ import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
 import { mark } from './mark.ts';
 import { openFile, OPENS } from './open.ts';
 import { compareHash } from './compare.ts';
-import { parseHash } from './route.ts';
+import { currentHash, parseHash } from './route.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { commitUrl, running, type Version } from './version.ts';
 import './preview.ts';
@@ -98,7 +98,7 @@ export class ToDrawer extends LitElement {
   }
   /** Compare, beginning with the document open now (if one is). */
   private compareHref(): string {
-    const { app, payload } = parseHash(location.hash);
+    const { app, payload } = parseHash(currentHash());
     return compareHash(app && payload ? { app, payload } : null);
   }
 

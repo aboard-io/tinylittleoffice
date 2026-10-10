@@ -58,6 +58,15 @@ function parseOwned(q: URLSearchParams): Owned | null {
   return /^[a-z0-9]{7}$/.test(id) && B64.test(key) && B64.test(o) ? { id, key, o } : null;
 }
 
+/** The shell's flush (kit/shell.ts flushLink): the link brought up to the document, which it follows only when typing pauses. */
+let flusher: () => void = () => {};
+export const onFlush = (fn: () => void) => void (flusher = fn);
+/** The address with the document as it is now: whatever reads the link as the document outside the shell reads it here. */
+export function currentHash(): string {
+  flusher();
+  return typeof location === 'undefined' ? '' : location.hash;
+}
+
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);
   if (!m) return { app: null, payload: '', version: LINK_VERSION, view: '', owned: null, display: false, arrived: null, sealed: false };

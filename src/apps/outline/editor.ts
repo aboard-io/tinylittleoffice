@@ -861,7 +861,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       this.field = e.target as ToText;
       this.sel = at;
     }
-    this.requestUpdate();
+    if (this.selectionMoved(`${this.sel} ${!!e.detail} ${JSON.stringify(this.field?.marks ?? {})}`)) this.requestUpdate();
   }
 
   private crumbs() {

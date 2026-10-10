@@ -39,8 +39,18 @@ const count = (s: string) => (s.match(/\S+/g) ?? []).length;
 /** How many words the text holds: its blocks of words (a web address alone is not words) and its footnotes. */
 export function wordCount(doc: Doc): number {
   let n = 0;
-  for (const b of doc.blocks) if (isText(b) && !isEmbed(b)) n += count(plainText(b.runs));
-  for (const fn of notesOf(doc.blocks)) n += count(plainText(noteRuns(fn)));
+  for (const b of doc.blocks) n += blockWords(b);
+  return n;
+}
+/** Each block's words, counted once: an edit makes new blocks only where it touched, so a keystroke counts one block. */
+const counted = new WeakMap<Block, number>();
+function blockWords(b: Block): number {
+  let n = counted.get(b);
+  if (n === undefined) {
+    n = isText(b) && !isEmbed(b) ? count(plainText(b.runs)) : 0;
+    for (const fn of notesOf([b])) n += count(plainText(noteRuns(fn)));
+    counted.set(b, n);
+  }
   return n;
 }
 
