@@ -1,57 +1,96 @@
 /**
  * Draw's templates: Blank is the app's own page; these are the rest, each a real drawing written by the
- * kernel (so each is canonical and round-trips byte for byte). Four of shapes, two of pixels.
+ * kernel (so each is canonical and round-trips byte for byte). Shapes first, the everyday ones before the
+ * special, then pixels. templates.md says what each is for.
  */
 import type { Template } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
 import { column, write, type Block, type Doc } from '../../doc/index.ts';
 
-const COLS = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label'];
-const table = (rows: string[][]): Block => ({ k: 'table', cols: COLS.map(column), rows: rows.map((r) => COLS.map((_, c) => r[c] ?? '')) });
-const shapes = (head: Doc['head'], ...rows: string[][]): string => write({ head, blocks: [table(rows)] });
-const pixels = (grid: number, ...rows: string[]): string => write({ head: { grid: String(grid) }, blocks: [{ k: 'p', runs: [{ t: rows.join('\n') }] }] });
+/**
+ * A row: Kind, X, Y, W, H, Style, Label, and, only where a shape needs them, its turn in degrees and its
+ * corners. The table has a Rot column while some shape is turned and a Points column while some shape is
+ * drawn by its corners, as the editor writes them.
+ */
+type Row = [kind: string, x: number, y: number, w: number, h: number, style: string, label: string, rot?: number, points?: string];
+function table(rows: Row[]): Block {
+  const rot = rows.some((r) => r[7]);
+  const pts = rows.some((r) => r[8]);
+  const cols = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label', ...(rot ? ['Rot'] : []), ...(pts ? ['Points'] : [])];
+  return {
+    k: 'table',
+    cols: cols.map(column),
+    rows: rows.map(([k, x, y, w, h, s, label, turn, corners]) => [k, String(x), String(y), String(w), String(h), s, label, ...(rot ? [turn ? String(turn) : ''] : []), ...(pts ? [corners ?? ''] : [])]),
+  };
+}
+const shapes = (head: Doc['head'], ...rows: Row[]): string => write({ head, blocks: [table(rows)] });
+const pixels = (head: Doc['head'], ...rows: string[]): string => write({ head, blocks: [{ k: 'p', runs: [{ t: rows.join('\n') }] }] });
+
+/** Pip the frog, 32 by 32. */
+const FROG = ['.', '.', '.', '.', '.........aaa........aaa', '........afffa......afffa', '.......aff.ffa....aff.ffa', '......aff...ffaaaaff...ffa', '......af..aa.ffffff..aa.fa', '......aff.aaffffffff.aaffa', '......afff.ffffffffff.fffa', '.....affffffffffffffffffffa', '....affffffffffffffffffffffa', '....affffffffffffffffffffffa', '....afffhhfffffffffffffhhffa', '....afffffffafffffffaffffffa', '.....afffffffaaaaaaaffffffa', '......affffffffffffffffffa', '.....affffffffffffffffffffa', '....afffcccccccccccccccccffa', '....afffcccccccccccccccccffa', '...afffffffeeeeeeeeecccfffffa', '...afffffffeeeeeeeeecccfffffa', '....afffffeeeeeeeeeecccffffa', '....affffffeeeeeeeeecccffffa', '.....afafffeeeeeeeeeefffafa', '......a.afffeeeeeeeefffa.a', '........aafffeeeeeefffaa', '.......affffffffffffffffa', '.......affffffaaaaffffffa', '........aaffaa....aaffaa', '..........aa........aa'];
+/** Sun, cloud, rain and storm, each 16 by 16, on a 32 grid. */
+const WEATHER = ['.', '........d', '........d', '...d..aaaa...d.........aaaa', '....daeeeea.d.........agggga', '....aeeeeeea.........agggggga', '...aeeeeeeeea.......aagggggga', '...aeeeeeeeea......aggggggggga', '.ddaeeeeeeeeadd...aggggggggggga', '...aeeeeeeeea....aggggggggggggga', '....aeeeeeea......agggggggggggga', '.....aeeeea........agggggggggga', '....d.aaaa..d.......aaaaaaaaaa', '...d....d....d', '........d', '.', '.......aaaa.............aa', '......abbbba..........aaaaaa', '.....abbbbbba.........aaaaaa', '...aaabbbbbba.......aaaaaaaaa', '..abbbbbbbbbba.....aaaaaaaaaaa', '..abbbbbbbbbbba....aaaaaaaaaaaa', '..abbbbbbbbbbbba...aaaaaaaaaaaa', '..abbbbbbbbbbba.....aaaaaaaaaa', '...abbbbbbbbbba..........e', '....aaaaaaaaaa..........e', '.........g..............e', '.....g..g....g.........eeee', '....g.......g............e', '........................e', '.......g...g...........e'];
 
 export const templates = (): Template[] => [
   {
-    id: 'request',
-    name: t('Request flow'),
-    blurb: t('A browser asks a server, which reads the data: boxes joined by arrows.'),
-    doc: shapes({ alt: 'A browser asks a server, which reads the data.' }, ['o', '4', '6', '16', '8', '1b', 'Browser'], ['o', '32', '6', '16', '8', '1b', 'Server'], ['c', '60', '5', '14', '10', '1g', 'Data'], ['k', '0', '1', '0', '0', '0', 'asks'], ['k', '1', '2', '0', '0', '0', 'reads']),
-  },
-  {
     id: 'flowchart',
     name: t('Flowchart'),
-    blurb: t('Start, a question, two answers and an end: the shapes a flowchart is made of.'),
+    blurb: t('Can we refund it? A shop’s returns rule as questions, answers and what to do.'),
     doc: shapes(
-      { alt: 'A flowchart: start, is the kettle on? Yes: make tea. No: switch it on, then make tea. Then drink.' },
-      ['o', '30', '2', '20', '6', '1g', 'Start'],
-      ['d', '26', '12', '28', '12', '0', 'Is the kettle on?'],
-      ['r', '4', '28', '20', '8', '1o', 'Switch it on'],
-      ['r', '30', '28', '20', '8', '1b', 'Make tea'],
-      ['o', '30', '40', '20', '6', '2g', 'Drink'],
-      ['k', '0', '1', '0', '0', '0', ''],
-      ['k', '1', '3', '0', '0', '0', 'yes'],
-      ['k', '1', '2', '0', '0', '0', 'no'],
-      ['k', '2', '3', '0', '0', '0', ''],
-      ['k', '3', '4', '0', '0', '0', ''],
+      { title: 'Can we refund it?', alt: 'A flowchart for a refund. Bought in the last 30 days? No: offer a repair or a trade-in. Yes: is there a receipt? Yes: refund to the card. No: store credit. Every way ends in the returns book.' },
+      ['o', 26, 1, 28, 5, '1g', 'A customer asks for a refund'],
+      ['d', 24, 8, 32, 11, '0', 'Bought in the last 30 days?'],
+      ['d', 46, 20, 28, 11, '0', 'Got the receipt?'],
+      ['r', 3, 34, 22, 7, '1o', 'Offer a repair | or a trade-in'],
+      ['r', 31, 34, 20, 7, '1p', 'Store credit | for the full price'],
+      ['r', 57, 34, 21, 7, '1b', 'Refund to the card | back in 5 days'],
+      ['o', 24, 44, 32, 5, '2g', 'Note it in the returns book'],
+      ['k', 0, 1, 0, 0, '0', ''],
+      ['k', 1, 2, 0, 0, '0', 'yes'],
+      ['k', 1, 3, 0, 0, '0', 'no'],
+      ['k', 2, 5, 0, 0, '0', 'yes'],
+      ['k', 2, 4, 0, 0, '0', 'no'],
+      ['k', 3, 6, 0, 0, '0', ''],
+      ['k', 4, 6, 0, 0, '0', ''],
+      ['k', 5, 6, 0, 0, '0', ''],
     ),
   },
   {
-    id: 'tiers',
-    name: t('Three tiers'),
-    blurb: t('Phone and laptop, an API, a database and a cache: a system drawn with icons and joins.'),
+    id: 'card',
+    name: t('Birthday card'),
+    blurb: t('A card for a ninetieth, tilted on a background of confetti: big words, flowers, love from everyone.'),
     doc: shapes(
-      { alt: 'A phone and a laptop talk to an API, which reads a database and a cache.' },
-      ['i', '6', '4', '8', '8', '0', 'phone2'],
-      ['i', '6', '18', '8', '8', '0', 'laptop'],
-      ['o', '30', '10', '20', '8', '1b', ':server API'],
-      ['c', '60', '2', '14', '10', '1p', 'Postgres'],
-      ['c', '60', '18', '14', '10', '1o', 'Cache'],
-      ['n', '26', '30', '28', '12', '1', 'Every request is logged | with its latency and status'],
-      ['k', '0', '2', '0', '0', '0', 'https'],
-      ['k', '1', '2', '0', '0', '0', 'https'],
-      ['k', '2', '3', '0', '0', '0', 'sql'],
-      ['k', '2', '4', '0', '0', '1', 'get'],
+      { title: 'Happy 90th, Nan', alt: 'A birthday card on confetti: Happy 90th, Nan! With love from all of us at 14 Marsh Lane, and flowers in the corners.', tile: '8:c/....g/..e/......h/.g/....c/e/......d' },
+      ['r', 12, 4, 56, 42, '0', '', 357],
+      ['i', 16, 7, 8, 8, '0r', 'flower', 357],
+      ['i', 56, 33, 8, 8, '0p', 'flower', 357],
+      ['i', 57, 7, 6, 6, '0r', 'heart', 357],
+      ['t', 18, 16, 46, 7, '0r4', '**Happy 90th, Nan!**', 357],
+      ['t', 19, 25, 40, 4, '0', 'Ninety years of good advice and better cake.', 357],
+      ['t', 19, 31, 34, 4, '01', 'With love from all of us at 14 Marsh Lane', 357],
+      ['t', 19, 36, 34, 4, '0p1', '*Sunday 22 November 2026*', 357],
+    ),
+  },
+  {
+    id: 'event',
+    name: t('Event map'),
+    blurb: t('A street party from above: the stage, the stalls, first aid and where to meet if you are lost.'),
+    doc: shapes(
+      { title: 'Elm Street block party', alt: 'A map of the Elm Street block party on Saturday 13 June 2026: the stage, tea and cakes, plants, and books and records on the north side of the street; first aid, toilets, face painting and the meeting point on the south side.' },
+      ['r', 0, 21, 80, 10, '1', 'Elm Street | closed to cars 10 am to 8 pm'],
+      ['r', 0, 20, 1, 12, '2r', ''],
+      ['r', 79, 20, 1, 12, '2r', ''],
+      ['r', 2, 3, 22, 14, '2p', ':music **Stage** | bands from 2 pm'],
+      ['o', 27, 8, 14, 9, '1o', ':coffee Tea and cakes'],
+      ['o', 43, 8, 13, 9, '1g', ':flower Plants'],
+      ['o', 58, 8, 15, 9, '1b', ':book Books | and records'],
+      ['o', 3, 34, 18, 9, '1r', ':heart First aid | and lost children'],
+      ['r', 24, 34, 12, 9, '1', 'Toilets'],
+      ['o', 39, 34, 20, 9, '1o', ':smile Face painting | and chalk'],
+      ['i', 65, 34, 7, 7, '0r', 'map-pin'],
+      ['t', 61, 42, 18, 4, '0r1', '**Meet here** if you lose anyone'],
+      ['t', 2, 45, 58, 4, '01', 'Saturday 13 June 2026, 12 to 6 pm. Bring a chair; cars out by 10 am.'],
+      ['t', 73, 2, 6, 4, '0', 'N ↑'],
     ),
   },
   {
@@ -59,29 +98,176 @@ export const templates = (): Template[] => [
     name: t('Floor plan'),
     blurb: t('A one-bedroom flat from above: rooms as rectangles, labelled, with the doors as gaps.'),
     doc: shapes(
-      { alt: 'The floor plan of a one-bedroom flat: a living room and kitchen on the left, a hall in the middle, a bedroom and bathroom on the right.' },
-      ['r', '2', '2', '36', '26', '1', 'Living room | 5.2 × 4.1 m'],
-      ['r', '2', '28', '36', '20', '1g', 'Kitchen | 5.2 × 3.2 m'],
-      ['r', '38', '2', '10', '46', '0', 'Hall'],
-      ['r', '48', '2', '30', '28', '1b', 'Bedroom | 4.3 × 4.4 m'],
-      ['r', '48', '30', '30', '18', '1p', 'Bathroom'],
-      ['l', '38', '12', '0', '6', '2', ''],
-      ['l', '38', '34', '0', '6', '2', ''],
-      ['l', '48', '12', '0', '6', '2', ''],
-      ['l', '48', '36', '0', '6', '2', ''],
-      ['t', '40', '47', '8', '3', '01', 'N ↑'],
+      { title: 'Flat 4, 18 Albion Road', alt: 'The floor plan of a one-bedroom flat: a living room and kitchen on the left, a hall in the middle, a bedroom and bathroom on the right.' },
+      ['r', 2, 2, 36, 26, '1', 'Living room | 5.2 × 4.1 m'],
+      ['r', 2, 28, 36, 20, '1g', 'Kitchen | 5.2 × 3.2 m'],
+      ['r', 38, 2, 10, 46, '0', 'Hall'],
+      ['r', 48, 2, 30, 28, '1b', 'Bedroom | 4.3 × 4.4 m'],
+      ['r', 48, 30, 30, 18, '1p', 'Bathroom'],
+      ['l', 38, 12, 0, 6, '2', ''],
+      ['l', 38, 34, 0, 6, '2', ''],
+      ['l', 48, 12, 0, 6, '2', ''],
+      ['l', 48, 36, 0, 6, '2', ''],
+      ['t', 40, 47, 8, 3, '01', 'N ↑'],
+    ),
+  },
+  {
+    id: 'room',
+    name: t('Room plan'),
+    blurb: t('The front room rearranged: sofa, rug, bookcase and desk to scale, the door’s swing drawn in.'),
+    doc: shapes(
+      { title: 'The front room, rearranged', alt: 'A plan of a front room, 5.2 by 4.1 metres: a sofa facing the television across a rug and a low table, a bookcase on the left wall, a desk under the window and an armchair by the door.' },
+      ['r', 8, 3, 54, 44, '0', ''],
+      ['r', 20, 2, 24, 2, '2g', ''],
+      ['t', 24, 4, 16, 3, '0g1', 'Window'],
+      ['r', 0, 22, 24, 5, '1o', 'Bookcase', 90],
+      ['r', 50, 22, 18, 3, '2', 'TV', 90],
+      ['e', 18, 16, 28, 18, '1o', ''],
+      ['r', 25, 21, 14, 8, '0', 'Low table'],
+      ['o', 18, 37, 28, 8, '1b', 'Sofa | 2.2 m'],
+      ['r', 46, 5, 15, 7, '1p', 'Desk'],
+      ['o', 49, 30, 10, 9, '1b', 'Chair'],
+      ['i', 10, 39, 6, 6, '0g', 'leaf'],
+      ['w', 52, 40, 8, 7, '0', '', 0, '0:100;0:0;38:8;71:29;92:62;100:100'],
+      ['n', 64, 3, 15, 19, '1', 'Sofa off the radiator wall | rug from the hall | on 8 November'],
+      ['t', 64, 24, 15, 3, '01', '5.2 × 4.1 m'],
+    ),
+  },
+  {
+    id: 'wireframe',
+    name: t('Wireframe'),
+    blurb: t('A phone screen sketched in boxes before anyone builds it, with notes on why each part is there.'),
+    doc: shapes(
+      { title: 'Library app: a book’s page', alt: 'A wireframe of a phone screen for a library app: a header, a search box, a cover image, the title and author, how many copies are in, and a Borrow button, with three notes on the right.' },
+      ['o', 4, 1, 26, 48, '0', ''],
+      ['r', 6, 4, 22, 4, '1', '**Riverside Library**'],
+      ['r', 6, 10, 22, 4, '0', ':search Find a book'],
+      ['r', 9, 16, 16, 13, '1', ''],
+      ['l', 9, 16, 16, 13, '1', ''],
+      ['l', 25, 16, -16, 13, '1', ''],
+      ['t', 6, 30, 22, 3, '0', '**The Overstory**'],
+      ['t', 6, 33, 22, 3, '01', 'Richard Powers · 2 of 3 in'],
+      ['o', 6, 39, 22, 5, '2b', 'Borrow'],
+      ['n', 44, 3, 32, 9, '1o', 'Search at the top | most visits are to find one book'],
+      ['n', 44, 18, 32, 9, '1g', 'The cover from the catalogue | a grey box until it loads'],
+      ['n', 44, 34, 32, 9, '1b', 'One button | Borrow, or Join the queue when none are in'],
+      ['k', 9, 2, 0, 0, '1', ''],
+      ['k', 10, 3, 0, 0, '1', ''],
+      ['k', 11, 8, 0, 0, '1', ''],
+    ),
+  },
+  {
+    id: 'logo',
+    name: t('Logo sketch'),
+    blurb: t('Three ideas for a coffee roaster’s mark side by side, the name set large, and a date to choose by.'),
+    doc: shapes(
+      { title: 'Hollow Pine Coffee: logo ideas', alt: 'Three logo ideas for Hollow Pine Coffee: a mug in a green circle, pines in an orange hexagon, and a pine tree drawn as one shape, with the name set large beneath them.' },
+      ['e', 5, 3, 20, 20, '1g', ''],
+      ['i', 9, 7, 12, 12, '0g', 'coffee'],
+      ['h', 30, 3, 20, 20, '1o', ''],
+      ['i', 34, 7, 12, 12, '0o', 'trees'],
+      ['v', 58, 2, 16, 18, '2g', '', 0, '50:0;78:38;64:38;90:72;10:72;36:38;22:38'],
+      ['r', 64, 20, 4, 4, '2o', ''],
+      ['t', 8, 24, 16, 3, '01', '**A** · the mug'],
+      ['t', 32, 24, 18, 3, '01', '**B** · the woods'],
+      ['t', 58, 25, 18, 3, '01', '**C** · one pine'],
+      ['t', 4, 30, 72, 7, '0g4', '**Hollow Pine** Coffee'],
+      ['t', 5, 38, 70, 4, '0', 'Roasted in Keswick since 2019'],
+      ['n', 5, 43, 40, 6, '1o', 'Pick one by Friday 16 October'],
+    ),
+  },
+  {
+    id: 'badge',
+    name: t('Badge'),
+    blurb: t('A rosette with ribbons for the volunteer of the year, to print, cut out and pin on.'),
+    doc: shapes(
+      { title: 'Volunteer of the year', alt: 'A rosette badge with two ribbons: a star, Volunteer of the year, Hartley Food Bank 2026.' },
+      ['r', 29, 30, 8, 18, '2r', '', 15],
+      ['r', 43, 30, 8, 18, '2b', '', 345],
+      ['e', 22, 2, 36, 36, '2o', ''],
+      ['e', 25, 5, 30, 30, '0o', ''],
+      ['i', 36, 8, 8, 8, '2o', 'star'],
+      ['t', 27, 17, 26, 5, '0o3', '**Volunteer**'],
+      ['t', 30, 23, 22, 3, '0', 'of the year'],
+      ['t', 28, 27, 24, 3, '01', 'Hartley Food Bank · 2026'],
+    ),
+  },
+  {
+    id: 'order',
+    name: t('Order to doorstep'),
+    blurb: t('What happens to a parcel from the moment it is bought: a process in steps, with icons and joins.'),
+    doc: shapes(
+      { title: 'From order to doorstep', alt: 'How an order at Fernhill Tea travels: ordered, paid, packed in Leeds, out for delivery, delivered; the payment is written to the orders table.' },
+      ['o', 2, 4, 23, 9, '1b', ':cart **Ordered** | Tuesday, 9:14 am'],
+      ['o', 29, 4, 22, 9, '1p', ':dollar **Paid** | £42.50 by card'],
+      ['o', 55, 4, 23, 9, '1o', ':package **Packed** | in Leeds'],
+      ['o', 55, 24, 23, 9, '1g', ':truck **Out for delivery** | Wednesday'],
+      ['o', 29, 24, 22, 9, '2g', ':home **Delivered** | by 6 pm'],
+      ['c', 5, 23, 16, 12, '1', 'Orders'],
+      ['n', 55, 38, 23, 11, '1', '**Late?** | We email by noon | and refund the postage'],
+      ['k', 0, 1, 0, 0, '0', ''],
+      ['k', 1, 2, 0, 0, '0', ''],
+      ['k', 2, 3, 0, 0, '0', 'van'],
+      ['k', 3, 4, 0, 0, '0', ''],
+      ['j', 1, 5, 0, 0, '1', 'saved'],
+    ),
+  },
+  {
+    id: 'request',
+    name: t('Request flow'),
+    blurb: t('A browser asks a server, which reads the data: boxes joined by arrows.'),
+    doc: shapes(
+      { title: 'How a page loads', alt: 'A browser asks a server, which reads the data.' },
+      ['o', 4, 6, 16, 8, '1b', 'Browser'],
+      ['o', 32, 6, 16, 8, '1b', 'Server'],
+      ['c', 60, 5, 14, 10, '1g', 'Data'],
+      ['k', 0, 1, 0, 0, '0', 'asks'],
+      ['k', 1, 2, 0, 0, '0', 'reads'],
+    ),
+  },
+  {
+    id: 'tiers',
+    name: t('Three tiers'),
+    blurb: t('Phone and laptop, an API, a database and a cache: a system drawn with icons and joins.'),
+    doc: shapes(
+      { title: 'Three tiers', alt: 'A phone and a laptop talk to an API, which reads a database and a cache.' },
+      ['i', 6, 4, 8, 8, '0', 'phone2'],
+      ['i', 6, 18, 8, 8, '0', 'laptop'],
+      ['o', 30, 10, 20, 8, '1b', ':server API'],
+      ['c', 60, 2, 14, 10, '1p', 'Postgres'],
+      ['c', 60, 18, 14, 10, '1o', 'Cache'],
+      ['n', 26, 30, 28, 12, '1', 'Every request is logged | with its latency and status'],
+      ['k', 0, 2, 0, 0, '0', 'https'],
+      ['k', 1, 2, 0, 0, '0', 'https'],
+      ['k', 2, 3, 0, 0, '0', 'sql'],
+      ['k', 2, 4, 0, 0, '1', 'get'],
     ),
   },
   {
     id: 'heart',
     name: t('Pixel heart'),
     blurb: t('A 16 by 16 heart in pixels, to colour in or start over from.'),
-    doc: pixels(16, '....cc....cc....', '...cccc..cccc...', '..cccccccccccc..', '..chccccccccccc.', '..chccccccccccc.', '..cccccccccccc..', '...cccccccccc...', '....cccccccc....', '.....cccccc.....', '......cccc......', '.......cc.......'),
+    doc: pixels({ title: 'A heart', grid: '16' }, '....cc....cc....', '...cccc..cccc...', '..cccccccccccc..', '..chccccccccccc.', '..chccccccccccc.', '..cccccccccccc..', '...cccccccccc...', '....cccccccc....', '.....cccccc.....', '......cccc......', '.......cc.......'),
+  },
+  {
+    id: 'icons',
+    name: t('Weather icons'),
+    blurb: t('Four 16 by 16 icons on one grid, sun, cloud, rain and storm, to copy for a forecast or a button.'),
+    doc: pixels(
+      { title: 'Weather icons', grid: '32' },
+      ...WEATHER,
+    ),
+  },
+  {
+    id: 'sprite',
+    name: t('Game sprite'),
+    blurb: t('Pip the frog, a 32 by 32 hero in a red scarf, outlined and ready to animate.'),
+    doc: pixels({ title: 'Pip the frog', grid: '32' }, ...FROG),
   },
   {
     id: 'tile',
     name: t('Background tile'),
     blurb: t('An 8 by 8 pattern that repeats: use it as the background of a drawing, or any page.'),
-    doc: pixels(8, 'b...b', '.b.b.b', '..b', '.b.b.b', 'b...b', '.....b.b', '......b', '.....b.b'),
+    doc: pixels({ title: 'Diamonds', grid: '8' }, 'b...b', '.b.b.b', '..b', '.b.b.b', 'b...b', '.....b.b', '......b', '.....b.b'),
   },
 ];

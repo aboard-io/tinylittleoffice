@@ -206,7 +206,9 @@ test('the pages: shapes as SVG with their labels and arrowheads, over the tile; 
 
 test('every template is a real document that round-trips byte for byte and draws', () => {
   const all = templates();
-  expect(all.map((x) => x.id)).toEqual(['request', 'flowchart', 'tiers', 'floorplan', 'heart', 'tile']);
+  expect(all.map((x) => x.id)).toEqual(['flowchart', 'card', 'event', 'floorplan', 'room', 'wireframe', 'logo', 'badge', 'order', 'request', 'tiers', 'heart', 'icons', 'sprite', 'tile']);
+  // Every one has its own title, a name and a blurb.
+  for (const tpl of all) expect([parse(tpl.doc).head.title, tpl.name, tpl.blurb].every(Boolean), tpl.id).toBe(true);
   for (const tpl of all) {
     expect(write(parse(tpl.doc)), tpl.id).toBe(tpl.doc);
     expect(tpl.doc.endsWith('\n')).toBe(true);
