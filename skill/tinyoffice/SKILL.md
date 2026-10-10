@@ -458,18 +458,22 @@ Templates: A project, A week, Moving house, Hiring, Content calendar, Editorial 
 Shopping:
 
 ```
+---
+title: Shopping
+---
 - [x] Oat milk
 - [x] Coffee beans
 - [ ] Lemons
 - [ ] Sourdough
-- [ ] Eggs
+- [ ] A dozen eggs
 - [ ] Olive oil
 - [ ] Basil, the live kind
+- [ ] Candles for Mira's cake on Saturday {.star due=2026-10-17}
 ```
 
-As a link: <https://tinylittleoffice.com/todo/#doc=-+%5Bx%5D+Oat+milk%0A-+%5Bx%5D+Coffee+beans%0A-+%5B+%5D+Lemons%0A-+%5B+%5D+Sourdough%0A-+%5B+%5D+Eggs%0A-+%5B+%5D+Olive+oil%0A-+%5B+%5D+Basil%2C+the+live+kind>
+As a link: <https://tinylittleoffice.com/todo/#doc=---%0Atitle%3A+Shopping%0A---%0A-+%5Bx%5D+Oat+milk%0A-+%5Bx%5D+Coffee+beans%0A-+%5B+%5D+Lemons%0A-+%5B+%5D+Sourdough%0A-+%5B+%5D+A+dozen+eggs%0A-+%5B+%5D+Olive+oil%0A-+%5B+%5D+Basil%2C+the+live+kind%0A-+%5B+%5D+Candles+for+Mira%27s+cake+on+Saturday+%7B.star+due%3D2026-10-17%7D>
 
-Templates: This week, Shopping, Packing for a trip. Its own files: `.md`, `.ics`.
+Templates: This week, Daily routine, Shopping, Groceries by aisle, Reading list, Packing for a trip, Garden by season, Project launch, Onboarding, Moving out, Wedding checklist. Its own files: `.md`, `.ics`.
 
 ### cal: a calendar, or a schedule
 

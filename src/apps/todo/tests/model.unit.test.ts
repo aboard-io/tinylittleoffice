@@ -98,10 +98,20 @@ test('the definition: a blank list is one empty task; the templates are canonica
   expect(def.id).toBe('todo');
   expect(readTodo(parse(def.blank())).tasks).toHaveLength(1);
   expect(write(parse(def.blank()))).toBe(def.blank());
-  expect(templates().map((t) => t.id)).toEqual(['week', 'shopping', 'trip']);
+  expect(templates().map((t) => t.id)).toEqual(['week', 'daily', 'shopping', 'groceries', 'reading', 'trip', 'garden', 'launch', 'onboarding', 'moveout', 'wedding']);
   for (const tpl of templates()) {
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
-    expect(readTodo(parse(tpl.doc)).tasks.length).toBeGreaterThan(4);
+    // Each its own name, some done and some not, a star somewhere, every date a real one, no placeholder words.
+    expect(def.title(tpl.doc)).not.toBe('');
+    expect(tpl.name && tpl.blurb).toBeTruthy();
+    const v = readTodo(parse(tpl.doc));
+    expect(v.tasks.length).toBeGreaterThan(6);
+    expect(v.ticked).toBeGreaterThan(0);
+    expect(v.ticked).toBeLessThan(v.tasks.length);
+    expect(v.tasks.some((x) => x.star)).toBe(true);
+    for (const x of v.tasks) expect(x.words.trim()).not.toBe('');
+    for (const m of tpl.doc.matchAll(/due=(\S+?)\}/g)) expect(dueOf(m[1])).toBe(m[1]);
+    expect(tpl.doc).not.toMatch(/lorem|\bTODO\b|your name|example\.com/i);
     expect(def.view(tpl.doc)).toHaveLength(1);
   }
   expect(def.retitle('- [ ] a\n', 'Errands')).toBe('---\ntitle: Errands\n---\n- [ ] a\n');
