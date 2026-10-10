@@ -8,6 +8,56 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    /* A pinch on a touch screen never zooms the browser: it is the size of everything (kit/pinch.ts), or a spatial
+       canvas's own zoom. One finger pans as ever. */
+    touch-action: pan-x pan-y;
+    /* The screen's width and height in the lengths of what is drawn here: a viewport unit is zoomed like a pixel, so
+       under the size of everything 100vw is that much wider than the screen. Every width or height taken from the
+       screen uses these; the nav (below) has its own. */
+    --to-vw: calc(100vw / var(--to-size, 1));
+    --to-vh: calc(100dvh / var(--to-size, 1));
+  }
+  /* The nav: everything that is nav, not document, grows with the size of everything up to 150% and no further
+     (zoom.ts NAV_MAX, --to-nav-zoom = navSize / size under the root's zoom), while the words, the cards and the
+     pictures go on to 250%. One list: an app's own bar (anything nav, not document) joins it rather than inventing
+     its own; only the outermost of them takes the zoom, the nav inside nav inheriting it. */
+  :is(
+    to-bar,
+    .to-header,
+    .to-drawer,
+    .to-dialog,
+    .to-doc-dialog,
+    to-context,
+    .to-menu,
+    to-link-pop,
+    to-complete,
+    to-find,
+    .to-toast,
+    .to-pinch-pill,
+    .anim-props,
+    .anim-time
+  ):not(
+    :is(
+      to-bar,
+      .to-header,
+      .to-drawer,
+      .to-dialog,
+      .to-doc-dialog,
+      to-context,
+      .to-menu,
+      to-link-pop,
+      to-complete,
+      to-find,
+      .to-toast,
+      .to-pinch-pill,
+      .anim-props,
+      .anim-time
+    )
+      *
+  ) {
+    zoom: var(--to-nav-zoom, 1);
+    --to-vw: calc(100vw / var(--to-nav-size, 1));
+    --to-vh: calc(100dvh / var(--to-nav-size, 1));
   }
   body {
     margin: 0;
@@ -95,12 +145,18 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
-    /* Stuck to the top of what can be seen (a phone's keyboard slides the page up under it: --to-vv-top, kit/shell.ts). */
+    /* Stuck to the top of what can be seen (a phone's keyboard slides the page up under it: --to-vv-top, kit/shell.ts,
+       measured on the screen and so divided by the nav's size). */
     position: sticky;
-    top: var(--to-vv-top, 0px);
+    top: calc(var(--to-vv-top, 0px) / var(--to-nav-size, 1));
     z-index: 2;
     background: var(--to-bg);
     transition: margin-left 0.2s ease;
+  }
+  /* A bar in the document's own gutter: the gutter it reaches over is the document's, drawn at the size of everything,
+     the bar at the nav's. */
+  to-bar:not(:is(.to-dialog, .to-doc-dialog, .to-drawer) *) {
+    margin: 0 calc(-1 * var(--to-gutter) / var(--to-nav-zoom, 1));
   }
   to-bar::-webkit-scrollbar {
     display: none;
@@ -159,7 +215,7 @@
     align-items: center;
     gap: 2px;
     padding: 4px;
-    max-width: calc(100vw - 12px);
+    max-width: calc(var(--to-vw) - 12px);
     overflow-x: auto;
     scrollbar-width: none;
     background: var(--to-surface);
@@ -264,7 +320,7 @@
     margin: 0;
     padding: 6px;
     min-width: 200px;
-    max-width: min(360px, calc(100vw - 16px));
+    max-width: min(360px, calc(var(--to-vw) - 16px));
     overflow: auto;
     background: var(--to-surface);
     color: var(--to-ink);
@@ -344,7 +400,7 @@
   }
   /* The templates list: wide enough for a name and its blurb beside the preview, and it scrolls (place() caps its height to the screen). */
   .to-listbox {
-    width: min(640px, calc(100vw - 16px));
+    width: min(640px, calc(var(--to-vw) - 16px));
     max-width: none;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -403,15 +459,15 @@
   }
   /* Every dialog hangs from the top: what grows inside it (a preview arriving) grows downwards, and nothing above it moves. */
   .to-dialog {
-    margin: max(16px, 8vh) auto auto;
-    width: min(520px, calc(100vw - 32px));
+    margin: max(16px, calc(8 * var(--to-vh) / 100)) auto auto;
+    width: min(520px, calc(var(--to-vw) - 32px));
   }
   .to-dialog-inner {
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     box-shadow: var(--to-shadow-pop);
-    max-height: calc(100dvh - 32px);
+    max-height: calc(var(--to-vh) - 32px);
     display: flex;
     flex-direction: column;
   }
@@ -437,7 +493,7 @@
   }
   /* ---- A money column's currency (columns.ts): one field and OK, narrow ---- */
   .to-currency-dialog .to-dialog {
-    width: min(420px, calc(100vw - 32px));
+    width: min(420px, calc(var(--to-vw) - 32px));
   }
   .to-currency-label {
     font-size: 14px;
@@ -451,7 +507,7 @@
   }
   /* ---- Insert's address dialogs (insert-dialogs.ts): the address and OK in one row, what it will be under them ---- */
   .to-ask-dialog .to-dialog {
-    width: min(640px, calc(100vw - 32px));
+    width: min(640px, calc(var(--to-vw) - 32px));
   }
   .to-ask {
     display: flex;
@@ -494,7 +550,7 @@
   .to-ask-preview img {
     display: block;
     max-width: 100%;
-    max-height: 50vh;
+    max-height: calc(50 * var(--to-vh) / 100);
     border-radius: var(--to-radius-sm);
   }
   .to-ask-preview img.broken {
@@ -553,8 +609,8 @@
     padding: 0;
     border: 0;
     margin: 16px auto auto;
-    width: min(1200px, calc(100vw - 32px));
-    height: calc(100dvh - 32px);
+    width: min(1200px, calc(var(--to-vw) - 32px));
+    height: calc(var(--to-vh) - 32px);
     max-width: none;
     max-height: none;
     color: var(--to-ink);
@@ -621,7 +677,7 @@
 
   /* The icon picker: a search box, then the library in named sections. */
   .to-icons .to-dialog {
-    width: min(720px, calc(100vw - 32px));
+    width: min(720px, calc(var(--to-vw) - 32px));
   }
   .to-icons-search {
     width: 100%;
@@ -927,7 +983,7 @@
   /* ---- arriving by a short link: how long it has left, big and coloured; once the header has gone, small and stuck under the bar ---- */
   .to-arrival {
     position: sticky;
-    top: calc(var(--to-vv-top, 0px) + var(--to-stuck-h, 0px));
+    top: calc((var(--to-vv-top, 0px) + var(--to-stuck-h, 0px)) / var(--to-size, 1));
     z-index: 2;
     display: grid;
     grid-template-columns: 1fr auto auto;
@@ -987,8 +1043,8 @@
   /* ---- the drawer ---- */
   .to-drawer {
     margin: 0;
-    height: 100dvh;
-    width: min(320px, 85vw);
+    height: var(--to-vh);
+    width: min(320px, calc(85 * var(--to-vw) / 100));
   }
   .to-drawer-inner {
     height: 100%;
@@ -1160,11 +1216,33 @@
     pointer-events: none;
     transition: opacity 0.15s, transform 0.15s;
     z-index: 10;
-    max-width: calc(100vw - 32px);
+    max-width: calc(var(--to-vw) - 32px);
   }
   .to-toast.shown {
     opacity: 1;
     transform: translate(-50%, 0);
+  }
+  /* The size of everything while a pinch is in hand (kit/pinch.ts): top centre, above everything, moving nothing. */
+  .to-pinch-pill {
+    position: fixed;
+    inset: max(8px, env(safe-area-inset-top)) auto auto 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 6px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--to-ink);
+    color: var(--to-bg);
+    font: 600 15px/1.2 var(--to-font);
+    font-variant-numeric: tabular-nums;
+    box-shadow: var(--to-shadow-pop);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 20;
+  }
+  .to-pinch-pill.shown {
+    opacity: 1;
   }
 
   /* ---- the shell ---- */
@@ -1195,7 +1273,7 @@
   .to-header .to-burger {
     position: fixed;
     left: var(--to-edge-l);
-    top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0px));
+    top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0px) / var(--to-nav-size, 1));
     z-index: 4;
     transition: box-shadow 0.2s ease;
   }
@@ -1207,16 +1285,16 @@
   /* Once the header has gone, the app's bar makes room for the menu button: narrowed rather than padded, so a bar
      that scrolls sideways on a phone never slides under it (none needed where the page's margin already holds it). */
   to-shell[scrolled] .to-editor to-bar {
-    margin-left: calc(var(--to-burger-w) - var(--to-gutter));
+    margin-left: calc(var(--to-burger-w) - var(--to-gutter) / var(--to-nav-zoom, 1));
   }
   /* Behind the stuck bar the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
   to-shell[scrolled]::before {
     content: '';
     position: fixed;
-    top: var(--to-vv-top, 0px);
+    top: calc(var(--to-vv-top, 0px) / var(--to-size, 1));
     left: 0;
     right: 0;
-    height: var(--to-stuck-h, 0px);
+    height: calc(var(--to-stuck-h, 0px) / var(--to-size, 1));
     background: var(--to-bg);
     box-shadow: 0 1px 0 var(--to-border);
     z-index: 2;
@@ -1227,7 +1305,7 @@
     height: calc(var(--to-header-h) + 8px + var(--to-touch));
     overflow: hidden;
     position: sticky;
-    top: var(--to-vv-top, 0px);
+    top: calc(var(--to-vv-top, 0px) / var(--to-nav-size, 1));
   }
   .to-header.titling .to-title {
     order: 1;
@@ -1546,7 +1624,7 @@
   .to-display-site {
     display: block;
     width: 100%;
-    height: calc(100dvh - 72px);
+    height: calc(var(--to-vh) - 72px);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     background: #fff;
@@ -1616,8 +1694,12 @@
   .to-app-open .to-icon {
     color: var(--to-accent);
   }
+  /* A long name at a large size breaks rather than pushing the templates button off the screen. */
   .to-app-open b {
     font-size: 16px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    hyphens: auto;
   }
   .to-app to-templates {
     display: flex;
@@ -1749,19 +1831,19 @@
   }
   .to-embed iframe.pdf,
   .to-embed iframe.page {
-    height: 70vh;
+    height: calc(70 * var(--to-vh) / 100);
   }
   .to-embed img {
     display: block;
     max-width: 100%;
-    max-height: 70vh;
+    max-height: calc(70 * var(--to-vh) / 100);
     height: auto;
     margin: 0 auto;
   }
   .to-embed video {
     display: block;
     width: 100%;
-    max-height: 70vh;
+    max-height: calc(70 * var(--to-vh) / 100);
     background: #000;
   }
   .to-embed audio {
@@ -1892,7 +1974,7 @@
   }
   .to-link-guard .lg-host {
     margin: 4px 0 12px;
-    font-size: clamp(26px, 8vw, 36px);
+    font-size: clamp(26px, calc(8 * var(--to-vw) / 100), 36px);
     font-weight: 800;
     line-height: 1.15;
     overflow-wrap: anywhere;

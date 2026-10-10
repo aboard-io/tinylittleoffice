@@ -15,7 +15,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from './icons.ts';
-import { zoomed } from './zoom.ts';
+import { zoomOf } from './zoom.ts';
 import { t } from './i18n.ts';
 import { fold } from './search.ts';
 import { keysText } from './bar.ts';
@@ -45,8 +45,9 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   const vw = vv?.width ?? window.innerWidth;
   const vh = vv?.height ?? window.innerHeight;
   const a = anchor.getBoundingClientRect();
-  // Under the size of everything (zoom.ts) a length set here is drawn larger: the page's coordinates are divided by it.
-  const z = zoomed();
+  // Under the size of everything (zoom.ts) a length set here is drawn larger, by the popover's own zoom (the nav's
+  // where it is nav): the page's coordinates are divided by it.
+  const z = zoomOf(pop);
   pop.style.maxHeight = `${Math.max(120, vh - 2 * gap) / z}px`;
   const r = pop.getBoundingClientRect();
   let top = a.bottom + gap;

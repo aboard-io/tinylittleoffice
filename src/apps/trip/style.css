@@ -16,7 +16,7 @@
     position: relative;
     isolation: isolate;
     z-index: 0;
-    height: max(240px, 42dvh);
+    height: max(240px, calc(42 * var(--to-vh) / 100));
     background: var(--to-surface-2);
     font: 14px var(--to-font);
   }
@@ -206,10 +206,10 @@
       align-items: start;
     }
     .trip .trip-map {
-      height: min(70dvh, 640px);
+      height: min(calc(70 * var(--to-vh) / 100), 640px);
     }
     .trip:not(.no-map) .trip-stops {
-      max-height: min(70dvh, 640px);
+      max-height: min(calc(70 * var(--to-vh) / 100), 640px);
       overflow-y: auto;
     }
   }
@@ -222,7 +222,7 @@
     background: var(--to-bg);
   }
   .trip.presenting .trip-map {
-    height: 100dvh;
+    height: var(--to-vh);
     border: 0;
     border-radius: 0;
   }

@@ -59,7 +59,9 @@ export class ToDrawer extends LitElement {
     const redraw = () => this.requestUpdate();
     const away = () => this.close();
     window.addEventListener('hashchange', away);
-    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw), onPictures(redraw), () => window.removeEventListener('hashchange', away)];
+    // The size row says the size as a pinch changes it (kit/pinch.ts), the drawer open or not.
+    window.addEventListener('to-size', redraw);
+    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw), onPictures(redraw), () => window.removeEventListener('hashchange', away), () => window.removeEventListener('to-size', redraw)];
   }
   disconnectedCallback() {
     super.disconnectedCallback();

@@ -29,7 +29,7 @@
   }
   .board-col {
     --edge: color-mix(in srgb, var(--c) 70%, var(--to-ink));
-    flex: 0 0 min(300px, calc(100vw - 56px));
+    flex: 0 0 min(300px, calc(var(--to-vw) - 56px));
     min-width: 0;
     scroll-snap-align: start;
     padding: 8px;

@@ -22,7 +22,7 @@
     margin-right: var(--to-bleed-r);
     background: var(--to-surface);
     overflow: auto;
-    max-height: calc(100dvh - var(--to-header-h) - 150px);
+    max-height: calc(var(--to-vh) - var(--to-header-h) - 150px);
     min-height: 220px;
     cursor: copy;
   }

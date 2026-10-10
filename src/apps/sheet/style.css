@@ -65,7 +65,7 @@
   /* The table scrolls in a box of its own, both ways, so the page under it holds still; the header rows and the row numbers are stuck to its edges. */
   .sheet-scroll {
     overflow: auto;
-    max-height: calc(100dvh - var(--to-header-h) - 190px);
+    max-height: calc(var(--to-vh) - var(--to-header-h) - 190px);
     min-height: 220px;
     overscroll-behavior: contain;
     margin-left: var(--to-bleed-l);

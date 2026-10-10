@@ -87,6 +87,7 @@ import './drawer.ts';
 import './home.ts';
 import './privacy-dialog.ts';
 import './compare.ts';
+import { pinchSizes } from './pinch.ts';
 
 /** The Mastodon server a link is posted to, asked once and remembered (under Saved; for the visit under Private). */
 const MASTODON_KEY = 'tinyoffice.mastodon';
@@ -247,6 +248,8 @@ export class ToShell extends LitElement {
     window.addEventListener('touchstart', this.onViewport, { passive: true });
     window.addEventListener('touchend', this.onViewport, { passive: true });
     window.addEventListener('dragover', this.onDragOver);
+    // A pinch on a touch screen is the size of everything (kit/pinch.ts), outside the spatial canvases.
+    pinchSizes();
     window.addEventListener('drop', this.onDrop);
     this.addEventListener('to-keys', this.showKeys);
     this.offLanguage = onLanguage(() => this.requestUpdate());
@@ -798,7 +801,8 @@ export class ToShell extends LitElement {
     const was = this.style.getPropertyValue('--to-vv-top');
     if (was !== `${top}px`) this.style.setProperty('--to-vv-top', `${top}px`);
     const bar = this.querySelector<HTMLElement>('.to-editor to-bar');
-    const h = `${bar?.offsetHeight ?? 0}px`;
+    // On the screen, as the offset is: the CSS divides both by the size it draws them at.
+    const h = `${Math.round(bar?.getBoundingClientRect().height ?? 0)}px`;
     if (this.style.getPropertyValue('--to-stuck-h') !== h) this.style.setProperty('--to-stuck-h', h);
     const header = this.querySelector('.to-header')?.getBoundingClientRect();
     const past = !!header?.height && header.bottom <= top;

@@ -23,7 +23,7 @@
     gap: 10px;
     min-width: 0;
     width: 100%;
-    max-width: max(320px, (100dvh - 180px) * var(--deck-w) / var(--deck-h));
+    max-width: max(320px, (var(--to-vh) - 180px) * var(--deck-w) / var(--deck-h));
     margin-inline: auto;
   }
   .deck-stage[data-format='zine'],
@@ -315,7 +315,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: calc(100dvh - var(--to-header-h, 56px) - 120px);
+    max-height: calc(var(--to-vh) - var(--to-header-h, 56px) - 120px);
     overflow: auto;
     padding: 2px;
     touch-action: manipulation;
@@ -446,7 +446,7 @@
   .deck-show .frame,
   .deck-show .was {
     position: absolute;
-    width: min(100vw, 160vh);
+    width: min(var(--to-vw), calc(160 * var(--to-vh) / 100));
     aspect-ratio: 16 / 10;
     background: #fff;
   }
@@ -481,7 +481,7 @@
     left: 14px;
     right: 14px;
     bottom: 36px;
-    max-height: 30vh;
+    max-height: calc(30 * var(--to-vh) / 100);
     overflow: auto;
     padding: 12px;
     font-size: 15px;

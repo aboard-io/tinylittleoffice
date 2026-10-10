@@ -17,12 +17,12 @@
     touch-action: manipulation;
     --write-w: 816px;
     --write-m: 96px;
-    --write-mx: clamp(16px, 6vw, var(--write-m));
+    --write-mx: clamp(16px, calc(6 * var(--to-vw) / 100), var(--write-m));
     --write-bl: var(--to-inset-l, 0px);
     --write-br: var(--to-inset-r, 0px);
     margin-left: calc(-1 * var(--write-bl));
     margin-right: calc(-1 * var(--write-br));
-    padding: clamp(20px, 6vw, var(--write-m)) max(var(--write-mx), calc((100% + var(--write-bl) + var(--write-br) - var(--write-w)) / 2 + var(--write-m)));
+    padding: clamp(20px, calc(6 * var(--to-vw) / 100), var(--write-m)) max(var(--write-mx), calc((100% + var(--write-bl) + var(--write-br) - var(--write-w)) / 2 + var(--write-m)));
     color: var(--to-paper-ink);
     background: var(--to-paper);
     font-family: var(--to-font);
@@ -37,7 +37,7 @@
     --write-m: 94px;
   }
   .write-page .write-text > .tx {
-    min-height: 50vh;
+    min-height: calc(50 * var(--to-vh) / 100);
     font-size: 17px;
     line-height: 1.6;
     caret-color: var(--to-paper-accent);
@@ -445,7 +445,7 @@
     display: block;
     width: 100%;
     height: auto;
-    max-height: 50vh;
+    max-height: calc(50 * var(--to-vh) / 100);
   }
   .write-doc pre {
     margin: 0;

@@ -214,18 +214,18 @@ test('the skip link is the first thing a Tab reaches, hidden until then, and tak
   expect(shell.querySelector('to-write-editor to-text')!.contains(document.activeElement) || document.activeElement?.localName === 'to-text').toBe(true);
 });
 
-test('the size of everything: 90% to 150% from the menu, on the root, and a menu still opens under its button', async () => {
+test('the size of everything: 90% to 250% from the menu, on the root, and a menu still opens under its button', async () => {
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => !!shell.querySelector('.to-size'));
   const more = shell.querySelector<HTMLButtonElement>('.to-size-more')!;
   const less = shell.querySelector<HTMLButtonElement>('.to-size-less')!;
   expect(shell.querySelector('.to-size-now')!.textContent).toBe('100%');
-  for (let i = 0; i < 8; i++) (more.click(), await tick());
-  expect(size()).toBe(1.5);
+  for (let i = 0; i < 18; i++) (more.click(), await tick());
+  expect(size()).toBe(2.5);
   expect(more.disabled).toBe(true);
-  expect(document.documentElement.style.zoom).toBe('1.5');
-  expect(shell.querySelector('.to-size-now')!.textContent).toBe('150%');
+  expect(document.documentElement.style.zoom).toBe('2.5');
+  expect(shell.querySelector('.to-size-now')!.textContent).toBe('250%');
   shell.querySelector<HTMLButtonElement>('.to-size-now')!.click();
   await tick();
   expect(document.documentElement.style.zoom).toBe('');

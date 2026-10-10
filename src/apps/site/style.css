@@ -26,7 +26,7 @@
   .site-frame {
     display: block;
     width: 100%;
-    height: calc(100dvh - var(--to-header-h) - 96px);
+    height: calc(var(--to-vh) - var(--to-header-h) - 96px);
     min-height: 420px;
     border: 0;
     background: #fff;
@@ -82,7 +82,7 @@
   /* On a phone the frame takes the screen under the bar. */
   @media (max-width: 760px) {
     .site-frame {
-      height: calc(100dvh - var(--to-header-h) - 76px);
+      height: calc(var(--to-vh) - var(--to-header-h) - 76px);
       min-height: 320px;
     }
   }

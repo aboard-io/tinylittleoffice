@@ -14,14 +14,14 @@
     }
     .to-dialog,
     .to-ask-dialog .to-dialog {
-      width: calc(100vw - 16px);
+      width: calc(var(--to-vw) - 16px);
       margin-top: 8px;
     }
     /* Another document edited in place, and the Share dialog, take the whole screen on a phone. */
     .to-share-dialog .to-dialog {
       margin: 0;
-      width: 100vw;
-      height: 100dvh;
+      width: var(--to-vw);
+      height: var(--to-vh);
     }
     .to-share-dialog .to-dialog-inner {
       height: 100%;
@@ -55,8 +55,8 @@
     }
     .to-doc-dialog {
       margin: 0;
-      width: 100vw;
-      height: 100dvh;
+      width: var(--to-vw);
+      height: var(--to-vh);
       border-radius: 0;
       padding-top: env(safe-area-inset-top);
     }
