@@ -198,3 +198,37 @@ export function searchIcons(query: string, limit = 180): string[] {
   }
   return hits.sort((a, b) => a[1] - b[1]).slice(0, limit).map(([name]) => name);
 }
+
+/**
+ * Best first, for a completion (":ca" typed in words, kit/complete.ts): a name that is what was typed, then a name
+ * with a word that is, then a name that starts with it, then a name with a word that does, then a tag that does;
+ * ties by the shorter name, then by name. Typed hyphens part words ("thumbs-up"). With `alias`, a keyword that is
+ * what was typed counts as a word of the name: an emoji's CLDR name is a description ("automobile") and its
+ * keywords are what people call it (":car:"), where an icon's name is already short and its tags are loose.
+ * The matches come back as their indexes.
+ */
+export function rankMatches(query: string, entries: readonly { nameWords: string[]; keywords: string[] }[], limit: number, alias = false): number[] {
+  const q = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (!q.length) return [];
+  const key = q.join('-');
+  const hits: [number, number, string][] = [];
+  entries.forEach((e, i) => {
+    const name = e.nameWords.join('-');
+    const starts = (ws: string[]) => q.every((t) => ws.some((w) => w.startsWith(t)));
+    const tier =
+      name === key ? 0
+      : q.length === 1 && (e.nameWords.includes(key) || (alias && e.keywords.includes(key))) ? 1
+      : name.startsWith(key) ? 2
+      : starts(e.nameWords) ? 3
+      : starts([...e.nameWords, ...e.keywords]) ? 4
+      : -1;
+    if (tier >= 0) hits.push([i, tier, name]);
+  });
+  return hits
+    .sort((a, b) => a[1] - b[1] || a[2].length - b[2].length || (a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0))
+    .slice(0, limit)
+    .map(([i]) => i);
+}
+
+/** Icons for a completion, best first (rankMatches): the starter set until the rest of Lucide has joined. */
+export const completeIcons = (query: string, limit = 8): string[] => rankMatches(query, ENTRIES, limit).map((i) => ENTRIES[i].name);

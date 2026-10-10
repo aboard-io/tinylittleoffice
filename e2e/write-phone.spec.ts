@@ -111,3 +111,22 @@ test('write: on a phone, a table column\'s menu picks Money, its currency asked 
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   expect(errors).toEqual([]);
 });
+
+test('write: on a phone, ":car" typed opens the icons and emoji inside the screen, and a tap on a row puts it in place of the words', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const doc = await open(page, 'Drive\n\nSlowly\n');
+  await caretAt(page, 0, 5);
+  await page.keyboard.type(' :car');
+  const list = page.locator('.to-complete:popover-open');
+  const car = list.locator('[role="option"][data-value="🚗"]');
+  await expect(car).toBeVisible({ timeout: 10_000 });
+  const box = (await list.boundingBox())!;
+  const vv = await page.evaluate(() => ({ top: visualViewport!.offsetTop, left: visualViewport!.offsetLeft, width: visualViewport!.width, height: visualViewport!.height }));
+  expect(box.x).toBeGreaterThanOrEqual(vv.left);
+  expect(box.x + box.width).toBeLessThanOrEqual(vv.left + vv.width + 0.5);
+  expect(box.y + box.height).toBeLessThanOrEqual(vv.top + vv.height + 0.5);
+  await car.tap();
+  await expect(list).toHaveCount(0);
+  await expect.poll(() => doc.value()).toBe('Drive 🚗\n\nSlowly\n');
+  await expect(page.locator('to-write-editor .tx')).toBeFocused();
+});

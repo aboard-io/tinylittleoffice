@@ -252,6 +252,61 @@
     display: none;
   }
 
+  /* ---- the completion under ":word" (kit/complete.ts): a manual popover like the link bubble ---- */
+  .to-complete {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(280px, calc(100vw - 16px));
+    max-width: 390px;
+    max-height: min(320px, 50vh);
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid var(--to-border);
+    border-radius: 10px;
+    background: var(--to-surface);
+    color: var(--to-ink);
+    box-shadow: var(--to-shadow-pop);
+    font-size: 14px;
+  }
+  .to-complete[popover]:not(:popover-open),
+  .to-complete[hidden] {
+    display: none;
+  }
+  .to-complete-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .to-complete-row[aria-selected='true'] {
+    background: var(--to-accent-soft);
+  }
+  .to-complete-glyph {
+    display: inline-flex;
+    justify-content: center;
+    width: 22px;
+    font-size: 18px;
+    line-height: 1;
+    /* An emoji is the system's own, never a web font's. */
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
+  .to-complete-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media print {
+    .to-complete {
+      display: none !important;
+    }
+  }
+
   /* ---- the notes where they are drawn (<to-notes>, kit/notes.ts): each one a line of words typed in place ---- */
   to-notes {
     display: block;

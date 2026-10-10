@@ -59,11 +59,21 @@
  * that are drawn, not read: a shape's label): no Link, no Footnote, no
  * lists, Mod+K does nothing, and a paste brings its words without links or notes.
  *
+ * Typing ":" and a letter at the start of a block or after a space (never "10:30", never "re: that") opens a
+ * completion under the caret (<to-complete>, kit/complete.ts): the icons and emoji whose names or tags begin with
+ * what follows the ":", best first, the first highlighted. Up/Down move the highlight, Enter or Tab picks it in
+ * place of the ":word" (one undo step, the caret after it), Escape closes it and leaves the words as typed (the
+ * press stops there), a space, a second ":", or the caret moving away closes it, a tap on a row picks it. A
+ * known ":name:" typed in full becomes the icon (or the emoji) at once, like a Markdown shortcut: an undo gives
+ * the words back. Where the words hold no icon runs (`marks-only`, a drawn label; `no-bubble`, plain words) only
+ * emoji are offered. While it is open the editor is a combobox's box: `aria-autocomplete="list"`, its
+ * `aria-activedescendant` the highlighted row.
+ *
  * Nothing here calls execCommand, sets innerHTML, or reads it.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { apply, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
+import { apply, applyAll, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
 import { copyData, pasteFrom } from './clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
 import { lookup } from './app.ts';
@@ -72,8 +82,10 @@ import { UI, icon, iconNamed, iconsComplete, isIconName, loadIcons, onIcons, typ
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, wholeSel, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
+import { completeNamed, completions, loadCompletions, type Completion, type ToComplete } from './complete.ts';
 import './context.ts';
 import './link-pop.ts';
+import './complete.ts';
 
 export type { Command, Fmt, Pos, Sel, Shape } from './textops.ts';
 
@@ -91,6 +103,13 @@ export interface NoteAt {
 }
 
 const EMPTY: Block = { k: 'p', runs: [] };
+/** A ":word" before the caret: its block, the offsets of its ":" and of its end, the letters after the ":". */
+interface Trigger {
+  block: number;
+  start: number;
+  end: number;
+  query: string;
+}
 const keys = new WeakMap<Block, number>();
 let nextKey = 0;
 const keyOf = (b: Block) => keys.get(b) ?? (keys.set(b, ++nextKey), nextKey);
@@ -199,6 +218,12 @@ export class ToText extends LitElement {
   private fresh = -1;
   /** Select All in a doc: the selection is the whole document, cards included; an edit over it takes everything. */
   private whole = false;
+  /** The ":word" being completed: its block, where its ":" is, where the caret is, the letters after the ":". */
+  private completing: Trigger | null = null;
+  /** The ":word" Escape closed the completion on: it stays closed while the caret stays in it. */
+  private dismissed: Trigger | null = null;
+  /** A letter was just typed: the completion may open on the words it made. */
+  private armed = false;
 
   constructor() {
     super();
@@ -224,6 +249,7 @@ export class ToText extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('selectionchange', this.onSelectionChange);
+    window.removeEventListener('keydown', this.onCompleteKey, true);
     this.offPictures();
     this.offIcons();
   }
@@ -240,6 +266,9 @@ export class ToText extends LitElement {
   }
   private get linkPop(): ToLinkPop {
     return this.querySelector<ToLinkPop>(':scope > to-link-pop')!;
+  }
+  private get completePop(): ToComplete | null {
+    return this.querySelector<ToComplete>(':scope > to-complete');
   }
   private get bubble(): ToContext | null {
     return this.querySelector<ToContext>(':scope > to-context.tx-bubble');
@@ -389,6 +418,7 @@ export class ToText extends LitElement {
         const into = document.getSelection()?.anchorNode;
         if (!(into && this.linkPop?.contains(into))) this.linkPop?.hide();
         this.bubble?.hide();
+        this.endComplete();
         this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: null, bubbles: true }));
       }
       return;
@@ -490,8 +520,11 @@ export class ToText extends LitElement {
     const exit = (dir: 'back' | 'forward') => this.dispatchEvent(new CustomEvent<{ dir: 'back' | 'forward' }>('text-exit', { detail: { dir }, bubbles: true }));
     // Backspace at the very start says `text-exit` (back); in a line, Delete at the very end says it too (forward): the host owns what is around the line.
     const edit = (r: ReturnType<typeof backspace>, forward = false) => (r === 'exit' ? exit('back') : r ? this.emit(r.ops, r.sel, 'type') : forward && this.shape === 'line' && collapsed(sel) ? exit('forward') : undefined);
+    // Enter from a keyboard that sends no key (Android's) picks, as the key would.
+    if (type === 'insertParagraph' && this.completeOpen()) return this.pickCompletion();
     switch (type) {
       case 'insertText':
+        this.armed = true;
         return this.typed(e.data ?? '', sel);
       case 'insertReplacementText':
         return this.typed(e.data ?? e.dataTransfer?.getData('text/plain') ?? '', (target && this.rangeSel(target)) ?? sel, false);
@@ -529,6 +562,16 @@ export class ToText extends LitElement {
   /** Letters typed: a space may finish a Markdown shortcut, a straight quote curls, the rest go in with the marks in force. */
   private typed(data: string, sel: Sel, marks = true) {
     const model = this.model;
+    // ":name:" typed in full, the name known: the ":" as typed, then the icon (or emoji) in place of the words, as a shortcut is (two steps).
+    const tr = data === ':' ? this.trigger(sel) : null;
+    const named = tr && completeNamed(tr.query, this.iconsHere);
+    if (tr && named) {
+      const colon = insertRuns(model, sel, [{ t: ':', ...this.fmt }]);
+      this.emit(colon.ops, colon.sel, 'type');
+      const now = applyAll({ head: {}, blocks: model }, colon.ops).blocks;
+      const r = insertRuns(now, { anchor: { block: tr.block, offset: tr.start }, focus: { block: tr.block, offset: tr.end + 1 } }, [this.completed(named)]);
+      return this.emit(r.ops, r.sel, undefined, 'keep', false);
+    }
     if (data === ' ') {
       const s = shortcut(model, sel, this.shape);
       // Two steps: the space as typed, then the kind; an undo gives the marker back as it was written.
@@ -715,6 +758,7 @@ export class ToText extends LitElement {
 
   private onFocusOut = (e: FocusEvent) => {
     const to = e.relatedTarget as Node | null;
+    if (!to || !this.completePop?.contains(to)) this.endComplete();
     if (!to || !this.bubble?.contains(to)) this.bubble?.hide();
   };
   private onCompositionStart = () => {
@@ -735,6 +779,7 @@ export class ToText extends LitElement {
     const op = runsDiff(i, b.runs, runs);
     const sel = this.readSel() ?? caret(i, runLength(runs));
     this.fresh = i;
+    this.armed = !!op;
     if (op) this.emit([op], sel, 'type');
     else {
       this._sel = sel;
@@ -837,6 +882,7 @@ export class ToText extends LitElement {
   /** The link box closed, and the bubble; whether the box was open (an Escape that closed it goes no further). */
   private closePops(): boolean {
     const open = !!this.linkPop?.shown;
+    this.endComplete();
     this.linkPop?.hide();
     this.bubble?.hide();
     return open;
@@ -851,6 +897,7 @@ export class ToText extends LitElement {
   }
   /** The selection bubble, as the selection is now: up under words selected while the editor has the focus, else gone. */
   private syncBubble() {
+    this.syncComplete();
     const bub = this.bubble;
     if (!bub) return;
     // Held within the blocks as they are now: a host may have taken blocks away under a selection it has not moved yet.
@@ -915,6 +962,112 @@ export class ToText extends LitElement {
     e.stopPropagation();
     if (this._sel) this.sel = this._sel;
     else this.focus();
+  };
+
+  /* ---------- completing ":word" ---------- */
+
+  /** Whether icons may go in here: not in a drawn label (marks-only) nor in plain words (no-bubble), whose hosts keep no icon run. */
+  private get iconsHere(): boolean {
+    return !this.marksOnly && !this.noBubble;
+  }
+  /** The ":word" just before a caret: a ":" at the start of the block or after a space, then letters, digits or hyphens. */
+  private trigger(sel: Sel | null): Trigger | null {
+    if (!sel || !collapsed(sel)) return null;
+    const { block, offset } = sel.focus;
+    const b = this.model[block];
+    if (!b || !isWords(b)) return null;
+    const before = b.runs
+      .map((r) => (isAtomic(r) ? '\uFFFC' : r.t))
+      .join('')
+      .slice(0, offset);
+    const m = /(?:^|\s):([A-Za-z0-9][A-Za-z0-9-]*)$/.exec(before);
+    return m ? { block, start: offset - m[1].length - 1, end: offset, query: m[1].toLowerCase() } : null;
+  }
+  private completeOpen(): boolean {
+    return !!this.completing && !!this.completePop?.shown;
+  }
+  /** The completion as the words and the caret are now: opened by a letter typed, kept while the caret is in the same ":word", else closed. */
+  private syncComplete() {
+    // A write on its way: the words and the caret are not settled yet.
+    if (this.pendingSel || this.composing) return;
+    const tr = this.hasFocus() ? this.trigger(this._sel) : null;
+    const same = (a: Trigger | null) => !!a && !!tr && a.block === tr.block && a.start === tr.start;
+    const armed = this.armed;
+    this.armed = false;
+    if (!tr) this.dismissed = null;
+    if (!tr || same(this.dismissed) || (!same(this.completing) && !armed)) return this.endComplete();
+    if (!this.completing) void loadCompletions().then(() => this.completing && this.showCompletions());
+    this.completing = tr;
+    this.showCompletions();
+  }
+  private showCompletions() {
+    const pop = this.completePop;
+    const tr = this.completing;
+    if (!pop || !tr) return;
+    const items = completions(tr.query, this.iconsHere);
+    if (!items.length) return this.ariaComplete(false);
+    void pop.show(this.selRect({ anchor: { block: tr.block, offset: tr.start }, focus: { block: tr.block, offset: tr.end } }), items).then(() => this.ariaComplete(this.completeOpen()));
+  }
+  private ariaComplete(open: boolean) {
+    const tx = this.tx;
+    const pop = this.completePop;
+    if (!tx) return;
+    if (open && pop) {
+      if (!pop.shown) return;
+      window.addEventListener('keydown', this.onCompleteKey, true);
+      tx.setAttribute('aria-autocomplete', 'list');
+      tx.setAttribute('aria-controls', pop.uid);
+      tx.setAttribute('aria-activedescendant', pop.activeId);
+    } else {
+      pop?.hide();
+      window.removeEventListener('keydown', this.onCompleteKey, true);
+      for (const a of ['aria-autocomplete', 'aria-controls', 'aria-activedescendant']) tx.removeAttribute(a);
+    }
+  }
+  private endComplete() {
+    this.completing = null;
+    this.ariaComplete(false);
+  }
+  /**
+   * The keys while the list is up: Up/Down, Enter or Tab, Escape. Taken on the window before anyone else (a host
+   * that moves between cells or rows on these keys listens around the editor, some in the capture phase), and
+   * stopped there; every other key goes on as ever.
+   */
+  private onCompleteKey = (e: KeyboardEvent) => {
+    const pop = this.completePop;
+    if (!pop || !this.completeOpen() || e.isComposing || this.composing || e.altKey || e.metaKey || e.ctrlKey) return;
+    if (!(e.target instanceof Node) || !this.tx?.contains(e.target)) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      pop.move(e.key === 'ArrowDown' ? 1 : -1);
+      this.tx.setAttribute('aria-activedescendant', pop.activeId);
+    } else if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey) this.pickCompletion();
+    else if (e.key === 'Escape') {
+      this.dismissed = this.completing;
+      this.endComplete();
+    } else return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  /** What a pick puts in: an icon run, or the emoji as words with the marks in force. */
+  private completed(c: Completion): Run {
+    return c.kind === 'icon' ? { t: '', ic: c.value } : { t: c.value, ...this.fmt };
+  }
+  /** The ":word" replaced by the row picked (the highlighted one by default): one edit, the caret after it. */
+  private pickCompletion(c = this.completePop?.current) {
+    const tr = this.completing;
+    this.endComplete();
+    if (!tr || !c) return;
+    const r = insertRuns(this.model, { anchor: { block: tr.block, offset: tr.start }, focus: { block: tr.block, offset: tr.end } }, [this.completed(c)]);
+    this.emit(r.ops, r.sel, undefined, 'focus');
+  }
+  private onCompletePick = (e: CustomEvent<Completion>) => {
+    e.stopPropagation();
+    this.pickCompletion(e.detail);
+  };
+  private onCompleteCancel = (e: Event) => {
+    e.stopPropagation();
+    this.dismissed = this.completing;
+    this.endComplete();
   };
 
   /* ---------- drawing ---------- */
@@ -1040,6 +1193,7 @@ export class ToText extends LitElement {
         @paste=${this.onPaste}
       >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
       <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove} @link-cancel=${this.onLinkCancel}></to-link-pop>
+      <to-complete @complete-pick=${this.onCompletePick} @complete-cancel=${this.onCompleteCancel}></to-complete>
       <to-context class="tx-bubble" .label=${t('Format')}></to-context>`;
   }
 }
