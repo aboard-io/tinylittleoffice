@@ -671,18 +671,17 @@ export class ToShell extends LitElement {
     });
   };
   /** The title tapped or focused: the wide row opens, a new document's own name chosen whole so typing replaces it. */
-  private openTitle = async (e: Event) => {
+  private openTitle = (e: Event) => {
     const field = e.target as HTMLInputElement;
     this.titleWas = field.value;
     this.titling = true;
-    await this.updateComplete;
     if (!this.fresh || this.def?.title(this.doc)) return;
     field.select();
-    // The tap or click that opened the row puts the caret where it landed once it is over (WebKit does so after the
+    // The row drawn, and the tap or click that opened it over, put the caret where it landed (WebKit does so after the
     // focus): the name is chosen whole again then, unless something else has been done to it in between.
     const again = () => setTimeout(() => document.activeElement === field && field.value === this.fresh && field.select());
     document.addEventListener('pointerup', again, { once: true, capture: true });
-    again();
+    void this.updateComplete.then(again);
   };
   private titleWas = '';
   /** Enter keeps what was typed, Escape puts back what was there; either closes the row (and so does a tap elsewhere). */
