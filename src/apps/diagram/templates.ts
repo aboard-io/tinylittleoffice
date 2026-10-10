@@ -1,5 +1,6 @@
 /**
- * Diagram's templates, kind by kind: each kind's blank page first, then two to four real ones. Each is canonical
+ * Diagram's templates, kind by kind: each kind's blank page first, named by its kind alone ("Mind map"; the lists add no
+ * Blank of their own, def.ts's blankInTemplates), then two to four real ones. Each is canonical
  * TLO, as the kernel writes it, so it round-trips byte for byte (the corpus test holds every template).
  */
 import type { Template } from '../../kit/app.ts';
@@ -388,8 +389,8 @@ kind: net
 ~ Laptop -> Printer: prints
 `;
 
-/** A kind's blank page: the head naming it, nothing else. */
-const blank = (kind: KindId): Template => ({ id: kind, name: t('Blank {kind}', { kind: kindName(kind).toLowerCase() }), blurb: t('An empty {kind}: tap to add the first thing.', { kind: kindName(kind).toLowerCase() }), doc: `---\nkind: ${kind}\n---\n` });
+/** A kind's blank page: the head naming it, nothing else; named by the kind, never "Blank" (Paul, 2026-10-09: "don't use the word 'Blank' over and over"). */
+const blank = (kind: KindId): Template => ({ id: kind, name: kindName(kind), blurb: t('An empty {kind} to start from.', { kind: kindName(kind).toLowerCase() }), doc: `---\nkind: ${kind}\n---\n` });
 
 export const templates = (): Template[] => [
   blank('mind'),

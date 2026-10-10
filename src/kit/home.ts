@@ -1,6 +1,6 @@
 /**
  * <to-home>: the apps, as rows, in the registry's order: each its icon and name (open it blank), a listbox
- * of its templates to the right of its name (Blank first and chosen, each drawn small from its own document; choosing one opens the
+ * of its templates to the right of its name (Blank first and chosen, or the first template where the app's templates carry its blanks, each drawn small from its own document; choosing one opens the
  * app with that document), and under it the documents of that app kept on this device (kit/library.ts),
  * newest first. No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
  * in that format … Drive is just documents under the icons. No descriptions of apps.") Rows the width of
@@ -40,7 +40,7 @@ export const templateHash = (app: AppDef, tpl: Template | null) => (tpl ? routeH
 export class ToTemplates extends LitElement {
   static properties = { app: { attribute: false }, chosen: { state: true }, drawn: { state: true } };
   declare app: AppDef;
-  /** The template's id, '' for Blank. */
+  /** The template's id, '' for Blank (or, with no Blank in the list, the first template). */
   declare chosen: string;
   /** The thumbnails are drawn once the list first opens: a home page of many apps costs nothing until then. */
   declare drawn: boolean;
@@ -89,6 +89,10 @@ export class ToTemplates extends LitElement {
   };
   /** The keys every menu here keeps (menu.ts). */
   private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.listbox.hidePopover());
+  /** The id of the option shown chosen: '' is Blank, or the first template where the list has no Blank. */
+  private get current(): string {
+    return this.chosen || (this.app.blankInTemplates ? (this.app.templates[0]?.id ?? '') : '');
+  }
   private choose(tpl: Template | null) {
     this.chosen = tpl?.id ?? '';
     this.listbox.hidePopover();
@@ -98,7 +102,7 @@ export class ToTemplates extends LitElement {
     const id = tpl?.id ?? '';
     const name = tpl?.name ?? t('Blank');
     const page = this.drawn ? this.app.view(tpl?.doc ?? this.app.blank(), { small: true })[0] : null;
-    return html`<div role="option" class="to-option" tabindex="-1" aria-selected=${String(this.chosen === id)} @pointermove=${hoverFocus} @click=${() => this.choose(tpl)}>
+    return html`<div role="option" class="to-option" tabindex="-1" aria-selected=${String(this.current === id)} @pointermove=${hoverFocus} @click=${() => this.choose(tpl)}>
       <span class="to-thumb" aria-hidden="true">${page ? unsafeSVG(gateSvg(pageSvg(page), true)) : nothing}</span>
       <span class="to-option-words"><span>${name}</span>${tpl?.blurb ? html`<small>${tpl.blurb}</small>` : nothing}</span>
     </div>`;
@@ -111,7 +115,7 @@ export class ToTemplates extends LitElement {
       </button>
       <div id=${this.uid} popover="auto" class="to-menu to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @toggle=${this.onToggle} @keydown=${this.onKey}>
         <div class="to-listbox-head"><span>${t('Templates')}</span><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.listbox.hidePopover()}>${icon(UI.close, 18)}</button></div>
-        ${this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}
+        ${this.app.blankInTemplates ? nothing : this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}
       </div>`;
   }
 }

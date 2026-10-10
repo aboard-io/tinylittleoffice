@@ -35,6 +35,8 @@ export default defineApp({
   get templates() {
     return templates();
   },
+  // A blank page a kind, the mind map first: no generic Blank above them (Paul, 2026-10-10).
+  blankInTemplates: true,
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
