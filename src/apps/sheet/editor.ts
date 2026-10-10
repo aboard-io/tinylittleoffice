@@ -835,6 +835,17 @@ export class ToSheetEditor extends DocElement<SheetView> {
     this.focusCell(0, 0, true);
   }
 
+  /**
+   * A column's name: Enter keeps what was typed (the change event, as the focus leaves), Escape puts back what it was;
+   * either takes the focus to the column's first cell, never to nothing.
+   */
+  private nameKey(e: KeyboardEvent, c: number, was: string) {
+    if (e.isComposing || (e.key !== 'Enter' && e.key !== 'Escape')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Escape') (e.target as HTMLInputElement).value = was;
+    this.focusCell(0, c);
+  }
   /** Escape in a cell: what was there when the focus came is put back, and the focus stays on the cell. */
   cancelEdit(r: number, c: number) {
     const b = this.entered;
@@ -1004,7 +1015,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
                 (col, c) => html`<th scope="col">
                   <input class="cn" aria-label=${t('Name of column {c}', { c: COL_NAMES[c] })} placeholder=${typeName(c, cols)} .value=${isLetterName(col.name) ? '' : col.name} autocomplete="off" spellcheck="false"
                     @change=${(e: Event) => this.rename(c, (e.target as HTMLInputElement).value)}
-                    @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === 'Escape') && (e.target as HTMLInputElement).blur()} />
+                    @keydown=${(e: KeyboardEvent) => this.nameKey(e, c, isLetterName(col.name) ? '' : col.name)} />
                 </th>`,
               )}
             </tr>

@@ -262,3 +262,20 @@ test('the command palette: Mod+K opens every command in force, typing narrows it
   await userEvent.keyboard('{Escape}');
   await until(() => !palette().isOpen);
 });
+
+test('the palette opened over a bar’s menu (the tap closes the menu) gives the focus back to the menu’s button on Escape, never to nothing (walks: grid at a desktop, seed -909624643)', async () => {
+  await page.viewport(1440, 900);
+  const shell = await mount(`#/v1/sheet/${encodeDoc('Item | Cost:money\n--- | ---\nRent | 1200\n')}`);
+  await until(() => !!shell.querySelector('.to-editor to-bar to-menu:not([keep]) > button'));
+  const menu = shell.querySelector<HTMLElement>('.to-editor to-bar to-menu:not([keep])')!;
+  const button = menu.querySelector<HTMLElement>(':scope > button')!;
+  await userEvent.click(button);
+  await until(() => menu.querySelector('[popover]')!.matches(':popover-open'));
+  await userEvent.click(shell.querySelector<HTMLElement>('.to-palette-btn')!);
+  await until(() => !!shell.querySelector<ToPalette>('to-palette')!.isOpen);
+  await userEvent.keyboard('{Escape}');
+  await until(() => !shell.querySelector<ToPalette>('to-palette')!.isOpen);
+  await tick(20);
+  expect(document.activeElement).toBe(button);
+  await page.viewport(414, 896);
+});

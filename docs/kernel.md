@@ -509,3 +509,45 @@ list could start deeper than the text can say.
 size on the corpus (test/doc/corpus and generated documents) and reports every template's link under today's and the
 trained one. It changes only if every template is shorter or equal and the largest template's link is 5% shorter or
 more; a second dictionary would be read under a new flag letter beside `y`, so links made with the first still open.
+
+## 11. Random walks over the chrome (round nine, 2026-10-10)
+
+The bugs found by hand on a phone (the bar parked mid-screen, a dialog cut by the edge, the keyboard taking the focus)
+were each an invariant broken after some sequence of actions. `test/browser/walks.test.ts` walks such sequences with
+fast-check's model-based testing (`fc.commands`, `fc.asyncModelRun`): the model and its steps are `test/walks-model.ts`
+(pure, read by a node test that every registry command is a step of some walk, so a command joins the walks by being
+registered); each step is done to the real page (a registry command in force, through its `when`, with the focus where
+a person's way to it leaves it; Escape, Tab, Shift+Tab, Enter, the arrows, Mod+A; a word typed; a tap outside what is
+open, or in the document; the column scrolled; the drawer, a menu of the bar, Share, the templates, the palette; a pinch;
+a phone's keyboard up and down; another app and back), and after every step the rules are asserted:
+
+| rule | what holds |
+|---|---|
+| focus | the focus is inside what is open, else in the document or the chrome; never under `aria-hidden` |
+| back | after Escape or a dialog's backdrop, the focus is where it was when the thing opened (or on what was tapped to open it, or, for a command's dialog opened from a button, on the words it acts on) |
+| modal | at most one modal `<dialog>` is open |
+| window | `window.scrollY` is 0, and the chrome round the column never scrolls: the column does |
+| link | the address, flushed, is the document the shell holds, written back as it is read |
+| bar | the app's bar, where it is shown, is one row inside the visible window |
+| overflow | no words run off the screen sideways; the page is no wider than the window |
+| names | everything open has an accessible name |
+| keystroke | a word typed in a box already warmed costs under perf.test.ts's 12 ms a letter |
+| errors | nothing throws |
+
+One test per app family (text: Write, Outline, Deck; grid: Sheet, Calendar, Calculator; canvas: Drawing, Diagram,
+Animation; lists: Board, To-do, Trip; Site) at 390×844 with a coarse pointer and at 1440×900. The default suite walks 16
+steps from fixed seeds (about twenty seconds); `npm run walks` walks 200 steps, twice a test, from fresh seeds (about
+five minutes). A failure prints the seed, the path and the replay path, the steps in words with where the focus was
+after each, shrunk to the fewest that break the rule; `VITE_WALK_SEED`, `VITE_WALK_PATH` and `VITE_WALK_REPLAY` replay it.
+What the walks found and left for a decision is `test/walks-known.ts`, each with its reason and its replay; a walk
+meeting one goes on.
+
+What they found on their first runs, each fixed with a test: Escape or Enter in the title dropped the focus on the
+body (it goes back where it was, or to the column); Escape in a sheet's column name kept what was typed, and dropped
+the focus (it puts the name back, and either key goes to the column's first cell); the way home followed from the keys
+left the focus on nothing (the home page's column has it); the palette opened by the tap that closed a menu gave the
+focus back to nothing (to the menu's button); the site's page, ready late, took the focus from a menu opened meanwhile;
+a template chosen in the drawer asked to leave over the open drawer, two modals; printing left the focus on nothing;
+a dialog closed over a frame whose page had the focus, or over a menu it had closed, gave it to nothing (kit/dialog.ts
+`focusBack`, the palette's too); Find closed with nothing found gave it to nothing; and on a phone the bar's button
+focused while the bar was away scrolled the whole chrome up by the header's height (the chrome now holds still).

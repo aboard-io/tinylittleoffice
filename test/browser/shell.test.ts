@@ -95,6 +95,18 @@ test('the Diagram Maker lists a blank page a kind and no Blank of its own, its f
   expect(write.querySelector('[role=option] .to-option-words span')!.textContent).toBe('Blank');
 });
 
+test('the way home, followed from the keys, leaves the focus in the page’s column, not on nothing (walks: site at a phone, seed -557055075)', async () => {
+  const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nWords.\n')}`);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  const home = shell.querySelector<HTMLAnchorElement>('a.to-here')!;
+  home.focus();
+  home.click();
+  await until(() => !!shell.querySelector('to-home'));
+  await shell.updateComplete;
+  await tick(50);
+  expect(document.activeElement).toBe(shell.querySelector('main.to-main'));
+});
+
 test('the home page has no copy: every app, in order, its icon, its name and its templates; no lede, no blurbs, no headings but the hidden one', async () => {
   const shell = await mount('');
   const h1 = shell.querySelector('to-home h1')!;

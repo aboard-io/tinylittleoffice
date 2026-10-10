@@ -152,7 +152,13 @@ export async function printPages(pages: Page[], title: string): Promise<void> {
     document.body.append(frame);
   });
   const win = frame.contentWindow;
-  const done = () => frame.remove();
+  // The frame takes the focus to print; when it goes, the focus comes back where it was, not to nothing.
+  const was = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+  const done = () => {
+    const had = frame.isConnected && (document.activeElement === frame || document.activeElement === document.body);
+    frame.remove();
+    if (had && was?.isConnected) was.focus({ preventScroll: true });
+  };
   win?.addEventListener('afterprint', done, { once: true });
   setTimeout(done, 120_000);
   win?.focus();

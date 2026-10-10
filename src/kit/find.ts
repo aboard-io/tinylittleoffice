@@ -6,13 +6,14 @@
  * through the browser's own highlights (the CSS Custom Highlight API: nothing in the page is changed), the
  * one in hand stronger, brought into view in the column (kit/scroll.ts). An editor whose words are not text on
  * the page (a sheet's cells are inputs) finds them itself: it has a `find(terms)` (Findable) that counts and goes
- * to each.
+ * to each. Closed, the focus goes back where it was (Escape takes it on to the match in hand, where there is one).
  */
 import { LitElement, html } from 'lit';
 import { fold, termsOf } from './search.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { reveal } from './scroll.ts';
+import { focusBack } from './dialog.ts';
 
 /** What an editor found: how many, and a way to show the one in hand. */
 export interface Found {
@@ -105,6 +106,8 @@ export class ToFind extends LitElement {
   /** Where to look: the editor. */
   target: Element | null = null;
   private found: Found | null = null;
+  /** What had the focus when the bar opened. */
+  private from: HTMLElement | null = null;
 
   constructor() {
     super();
@@ -121,6 +124,8 @@ export class ToFind extends LitElement {
   }
   /** Opened (or, open, the words chosen again to type over); the words selected in the page are what it looks for. */
   async show() {
+    const at = document.activeElement;
+    if (!this.open) this.from = at instanceof HTMLElement && at !== document.body && !this.contains(at) ? at : null;
     const picked = window.getSelection()?.toString().trim() ?? '';
     if (picked && !picked.includes('\n') && picked.length < 80) this.query = picked;
     this.open = true;
@@ -132,6 +137,9 @@ export class ToFind extends LitElement {
   }
   close() {
     if (!this.open) return;
+    // The focus still in the bar goes back where it was (Escape has given it to the match in hand, where there is one).
+    if (this.contains(document.activeElement)) focusBack(this.from);
+    this.from = null;
     this.found?.clear?.();
     this.found = null;
     this.open = false;
@@ -170,9 +178,9 @@ export class ToFind extends LitElement {
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      const found = this.found;
+      // The match in hand takes the focus first; with none, closing gives it back where it was.
+      this.found?.leave?.();
       this.close();
-      found?.leave?.();
     }
   };
   render() {

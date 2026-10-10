@@ -60,10 +60,12 @@ test('a rule is a page: a text with two rules prints three pages, a deck a slide
   expect(printed(deck.view(bare), 'Talk').figures).toHaveLength(slides);
 });
 
-test('Print in the Download menu puts the page in a hidden frame, which goes when the dialog closes', async () => {
+test('Print in the Download menu puts the page in a hidden frame, which goes when the dialog closes, the focus back where it was', async () => {
   const text = '# One\n\n---\n\n# Two\n';
   const shell = await mount(routeHash('write', encodeDoc(text)));
-  await until(() => !!shell.querySelector('to-write-editor'));
+  await until(() => !!shell.querySelector('to-write-editor .tx'));
+  const words = shell.querySelector<HTMLElement>('to-write-editor .tx')!;
+  words.focus();
   // The browser's own dialog is not for a test: the frame's print() is caught as the frame is made.
   const made = new Promise<HTMLIFrameElement>((found) => {
     new MutationObserver((_, obs) => {
@@ -86,6 +88,8 @@ test('Print in the Download menu puts the page in a hidden frame, which goes whe
   expect(frame.contentWindow!.devicePixelRatio).toBeCloseTo(window.devicePixelRatio, 4);
   frame.contentWindow!.dispatchEvent(new Event('afterprint'));
   await until(() => !document.querySelector('iframe.to-print'));
+  // The focus the frame took to print comes back where it was, not to nothing (walks: lists at a phone, seed 915460951).
+  expect(document.activeElement).toBe(words);
 });
 
 test('a page printed from the screen has the size of everything taken off: in print both scales are 1 and a rem 16px, the root’s own 1.3 kept', async () => {

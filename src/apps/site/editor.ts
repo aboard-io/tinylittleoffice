@@ -232,7 +232,9 @@ export class ToSiteEditor extends DocElement<Site> {
       this.ready = m.site;
       const next = this.openNext;
       this.openNext = null;
-      if (next && next.id === this.held) this.openWords(next.id, next.all);
+      // Not when the person has gone elsewhere meanwhile (a menu, a dialog, the title): the page would take the focus from it.
+      const at = document.activeElement;
+      if (next && next.id === this.held && (!at || at === document.body || at === this.frame || at === this.box)) this.openWords(next.id, next.all);
     }
     else if (m.do === 'at') {
       if (id === null || id !== this.held) return;

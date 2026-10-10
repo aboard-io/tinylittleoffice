@@ -135,6 +135,26 @@ test('Find in a sheet goes from matching cell to matching cell, the focus left i
   await until(() => document.activeElement?.id === 'c2_0');
 });
 
+test('Find closed with nothing found (Escape or Close) gives the focus back where it was, never to nothing (walks: text at a desktop, seed 1880387784)', async () => {
+  const shell = await mount(`#/v1/write/${NOTES}`);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
+  const words = shell.querySelector<HTMLElement>('to-write-editor to-text .tx')!;
+  words.focus();
+  key('f');
+  const find = shell.querySelector<ToFind>('to-find')!;
+  await until(() => !!find.querySelector('.to-find-input'));
+  const input = find.querySelector<HTMLInputElement>('.to-find-input')!;
+  await until(() => document.activeElement === input);
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await find.updateComplete;
+  expect(document.activeElement).toBe(words);
+  key('f');
+  await until(() => document.activeElement === find.querySelector('.to-find-input'));
+  find.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click();
+  await find.updateComplete;
+  expect(document.activeElement).toBe(words);
+});
+
 test('Mod+/ and the menu open the keyboard shortcuts, read from the command registry: the app’s own, the words’, the page’s', async () => {
   const shell = await mount(`#/v1/draw`);
   await until(() => !!shell.querySelector('to-draw-editor'));

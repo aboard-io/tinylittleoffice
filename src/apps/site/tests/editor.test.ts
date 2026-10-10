@@ -769,3 +769,16 @@ test('the cart counts in each thing\'s own currency: a Price column of GBP throu
   const eur = await cart('---\ncurrency: €\n---\n# Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nTea | 3 |  |\n', [0, 0]);
   expect(eur).toEqual({ total: '€6.00', lines: ['€6.00'] });
 });
+
+test('the site’s name opened in the page as it first opens waits for nothing: a menu opened before the page is ready keeps the focus (walks: site at a desktop, seed 86719297)', async () => {
+  const { el } = await editor();
+  void el.focusFirst();
+  const look = [...el.querySelectorAll<HTMLElement>('to-bar to-menu > button')].find((b) => /^Look/.test(b.getAttribute('aria-label') ?? ''))!;
+  await userEvent.click(look);
+  const menu = look.parentElement!.querySelector<HTMLElement>('[popover]')!;
+  await until(() => menu.matches(':popover-open'));
+  await ready(el);
+  await tick(200);
+  expect(menu.matches(':popover-open')).toBe(true);
+  expect(menu.contains(document.activeElement)).toBe(true);
+});

@@ -259,3 +259,16 @@ test('closing the tab warns exactly while the document is Private and changed', 
   document.body.innerHTML = '';
   expect(unloadAsks()).toBe(false);
 });
+
+test('a template chosen in the drawer asks with the drawer closed: one modal at a time (walks: grid at a desktop, seed -906952911)', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Stay');
+  const drawer = (await openDrawerDoc(shell)).closest('dialog')!;
+  const head = [...drawer.querySelectorAll('.to-app-head')].find((h) => h.querySelector('a')!.getAttribute('href') === '#/v1/sheet')!;
+  head.querySelector<HTMLButtonElement>('to-templates > button')!.click();
+  await until(() => !!head.querySelector('dialog[open] [role=option]'));
+  head.querySelectorAll<HTMLElement>('[role=option]')[1].click();
+  await until(() => !!asked(shell)?.open);
+  expect([...document.querySelectorAll('dialog')].filter((d) => d.matches(':modal')).length).toBe(1);
+  expect(drawer.open).toBe(false);
+});

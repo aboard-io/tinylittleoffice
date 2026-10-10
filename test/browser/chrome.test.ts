@@ -497,3 +497,16 @@ test('390×844 with a finger: the caret is kept in sight after the column settle
   expect(caret.top).toBeGreaterThanOrEqual(box.top);
   expect(caret.bottom).toBeLessThanOrEqual(box.bottom);
 });
+
+test('390×844 with a finger: the bar’s button focused while the bar is away (reading) never scrolls the chrome; the header stays where it is (walks: text at a phone, seed 1916216016)', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { shell, chrome } = await write();
+  const header = shell.querySelector<HTMLElement>('.to-header')!;
+  const top = header.getBoundingClientRect().top;
+  shell.querySelector<HTMLElement>('to-write-editor to-bar button')!.focus();
+  await frame();
+  expect(chrome.scrollTop).toBe(0);
+  expect(shell.querySelector<HTMLElement>('.to-column')!.scrollTop).toBe(0);
+  expect(header.getBoundingClientRect().top).toBe(top);
+});

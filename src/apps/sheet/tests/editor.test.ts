@@ -1,7 +1,7 @@
 // The Sheet editor in a real browser: typing is the document, the menus do rows and columns, the lock holds,
 // undo takes an edit back, and at phone width the bar is one row and the page never scrolls.
 import { test, expect } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 // The cascade's order first (tokens, kit, apps), as on the page: the editor's sheet is in the apps layer.
 import '../../../styles.css';
 import '../editor.ts';
@@ -123,6 +123,23 @@ test('a column head opens what it holds, a sort, add and remove; names follow th
   await pick(el, head(2), 'Remove this column');
   expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C']);
   expect(last()).toMatch(/^Item \| Cost:money \| Paid on:date\n/);
+});
+
+test('a column’s name: Enter keeps it and Escape puts back what it was, and either takes the focus to the column’s first cell, never to nothing (walks: grid at a phone, seed 934178414)', async () => {
+  const { el, last } = await editor(SHEET);
+  const name = () => el.querySelectorAll<HTMLInputElement>('tr.names .cn')[1];
+  const before = name().value;
+  name().focus();
+  await userEvent.keyboard('{Control>}a{/Control}Price{Escape}');
+  await el.updateComplete;
+  expect(name().value).toBe(before);
+  expect(last()).toBeUndefined();
+  expect(document.activeElement).toBe(cell(el, 'B1'));
+  name().focus();
+  await userEvent.keyboard('{Control>}a{/Control}Price{Enter}');
+  await el.updateComplete;
+  expect(last()).toMatch(/^Item \| Price:money\n/);
+  expect(document.activeElement).toBe(cell(el, 'B1'));
 });
 
 test('Money asks its currency: a code typed is written in the head and the cells show it; picked again, emptied, the document\'s', async () => {
