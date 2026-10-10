@@ -474,8 +474,8 @@ test('Enter, or two taps, on a shape in hand opens its words in place (Draw\'s o
     await tick();
   }
   expect(last()).toContain('| Lift up\n');
-  // (A space at the end is no change to the label until a word follows it.)
-  expect(changes).toHaveLength('Lift up'.length - 1);
+  // (A space at the end is a change to the label too: it keeps every space typed.)
+  expect(changes).toHaveLength('Lift up'.length);
   // The shell's Mod+Z from the words is Motion's: the words go back, and Draw is not left with them open.
   await undo(el);
   await el.updateComplete;

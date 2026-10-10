@@ -171,7 +171,7 @@ test('the words of a line: Enter splits a card (its checklist stays with the fir
   // At the start: an empty card above; in the middle: the rest after the checklist; at the end: an empty card after it.
   expect(run(BOARD, () => splitCard(review, 0)).text).toContain('  - [ ] Draft\n-\n- Review the copy\n');
   expect(splitCard(review, 0).at).toBe(5);
-  expect(run(BOARD, () => splitCard(spec, 6)).text).toContain('- Write\n  - [x] Outline\n  - [ ] Draft\n- the **spec**\n- Review');
+  expect(run(BOARD, () => splitCard(spec, 6)).text).toContain('- Write\\ \n  - [x] Outline\n  - [ ] Draft\n- the **spec**\n- Review');
   expect(splitCard(spec, 6).at).toBe(4);
   expect(run(BOARD, () => splitCard(review, 15)).text).toContain('- Review the copy\n-\n\n## Doing');
   // An empty card at its start: one after it.

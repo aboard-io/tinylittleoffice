@@ -47,7 +47,10 @@ export function splitAttrs(line: string): [string, Attrs | undefined] {
       (a.kv ??= {})[part.slice(0, eq)] = part.slice(eq + 1).replace(/^"(.*)"$/, '$1');
     }
   }
-  return [unescapeTail(line.slice(0, m.index)), a];
+  // The one space before "{" is the attributes'; an escaped one before it is the words' ("a\\  {.x}"), and "\\ {.x}" alone is an empty line.
+  const words = line.slice(0, m.index);
+  const gap = /^\s*/.exec(line.slice(m.index))![0];
+  return [unescapeTail(gap.length > 1 && ODD.test(words) ? words + gap[0] : words), a];
 }
 
 /** Words that only look like attributes at their end were written with "\{". */
@@ -67,7 +70,7 @@ export function attrsText(a?: Attrs): string {
 
 const FENCE = /^(`{3,}|~{3,})\s*([\w-]*)\s*(.*)$/;
 // (A closing run of "#" is dropped, as Markdown's; an escaped "\#" at the end is the words'.)
-const HEADING = /^(#{1,6})(?:\s+(.*?))?\s*(?:(?<!\\)#+)?\s*$/;
+const HEADING = /^(#{1,6})(?:\s+(.*?))?\s*(?:(?<!\\)#+)?\s*$/d;
 const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])(?:\s+(.*))?$/;
 const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 const SEP = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
@@ -76,18 +79,19 @@ const IMAGE = /^!\[((?:\\.|[^\]\\])*)\]\(\s*<?([^)\s>]+)>?\s*\)$/;
 
 /** The cells of a table row: pipes split them, "\|" is a pipe in a cell. */
 export function cells(line: string): string[] {
-  let s = line.trim();
+  let s = trimRaw(line);
   if (s.startsWith('|')) s = s.slice(1);
   if (s.endsWith('|') && !s.endsWith('\\|')) s = s.slice(0, -1);
   const out: string[] = [];
   let cur = '';
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === '\\' && (s[i + 1] === '|' || s[i + 1] === '\\')) (cur += s[i + 1]), i++;
-    else if (s[i] === '|') out.push(cur.trim()), (cur = '');
+    if (s[i] === '\\' && i + 1 < s.length) (cur += s[i] + s[i + 1]), i++;
+    else if (s[i] === '|') out.push(cur), (cur = '');
     else cur += s[i];
   }
-  out.push(cur.trim());
-  return out.map((c) => c.replace(/<br\s*\/?>/gi, '\n'));
+  out.push(cur);
+  // (A cell's ends are trimmed up to an escaped space, "\\ ", which is a space; "\\|" is a pipe and "\\\\" a backslash.)
+  return out.map((c) => trimRaw(c).replace(/\\([|\\]|[^\S\n])/g, '$1').replace(/<br\s*\/?>/gi, '\n'));
 }
 
 /** The header, if the text starts with one: "---", lines of "key: value", "---". */
@@ -108,20 +112,38 @@ function readHead(lines: string[]): [Head, number] {
 const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|\||\{)/;
 /** Undo the guard that kept a line from being read as a block of another kind (and only that: "\`" is an escaped backtick). */
 // (Words that are only "{...}" keep their backslash for splitAttrs: it is the one that says they are not attributes.)
-const unblock = (s: string) => (s[0] === '\\' && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
+const unblock = (s: string) => (s[0] === '\\' && !/\s/.test(s[1] ?? '') && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
 
 /** A block as the line reader sees it: its words still inline Markdown. */
 type Raw = { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; a?: Attrs } | { k: 'p'; text: string; a?: Attrs } | { k: 'li'; depth: number; ord?: true; done?: boolean; text: string; a?: Attrs } | { k: 'quote'; text: string; a?: Attrs } | Exclude<Block, { runs: Run[] }>;
 
 /** Inline Markdown, line by line, as runs: marks do not cross a line, and a line break is a '\n' among the words. */
 export function parseLines(s: string, blank = true): Run[] {
-  // (A paragraph's or an item's line with no words in it, "<u>" alone, is dropped: written, it would end the block.
-  // A quote keeps its empty lines but the last ones, which its attributes would swallow.)
-  const lines = s.split('\n').map((line) => trimLine(parseInline(line), !blank));
+  // A line of one backslash is an empty line of its block, the last one too. (Any other line with no words in it,
+  // "<u>" alone, is dropped from a paragraph or an item, and from a quote's end, as no writing makes one.)
+  const lines = s.replace(NUL, '').split('\n').map((line) => (line === '\\' ? null : readLine(line, !blank)));
   let end = lines.length;
-  while (end && !lines[end - 1].length) end--;
-  const kept = blank ? lines.slice(0, end) : lines.filter((l) => l.length);
-  return normalRuns(kept.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l)));
+  while (end && lines[end - 1]?.length === 0) end--;
+  const kept = blank ? lines.slice(0, end) : lines.filter((l) => l === null || l.length);
+  return normalRuns(kept.flatMap((l, i) => (i ? [{ t: '\n' }, ...(l ?? [])] : (l ?? []))));
+}
+
+/** An odd run of backslashes at a string's end: the escape of what follows it. */
+const ODD = /(?:^|[^\\])(?:\\\\)*\\$/;
+/** The spaces at a line's end taken off up to an escaped one ("a\\ " keeps its space), never past it. */
+function trimEnd(s: string): string {
+  const e = s.trimEnd();
+  return e.length < s.length && ODD.test(e) ? s.slice(0, e.length + 1) : e;
+}
+/** A line's ends trimmed: at its start up to a backslash, at its end up to an escaped space. */
+const trimRaw = (s: string): string => trimEnd(s).trimStart();
+
+/** One line of a block's words as runs: its ends trimmed up to an escaped space (and, `start` false, in a quote, only its end). */
+function readLine(line: string, start: boolean): Run[] {
+  // (An escaped space is read as a NUL, which no trimming takes, and put back after.)
+  const kept: string[] = [];
+  const runs = trimLine(parseInline(line, kept), start);
+  return kept.length ? runs.map((r) => (r.t.includes('\0') ? { ...r, t: r.t.replace(/\0/g, () => kept.shift()!) } : r)) : runs;
 }
 
 /** A line's runs without the spaces at its end (and, but in a quote, at its start), which no writing of it keeps: "`- `" is "-". */
@@ -192,7 +214,7 @@ export function parse(text: string): Doc {
   };
   for (let i = start; i < lines.length; i++) {
     const line = lines[i];
-    const t = line.trim();
+    const t = trimRaw(line);
     if (!t) {
       flush();
       continue;
@@ -223,7 +245,9 @@ export function parse(text: string): Doc {
     if (h) {
       flush();
       indents = [];
-      const [text, a] = splitAttrs(h[2] ?? '');
+      // (Words ending in an escaped space keep it from the closing spaces: "# a\\ ".)
+      const end = h.indices![2]?.[1] ?? 0;
+      const [text, a] = splitAttrs(h[2] && ODD.test(h[2]) && /\s/.test(t[end] ?? '') ? h[2] + t[end] : (h[2] ?? ''));
       blocks.push({ k: 'h', level: h[1].length as 1 | 2 | 3 | 4 | 5 | 6, text, ...(a ? { a } : {}) });
       continue;
     }
@@ -278,8 +302,8 @@ export function parse(text: string): Doc {
     if (quote) {
       if (paraKind !== 'quote') flush();
       paraKind = 'quote';
-      // (Spaces at a line's end are no one's words, in a quote as in a paragraph.)
-      para.push(quote[1].trimEnd());
+      // (Spaces at a line's end are no one's words, in a quote as in a paragraph, but for an escaped one.)
+      para.push(trimEnd(quote[1]));
       continue;
     }
     // A line under a list item, indented, carries on that item.
@@ -349,10 +373,21 @@ export function writeHead(head: Head): string {
   return ['---', ...keys.map((k) => `${k}: ${String(head[k]).replace(/\n/g, ' ')}`), '---', ''].join('\n');
 }
 
-const cell = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+/** A cell as written: "\\|" a pipe, "\\\\" a backslash, "<br>" a line break, a space at either end "\\ ". */
+const cell = (s: string) => ((c) => edges(c, /\s$/.test(c), /^\s/.test(c)))(s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, '<br>'));
 
-/** Runs as lines of inline Markdown: a '\n' among the words is a line break, and each line is written on its own. */
-export function writeLines(runs: Run[]): string {
+/** Words written with the space at their end (`tail`) and the one at their start (`head`) escaped, so no trimming takes them. */
+const edges = (s: string, tail: boolean, head: boolean): string => {
+  const o = tail ? s.slice(0, -1) + '\\' + s.slice(-1) : s;
+  return head && !(tail && s.length === 1) ? '\\' + o : o;
+};
+
+/**
+ * Runs as lines of inline Markdown: a '\n' among the words is a line break, and each line is written on its own,
+ * a space at its ends escaped ("\\ ") and an empty one "\\", so every space and break typed is read back.
+ * A quote's lines keep their starts as they are, and an empty line between two is ">" alone.
+ */
+export function writeLines(runs: Run[], quote = false): string {
   const lines: Run[][] = [[]];
   for (const r of runs) {
     if (r.ic || r.fn !== undefined || !r.t.includes('\n')) {
@@ -364,7 +399,8 @@ export function writeLines(runs: Run[]): string {
       if (t) lines[lines.length - 1].push({ ...r, t });
     });
   }
-  return lines.map(writeInline).join('\n');
+  if (lines.length === 1 && !lines[0].length) return '';
+  return lines.map((l, i) => (l.length ? writeLine(l, !quote) : quote && i < lines.length - 1 ? '' : '\\')).join('\n');
 }
 
 /** One block as text; `n` numbers an ordered item. */
@@ -373,13 +409,13 @@ export function writeBlock(b: Block, n = 1): string {
   switch (b.k) {
     case 'h':
       // Words that end in "#" escape it, or it would be read as the heading's closing hashes.
-      return `${'#'.repeat(b.level)} ${guardEnd(writeLines(b.runs).replace(/#+$/, (m) => m.replace(/#/g, '\\#')))}${at}`.trimEnd();
+      return trimEnd(`${'#'.repeat(b.level)} ${guardEnd(writeLines(b.runs).replace(/#+$/, (m) => m.replace(/#/g, '\\#')))}${at}`);
     case 'p':
       return (b.runs.length ? guardEnd(unTable(writeLines(b.runs).split('\n').map(guard)).join('\n')) : '<br>') + at;
     case 'quote':
-      return guardEnd(writeLines(b.runs))
+      return guardEnd(writeLines(b.runs, true))
         .split('\n')
-        .map((l) => `> ${l}`.trimEnd())
+        .map((l) => trimEnd(`> ${l}`))
         .join('\n') + at;
     case 'li': {
       const mark = b.ord ? `${n}.` : '-';
@@ -387,7 +423,7 @@ export function writeBlock(b: Block, n = 1): string {
       const [first, ...more] = unTable(writeLines(b.runs).split('\n'));
       const pad = '  '.repeat(b.depth);
       const lead = (/^\[[ xX]\](\s|$)/.test(first) && b.done === undefined) || RULE.test(`- ${first}`) ? '\\' : '';
-      return `${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`.trimEnd() + more.map((l, i) => `\n${pad}  ${guardEnd(guard(l))}${i === more.length - 1 ? at : ''}`).join('');
+      return trimEnd(`${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`) + more.map((l, i) => `\n${pad}  ${guardEnd(guard(l))}${i === more.length - 1 ? at : ''}`).join('');
     }
     case 'hr':
       return `---${at}`;
@@ -397,7 +433,7 @@ export function writeBlock(b: Block, n = 1): string {
       const head = b.cols.map((c) => columnText(c.name, c.type, c.currency));
       // A last heading with no name keeps them too: "Name |" would read as one column and an edge.
       const edged = head.length < 2 || guard(cell(head[0])) !== cell(head[0]) || !head[head.length - 1];
-      const row = (r: string[]) => (edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '|') + r.map(cell).join(' | ')).trimEnd();
+      const row = (r: string[]) => trimEnd(edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '|') + r.map(cell).join(' | '));
       return [row(head), row(head.map(() => '---')), ...b.rows.map(row), ...(at ? [at.trim()] : [])].join('\n');
     }
     case 'fence': {
@@ -453,8 +489,11 @@ const URL = '(?:https?:\\/\\/|mailto:)(?:(?!\\*\\*|~~|==|\\+\\+|__|:[a-z][a-z0-9
 /** The one way a string of inline Markdown becomes runs (parseInline by its short name, for a model built by hand). */
 export const text = (s: string): Run[] => parseInline(s);
 
-/** One line of inline Markdown as runs of words with their marks. Lenient: what does not close is plain words. */
-export function parseInline(s: string): Run[] {
+/**
+ * One line of inline Markdown as runs of words with their marks. Lenient: what does not close is plain words.
+ * `kept`, given by a line's reader, takes each escaped space, read as a NUL until the line's ends are trimmed.
+ */
+export function parseInline(s: string, kept?: string[]): Run[] {
   const runs: Run[] = [];
   const on: Partial<Record<'b' | 'i' | 'u' | 's' | 'h', boolean>> = {};
   let href: string | undefined;
@@ -495,8 +534,9 @@ export function parseInline(s: string): Run[] {
       continue;
     }
     const c = s[i];
-    if (c === '\\' && i + 1 < s.length && /[\\`*_{}[\]()#+\-.!|~=:<>^]/.test(s[i + 1])) {
-      buf += s[i + 1];
+    if (c === '\\' && i + 1 < s.length && /[\\`*_{}[\]()#+\-.!|~=:<>^]|[^\S\n]/.test(s[i + 1])) {
+      // (An escaped space, "\\ ", is a space; a line's reader is given it as a NUL and `kept` the space, so no trimming takes it.)
+      buf += kept && /\s/.test(s[i + 1]) ? (kept.push(s[i + 1]), '\0') : s[i + 1];
       i += 2;
       continue;
     }
@@ -669,18 +709,42 @@ const FLAGS = [
  */
 export function writeInline(given: Run[]): string {
   // (What the reader would give back is what is written: an icon unmarked, no mark on a space at a run's end.)
-  const runs = sayable(given);
-  const full = marked(runs, escapeInline);
-  const least = marked(runs, escapeLeast);
-  const read = parseInline(full);
+  return inline(sayable(given), (s) => s, (s) => parseInline(s));
+}
+
+/**
+ * One line of a block's words, as `writeInline` writes them, with the space at the line's end, and (`start`, but
+ * in a quote) the one at its start, escaped: "\\ ", which the reader trims up to and never past. A link's spaces
+ * at the line's ends come out of it first (a mark on a space alone may be let go; the space may not).
+ */
+function writeLine(given: Run[], start: boolean): string {
+  let runs = sayable(given);
+  const loose = (r: Run | undefined): r is Run => !!r && !r.ic && r.fn === undefined;
+  const last = runs[runs.length - 1];
+  const tail = loose(last) ? /\s+$/.exec(last.t) : null;
+  if (tail && last.href) runs = normalRuns([...runs.slice(0, -1), { ...last, t: last.t.slice(0, tail.index) }, { t: tail[0] }]);
+  const first = runs[0];
+  const head = start && loose(first) ? /^\s+/.exec(first.t) : null;
+  if (head && first.href) runs = normalRuns([{ t: head[0] }, { ...first, t: first.t.slice(head[0].length) }, ...runs.slice(1)]);
+  return inline(runs, (s) => edges(s, !!tail, !!head), (s) => readLine(s, start));
+}
+
+/**
+ * Runs written with as little escaping as reads back right, the line's ends as `ends` writes them, checked by
+ * reading them back with `read`.
+ */
+function inline(runs: Run[], ends: (s: string) => string, read: (s: string) => Run[]): string {
+  const full = ends(marked(runs, escapeInline));
+  const least = ends(marked(runs, escapeLeast));
+  const back = read(full);
   // Words meet what the runs beside them write (":x" before an icon's ":star:" reads as the icon ":x:"); where even
   // the full escaping reads otherwise, every mark is escaped.
-  if (!same(read, runs)) {
-    const all = marked(runs, escapeAll);
-    if (same(parseInline(all), runs)) return all;
+  if (!same(back, runs)) {
+    const all = ends(marked(runs, escapeAll));
+    if (same(read(all), runs)) return all;
   }
   if (least === full) return full;
-  return same(parseInline(least), read) ? least : full;
+  return same(read(least), back) ? least : full;
 }
 
 const same = (a: Run[], b: Run[]) => a.length === b.length && a.every((r, i) => (['t', 'b', 'i', 'u', 's', 'h', 'href', 'ic', 'fn'] as const).every((k) => r[k] === b[i][k]));

@@ -100,9 +100,9 @@ export function docToHtml(blocks: Block[]): string {
 /**
  * What copy puts on the clipboard for a selection: the TLO, and the HTML.
  * Words from within one block carry their runs exactly as well, in a meta
- * of our HTML: the TLO is read as Markdown is, and Markdown drops the
- * spaces at a line's ends, so "a sentence " would come back without its
- * space.
+ * of our HTML, marks and all. (The TLO says the spaces at a line's ends
+ * too, "a sentence\ ", docs/kernel.md §2, so a paste of the text alone
+ * keeps them.)
  */
 export function copyData(blocks: Block[], sel: Sel): { text: string; html: string } {
   const picked = sliceBlocks(blocks, sel);

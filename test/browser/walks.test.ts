@@ -480,9 +480,7 @@ function check(r: Real, s: Step, before: Layer[]) {
       const held = (r.shell as unknown as { doc: string }).doc;
       if (link !== held) broke(r, 'link', `the address holds another document than the shell:\n${JSON.stringify(link).slice(0, 300)}\n  ≠\n${JSON.stringify(held).slice(0, 300)}`);
       const back = write(parse(link));
-      // Only a block's words ending in spaces or a line break, which the format cannot say (test/doc/tlo-grammar.ts sayableLine), or something else.
-      const ends = (x: string) => x.replace(/[ \t]*\n?(?= \{[^\n]*\}\n)/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n\n+/g, '\n\n');
-      if (back !== link) broke(r, 'link', `the document in the address is not written back as it is read${ends(back) === ends(link) ? ' (only a block’s words ending in spaces or a line break)' : ''}: ${JSON.stringify(link).slice(0, 300)}\n  written back: ${JSON.stringify(back).slice(0, 300)}`);
+      if (back !== link) broke(r, 'link', `the document in the address is not written back as it is read: ${JSON.stringify(link).slice(0, 300)}\n  written back: ${JSON.stringify(back).slice(0, 300)}`);
       const value = ed.value as string;
       if (!r.shell.fresh && appOf(app)!.title(value) && takeHead(link, ENVELOPE_KEYS)[1] !== takeHead(value, ENVELOPE_KEYS)[1]) broke(r, 'link', `the address is not the document the editor holds:\n${JSON.stringify(link).slice(0, 300)}\n  ≠\n${JSON.stringify(value).slice(0, 300)}`);
     }

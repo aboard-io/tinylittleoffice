@@ -74,7 +74,7 @@ export function blockWords(b: Block | undefined): string {
     });
   }
   while (lines.length > 1 && !lines[lines.length - 1].some((r) => r.t.trim())) lines.pop();
-  return labelText(lines.map((l) => l.filter((r) => r.t))).replace(/^( \| )+|( \| )+$/g, '').trim();
+  return labelText(lines.map((l) => l.filter((r) => r.t))).replace(/^( \| )+|( \| )+$/g, '');
 }
 
 /** What an edit remembers of the selection: the shapes chosen before it, and after (undo and redo choose them again). */
