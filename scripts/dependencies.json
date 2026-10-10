@@ -15,5 +15,6 @@
   "typescript": "The type check (npm run lint). Node strips types natively and runs the scripts as written, but checks none of them. Not built into the site.",
   "vite": "The build. Browsers load ES modules unbundled, but a page per app, hashed file names the offline copy can trust, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site.",
   "vitest": "The unit and browser tests. node:test runs the unit tests' shape but not in a browser; one runner for both layers keeps one way to write a test. Not built into the site.",
-  "wrangler": "Deploys the three Workers and runs them locally (npm run deploy, tinier:dev, media:dev). Cloudflare's REST API could, by hand; wrangler is Cloudflare's own tool for it. Not built into the site."
+  "wrangler": "Deploys the three Workers and runs them locally (npm run deploy, tinier:dev, media:dev). Cloudflare's REST API could, by hand; wrangler is Cloudflare's own tool for it. Not built into the site.",
+  "fast-check": "The properties fuzzed from TLO's grammar (test/doc/tlo-grammar.ts, test/doc/properties.test.ts): generators of documents, texts and operations, and shrinking a failure to its smallest case. The native alternative is nothing: no browser or node API generates or shrinks test cases. Tests only."
 }

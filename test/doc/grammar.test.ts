@@ -57,6 +57,9 @@ test('rules: three or more -, * or _ with optional spaces → ---; a rule ends t
   const doc = parse('- a\n  - b\n* * *\n  - c\n___\n');
   expect(doc.blocks.map((b) => (b.k === 'li' ? b.depth : b.k))).toStrictEqual([0, 1, 'hr', 0, 'hr']);
   same('- a\n  - b\n\n---\n\n- c\n\n---\n');
+  // A rule ends with attributes as any block may (the fuzz found it read as words).
+  expect(parse('--- {.big}\n').blocks).toStrictEqual([{ k: 'hr', a: { cls: ['big'] } }]);
+  same('--- {.big}\n');
 });
 
 test('tables: header, separator, optional outer pipes, \\| and \\\\ escapes, <br> a newline, rows padded; edged when one column, when the first heading reads as a block, or when a row starts empty', () => {
@@ -137,4 +140,44 @@ test('inline: the marks, no space just inside, backticks as plain words, links, 
   same('a \\* b \\_ c \\\\ d \\^[x] \\:icon: \\<u>\n');
   expect(write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'bold ', b: true }, { t: 'then' }] }] })).toBe('**bold** then\n');
   expect(write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see ^[this]' }] }] })).toBe('see \\^[this]\n');
+});
+
+// What the grammar's fuzz found (test/doc/properties.test.ts), each a text the reader and the writer disagreed on.
+test('found by the fuzz: attributes end an item after its last line, and an edge with no label', () => {
+  same('- first\n  second {.a}\n');
+  expect(parse('- first\n  second {.a}\n').blocks[0]).toStrictEqual({ k: 'li', depth: 0, runs: [{ t: 'first\nsecond' }], a: { cls: ['a'] } });
+  // A later line of an item that only looks like attributes keeps its braces.
+  const d: Doc = { head: {}, blocks: [li(0, 'one\n{.a}')] };
+  expect(parse(write(d))).toStrictEqual(d);
+  expect(parse('~ A -> B {x=1}\n').blocks[0]).toStrictEqual({ k: 'edge', from: 'A', to: 'B', dir: '->', a: { kv: { x: '1' } } });
+  same('~ A -> B {x=1}\n');
+});
+
+test('found by the fuzz: a table whose last heading is empty keeps its edges; a lone "-" or "- |" under a line with a pipe is an item', () => {
+  const t: Doc = { head: {}, blocks: [{ k: 'table', cols: [{ name: 'Name', type: 'text' }, { name: '', type: 'text' }], rows: [] }] };
+  expect(write(t)).toBe('| Name |  |\n| --- | --- |\n');
+  expect(parse(write(t))).toStrictEqual(t);
+  expect(parse('- a|b\n-\n').blocks.map((b) => b.k)).toStrictEqual(['li', 'li']);
+  expect(parse('- a\n  b|c\n- |\n').blocks.map((b) => b.k)).toStrictEqual(['li', 'li']);
+  // Words that would read as a table's head and separator are written so they do not.
+  const p: Doc = { head: {}, blocks: [{ k: 'p', runs: [{ t: 'a | b\n--- | ---' }] }] };
+  expect(write(p)).toBe('a | b\n\\--- | ---\n');
+  expect(parse(write(p))).toStrictEqual(p);
+});
+
+test('found by the fuzz: spaces at a line\'s end and inside a mark\'s ends, empty lines, marks on an icon', () => {
+  // A code span's spaces at a line's end, a link of a space: no writing keeps them.
+  expect(parse('`- `\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: '-' }] });
+  expect(parse('## [ ](https://x.y/) word\n').blocks[0]).toStrictEqual({ k: 'h', level: 2, runs: [{ t: 'word' }] });
+  // A mark opened before a space keeps its mark off the space.
+  expect(parse('a *b*** **word****\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: 'a ' }, { t: 'b', i: true }, { t: ' ' }, { t: '**word', b: true }, { t: '**' }] });
+  // A paragraph's line with no words is dropped; a quote's last empty lines too, which its attributes would swallow.
+  expect(parse('word\n<u>\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: 'word' }] });
+  expect(parse('> word\n> <u>{#id}\n').blocks[0]).toStrictEqual({ k: 'quote', runs: [{ t: 'word' }], a: { id: 'id' } });
+  expect(parse('> a  \n').blocks[0]).toStrictEqual({ k: 'quote', runs: [{ t: 'a' }] });
+  // An icon carries no marks: the writer cannot say them.
+  expect(parse('==:star:==\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: '', ic: 'star' }] });
+  // Words meeting an icon's colon are escaped so they do not read as an icon.
+  const d: Doc = { head: {}, blocks: [{ k: 'p', runs: [{ t: ':x' }, { t: '', ic: 'star' }] }] };
+  expect(parse(write(d))).toStrictEqual(d);
 });

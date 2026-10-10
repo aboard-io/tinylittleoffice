@@ -89,3 +89,11 @@ test('fitted to the host: a slide\'s words keep items and paragraphs, a table be
   expect(tlo(paste('<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table><img src="https://p.q/r.png" alt="a cat"><hr>', '', 'lines'))).toBe('A\tB\n\n1\t2\n\na cat\n');
   expect(paste(DOCS.html, DOCS.text, 'line')).toEqual({ runs: [{ t: 'Plan ' }, { t: 'Bold', b: true }, { t: ' start ' }, { t: 'nested', i: true }, { t: ' ' }, { t: 'a link', href: 'https://example.com/' }, { t: ' first second its second paragraph' }] });
 });
+
+test('found by the fuzz: an ordered item after a bulleted one starts its own list in our HTML; a pasted list never starts deeper than the text can say', async () => {
+  const { docToHtml, htmlToBlocks } = await import('../../src/kit/clipboard.ts');
+  const blocks: Block[] = [{ k: 'li', depth: 0, runs: [{ t: 'a' }] }, { k: 'li', depth: 0, ord: true, runs: [{ t: 'b' }] }];
+  expect(docToHtml(blocks)).toContain('</ul>\n<ol>');
+  expect(write({ head: {}, blocks: htmlToBlocks(docToHtml(blocks)) })).toBe('- a\n1. b\n');
+  expect(write({ head: {}, blocks: htmlToBlocks('<p>words</p><ul><li><ul><li>deep</li></ul></li></ul>') })).toBe('words\n\n- deep\n');
+});

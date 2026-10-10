@@ -85,7 +85,8 @@ const DICTIONARY_TEXT = [
   '~ \n- [ ] \n- [x] \n  - \n    - \n1. \n> \n\n---\n\n## \n### \n# \n```sheet\n```draw\n```\n{.title}\n{.two}\n**',
   '---\ntitle: \nby: \ncreated: 2026-\nchart: bar\ncurrency: $\ntax: \nzone: Europe/London\nunits: km\nmode: \n---\n',
 ].join('\n');
-const DICTIONARY = strToU8(DICTIONARY_TEXT);
+/** The dictionary's bytes (exported for scripts/dictionary.ts, which measures it). */
+export const DICTIONARY = strToU8(DICTIONARY_TEXT);
 
 export type Flag = 'y' | 'z' | 'r';
 

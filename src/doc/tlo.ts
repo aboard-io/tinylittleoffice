@@ -114,13 +114,26 @@ const unblock = (s: string) => (s[0] === '\\' && (GUARDED.test(s.slice(1)) || RU
 type Raw = { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; a?: Attrs } | { k: 'p'; text: string; a?: Attrs } | { k: 'li'; depth: number; ord?: true; done?: boolean; text: string; a?: Attrs } | { k: 'quote'; text: string; a?: Attrs } | Exclude<Block, { runs: Run[] }>;
 
 /** Inline Markdown, line by line, as runs: marks do not cross a line, and a line break is a '\n' among the words. */
-export function parseLines(s: string): Run[] {
-  const out: Run[] = [];
-  s.split('\n').forEach((line, i) => {
-    if (i) out.push({ t: '\n' });
-    out.push(...parseInline(line));
-  });
-  return normalRuns(out);
+export function parseLines(s: string, blank = true): Run[] {
+  // (A paragraph's or an item's line with no words in it, "<u>" alone, is dropped: written, it would end the block.
+  // A quote keeps its empty lines but the last ones, which its attributes would swallow.)
+  const lines = s.split('\n').map((line) => trimLine(parseInline(line), !blank));
+  let end = lines.length;
+  while (end && !lines[end - 1].length) end--;
+  const kept = blank ? lines.slice(0, end) : lines.filter((l) => l.length);
+  return normalRuns(kept.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l)));
+}
+
+/** A line's runs without the spaces at its end (and, but in a quote, at its start), which no writing of it keeps: "`- `" is "-". */
+function trimLine(runs: Run[], start: boolean): Run[] {
+  const words = (r: Run | undefined) => r && !r.ic && r.fn === undefined;
+  const out = [...runs];
+  while (words(out[out.length - 1]) && !out[out.length - 1].t.trimEnd()) out.pop();
+  while (start && words(out[0]) && !out[0].t.trimStart()) out.shift();
+  const last = out[out.length - 1];
+  if (words(last)) out[out.length - 1] = { ...last, t: last.t.trimEnd() };
+  if (start && words(out[0])) out[0] = { ...out[0], t: out[0].t.trimStart() };
+  return out;
 }
 
 const NOTE_DEF = /^\[\^([^\]\s]+)\]:\s*([\s\S]*)$/;
@@ -151,7 +164,7 @@ function foldNotes(blocks: Raw[]): Raw[] {
 const finish = (b: Raw): Block => {
   if (!('text' in b)) return b;
   const { text, ...rest } = b;
-  return { ...rest, runs: parseLines(text) } as Block;
+  return { ...rest, runs: parseLines(text, b.k === 'quote') } as Block;
 };
 
 /**
@@ -197,7 +210,9 @@ export function parse(text: string): Doc {
       i = j;
       continue;
     }
-    if (RULE.test(line)) {
+    // (A rule may end with attributes, as any block may: "--- {.title}".)
+    const ruleAttrs = ATTRS.exec(line);
+    if (RULE.test(ruleAttrs ? line.slice(0, ruleAttrs.index) : line)) {
       flush();
       indents = [];
       const [, a] = splitAttrs(t.replace(/^[-*_\s]+/, ' '));
@@ -212,7 +227,9 @@ export function parse(text: string): Doc {
       blocks.push({ k: 'h', level: h[1].length as 1 | 2 | 3 | 4 | 5 | 6, text, ...(a ? { a } : {}) });
       continue;
     }
-    if (t.includes('|') && !para.length && i + 1 < lines.length && SEP.test(lines[i + 1]) && lines[i + 1].includes('-')) {
+    // (A line under it that is an item, "-" or "- |", is no separator; an indented line under an item carries the item on.)
+    const carries = blocks[blocks.length - 1]?.k === 'li' && /^\s/.test(line) && !!lines[i - 1]?.trim();
+    if (t.includes('|') && !para.length && !carries && i + 1 < lines.length && SEP.test(lines[i + 1]) && lines[i + 1].includes('-') && !/^\s*[-*+](\s|$)/.test(lines[i + 1])) {
       flush();
       indents = [];
       const cols = cells(t).map(column);
@@ -226,10 +243,13 @@ export function parse(text: string): Doc {
       i = j - 1;
       continue;
     }
-    const edge = EDGE.exec(t);
+    // (An edge's attributes end its line, after its label or, with none, after the thing it goes to.)
+    const [edgeLine, edgeA] = t.startsWith('~') ? splitAttrs(t) : [t, undefined];
+    const edge = EDGE.exec(edgeLine);
     if (edge) {
       flush();
-      const [label, a] = splitAttrs(edge[4] ?? '');
+      const label = edge[4] ?? '';
+      const a = edgeA;
       blocks.push({ k: 'edge', from: edge[1], to: edge[3], dir: edge[2] as Dir, ...(label ? { label } : {}), ...(a ? { a } : {}) });
       continue;
     }
@@ -258,13 +278,17 @@ export function parse(text: string): Doc {
     if (quote) {
       if (paraKind !== 'quote') flush();
       paraKind = 'quote';
-      para.push(quote[1]);
+      // (Spaces at a line's end are no one's words, in a quote as in a paragraph.)
+      para.push(quote[1].trimEnd());
       continue;
     }
     // A line under a list item, indented, carries on that item.
     const last = blocks[blocks.length - 1];
     if (!para.length && last?.k === 'li' && /^\s/.test(line) && lines[i - 1]?.trim()) {
-      last.text += '\n' + unblock(t);
+      // (Attributes are written at an item's end, after its last line, as a paragraph's are.)
+      const [more, a] = splitAttrs(unblock(t));
+      last.text += '\n' + more;
+      if (a) last.a = a;
       continue;
     }
     if (paraKind !== 'p') flush();
@@ -314,6 +338,8 @@ function guard(line: string): string {
   if (GUARDED.test(line) || RULE.test(line)) return '\\' + line;
   return line;
 }
+/** A block's first two lines that would read as a table's head and separator ("a | b", "--- | ---"): the second is written "\---", which reads as the same words. */
+const unTable = (lines: string[]): string[] => (lines.length > 1 && lines[0].includes('|') && SEP.test(lines[1]) && lines[1].includes('-') && /^\s*[-:|]/.test(lines[1]) ? [lines[0], '\\' + lines[1].trimStart(), ...lines.slice(2)] : lines);
 const guardEnd = (s: string) => (ATTRS.test(s) ? s.replace(/\{(?=[^{]*$)/, '\\{') : s);
 
 /** The header as its lines, or nothing when it holds nothing. */
@@ -349,7 +375,7 @@ export function writeBlock(b: Block, n = 1): string {
       // Words that end in "#" escape it, or it would be read as the heading's closing hashes.
       return `${'#'.repeat(b.level)} ${guardEnd(writeLines(b.runs).replace(/#+$/, (m) => m.replace(/#/g, '\\#')))}${at}`.trimEnd();
     case 'p':
-      return (b.runs.length ? guardEnd(writeLines(b.runs).split('\n').map(guard).join('\n')) : '<br>') + at;
+      return (b.runs.length ? guardEnd(unTable(writeLines(b.runs).split('\n').map(guard)).join('\n')) : '<br>') + at;
     case 'quote':
       return guardEnd(writeLines(b.runs))
         .split('\n')
@@ -358,10 +384,10 @@ export function writeBlock(b: Block, n = 1): string {
     case 'li': {
       const mark = b.ord ? `${n}.` : '-';
       const task = b.done === undefined ? '' : b.done ? '[x] ' : '[ ] ';
-      const [first, ...more] = writeLines(b.runs).split('\n');
+      const [first, ...more] = unTable(writeLines(b.runs).split('\n'));
       const pad = '  '.repeat(b.depth);
       const lead = (/^\[[ xX]\](\s|$)/.test(first) && b.done === undefined) || RULE.test(`- ${first}`) ? '\\' : '';
-      return `${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`.trimEnd() + more.map((l, i) => `\n${pad}  ${guard(l)}${i === more.length - 1 ? at : ''}`).join('');
+      return `${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`.trimEnd() + more.map((l, i) => `\n${pad}  ${guardEnd(guard(l))}${i === more.length - 1 ? at : ''}`).join('');
     }
     case 'hr':
       return `---${at}`;
@@ -369,7 +395,8 @@ export function writeBlock(b: Block, n = 1): string {
       // A table of one column, or one whose first words would read as something else ("# of units"), keeps its edges;
       // so does a row starting with an empty cell, or the pipe would be taken for the table's edge.
       const head = b.cols.map((c) => columnText(c.name, c.type, c.currency));
-      const edged = head.length < 2 || guard(cell(head[0])) !== cell(head[0]);
+      // A last heading with no name keeps them too: "Name |" would read as one column and an edge.
+      const edged = head.length < 2 || guard(cell(head[0])) !== cell(head[0]) || !head[head.length - 1];
       const row = (r: string[]) => (edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '|') + r.map(cell).join(' | ')).trimEnd();
       return [row(head), row(head.map(() => '---')), ...b.rows.map(row), ...(at ? [at.trim()] : [])].join('\n');
     }
@@ -379,7 +406,7 @@ export function writeBlock(b: Block, n = 1): string {
       return `${ticks}${b.lang}${at}\n${b.body}${b.body ? '\n' : ''}${ticks}`;
     }
     case 'edge':
-      return `~ ${b.from} ${b.dir} ${b.to}${b.label ? ': ' + b.label : ''}${at}`;
+      return `${guardEnd(`~ ${b.from} ${b.dir} ${b.to}${b.label ? ': ' + b.label : ''}`)}${at}`;
     case 'img':
       return `![${b.alt.replace(/[[\]\\]/g, '\\$&')}](${b.url})${at}`;
   }
@@ -431,7 +458,8 @@ export function parseInline(s: string): Run[] {
   let buf = '';
   const push = (t: string, extra: Partial<Run> = {}) => {
     const r: Run = { t };
-    for (const f of ['b', 'i', 'u', 's', 'h'] as const) if (on[f]) r[f] = true;
+    // (An icon or a note's mark carries no marks of its own: the writer could not say them.)
+    if (extra.ic === undefined && extra.fn === undefined) for (const f of ['b', 'i', 'u', 's', 'h'] as const) if (on[f]) r[f] = true;
     // (A footnote's mark is never part of a link's words: the grammar cannot write one there.)
     if (href && extra.fn === undefined) r.href = href;
     Object.assign(r, extra);
@@ -553,7 +581,16 @@ export function parseInline(s: string): Run[] {
     i++;
   }
   flush();
-  return runs.filter((r) => r.t || r.ic || r.fn !== undefined);
+  return normalRuns(runs.flatMap(unspaced));
+}
+
+/** A run's marks kept off the spaces at its ends, as the writer keeps them ("** a**" opened its bold before a space); a link keeps its spaces. */
+function unspaced(r: Run): Run[] {
+  if (r.ic || r.fn !== undefined || !(r.b || r.i || r.u || r.s || r.h)) return [r];
+  const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(r.t)!;
+  if (!m[1] && !m[3]) return [r];
+  const plain: Run = { t: '', ...(r.href ? { href: r.href } : {}) };
+  return [{ ...plain, t: m[1] }, ...(m[2] ? [{ ...r, t: m[2] }] : []), { ...plain, t: m[3] }];
 }
 
 /** Where the "]" that closes a note opened at `from` is, or -1: brackets inside balance, and an escaped one is a bracket. */
@@ -627,13 +664,29 @@ const FLAGS = [
  * runs, with every mark escaped. So "5 * 3" and "snake_case" come back as
  * they were written, and canonical text is byte-stable.
  */
-export function writeInline(runs: Run[]): string {
+export function writeInline(given: Run[]): string {
+  // (What the reader would give back is what is written: an icon unmarked, no mark on a space at a run's end.)
+  const runs = sayable(given);
   const full = marked(runs, escapeInline);
   const least = marked(runs, escapeLeast);
+  const read = parseInline(full);
+  // Words meet what the runs beside them write (":x" before an icon's ":star:" reads as the icon ":x:"); where even
+  // the full escaping reads otherwise, every mark is escaped.
+  if (!same(read, runs)) {
+    const all = marked(runs, escapeAll);
+    if (same(parseInline(all), runs)) return all;
+  }
   if (least === full) return full;
-  const same = (a: Run[], b: Run[]) => a.length === b.length && a.every((r, i) => (['t', 'b', 'i', 'u', 's', 'h', 'href', 'ic', 'fn'] as const).every((k) => r[k] === b[i][k]));
-  return same(parseInline(least), parseInline(full)) ? least : full;
+  return same(parseInline(least), read) ? least : full;
 }
+
+const same = (a: Run[], b: Run[]) => a.length === b.length && a.every((r, i) => (['t', 'b', 'i', 'u', 's', 'h', 'href', 'ic', 'fn'] as const).every((k) => r[k] === b[i][k]));
+
+/** Runs as reading their writing gives them at best: an icon unmarked, a note's words balanced, no mark on a space at a run's end. */
+const sayable = (runs: Run[]): Run[] => normalRuns(runs.map((r): Run => (r.ic ? { t: '', ic: r.ic, ...(r.href ? { href: r.href } : {}) } : r.fn !== undefined ? { t: '', fn: balanceNote(r.fn) } : r)).flatMap(unspaced));
+
+/** Every character a backslash can escape, escaped: the last resort. */
+const escapeAll = (t: string) => t.replace(/[\\`*_{}[\]()#+\-.!|~=:<>^]/g, '\\$&');
 
 function marked(runs: Run[], esc: (t: string) => string): string {
   let out = '';

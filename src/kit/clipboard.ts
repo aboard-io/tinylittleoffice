@@ -67,7 +67,8 @@ export function docToHtml(blocks: Block[]): string {
         out.push(`<blockquote>${runsToHtml(b.runs)}</blockquote>`);
         break;
       case 'li': {
-        closeLists(b.depth + 1);
+        // (A list of the other kind at this depth ends here: an ordered item after a bulleted one starts its own list.)
+        closeLists(list[b.depth] && list[b.depth].ord !== !!b.ord ? b.depth : b.depth + 1);
         while (list.length < b.depth + 1) {
           list.push({ ord: !!b.ord, depth: list.length });
           out.push(b.ord ? '<ol>' : '<ul>');
@@ -339,7 +340,15 @@ export function htmlToBlocks(html: string): Block[] {
   };
   for (const c of root.childNodes) walk(c, {});
   close();
-  return blocks;
+  // An item is at most one deeper than the item before it, and an item after words begins at the margin: the depth
+  // the text can say (a list copied from the middle of another starts deep).
+  let depth = -1;
+  return blocks.map((b) => {
+    if (b.k !== 'li') return (depth = -1), b;
+    const d = Math.min(b.depth, depth + 1);
+    depth = d;
+    return d === b.depth ? b : { ...b, depth: d };
+  });
 }
 
 /* ---------- the paste pipeline ---------- */
