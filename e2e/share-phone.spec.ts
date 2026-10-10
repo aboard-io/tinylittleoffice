@@ -16,7 +16,8 @@ test('share: on a phone, one full-screen sheet; a tap chooses a lifetime; the ar
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/write');
   await expect(page.locator('to-write-editor to-text .tx')).toBeVisible();
-  await page.locator('.to-header .to-share').tap();
+  await page.locator('.to-burger').tap();
+  await page.locator('.to-drawer-share').tap();
   const dialog = page.locator('to-dialog.to-share-dialog dialog[open]');
   await expect(dialog).toBeVisible();
   const box = (await dialog.boundingBox())!;

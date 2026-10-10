@@ -54,17 +54,19 @@ test('the keyboard alone: home, an app, typing, a menu, undo, share', async ({ p
   await expect(page).toHaveURL(/#\/v1\/write\/[ryz]/);
   const typed = page.url();
 
-  // The Download menu: Enter opens it on its first item, arrows walk it, Escape closes it and gives the focus back.
-  const download = page.locator('to-menu.to-download button').first();
-  await tabTo(page, (w) => w.includes('|Download'));
-  await page.keyboard.press('Enter');
-  const items = page.locator('to-menu.to-download [role^=menuitem]');
+  // Download, by its key (the drawer's This document holds it): the drawer opens with the table on its first item,
+  // arrows walk it, Escape closes it and gives the focus to its row, and Escape again closes the drawer.
+  const download = page.locator('to-menu.to-drawer-download button').first();
+  await page.keyboard.press('ControlOrMeta+Shift+d');
+  const items = page.locator('to-menu.to-drawer-download [role^=menuitem]');
   await expect(items.first()).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(items.nth(1)).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(items.first()).toBeHidden();
   await expect(download).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog.to-drawer')).toBeHidden();
 
   // Undo: back into the words, and Mod+Z takes the typing away.
   await tabTo(page, (w) => w.startsWith('div.tx'), true);
@@ -74,10 +76,8 @@ test('the keyboard alone: home, an app, typing, a menu, undo, share', async ({ p
   await page.keyboard.press('ControlOrMeta+Shift+z');
   await expect(area.locator('p').first()).toHaveText('Typed without a mouse.');
 
-  // Share: Enter opens the dialog with the focus inside it, Tab stays inside, Escape closes it and gives the focus back.
-  const share = page.locator('.to-header .to-share');
-  await tabTo(page, (w) => w.startsWith('button.to-btn.to-tool.to-share'));
-  await page.keyboard.press('Enter');
+  // Share, by its key: the dialog with the focus inside it, Tab stays inside, Escape closes it.
+  await page.keyboard.press('ControlOrMeta+Shift+s');
   const dialog = page.locator('dialog[open]').filter({ hasText: 'Copy link' });
   await expect(dialog).toBeVisible();
   expect(await page.evaluate(() => !!document.activeElement?.closest('dialog[open]'))).toBe(true);
@@ -87,7 +87,6 @@ test('the keyboard alone: home, an app, typing, a menu, undo, share', async ({ p
   }
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
-  await expect(share).toBeFocused();
 
   // The menu (the drawer): Enter opens it on Find, Escape closes it and the Menu button has the focus again.
   const burger = page.locator('.to-burger');

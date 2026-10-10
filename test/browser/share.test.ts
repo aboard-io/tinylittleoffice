@@ -3,7 +3,7 @@
 // Make this big and colorful at the top. Give people a copy button to copy into a new document.")
 import { test, expect, afterEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until } from './helpers.ts';
+import { mount, tick, until, openShare } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
 import { keepLink } from '../../src/kit/links.ts';
@@ -24,7 +24,7 @@ afterEach(() => {
 
 const dialogOf = (shell: HTMLElement) => shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
 async function open(shell: ToShell) {
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShare(shell);
   await until(() => dialogOf(shell).dialog.open && !!dialogOf(shell).querySelector('.to-share-links'));
   return dialogOf(shell);
 }

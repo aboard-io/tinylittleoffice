@@ -12,7 +12,6 @@ export default {
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'Nuovo: {noun}',
   'Untitled {noun}': '{noun} senza titolo',
-  'Share': 'Condividi',
   'Download': 'Scarica',
   'Loading…': 'Caricamento…',
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Questo link contiene qualcosa che non si può leggere. Forse è stato tagliato quando è stato copiato.',

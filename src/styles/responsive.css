@@ -91,6 +91,17 @@
     .to-btn {
       font-size: var(--to-scale);
     }
+    /* The keyboard coming or going: the column glides to the visible window's new height, and the bar fades out while
+       it moves and back when it settles (kit/chrome.ts `gliding`; Paul, 2026-10-10: "it jumps and it's overwhelming"). */
+    to-chrome[gliding] {
+      transition: height 0.2s ease-out;
+    }
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+      transition: opacity 0.12s ease;
+    }
+    to-chrome[gliding] .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+      opacity: 0;
+    }
     /* Under a finger the bar's place is the column's bottom: above the keyboard while one is up, since the column is
        the visible window's height (kit/chrome.ts), and above the home indicator while none is. */
     .to-column.barred {
@@ -111,14 +122,22 @@
       padding-bottom: calc(0.375em + env(safe-area-inset-bottom));
     }
     /* While a box has the focus (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger"):
-       the header steps aside, the menu button floats on a card of its own, a short link's banner goes small. */
+       the header steps aside, a short link's banner goes small, and the menu button slides into the very corner on a
+       card of its own, translucent so the words under it show through ("Make the hamburger translucent when I'm
+       editing. Maybe even move it further top right"); opaque under a hover, a key's focus, and while the drawer is open. */
     to-chrome[editing] .to-header {
       display: none;
     }
     to-chrome[editing] .to-burger {
-      top: 0.375em;
+      top: max(0.25em, env(safe-area-inset-top));
+      inset-inline-end: max(0.25em, env(safe-area-inset-right));
+      opacity: 0.55;
       border-radius: 0.5em;
       box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
+    }
+    to-chrome[editing] .to-burger:is(:hover, :focus-visible),
+    to-shell:has(dialog.to-drawer[open]) to-chrome[editing] .to-burger {
+      opacity: 1;
     }
     /* The column's top keeps the menu button's room, so what is first in it (a row's menu, a stage's) is never under the
        button until the words are scrolled; the words then go on under it, the header's height theirs. */

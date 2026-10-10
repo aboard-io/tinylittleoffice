@@ -1,8 +1,12 @@
 /**
  * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side the menu button is on
- * (the inline end). With a document open it begins with This document: Share… and Download (the table of formats,
- * `downloads`), since on a phone, while a box has the focus, the header steps aside and this is the one nav left
- * (kit/chrome.ts). Then: find an app, a
+ * (the inline end), flush with that edge, one hairline against the backdrop. With a document open it begins, under
+ * the head (the language, Close), with This document: a small heading over two full-width rows, Share… and Download
+ * (the table of formats, `downloads`, its menu), each with its key at the right. They are here alone: the header is
+ * the title (Paul, 2026-10-10: "Let's get rid of share and download in the top nav and move that functionality to the
+ * hamburger"), and on a phone, while a box has the focus, the header steps aside (kit/chrome.ts). On a touch screen the
+ * dialog itself holds the focus (the search would raise the keyboard) and draws no ring for it: it is not a control,
+ * and the ring drawn outside the panel stood apart from its edge as a stray line. Then: find an app, a
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
  * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
@@ -32,6 +36,8 @@ import './preview.ts';
 import type { ToDialog } from './dialog.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
+import { keysText } from './bar.ts';
+import { DOWNLOAD_KEYS, SHARE_KEYS } from './keys.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
 import './privacy-dialog.ts';
@@ -82,7 +88,8 @@ export class ToDrawer extends LitElement {
     if (!this.dialog.open) this.dialog.showModal();
     // The search takes the focus only where a keyboard is already there: on a touch screen the focus would bring the
     // keyboard up over the menu (Paul, 2026-10-10), so the dialog itself holds it and a tap on the field asks for one.
-    if (matchMedia('(pointer: fine)').matches) this.querySelector<HTMLInputElement>('.to-find')?.focus();
+    // (Not a touch screen, as the rest of the kit asks it: a device with no pointer at all has its keys.)
+    if (!matchMedia('(pointer: coarse)').matches) this.querySelector<HTMLInputElement>('.to-find')?.focus();
     else this.dialog.focus({ preventScroll: true });
   }
   close() {
@@ -149,8 +156,8 @@ export class ToDrawer extends LitElement {
         ${this.open && this.downloads
           ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
-              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(UI.share, 18)}<span>${t('Share…')}</span></button>
-              <to-menu class="to-drawer-download" .label=${t('Download')} .icon=${UI.download} .items=${this.downloads}></to-menu>
+              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(UI.share, 18)}<span>${t('Share…')}</span><kbd class="to-menu-keys">${keysText(SHARE_KEYS)}</kbd></button>
+              <to-menu class="to-drawer-download" .label=${t('Download')} .icon=${UI.download} .keys=${DOWNLOAD_KEYS} .items=${this.downloads}></to-menu>
             </section>`
           : nothing}
         ${this.open

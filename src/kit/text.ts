@@ -83,7 +83,7 @@ import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collap
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import { completeNamed, completions, loadCompletions, type Completion, type ToComplete } from './complete.ts';
-import { reveal, scrollerOf } from './scroll.ts';
+import { gliding, reveal, scrollerOf } from './scroll.ts';
 import './context.ts';
 import './link-pop.ts';
 import './complete.ts';
@@ -467,7 +467,8 @@ export class ToText extends LitElement {
   }
   /** The caret kept inside what can be seen of the column (above a phone's keyboard) after an edit the person made moved it (kit/scroll.ts). */
   private keepCaretVisible(dom: Selection) {
-    if (!dom.rangeCount) return;
+    // In flight for the keyboard, the column's box is not yet where it is going: it keeps the caret in sight when it settles.
+    if (!dom.rangeCount || gliding()) return;
     const r = dom.getRangeAt(0).getBoundingClientRect();
     if (r.height) reveal(this, { rect: r, margin: 8 });
   }

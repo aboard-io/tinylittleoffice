@@ -93,7 +93,7 @@ test('the title, focused, opens a wide row: the automatic name chosen whole, Ent
   expect(r.top).toBeGreaterThanOrEqual(small.bottom);
   // Across the header, from one margin to the other; the rest stays on the first row.
   expect(r.width).toBeGreaterThanOrEqual(header.clientWidth - 2 * 16 - 1);
-  expect(shell.querySelector('.to-share')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(r.top);
+  expect(shell.querySelector('.to-here')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(r.top);
   expect(css(header.getBoundingClientRect().height)).toBeCloseTo(56 + 8 + 44, 0);
   expect(field.value).toBe(`New Document ${localDay()} #1`);
   expect(field.value.slice(field.selectionStart!, field.selectionEnd!)).toBe(field.value);

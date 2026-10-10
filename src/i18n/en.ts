@@ -20,7 +20,6 @@ export default {
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'New {noun}',
   'Untitled {noun}': 'Untitled {noun}',
-  'Share': 'Share',
   'Download': 'Download',
   'Loading…': 'Loading…',
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'This link holds something that cannot be read. It may have been cut short when it was copied.',

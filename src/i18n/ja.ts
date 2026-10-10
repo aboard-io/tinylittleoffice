@@ -10,7 +10,6 @@ export default {
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': '新しい{noun}',
   'Untitled {noun}': '無題の{noun}',
-  'Share': '共有',
   'Download': 'ダウンロード',
   'Loading…': '読み込み中…',
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'このリンクには読み取れないものが入っています。コピーのときに途中で切れたのかもしれません。',

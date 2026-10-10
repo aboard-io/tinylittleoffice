@@ -3,7 +3,7 @@
 // service through the link guard; the embed code and the embed view; a deck's show link.
 import { test, expect, afterEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until } from './helpers.ts';
+import { mount, tick, until, openShare, openDrawerDoc } from './helpers.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { store } from '../../src/kit/store.ts';
@@ -45,9 +45,10 @@ function downloads(): Map<string, File> {
 }
 /** Download ▾ opened, and on the format with these words the action starting so ("Download", "Copy a link") chosen. */
 async function choose(shell: HTMLElement, words: string, action = 'Download') {
-  shell.querySelector<HTMLButtonElement>('.to-download > button')!.click();
-  await until(() => !!shell.querySelector('.to-download [popover]:popover-open'));
-  const row = [...shell.querySelectorAll<HTMLElement>('.to-download .to-menu-row')].find((r) => r.getAttribute('aria-label') === words)!;
+  if (!shell.querySelector('dialog.to-drawer[open]')) await openDrawerDoc(shell);
+  shell.querySelector<HTMLButtonElement>('.to-drawer-download > button')!.click();
+  await until(() => !!shell.querySelector('.to-drawer-download [popover]:popover-open'));
+  const row = [...shell.querySelectorAll<HTMLElement>('.to-drawer-download .to-menu-row')].find((r) => r.getAttribute('aria-label') === words)!;
   [...row.querySelectorAll<HTMLButtonElement>('[role=menuitem]')].find((b) => b.getAttribute('aria-label')!.startsWith(action))!.click();
 }
 
@@ -172,7 +173,7 @@ test('Compare: two links side by side, what the second changed marked, Swap, a l
 async function share(app: string, text: string): Promise<{ shell: ToShell; d: ToDialog }> {
   const shell = await mount(`#/v1/${app}/${encodeDoc(text)}`);
   await until(() => !!shell.querySelector(`to-${app}-editor`));
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShare(shell);
   const d = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
   await until(() => d.dialog.open && !!d.querySelector('.to-share-post'));
   return { shell, d };
@@ -265,7 +266,7 @@ test('a deck’s show link opens it presenting, its way out "Edit this deck"; Sh
   out.click();
   await until(() => !shell.querySelector('.deck-show'));
   // A deck's Share has the show link; another app's does not.
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShare(shell);
   const d = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
   await until(() => !!d.querySelector('.to-copy-show'));
   await clipboard(async (copied) => {

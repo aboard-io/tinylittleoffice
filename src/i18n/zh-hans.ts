@@ -11,7 +11,6 @@ export default {
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': '新建{noun}',
   'Untitled {noun}': '未命名{noun}',
-  'Share': '分享',
   'Download': '下载',
   'Loading…': '加载中…',
   'This link holds something that cannot be read. It may have been cut short when it was copied.': '此链接的内容无法读取，可能是复制时被截断了。',

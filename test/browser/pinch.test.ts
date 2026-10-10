@@ -6,7 +6,7 @@
 // font size or a length is read as it is, on the screen.
 import { test, expect, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until } from './helpers.ts';
+import { mount, tick, until, openShare } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { BASE, NAV_MAX, SIZE_MAX, size, stepSize, keepSize } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -245,7 +245,7 @@ async function allFit(nav: number) {
   expect(burger.bottom).toBeLessThanOrEqual(top + 0.5);
   expect(window.scrollY).toBe(0);
   shell.querySelector<HTMLElement>('.to-main')!.scrollTop = 0;
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShare(shell);
   const share = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
   await until(() => share.dialog.open && !!share.querySelector('.to-share-links'));
   await tick(100);

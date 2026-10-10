@@ -1127,15 +1127,43 @@
     border-inline-start: 1px solid var(--to-border);
     overflow: auto;
   }
-  .to-drawer-doc {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5em;
+  /* The dialog holds the focus on a touch screen (drawer.ts) and is not a control: no ring, which drawn outside the
+     panel stood apart from its edge as a stray line (Paul, 2026-10-10: "a gap between border and the main menu area").
+     A row in it still shows the ring when the keys move there. */
+  .to-drawer:focus,
+  .to-drawer:focus-visible {
+    outline: none;
+  }
+  /* This document: a small heading over two full-width rows like the apps' (Paul: "The hamburger design is janky"),
+     each its icon, its words and its key at the far end. */
+  .to-drawer-section.to-drawer-doc {
+    gap: 0.125em;
     padding: 0.75em;
+    border-top: 0;
+    border-bottom: 1px solid var(--to-border);
   }
   .to-drawer-doc .to-drawer-head3 {
-    flex-basis: 100%;
-    margin: 0;
+    margin: 0 0.8333em 0.3333em;
+  }
+  .to-drawer-doc to-menu {
+    display: block;
+  }
+  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn) {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.625em;
+    padding: 0 0.625em;
+    font-size: var(--to-scale);
+    font-weight: 400;
+    border-color: transparent;
+    background: transparent;
+    border-radius: var(--to-radius-sm);
+  }
+  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn):hover {
+    background: var(--to-surface-2);
+  }
+  .to-drawer-doc .to-menu-keys {
+    margin-inline-start: auto;
   }
   .to-brand {
     display: inline-flex;
@@ -1401,7 +1429,12 @@
     top: calc((var(--to-header-h) - var(--to-touch)) / 2);
     inset-inline-end: var(--to-edge-e);
     z-index: 4;
-    transition: box-shadow 0.2s ease;
+    /* To the corner and back as the header steps aside and returns (responsive.css), never a jump; reduced motion: at once (a11y.css). */
+    transition:
+      top 0.2s ease-out,
+      inset-inline-end 0.2s ease-out,
+      opacity 0.2s ease,
+      box-shadow 0.2s ease;
   }
   /* The title edited wide (Paul: "The title is too small to edit"): the header opens a second row, the field across
      it at 20px; the first row keeps the rest, pushed to the inline end. */

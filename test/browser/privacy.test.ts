@@ -4,7 +4,7 @@
 // stale after an edit, the state beside the title, the key, what the device holds, and the zip.
 import { test, expect, afterEach, beforeAll, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
-import { mount, tick, until } from './helpers.ts';
+import { mount, tick, until, openShare as openShareFromDrawer } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { exportKey, forgetKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
@@ -48,7 +48,7 @@ async function type(shell: ToShell, words: string) {
   await shell.updateComplete;
 }
 async function openShare(shell: ToShell) {
-  shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
+  await openShareFromDrawer(shell);
   await until(() => dialog(shell, 'to-share-dialog').dialog.open && !!shell.querySelector('.to-share-protect'));
 }
 /** A field given words as a person types them. */
@@ -117,7 +117,8 @@ test('Escape leaves a sealed document closed, its title hidden, with Unlock… t
   expect(shell.querySelector('.to-locked p')!.textContent).toBe('This document is locked with a password.');
   expect(shell.querySelector('.to-title-locked')!.textContent).toBe('Locked document');
   expect(shell.textContent).not.toContain('Salaries');
-  expect(shell.querySelector('.to-header .to-share')).toBeNull();
+  // Locked: the name alone, and nothing in the drawer to share or download.
+  expect(shell.querySelector('.to-header .to-title-locked')).not.toBeNull();
   shell.querySelector<HTMLButtonElement>('.to-unlock-open')!.click();
   await until(() => d.dialog.open);
 });

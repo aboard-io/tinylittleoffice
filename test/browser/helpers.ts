@@ -27,3 +27,15 @@ export async function until(test: () => boolean, ms = 3000): Promise<void> {
     await tick(20);
   }
 }
+
+/** The drawer open with a document's This document in it, as a person opens it: the menu button. */
+export async function openDrawerDoc(shell: HTMLElement): Promise<HTMLElement> {
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => !!shell.querySelector('dialog.to-drawer[open] .to-drawer-doc'));
+  return shell.querySelector<HTMLElement>('.to-drawer-doc')!;
+}
+
+/** Share…, from the drawer (the header has no Share: round nine). */
+export async function openShare(shell: HTMLElement): Promise<void> {
+  (await openDrawerDoc(shell)).querySelector<HTMLButtonElement>('.to-drawer-share')!.click();
+}

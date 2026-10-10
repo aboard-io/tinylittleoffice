@@ -181,3 +181,29 @@ test('About names the commit the site runs, from /version.json, asked when it op
     window.fetch = real;
   }
 });
+
+test('a device with no pointer at all (neither fine nor coarse: keys alone) has the search focused; a finger has the dialog hold it', async () => {
+  const real = window.matchMedia;
+  let pointer: 'none' | 'coarse' = 'none';
+  // The pointer media as such a device answers them; every other query as the browser does.
+  window.matchMedia = (q: string) => {
+    const m = /^\(pointer: (fine|coarse)\)$/.exec(q.trim());
+    return m ? ({ matches: m[1] === pointer, media: q, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real.call(window, q);
+  };
+  try {
+    const shell = await mount('');
+    const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    await until(() => dialog.open);
+    expect(document.activeElement).toBe(shell.querySelector('.to-find'));
+    dialog.close();
+    await until(() => !dialog.open);
+    pointer = 'coarse';
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    await until(() => dialog.open);
+    expect(document.activeElement).toBe(dialog);
+    dialog.close();
+  } finally {
+    window.matchMedia = real;
+  }
+});
