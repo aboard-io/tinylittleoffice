@@ -471,6 +471,16 @@ answered (the canvas, a cell, the rail, the show).
 
 | Keys | Command | Where |
 |---|---|---|
+| `V` | Select | bar, at: canvas |
+| `R` | Rectangle | bar, at: canvas |
+| `E` | Ellipse | bar, at: canvas |
+| `D` | Diamond | bar, at: canvas |
+| `L` | Line | bar, at: canvas |
+| `A` | Arrow | bar, at: canvas |
+| `T` | Text | bar, at: canvas |
+| `K`, `Shift+K` | Join two shapes | bar, at: canvas |
+| `P` | Pen: any shape, a tap for each corner | bar, at: canvas |
+| `F` | Freehand: drag to draw a line or a shape | bar, at: canvas |
 |  | Rectangle | insert ▾ |
 |  | Rounded box | insert ▾ |
 |  | Ellipse | insert ▾ |
@@ -529,16 +539,6 @@ answered (the canvas, a cell, the rail, the show).
 | `Backspace` | Delete | keys only, at: canvas |
 | `Escape` | Step out: close, collapse, let go | keys only, at: canvas |
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Enter` | Join two shapes | keys only, at: canvas |
-| `V` | Select | bar, at: canvas |
-| `R` | Rectangle | bar, at: canvas |
-| `E` | Ellipse | bar, at: canvas |
-| `D` | Diamond | bar, at: canvas |
-| `L` | Line | bar, at: canvas |
-| `A` | Arrow | bar, at: canvas |
-| `T` | Text | bar, at: canvas |
-| `K`, `Shift+K` | Join two shapes | bar, at: canvas |
-| `P` | Pen: any shape, a tap for each corner | bar, at: canvas |
-| `F` | Freehand: drag to draw a line or a shape | bar, at: canvas |
 | `Mod+A` | Select all: the words of the box, then everything | keys only, at: canvas |
 | `Mod+Shift+L` | Align: left | keys only, at: canvas |
 | `Mod+Shift+E` | Align: centre | keys only, at: canvas |

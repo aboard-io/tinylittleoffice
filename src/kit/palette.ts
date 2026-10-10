@@ -11,6 +11,7 @@ import { keysText, run, type Command } from './commands.ts';
 import { t } from './i18n.ts';
 import { icon } from './icons.ts';
 import { fold } from './search.ts';
+import { reveal } from './scroll.ts';
 
 /** A command and the context it is run in. */
 export interface Offer {
@@ -77,7 +78,7 @@ export class ToPalette extends LitElement {
     const go = (i: number) => {
       e.preventDefault();
       this.at = n ? (i + n) % n : 0;
-      void this.updateComplete.then(() => this.querySelector('.to-palette-item[aria-selected=true]')?.scrollIntoView({ block: 'nearest' }));
+      void this.updateComplete.then(() => reveal(this.querySelector('.to-palette-item[aria-selected=true]')));
     };
     if (e.key === 'ArrowDown') go(this.at + 1);
     else if (e.key === 'ArrowUp') go(this.at - 1);
