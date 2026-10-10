@@ -518,11 +518,11 @@ chart: bar
 ---
 Month | On time:percent
 --- | ---
-May | 0.71
-Jun | 0.63
-Jul | 0.52
-Aug | 0.47
-Sep | 0.55
+May | 71
+Jun | 63
+Jul | 52
+Aug | 47
+Sep | 55
 \`\`\`
 
 "People on the islands set their whole day by that boat," said Councilor Mai Tran, who proposed the change. "It has to come when it says it will."
@@ -765,10 +765,10 @@ Week | Dates | Topic | Reading
 
 Work | Weight:percent
 --- | ---
-Two source papers | 0.3
-Midterm | 0.2
-Final project | 0.35
-Participation | 0.15
+Two source papers | 30
+Midterm | 20
+Final project | 35
+Participation | 15
 Total | =SUM(B1:B4)
 {lock=B5}
 
