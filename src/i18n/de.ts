@@ -42,9 +42,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Auf diesem Gerät wird nichts gespeichert: keine Cookies, keine Spur, nur die gewählte Sprache.',
   'Saved on this device': 'Auf diesem Gerät gespeichert',
   'Saved on this device from now on': 'Ab jetzt auf diesem Gerät gespeichert',
-  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': 'Deine Einstellungen, die Offline-Kopie und die Dokumente, die du öffnest, bleiben hier. Schalte aus, um alles zu vergessen.',
-  'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'Ab jetzt nichts mehr auf diesem Gerät speichern? Deine Einstellungen, die Offline-Kopie, die Liste deiner Dokumente und dein Signaturschlüssel werden vergessen (die Dokumente selbst leben in ihren Links).',
-  'Keep the app on this device': 'App auf diesem Gerät behalten',
+  'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Deine Einstellungen und die Dokumente, die du öffnest, bleiben hier. Schalte aus, um alles zu vergessen.',
+  'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'Ab jetzt nichts mehr auf diesem Gerät speichern? Deine Einstellungen, die Liste deiner Dokumente und dein Signaturschlüssel werden vergessen (die Dokumente selbst leben in ihren Links).',
   'Language': 'Sprache',
   'Theme': 'Darstellung',
   'Match the device': 'Wie das Gerät',
@@ -84,14 +83,6 @@ export default {
   'Running commit {commit}': 'Läuft mit Commit {commit}',
 
   // ---- the copy kept on the device (status lines under the switch) ----
-  'Only on the built site': 'Nur auf der gebauten Seite',
-  'Not possible in this browser': 'In diesem Browser nicht möglich',
-  'Saving…': 'Speichere …',
-  'Ready to work offline': 'Bereit für offline',
-  'Updated, reload': 'Aktualisiert, neu laden',
-  'Could not save': 'Speichern fehlgeschlagen',
-  'Not kept': 'Nicht behalten',
-  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'Eine Kopie in einem neuen Tab geöffnet',
@@ -218,8 +209,6 @@ export default {
   'Signed by {name}': 'Signiert von {name}',
   'Signed with this device’s key: anyone can check that the document is exactly what you signed.': 'Mit dem Schlüssel dieses Geräts signiert: Jeder kann prüfen, dass das Dokument genau das ist, was du signiert hast.',
   'That is not a signing key.': 'Das ist kein Signaturschlüssel.',
-  'The app itself, to open with no connection. No documents are in it.': 'Die App selbst, um sie ohne Verbindung zu öffnen. Es sind keine Dokumente darin.',
-  'The offline copy': 'Die Offline-Kopie',
   'The owner links that update short links you made.': 'Die Besitzerlinks, mit denen du Kurzlinks aktualisierst, die du erstellt hast.',
   'The two passwords differ': 'Die beiden Passwörter sind verschieden',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'Text, Titel, Name oder Zeit sind nicht das, was signiert wurde: Jemand hat es geändert oder etwas anderes signiert.',

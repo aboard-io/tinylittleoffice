@@ -7,7 +7,7 @@ Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a 
 you want to share it, copy the link. The whole document lives inside that link, so sending it is like
 handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you write.
 If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It works on
-a phone, works offline once you keep a copy, and it's free, with the code open for anyone to read.
+a phone, and it's free, with the code open for anyone to read.
 
 ## What it is not
 
@@ -39,7 +39,7 @@ npm run i18n:gaps -- fr # the lines fr.ts lacks, an old translation offered as a
 npm run i18n:extract    # append the missing keys to en.ts, at the end, to be sorted by hand
 npm test                # unit (node) and browser (Chromium) tests
 npm run test:e2e        # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots
-npm run build           # the lint, then dist/ with a page per app, the CSP hashes, files.json, sw.js; then the chunk budgets
+npm run build           # the lint, then dist/ with a page per app, the CSP hashes, version.json; then the chunk budgets
 npm run docs:exports    # docs/exports.md, from the apps' definitions
 npm run docs:network   # docs/network.md and /network, from src/kit/network.ts (the build runs it first)
 npm run docs:deps       # docs/dependencies.md, from package.json and the lockfile (-- --sizes measures a build)
@@ -115,7 +115,7 @@ src/kit/        the kit: shell, chrome (<to-chrome>: the header and the column),
                 there is none), envelope (by, created, key, sig, and the signed message), link-guard (links
                 that leave ask first), pictures (web pictures asked for first), media (the picture proxy's
                 address, the whitelist, an export's picture bytes), preview (a kept document's first page,
-                small), mark (the Office mark), offline (and Add to home screen), search (the library, by its
+                small), mark (the Office mark), install (Add to home screen), search (the library, by its
                 words), find (Find in this document, Mod+F), keys (the shortcuts dialog), zoom (the size of
                 everything), steps (a document presented a part at a time), qr-picture (a document's QR code
                 as a fence), locked and locked-doc (a document locked with a password placed in another: the
@@ -137,16 +137,14 @@ src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy 
                 (wrapped in @layer apps), templates.ts, tests/
 src/i18n/       the strings: en.ts is every key, by hand; a sibling file is a language
 src/styles.css  declares the cascade: @layer tokens, kit, apps, responsive, a11y; src/styles/ holds each
-src/sw.ts       the service worker, for the copy kept on the device
 public/         _headers (the Content-Security-Policy), manifest, icons, theme.js, network.html (written by scripts/network-doc.ts)
-scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), deploy.mjs (the
-                checks, then Cloudflare), check-build.ts (files.json, the worker's version, the policy's
-                hashes), exports-doc.ts, dependencies.ts and network-doc.ts (the generated pages in docs/,
+scripts/        i18n-extract.ts (the strings, checked), deploy.mjs (the checks, then Cloudflare), check-build.ts
+                (the policy's hashes and version.json), exports-doc.ts, dependencies.ts and network-doc.ts (the generated pages in docs/,
                 each with --check: generated.ts), budgets.ts (the built chunks against budgets.json)
 test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode);
                 lints.ts and lints.test.ts the rules of the code (CONTRIBUTING.md), fixtures/lints/ what each catches
 e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
-                keyboard alone, axe over every app light and dark, the offline copy, and each app's own
+                keyboard alone, axe over every app light and dark, and each app's own
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
 media/          the picture proxy at media.tinylittleoffice.com: a Worker, no storage, no logs (docs/network.md)
 src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
@@ -208,10 +206,10 @@ Strings: every string a person sees is `t('English words')`; English is the key,
 
 Deploy: `node scripts/deploy.mjs` ships a commit, never a working tree. It runs the types, the strings,
 the unit and the browser tests, then the build, then checks what the build wrote after the bundler
-(scripts/check-build.ts: every file in `dist/files.json` there and none left out, `sw.js` carrying its version, the
-Content-Security-Policy in `dist/_headers` holding the hash of every page script and inline script); when something
+(scripts/check-build.ts: the Content-Security-Policy in `dist/_headers` holding the hash of every page script and
+inline script, and `dist/version.json` naming the same hashes); when something
 on screen changed since the last deploy (`.wrangler/deployed`), the smoke run on the built site instead of the bare
-build: e2e/smoke, keyboard, a11y (axe over every app at phone size, light and dark) and offline. Then
+build: e2e/smoke, keyboard, and a11y (axe over every app at phone size, light and dark). Then
 `wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`), for tinier and
 for the picture proxy. `--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e
 spec. `npm run deploy` is the same script; a self-hoster runs it against their own account (docs/self-host.md).

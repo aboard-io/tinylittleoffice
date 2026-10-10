@@ -26,8 +26,6 @@
 /assets/*
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
-/files.json
-  Access-Control-Allow-Origin: *
 # The embed page: the same policy, but any page may frame it (it shows the document's pages and a link to open them).
 /embed/
   ! Content-Security-Policy

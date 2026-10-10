@@ -67,7 +67,7 @@ export const NETWORK = {
     what: 'The site’s own files: the apps, the fonts, the icon set’s chunk (loaded when the icon picker opens)',
     when: 'while shown',
     carries: 'Which file; never the document, which is after the "#" and stays in the browser',
-    stops: '“Keep the app on this device”, in the menu: then the files come from the device and nothing is asked',
+    stops: 'Nothing to stop but not opening the site: these files are the app itself',
     by: 'the whole site',
   },
   media: {

@@ -56,8 +56,7 @@ leak. Everything here makes that checkable by a stranger.
    (`vite.api.config.ts`): a library build keeps the bundler's `//#region <path>` notes, which named where
    node_modules was on the building machine; they are off. The build writes `dist/version.json`
    (`scripts/version.ts`: the commit, its tag or "", the commit's own date in UTC, the policy's script
-   hashes; the shape is `src/kit/version.ts`), listed in files.json for the copy kept offline and checked by
-   `scripts/check-build.ts`; About reads it when it opens and says "Running commit abc1234", a link to the
+   hashes; the shape is `src/kit/version.ts`), checked by `scripts/check-build.ts`; About reads it when it opens and says "Running commit abc1234", a link to the
    commit on GitHub (`github.com` is on the list, `src/kit/network.ts` `source`). `scripts/verify-deploy.ts`
    (`npm run verify-deploy -- <url> [commit]`) reads the site's `/version.json`, builds that commit in a fresh
    checkout (or uses `dist/` when it is that build), fetches every file but `_headers`, and prints a table;
@@ -111,7 +110,7 @@ Done once, before the repo goes public (the visibility change itself is Paul's c
 - Name `tinylittleoffice` (or keep `tinyoffice` with the full name in the description); description "A free
   office suite where your document is the link. No account, nothing stored, the code open."; the website
   field; topics: `office-suite`, `privacy`, `local-first`, `no-backend`, `pwa`, `web-components`, `lit`,
-  `cloudflare-workers`, `typescript`, `offline-first`, `url-as-document`, `markdown`.
+  `cloudflare-workers`, `typescript`, `url-as-document`, `markdown`.
 - README that opens with the one-sentence and the paragraph below, then: what it is not (no server, no
   account, no telemetry), how to run it (`npm ci && npm run dev`), how it is built (the kernel, the kit,
   the apps), the standards it keeps, how to self-host, how to report a security issue, licence.
@@ -142,7 +141,7 @@ A paragraph: *Open it and start typing. A letter, a spreadsheet, a presentation,
 website. When you want to share it, copy the link. The whole document lives inside that link, so sending it
 is like handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you
 write. If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It
-works on a phone, works offline once you keep a copy, and it's free, with the code open for anyone to read.*
+works on a phone, and it's free, with the code open for anyone to read.*
 
 The metaphor: the note passed in class. The note is the thing, not a reference to something kept elsewhere.
 Lead with "nothing is stored", not "the URL encodes the document"; the technical readers find the second

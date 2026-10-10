@@ -44,9 +44,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'لا شيء يُحفظ على هذا الجهاز: لا ملفات تعريف ارتباط ولا أثر، سوى اللغة التي اخترتها.',
   'Saved on this device': 'محفوظ على هذا الجهاز',
   'Saved on this device from now on': 'الحفظ على هذا الجهاز من الآن',
-  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': 'تبقى هنا تفضيلاتك والنسخة غير المتصلة والمستندات التي تفتحها. أوقف التشغيل لنسيان ذلك كله.',
-  'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'ألّا يُحفظ أي شيء على هذا الجهاز من الآن؟ ستُنسى تفضيلاتك والنسخة غير المتصلة وقائمة مستنداتك ومفتاح توقيعك (أما المستندات نفسها فتبقى في روابطها).',
-  'Keep the app on this device': 'إبقاء التطبيق على هذا الجهاز',
+  'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'تبقى هنا تفضيلاتك والمستندات التي تفتحها. أوقف التشغيل لنسيان ذلك كله.',
+  'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': 'ألّا يُحفظ أي شيء على هذا الجهاز من الآن؟ ستُنسى تفضيلاتك وقائمة مستنداتك ومفتاح توقيعك (أما المستندات نفسها فتبقى في روابطها).',
   'Language': 'اللغة',
   'Theme': 'المظهر',
   'Match the device': 'مطابقة الجهاز',
@@ -86,14 +85,6 @@ export default {
   'Running commit {commit}': 'الإصدار قيد التشغيل {commit}',
 
   // ---- the copy kept on the device (status lines under the switch) ----
-  'Only on the built site': 'في الموقع المبني فقط',
-  'Not possible in this browser': 'غير ممكن في هذا المتصفح',
-  'Saving…': 'جارٍ الحفظ…',
-  'Ready to work offline': 'جاهز للعمل دون اتصال',
-  'Updated, reload': 'تم التحديث، أعد التحميل',
-  'Could not save': 'تعذّر الحفظ',
-  'Not kept': 'غير محفوظ',
-  '{mb} MB': '{mb} ميغابايت',
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'نسخة فُتحت في تبويب جديد',
@@ -220,8 +211,6 @@ export default {
   'Signed by {name}': 'موقَّع من {name}',
   'Signed with this device’s key: anyone can check that the document is exactly what you signed.': 'موقَّع بمفتاح هذا الجهاز: يستطيع أي شخص التحقق من أن المستند هو ما وقّعتَ عليه تمامًا.',
   'That is not a signing key.': 'هذا ليس مفتاح توقيع.',
-  'The app itself, to open with no connection. No documents are in it.': 'التطبيق نفسه، ليُفتح دون اتصال. لا مستندات فيه.',
-  'The offline copy': 'النسخة غير المتصلة',
   'The owner links that update short links you made.': 'روابط المالك التي تحدّث الروابط القصيرة التي أنشأتها.',
   'The two passwords differ': 'كلمتا المرور مختلفتان',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'الكلمات أو العنوان أو الاسم أو الوقت ليست ما وُقّع عليه: غيّرها أحدهم، أو وقّع على شيء آخر.',

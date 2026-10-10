@@ -10,8 +10,8 @@
  * and the ring drawn outside the panel stood apart from its edge as a stray line. Then: find an app, a
  * template or a kept document; in a document, the apps as rows, each with its templates (<to-templates>, the home
  * page's; on the home page itself the rows are the page, so the drawer has none: Paul, 2026-10-10),
- * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
- * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
+ * so a template is reachable from inside any app; Private or Saved; Language;
+ * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it (install.ts)
  * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt: kit/open.ts) and Compare… (this document beside another link:
@@ -24,7 +24,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import type { AppDef } from './app.ts';
-import { apps } from './apps.ts';
+import { apps, siteRoot } from './apps.ts';
 import { templateHash } from './home.ts';
 import { library } from './library.ts';
 import { icon, UI } from './icons.ts';
@@ -32,7 +32,7 @@ import { routeHash } from './route.ts';
 import { chosenLanguage, languageName, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { THEMES, setTheme, theme, themeName, type Theme } from './theme.ts';
 import { keeping, onPrivacy, setPrivate } from './privacy.ts';
-import { canInstall, install, installByHand, offlineState, onOffline, setOffline, siteRoot } from './offline.ts';
+import { canInstall, install, installByHand, onInstall } from './install.ts';
 import { size, SIZE_MAX, SIZE_MIN, stepSize } from './zoom.ts';
 import { toast } from './toast.ts';
 import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
@@ -107,7 +107,7 @@ export class ToDrawer extends LitElement {
     this.offs = [
       onLanguage(redraw),
       onPrivacy(redraw),
-      onOffline(redraw),
+      onInstall(redraw),
       onPictures(redraw),
       () => window.removeEventListener('hashchange', away),
       () => window.removeEventListener('to-size', redraw),
@@ -149,9 +149,7 @@ export class ToDrawer extends LitElement {
     const box = e.target as HTMLInputElement;
     if (
       keeping() &&
-      !confirm(
-        t('Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).'),
-      )
+      !confirm(t('Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).'))
     ) {
       // The browser flipped the switch before the question was asked: Cancel puts it back.
       box.checked = true;
@@ -203,7 +201,6 @@ export class ToDrawer extends LitElement {
     const want = this.find.trim().toLowerCase();
     const kept = library();
     const placeholder = kept.length ? t('Find app, template, or doc') : t('Find app, template');
-    const offline = offlineState();
     const chosen = chosenLanguage() ?? '';
     return html`<dialog class="to-drawer" aria-label=${t('Tiny Little Office')} @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-drawer-inner">
@@ -253,11 +250,7 @@ export class ToDrawer extends LitElement {
               <section class="to-drawer-section">
                 <label class="to-switch">
                   <input type="checkbox" role="switch" .checked=${keeping()} @change=${(e: Event) => void this.togglePrivate(e)} />
-                  <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace, only the language you chose.')}</small></span>
-                </label>
-                <label class="to-switch">
-                  <input type="checkbox" role="switch" .checked=${offline.on} ?disabled=${offline.status === 'saving'} @change=${(e: Event) => void setOffline((e.target as HTMLInputElement).checked)} />
-                  <span class="to-switch-words"><b>${t('Keep the app on this device')}</b><small>${offline.line}</small></span>
+                  <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences and the documents you open stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace, only the language you chose.')}</small></span>
                 </label>
                 ${
                   keeping()

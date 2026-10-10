@@ -58,7 +58,7 @@ A change in behaviour comes with its test, in the layer where it lives:
 - **Browser** (`test/browser/`, `src/apps/<id>/tests/*.test.ts`, Vitest in Chromium): anything that touches
   the DOM, driven with real events.
 - **End to end** (`e2e/`, Playwright on the built site): the smoke, the keyboard alone, axe in light and
-  dark, the offline copy; a line on the phone for anything done by touch.
+  dark; a line on the phone for anything done by touch.
 
 A generated page (docs/exports.md, docs/dependencies.md, docs/network.md, docs/editing.md's tables, the skill) is
 never edited by hand: `npm run lint` runs each script with `--check` and fails on a stale one; run its script and

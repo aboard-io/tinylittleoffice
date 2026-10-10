@@ -476,7 +476,7 @@ export class ToShell extends LitElement {
     return html`<p>${t('Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.')}</p>
       <div class="to-leave-acts">
         <button type="button" class="to-btn primary to-leave-copy" @click=${() => void this.leave('copy')}>${icon(UI.copy, 16)}<span>${t('Copy the link and go')}</span></button>
-        <button type="button" class="to-btn to-leave-keep" @click=${() => void this.leave('keep')}>${icon(UI.offline, 16)}<span>${t('Keep on this device and go')}</span></button>
+        <button type="button" class="to-btn to-leave-keep" @click=${() => void this.leave('keep')}>${icon(UI.device, 16)}<span>${t('Keep on this device and go')}</span></button>
         <button type="button" class="to-btn to-leave-go" @click=${() => void this.leave('go')}><span>${t('Go without')}</span></button>
       </div>`;
   }

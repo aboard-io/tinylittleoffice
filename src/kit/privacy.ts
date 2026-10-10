@@ -2,8 +2,8 @@
  * Privacy, in one place: everything that protects a document or touches what the device keeps.
  *
  *   - Private or Saved: whether the device keeps anything. Private (the default) writes nothing: no cookies,
- *     no storage, no trace. Saved keeps the preferences, the copy of the app for working offline, the
- *     documents opened here (kit/library.ts), the short links' owner links (kit/links.ts) and the signing
+ *     no storage, no trace. Saved keeps the preferences, the documents
+ *     opened here (kit/library.ts), the short links' owner links (kit/links.ts) and the signing
  *     key. Turned back to Private, all of it goes from the device, the key from the visit too.
  *   - The password: a document sealed (kit/crypt.ts) and opened, here. A password is never kept, under
  *     Saved or not: the key that opened a document stays in memory for the visit, so it opens again
@@ -15,7 +15,6 @@
  * The shell and <to-privacy> (kit/privacy-dialog.ts) only call this.
  */
 import { keeping, setKeeping, store } from './store.ts';
-import { dropOffline, offlineOn } from './offline.ts';
 import { decodeDoc, encodeDoc, isSealed, packDoc, unpackDoc } from './codec.ts';
 import { newLocker, PBKDF2_ITERATIONS, seal, unseal, unsealWith, type Locker } from './crypt.ts';
 import { canCheck, createSigner, fingerprintOf, verify } from './sign.ts';
@@ -49,8 +48,6 @@ export async function setPrivate(privately: boolean) {
   setKeeping(!privately);
   if (privately) {
     store.remove(KEY);
-    store.remove('tinyoffice.offline');
-    await dropOffline();
   }
   changed();
 }
@@ -176,8 +173,6 @@ export function forgetKey() {
 export interface Holdings {
   /** Preferences set (theme, language, the name signatures go under…). */
   prefs: number;
-  /** The copy of the app for working offline. */
-  offline: boolean;
   /** Documents in the library. */
   documents: number;
   /** Short links' owner links. */
@@ -187,7 +182,7 @@ export interface Holdings {
 }
 
 export async function holdings(): Promise<Holdings> {
-  return { prefs: prefsKept(), offline: offlineOn(), documents: library().length, links: keptLinks().length, key: await myFingerprint() };
+  return { prefs: prefsKept(), documents: library().length, links: keptLinks().length, key: await myFingerprint() };
 }
 
 export function forgetPrefs() {
@@ -200,11 +195,6 @@ export function forgetDocuments() {
 }
 export function forgetLinks() {
   store.remove(LINKS);
-  changed();
-}
-export async function forgetOffline() {
-  store.remove('tinyoffice.offline');
-  await dropOffline();
   changed();
 }
 /** Forget everything this site keeps here, the key with it, and keep nothing from now on. */

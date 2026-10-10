@@ -43,9 +43,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace, only the language you chose.': '此设备上不保存任何内容：没有 Cookie，不留痕迹，只记住你选择的语言。',
   'Saved on this device': '保存在此设备上',
   'Saved on this device from now on': '从现在起保存在此设备上',
-  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': '你的偏好设置、离线副本和打开过的文档都留在这里。关闭后会全部忘记。',
-  'Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': '从现在起不在此设备上保存任何内容？你的偏好设置、离线副本、文档列表和签名密钥都会被忘记（文档本身存在各自的链接里）。',
-  'Keep the app on this device': '把应用保留在此设备上',
+  'Your preferences and the documents you open stay here. Turn off to forget all of it.': '你的偏好设置和打开过的文档都留在这里。关闭后会全部忘记。',
+  'Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).': '从现在起不在此设备上保存任何内容？你的偏好设置、文档列表和签名密钥都会被忘记（文档本身存在各自的链接里）。',
   'Language': '语言',
   'Theme': '主题',
   'Match the device': '跟随设备',
@@ -85,14 +84,6 @@ export default {
   'Running commit {commit}': '运行版本 {commit}',
 
   // ---- the copy kept on the device (status lines under the switch) ----
-  'Only on the built site': '仅限正式站点',
-  'Not possible in this browser': '此浏览器不支持',
-  'Saving…': '保存中…',
-  'Ready to work offline': '已可离线使用',
-  'Updated, reload': '已更新，请重新加载',
-  'Could not save': '无法保存',
-  'Not kept': '未保留',
-  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': '在新标签页中打开的副本',
@@ -219,8 +210,6 @@ export default {
   'Signed by {name}': '由{name}签名',
   'Signed with this device’s key: anyone can check that the document is exactly what you signed.': '已用此设备的密钥签名：任何人都能核实文档与你签名时完全一致。',
   'That is not a signing key.': '这不是签名密钥。',
-  'The app itself, to open with no connection. No documents are in it.': '应用本身，无需联网即可打开。其中不含任何文档。',
-  'The offline copy': '离线副本',
   'The owner links that update short links you made.': '用来更新你所生成短链接的所有者链接。',
   'The two passwords differ': '两次输入的密码不一致',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': '文字、标题、姓名或时间与签名时不同：有人改动了它，或者签的是别的内容。',

@@ -9,7 +9,6 @@ export default defineConfig({
   timeout: 30_000,
   retries: 0,
   use: {
-    serviceWorkers: 'block',
     baseURL: `http://localhost:${port}`,
     locale: 'en-US',
     timezoneId: 'America/New_York',
