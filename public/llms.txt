@@ -383,6 +383,7 @@ Lift off:
 
 ```
 ---
+title: Lift off
 frames: 24
 fps: 8
 alt: A rocket lifts off and flies up and away to the right, under the words Lift off.
@@ -398,9 +399,9 @@ Shape | Keys
 1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d
 ```
 
-As a link: <https://tinylittleoffice.com/anim/#doc=---%0Aframes%3A+24%0Afps%3A+8%0Aalt%3A+A+rocket+lifts+off+and+flies+up+and+away+to+the+right%2C+under+the+words+Lift+off.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0At+%7C+4+%7C+20+%7C+20+%7C+4+%7C+04+%7C+Lift+off%0Ai+%7C+8+%7C+36+%7C+8+%7C+8+%7C+0b+%7C+rocket%0A%0AShape+%7C+Keys%0A---+%7C+---%0A0+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+23%2C0%2C-80%2C0%2C1%2C0%2Ci%0A1+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+23%2C200%2C-200%2C80%2C1%2C-30%2Cd>
+As a link: <https://tinylittleoffice.com/anim/#doc=---%0Atitle%3A+Lift+off%0Aframes%3A+24%0Afps%3A+8%0Aalt%3A+A+rocket+lifts+off+and+flies+up+and+away+to+the+right%2C+under+the+words+Lift+off.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0At+%7C+4+%7C+20+%7C+20+%7C+4+%7C+04+%7C+Lift+off%0Ai+%7C+8+%7C+36+%7C+8+%7C+8+%7C+0b+%7C+rocket%0A%0AShape+%7C+Keys%0A---+%7C+---%0A0+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+23%2C0%2C-80%2C0%2C1%2C0%2Ci%0A1+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+23%2C200%2C-200%2C80%2C1%2C-30%2Cd>
 
-Templates: Lift off, Bouncing ball, Build is green, Sunrise. Its own files: `.gif`, `.svg`.
+Templates: Lift off, Bouncing ball, Loading spinner, Title card, Birthday card, Quick standup, Build is green, Flash card, Weather this week, New Year countdown, Flight path, Neon sign, Sunrise. Its own files: `.gif`, `.svg`.
 
 ## Plans
 
