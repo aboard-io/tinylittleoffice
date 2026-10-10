@@ -21,7 +21,7 @@ const SHAPES: Record<string, [number, number]> = { Letter: [85, 110], Slide: [16
 test('the templates list: every page, portrait, slide, wide or a strip, in the one 96 by 72 box, cropped to cover it; the view is asked for a thumbnail', async () => {
   document.body.innerHTML = '<div id="box"></div>';
   const asked: (ViewOpts | undefined)[] = [];
-  const long = 'A template whose name is far too long to sit beside a wide thumbnail on a phone';
+  const long = 'A template whose name is far too long to sit beside a wide thumbnail on a phone, or beside one in the widest column a desktop gives it';
   const app = {
     id: 'demo', name: 'Demo', noun: 'demo', group: '', icon: UI.plus, blurb: '', blank: () => 'Letter', blankInTemplates: true,
     templates: [...Object.keys(SHAPES), long].map((name) => ({ id: name.toLowerCase(), name, blurb: name === long ? 'And a blurb that wraps onto a second line rather than pushing the row wider' : '', doc: SHAPES[name] ? name : 'Strip' })),
@@ -32,7 +32,7 @@ test('the templates list: every page, portrait, slide, wide or a strip, in the o
   const el = document.querySelector<ToTemplates>('to-templates')!;
   await el.updateComplete;
   el.button.click();
-  await until(() => el.listbox.matches(':popover-open') && !!el.listbox.querySelector('.to-thumb svg'));
+  await until(() => el.dialog.open && !!el.listbox.querySelector('.to-thumb svg'));
   const thumbs = [...el.listbox.querySelectorAll<HTMLElement>('.to-thumb')].map((x) => css(x.getBoundingClientRect()));
   expect(thumbs.map((r) => Math.round(r.width))).toEqual([96, 96, 96, 96, 96]);
   for (const r of thumbs) expect(Math.round(r.height)).toBe(72);
@@ -49,7 +49,7 @@ test('the templates list: every page, portrait, slide, wide or a strip, in the o
   expect(name.scrollWidth).toBeGreaterThan(name.clientWidth);
   expect(getComputedStyle(name).textOverflow).toBe('ellipsis');
   expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth);
-  el.listbox.hidePopover();
+  el.hide();
 });
 
 test('a kept document’s preview: a slide and a portrait page are the same 72 by 54 box, and 48 by 36 in the found list', async () => {

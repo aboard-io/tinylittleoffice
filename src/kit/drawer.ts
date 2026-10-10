@@ -74,7 +74,10 @@ export class ToDrawer extends LitElement {
     this.open = true;
     await this.updateComplete;
     if (!this.dialog.open) this.dialog.showModal();
-    this.querySelector<HTMLInputElement>('.to-find')?.focus();
+    // The search takes the focus only where a keyboard is already there: on a touch screen the focus would bring the
+    // keyboard up over the menu (Paul, 2026-10-10), so the dialog itself holds it and a tap on the field asks for one.
+    if (matchMedia('(pointer: fine)').matches) this.querySelector<HTMLInputElement>('.to-find')?.focus();
+    else this.dialog.focus({ preventScroll: true });
   }
   close() {
     if (this.dialog?.open) this.dialog.close();

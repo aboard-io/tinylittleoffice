@@ -40,7 +40,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { AppDef, Doc, DocChange, Editor } from './app.ts';
 import { appOf } from './apps.ts';
 import { budgetFor, decodeDoc, encodeDoc } from './codec.ts';
@@ -71,7 +70,6 @@ import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
 import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { motion, reducedMotion } from './motion.ts';
-import { mark } from './mark.ts';
 import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
 import { unlockForm } from './locked-doc.ts';
@@ -929,8 +927,8 @@ export class ToShell extends LitElement {
   private renderHeader() {
     const def = this.def;
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
-    // The Office mark is the menu: a button with a border, so it reads as something to press.
-    const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${drawer}>${unsafeHTML(mark(26))}</button>`;
+    // The menu button is a hamburger, with a border so it reads as something to press (Paul, 2026-10-10: "Make the hamburger a hamburger"); the mark is the drawer's.
+    const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${drawer}>${icon(UI.menu, 24)}</button>`;
     if (!def) return html`<header class="to-header" aria-label="Tiny Little Office">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
     if (this.sealed)
       return html`<header class="to-header" aria-label="Tiny Little Office">

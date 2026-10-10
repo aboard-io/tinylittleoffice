@@ -61,7 +61,9 @@
     --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
     /* Where the menu button sits, fixed at the top left, and the room it takes (the header's and the bar's). */
     --to-edge-l: max(var(--to-gutter), env(safe-area-inset-left));
-    --to-burger-w: calc(var(--to-edge-l) + var(--to-touch));
+    --to-edge-r: max(var(--to-gutter), env(safe-area-inset-right));
+    /* The menu button's room, at the right (Paul, 2026-10-10: "let's move it to the right", less likely to sit over the words or the back-swipe edge). */
+    --to-burger-w: calc(var(--to-edge-r) + var(--to-touch));
   }
   /* A control's words are the browser's own size (13.33px) unless a rule says otherwise: here a part of the scale it
      is under, so they grow with the size of everything as the rest do. */
@@ -454,29 +456,28 @@
     background: var(--to-accent-soft);
   }
   /* The templates list: wide enough for a name and its blurb beside the preview, and it scrolls (place() caps its height to the screen). */
+  /* The templates, in a dialog over the screen (home.ts): wide, the options a grid of rows that scrolls under the head. */
+  .to-dialog.to-templates-dialog {
+    width: min(60em, calc(100vw - 2em));
+  }
   .to-listbox {
-    width: min(40em, calc(100vw - 1em));
-    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18.75em, 1fr));
+    grid-auto-rows: max-content; /* a row is as tall as its words and preview, never the touch minimum alone */
+    align-items: start;
+    gap: 0.25em;
+    padding: 0.5em;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-  /* The list's head: its name and a Close, stuck to the top as the list scrolls (Paul, 2026-10-10). */
-  .to-listbox-head {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: -0.5em -0.5em 0.3333em;
-    padding: 0.3333em 0.3333em 0.3333em 1em;
-    font-size: calc(0.75 * var(--to-scale));
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--to-ink-3);
-    background: var(--to-surface);
-    border-bottom: 1px solid var(--to-border);
+  /* A row never widens its column: a long name is cut with an ellipsis (a grid item's least width is its content unless told otherwise). */
+  .to-listbox > .to-option {
+    min-width: 0;
+  }
+  /* The list takes what the head leaves and scrolls inside it (a phone's whole screen: responsive.css). */
+  .to-templates-dialog .to-listbox {
+    flex: 1;
+    min-height: 0;
   }
   .to-listbox-close {
     border: 0;
@@ -1110,8 +1111,9 @@
   }
 
   /* ---- the drawer ---- */
+  /* The drawer opens from the right, the menu button's side. */
   .to-drawer {
-    margin: 0;
+    margin: 0 0 0 auto;
     height: 100dvh;
     width: min(20em, 85vw);
   }
@@ -1120,7 +1122,7 @@
     display: flex;
     flex-direction: column;
     background: var(--to-surface);
-    border-right: 1px solid var(--to-border);
+    border-left: 1px solid var(--to-border);
     overflow: auto;
   }
   .to-brand {
@@ -1132,12 +1134,11 @@
     text-decoration: none;
   }
   /* On the home page the name is a light serif on the header's bottom line, beside the mark (Paul, 2026-10-10: a lighter
-     serif, "don't make it so big just align it bottom"). The drawer's brand keeps the small bold form above. */
+     serif, "don't make it so big", "Vertically center the logotype"). The drawer's brand keeps the small bold form above. */
   .to-header .to-brand {
-    /* The menu button is fixed, out of the flow: the words take its height and sit on its bottom edge. */
+    /* The menu button is fixed, out of the flow: the words take its height and centre on it. */
     height: var(--to-touch);
-    align-items: flex-end;
-    padding-bottom: 0.125em;
+    align-items: center;
     font: 300 min(calc(1.875 * var(--to-scale)), 7vw) / 1 var(--to-font-serif);
     letter-spacing: -0.01em;
     white-space: nowrap;
@@ -1338,18 +1339,18 @@
     gap: 0.5em 0.375em;
     height: var(--to-header-h);
     padding: calc((var(--to-header-h) - var(--to-touch)) / 2) var(--to-gutter);
-    padding-left: calc(var(--to-burger-w) + 0.375em);
-    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
+    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-right: calc(var(--to-burger-w) + 0.375em);
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
     position: relative;
     z-index: 3;
     transition: height 0.2s ease;
   }
-  /* The menu, always at the very top left wherever the page is scrolled to; over the bar once the header has gone, on a card of its own. */
+  /* The menu, always at the very top right wherever the page is scrolled to; over the bar once the header has gone, on a card of its own. */
   .to-header .to-burger {
     position: fixed;
-    left: var(--to-edge-l);
+    right: var(--to-edge-r);
     top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0rem));
     z-index: 4;
     transition: box-shadow 0.2s ease;
@@ -1362,7 +1363,7 @@
   /* Once the header has gone, the app's bar makes room for the menu button: narrowed rather than padded, so a bar
      that scrolls sideways on a phone never slides under it (none needed where the page's margin already holds it). */
   to-shell[scrolled] .to-editor to-bar {
-    margin-left: calc(var(--to-burger-w) - var(--to-gutter-k) * 1rem);
+    margin-right: calc(var(--to-burger-w) - var(--to-gutter-k) * 1rem);
   }
   /* Behind the stuck bar the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
   to-shell[scrolled]::before {
@@ -1400,11 +1401,11 @@
     border-color: transparent;
     background: transparent;
   }
-  /* The Office mark is the menu: bordered, so it reads as a button. */
+  /* The hamburger: no border (Paul, 2026-10-10), opaque so what slides under it is behind it. */
   .to-header .to-burger {
     width: var(--to-touch);
     height: var(--to-touch);
-    border-color: var(--to-border-strong);
+    border-color: transparent;
     color: var(--to-ink);
     /* Opaque: whatever slides under it as the header goes is behind it. */
     background: var(--to-surface);

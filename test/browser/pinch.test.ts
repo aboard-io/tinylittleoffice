@@ -175,7 +175,7 @@ function fits(shell: ToShell, where: string, nav = NAV_MAX) {
     }
   }
   const burger = shell.querySelector<HTMLElement>('.to-burger')!.getBoundingClientRect();
-  expect(burger.left, `${where}: the burger at the left`).toBeLessThan(40);
+  expect(window.innerWidth - burger.right, `${where}: the burger at the right`).toBeLessThan(40);
   expect(burger.top, `${where}: the burger at the top`).toBeLessThan(60);
   expect(burger.width).toBeLessThan(80);
 }
@@ -206,13 +206,13 @@ async function allFit(nav: number) {
   // The templates list of an app's row fits the screen.
   home.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
   const list = home.querySelector<HTMLElement>('.to-listbox')!;
-  await until(() => list.matches(':popover-open'));
+  await until(() => !!list.closest('dialog')?.open);
   await tick(100);
   const lr = list.getBoundingClientRect();
   expect(lr.left).toBeGreaterThanOrEqual(-0.5);
   expect(lr.right).toBeLessThanOrEqual(innerWidth + 0.5);
   expect(lr.bottom).toBeLessThanOrEqual(innerHeight + 0.5);
-  list.hidePopover();
+  (list.closest('dialog') as HTMLDialogElement).close();
   // Write: the words reflow to the width, the Share dialog fits with its buttons reachable.
   const shell = await write();
   fits(shell, 'write', nav);
@@ -240,7 +240,8 @@ async function allFit(nav: number) {
   await tick(300);
   const burger = shell.querySelector('.to-burger')!.getBoundingClientRect();
   expect(Math.round(bar.getBoundingClientRect().top)).toBe(0);
-  expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(burger.right - 0.5);
+  // The burger is at the right: the bar stops short of it.
+  expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(burger.left + 0.5);
   expect(burger.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom + 0.5);
   expect(parseFloat(getComputedStyle(shell, '::before').height)).toBeCloseTo(bar.getBoundingClientRect().height, 0);
   window.scrollTo(0, 0);

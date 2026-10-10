@@ -100,7 +100,8 @@ test('the home page has no copy: every app, in order, its icon, its name and its
   const h1 = shell.querySelector('to-home h1')!;
   expect(h1.textContent).toBe('Tiny Little Office');
   expect(h1.classList.contains('sr-only')).toBe(true);
-  expect(shell.querySelector('to-home p, to-home h2, .to-app-open small')).toBeNull();
+  // (A templates dialog's own heading is not the page's copy.)
+  expect(shell.querySelector('to-home p, to-home h2:not(.to-dialog h2), .to-app-open small')).toBeNull();
   for (const a of apps()) expect(shell.textContent).not.toContain(a.blurb);
   const tiles = [...shell.querySelectorAll('.to-app')];
   expect(tiles.map((t) => t.querySelector('.to-app-open .to-app-name')!.textContent)).toEqual(apps().map((a) => a.name));
@@ -390,12 +391,13 @@ test('the templates list has a Close at its top that dismisses it', async () => 
   const tile = shell.querySelector('.to-app, .to-tile')!;
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
   picker.click();
-  await until(() => !!tile.querySelector('.to-listbox:popover-open'));
+  await until(() => !!tile.querySelector('dialog[open] .to-listbox'));
   const close = tile.querySelector<HTMLButtonElement>('.to-listbox-close')!;
   expect(close.getAttribute('aria-label')).toBe('Close');
-  expect(tile.querySelector('.to-listbox-head')!.getBoundingClientRect().top).toBeGreaterThanOrEqual(tile.querySelector('.to-listbox')!.getBoundingClientRect().top);
+  // The head is the dialog's, above the list, which scrolls under it.
+  expect(tile.querySelector('.to-listbox-head')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(tile.querySelector('.to-listbox')!.getBoundingClientRect().top + 1);
   close.click();
-  await until(() => !tile.querySelector('.to-listbox:popover-open'));
+  await until(() => !tile.querySelector('dialog[open] .to-listbox'));
 });
 
 test('§1 a document opens with the focus where a person starts: a new one, an opened one, from home and from the address; never the title box or the body', async () => {

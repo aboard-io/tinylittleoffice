@@ -30,6 +30,23 @@
       border: 0;
       padding-top: env(safe-area-inset-top);
     }
+    /* The templates too (home.ts; Paul, 2026-10-10: "a large modal that takes over the screen"): one column of rows under the head. */
+    .to-dialog.to-templates-dialog {
+      margin: 0;
+      width: 100vw;
+      height: 100dvh;
+    }
+    .to-templates-dialog .to-dialog-inner {
+      height: 100%;
+      max-height: none;
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+      padding-top: env(safe-area-inset-top);
+    }
+    .to-templates-dialog .to-listbox {
+      grid-template-columns: minmax(0, 1fr);
+    }
     /* The signed state beside the title is its icon alone; its words are its label, and the Privacy dialog's. */
     .to-header .to-trust-words {
       position: absolute;

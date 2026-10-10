@@ -1,5 +1,5 @@
 /**
- * <to-home>: the apps, as rows, in the registry's order: each its icon and name (open it blank), a listbox
+ * <to-home>: the apps, as rows, in the registry's order: each its icon and name (open it blank), a dialog
  * of its templates to the right of its name (Blank first and chosen, or the first template where the app's templates carry its blanks, each drawn small from its own document; choosing one opens the
  * app with that document), and under it the documents of that app kept on this device (kit/library.ts),
  * newest first. No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
@@ -21,7 +21,7 @@ import { decodeDoc, encodeDoc, isSealed } from './codec.ts';
 import { linesOf, search, type Seg } from './search.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
-import { hoverFocus, menuKey, openedByPointer, place } from './menu.ts';
+import { hoverFocus, menuKey, openedByPointer } from './menu.ts';
 import { CROPPED, pageSvg } from './draw.ts';
 import { gateSvg } from './pictures.ts';
 import './preview.ts';
@@ -67,35 +67,44 @@ export class ToTemplates extends LitElement {
   get button(): HTMLButtonElement {
     return this.querySelector<HTMLButtonElement>(':scope > button')!;
   }
+  get dialog(): HTMLDialogElement {
+    return this.querySelector<HTMLDialogElement>(':scope > dialog')!;
+  }
   get listbox(): HTMLElement {
-    return this.querySelector<HTMLElement>(':scope > [popover]')!;
+    return this.querySelector<HTMLElement>(':scope > dialog [role=listbox]')!;
   }
   private options(): HTMLElement[] {
     return [...this.querySelectorAll<HTMLElement>('[role=option]')];
   }
-  private onToggle = (e: Event) => {
-    const open = (e as ToggleEvent).newState === 'open';
-    this.button.setAttribute('aria-expanded', String(open));
-    if (open) {
-      this.drawn = true;
-      const pointer = openedByPointer();
-      void this.updateComplete.then(() => {
-        place(this.listbox, this.button);
-        // Opened by a key, the chosen template has the focus; by a pointer, the list itself, and the first arrow goes in.
-        if (pointer) this.listbox.focus({ preventScroll: true });
-        else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus({ preventScroll: true });
-      });
-    } else if (document.activeElement === document.body || this.listbox.contains(document.activeElement)) this.button.focus();
+  /** The list, over the whole screen (Paul, 2026-10-10: "a large modal that takes over the screen, don't cut them off based on where the invoking icon is"). */
+  show() {
+    const pointer = openedByPointer();
+    this.drawn = true;
+    void this.updateComplete.then(() => {
+      if (this.dialog.open) return;
+      this.dialog.showModal();
+      this.button.setAttribute('aria-expanded', 'true');
+      // Opened by a key, the chosen template has the focus; by a pointer, the list itself, and the first arrow goes in.
+      if (pointer) this.listbox.focus({ preventScroll: true });
+      else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus({ preventScroll: true });
+    });
+  }
+  hide() {
+    if (this.dialog.open) this.dialog.close();
+  }
+  private onClose = () => {
+    this.button.setAttribute('aria-expanded', 'false');
+    if (document.activeElement === document.body || this.contains(document.activeElement)) this.button.focus();
   };
   /** The keys every menu here keeps (menu.ts). */
-  private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.listbox.hidePopover());
+  private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.hide());
   /** The id of the option shown chosen: '' is Blank, or the first template where the list has no Blank. */
   private get current(): string {
     return this.chosen || (this.app.blankInTemplates ? (this.app.templates[0]?.id ?? '') : '');
   }
   private choose(tpl: Template | null) {
     this.chosen = tpl?.id ?? '';
-    this.listbox.hidePopover();
+    this.hide();
     location.hash = templateHash(this.app, tpl);
   }
   private option(tpl: Template | null) {
@@ -109,14 +118,18 @@ export class ToTemplates extends LitElement {
   }
   render() {
     const chosen = this.app.templates.find((x) => x.id === this.chosen);
-    // The button is the affordance alone: the icon of a sheet of paper and a caret, no words (Paul, 2026-10-09: "don't use the word Blank over and over"); its name says what it holds.
-    return html`<button type="button" class="to-btn to-tool to-templates-btn" popovertarget=${this.uid} aria-haspopup="listbox" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')}>
-        ${icon(UI.text, 18)}${icon(UI.down, 14, 'to-caret')}
+    // The button is the small arrow alone, no icon and no words (Paul, 2026-10-09: "don't use the word Blank over and over"; 2026-10-10: "just the small arrow to the right"); its name says what it holds.
+    return html`<button type="button" class="to-btn to-tool to-templates-btn" aria-haspopup="dialog" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')} @click=${() => this.show()}>
+        ${icon(UI.down, 18, 'to-caret')}
       </button>
-      <div id=${this.uid} popover="auto" class="to-menu to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @toggle=${this.onToggle} @keydown=${this.onKey}>
-        <div class="to-listbox-head"><span>${t('Templates')}</span><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.listbox.hidePopover()}>${icon(UI.close, 18)}</button></div>
-        ${this.app.blankInTemplates ? nothing : this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}
-      </div>`;
+      <dialog class="to-dialog to-templates-dialog" aria-label=${t('Templates for {app}', { app: this.app.name })} @close=${this.onClose} @click=${(e: Event) => e.target === this.dialog && this.hide()}>
+        <div class="to-dialog-inner">
+          <header class="to-dialog-head to-listbox-head"><h2 id=${this.uid}>${t('Templates')}</h2><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.hide()}>${icon(UI.close, 18)}</button></header>
+          <div class="to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @keydown=${this.onKey}>
+            ${this.drawn ? html`${this.app.blankInTemplates ? nothing : this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}` : nothing}
+          </div>
+        </div>
+      </dialog>`;
   }
 }
 customElements.define('to-templates', ToTemplates);
