@@ -515,6 +515,8 @@ export function docGist(ref: string): { app: string; gist: string } {
   const app = nl < 0 ? ref : ref.slice(0, nl);
   const body = nl < 0 ? '' : ref.slice(nl + 1);
   if (app === 'web') return { app, gist: body.trim() };
+  // A document locked with a password: nothing of it can be read but its app (kit/locked.ts).
+  if (app === 'locked') return { app, gist: '' };
   // A document's title, where it has one; else its first line of words.
   const title = /^---\n(?:(?!---).*\n)*?title: (.+)\n/.exec(body)?.[1];
   const gist = title ?? body.split('\n').find((l) => l.trim() && !/^---/.test(l) && !/^[a-z]+:/.test(l)) ?? '';

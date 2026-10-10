@@ -114,7 +114,8 @@ src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, 
                 small), mark (the Office mark), offline (and Add to home screen), search (the library, by its
                 words), find (Find in this document, Mod+F), keys (the shortcuts dialog), zoom (the size of
                 everything), steps (a document presented a part at a time), qr-picture (a document's QR code
-                as a fence), share, short (links), links (the owner links kept), library (the documents
+                as a fence), locked and locked-doc (a document locked with a password placed in another: the
+                locked card, and opened with its password in an editor), share, short (links), links (the owner links kept), library (the documents
                 kept), exports, i18n, theme, icons (the UI set and the starter library a document may name),
                 icons-search (keywords, suggestions, search; no DOM), icons-picker (the library in a dialog: a
                 lazy chunk that brings the rest of Lucide and icons-meta, its tags and categories), app (the
@@ -186,6 +187,10 @@ Changed since signed or Signature does not match (red), Locked; it opens the Pri
 (a file and the text), Import and Forget, what this device holds item by item with Forget and Forget everything,
 and Download everything, every kept document as its .tlo text in one zip (a locked one as its link), the key
 if asked. A signature proves who holds the key and that nothing changed; the name and the time are the signer's word.
+A locked document placed inside another goes in as its sealed link (a ```` ```locked ```` fence, `src/kit/locked.ts`)
+and is drawn everywhere as a locked card: the lock, "Locked with a password", its app; in an editor a tap asks for the
+password and the card draws the document for the rest of the visit, while the outer link goes on holding only the
+seal (Edit seals the changes again under the same password). Its embed view is the locked card with Unlock.
 
 The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and the favicon; `npm run icons`
 (`scripts/icons.ts`, through sharp) draws the app icons and the share card from it into `public/`.

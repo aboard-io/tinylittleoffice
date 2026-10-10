@@ -13,7 +13,7 @@ import { encodeDoc } from '../../kit/codec.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw.ts';
 import { embedCaption } from '../../kit/embeds.ts';
 import { glyphNamed } from '../../kit/icons.ts';
-import { routeHash } from '../../kit/route.ts';
+import { LOCKED_LANG, placedLink } from '../../kit/locked.ts';
 import { XML_HEAD, zip } from '../../kit/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/app.ts';
 import { formatCell, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, parse, plainText, referenceNotes, runLinks, write, isEmbed, isText, type Block, type Doc, type Run } from '../../doc/index.ts';
@@ -135,8 +135,10 @@ export function place(page: Page, x: number, y: number, w: number, h: number): s
 
 /** The address a document held in a fence opens at: on the site the text was shared from, else the fragment alone. */
 export function fenceLink(lang: string, body: string, site = ''): string {
-  return site + routeHash(lang, encodeDoc(body));
+  return placedLink(lang, body, encodeDoc, site);
 }
+/** A placed document's own name: none for a locked one, whose title is sealed with it (kit/locked.ts). */
+const placedTitle = (lang: string, body: string): string => (lang === LOCKED_LANG ? '' : fenceTitle(body));
 /** The site a link is on ("https://tinylittleoffice.com/"), or '' when there is none. */
 export const siteOf = (link: string): string => {
   try {
@@ -257,7 +259,7 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
         // Another document: its own app draws it small; an app not here yet shows its first lines.
         const def = appOfLazy(lang);
         const page = def ? def.view(b.body, { small: true })[0] : null;
-        const caption = (def ? fenceTitle(b.body) || def.name : lang) + (def && fenceTitle(b.body) ? ` · ${def.name}` : '');
+        const caption = (def ? placedTitle(b.lang, b.body) || def.name : lang) + (def && placedTitle(b.lang, b.body) ? ` · ${def.name}` : '');
         if (page) {
           const h = Math.min(360, (page.h * cw) / page.w);
           bits.push({ h: h + 40, first: h + 40, svg: (y) => `<rect x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" fill="#fff" stroke="${LINE}" rx="6"/>` + place(page, M, y, cw, h) + svgText(M, y + h + 20, caption, { px: 12, fill: MUTED }) });
@@ -503,7 +505,7 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
             return rows.length ? `<div class="signed">${rows.map((p) => `<div class="${p.verdict}"><strong>${xml(p.name)}</strong><small>${xml(p.detail)}</small></div>`).join('')}</div>` : '';
           }
           const def = appOfLazy(b.lang);
-          const name = fenceTitle(b.body) || def?.name || b.lang;
+          const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
           const page = def?.view(b.body, { small: true })[0];
           return `<figure class="embed">${page ? `<a href="${xml(fenceLink(b.lang, b.body, site))}">${pageSvg(page, `role="img" aria-label="${xml(name)}"`)}</a>` : `<pre>${xml(b.body)}</pre>`}<figcaption><a href="${xml(fenceLink(b.lang, b.body, site))}">${xml(name)}</a>${def ? ` <small>${xml(def.name)}</small>` : ''}</figcaption></figure>`;
         }
@@ -653,7 +655,7 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
         continue;
       }
       const def = appOfLazy(b.lang);
-      const name = fenceTitle(b.body) || def?.name || b.lang;
+      const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
       out.push(`{\\pard\\sb120\\sa60\\li360 {\\field{\\*\\fldinst HYPERLINK "${rtfText(fenceLink(b.lang, b.body, site))}"}{\\fldrslt {\\ul\\cf1\\b ${rtfText(name)}}}} {\\i (${rtfText(def?.name ?? b.lang)})}\\par}`);
       continue;
     }
@@ -772,7 +774,7 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
         continue;
       }
       const def = appOfLazy(b.lang);
-      const name = fenceTitle(b.body) || def?.name || b.lang;
+      const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
       paras.push(`<w:p><w:hyperlink r:id="${rel(fenceLink(b.lang, b.body, site))}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:b/></w:rPr><w:t xml:space="preserve">${xml(name)}</w:t></w:r></w:hyperlink>${plain(` (${def?.name ?? b.lang})`, '<w:i/>')}</w:p>`);
       continue;
     }

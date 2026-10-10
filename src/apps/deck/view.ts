@@ -159,14 +159,14 @@ export function place(p: Page, x: number, y: number, w: number, h: number): stri
 
 /* ---------- the document a slide shows ---------- */
 
-/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture, or a thing from the web, a card. */
-export function subPage(doc: Doc, s: Slide, upTo?: number): Page | null {
+/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture, or a thing from the web, a card. `open`: in the editor (a locked document opened this visit drawn open). */
+export function subPage(doc: Doc, s: Slide, upTo?: number, open = false): Page | null {
   const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
   if (!b) return null;
   if (b.k === 'fence' && b.lang) {
     const def = lookup.appOf(b.lang);
     // Presented, the document as far as it has built (its app's steps); else whole.
-    if (def) return def.view(b.body, { small: true, ...(upTo !== undefined && def.steps ? { upTo } : {}) })[0];
+    if (def) return def.view(b.body, { small: true, ...(upTo !== undefined && def.steps ? { upTo } : {}), ...(open ? { open } : {}) })[0];
     const lines = b.body.split('\n').filter((l) => l.trim() && !/^---/.test(l)).slice(0, 8);
     return { w: 480, h: 40 + lines.length * 22, svg: line(24, 28, t('{app} document', { app: b.lang }), { px: 13, fill: MUTED }) + lines.map((l, i) => line(24, 56 + i * 22, l, { px: 14 })).join(''), alt: t('{app} document', { app: b.lang }) };
   }

@@ -136,7 +136,8 @@ export function linesOf(text: string): string[] {
   for (const b of doc.blocks) {
     if (isText(b)) out.push(...plainText(b.runs).split('\n'));
     else if (b.k === 'table') out.push(...b.rows.map((row) => row.filter(Boolean).join(' · ')));
-    else if (b.k === 'fence') out.push(...linesOf(b.body));
+    // (A document locked with a password holds its sealed link: no words to find.)
+    else if (b.k === 'fence' && b.lang !== 'locked') out.push(...linesOf(b.body));
     else if (b.k === 'edge') out.push(`${b.from} → ${b.to}${b.label ? `: ${b.label}` : ''}`);
     else if (b.k === 'img') out.push(b.alt);
   }

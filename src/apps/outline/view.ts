@@ -144,6 +144,6 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
 
 /** An app's id as a person reads it on a card. (The registry is not reachable from a view without a cycle; the few names are said here.) */
 export function appName(id: string): string {
-  const names: Record<string, () => string> = { sheet: () => t('Spreadsheet'), draw: () => t('Drawing Tool'), text: () => t('Text'), write: () => t('Word Processor'), deck: () => t('Presentation Builder'), outline: () => t('Outliner'), diagram: () => t('Diagram Maker'), cal: () => t('Calendar'), todo: () => t('To-Do List'), board: () => t('Kanban Board'), trip: () => t('Trip Planner'), site: () => t('Website Builder'), calc: () => t('Calculator'), anim: () => t('Animator'), web: () => t('From the web') };
+  const names: Record<string, () => string> = { sheet: () => t('Spreadsheet'), draw: () => t('Drawing Tool'), text: () => t('Text'), write: () => t('Word Processor'), deck: () => t('Presentation Builder'), outline: () => t('Outliner'), diagram: () => t('Diagram Maker'), cal: () => t('Calendar'), todo: () => t('To-Do List'), board: () => t('Kanban Board'), trip: () => t('Trip Planner'), site: () => t('Website Builder'), calc: () => t('Calculator'), anim: () => t('Animator'), web: () => t('From the web'), locked: () => t('Locked document') };
   return names[id]?.() ?? id;
 }

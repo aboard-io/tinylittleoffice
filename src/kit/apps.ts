@@ -17,10 +17,11 @@ import trip from '../apps/trip/def.ts';
 import site from '../apps/site/def.ts';
 import calc from '../apps/calc/def.ts';
 import { QR_LANG, qrPicture } from './qr-picture.ts';
+import { LOCKED_LANG, lockedDoc } from './locked.ts';
 
 const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal, trip, site];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
-// A document's QR code (kit/qr-picture.ts) is drawn by the hosts as a document they hold, though it is not an app.
-lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : undefined);
+// A document's QR code (kit/qr-picture.ts) and a document locked with a password (kit/locked.ts) are drawn by the hosts as documents they hold, though neither is an app.
+lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === LOCKED_LANG ? lockedDoc : undefined);

@@ -37,7 +37,8 @@ import { t } from '../../kit/i18n.ts';
 import { noteMarks, type NoteMark, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
-import { routeHash } from '../../kit/route.ts';
+import { LOCKED_LANG, isOpened, placedLink } from '../../kit/locked.ts';
+import { OPENED_EVENT, openPlaced } from '../../kit/locked-doc.ts';
 import { Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import type { Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
@@ -155,6 +156,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.addEventListener('text-escape', this.onTextEscape);
     this.addEventListener('text-selectall', this.onSelectAll);
     window.addEventListener('keydown', this.onShowKey);
+    window.addEventListener(OPENED_EVENT, this.onOpened);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -162,6 +164,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.removeEventListener('text-escape', this.onTextEscape);
     this.removeEventListener('text-selectall', this.onSelectAll);
     window.removeEventListener('keydown', this.onShowKey);
+    window.removeEventListener(OPENED_EVENT, this.onOpened);
     clearTimeout(this.settle);
   }
   protected read(doc: Doc): Slide[] {
@@ -521,7 +524,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       const known = !!lookup.appOf(b.lang);
       return [
         ...(known ? [{ label: t('Edit'), icon: UI.pen, does: () => void this.editSub() }] : []),
-        { label: t('Open in a new tab'), icon: UI.open, does: () => void window.open(here + routeHash(b.lang, encodeDoc(b.body)), '_blank', 'noopener') },
+        { label: t('Open in a new tab'), icon: UI.open, does: () => void window.open(placedLink(b.lang, b.body, encodeDoc, here), '_blank', 'noopener') },
         remove,
       ];
     }
@@ -553,7 +556,12 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     if (next && this.doc.blocks[s.sub] === b) this.change(setSub(this.slide, next));
     void this.updateComplete.then(() => this.querySelector<HTMLElement>('.deck-sub')?.focus({ preventScroll: true }));
   }
+  /** A locked document opened (here or in another card): the slide draws it. */
+  private onOpened = () => this.requestUpdate();
   private openSubMenu = (e: Event) => {
+    // A locked document not yet opened: a tap asks for its password (kit/locked-doc.ts); opened, the menu.
+    const b = this.slide.sub >= 0 ? this.doc.blocks[this.slide.sub] : null;
+    if (b?.k === 'fence' && b.lang === LOCKED_LANG && !isOpened(b.body)) return void openPlaced(b.body);
     this.subMenu = true;
     const card = e.currentTarget as HTMLElement;
     void this.updateComplete.then(async () => {
@@ -840,7 +848,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const titleNotes = marks.filter((x) => x.field === 'title').length;
     const leftNotes = marks.filter((x) => x.field === 'words').length;
     const notes = marks.map((x) => x.m.fn);
-    const sub = s.sub >= 0 ? subPage(this.doc, s) : null;
+    const sub = s.sub >= 0 ? subPage(this.doc, s, undefined, true) : null;
     const prose = !!st.format && st.format !== 'comic' && !s.layout;
     const wordsHint = st.format === 'comic' ? t('A panel a line: what is said | the caption. Icon gives it a picture.') : prose ? t('What this page says. The type shrinks to fit the page.') : s.layout === 't' ? t('A line or two under the title') : t('One bullet a line. Tab steps it in.');
     const foot = g ? g.name(this.cur, n) : t('{n} / {total}', { n: this.cur + 1, total: n });

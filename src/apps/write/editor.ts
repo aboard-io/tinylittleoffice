@@ -50,6 +50,8 @@ import def from './def.ts';
 import { LOOK_IDS, LOOKS, lookOf, type LookId } from './look.ts';
 import { checkContract, contractText, printOf, readSignatures, signaturesAt, signedMessage, signOps, today, verdictOf } from './contract.ts';
 import { fenceLink } from './view.ts';
+import { LOCKED_LANG } from '../../kit/locked.ts';
+import '../../kit/locked-doc.ts';
 import type { TableCmd, ToWriteTable } from './table.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
@@ -355,6 +357,8 @@ export class ToWriteEditor extends DocElement<Doc> {
       return html`<to-write-table commands .view=${v} @wt-cell=${(e: CustomEvent<{ r: number; c: number; raw: string }>) => this.onCell(at, e)} @wt-do=${(e: CustomEvent<TableCmd>) => (e.preventDefault(), void this.onTable(at, e.detail))} @wt-exit=${() => this.afterCard(at)}></to-write-table>`;
     }
     if (b.k === 'fence' && b.lang === 'signatures') return this.signaturesCard(b.body);
+    // A document locked with a password: the locked card, which a tap opens for this visit (kit/locked-doc.ts).
+    if (b.k === 'fence' && b.lang === LOCKED_LANG) return html`<figure class="write-doc"><to-locked-doc caption .ref=${b.body}></to-locked-doc></figure>`;
     if (b.k === 'fence' && b.lang) {
       const def = lookup.appOf(b.lang);
       const page = def?.view(b.body, { small: true })[0];

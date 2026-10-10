@@ -247,6 +247,17 @@ export default {
   '{n|# link|# links}': '{n|# link|# links}',
   '{n} set': '{n} set',
 
+  // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
+  // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
+  'Locked with a password': 'Locked with a password',
+  'A {app} document, locked with a password': 'A {app} document, locked with a password',
+  'Locked with a password. Unlock…': 'Locked with a password. Unlock…',
+  'A document locked with a password': 'A document locked with a password',
+  // What one of them is called in running text, as an app's noun is.
+  'locked document': 'locked document',
+  // A placed document whose link cannot be read (cut short when it was copied).
+  'This document cannot be read.': 'This document cannot be read.',
+
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).
   'This document': 'This document',

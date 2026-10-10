@@ -32,6 +32,8 @@ export interface ViewOpts {
   thumb?: boolean;
   /** Presented a step at a time (a slide that holds this document): draw only the first `upTo` of its `steps`, the rest keeping their places. */
   upTo?: number;
+  /** Drawn in an editor: a document locked with a password and opened this visit is drawn open (kit/locked.ts); a page, a print or a file never passes it. */
+  open?: boolean;
 }
 
 /** A key the app answers, for the shortcuts dialog (Mod+/): "Mod+Alt+Enter", "V". */

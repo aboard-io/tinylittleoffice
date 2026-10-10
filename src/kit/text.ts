@@ -911,7 +911,8 @@ export class ToText extends LitElement {
       case 'fence': {
         const def = b.lang ? lookup.appOf(b.lang) : undefined;
         const kind = def ? t('A {noun}', { noun: def.noun }) : b.lang ? t('{app} document', { app: b.lang }) : t('Code');
-        const gist = b.body.split('\n').find((l) => l.trim() && !/^---/.test(l)) ?? '';
+        // A locked document's body is its sealed link: nothing to read (kit/locked.ts).
+        const gist = b.lang === 'locked' ? '' : (b.body.split('\n').find((l) => l.trim() && !/^---/.test(l)) ?? '');
         return html`<div class="tx-card" data-k="fence" contenteditable="false" tabindex="0" role="group" aria-label=${kind}><span class="tx-card-kind">${kind}</span><span class="tx-card-gist">${gist.slice(0, 80)}</span></div>`;
       }
       case 'edge':

@@ -28,7 +28,8 @@ import { appOf, apps } from '../../kit/apps.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import type { ContextEntry } from '../../kit/context.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
-import { decodeDoc, encodeDoc } from '../../kit/codec.ts';
+import { decodeDoc, encodeDoc, isSealed } from '../../kit/codec.ts';
+import { LOCKED_LANG, lockedFence, placedLink } from '../../kit/locked.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { editFence, makeDoc } from '../../kit/doc-dialog.ts';
 import { pageSvg } from '../../kit/draw.ts';
@@ -66,6 +67,8 @@ export function refOfLink(words: string): string | null {
   if (!/^https?:\/\/\S+#\/v\d+\//.test(s)) return null;
   const { app, payload } = parseHash(s.slice(s.indexOf('#')));
   if (!app) return null;
+  // A link locked with a password goes in as itself (kit/locked.ts).
+  if (isSealed(payload)) return fenceRef(lockedFence(app, payload) as { lang: string; body: string });
   const text = decodeDoc(payload);
   return payload && !text ? null : `${app}\n${text}`;
 }
@@ -606,7 +609,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   /** The document under an item, edited in its own app in the dialog: Done writes it back as one step. */
   private async editRow(at: number) {
     const b = this.doc.blocks[at];
-    if (b?.k !== 'fence' || !appOf(b.lang)) return;
+    if (b?.k !== 'fence' || (!appOf(b.lang) && b.lang !== LOCKED_LANG)) return;
     const next = await editFence(b);
     if (next && this.doc.blocks[at] === b) this.edit(setDoc(this.doc, at, fenceRef(next)));
     this.focusRow(at);
@@ -806,11 +809,12 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const web = it.doc!.startsWith('web\n');
     const { app, gist } = docGist(it.doc!);
     const body = it.doc!.slice(it.doc!.indexOf('\n') + 1);
-    const href = web ? it.doc!.slice(4) : location.pathname + routeHash(app, encodeDoc(body));
+    const locked = app === LOCKED_LANG;
+    const href = web ? it.doc!.slice(4) : placedLink(app, body, encodeDoc, location.pathname);
     return html`<div class="ol-doc" tabindex="0" role="group" aria-label=${web ? t('From the web: {url}', { url: href }) : appOf(app) ? t('A {noun}', { noun: appOf(app)!.noun }) : t('{app} document', { app: appName(app) })} @paste=${(e: ClipboardEvent) => this.onDocPaste(it.at, e)}>
-      <span class="ol-doc-kind">${web ? icon(UI.globe, 16) : appOf(app) ? icon(appOf(app)!.icon, 16) : nothing}<b>${web ? t('From the web') : appName(app)}</b></span>
-      <span class="ol-doc-gist">${web ? href : gist || t('Empty')}</span>
-      ${!web && appOf(app) ? tool({ label: t('Edit'), icon: UI.pen, cls: 'ol-doc-edit', does: () => void this.editRow(it.at) }) : nothing}
+      <span class="ol-doc-kind">${web ? icon(UI.globe, 16) : locked ? icon(UI.lock, 16) : appOf(app) ? icon(appOf(app)!.icon, 16) : nothing}<b>${web ? t('From the web') : appName(app)}</b></span>
+      <span class="ol-doc-gist">${web ? href : locked ? t('Locked with a password') : gist || t('Empty')}</span>
+      ${!web && (locked || appOf(app)) ? tool({ label: t('Edit'), icon: UI.pen, cls: 'ol-doc-edit', does: () => void this.editRow(it.at) }) : nothing}
       <a class="to-btn to-tool" href=${href} target="_blank" rel="noopener" aria-label=${t('Open in a new tab')} title=${t('Open in a new tab')}>${icon(UI.open, 16)}</a>
       ${tool({ label: t('Take it away'), icon: UI.close, does: () => this.removeRow(it.at) })}
     </div>`;

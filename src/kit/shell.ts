@@ -71,6 +71,8 @@ import { installLinkGuard } from './link-guard.ts';
 import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { mark } from './mark.ts';
 import { setSelfLink } from './qr-picture.ts';
+import { lockedCard } from './locked.ts';
+import { unlockForm } from './locked-doc.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
 import type { ToFind } from './find.ts';
@@ -333,7 +335,8 @@ export class ToShell extends LitElement {
     const r = await reopen(payload);
     if (payload !== this.sealed) return;
     if (r) this.opened(r.text, r.locker);
-    else void this.askPassword();
+    // Framed on another site (the embed view), the locked card's Unlock asks; nothing opens over the page unasked.
+    else if (!this.embed) void this.askPassword();
   }
   private get unlockDialog(): ToDialog | null {
     return this.querySelector<ToDialog>('to-dialog.to-unlock-dialog');
@@ -860,14 +863,7 @@ export class ToShell extends LitElement {
 
   /** The password asked for: one field, Unlock; a wrong one is said so, and the field stays to try again. */
   private renderUnlock() {
-    return html`<form class="to-unlock" @submit=${(e: Event) => void this.tryPassword(e)}>
-      <p>${t('Enter the password to open this document.')}</p>
-      <div class="to-ask-row">
-        <input type="password" class="to-unlock-field" aria-label=${t('Password')} autocomplete="current-password" aria-invalid=${String(this.wrong)} aria-describedby="to-unlock-wrong" @input=${() => (this.wrong = false)} />
-        <button type="submit" class="to-btn primary to-unlock-go" ?disabled=${this.busyLock}>${icon(UI.unlock, 16)}<span>${this.busyLock ? t('Opening…') : t('Unlock')}</span></button>
-      </div>
-      <p id="to-unlock-wrong" class="to-unlock-wrong" role="alert">${this.wrong ? t('Wrong password') : ''}</p>
-    </form>`;
+    return unlockForm({ wrong: this.wrong, busy: this.busyLock, submit: (e) => void this.tryPassword(e), input: () => (this.wrong = false) });
   }
 
   /** Set a password, change it, or take it off. Twice, so a slip of the finger does not lock the author out. */
@@ -1033,11 +1029,14 @@ export class ToShell extends LitElement {
     const u = new URL(location.href);
     u.pathname = siteDir();
     u.hash = routeHash(def.id, payload);
-    return html`<header class="to-embed-head">
-        <span class="to-embed-title">${this.docTitle}</span>
-        <a class="to-btn to-embed-open" href=${u.href} target="_blank" rel="noopener">${icon(UI.open, 16)}<span>${t('Open in Tiny Little Office')}</span></a>
-      </header>
-      <main class="to-display to-embed">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>`;
+    const head = html`<header class="to-embed-head">
+      <span class="to-embed-title">${this.docTitle}</span>
+      <a class="to-btn to-embed-open" href=${u.href} target="_blank" rel="noopener">${icon(UI.open, 16)}<span>${t('Open in Tiny Little Office')}</span></a>
+    </header>`;
+    // Locked: the locked card, as a document holding it draws it, with Unlock under it.
+    if (this.sealed)
+      return html`${head}<main class="to-display to-embed to-embed-locked"><div class="to-display-page" role="group" aria-label=${t('Locked document')}>${unsafeSVG(pageSvg(lockedCard(def)))}</div><button type="button" class="to-btn primary to-unlock-open" @click=${() => void this.askPassword()}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button></main><to-dialog class="to-unlock-dialog" heading=${t('This document is locked')} .body=${this.renderUnlock()}></to-dialog>`;
+    return html`${head}<main class="to-display to-embed">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>`;
   }
 
   /**

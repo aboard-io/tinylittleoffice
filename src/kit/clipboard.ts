@@ -14,7 +14,8 @@
  */
 import { column, isAtomic, isText, linkable, linkTarget, normalRuns, parse, refFence, write, type Block, type Column, type Run } from '../doc/index.ts';
 import { decodeDoc } from './codec.ts';
-import { parseHash } from './route.ts';
+import { parseHash, routeHash } from './route.ts';
+import { lockedFence, lockedOf } from './locked.ts';
 import { sliceBlocks, type Sel, type Shape } from './textops.ts';
 
 /** The mark our own HTML carries. */
@@ -281,11 +282,12 @@ export type Pasted = { blocks: Block[] } | { runs: Run[] };
 
 const TLO_LINK = /^https?:\/\/\S+#\/v\d+\/[a-z][a-z0-9-]*(?:\.[A-Za-z0-9.]+)?\/\S+$/;
 
-/** A Tiny Little Office link as the fence that holds its document, or null when the link is not one, or cannot be read. */
+/** A Tiny Little Office link as the fence that holds its document (a locked one by its link, kit/locked.ts), or null when the link is not one, or cannot be read. */
 export function linkToFence(url: string): Block | null {
   if (!TLO_LINK.test(url)) return null;
-  const { app, payload } = parseHash(url.slice(url.indexOf('#')));
+  const { app, payload, sealed } = parseHash(url.slice(url.indexOf('#')));
   if (!app || !payload) return null;
+  if (sealed) return lockedOf(routeHash(app, payload)) ? lockedFence(app, payload) : null;
   const text = decodeDoc(payload);
   return text ? refFence(`${app}\n${text}`) : null;
 }

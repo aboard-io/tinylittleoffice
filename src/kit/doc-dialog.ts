@@ -7,7 +7,8 @@
  *
  *   editDoc({ app, text })  the app's editor (its chunk loaded lazily) over `text`; resolves the text, or null.
  *   makeDoc(app)            a new document of the app, made there: the fence that holds it, or null.
- *   editFence(fence)        the document a fence holds, edited: the fence as it now is, or null when unchanged.
+ *   editFence(fence)        the document a fence holds, edited: the fence as it now is, or null when unchanged
+ *                           (a locked one opened first, and sealed again: kit/locked-doc.ts).
  *   editTable(table)        the Spreadsheet's editor over a document of that one table block, with Rows and
  *                           Columns in the dialog's bar to set its size; resolves the table block, or null.
  */
@@ -15,6 +16,8 @@ import { LitElement, html, nothing } from 'lit';
 import { COL_NAMES, MAX_COLS, ROWS, parse, write, type Block, type TableBlock } from '../doc/index.ts';
 import { lookup, type AppDef, type Editor } from './app.ts';
 import { icon, UI } from './icons.ts';
+import { LOCKED_LANG } from './locked.ts';
+import { editLocked } from './locked-doc.ts';
 import { t } from './i18n.ts';
 
 let n = 0;
@@ -161,7 +164,7 @@ declare global {
 export async function editDoc(o: { app: string; text: string; heading?: string; sizing?: boolean }): Promise<string | null> {
   const def = lookup.appOf(o.app);
   // A QR code is drawn, not edited (kit/qr-picture.ts).
-  if (!def || o.app === 'qr') return null;
+  if (!def || o.app === 'qr' || o.app === LOCKED_LANG) return null;
   const d = document.createElement('to-doc-dialog');
   d.heading = o.heading ?? '';
   d.sizing = !!o.sizing;
@@ -192,6 +195,8 @@ export async function makeDoc(app: string): Promise<Fence | null> {
 }
 /** The document a fence holds, edited in its app in the dialog: the fence with its new body, or null on Cancel or when nothing changed. */
 export async function editFence(fence: Fence): Promise<Fence | null> {
+  // A locked one is opened first, and sealed again under its password (kit/locked-doc.ts).
+  if (fence.lang === LOCKED_LANG) return editLocked(fence);
   const out = await editDoc({ app: fence.lang, text: asText(fence.body) });
   const body = out === null ? fence.body : asBody(out);
   return body === fence.body ? null : { ...fence, body };

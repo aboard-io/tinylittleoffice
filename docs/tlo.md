@@ -70,6 +70,8 @@ The shell's keys are `title`, `by`, `created`, `key` and `sig` (and `app` in a `
 - ```` ```qr ```` with nothing in it: the QR code of this document's own link, drawn afresh as the document
   changes; with an address in it, that address's code (Insert ▾ → QR code of this document).
 - ```` ```signatures ````: a contract's signatures, a table `Name | Key | Signature` that signing fills.
+- ```` ```locked ```` holding a link's fragment, `#/v1/write/E…`: a document locked with a password, kept sealed. It is
+  drawn as a locked card (its app and nothing more can be read) until its password is given in an editor.
 
 ## Each app's shape
 

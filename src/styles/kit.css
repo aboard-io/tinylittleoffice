@@ -1970,6 +1970,35 @@
   .to-embed {
     padding: 0 12px 12px;
   }
+  .to-embed-locked {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ---- a document locked with a password, placed in another (kit/locked-doc.ts): the card a tap opens ---- */
+  to-locked-doc {
+    display: contents;
+  }
+  .to-locked-open {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .to-locked-open:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: -2px;
+  }
+  .to-locked-open svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
 
   /* ---- the drawer's files: Open a file…, Compare… ---- */
   .to-drawer-files {

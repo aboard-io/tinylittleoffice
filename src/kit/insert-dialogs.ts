@@ -12,6 +12,7 @@
  *                 card <to-embed> will draw.
  *   askDocLink()  a Tiny Little Office link, long or short, and the document's first page drawn small; it
  *                 resolves to the fence that holds the document (refFence), a short link opened here first.
+ *                 A link locked with a password goes in as itself, drawn as the locked card (kit/locked.ts).
  *
  * Each resolves null when closed without OK.
  */
@@ -21,6 +22,7 @@ import { BookOpen, Code, File as FileIcon, Landmark, MapPin, MessageCircle, Musi
 import type { Block } from '../doc/index.ts';
 import { lookup } from './app.ts';
 import { linkToFence } from './clipboard.ts';
+import { LOCKED_LANG } from './locked.ts';
 import type { ToDialog } from './dialog.ts';
 import { EMBED_SOURCES, embedOf, type EmbedKind } from './embeds.ts';
 import { icon, UI } from './icons.ts';
@@ -195,7 +197,7 @@ export function askDocLink(): Promise<Block | null> {
     const b = fence as Block | null;
     const def = b?.k === 'fence' ? lookup.appOf(b.lang) : undefined;
     const page = b?.k === 'fence' && def ? def.view(b.body, { small: true })[0] : null;
-    const name = b?.k === 'fence' ? def?.title(b.body) || t('Untitled {noun}', { noun: def?.noun ?? b.lang }) : '';
+    const name = b?.k === 'fence' ? def?.title(b.body) || (b.lang === LOCKED_LANG ? def!.name : t('Untitled {noun}', { noun: def?.noun ?? b.lang })) : '';
     return form(
       'to-ask-doc-form',
       () => b && f.finish(b),
