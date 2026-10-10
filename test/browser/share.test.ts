@@ -48,8 +48,9 @@ test('the head: the title, and where the link fits in one line', async () => {
   const shell = await written(null!, '---\ntitle: Notes\n---\nFirst words.\n');
   const d = await open(shell);
   expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Notes');
-  expect(d.querySelector('.to-share-fit')!.textContent).toMatch(/^This link: [\d,]+ characters, (fits in a text message|too long for .+)$/);
-  expect(d.querySelector('table, dl')).toBeNull();
+  expect(d.querySelector('.to-share-fit .to-fit-words')!.textContent!.trim()).toMatch(/^This link: [\d,]+ characters, (fits in a text message|too long for .+)$/);
+  // The rooms are a table in a popover off the head line, never in the dialog itself.
+  expect([...d.querySelectorAll('table, dl')].every((x) => x.closest('.to-rooms'))).toBe(true);
   // The meter in the header opens the same dialog.
   d.close();
   await until(() => !shell.sharing);

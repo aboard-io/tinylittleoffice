@@ -6,6 +6,7 @@
 // frame's own script; and at phone width the bar one row, the form inside the screen.
 import { beforeEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
+import { apps } from '../../../kit/apps.ts';
 import '../../../styles.css';
 import '../../../kit/apps.ts';
 import '../editor.ts';
@@ -114,9 +115,10 @@ test('the page in its frame the whole width, its script running; no panel beside
   expect(el.querySelector('to-bar.site-bar > :first-child')!.tagName).toBe('TO-INSERT');
   expect(bar.slice(-3)).toEqual(['Preview', 'Undo', 'Redo']);
   // What a website can take; a Quick Links page takes less.
-  expect(await insertLabels(el)).toEqual(['Page', 'Section', 'Heading', 'Paragraph', 'Button', 'Big link', 'Web Picture', 'Big icon', 'Web Embed', 'Tiny Little Office Doc', 'Products']);
+  // (and the QR code of this document; a website of pages, a new document of each other app, as Write's Insert has)
+  expect(await insertLabels(el)).toEqual(['Page', 'Section', 'Heading', 'Paragraph', 'Button', 'Big link', 'Web Picture', 'Big icon', 'Web Embed', 'Tiny Little Office Doc', 'Products', 'QR code of this document', ...apps().filter((a) => a.id !== 'site').map((a) => a.name)]);
   const links = await editor(MAKER);
-  expect(await insertLabels(links.el)).toEqual(['Paragraph', 'Button', 'Small link', 'Web Picture', 'Big icon', 'Web Embed']);
+  expect(await insertLabels(links.el)).toEqual(['Paragraph', 'Button', 'Small link', 'Web Picture', 'Big icon', 'Web Embed', 'QR code of this document']);
 });
 
 test('a tap takes a thing in hand: the box focused, its bar beside it in the standard’s order; a button has left and right; stale or foreign messages change nothing', async () => {
