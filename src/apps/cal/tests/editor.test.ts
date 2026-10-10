@@ -547,7 +547,7 @@ test('a tap on a task\'s grip chooses it with its parts; the bar under it in the
   trow(el, 0).querySelector<HTMLButtonElement>('.cal-grip')!.click();
   await settle(el);
   expect(ranged(el)).toEqual([0, 1, 2]);
-  expect(trow(el, 0).getAttribute('aria-selected')).toBe('true');
+  expect(trow(el, 0).querySelector('.cal-grip')!.getAttribute('aria-pressed')).toBe('true');
   await until(() => contextOpen(el));
   const labels = [...el.querySelectorAll('.cal-context button')].map((b) => b.getAttribute('aria-label'));
   expect(labels).toEqual(['Edit', 'Move up', 'Move down', 'A day earlier', 'A day later', 'Dates…', 'Indent', 'Bring out', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);

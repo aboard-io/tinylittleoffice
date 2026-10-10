@@ -29,7 +29,8 @@ sw.addEventListener('install', (e) => {
     (async () => {
       const { files } = (await (await fetch('files.json', { cache: 'reload' })).json()) as { files: string[] };
       const cache = await caches.open(CACHE);
-      await cache.addAll(files.map((f) => new Request(f, { cache: 'reload' })));
+      // The home page is listed as "" (its folder); "" against this script's address would be the script itself, so it is "./".
+      await cache.addAll(files.map((f) => new Request(f || './', { cache: 'reload' })));
       await sw.skipWaiting();
     })(),
   );
@@ -49,13 +50,15 @@ sw.addEventListener('fetch', (e) => {
   if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
   e.respondWith(
     (async () => {
-      const hit = await caches.match(request, { ignoreSearch: true });
+      // ignoreVary: a module script is asked for with an Origin header the install's fetch did not send, and a
+      // server that answers "Vary: Origin" (a preview server, a CDN) would otherwise make every chunk a miss.
+      const hit = await caches.match(request, { ignoreSearch: true, ignoreVary: true });
       if (hit) return hit;
       try {
         return await fetch(request);
       } catch (err) {
         // A page not kept (a path never built), offline: the home page is the same shell, and the link after "#" opens there.
-        const home = request.mode === 'navigate' ? await caches.match(sw.registration.scope) : undefined;
+        const home = request.mode === 'navigate' ? await caches.match(sw.registration.scope, { ignoreVary: true }) : undefined;
         if (home) return home;
         throw err;
       }

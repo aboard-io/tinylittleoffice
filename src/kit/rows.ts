@@ -14,7 +14,7 @@
  *     drop: (id, to, how) => …,  extra: (span) => […],    // a dragged row put under/after another; the app's own context items
  *   });
  *
- * The host draws `rows.has(id)` (a chosen row: `.ranged`, aria-selected) and puts `rows.renderContext()` in its template;
+ * The host draws `rows.has(id)` (a chosen row: `.ranged`, and aria-pressed on its handle, a list item having no aria-selected) and puts `rows.renderContext()` in its template;
  * it calls `rows.choose(id, extend?)`, `rows.selectAll()`, `rows.release(id?)` from its own paths (Shift+Up/Down in words,
  * a second Select All). The controller owns: the range {anchor, focus}; a tap on a handle (choose; Shift+tap and, on a
  * touch screen, a second tap on another handle extend); Shift+Up/Down (from the words too, unless `fromWords` is false),

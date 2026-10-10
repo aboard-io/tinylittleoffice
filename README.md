@@ -38,9 +38,11 @@ src/i18n/       the strings: en.ts is every key, by hand; a sibling file is a la
 src/styles.css  declares the cascade: @layer tokens, kit, apps, responsive, a11y; src/styles/ holds each
 src/sw.ts       the service worker, for the copy kept on the device
 public/         _headers (the Content-Security-Policy), manifest, icons, theme.js
-scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked)
+scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), deploy.mjs (the
+                checks, then Cloudflare), check-build.ts (files.json, the worker's version, the policy's hashes)
 test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode)
-e2e/            the small Playwright smoke on the built site, desktop Chromium and iPhone-sized WebKit
+e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
+                keyboard alone, axe over every app light and dark, the offline copy, and each app's own
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
 src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
 packages/doc/   the `tinyoffice` command line, over src/api.ts
@@ -56,7 +58,8 @@ npm run dev           # 0.0.0.0:4178 (pefdev.exe.xyz allowed)
 npm run build         # typecheck, then dist/ with a page per app, the CSP hashes, files.json, sw.js
 npm run typecheck     # tsc is the lint
 npm test              # unit (node) and browser (Chromium) tests
-npm run test:e2e      # the smoke, on a fresh build; SHOTS=<dir> saves screenshots
+npm run test:e2e      # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots
+npm run deploy        # the checks the change calls for, then the site and tinier to Cloudflare (-- --dry-run: no deploy)
 npm run i18n:check    # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
 npm run i18n:extract  # append the missing keys to en.ts, at the end, to be sorted by hand
 npm run tinier:dev    # the link shortener on this machine (see "Living short links")
@@ -113,9 +116,16 @@ The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and
 Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
 `{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.
 
-Deploy: `wrangler.jsonc` serves `dist/` as static assets on Cloudflare with `public/_headers`; the shortener
-(`tinier/`) and the picture proxy (`media/`) are Workers of their own, each with its wrangler config.
-`npm run deploy` builds and deploys all three; nothing deploys by itself.
+Deploy: `npm run deploy` (scripts/deploy.mjs) ships a commit, never a working tree. It runs the types, the strings,
+the unit and the browser tests, then the build, then checks what the build wrote after the bundler
+(scripts/check-build.ts: every file in `dist/files.json` there and none left out, `sw.js` carrying its version, the
+Content-Security-Policy in `dist/_headers` holding the hash of every page script and inline script); when something
+on screen changed since the last deploy (`.wrangler/deployed`), the smoke run on the built site instead of the bare
+build: e2e/smoke, keyboard, a11y (axe over every app at phone size, light and dark) and offline. Then
+`wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`) and for tinier.
+`-- --dry-run` checks and stops, `-- --visual` runs the smoke whatever changed, `-- --full` every e2e spec.
+
+The shortener (`tinier/`) and the picture proxy (`media/`) are Workers of their own, each with its wrangler config; nothing deploys by itself.
 
 ## Link and Display Link
 

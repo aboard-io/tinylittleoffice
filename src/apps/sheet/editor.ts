@@ -1063,7 +1063,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
                   <button type="button" class="col-head" aria-label=${t('Column {c}: {type}. What it holds, sort by it, add or remove a column', { c: COL_NAMES[c], type: typeOf(col.type).name() })} title=${t('What it holds; sort; columns')} aria-haspopup="menu" aria-expanded="false" @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>
                     <span class="cl">${COL_NAMES[c]}</span>${icon(UI.down, 12)}
                   </button>
-                  <span class="grip" role="separator" tabindex="0" aria-orientation="vertical" aria-valuenow=${w ? Math.round(w[c] ?? NEW_COL) : nothing} aria-label=${t('Resize column {c}', { c: COL_NAMES[c] })} title=${t('Drag to resize, double-click to fit')} @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)} @keydown=${(e: KeyboardEvent) => this.onGripKey(e, c)}></span>
+                  <span class="grip" role="separator" tabindex="0" aria-orientation="vertical" aria-valuenow=${Math.round(w?.[c] ?? NEW_COL)} aria-label=${t('Resize column {c}', { c: COL_NAMES[c] })} title=${t('Drag to resize, double-click to fit')} @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)} @keydown=${(e: KeyboardEvent) => this.onGripKey(e, c)}></span>
                 </th>`,
               )}
               <td class="add-col" rowspan="2">

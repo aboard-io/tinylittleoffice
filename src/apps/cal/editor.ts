@@ -1033,7 +1033,7 @@ export class ToCalEditor extends DocElement<CalView> {
     const months = new Intl.DateTimeFormat(language(), { month: 'short', year: 'numeric', timeZone: 'UTC' });
     const drag = this.bar;
     return html`<div class="cal-gantt">
-      <ol class="cal-tasks" tabindex="-1" aria-label=${t('Tasks')} aria-multiselectable="true" style="--head:${HEAD}px">
+      <ol class="cal-tasks" tabindex="-1" aria-label=${t('Tasks')} style="--head:${HEAD}px">
         ${bars.map((b) => this.renderTask(b.item, b.parent, b.done))}
       </ol>
       <div class="cal-gantt-scroll" tabindex="0" role="group" aria-label=${t('Chart, scrolls sideways')} @scroll=${(e: Event) => (this.scrolled = Math.floor((e.target as HTMLElement).scrollLeft / z))}>
@@ -1077,8 +1077,8 @@ export class ToCalEditor extends DocElement<CalView> {
     const ranged = this.rows.has(at);
     const name = i.words || t('Task');
     const ticked = i.done >= 100;
-    return html`<li class="cal-trow ${parent ? 'parent' : ''} ${at === this.cur ? 'cur' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === at ? 'dragging' : ''}" data-at=${at} style="--d:${i.depth}" aria-selected=${ranged ? 'true' : 'false'} aria-describedby=${`cal-when-${at}`}>
-      <button type="button" class="cal-grip to-rows-handle" aria-label=${t('Choose {task}', { task: name })} title=${t('Choose {task}', { task: name })}>${icon(GripVertical, 16)}</button>
+    return html`<li class="cal-trow ${parent ? 'parent' : ''} ${at === this.cur ? 'cur' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === at ? 'dragging' : ''}" data-at=${at} style="--d:${i.depth}" aria-describedby=${`cal-when-${at}`}>
+      <button type="button" class="cal-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('Choose {task}', { task: name })} title=${t('Choose {task}', { task: name })}>${icon(GripVertical, 16)}</button>
       <to-text class="cal-words" shape="line" .blocks=${this.blocksFor(i)} label=${name} placeholder=${t('Task')} @focusin=${() => (this.cur = at)} @text-ops=${(e: CustomEvent<TextOps>) => this.onWordsOps(i, e)} @text-enter=${(e: Event) => this.onWordsEnter(i, e)} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => this.onWordsExit(i, e)} @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}></to-text>
       ${parent ? nothing : html`<button type="button" class="cal-tick" role="checkbox" aria-checked=${ticked ? 'true' : 'false'} aria-label=${t('Done: {task}', { task: name })} title=${t('Done')} @click=${() => this.edit(toggleDone(this.view, i))}>${ticked ? icon(Check, 16) : nothing}</button>`}
       <span id=${`cal-when-${at}`} hidden>${this.whenWords(i)}${done ? `, ${t('{n}% done', { n: done })}` : ''}</span>

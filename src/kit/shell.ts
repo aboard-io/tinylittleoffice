@@ -723,9 +723,9 @@ export class ToShell extends LitElement {
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
     // The Office mark is the menu: a button with a border, so it reads as something to press.
     const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${drawer}>${unsafeHTML(mark(26))}</button>`;
-    if (!def) return html`<header class="to-header">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
+    if (!def) return html`<header class="to-header" aria-label="Tiny Little Office">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
     if (this.sealed)
-      return html`<header class="to-header">
+      return html`<header class="to-header" aria-label="Tiny Little Office">
         ${burger}
         <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
         <h1 class="to-title to-title-locked">${this.docTitle}</h1>
@@ -738,7 +738,7 @@ export class ToShell extends LitElement {
     const pct = Math.min(1, this.payloadLength / Math.max(1, available));
     const r = 9;
     const c = 2 * Math.PI * r;
-    return html`<header class="to-header">
+    return html`<header class="to-header" aria-label="Tiny Little Office">
       ${burger}
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
@@ -1127,7 +1127,7 @@ export class ToShell extends LitElement {
       const to = inDoc ?? this.querySelector<HTMLElement>('.to-main');
       to?.focus();
     };
-    return html`<button type="button" class="to-btn to-skip" @click=${skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>${this.renderHeader()}${this.renderArrival()}${this.renderOther()}<main class="to-main" tabindex="-1">${main}</main><to-find></to-find><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}<to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>`;
+    return html`<button type="button" class="to-btn to-skip" @click=${skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>${this.renderHeader()}${this.renderArrival()}${this.renderOther()}<main class="to-main" tabindex="-1" aria-label=${this.def?.name ?? nothing}>${main}</main><to-find></to-find><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}<to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>`;
   }
 }
 customElements.define('to-shell', ToShell);

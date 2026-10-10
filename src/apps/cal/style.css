@@ -97,9 +97,10 @@
     border-radius: 4px;
     cursor: pointer;
   }
+  /* White words on the colour, the colour darkened a little so they read (4.5:1) on orange and green too. */
   .cal-chip.day {
     color: #fff;
-    background: var(--c);
+    background: color-mix(in oklab, var(--c) 80%, #000);
   }
   .cal-chip.cont {
     border-left: 0;

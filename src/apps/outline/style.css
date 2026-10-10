@@ -332,7 +332,7 @@
   .ol-fn li {
     margin: 0.2em 0;
   }
-  .ol-links h3 {
+  .ol-links h2 {
     margin: 0 0 4px var(--ol-step, 22px);
     font-size: 12px;
     font-weight: 600;

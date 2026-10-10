@@ -757,7 +757,7 @@ export class ToTripEditor extends DocElement<TripView> {
     const n = i + 1;
     const ranged = this.rows.has(i);
     const label = t('Stop {n}: a tap chooses it, a drag moves it', { n });
-    return html`<li class="trip-stop ${i === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}" data-i=${i} aria-selected=${String(ranged)} @focusin=${() => (this.cur = i)}>
+    return html`<li class="trip-stop ${i === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}" data-i=${i} @focusin=${() => (this.cur = i)}>
       ${this.leg(i)}
       <button type="button" class="trip-n to-rows-handle" aria-pressed=${String(ranged)} aria-label=${label} title=${label}>${n}</button>
       <div class="trip-fields">${this.wordsBox(s, i, 'name')}${this.wordsBox(s, i, 'note')}</div>
@@ -800,7 +800,7 @@ export class ToTripEditor extends DocElement<TripView> {
             </div>`
           : nothing}
         ${n
-          ? html`<ol class="trip-stops" tabindex="-1" aria-label=${t('Stops')} aria-multiselectable="true">${v.stops.map((s, i) => this.row(s, i))}</ol>`
+          ? html`<ol class="trip-stops" tabindex="-1" aria-label=${t('Stops')}>${v.stops.map((s, i) => this.row(s, i))}</ol>`
           : html`<p class="to-hint trip-empty">${this.showMap ? t('Tap the map to add the first stop, or Insert a place by name.') : t('Insert a place by name.')}</p>`}
       </div>
       ${this.presenting >= 0 ? this.renderPresent() : nothing}

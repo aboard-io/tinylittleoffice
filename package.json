@@ -17,6 +17,7 @@
     "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "test:e2e": "playwright test",
+    "deploy": "node scripts/deploy.mjs",
     "i18n:check": "node scripts/i18n-extract.ts --check",
     "i18n:extract": "node scripts/i18n-extract.ts",
     "docs:exports": "node scripts/exports-doc.ts",
