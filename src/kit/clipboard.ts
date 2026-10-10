@@ -6,16 +6,21 @@
  * (the marker) → the TLO, or for words from within one block their exact
  * runs; a Tiny Little Office link alone → a fence holding that document; a
  * web address alone → a paragraph that is the address (a card); HTML from
- * elsewhere → blocks (tags and styles to marks, lists to items, Google
- * Docs' bold-that-is-not); plain text with a line break → read as TLO
- * (pasted Markdown becomes headings and lists); plain words → words.
- * What comes back is fitted to the editor's shape: lines keeps items and
- * paragraphs only; a line takes the words alone.
+ * elsewhere → blocks (tags and styles to marks, lists to items from
+ * Google Docs, Word, Apple Notes, Notion and Slack, Docs'
+ * bold-that-is-not); plain text → read as TLO, a bullet glyph as an item,
+ * one line too (pasted Markdown becomes headings, lists and marks); words
+ * with no syntax → those words. What comes back is fitted to the editor's
+ * shape and what it can show: lines keeps items and paragraphs only; a
+ * line takes the words alone; a table, a picture, a connection or a fence
+ * of no app's is words where it cannot be shown. Words that look like
+ * syntax stay words: the TLO writer escapes them.
  */
-import { column, isAtomic, isText, linkable, linkTarget, normalRuns, parse, refFence, write, type Block, type Column, type Run } from '../doc/index.ts';
+import { column, isAtomic, isText, linkable, linkTarget, normalRuns, parse, plainText, refFence, write, type Block, type Column, type Run } from '../doc/index.ts';
+import { lookup } from './app.ts';
 import { decodeDoc } from './codec.ts';
 import { parseHash, routeHash } from './route.ts';
-import { lockedFence, lockedOf } from './locked.ts';
+import { LOCKED_LANG, lockedFence, lockedOf } from './locked.ts';
 import { sliceBlocks, type Sel, type Shape } from './textops.ts';
 
 /** The mark our own HTML carries. */
@@ -139,47 +144,80 @@ const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'META', 'LINK', 'TITLE
 
 type Marks = Partial<Pick<Run, 'b' | 'i' | 'u' | 's' | 'h' | 'href'>>;
 
+/** The glyphs a list item is drawn with where it is written as words (Word, Mail, TextEdit, a bullet typed by hand). */
+export const BULLET = /^[ \t]*[•◦▪▫‣⁃●○■□·–—][ \t ]+/;
+/** What the clipboard carries that is no one's words: a zero-width space, a byte-order mark, a word joiner. */
+const INVISIBLE = /[​﻿⁠]/g;
+/** Backgrounds that are no highlight: none, or white. */
+const NO_BACKGROUND = /^(?:|transparent|initial|inherit|unset|none|white|#fff(?:fff)?|rgb\(255, 255, 255\)|rgba\(\d+, \d+, \d+, 0\))$/;
+
 /**
  * HTML from anywhere as blocks: tags and styles to marks, lists to items
- * with their depth, headings by level, pictures and tables as such. Spaces
- * collapse as a browser shows them; a <br> is a line break.
+ * with their depth, headings by level (by tag, or role="heading"), pictures
+ * and tables as such. Spaces collapse as a browser shows them; a <br> is a
+ * line break. What other editors put around a list item is read as one:
+ * Google Docs' <p> inside each <li> (paragraphs inside an item are its
+ * lines), Word's list paragraphs (`mso-list: … level2`, the glyph in a
+ * `mso-list:Ignore` span dropped), Slack's flat lists that say their depth
+ * (`data-stringify-indent`), and a paragraph that opens with a bullet glyph
+ * (Mail, TextEdit). Links are kept for http(s), mailto and tel only.
  */
 export function htmlToBlocks(html: string): Block[] {
   const root = new DOMParser().parseFromString(html, 'text/html').body;
   const blocks: Block[] = [];
-  let cur: { k: 'p' | 'li' | 'h' | 'quote'; level?: number; depth?: number; ord?: true; runs: Run[] } | null = null;
-  let lists: { ord: boolean }[] = [];
+  type Cur = { k: 'p' | 'li' | 'h' | 'quote'; level?: number; depth?: number; ord?: true; runs: Run[] };
+  let cur: Cur | null = null;
+  const lists: { ord: boolean }[] = [];
   let pre = false;
+  /** Inside an item's element: words and the blocks within it are that item's (until a list inside it ends it). */
+  let inItem = false;
 
-  const open = (k: 'p' | 'li' | 'h' | 'quote', extra: { level?: number } = {}) => {
-    if (k === 'li') cur = { k, depth: Math.min(3, Math.max(0, lists.length - 1)), ...(lists[lists.length - 1]?.ord ? { ord: true } : {}), runs: [] };
+  const open = (k: Cur['k'], extra: Partial<Cur> = {}) => {
+    if (k === 'li') cur = { k, depth: Math.min(3, Math.max(0, lists.length - 1)), ...(lists[lists.length - 1]?.ord ? { ord: true } : {}), runs: [], ...extra };
     else cur = { k, ...extra, runs: [] };
+  };
+  const ensure = () => {
+    if (!cur) open(inItem && lists.length ? 'li' : 'p');
+    return cur!;
   };
   const close = () => {
     if (!cur) return;
-    const runs = normalRuns(cur.runs);
-    // Spaces at either end of a block are the markup's, not the words'.
+    const c: Cur = cur;
+    cur = null;
+    // Spaces at either end of a block, and beside a line break, are the markup's, not the words'.
+    let runs = normalRuns(c.runs.map((r) => (isAtomic(r) || pre ? r : { ...r, t: r.t.replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n') })));
     if (runs.length) {
       runs[0] = { ...runs[0], t: runs[0].t.replace(/^[ \n]+/, '') };
       const last = runs.length - 1;
       runs[last] = { ...runs[last], t: runs[last].t.replace(/[ \n]+$/, '') };
     }
-    const kept = normalRuns(runs);
-    if (kept.length) {
-      if (cur.k === 'h') blocks.push({ k: 'h', level: (cur.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs: kept });
-      else if (cur.k === 'li') blocks.push({ k: 'li', depth: cur.depth ?? 0, ...(cur.ord ? { ord: true } : {}), runs: kept });
-      else blocks.push({ k: cur.k, runs: kept });
+    runs = normalRuns(runs);
+    // A paragraph that opens with a bullet glyph is an item (Mail, TextEdit, Word saved as plain HTML).
+    if (c.k === 'p' && runs[0] && !isAtomic(runs[0]) && BULLET.test(runs[0].t)) {
+      runs = normalRuns([{ ...runs[0], t: runs[0].t.replace(BULLET, '') }, ...runs.slice(1)]);
+      c.k = 'li';
+      c.depth = 0;
     }
-    cur = null;
+    if (!runs.length) return;
+    if (c.k === 'h') blocks.push({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs });
+    else if (c.k === 'li') blocks.push({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs });
+    else blocks.push({ k: c.k, runs });
   };
   const addText = (raw: string, m: Marks) => {
-    const t = pre ? raw : raw.replace(/[ \t\r\n ]+/g, ' ');
+    const t = (pre ? raw : raw.replace(/[ \t\r\n ]+/g, ' ')).replace(INVISIBLE, '');
     if (!t) return;
-    if (!cur) open('p');
+    const c = ensure();
     const run: Run = { t, ...m };
     // A heading is bold through and through, so bold inside one says nothing.
-    if (cur!.k === 'h') delete run.b;
-    cur!.runs.push(run);
+    if (c.k === 'h') delete run.b;
+    c.runs.push(run);
+  };
+  /** Word's list paragraph: its level, and whether its glyph is a number. */
+  const wordItem = (el: HTMLElement): { depth: number; ord: boolean } | null => {
+    const m = /mso-list:\s*l\d+\s+level(\d)/i.exec(el.getAttribute('style') ?? '');
+    if (!m && !/MsoListParagraph/.test(el.className)) return null;
+    const glyph = (el.querySelector('[style*="mso-list:Ignore" i], [style*="mso-list: Ignore" i]')?.textContent ?? '').replace(/[\s ]+/g, '');
+    return { depth: Math.min(3, Number(m?.[1] ?? 1) - 1), ord: /^(?:\d+|[a-z]|[ivxlc]+)[.)]$/i.test(glyph) };
   };
 
   const walk = (node: Node, m: Marks) => {
@@ -188,19 +226,18 @@ export function htmlToBlocks(html: string): Block[] {
     const el = node as HTMLElement;
     const tag = el.tagName;
     if (SKIP_TAGS.has(tag)) return;
+    // Word's list glyph and the spaces after it: drawn, not written.
+    if (/mso-list:\s*Ignore/i.test(el.getAttribute('style') ?? '')) return;
     if (el.dataset.icon) {
-      if (!cur) open('p');
-      cur!.runs.push({ t: '', ic: el.dataset.icon });
+      ensure().runs.push({ t: '', ic: el.dataset.icon });
       return;
     }
     if (el.dataset.fn !== undefined) {
-      if (!cur) open('p');
-      cur!.runs.push({ t: '', fn: el.dataset.fn });
+      ensure().runs.push({ t: '', fn: el.dataset.fn });
       return;
     }
     if (tag === 'BR') {
-      if (!cur) open('p');
-      cur!.runs.push({ t: '\n', ...m });
+      ensure().runs.push({ t: '\n', ...m });
       return;
     }
     if (tag === 'IMG') {
@@ -216,7 +253,7 @@ export function htmlToBlocks(html: string): Block[] {
     }
     if (tag === 'TABLE') {
       close();
-      const rows = [...el.querySelectorAll('tr')].map((tr) => [...tr.children].map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').trim()));
+      const rows = [...el.querySelectorAll('tr')].map((tr) => [...tr.children].map((c) => (c.textContent ?? '').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim()));
       if (rows.length) {
         const cols: Column[] = rows[0].map((h) => column(h));
         blocks.push({ k: 'table', cols, rows: rows.slice(1).map((r) => cols.map((_, i) => r[i] ?? '')) });
@@ -225,42 +262,72 @@ export function htmlToBlocks(html: string): Block[] {
     }
     if (tag === 'UL' || tag === 'OL') {
       close();
-      lists.push({ ord: tag === 'OL' });
+      // Slack writes each depth as a list of its own, beside the others: its data-indent says how deep.
+      const flat = Number(el.dataset.indent ?? 0) || 0;
+      const outer = lists.length;
+      for (let i = 0; i <= flat; i++) lists.push({ ord: tag === 'OL' });
+      const wasItem = inItem;
       for (const c of el.childNodes) {
         if (c.nodeType === Node.ELEMENT_NODE && (c as Element).tagName === 'LI') {
           close();
           open('li');
+          inItem = true;
           for (const cc of c.childNodes) walk(cc, {});
           close();
+          inItem = false;
         } else walk(c, {});
       }
-      lists.pop();
+      inItem = wasItem;
+      lists.length = outer;
       close();
       return;
     }
     const next: Marks = { ...m };
     const st = el.style;
+    const inline = !BLOCK_TAGS.has(tag);
     // A tag can say bold while its style says otherwise: Google Docs wraps all it copies in <b style="font-weight:normal">.
     const weight = st.fontWeight === 'bold' ? 700 : st.fontWeight === 'normal' ? 400 : parseInt(st.fontWeight);
     if (((tag === 'B' || tag === 'STRONG') && !(weight < 600)) || weight >= 600) next.b = true;
+    else if (weight < 600) delete next.b;
     if (tag === 'I' || tag === 'EM' || st.fontStyle === 'italic') next.i = true;
-    if (tag === 'U' || st.textDecoration.includes('underline')) next.u = true;
+    // A link is drawn underlined already: the underline its words carry (Google Docs') is the link's.
+    if (tag === 'U' || (st.textDecoration.includes('underline') && !m.href)) next.u = true;
     if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || st.textDecoration.includes('line-through')) next.s = true;
-    if (tag === 'MARK' || (st.backgroundColor && !['transparent', 'initial', 'inherit', 'white', 'rgb(255, 255, 255)', '#ffffff', '#fff'].includes(st.backgroundColor))) next.h = true;
+    // A background on words is a highlight; on a block it is the page's.
+    if (tag === 'MARK' || (inline && !NO_BACKGROUND.test(st.backgroundColor))) next.h = true;
     if (tag === 'A') {
       // Words linked somewhere are a link; an address showing itself is only the address.
-      const href = el.getAttribute('href') ?? '';
+      const href = (el.getAttribute('href') ?? '').trim();
       const words = (el.textContent ?? '').trim();
-      if (linkable(href) && words !== href && words !== href.replace(/^mailto:/, '')) next.href = linkTarget(href);
+      if (/^(?:https?:|mailto:|tel:)/i.test(href) && linkable(href) && words !== href && words !== href.replace(/^mailto:/, '')) next.href = linkTarget(href);
       else delete next.href;
     }
-    if (BLOCK_TAGS.has(tag)) {
+    const word = tag === 'P' ? wordItem(el) : null;
+    const role = el.getAttribute('role') === 'heading' ? Math.min(6, Math.max(1, Number(el.getAttribute('aria-level')) || 2)) : 0;
+    if (word) {
+      close();
+      open('li', { depth: word.depth, ...(word.ord ? { ord: true as const } : {}) });
+      for (const c of el.childNodes) walk(c, next);
+      close();
+      return;
+    }
+    if (BLOCK_TAGS.has(tag) || role) {
+      // A paragraph inside an item is a line of that item, not a block of its own.
+      if (inItem && cur && (cur as Cur).k === 'li' && tag !== 'LI') {
+        const c = cur as Cur;
+        if (c.runs.some((r) => isAtomic(r) || r.t.trim())) c.runs.push({ t: '\n' });
+        const wasPre = pre;
+        if (tag === 'PRE') pre = true;
+        for (const ch of el.childNodes) walk(ch, next);
+        pre = wasPre;
+        return;
+      }
       close();
       const h = /^H([1-6])$/.exec(tag);
-      if (h) open('h', { level: Number(h[1]) });
+      if (h || role) open('h', { level: h ? Number(h[1]) : role });
       else if (tag === 'BLOCKQUOTE') open('quote');
       else if (tag === 'LI') open('li');
-      else open('p');
+      else open(inItem && lists.length ? 'li' : 'p');
       const wasPre = pre;
       if (tag === 'PRE') pre = true;
       for (const c of el.childNodes) walk(c, next);
@@ -292,10 +359,43 @@ export function linkToFence(url: string): Block | null {
   return text ? refFence(`${app}\n${text}`) : null;
 }
 
-/** Blocks fitted to an editor's shape: lines keeps items and paragraphs; a line takes the words alone, lines joined by spaces. */
-export function fitBlocks(blocks: Block[], shape: Shape): Pasted {
-  if (shape === 'doc') return { blocks };
-  const words = blocks.filter(isText);
+/** Lines of plain text with a bullet glyph at their start ("• one", "◦ two" under it) as Markdown's items, their indent kept. */
+export const bulletsToItems = (text: string): string => text.replace(/^([ \t]*)[•◦▪▫‣⁃●○■□·–—][ \t ]+/gm, '$1- ');
+
+/** A fence of an app this editor can show (or a locked document): anything else in a fence is words. */
+const appFence = (b: Block) => b.k === 'fence' && (b.lang === LOCKED_LANG || !!lookup.appOf(b.lang));
+
+/**
+ * What is not words, as the words it holds, where the host cannot show it: a table as its rows (tab between the
+ * cells), a picture as its description, a connection as its ends, a code fence as its lines; a page break, and
+ * another document, are nothing there. `doc` hosts show all of them but a connection and a fence of no app's.
+ */
+function asWords(b: Block, shape: Shape): Block[] {
+  const p = (t: string): Block[] => (t.trim() ? [{ k: 'p', runs: [{ t }] }] : []);
+  switch (b.k) {
+    case 'edge':
+      return p(`${b.from} ${b.dir === '--' ? '–' : b.dir === '<->' ? '↔' : b.dir === '<-' ? '←' : '→'} ${b.to}${b.label ? `: ${b.label}` : ''}`);
+    case 'fence':
+      return appFence(b) ? (shape === 'doc' ? [b] : []) : p(b.body);
+    case 'table':
+      return shape === 'doc' ? [b] : [b.cols.map((c) => c.name), ...b.rows].flatMap((r) => p(r.join('\t')));
+    case 'img':
+      return shape === 'doc' ? [b] : p(b.alt);
+    case 'hr':
+      return shape === 'doc' ? [b] : [];
+    default:
+      return [b];
+  }
+}
+
+/**
+ * Blocks fitted to an editor's shape: lines keeps items and paragraphs; a line takes the words alone, lines joined
+ * by spaces. What the host cannot show becomes words first (asWords); in a document, only for a paste from
+ * elsewhere (`foreign`): our own copy pastes back as it was.
+ */
+export function fitBlocks(blocks: Block[], shape: Shape, foreign = false): Pasted {
+  if (shape === 'doc') return { blocks: foreign ? blocks.flatMap((b) => asWords(b, shape)) : blocks };
+  const words = blocks.flatMap((b) => asWords(b, shape)).filter(isText);
   if (shape === 'lines') return { blocks: words.map((b): Block => (b.k === 'li' || b.k === 'p' ? b : { k: 'p', runs: b.runs })) };
   const runs: Run[] = [];
   words.forEach((b, i) => {
@@ -303,6 +403,20 @@ export function fitBlocks(blocks: Block[], shape: Shape): Pasted {
     runs.push(...b.runs.map((r) => (isAtomic(r) || !r.t.includes('\n') ? r : { ...r, t: r.t.replace(/\n/g, ' ') })));
   });
   return { runs: normalRuns(runs) };
+}
+
+/**
+ * Pasted plain text as blocks: Markdown, but a ":name:" inside other words ("a:b:c", "x:y:") is those words; only
+ * one standing apart, as a person types an icon or an emoji's short name, is an icon.
+ */
+function readPlain(md: string): Block[] {
+  const apart = (runs: Run[], i: number) => {
+    const before = runs[i - 1];
+    const after = runs[i + 1];
+    return (!before || isAtomic(before) || /\s$/.test(before.t)) && (!after || isAtomic(after) || /^[\s.,;:!?)]/.test(after.t));
+  };
+  const words = (runs: Run[]) => normalRuns(runs.map((r, i) => (r.ic && !apart(runs, i) ? { t: `:${r.ic}:` } : r)));
+  return parse(md).blocks.map((b) => ('runs' in b && b.runs.some((r) => r.ic) ? { ...b, runs: words(b.runs) } : b));
 }
 
 /** What a paste's data becomes, by the rules at the top of this file. Null when there is nothing to paste. */
@@ -324,9 +438,17 @@ export function pasteFrom(data: { text: string; html: string }, shape: Shape): P
   }
   if (html.trim()) {
     const blocks = htmlToBlocks(html);
-    if (blocks.length) return fitBlocks(blocks, shape);
+    if (blocks.length) return fitBlocks(blocks, shape, true);
   }
-  if (!text) return null;
-  if (text.includes('\n')) return fitBlocks(parse(text).blocks, shape);
-  return { runs: [{ t: text }] };
+  const plain = text.replace(INVISIBLE, '');
+  if (!plain) return null;
+  const md = bulletsToItems(plain);
+  if (plain.includes('\n')) return fitBlocks(readPlain(md), shape, true);
+  // One line is read as Markdown too: "• one" is an item, "# Title" a heading, "**bold**" bold. Words that hold no
+  // syntax stay exactly as they were, spaces and all (and "2026. A year" is a year, not an item numbered 2026).
+  const [b, ...more] = readPlain(md);
+  if (!b || more.length) return { runs: [{ t: plain }] };
+  if ((b.k === 'li' || b.k === 'h') && b.runs.length && !(b.k === 'li' && b.ord && !/^\s*\d{1,3}[.)]/.test(md))) return fitBlocks([b], shape, true);
+  if (b.k === 'p' && plainText(b.runs) !== plain.trim()) return { runs: b.runs };
+  return { runs: [{ t: plain }] };
 }

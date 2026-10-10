@@ -993,3 +993,18 @@ test('a text in hand has one Align item beside its size: it shows the alignment 
   const [right] = screen(el, 172, 32);
   expect(Math.abs(words(el).getBoundingClientRect().right - right)).toBeLessThan(4);
 });
+
+test("a paste into a shape's label brings the words and their marks alone: no items, no link, no syntax", async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  await press(el, 'Enter');
+  await tick();
+  const dt = new DataTransfer();
+  dt.setData('text/html', '<ul><li><p><b>Front</b> end</p></li><li><p><a href="https://example.com">site</a></p></li></ul>');
+  dt.setData('text/plain', 'Front end\nsite');
+  box(el).dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  await tick();
+  await wordsKey(el, 'Enter');
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | **Front** end site');
+});

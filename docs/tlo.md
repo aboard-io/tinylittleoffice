@@ -23,6 +23,14 @@ document; it never parses text of its own.
    marks, a table with outer pipes, `Price: money`, Markdown's reference footnotes); the writer writes one form.
 6. **Words are inline Markdown.** `**bold**`, `*italic*`, `++underline++`, `~~strike~~`, `==highlight==`,
    `:icon-name:`, `[words](address)` and `^[a footnote]`; `\` escapes. The writer escapes as little as reads back.
+   Words that would read as syntax are written so they read back as the same words, whatever runs sit beside them
+   (a pasted `**`, `:smile:`, `[a](b)` or `^[` stays words): first with only `\\` doubled, and where that would read
+   differently, with every mark escaped: `\*`, `\_`, `` \` ``, `\\`, an `=`, `+` or `~` doubled or at either end
+   of the words, a `[` that a link's `](` follows or that nothing closes, a `^` before a `[` or at the end, the `:`
+   that opens `:name:`, and `\<u>`. A line that opens like a block (`# `, `- `, `1. `, `> `, `|`, `~ `, a fence, a
+   rule, `![`, `{`) gets a `\` in front, on every line of a paragraph and of an item; words that are only
+   `{#id}`-like keep that backslash; a heading's words that end in `#` are written `\#`, so they are not its
+   closing hashes.
 
 ## The model
 

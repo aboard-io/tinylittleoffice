@@ -85,6 +85,33 @@ test('tlo: words that look like syntax are written so they read back as words', 
   }
 });
 
+test('tlo: every marker a pasted run could hold is escaped, in every kind of block and beside every other run', () => {
+  const markers = ['**b**', '*i*', '__b__', '_i_', '++u++', '~~s~~', '==h==', ':star:', '[a](https://b.c)', '^[n]', '<u>u</u>', '`c`', '- x', '* x', '+ x', '1. x', '1) x', '# x', '> x', '| x', '~ A -> B', '```', '~~~', '![a](https://b.c)', '---', '{#id}', '{.c}', 'x {k=v}', '[ ] x', 'C#', 'C# ##', '\\'];
+  const kinds = (w: string): Block[] => [{ k: 'p', runs: t(w) }, { k: 'li', depth: 0, runs: t(w) }, { k: 'quote', runs: t(w) }, { k: 'h', level: 2, runs: t(w) }];
+  for (const w of markers) {
+    for (const b of kinds(w)) expect(parse(write({ head: {}, blocks: [b] })).blocks, `${b.k} ${w}`).toStrictEqual([b]);
+    // A line of an item, a quote or a paragraph past its first.
+    for (const b of kinds(`x\n${w}`).slice(0, 3)) expect(parse(write({ head: {}, blocks: [b, { k: 'li', depth: 0, runs: t('next') }] })).blocks, `${b.k} x/${w}`).toStrictEqual([b, { k: 'li', depth: 0, runs: t('next') }]);
+  }
+  // Words beside a run whose own marks they would join: an unclosed "[" before a link, a "^" before one, an "=" before a highlight.
+  const beside: Run[][] = [
+    [{ t: '[' }, { t: 'x', href: 'https://l.m' }],
+    [{ t: 'a^' }, { t: 'x', href: 'https://l.m' }],
+    [{ t: 'a=' }, { t: 'h', h: true }],
+    [{ t: 'h', h: true }, { t: '=a' }],
+    [{ t: 'a+' }, { t: 'u', u: true }],
+    [{ t: 'a~' }, { t: 's', s: true }],
+    [{ t: ':star' }, { t: ':', b: true }],
+    [{ t: 'see', href: 'https://l.m' }, { t: '(x)' }],
+    [{ t: 'https://x.y_a_b', href: 'https://l.m' }],
+  ];
+  for (const runs of beside) expect(parse(write({ head: {}, blocks: [{ k: 'p', runs }] })).blocks[0], JSON.stringify(runs)).toStrictEqual({ k: 'p', runs });
+  // Canonical text stays as it was written, and text a person wrote loosely reads as it always did.
+  for (const text of ['a \\* b \\_ c \\\\ d \\^[x] \\:icon: \\<u>\n', '## C\\#\n', '- x\n  \\- y\n']) expect(write(parse(text))).toBe(text);
+  expect(parse('# Title #\n').blocks).toStrictEqual([{ k: 'h', level: 1, runs: t('Title') }]);
+  expect(parse('Words {#id}\n').blocks).toStrictEqual([{ k: 'p', a: { id: 'id' }, runs: t('Words') }]);
+});
+
 test('tlo: inline marks both ways', () => {
   expect(parseInline('a **b** *i* ++u++ ~~s~~ ==h== :rocket: [w *x*](https://x.y)')).toStrictEqual([
     { t: 'a ' },

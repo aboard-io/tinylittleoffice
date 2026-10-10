@@ -902,3 +902,23 @@ test('§1 opens with the focus in the first words: the caret at their start, the
   expect(opened.text.sel?.focus).toEqual({ block: first, offset: 0 });
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
+
+/** What Google Docs puts on the clipboard for a heading and a list two deep: a <p> inside every <li>, styles for marks. */
+const DOCS_LIST = '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><h2 dir="ltr"><span style="font-weight:400;">Plan</span></h2><ul style="padding-inline-start:48px;"><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span style="font-weight:700;">Bold</span><span style="font-weight:400;"> start</span></p></li><ul><li dir="ltr" aria-level="2"><p dir="ltr" role="presentation"><span style="font-style:italic;">nested</span></p></li></ul><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span>**not bold**</span></p></li></ul></b>';
+
+test('a paste from Google Docs keeps the heading, the items and their depth, the marks; words that look like syntax stay words', async () => {
+  const { el, last } = await editor('');
+  el.text.tx.focus();
+  const dt = new DataTransfer();
+  dt.setData('text/html', DOCS_LIST);
+  dt.setData('text/plain', 'Plan\nBold start\nnested\n**not bold**');
+  el.text.tx.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  await tick();
+  expect(last()).toBe('## Plan\n\n- **Bold** start\n  - *nested*\n- \\*\\*not bold\\*\\*\n');
+  expect([...el.text.tx.querySelectorAll('li')].map((li) => [li.style.getPropertyValue('--d'), li.textContent])).toEqual([
+    ['0', 'Bold start'],
+    ['1', 'nested'],
+    ['0', '**not bold**'],
+  ]);
+});
