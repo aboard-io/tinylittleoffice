@@ -45,7 +45,7 @@ import { myKey, signerName, signWords } from '../../kit/privacy.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
-import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
+import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableSetType, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
 import def from './def.ts';
 import { LOOK_IDS, LOOKS, lookOf, type LookId } from './look.ts';
 import { checkContract, contractText, printOf, readSignatures, signaturesAt, signedMessage, signOps, today, verdictOf } from './contract.ts';
@@ -378,6 +378,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     else if (cmd.cmd === 'rowsOut') ops = tableRowsOut(this.doc, at, cmd.r0, cmd.r1);
     else if (cmd.cmd === 'colIn') ops = tableColIn(this.doc, at, cmd.c);
     else if (cmd.cmd === 'colOut') ops = tableColOut(this.doc, at, cmd.c);
+    else if (cmd.cmd === 'type') ops = tableSetType(this.doc, at, cmd.c, cmd.type, cmd.currency);
     else if (cmd.cmd === 'rename') {
       ops = tableRename(this.doc, at, cmd.c, cmd.name);
     }

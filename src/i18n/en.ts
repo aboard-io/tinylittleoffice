@@ -352,7 +352,7 @@ export default {
   'Rich Text (RTF)': 'Rich Text (RTF)',
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'Add a column before',
-  'Column {c}: choose it, add or remove a column': 'Column {c}: choose it, add or remove a column',
+  'Column {c}: what it holds, name it, add or remove a column': 'Column {c}: what it holds, name it, add or remove a column',
   'The table: move, copy or take it out': 'The table: move, copy or take it out',
   // The templates
   'A letter': 'A letter',

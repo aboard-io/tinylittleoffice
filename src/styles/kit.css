@@ -429,6 +429,20 @@
   .to-dialog-body > :first-child {
     margin-top: 0;
   }
+  /* ---- A money column's currency (columns.ts): one field and OK, narrow ---- */
+  .to-currency-dialog .to-dialog {
+    width: min(420px, calc(100vw - 32px));
+  }
+  .to-currency-label {
+    font-size: 14px;
+    color: var(--to-ink-2);
+  }
+  .to-currency .to-hint {
+    margin: 0;
+  }
+  .to-currency [aria-invalid='true'] {
+    border-color: var(--to-danger);
+  }
   /* ---- Insert's address dialogs (insert-dialogs.ts): the address and OK in one row, what it will be under them ---- */
   .to-ask-dialog .to-dialog {
     width: min(640px, calc(100vw - 32px));

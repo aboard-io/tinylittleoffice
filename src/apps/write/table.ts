@@ -8,7 +8,8 @@
  * Shift+click and a drag stretch a range, which Delete clears and the clipboard carries as tab-separated
  * text with our table HTML; the handle at its corner fills; a tap on a cell while a formula wants a value
  * puts in its reference. A column's head and a row's number choose the column or the row and open what can
- * be done to it (put one in, take it out, name it: its name typed where it is shown, in the head), the + puts a column in at the end; a row is never added
+ * be done to it (what the column holds, the Spreadsheet's types from the kit's columns.ts, Money asking its currency; put one in,
+ * take it out, name it: its name typed where it is shown, in the head; an Option column's cells offer the words it holds), the + puts a column in at the end; a row is never added
  * by a key alone. The handle in the corner takes the table itself in hand (moved, copied, taken out).
  *
  * Every change is an event the host turns into ops: wt-cell (r, c, raw), wt-do (a command, and the cell to
@@ -17,8 +18,9 @@
  */
 import { LitElement, html, nothing } from 'lit';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, GripVertical, Pencil, Trash2 } from 'lucide';
-import { COL_NAMES, MAX_COLS, clearCells, copyCells, fillCells, formatCell, isLocked, pasteCells, rangeOf, rcToRef, type Cells, type Column, type Range } from '../../doc/index.ts';
+import { COL_NAMES, MAX_COLS, clearCells, copyCells, fillCells, formatCell, isLocked, pasteCells, rangeOf, rcToRef, type Cells, type ColType, type Column, type Range } from '../../doc/index.ts';
 import { docToHtml, htmlToBlocks } from '../../kit/clipboard.ts';
+import { choicesOf, kindItems } from '../../kit/columns.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
@@ -29,12 +31,13 @@ import '../../kit/menu.ts';
 export const TABLE_TAG = 'to-write-table';
 
 /** What the grid asks its host to do; `focus` is the cell to be in afterwards (and `end` the range's far corner). */
-export type TableCmd = ({ cmd: 'put'; cells: Cells } | { cmd: 'rowsIn'; r: number; n: number } | { cmd: 'rowsOut'; r0: number; r1: number } | { cmd: 'colIn'; c: number } | { cmd: 'colOut'; c: number } | { cmd: 'rename'; c: number; name: string }) & { focus?: [number, number]; end?: [number, number] | null };
+export type TableCmd = ({ cmd: 'put'; cells: Cells } | { cmd: 'rowsIn'; r: number; n: number } | { cmd: 'rowsOut'; r0: number; r1: number } | { cmd: 'colIn'; c: number } | { cmd: 'colOut'; c: number } | { cmd: 'rename'; c: number; name: string } | { cmd: 'type'; c: number; type: ColType; currency?: string }) & { focus?: [number, number]; end?: [number, number] | null };
 
 /** A reference fits wherever the formula is waiting for a value. */
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
 const ARROWS: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+let tables = 0;
 
 /** Follow a pointer that `el` has captured: `move` as it goes, then `done` once it lifts. */
 function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {}) {
@@ -73,6 +76,8 @@ export class ToWriteTable extends LitElement {
   private hadFocus = false;
   /** What we last put on the clipboard, so pasting it back moves formulas' references. */
   private clip: { text: string; r: number; c: number; cut: boolean } | null = null;
+  /** Names this grid's lists of an Option column's words apart from another's. */
+  private uid = `wt${++tables}`;
 
   constructor() {
     super();
@@ -373,11 +378,13 @@ export class ToWriteTable extends LitElement {
     const c = this.menuCol;
     const n = this.cols.length;
     const r = this.anchor[0];
+    const cols = t('Columns');
     return [
-      { label: t('Name this column'), icon: Pencil, does: () => this.nameColumn(c) },
-      { label: t('Add a column before'), icon: ArrowLeft, disabled: n >= MAX_COLS, does: () => this.do({ cmd: 'colIn', c, focus: [r, c] }) },
-      { label: t('Add a column after'), icon: ArrowRight, disabled: n >= MAX_COLS, does: () => this.do({ cmd: 'colIn', c: c + 1, focus: [r, c + 1] }) },
-      { label: t('Remove this column'), icon: Trash2, disabled: n < 2, does: () => this.do({ cmd: 'colOut', c, focus: [r, Math.max(0, c - 1)] }) },
+      ...kindItems(this.cols[c], t('Column {c} holds', { c: COL_NAMES[c] ?? '' }), (type, currency) => this.do({ cmd: 'type', c, type, currency, focus: [r, c] })),
+      { group: cols, label: t('Name this column'), icon: Pencil, does: () => this.nameColumn(c) },
+      { group: cols, label: t('Add a column before'), icon: ArrowLeft, disabled: n >= MAX_COLS, does: () => this.do({ cmd: 'colIn', c, focus: [r, c] }) },
+      { group: cols, label: t('Add a column after'), icon: ArrowRight, disabled: n >= MAX_COLS, does: () => this.do({ cmd: 'colIn', c: c + 1, focus: [r, c + 1] }) },
+      { group: cols, label: t('Remove this column'), icon: Trash2, disabled: n < 2, does: () => this.do({ cmd: 'colOut', c, focus: [r, Math.max(0, c - 1)] }) },
     ];
   }
 
@@ -437,6 +444,7 @@ export class ToWriteTable extends LitElement {
                     data-c=${c}
                     class="${num ? 'num' : ''} ${locked ? 'locked' : ''} ${typeof val === 'string' && val.startsWith('#') ? 'err' : ''}"
                     aria-label=${rcToRef(r, c)}
+                    list=${col.type === 'option' ? `${this.uid}-o${c}` : nothing}
                     .value=${here ? raw : formatCell(val, col.type, currencyAt(v, c))}
                     title=${locked ? t('Locked: worked out for you') : raw.startsWith('=') ? raw : nothing}
                     ?readonly=${locked}
@@ -454,6 +462,7 @@ export class ToWriteTable extends LitElement {
           })}
         </tbody>
       </table>
+      ${cols.map((col, c) => (col.type === 'option' ? html`<datalist id="${this.uid}-o${c}">${choicesOf(v.table.rows, c).map((x) => html`<option value=${x}></option>`)}</datalist>` : nothing))}
       ${this.commands
         ? html`<to-menu class="wt-rowmenu" .label=${t('Row {n}', { n: this.menuRow + 1 })} .items=${this.rowItems()}></to-menu>
             <to-menu class="wt-colmenu" .label=${t('Column {c}', { c: COL_NAMES[this.menuCol] ?? '' })} .items=${this.colItems()}></to-menu>`
@@ -476,7 +485,7 @@ export class ToWriteTable extends LitElement {
                   this.named(e.key === 'Enter', (e.target as HTMLInputElement).value);
                 }}
                 @blur=${(e: FocusEvent) => this.named(true, (e.target as HTMLInputElement).value)} />`
-            : html`<button type="button" class="wt-col" aria-haspopup="menu" aria-expanded="false" aria-label=${t('Column {c}: choose it, add or remove a column', { c: name(col, c) })} @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>${name(col, c)}</button>`}
+            : html`<button type="button" class="wt-col" aria-haspopup="menu" aria-expanded="false" aria-label=${t('Column {c}: what it holds, name it, add or remove a column', { c: name(col, c) })} @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>${name(col, c)}</button>`}
         </th>`,
       )}
       <td class="wt-add">

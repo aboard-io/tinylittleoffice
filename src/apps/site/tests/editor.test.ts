@@ -719,3 +719,23 @@ test('§1 opens with the site\'s name in hand, its words open in the page with t
   await typeKeys('Harbor');
   await until(() => blank.last().startsWith('# Harbor'));
 });
+
+test('the cart counts in each thing\'s own currency: a Price column of GBP through Intl, the head\'s € before the price, the total the same', async () => {
+  const { sitePage } = await import('../view.ts');
+  const { parse } = await import('../../../doc/index.ts');
+  const cart = async (text: string, picks: number[]) => {
+    document.body.innerHTML = '';
+    const frame = document.createElement('iframe');
+    frame.srcdoc = sitePage(parse(text), {});
+    document.body.append(frame);
+    await until(() => !!frame.contentDocument?.getElementById('total')?.textContent);
+    const d = frame.contentDocument!;
+    for (const k of picks) d.querySelector<HTMLButtonElement>(`[data-add="${k}"]`)!.click();
+    return { total: d.getElementById('total')!.textContent, lines: [...d.querySelectorAll('#lines .sum')].map((x) => x.textContent) };
+  };
+  const pounds = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'GBP' });
+  const gbp = await cart('---\ncurrency: €\n---\n# Shop\n\nName | Price:money(GBP) | About | Image\n--- | --- | --- | ---\nMug | 12 |  |\nJug | 1200 |  |\n', [0, 0, 1]);
+  expect(gbp).toEqual({ total: pounds.format(1224), lines: [pounds.format(24), pounds.format(1200)] });
+  const eur = await cart('---\ncurrency: €\n---\n# Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nTea | 3 |  |\n', [0, 0]);
+  expect(eur).toEqual({ total: '€6.00', lines: ['€6.00'] });
+});

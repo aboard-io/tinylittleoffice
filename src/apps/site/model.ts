@@ -34,6 +34,8 @@ export interface Card {
 export interface Product {
   name: string;
   price: number;
+  /** The Price column's own currency, else the site's: a symbol or an ISO 4217 code. */
+  currency: string;
   about: string;
   image: string;
 }
@@ -228,13 +230,14 @@ export function readSite(doc: Doc): Site {
         cur.shop = i;
         const [n, p, a, im] = columnsOf(b, ...PRODUCT);
         const values = evaluate(doc, i)?.values ?? [];
+        const currency = b.cols[p]?.currency || site.currency;
         b.rows.forEach((r, k) => {
           const name = (r[n] ?? '').trim();
           if (!name) return;
           const v = values[k]?.[p];
           const price = typeof v === 'number' ? v : parseFloat((r[p] ?? '').replace(/[^0-9.-]/g, '')) || 0;
           const image = (r[im] ?? '').trim();
-          cur.products.push({ name, price, about: a >= 0 ? (r[a] ?? '').trim() : '', image: /^https?:\/\//.test(image) ? image : '' });
+          cur.products.push({ name, price, currency, about: a >= 0 ? (r[a] ?? '').trim() : '', image: /^https?:\/\//.test(image) ? image : '' });
         });
       } else cur.embeds.push({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }), item('table');
     } else if (b.k === 'fence' && b.lang) cur.embeds.push({ lang: b.lang, body: b.body }), item('doc');

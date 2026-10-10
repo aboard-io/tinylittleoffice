@@ -164,7 +164,7 @@ test('sheet: on a phone, Money asks its currency in a dialog inside the screen, 
   await page.locator('.sheet-colmenu [role=menu]').getByText('Money', { exact: true }).tap();
   const field = page.getByRole('combobox', { name: 'Currency' });
   await expect(field).toBeVisible();
-  const box = (await page.locator('.sheet-currency-dialog dialog').boundingBox())!;
+  const box = (await page.locator('.to-currency-dialog dialog').boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);

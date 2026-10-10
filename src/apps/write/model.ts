@@ -5,9 +5,9 @@
  * taken out, a card moved, copied or taken out). The view
  * Write draws is the Doc itself (docs/kernel.md §3); nothing is kept but the document.
  */
-import { apply, applyAll, evaluateTable, hasClass, isEmbed, isText, MAX_COLS, notesOf, noteRuns, parse, plainText, putCells, tableAt, usedSize, write, type Block, type Cells, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import { apply, applyAll, evaluateTable, hasClass, isEmbed, isText, MAX_COLS, notesOf, noteRuns, parse, plainText, putCells, tableAt, usedSize, write, type Block, type Cells, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
 import type { SheetView } from '../sheet/model.ts';
-import { addColumn, deleteRows, insertRows, isLetterName, letterName, putRect, rename } from '../sheet/model.ts';
+import { addColumn, deleteRows, insertRows, isLetterName, letterName, putRect, rename, setType } from '../sheet/model.ts';
 
 /** The paper a text prints on: its size in px (96 to the inch) and its margin, an inch or 25 mm. */
 export const PAPERS = { letter: { name: 'Letter', w: 816, h: 1056, m: 96 }, a4: { name: 'A4', w: 794, h: 1123, m: 94 } } as const;
@@ -103,6 +103,8 @@ export const tableColIn = (doc: Doc, at: number, c: number): Op[] => onTable(doc
 export const tablePut = (doc: Doc, at: number, cells: Cells): Op[] => onTable(doc, at, (one) => putRect(one, cells));
 /** Column c of the table at `at` named; '' gives it its letter back. */
 export const tableRename = (doc: Doc, at: number, c: number, name: string): Op[] => onTable(doc, at, (one) => rename(one, c, name));
+/** What column c of the table at `at` holds; a money column may name its currency ('' or none: the head's `currency:`). */
+export const tableSetType = (doc: Doc, at: number, c: number, type: ColType, currency?: string): Op[] => onTable(doc, at, (one) => setType(one, c, type, currency));
 /** Column c of the table at `at` taken out with what it holds (a table keeps one); the columns that go by a letter take their new one. */
 export function tableColOut(doc: Doc, at: number, c: number): Op[] {
   const t = tableAt(doc, at);

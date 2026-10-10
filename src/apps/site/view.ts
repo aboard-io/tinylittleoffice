@@ -10,7 +10,7 @@
  * tap says what is tapped, and words are typed where they are drawn (docs/editing.md §5, §6). (Ported from
  * the old tree's apps/site.def.ts, apps/links.def.ts and lib/pageedit.ts.)
  */
-import { isAtomic, linkify, parse, plainText, write, type Doc, type Run } from '../../doc/index.ts';
+import { formatMoney, isAtomic, linkify, parse, plainText, write, type Doc, type Run } from '../../doc/index.ts';
 import { lookup, type Page as Picture } from '../../kit/app.ts';
 import { clip, pageSvg, rect, text as line, wrapText, xml } from '../../kit/draw.ts';
 import { embedOf, embedCaption } from '../../kit/embeds.ts';
@@ -67,17 +67,17 @@ while(box.firstChild)box.removeChild(box.firstChild);box.appendChild(el);});
  */
 export const CART = pageScript(`(function(){
 var cart={},P=JSON.parse(document.getElementById('products').textContent),S=JSON.parse(document.getElementById('shop').textContent),W=S.words;
-function money(n){return S.currency+n.toFixed(2);}
+function money(n,c){if(/^[A-Z]{3}$/.test(c))try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c}).format(n);}catch(e){}return (n<0?'-':'')+c+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function count(){return Object.keys(cart).reduce(function(a,k){return a+cart[k];},0);}
-function total(){return Object.keys(cart).reduce(function(a,k){return a+cart[k]*P[k].price;},0);}
-function order(){return Object.keys(cart).map(function(k){return cart[k]+' x '+P[k].name+' = '+money(cart[k]*P[k].price);}).join('\\n')+'\\n'+W.total+': '+money(total());}
+function total(){var by={},cs=[];Object.keys(cart).forEach(function(k){var c=P[k].currency;if(!(c in by)){by[c]=0;cs.push(c);}by[c]+=cart[k]*P[k].price;});return cs.length?cs.map(function(c){return money(by[c],c);}).join(' + '):money(0,P[0].currency);}
+function order(){return Object.keys(cart).map(function(k){return cart[k]+' x '+P[k].name+' = '+money(cart[k]*P[k].price,P[k].currency);}).join('\\n')+'\\n'+W.total+': '+total();}
 function draw(){var list=document.getElementById('lines');while(list.firstChild)list.removeChild(list.firstChild);
 Object.keys(cart).forEach(function(k){var li=document.createElement('li');var name=document.createElement('span');name.textContent=P[k].name;li.appendChild(name);
 [['-',-1,W.fewer],['+',1,W.more]].forEach(function(b,i){var btn=document.createElement('button');btn.type='button';btn.textContent=b[0];btn.className='q';btn.setAttribute('aria-label',b[2]+' '+P[k].name);
 btn.onclick=function(){cart[k]+=b[1];if(cart[k]<=0)delete cart[k];draw();};
 if(i===1){var n=document.createElement('b');n.textContent=cart[k];li.appendChild(n);}li.appendChild(btn);});
-var sum=document.createElement('span');sum.className='sum';sum.textContent=money(cart[k]*P[k].price);li.appendChild(sum);list.appendChild(li);});
-document.getElementById('count').textContent=count();document.getElementById('total').textContent=money(total());
+var sum=document.createElement('span');sum.className='sum';sum.textContent=money(cart[k]*P[k].price,P[k].currency);li.appendChild(sum);list.appendChild(li);});
+document.getElementById('count').textContent=count();document.getElementById('total').textContent=total();
 document.getElementById('empty').hidden=count()>0;document.getElementById('send').disabled=count()===0;}
 [].forEach.call(document.querySelectorAll('[data-add]'),function(b){b.onclick=function(){var k=b.getAttribute('data-add');cart[k]=(cart[k]||0)+1;draw();document.getElementById('said').textContent=P[k].name+' '+W.added;};});
 document.getElementById('send').onclick=function(){var text=W.order+'\\n\\n'+order();
@@ -301,17 +301,15 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
 /** The shop: a grid of what is for sale, and, by the first of them on the site, the cart. */
 function shopHtml(c: Ctx, s: Section, attrs: string): string {
   const { site, products } = c;
-  const money = (n: number) => `${xml(site.currency)}${n.toFixed(2)}`;
   const first = site.sections.find((x) => x.products.length)?.n === s.n;
   return `<div class="shop"${attrs}><ul class="grid" aria-label="${xml(t('Products'))}">${s.products
     .map(
       (p) =>
-        `<li>${p.image ? `<img src="${xml(p.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${money(p.price)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
+        `<li>${p.image ? `<img src="${xml(p.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${xml(formatMoney(p.price, p.currency))}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
     )
     .join('')}</ul>${
     first
       ? `<aside class="cart" aria-label="${xml(t('Cart'))}"><h3>${xml(t('Cart'))} (<span id="count">0</span>)</h3><p id="empty">${xml(t('Nothing in it yet.'))}</p><ul id="lines"></ul><div class="tot"><span>${xml(t('Total'))}</span><span id="total"></span></div><button type="button" id="send">${xml(site.orders ? t('Send order by email') : t('Copy order'))}</button><p id="said" role="status" aria-live="polite"></p>${pageData('products', products)}${pageData('shop', {
-          currency: site.currency,
           orders: site.orders,
           words: { total: t('Total'), fewer: t('One fewer'), more: t('One more'), added: t('added to the cart'), copied: t('Order copied'), order: t('Order from {site}', { site: site.name || t('My site') }) },
         })}${CART}</aside>`
@@ -479,7 +477,7 @@ export function sitePictures(textDoc: string, small = false): Picture[] {
       // Cards and products: boxes three across.
       const boxes: { head: string; detail: string; icon: string }[] = [
         ...s.cards.map((c) => ({ head: words(c.head), detail: words(c.detail), icon: c.icon })),
-        ...s.products.map((x) => ({ head: x.name, detail: `${site.currency}${x.price.toFixed(2)}`, icon: '' })),
+        ...s.products.map((x) => ({ head: x.name, detail: formatMoney(x.price, x.currency), icon: '' })),
         ...s.embeds.map((e) => ({ head: 'lang' in e ? lookup.appOf(e.lang)?.title(e.body) || lookup.appOf(e.lang)?.name || e.lang : embedCaption(e.web).title, detail: 'lang' in e ? (lookup.appOf(e.lang)?.name ?? '') : embedCaption(e.web).provider, icon: '' })),
       ];
       if (boxes.length) {

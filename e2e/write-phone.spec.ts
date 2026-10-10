@@ -84,3 +84,30 @@ test('write: on a phone, a table is taken in hand by its handle and taken out fr
   expect(await wide()).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
 });
+
+test('write: on a phone, a table column\'s menu picks Money, its currency asked in a dialog inside the screen, and the cells show it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  const doc = await open(page, 'Before\n\nItem | Cost\n--- | ---\nTea | 1200\n\nAfter\n');
+  const table = page.locator('to-write-table');
+  await expect(table.locator('input').first()).toBeVisible();
+  await table.locator('.wt-col').nth(1).tap();
+  const colMenu = page.locator('to-menu.wt-colmenu [role=menu]');
+  await expect(colMenu).toBeVisible();
+  await colMenu.getByText('Money', { exact: true }).tap();
+  const field = page.getByRole('combobox', { name: 'Currency' });
+  await expect(field).toBeVisible();
+  const box = (await page.locator('.to-currency-dialog dialog').boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  await field.fill('£');
+  await page.getByRole('button', { name: 'OK', exact: true }).tap();
+  await expect(field).toBeHidden();
+  await expect.poll(doc.value).toContain('Item | Cost:money(£)\n');
+  await table.locator('input').first().tap();
+  await expect(table.getByRole('textbox', { name: 'B1', exact: true })).toHaveValue('£1,200.00');
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  expect(errors).toEqual([]);
+});
