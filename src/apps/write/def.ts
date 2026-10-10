@@ -57,11 +57,5 @@ export default defineApp({
     { to: 'outline', label: () => t('Open as an outline'), convert: writeToOutline },
     { to: 'site', label: () => t('Make it a website'), convert: writeToSite },
   ],
-  // The bar's Align menu writes these beside its items; they work while the words have the focus (editor.ts).
-  keys: [
-    { keys: 'Mod+Shift+L', does: () => t('Align left') },
-    { keys: 'Mod+Shift+E', does: () => t('Centre') },
-    { keys: 'Mod+Shift+R', does: () => t('Align right') },
-    { keys: 'Mod+Shift+J', does: () => t('Justify') },
-  ],
+  commands: () => import('./commands.ts'),
 });

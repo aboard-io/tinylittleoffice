@@ -29,6 +29,19 @@ export function usedKeys(source: string): string[] {
   return out;
 }
 
+/**
+ * The keys a command file (kit/commands.ts's declarations: an app's commands.ts, the kit's keys.ts) gives as words
+ * without t(), which the registry puts through t() when it draws them: a `label`, `hint`, `heading` or `letter` given
+ * as a string, and, of the other quoted strings there (a maker's argument, a table's name), those en.ts has.
+ */
+export function commandKeys(source: string, defined: Set<string>): string[] {
+  const out: string[] = [];
+  for (const m of source.matchAll(/\b(?:label|hint|heading|letter): (['"])((?:\\.|(?!\1)[^\\])*)\1/g)) out.push(unquote(m[2]));
+  for (const m of source.matchAll(/(['"])((?:\\.|(?!\1)[^\\\n])*)\1/g)) if (defined.has(unquote(m[2]))) out.push(unquote(m[2]));
+  return out;
+}
+const commandFile = (f: string) => /commands\.ts$|kit[\\/]keys\.ts$/.test(f);
+
 /** Every "'key': 'value'," line of a language file, in order. */
 export function definedKeys(source: string): { key: string; value: string }[] {
   const out: { key: string; value: string }[] = [];
@@ -120,12 +133,15 @@ function* sources(dir: string): Generator<string> {
 }
 
 export async function main(root: string, check: boolean): Promise<number> {
-  const used = new Set<string>();
-  for (const f of sources(join(root, 'src'))) for (const k of usedKeys(readFileSync(f, 'utf8'))) used.add(k);
   const enPath = join(root, 'src', 'i18n', 'en.ts');
   const en = readFileSync(enPath, 'utf8');
   const defined = definedKeys(en);
   const definedSet = new Set(defined.map((d) => d.key));
+  const used = new Set<string>();
+  for (const f of sources(join(root, 'src'))) {
+    const text = readFileSync(f, 'utf8');
+    for (const k of [...usedKeys(text), ...(commandFile(f) ? commandKeys(text, definedSet) : [])]) used.add(k);
+  }
   const missing = [...used].filter((k) => !definedSet.has(k)).sort();
   const unused = defined.filter((d) => !used.has(d.key)).map((d) => d.key);
   // Against the module, not the lines: what t() will see. en.ts against itself checks its own plurals.

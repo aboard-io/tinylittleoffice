@@ -10,11 +10,10 @@
  * `focusFirst()` is where a person starts (docs/editing.md §1): the shell calls it once a document is first
  * drawn, and each app puts the focus in its own place with its own helper, never scrolling the page.
  */
-import { LitElement, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
+import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../doc/index.ts';
-import { tool } from './bar.ts';
-import { t } from './i18n.ts';
-import { UI } from './icons.ts';
+import { cmdTool } from './bar.ts';
+import { REDO, UNDO } from './keys.ts';
 import { onPictures } from './pictures.ts';
 
 /** A change, as the shell and a host hear it: the text in `detail`, and the edit's burst key (none for an undo, a redo or an edit that stands alone), so a host that holds this editor inside it (the Animator holds the Drawing Tool) keeps the same bursts in its own log. */
@@ -45,8 +44,9 @@ const BURST = 700;
 export abstract class DocElement<V> extends LitElement {
   static properties: PropertyDeclarations = { value: {} };
   declare value: string;
-  protected doc: Doc = { head: {}, blocks: [] };
-  protected view!: V;
+  /** The document as the kernel reads it (public: an app's commands read it, kit/commands.ts). */
+  doc: Doc = { head: {}, blocks: [] };
+  view!: V;
   /** The text as last read or written: a `value` that is this text is ours, not a new document. */
   private seen: string | null = null;
   private undo: Entry[] = [];
@@ -114,7 +114,7 @@ export abstract class DocElement<V> extends LitElement {
   }
 
   /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one; `mark` is handed back to `undone()`. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     if (!ops.length) return;
     const inverse = invertAll(this.doc, ops);
     this.doc = applyAll(this.doc, ops);
@@ -164,12 +164,9 @@ export abstract class DocElement<V> extends LitElement {
   get canRedo(): boolean {
     return this.redo.length > 0;
   }
-  /** Undo and Redo, the last two tools of every app's bar: they never take the focus, and are off with nothing to do. */
-  protected undoTools(): TemplateResult[] {
-    const fire = (which: 'docundo' | 'docredo') => () => this.dispatchEvent(new CustomEvent(which, { cancelable: true }));
-    return [
-      tool({ label: t('Undo'), icon: UI.undo, keys: 'Mod+Z', keep: true, disabled: !this.canUndo, does: fire('docundo') }),
-      tool({ label: t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z', keep: true, disabled: !this.canRedo, does: fire('docredo') }),
-    ];
+  /** Undo and Redo, the last two tools of every app's bar (the page's commands, kit/keys.ts): they never take the focus, and are off with nothing to do. */
+  protected undoTools(): unknown[] {
+    const here = { editor: this };
+    return [cmdTool(UNDO, here, { disabled: !this.canUndo }), cmdTool(REDO, here, { disabled: !this.canRedo })];
   }
 }

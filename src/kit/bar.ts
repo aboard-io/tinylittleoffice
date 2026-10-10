@@ -1,6 +1,8 @@
 /**
  * <to-bar>: the one bar an app has. A single row that scrolls sideways when it must; a fade at either edge
- * says there is more (data-fade-start, data-fade-end: set here, drawn by the stylesheet). The buttons in
+ * says there is more (data-fade-start, data-fade-end: set here, drawn by the stylesheet). It is a toolbar: Left and Right
+ * walk its buttons, Home and End go to its ends. Its buttons are the registry's commands (kit/commands.ts) drawn by
+ * cmdTool, cmdBtn and cmdMenu. The buttons in
  * it are made with tool() and btn(): real <button>s, named, 44px to the finger, aria-pressed when they
  * are a state; dateNav() is the group an app with dates has (back, what is on view, on, Today).
  */
@@ -8,12 +10,16 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { ChevronLeft, ChevronRight } from 'lucide';
 import { icon, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
+import { drawnIn, keysText, labelOf, run, say, type Command } from './commands.ts';
+
+export { keysText };
 
 export class ToBar extends HTMLElement {
   private watch: ResizeObserver | null = null;
   private soon = 0;
   connectedCallback() {
     this.setAttribute('role', 'toolbar');
+    this.addEventListener('keydown', this.walk);
     this.addEventListener('scroll', this.fade, { passive: true });
     this.watch = new ResizeObserver(() => this.fadeSoon());
     this.watch.observe(this);
@@ -21,6 +27,7 @@ export class ToBar extends HTMLElement {
     this.fadeSoon();
   }
   disconnectedCallback() {
+    this.removeEventListener('keydown', this.walk);
     this.removeEventListener('scroll', this.fade);
     this.watch?.disconnect();
     this.watch = null;
@@ -32,6 +39,26 @@ export class ToBar extends HTMLElement {
       this.fade();
     });
   }
+  /** The bar's buttons and menus, in order: what Left and Right walk (never one inside a menu that is open, nor one turned off). */
+  private stops(): HTMLElement[] {
+    return [...this.querySelectorAll<HTMLElement>('button')].filter((b) => !b.closest('[popover], dialog') && !(b as HTMLButtonElement).disabled && b.offsetParent !== null);
+  }
+  /**
+   * The bar is a toolbar (docs/editing.md §7): Left and Right walk its buttons and menus, round the ends, Home and End
+   * to its ends; Tab goes on out of it. A key inside a menu that is open, a field or a box of words is theirs.
+   */
+  private walk = (e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const at = e.target as HTMLElement;
+    if (at.tagName !== 'BUTTON' || at.closest('[popover], dialog')) return;
+    const stops = this.stops();
+    const i = stops.indexOf(at);
+    if (i < 0) return;
+    const to = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? stops.length - 1 : null;
+    if (to === null) return;
+    e.preventDefault();
+    stops[(to + stops.length) % stops.length].focus();
+  };
   /** What the edges say: scrolled past the start, more past the end. */
   fade = () => {
     const more = this.scrollWidth - this.clientWidth - this.scrollLeft;
@@ -62,10 +89,6 @@ export interface BtnOpts {
 // cancelling the compatibility mousedown (which is what would move the focus) still lets the click through.
 const keepFocus = (e: Event) => e.preventDefault();
 
-const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-/** "Mod+B" as this device writes it: ⌘B on a Mac, Ctrl+B elsewhere. */
-export const keysText = (keys: string) => (mac ? keys.replace('Mod+', '⌘').replace('Shift+', '⇧').replace('Alt+', '⌥') : keys.replace('Mod+', 'Ctrl+'));
-
 const tip = (o: BtnOpts) => (o.keys ? `${o.hint ?? o.label} (${keysText(o.keys)})` : (o.hint ?? o.label));
 
 /** A button with its words on it (two at most, so the bar never wraps them; `hint` says the rest), and an icon before them if it has one. */
@@ -75,6 +98,35 @@ export const btn = (o: BtnOpts): TemplateResult =>
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
   html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+
+/**
+ * A command of the registry (kit/commands.ts) as a bar's icon button, in its context: its words, icon and keys, its
+ * pressed state, disabled where it is not to be done now (or where there is no context: nothing in hand), and nothing
+ * at all where it is not in force (`when`). `over` changes what the bar needs changed (a class; `disabled` given, the
+ * button stays in its place, off, where the command is not in force: a bar that keeps its buttons where they are).
+ */
+export const cmdTool = <C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing => drawCmd(tool, cmd, c, over);
+/** The same as a button with its words on it (btn): a command whose words say more than an icon would (Connect, Preview). */
+export const cmdBtn = <C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing => drawCmd(btn, cmd, c, over);
+function drawCmd<C>(draw: (o: BtnOpts) => TemplateResult, cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts>): TemplateResult | typeof nothing {
+  const has = c !== null && c !== undefined;
+  if (has && cmd.when && !cmd.when(c) && over.disabled === undefined) return nothing;
+  return draw({
+    label: labelOf(cmd, has ? c : undefined),
+    icon: cmd.icon,
+    keys: cmd.keys,
+    hint: say(cmd.hint, has ? c : undefined),
+    keep: !cmd.takesFocus,
+    pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
+    disabled: !has || !!cmd.disabled?.(c),
+    does: (e) => void (has && run(cmd, c, e)),
+    ...over,
+    cls: `${over.cls ?? ''} cmd-${cmd.id.replace(/\./g, '-')}`.trim(),
+  });
+}
+/** A command that is a menu (`menu`), as the bar's <to-menu>: its items the commands drawn in `menu:<name>` among `all`. */
+export const cmdMenu = <C>(cmd: Command<C>, c: C, all: readonly Command<C>[], cls = '', opts: { caret?: boolean; words?: boolean; icon?: IconNode; keep?: boolean } = {}): TemplateResult =>
+  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${labelOf(cmd, c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
 
 export interface DateNavOpts {
   /** What is on view: "March 2027". */

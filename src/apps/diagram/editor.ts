@@ -26,21 +26,20 @@
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ArrowDown, ArrowRight, ArrowUp, ClipboardPaste, CopyPlus, CornerDownRight, Minus, Scissors, Smile, Spline, ZoomIn, ZoomOut } from 'lucide';
 import { apply, applyAll, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
-import { tool } from '../../kit/bar.ts';
+import { cmdMenu, cmdTool } from '../../kit/bar.ts';
+import { contextOf, drawnIn, runKey } from '../../kit/commands.ts';
+import COMMANDS, { PICTURE, WORDS } from './commands.ts';
 import { GENERATOR, docToHtml, pasteFrom } from '../../kit/clipboard.ts';
-import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import { type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
-import { UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import type { MenuItem } from '../../kit/menu.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { caret, insertRuns } from '../../kit/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
 import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
-import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, hasLines, isDated, wordsInto, wordsOn, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
+import { charsOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, hasLines, isDated, wordsInto, wordsOn, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
 import '../../kit/bar.ts';
@@ -175,7 +174,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     this.ctx?.hide();
   }
   /** An edit that moves the thing in hand from `before` to `after`, so undo and redo can give it back. */
-  private change(ops: Op[], before: Hit | null, after: Hit | null = before, key?: string) {
+  change(ops: Op[], before: Hit | null, after: Hit | null = before, key?: string) {
     this.edit(ops, key, { before, after } satisfies Mark);
   }
   /** Undo or redo: the words close, and the focus goes to the thing that changed (where it was, else where the change begins). */
@@ -268,7 +267,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    * is given. Focused here, synchronously, in the tap's, the key's or the menu's own handler, as the Drawing Tool's
    * are: iOS lets the focus in and raises the keyboard only so.
    */
-  private open(hit: Hit, sel?: [number, number], fresh = true) {
+  open(hit: Hit, sel?: [number, number], fresh = true) {
     const found = this.targetFor(hit);
     const el = this.wordsEl;
     if (!found || !el) return;
@@ -311,7 +310,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    * A new thing: in the document at once, its words offered (the kind's "New idea", "Name", a table's next name)
    * and chosen, so the first letter typed replaces them; Escape takes it away again. The words open over it.
    */
-  private openDraft(d: Draft) {
+  openDraft(d: Draft) {
     const kind = this.view.kind;
     let block = d.block;
     let [a, b] = d.sel;
@@ -346,7 +345,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     return best;
   }
   /** Done with the words: hidden, and a list they leave tidied. */
-  private shut(tidyUp = true) {
+  shut(tidyUp = true) {
     const tg = this.target;
     if (!tg) return;
     this.target = null;
@@ -361,7 +360,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (tidyUp && tg.at >= 0) this.edit(tidy(this.doc, tg.at));
   }
   /** Done: the words kept, the focus back on the thing they were opened on. */
-  private shutAndFocus() {
+  shutAndFocus() {
     const hit = this.target?.hit ?? null;
     this.shut();
     void this.focusThing(hit);
@@ -473,14 +472,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (e.isComposing || !(e.target as Element).closest?.('to-text')) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
-    const stop = () => (e.preventDefault(), e.stopPropagation());
-    if (mod && !e.altKey && e.key === 'Enter') return void (stop(), this.shutAndFocus());
-    if (mod && !e.altKey && (e.shiftKey ? k === 'x' || k === 'h' : k === 'b' || k === 'i' || k === 'u' || k === 'k')) return void stop();
-    const hit = this.target?.hit ?? null;
-    if (!hit) return;
-    if (mod && !e.altKey && !e.shiftKey && k === 'd') return void (stop(), this.duplicate(hit));
-    if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return void (stop(), this.move(hit, e.key === 'ArrowUp' ? -1 : 1));
-    if (e.key === 'Tab' && !mod && !e.altKey && this.canShift(hit, e.shiftKey ? -1 : 1)) return void (stop(), this.shift(hit, e.shiftKey ? -1 : 1));
+    if (runKey(e, WORDS, this)) return void e.stopPropagation();
+    if (mod && !e.altKey && (e.shiftKey ? k === 'x' || k === 'h' : k === 'b' || k === 'i' || k === 'u' || k === 'k')) return void (e.preventDefault(), e.stopPropagation());
   };
   /** The focus gone from the words by the keys (Tab) to somewhere not the picture, the things under them or a box of theirs: done with them. */
   private onWordsBlur = (e: FocusEvent) => {
@@ -495,7 +488,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- the things to do to the thing open ---------- */
 
-  private async iconFor(hit: Hit) {
+  async iconFor(hit: Hit) {
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const name = await chooseIcon({ emoji: false, none: true });
     if (name === null) return;
@@ -518,7 +511,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     this.open(hit, sel, fresh);
   }
   /** Past its neighbour (Alt+Up/Down, Move up/down); the words stay open on it if they were. */
-  private move(hit: Hit, by: 1 | -1) {
+  move(hit: Hit, by: 1 | -1) {
     const r = moveThing(this.doc, hit, by);
     if (!r) return;
     const open = !!this.target;
@@ -526,14 +519,14 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     void this.reopenOn(r.hit, open);
   }
   /** Whether a tree's thing can go in under the thing before it (1) or out to its grandparent (-1). */
-  private canShift(hit: Hit, by: 1 | -1): boolean {
+  canShift(hit: Hit, by: 1 | -1): boolean {
     return !!(by > 0 ? demoteThing : promoteThing)(this.doc, hit);
   }
   /**
    * Indent (Tab) or bring out (Shift+Tab) a tree's thing with its family. Open words are kept first, as Enter keeps
    * them, and opened again on the thing where it now is, the caret where it was; one undo step takes the move back.
    */
-  private shift(hit: Hit, by: 1 | -1) {
+  shift(hit: Hit, by: 1 | -1) {
     const r = (by > 0 ? demoteThing : promoteThing)(this.doc, hit);
     if (!r) return;
     const open = !!this.target;
@@ -544,21 +537,21 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     void this.reopenOn(r.hit, open, true, sel);
   }
   /** Into the next lane or to the next table (Mod+Alt+Left/Right). */
-  private across(hit: Hit, by: 1 | -1) {
+  across(hit: Hit, by: 1 | -1) {
     const r = moveAcross(this.doc, hit, by);
     if (!r) return;
     const open = !!this.target;
     this.change(r.ops, hit, r.hit);
     void this.reopenOn(r.hit, open);
   }
-  private duplicate(hit: Hit) {
+  duplicate(hit: Hit) {
     const r = duplicateThing(this.doc, hit);
     if (!r.ops.length) return;
     this.shut();
     this.change(r.ops, hit, r.hit);
     void this.focusThing(r.hit);
   }
-  private removeHit(hit: Hit) {
+  removeHit(hit: Hit) {
     const ops = removeThing(this.doc, hit);
     this.shut(false);
     this.change(ops, hit, null);
@@ -599,7 +592,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (e.type === 'cut') this.removeHit(hit);
   };
   /** The context bar's Copy and Cut: the system clipboard as the page may write it, and this page's own memory of it. */
-  private copyOut(hit: Hit, cut: boolean) {
+  copyOut(hit: Hit, cut: boolean) {
     const c = this.clip(hit);
     if (!c) return;
     const plainText = () => navigator.clipboard?.writeText(c.text).catch(() => undefined);
@@ -611,7 +604,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (cut) this.removeHit(hit);
   }
   /** The context bar's Paste: the system clipboard if the page may read it, else what was last copied here. */
-  private async pasteIn(hit: Hit | null) {
+  async pasteIn(hit: Hit | null) {
     let data = { text: '', html: '' };
     try {
       const items = await navigator.clipboard.read();
@@ -631,43 +624,34 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (blocks.length) this.paste(hit, blocks);
   }
 
-  /** The things to do to the thing open, in the standard's order: Move up, Move down, the kind's own, a tree's Indent and Bring out, Duplicate | Copy, Cut, Paste | Delete. */
+  /** The things to do to the thing open (commands.ts), in the standard's order: Move up, Move down, the kind's own, a tree's Indent and Bring out, Duplicate | Copy, Cut, Paste | Delete. */
   private contextItems(tg: Target | null): ContextEntry[] {
-    const hit = tg?.hit;
-    if (!tg || !hit) return [];
-    const kind = this.view.kind;
-    const add = (d: Draft | null) => {
-      this.shut();
-      if (d) this.openDraft(d);
-    };
-    const name = this.nameOf(hit);
-    const out: ContextEntry[] = [];
-    if (hit.k === 'line') {
-      out.push({ label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', disabled: !moveThing(this.doc, hit, -1), does: () => this.move(hit, -1) });
-      out.push({ label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', disabled: !moveThing(this.doc, hit, 1), does: () => this.move(hit, 1) });
-      const addLabel = isTree(kind) ? t('Add under it') : isListed(kind) ? t('Add one more') : t('Add after it');
-      out.push({ label: addLabel, icon: isTree(kind) ? CornerDownRight : UI.plus, does: () => add(isTree(kind) || isListed(kind) ? childOf(this.doc, hit.at) : nextThing(this.doc, hit)) });
-      out.push({ label: t('Icon'), icon: Smile, does: () => void this.iconFor(hit) });
-    }
-    if (hit.k === 'lane') out.push({ label: t('Add a step'), icon: UI.plus, does: () => add(newThing(this.doc, hit.name)) });
-    if (joins(kind) && hit.k !== 'edge' && name) out.push({ label: t('Join'), icon: Spline, does: () => this.armJoin() });
-    if (hit.k === 'edge' && joins(kind)) {
-      const e = edgesOf(this.doc).find((x) => x.at === hit.at);
-      const arrow = e?.dir === '->' || e?.dir === '<-';
-      out.push({ label: arrow ? t('Make it a plain line') : t('Make it an arrow'), icon: arrow ? Minus : ArrowRight, does: () => this.change(setEdge(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit) });
-    }
-    if (hit.k === 'line' && isTree(kind)) {
-      out.push({ label: t('Indent'), icon: UI.indent, keys: 'Tab', disabled: !this.canShift(hit, 1), does: () => this.shift(hit, 1) });
-      out.push({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', disabled: !this.canShift(hit, -1), does: () => this.shift(hit, -1) });
-    }
-    if (canDuplicate(this.doc, hit)) out.push({ label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', does: () => this.duplicate(hit) });
-    out.push(SEP);
-    out.push({ label: t('Copy'), icon: UI.copy, keys: 'Mod+C', does: () => this.copyOut(hit, false) });
-    out.push({ label: t('Cut'), icon: Scissors, keys: 'Mod+X', does: () => this.copyOut(hit, true) });
-    out.push({ label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn(hit) });
-    out.push(SEP);
-    out.push({ label: t('Delete'), icon: UI.trash, keys: 'Delete', does: () => this.removeHit(hit) });
-    return out;
+    return tg?.hit ? (contextOf(COMMANDS, this) as ContextEntry[]) : [];
+  }
+  /** A new thing, its words opened (Add under it, Add a step). */
+  addFrom(d: Draft | null) {
+    this.shut();
+    if (d) this.openDraft(d);
+  }
+  /** Insert ▾'s thing: a new one, its words offered. */
+  addThing() {
+    this.shut();
+    this.openDraft(newThing(this.doc));
+  }
+  setKindTo(k: KindId) {
+    this.shut();
+    this.change(setKind(this.doc, k), null);
+  }
+  /** A connection drawn as a plain line or an arrow. */
+  toggleArrow(hit: Hit, arrow: boolean) {
+    if (hit.k === 'edge') this.change(setEdge(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit);
+  }
+  printCards() {
+    void printPages(placeCards(this.doc), this.doc.head.title || t('Place cards'));
+  }
+  /** A thing's name, for whether it can be joined from. */
+  nameOfHit(hit: Hit): string {
+    return this.nameOf(hit);
   }
 
   /* ---------- tapping, joining and dragging on the picture ---------- */
@@ -694,7 +678,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    * Join, from the bar or the thing's own row: armed from the thing in hand (open or focused), the next thing tapped
    * is joined to it; with nothing in hand, the next two tapped are joined. Pressed again, or Escape, disarms it.
    */
-  private armJoin() {
+  armJoin() {
     if (this.joining !== null) return void (this.joining = null);
     const hit = this.inHand();
     const from = hit && hit.k !== 'edge' && hit.k !== 'lane' ? this.nameOf(hit) : '';
@@ -743,7 +727,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     }
     return best;
   }
-  /** Keys on the picture: on a focused thing, the standard's (docs/editing.md §1, §5); on the picture, Escape stops a join. */
+  /** The thing a key is typed on, while the commands answer it (commands.ts); null on the picture itself. */
+  here: Hit | null = null;
+  /** Keys on the picture (commands.ts): on a focused thing, the standard's (docs/editing.md §1, §5); on the picture, Escape stops a join. */
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.isComposing) return;
     const at = e.target as Element;
@@ -752,15 +738,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const k = e.key.toLowerCase();
     // Select all: never the page's words under the picture.
     if (mod && !e.altKey && !e.shiftKey && k === 'a') return void e.preventDefault();
-    if (e.key === 'Escape' && this.joining !== null) {
-      e.preventDefault();
-      this.joining = null;
-      return;
-    }
     const g = at.closest<SVGGElement>('g.dg-thing');
     const hit = g ? this.view.d.shapes[+g.dataset.i!]?.hit : undefined;
     const clip = mod && !e.altKey && !e.shiftKey ? ({ c: 'copy', x: 'cut', v: 'paste' } as const)[k as 'c' | 'x' | 'v'] : undefined;
-    if (clip && (hit || clip === 'paste')) {
+    if (clip && (hit || clip === 'paste') && this.joining === null) {
       // Not prevented: the browser's own copy, cut or paste event follows and does it. If none comes, by hand.
       this.clipPending = clip;
       setTimeout(() => {
@@ -771,37 +752,29 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       });
       return;
     }
-    if (!g || !hit) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        this.querySelector<SVGGElement>('.dg-pic g.dg-thing')?.focus({ preventScroll: true });
-      }
-      return;
-    }
-    if ((e.key === 'Enter' || e.key === ' ') && !mod && !e.altKey) {
-      e.preventDefault();
-      if (this.joining !== null) return this.joinTo(hit);
-      this.open(hit);
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && !mod && !e.altKey) {
-      e.preventDefault();
-      this.removeHit(hit);
-    } else if (mod && !e.altKey && !e.shiftKey && k === 'd') {
-      e.preventDefault();
-      this.duplicate(hit);
-    } else if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-      e.preventDefault();
-      this.move(hit, e.key === 'ArrowUp' ? -1 : 1);
-    } else if (e.key === 'Tab' && !mod && !e.altKey && this.canShift(hit, e.shiftKey ? -1 : 1)) {
-      e.preventDefault();
-      this.shift(hit, e.shiftKey ? -1 : 1);
-    } else if (e.altKey && mod && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-      e.preventDefault();
-      this.across(hit, e.key === 'ArrowLeft' ? -1 : 1);
-    } else if (!mod && !e.altKey && !e.shiftKey && e.key.startsWith('Arrow')) {
-      e.preventDefault();
-      this.nearest(g, e.key)?.focus({ preventScroll: true });
+    this.here = g && hit ? hit : null;
+    try {
+      runKey(e, PICTURE, this);
+    } finally {
+      this.here = null;
     }
   };
+  /** Enter or Space on a thing: its words open, or a join ends on it. */
+  openKey(hit: Hit) {
+    if (this.joining !== null) return this.joinTo(hit);
+    this.open(hit);
+  }
+  /** An arrow on a thing: the nearest thing that way takes the focus. */
+  nearestKey(e: KeyboardEvent): boolean {
+    const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
+    const to = g && this.nearest(g, e.key);
+    to?.focus({ preventScroll: true });
+    return !!g;
+  }
+  /** The first arrow on the picture goes in, to its first thing. */
+  focusFirstThing() {
+    this.querySelector<SVGGElement>('.dg-pic g.dg-thing')?.focus({ preventScroll: true });
+  }
   private onDown = (e: PointerEvent) => {
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
     const i = g ? +g.dataset.i! : -1;
@@ -859,29 +832,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- the bar ---------- */
 
-  private kindItems(): MenuItem[] {
-    return KINDS.map((k) => ({ label: kindName(k), icon: KIND_ICON[k], checked: this.view.kind === k, does: () => (this.shut(), this.change(setKind(this.doc, k), null)) }));
-  }
-  private inserts(): MenuItem[] {
-    const kind = this.view.kind;
-    return [
-      {
-        label: thingName(kind),
-        icon: UI.plus,
-        does: () => {
-          this.shut();
-          this.openDraft(newThing(this.doc));
-        },
-      },
-    ];
-  }
   /** Mod with the wheel (a trackpad's pinch is one) zooms the picture; the wheel alone scrolls. */
   private onWheel = (e: WheelEvent) => {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     this.zoomBy(-Math.sign(e.deltaY) * 0.25);
   };
-  private zoomBy(by: number) {
+  zoomBy(by: number) {
     this.zoom = Math.max(0.25, Math.min(3, Math.round((this.shown() + by) * 4) / 4));
   }
   /** The zoom as the picture is drawn: its own, or (fitted to the width) the width it has over its natural one. */
@@ -909,13 +866,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const words = this.wording(tg);
     const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
     const hint = this.joining === '' ? t('Tap the first thing to join, then the other; tap empty space to stop.') : this.joining !== null ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining }) : kindHint(kind);
+    const own = (id: string) => COMMANDS.find((c) => c.id === `diagram.${id}`)!;
     return html`<to-bar class="dg-bar">
-        <to-menu class="dg-kind" caret .label=${kindName(kind)} .icon=${KIND_ICON[kind]} .items=${this.kindItems()}></to-menu>
-        <to-insert .items=${this.inserts()}></to-insert>
-        ${joins(kind) ? tool({ label: t('Join'), icon: Spline, keep: true, pressed: this.joining !== null, does: () => this.armJoin() }) : nothing}
-        ${kind === 'seating' ? tool({ label: t('Print place cards'), icon: UI.print, cls: 'dg-cards', hint: t('Print place cards: a card a guest, eight to a letter sheet, to cut out'), does: () => void printPages(placeCards(this.doc), this.doc.head.title || t('Place cards')) }) : nothing}
-        ${tool({ label: t('Zoom out'), icon: ZoomOut, does: () => this.zoomBy(-0.25) })}
-        ${tool({ label: t('Zoom in'), icon: ZoomIn, does: () => this.zoomBy(0.25) })}
+        ${cmdMenu(own('kind'), this, COMMANDS, 'dg-kind', { words: true, caret: true, icon: KIND_ICON[kind] })}
+        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${joins(kind) ? cmdTool(own('join'), this) : nothing}
+        ${cmdTool(own('cards'), this, { cls: 'dg-cards', keep: false })}
+        ${cmdTool(own('zoomout'), this, { keep: false })} ${cmdTool(own('zoomin'), this, { keep: false })}
         ${this.undoTools()}
       </to-bar>
       <p class="dg-hint to-hint" aria-live="polite">${hint}</p>

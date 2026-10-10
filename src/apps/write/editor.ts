@@ -28,12 +28,13 @@ import { html, nothing, type PropertyDeclarations, type PropertyValues, type Tem
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { guard } from 'lit/directives/guard.js';
 import { gateSvg } from '../../kit/pictures.ts';
-import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Palette, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
+import { SquarePen } from 'lucide';
 import { isEmbed, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
-import { apps } from '../../kit/apps.ts';
-import { keysText, tool } from '../../kit/bar.ts';
-import { copyData, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
+import { cmdTool } from '../../kit/bar.ts';
+import { contextOf, drawnIn, labelOf, runKey } from '../../kit/commands.ts';
+import { BOLD, BULLETS, FOOTNOTE, HIGHLIGHT, INDENT, ITALIC, LINK, NUMBERS, OUTDENT, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
+import { copyData, linkToFence, pasteFrom, writeClip } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts';
@@ -44,12 +45,11 @@ import { noteIndex, noteMarks, type ToNotes } from '../../kit/notes.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import { myKey, signerName, signWords } from '../../kit/privacy.ts';
 import { signatureIcon, signatureTone, signatureWords, uncheckedHint } from '../../kit/privacy-dialog.ts';
-import type { MenuItem } from '../../kit/menu.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
 import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableSetType, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
-import def from './def.ts';
-import { LOOK_IDS, LOOKS, lookOf, type LookId } from './look.ts';
+import COMMANDS, { CARD, alignIcon } from './commands.ts';
+import { lookOf, type LookId } from './look.ts';
 import { checkContract, contractText, printOf, readSignatures, signaturesAt, signedMessage, signOps, today, verdictOf } from './contract.ts';
 import { fenceLink } from './view.ts';
 import { LOCKED_LANG } from '../../kit/locked.ts';
@@ -97,10 +97,6 @@ interface Clip {
 }
 /** How long a burst of typing stays one step (DocElement's own). */
 const BURST = 700;
-type Alignment = 'left' | 'center' | 'right' | 'justify';
-/** The alignment keys, with Shift and Mod: Google Docs' and Word's (docs/editing.md §1). */
-const KEY_OF: Record<Alignment, string> = { left: 'L', center: 'E', right: 'R', justify: 'J' };
-const ALIGN_KEYS: Record<string, Alignment> = { l: 'left', e: 'center', r: 'right', j: 'justify' };
 
 export class ToWriteEditor extends DocElement<Doc> {
   static properties: PropertyDeclarations = { ...DocElement.properties, asking: { state: true }, cardAt: { state: true } };
@@ -109,7 +105,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   /** The card in hand (it has the focus): its block; -1 for none. */
   declare cardAt: number;
   /** The selection the editor last reported, for the bar's pressed states. */
-  private sel: Sel | null = null;
+  sel: Sel | null = null;
   /** The last edit's key, time and mark, so a burst's mark says where it ended (for a redo). */
   private last: { key?: string; at: number; mark: Mark } | null = null;
   /** The card last copied here, for a paste when the system clipboard is refused. */
@@ -209,7 +205,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   private barKey(): string {
     const x = this.sel ? this.text : null;
     const m = x?.marks ?? {};
-    return [x?.kind ?? '', x?.alignment ?? 'left', m.b, m.i, m.u, m.s, m.h, !!m.href, lookOf(this.doc).id, paperOf(this.doc), this.canUndo, this.canRedo, language()].join('|');
+    return [this.text ? 1 : 0, x?.kind ?? '', x?.alignment ?? 'left', m.b, m.i, m.u, m.s, m.h, !!m.href, lookOf(this.doc).id, paperOf(this.doc), this.canUndo, this.canRedo, language()].join('|');
   }
   private barDrawn = '';
 
@@ -221,7 +217,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     return this.text?.sel ?? caret(Math.max(0, blocks.length - 1), 0);
   }
   /** A block put in at the caret, or where it was (`at`, kept while a dialog was open): the editor's own rule for blocks (words join, cards stand alone), the caret after it. */
-  private insertBlock(b: Block, at: Sel = this.where()) {
+  insertBlock(b: Block, at: Sel = this.where()) {
     const blocks = this.doc.blocks.length ? this.doc.blocks : [{ k: 'p', runs: [] } as Block];
     const prefix: Op[] = this.doc.blocks.length ? [] : [{ op: 'splice', at: 0, n: 0, blocks }];
     const e = insertBlocks(blocks, at, [b]);
@@ -243,29 +239,29 @@ export class ToWriteEditor extends DocElement<Doc> {
     a.done(value);
   }
   /** Insert ▾'s things with an address, each asked for in the kit's dialog, then put in where the caret was. */
-  private async insertPicture() {
+  async insertPicture() {
     const at = this.where();
     const pic = await askPicture();
     if (pic) this.insertBlock({ k: 'img', alt: pic.alt, url: pic.url }, at);
   }
-  private async insertWeb() {
+  async insertWeb() {
     const at = this.where();
     const url = await askEmbed();
     if (url) this.insertBlock(linkToFence(url) ?? webBlock(url), at);
   }
-  private async insertDocument() {
+  async insertDocument() {
     const at = this.where();
     const fence = await askDocLink();
     if (fence) this.insertBlock(fence, at);
   }
   /** A table: three by three, opened in the Spreadsheet at once; Done (or Cancel, which keeps it blank) puts it in as one step. */
-  private async insertTable() {
+  async insertTable() {
     const at = this.where();
     const blank = newTable();
     this.insertBlock((await editTable(blank)) ?? blank, at);
   }
   /** A new document of another app, made in its own editor in the dialog; Done puts it in, Cancel puts nothing in. */
-  private async insertApp(id: string) {
+  async insertApp(id: string) {
     const at = this.where();
     const fence = await makeDoc(id);
     if (fence) this.insertBlock(fence, at);
@@ -280,7 +276,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     this.holdCard(at);
   }
   /** An icon from the kit's library (a lazy chunk, the whole of Lucide), put in at the caret. */
-  private async insertIcon() {
+  async insertIcon() {
     const sel = this.text.sel;
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const name = await chooseIcon();
@@ -288,56 +284,26 @@ export class ToWriteEditor extends DocElement<Doc> {
     if (sel) this.text.sel = sel;
     this.text.exec('icon', name);
   }
-  private inserts(): MenuItem[] {
-    return [
-      { label: t('Table'), icon: UI.table, does: () => void this.insertTable() },
-      { label: t('Web Picture…'), icon: UI.image, does: () => void this.insertPicture() },
-      { label: t('Web Embed…'), icon: UI.globe, does: () => void this.insertWeb() },
-      { label: t('Tiny Little Office Doc…'), icon: UI.insert, does: () => void this.insertDocument() },
-      { label: t('QR code of this document'), icon: UI.qr, does: () => this.insertBlock(qrBlock()) },
-      { label: t('Date'), icon: UI.calendar, does: () => this.text.exec('date') },
-      { label: t('Page break'), icon: SeparatorHorizontal, hint: keysText('Mod+Shift+Enter'), does: () => this.insertBlock({ k: 'hr' }) },
-      ...apps()
-        .filter((a) => a.id !== def.id)
-        .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
-    ];
+  /** Insert ▾ QR code: a picture of this document's own link, drawn from the link as it is when it is shown. */
+  insertQr() {
+    this.insertBlock(qrBlock());
   }
-  /**
-   * Mod+Shift+Enter in the words: a page break at the caret (the browser's own would be a line break). Mod+Shift+L, E, R
-   * and J: the block in hand left, centred, right or justified (Docs' and Word's keys, the Drawing Tool's too); taken
-   * only while the words have the focus, so Mod+Shift+R reloads the page from anywhere else.
-   */
-  private onKey = (e: KeyboardEvent) => {
+  /** Whether a key is the words' own: typed in them (not a card's, not a field's), so Mod+Shift+R reloads the page from anywhere else. */
+  wordsHave(e: KeyboardEvent): boolean {
     const at = e.target as HTMLElement;
-    if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.altKey || e.isComposing || e.defaultPrevented || !this.text?.tx.contains(at) || at.closest?.('.tx-card')) return;
-    const how = e.key === 'Enter' ? 'hr' : ALIGN_KEYS[e.key.toLowerCase()];
-    if (!how) return;
-    e.preventDefault();
-    if (how === 'hr') this.insertBlock({ k: 'hr' });
-    else this.text.exec(how);
-  };
+    return !!this.text?.tx.contains(at) && !at.closest?.('.tx-card');
+  }
+  /** The Word Processor's keys (commands.ts: the alignments, the page break), after the words have answered theirs. */
+  private onKey = (e: KeyboardEvent) => runKey(e, COMMANDS, this);
 
   /* ---------- the paper and the fields ---------- */
 
-  private setPaper(paper: Paper) {
+  setPaper(paper: Paper) {
     this.apply([{ op: 'head', key: 'paper', value: paper === defaultPaper() ? undefined : paper }]);
   }
-  private paperItems(): MenuItem[] {
-    const now = paperOf(this.doc);
-    return (Object.keys(PAPERS) as Paper[]).map((p) => ({ label: PAPERS[p].name, checked: p === now, does: () => this.setPaper(p) }));
-  }
   /** The look: a head field, absent for sans; each item a sample in its own type (style.css sets each by its place). */
-  private setLook(look: LookId) {
+  setLook(look: LookId) {
     this.apply([{ op: 'head', key: 'look', value: look === 'sans' ? undefined : look }]);
-  }
-  private lookItems(): MenuItem[] {
-    const now = lookOf(this.doc).id;
-    return LOOK_IDS.map((id) => ({ label: LOOKS[id].name(), hint: LOOKS[id].sample(), checked: id === now, does: () => this.setLook(id) }));
-  }
-  private alignItems(): MenuItem[] {
-    const now = this.sel ? this.text.alignment : 'left';
-    const pick = (how: Alignment, label: string, ic: typeof UI.alignLeft) => ({ label, icon: ic, keys: `Mod+Shift+${KEY_OF[how]}`, checked: now === how, does: () => this.text.exec(how) });
-    return [pick('left', t('Align left'), UI.alignLeft), pick('center', t('Centre'), UI.alignCenter), pick('right', t('Align right'), UI.alignRight), pick('justify', t('Justify'), UI.alignJustify)];
   }
   private setField(key: string, value: string) {
     this.apply([{ op: 'head', key, value: value.replace(/\n/g, ' | ').trim() || '' }]);
@@ -423,7 +389,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     const el = this.text?.tx.children[at] as HTMLElement | undefined;
     return el?.classList.contains('tx-card') ? el : null;
   }
-  private isCard(at: number): boolean {
+  isCard(at: number): boolean {
     const b = this.doc.blocks[at];
     return !!b && !isWords(b);
   }
@@ -439,7 +405,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     void this.drawn().then(() => this.cardEl(at)?.focus({ preventScroll: true }));
   }
   /** Back to the words after the card (or before it, when there are none after). */
-  private afterCard(at: number, dir: 1 | -1 = 1) {
+  afterCard(at: number, dir: 1 | -1 = 1) {
     const blocks = this.doc.blocks;
     const find = (d: 1 | -1) => {
       for (let i = at + d; i >= 0 && i < blocks.length; i += d) if (isWords(blocks[i])) return i;
@@ -501,6 +467,27 @@ export class ToWriteEditor extends DocElement<Doc> {
     }
     return null;
   }
+  /** The card's Edit, as its words say it ('' where it has none), and done: for the card's commands (commands.ts). */
+  editLabel(at: number): string {
+    const e = this.editOf(at);
+    return e && e !== SEP ? e.label : '';
+  }
+  editHeld() {
+    const e = this.editOf(this.cardAt);
+    if (e && e !== SEP) void e.does();
+  }
+  /** Whether the card is a document that opens in a new tab, and that done. */
+  opensIn(at: number): boolean {
+    return this.openOf(at).length > 0;
+  }
+  openHeld() {
+    const o = this.openOf(this.cardAt)[0];
+    if (o && o !== SEP) o.does();
+  }
+  /** How many blocks the document has. */
+  get blockCount(): number {
+    return this.doc.blocks.length;
+  }
   /** A document held here, opened in its own app in a new tab: the lesser way, after Edit. */
   private openOf(at: number): ContextEntry[] {
     const b = this.doc.blocks[at];
@@ -508,17 +495,17 @@ export class ToWriteEditor extends DocElement<Doc> {
     const link = fenceLink(b.lang, b.body, `${location.origin}${location.pathname}`);
     return [{ label: t('Open in a new tab'), icon: UI.open, does: () => void window.open(link, '_blank', 'noopener') }];
   }
-  private moveCard(at: number, by: 1 | -1) {
+  moveCard(at: number, by: 1 | -1) {
     const ops = moveBlock(this.doc, at, by);
     if (!ops) return;
     this.change(ops, { before: null, after: null, card: at, cardAfter: at + by });
     this.holdCard(at + by);
   }
-  private duplicateCard(at: number) {
+  duplicateCard(at: number) {
     this.change(duplicateBlock(this.doc, at), { before: null, after: null, card: at, cardAfter: at + 1 });
     this.holdCard(at + 1);
   }
-  private removeCard(at: number) {
+  removeCard(at: number) {
     const ops = removeBlock(this.doc, at);
     if (!ops.length) return;
     this.cardAt = -1;
@@ -536,14 +523,8 @@ export class ToWriteEditor extends DocElement<Doc> {
     return (this.clip = copyData(this.doc.blocks, caret(at, 0)));
   }
   /** The bar's Copy and Cut: the system clipboard as the page may write it, and this page's own memory of it. */
-  private copyOut(at: number, cut: boolean) {
-    const c = this.copyOf(at);
-    const plain = () => navigator.clipboard?.writeText(c.text).catch(() => undefined);
-    try {
-      void navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([c.text], { type: 'text/plain' }), 'text/html': new Blob([c.html], { type: 'text/html' }) })]).catch(plain);
-    } catch {
-      void plain();
-    }
+  copyOut(at: number, cut: boolean) {
+    void writeClip(this.copyOf(at));
     if (cut) this.removeCard(at);
   }
   /** What is pasted onto a card in hand goes in after it: a card stays in hand, words get the caret at their end. */
@@ -558,7 +539,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     else this.holdCard(end);
   }
   /** The bar's Paste: the system clipboard's words if the page may read them, else what was last copied here. */
-  private async pasteIn(at: number) {
+  async pasteIn(at: number) {
     let text = '';
     try {
       text = (await navigator.clipboard.readText()).replace(/\r\n?/g, '\n');
@@ -581,51 +562,14 @@ export class ToWriteEditor extends DocElement<Doc> {
     dt.setData('text/html', c.html);
     if (e.type === 'cut') this.removeCard(at);
   };
-  /** The keys on a card in hand; anything else is left to the text. */
+  /** The keys on a card in hand (commands.ts CARD, before the text hears them); anything else is left to the text. */
   private onCardKey = (e: KeyboardEvent) => {
-    const at = this.heldIn(e.target);
-    if (at < 0 || e.isComposing) return;
+    if (this.heldIn(e.target) < 0 || e.isComposing) return;
+    if (runKey(e, CARD, this)) return void e.stopPropagation();
     const mod = e.metaKey || e.ctrlKey;
-    const take = () => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-    if (e.key === 'Enter' && !mod && !e.altKey && !e.shiftKey) {
-      const edit = this.editOf(at);
-      if (edit && edit !== SEP) {
-        take();
-        edit.does();
-      }
-      return;
-    }
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !mod && !e.altKey) return take(), this.removeCard(at);
-    if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'd') return take(), this.duplicateCard(at);
-    if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return take(), this.moveCard(at, e.key === 'ArrowUp' ? -1 : 1);
-    if (e.key === 'Escape') return take(), this.afterCard(at);
-    if (!mod && !e.altKey && !e.shiftKey && ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'].includes(e.key)) return take(), this.afterCard(at, e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1);
     // Typing on a card in hand does nothing to it, and nothing else: the text's own keys (Tab, Mod+B) are not the card's.
-    if (e.key !== 'Tab' && !(mod && ['z', 'y', 'c', 'x', 'v', 'p'].includes(e.key.toLowerCase()))) e.stopPropagation();
+    if (e.key !== 'Tab' && !(mod && ['z', 'y', 'c', 'x', 'v', 'p', 'k'].includes(e.key.toLowerCase()))) e.stopPropagation();
   };
-  /** The bar under a card in hand, in the standard's order. */
-  private cardItems(at: number): ContextEntry[] {
-    if (!this.isCard(at)) return [];
-    const n = this.doc.blocks.length;
-    const edit = this.editOf(at);
-    return [
-      ...(edit ? [edit] : []),
-      ...this.openOf(at),
-      { label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', disabled: at === 0, does: () => this.moveCard(at, -1) },
-      { label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', disabled: at >= n - 1, does: () => this.moveCard(at, 1) },
-      { label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', does: () => this.duplicateCard(at) },
-      SEP,
-      { label: t('Copy'), icon: Copy, keys: 'Mod+C', does: () => this.copyOut(at, false) },
-      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', does: () => this.copyOut(at, true) },
-      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn(at) },
-      SEP,
-      { label: t('Delete'), icon: UI.trash, keys: 'Delete', does: () => this.removeCard(at) },
-    ];
-  }
-
   /* ---------- a contract's signatures ---------- */
 
   /** The document last checked, so each is checked once. */
@@ -723,36 +667,18 @@ export class ToWriteEditor extends DocElement<Doc> {
 
   /* ---------- drawing ---------- */
 
-  /** The bar, drawn from what barKey() names. */
+  /** The bar, drawn from what barKey() names: the registry's commands (commands.ts, kit/text-commands.ts), the words' with the text as their context. */
   private renderBar(): TemplateResult {
-    const x = this.sel ? this.text : null;
-    const m = x?.marks ?? {};
-    const kind = x?.kind ?? null;
-    const on = (c: 'b' | 'i' | 'u' | 's' | 'h') => !!m[c];
-    const paper = paperOf(this.doc);
-    const look = lookOf(this.doc);
-    const alignIcon = { left: UI.alignLeft, center: UI.alignCenter, right: UI.alignRight, justify: UI.alignJustify }[x?.alignment ?? 'left'];
+    const x = this.text ?? null;
+    const own = (id: string) => COMMANDS.find((c) => c.id === `write.${id}`)!;
+    const menu = (id: string, cls: string, icon = own(id).icon!) => html`<to-menu class=${cls} icon-only keep .label=${labelOf(own(id), this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
     return html`<to-bar class="write-bar">
-        <to-insert .items=${this.inserts()}></to-insert>
-        ${tool({ label: t('Title'), icon: UI.text, keep: true, pressed: kind === 'title', does: () => this.text.exec(kind === 'title' ? 'p' : 'title') })}
-        ${tool({ label: t('Heading'), icon: UI.heading1, keep: true, pressed: kind === 'h1', does: () => this.text.exec(kind === 'h1' ? 'p' : 'h1') })}
-        ${tool({ label: t('Subheading'), icon: UI.heading, keep: true, pressed: kind === 'h2', does: () => this.text.exec(kind === 'h2' ? 'p' : 'h2') })}
-        ${tool({ label: t('Paragraph'), icon: Pilcrow, keep: true, pressed: kind === 'p', does: () => this.text.exec('p') })}
-        ${tool({ label: t('Bold'), icon: UI.bold, keys: 'Mod+B', keep: true, pressed: on('b'), does: () => this.text.exec('b') })}
-        ${tool({ label: t('Italic'), icon: UI.italic, keys: 'Mod+I', keep: true, pressed: on('i'), does: () => this.text.exec('i') })}
-        ${tool({ label: t('Underline'), icon: UI.underline, keys: 'Mod+U', keep: true, pressed: on('u'), does: () => this.text.exec('u') })}
-        ${tool({ label: t('Strikethrough'), icon: UI.strike, keys: 'Mod+Shift+X', keep: true, pressed: on('s'), does: () => this.text.exec('s') })}
-        ${tool({ label: t('Highlight'), icon: UI.highlight, keys: 'Mod+Shift+H', keep: true, pressed: on('h'), does: () => this.text.exec('h') })}
-        ${tool({ label: t('Link'), icon: UI.link, keys: 'Mod+K', keep: true, pressed: !!m.href, does: () => this.text.exec('link') })}
-        ${tool({ label: t('Footnote'), icon: UI.footnote, keep: true, does: () => this.text.exec('fn') })}
-        ${tool({ label: t('Icon'), icon: UI.icon, keep: true, does: () => void this.insertIcon() })}
-        ${tool({ label: t('Bulleted list'), icon: UI.list, keep: true, pressed: kind === 'ul', does: () => this.text.exec('ul') })}
-        ${tool({ label: t('Numbered list'), icon: UI.listOrdered, keep: true, pressed: kind === 'ol', does: () => this.text.exec('ol') })}
-        ${tool({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', keep: true, disabled: kind !== 'ul' && kind !== 'ol', does: () => this.text.exec('outdent') })}
-        ${tool({ label: t('Indent'), icon: UI.indent, keys: 'Tab', keep: true, disabled: kind !== 'ul' && kind !== 'ol', does: () => this.text.exec('indent') })}
-        <to-menu class="write-align" icon-only keep .label=${t('Align')} .icon=${alignIcon} .items=${this.alignItems()}></to-menu>
-        <to-menu class="write-look" icon-only keep .label=${t('Look: {theme}', { theme: look.name() })} .icon=${Palette} .items=${this.lookItems()}></to-menu>
-        <to-menu class="write-paper" icon-only keep .label=${t('Paper: {paper}', { paper: PAPERS[paper].name })} .icon=${Ruler} .items=${this.paperItems()}></to-menu>
+        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${cmdTool(own('title'), this)} ${cmdTool(own('heading'), this)} ${cmdTool(own('subheading'), this)} ${cmdTool(own('paragraph'), this)}
+        ${[BOLD, ITALIC, UNDERLINE, STRIKE, HIGHLIGHT, LINK, FOOTNOTE].map((c) => cmdTool(c, x))}
+        ${cmdTool(own('icon'), this)}
+        ${[BULLETS, NUMBERS, OUTDENT, INDENT].map((c) => cmdTool(c, x))}
+        ${menu('align', 'write-align', alignIcon(this))} ${menu('look', 'write-look')} ${menu('paper', 'write-paper')}
         ${this.undoTools()}
       </to-bar>`;
   }
@@ -770,7 +696,7 @@ export class ToWriteEditor extends DocElement<Doc> {
         ${this.renderNotes()}
       </div>
       <div class="write-foot"><span>${t('{n|one word|# words}', { n: words })}</span><span>${PAPERS[paper].name}</span></div>
-      <to-context class="write-cardbar" .label=${t('This card')} .items=${this.cardItems(this.cardAt)}></to-context>
+      <to-context class="write-cardbar" .label=${t('This card')} .items=${(this.cardAt >= 0 ? contextOf(CARD, this) : []) as ContextEntry[]}></to-context>
       <to-dialog class="write-ask" heading=${a?.heading ?? ''} @to-close=${() => this.answer(null)} .body=${a
         ? html`<form class="write-ask-form" @submit=${(e: Event) => (e.preventDefault(), this.answer((e.target as HTMLFormElement).querySelector('input')!.value))}>
             <label class="to-field"><span>${a.label}</span><input type=${a.type} name="answer" .value=${a.value} placeholder=${a.placeholder} autocomplete="off" autocapitalize="off" spellcheck="false" inputmode=${a.type === 'url' ? 'url' : 'text'} enterkeyhint="done" ?required=${a.type === 'url'} /></label>
@@ -786,6 +712,8 @@ export class ToWriteEditor extends DocElement<Doc> {
     const card = this.cardAt >= 0 ? this.cardEl(this.cardAt) : null;
     if (bar && card) bar.show(card);
     else bar?.hide();
+    // The words drawn the first time: the bar, drawn before them, again with them as its context.
+    if (this.barKey() !== this.barDrawn) this.requestUpdate();
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToWriteEditor);

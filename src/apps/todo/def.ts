@@ -41,6 +41,7 @@ export default defineApp({
     return templates();
   },
   editor: () => import('./editor.ts'),
+  commands: () => import('./commands.ts'),
   title: titleOf,
   retitle,
   view: (doc, opts) => {

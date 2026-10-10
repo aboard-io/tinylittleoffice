@@ -16,20 +16,20 @@ import { html, nothing, svg, type PropertyDeclarations, type PropertyValues } fr
 import { keyed } from 'lit/directives/keyed.js';
 import { live } from 'lit/directives/live.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ClipboardPaste, Copy, Key, Pause, PenTool, Play, Repeat, Scissors, Sparkles, Tag } from 'lucide';
-import { tool } from '../../kit/bar.ts';
+import { Pause, Play, Repeat, Sparkles } from 'lucide';
+import { cmdBtn, cmdTool } from '../../kit/bar.ts';
+import { contextOf, drawnIn, labelOf, runKey } from '../../kit/commands.ts';
+import COMMANDS, { loopName } from './commands.ts';
 import { DocElement, type DocChange, type Entry } from '../../kit/element.ts';
-import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import type { MenuItem } from '../../kit/menu.ts';
-import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import { type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { GENERATOR, docToHtml, htmlToBlocks } from '../../kit/clipboard.ts';
 import { toast } from '../../kit/toast.ts';
 import { pinchZoom } from '../../kit/pinch.ts';
 import { applyAll, parse, write, type Doc, type Op } from '../../doc/index.ts';
 import { GRID, H, W, bounds, isDrawn, isLink, shapesTable, type Shape } from '../draw/model.ts';
 import { THEME } from '../draw/editor.ts';
-import { EFFECTS, MAX_FPS, MAX_FRAMES, MAX_Z, MIN_FPS, MIN_FRAMES, drawingOf, playhead, setLoop, type Loop, duplicateShapes, hasKey, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShapes, room, setLength, stateAt, withKeys, type AnimView, type Key as AnimKey } from './model.ts';
+import { MAX_FPS, MAX_FRAMES, MAX_Z, MIN_FPS, MIN_FRAMES, drawingOf, playhead, duplicateShapes, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShapes, room, setLength, stateAt, withKeys, type AnimView, type Key as AnimKey } from './model.ts';
 import { frameSvg, transformOf, altOf } from './view.ts';
 import { turnOf } from '../draw/view.ts';
 import '../../kit/bar.ts';
@@ -41,26 +41,9 @@ export const tag = 'to-anim-editor';
 
 /** At most this many little pictures under the scrubber. */
 const THUMBS = 16;
-/** The numbers of times the repeat menu offers (the motion's own, if another, is offered too). */
-const TIMES = [2, 3, 5, 10];
 /** How long a Mod+C, X or V waits for the browser's own clipboard event before doing it by hand (Safari's comes late, or never). */
 const CLIP_WAIT = 120;
-/** A repeat, named. */
-const loopName = (l: Loop): string => (l === 'forever' ? t('Loop for ever') : l === 'once' ? t('Play once') : l === 'bounce' ? t('Back and forth') : t('{n} times', { n: l }));
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
-
-/** The effects' names, by letter. */
-const FX_NAMES: Record<string, () => string> = {
-  i: () => t('Impact'),
-  '3': () => t('3D'),
-  d: () => t('Shadow'),
-  n: () => t('Neon'),
-  o: () => t('Outline'),
-  g: () => t('Rainbow'),
-  m: () => t('Mirror'),
-  w: () => t('Wobble'),
-  b: () => t('Blur'),
-};
 
 /** A drag on the stage: shapes moved, a pen shape's corner, or the size handle; its ops are written when the pointer lets go. */
 type Drag =
@@ -224,7 +207,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return this.live ?? this.view;
   }
   /** The shape chosen last, -1 for none: the one whose keys are on the scrubber and whose depth, size and spin are shown. */
-  private get sel(): number {
+  get sel(): number {
     return this.sels.length ? this.sels[this.sels.length - 1] : -1;
   }
   private get stageEl(): SVGSVGElement | null {
@@ -245,18 +228,18 @@ export class ToAnimEditor extends DocElement<AnimView> {
 
   /* ---------- time ---------- */
 
-  private seek(frame: number) {
+  seek(frame: number) {
     this.pause();
     this.frame = clamp(Math.round(frame), 0, this.view.frames - 1);
   }
-  private pause() {
+  pause() {
     if (!this.playing) return;
     this.playing = false;
     cancelAnimationFrame(this.raf);
     this.frame = Math.min(this.view.frames - 1, Math.round(this.clock));
   }
   /** Play from the moment in hand (from the start, when a play that stops has ended), as the motion repeats: for ever, once, a number of times, or back and forth. */
-  private toggle() {
+  toggle() {
     if (this.playing) return this.pause();
     const { frames, loop } = this.view;
     const from = (loop === 'once' || typeof loop === 'number') && this.frame >= frames - 1 ? 0 : this.frame;
@@ -271,7 +254,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     };
     tick();
   }
-  private setMode(mode: 'draw' | 'move') {
+  setMode(mode: 'draw' | 'move') {
     this.chosen = true;
     this.pause();
     this.lastTap = null;
@@ -319,7 +302,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     this.sels = after;
   }
   /** The selected shape's words, typed on it: Draw's own words, opened on the same shape from here (Enter, two taps). */
-  private editWords(i = this.sel) {
+  editWords(i = this.sel) {
     const s = this.view.shapes[i];
     if (!s) return;
     this.sels = [i];
@@ -339,14 +322,14 @@ export class ToAnimEditor extends DocElement<AnimView> {
   /* ---------- the shapes in hand ---------- */
 
   /** An edit made in Move mode: the shapes in hand before and after it go with it, for undo. */
-  private act(ops: Op[], key?: string, after: number[] = this.sels) {
+  act(ops: Op[], key?: string, after: number[] = this.sels) {
     this.lastTap = null;
     if (!ops.length) return;
     this.edit(ops, key, { before: [...this.sels], after: [...after] } satisfies Mark);
     this.sels = after;
   }
   /** Each shape in hand keyed at this moment, changed as asked (a function of where it is now, or the same change for all). */
-  private key(change: Partial<AnimKey> | ((at: AnimKey, i: number) => Partial<AnimKey>) = {}, burst?: string) {
+  key(change: Partial<AnimKey> | ((at: AnimKey, i: number) => Partial<AnimKey>) = {}, burst?: string) {
     if (!this.sels.length) return;
     const v = this.view;
     const list = this.sels.map((i) => {
@@ -355,12 +338,12 @@ export class ToAnimEditor extends DocElement<AnimView> {
     });
     this.act(withKeys(this.doc, list), burst);
   }
-  private toggleFx(letter: string) {
+  toggleFx(letter: string) {
     const on = stateAt(this.view, this.sel, this.frame).fx.includes(letter);
     this.key((at) => ({ fx: on ? at.fx.replace(letter, '') : at.fx.includes(letter) ? at.fx : at.fx + letter }));
   }
   /** The shapes in hand moved by (x, y) at this moment, never off the stage. */
-  private nudge(x: number, y: number) {
+  nudge(x: number, y: number) {
     const v = this.view;
     this.key((at, i) => {
       const [x0, x1, y0, y1] = room(v, i);
@@ -368,10 +351,10 @@ export class ToAnimEditor extends DocElement<AnimView> {
     }, `nudge:${this.sels.join(',')}:${this.frame}`);
   }
   /** The shapes in hand grown (or shrunk) a tenth at this moment. */
-  private grow(by: number) {
+  grow(by: number) {
     this.key((at) => ({ s: clamp(Math.round((at.s + by) * 10) / 10, 0.2, 4) }), `size:${this.sels.join(',')}:${this.frame}`);
   }
-  private removeKeyHere() {
+  removeKeyHere() {
     let doc = this.doc;
     const ops: Op[] = [];
     for (const i of this.sels) {
@@ -381,15 +364,15 @@ export class ToAnimEditor extends DocElement<AnimView> {
     }
     this.act(ops);
   }
-  private removeSel() {
+  removeSel() {
     if (!this.sels.length) return;
     this.act(removeShapes(this.doc, this.sels), undefined, []);
   }
-  private duplicateSel() {
+  duplicateSel() {
     const { ops, sel } = duplicateShapes(this.doc, this.sels);
     this.act(ops, undefined, sel);
   }
-  private selectAll() {
+  selectAll() {
     this.sels = this.view.shapes.map((_, i) => i);
   }
 
@@ -437,7 +420,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     if (e.type === 'cut') this.removeSel();
   };
   /** The contextual bar's Copy and Cut: the system clipboard as the page may write it, and this page's own memory of it. */
-  private copyOut(cut: boolean) {
+  copyOut(cut: boolean) {
     const c = this.clip();
     if (!c) return;
     const plain = () => navigator.clipboard?.writeText(c.text).catch(() => undefined);
@@ -449,7 +432,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     if (cut) this.removeSel();
   }
   /** The contextual bar's Paste: the system clipboard's words if the page may read them, else what was last copied here. */
-  private async pasteIn() {
+  async pasteIn() {
     let text = '';
     try {
       text = await navigator.clipboard.readText();
@@ -462,17 +445,16 @@ export class ToAnimEditor extends DocElement<AnimView> {
 
   /* ---------- keys ---------- */
 
+  /** The stage's keys in Move mode (commands.ts); in Draw mode the keys are Draw's, and only the stage's own keys are ours (never a bar button's, a field's, a menu's). */
   private onKey = (e: KeyboardEvent) => {
-    // In Draw mode the keys are Draw's; and only the stage's own keys are ours (never a bar button's, a field's, a menu's).
     if (this.mode !== 'move' || e.defaultPrevented || e.isComposing) return;
     const at = e.composedPath()[0] as Element;
     if (!at?.closest?.('svg.anim-stage')) return;
     const mod = e.metaKey || e.ctrlKey;
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    const any = this.sels.length > 0;
+    const k = e.key.toLowerCase();
     if (mod && !e.altKey && !e.shiftKey && (k === 'c' || k === 'x' || k === 'v')) {
       const clip = ({ c: 'copy', x: 'cut', v: 'paste' } as const)[k];
-      if (!any && clip !== 'paste') return;
+      if (!this.sels.length && clip !== 'paste') return;
       // Not prevented: the browser's own copy, cut or paste event follows and does it. If none comes, by hand; never both.
       const press = { clip, done: false, at: performance.now() };
       this.press = press;
@@ -484,34 +466,27 @@ export class ToAnimEditor extends DocElement<AnimView> {
       }, CLIP_WAIT);
       return;
     }
-    const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key] as [number, number] | undefined;
-    if (arrow) {
-      if (e.altKey) return;
-      if (any && mod) this.grow(arrow[0] + -arrow[1] > 0 ? 0.1 : -0.1);
-      else if (any) this.nudge(arrow[0] * GRID * (e.shiftKey ? 5 : 1), arrow[1] * GRID * (e.shiftKey ? 5 : 1));
-      // With nothing in hand, Left and Right step a frame (§8).
-      else if (arrow[0] && !mod && !e.shiftKey) this.seek(this.frame + arrow[0]);
-      else return;
-    } else if (mod && e.altKey) return;
-    else if (k === ' ' && !mod) this.toggle();
-    else if ((k === ',' || k === '<') && !mod) this.seek(this.frame - 1);
-    else if ((k === '.' || k === '>') && !mod) this.seek(this.frame + 1);
-    else if (k === 'Home') this.seek(0);
-    else if (k === 'End') this.seek(this.view.frames - 1);
-    else if (k === 'k' && !mod && !e.altKey) this.key();
-    else if (mod && k === 'a') this.selectAll();
-    else if (k === 'Escape') {
-      // One step a press: the playing stops, then the shapes are let go.
-      if (this.playing) this.pause();
-      else if (any) this.sels = [];
-      else return;
-    } else if (!any) return;
-    else if (k === 'Delete' || k === 'Backspace') this.removeSel();
-    else if (mod && k === 'd') this.duplicateSel();
-    else if (k === 'Enter' && !mod && this.sels.length === 1 && !isLink(this.view.shapes[this.sel].k)) this.editWords();
-    else return;
-    e.preventDefault();
+    runKey(e, COMMANDS, this);
   };
+  /** The arrows: the shapes in hand nudged (Shift by five), sized with Mod; with none in hand Left and Right step a frame (§8). */
+  arrowKey(e: KeyboardEvent): boolean {
+    const arrow = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, [number, number]>)[e.key];
+    const mod = e.metaKey || e.ctrlKey;
+    const any = this.sels.length > 0;
+    if (!arrow) return false;
+    if (any && mod) this.grow(arrow[0] + -arrow[1] > 0 ? 0.1 : -0.1);
+    else if (any) this.nudge(arrow[0] * GRID * (e.shiftKey ? 5 : 1), arrow[1] * GRID * (e.shiftKey ? 5 : 1));
+    else if (arrow[0] && !mod && !e.shiftKey) this.seek(this.frame + arrow[0]);
+    else return false;
+    return true;
+  }
+  /** Escape, one step a press: the playing stops, then the shapes are let go. */
+  stepOut(): boolean {
+    if (this.playing) this.pause();
+    else if (this.sels.length) this.sels = [];
+    else return false;
+    return true;
+  }
 
   /* ---------- the stage ---------- */
 
@@ -633,16 +608,6 @@ export class ToAnimEditor extends DocElement<AnimView> {
 
   /* ---------- menus ---------- */
 
-  private fxItems(): MenuItem[] {
-    const fx = this.sel >= 0 ? stateAt(this.view, this.sel, this.frame).fx : '';
-    return EFFECTS.map((f) => ({ label: FX_NAMES[f.letter](), checked: fx.includes(f.letter), disabled: this.sel < 0, does: () => this.toggleFx(f.letter) }));
-  }
-  private loopItems(): MenuItem[] {
-    const { loop } = this.view;
-    const times = [...new Set([...TIMES, ...(typeof loop === 'number' ? [loop] : [])])].sort((a, b) => a - b);
-    const list: Loop[] = ['forever', 'once', 'bounce', ...times];
-    return list.map((l) => ({ label: loopName(l), hint: l === 'bounce' ? t('Forward, then back') : undefined, checked: l === loop, does: () => this.act(setLoop(this.doc, l)) }));
-  }
   /** A number field's words committed: the length or the speed, held to what it may be (the field shows what was kept). */
   private setNumber(which: 'frames' | 'fps', input: HTMLInputElement) {
     const n = Math.round(parseFloat(input.value));
@@ -652,30 +617,9 @@ export class ToAnimEditor extends DocElement<AnimView> {
     // Out of bounds or not a number: the field shows what the motion has.
     input.value = String(which === 'frames' ? this.view.frames : this.view.fps);
   }
-  /**
-   * The contextual bar under the shapes in hand (§5's order, for a motion): add a key here, remove this key |
-   * edit the words, duplicate | copy, cut, paste | delete. (Effects, depth, size and spin are the bar's and the sliders'.)
-   */
+  /** The contextual bar under the shapes in hand (commands.ts; §5's order, for a motion). (Effects, depth, size and spin are the bar's and the sliders'.) */
   private contextItems(): ContextEntry[] {
-    const v = this.view;
-    if (!this.sels.length) return [];
-    const keyed = this.sels.every((i) => hasKey(v, i, this.frame));
-    const some = this.sels.some((i) => hasKey(v, i, this.frame));
-    const one = this.sels.length === 1 ? v.shapes[this.sel] : undefined;
-    const joins = this.sels.every((i) => isLink(v.shapes[i]?.k));
-    return [
-      { label: t('Add a key here'), icon: Key, keys: 'K', disabled: keyed, does: () => this.key() },
-      { label: t('Remove this key'), icon: UI.close, disabled: !some, does: () => this.removeKeyHere() },
-      SEP,
-      { label: t('Edit the words'), icon: Tag, keys: 'Enter', disabled: !one || isLink(one.k), does: () => this.editWords() },
-      { label: t('Duplicate'), icon: Copy, keys: 'Mod+D', disabled: joins, does: () => this.duplicateSel() },
-      SEP,
-      { label: t('Copy'), icon: UI.copy, keys: 'Mod+C', disabled: joins, does: () => this.copyOut(false) },
-      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', disabled: joins, does: () => this.copyOut(true) },
-      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn() },
-      SEP,
-      { label: t('Delete'), icon: UI.trash, keys: 'Delete', does: () => this.removeSel() },
-    ];
+    return this.sels.length ? (contextOf(COMMANDS, this) as ContextEntry[]) : [];
   }
 
   /* ---------- drawing ---------- */
@@ -699,9 +643,10 @@ export class ToAnimEditor extends DocElement<AnimView> {
 
   private renderBar() {
     const s = this.view.shapes[this.sel];
+    const own = (id: string) => COMMANDS.find((c) => c.id === `anim.${id}`)!;
     return html`<to-bar class="anim-bar">
-      ${tool({ label: this.playing ? t('Pause') : t('Play'), icon: this.playing ? Pause : Play, keys: 'Space', pressed: this.playing, keep: true, does: () => this.toggle() })}
-      <to-menu class="anim-fx" keep .label=${t('Effects')} .icon=${Sparkles} caret ?disabled=${!s} .items=${this.fxItems()}></to-menu>
+      ${cmdTool(own('play'), this, { icon: this.playing ? Pause : Play })}
+      <to-menu class="anim-fx" keep .label=${labelOf(own('fx'), this)} .icon=${Sparkles} caret ?disabled=${!s} .items=${drawnIn(COMMANDS, 'menu:fx', this)}></to-menu>
       ${this.undoTools()}
     </to-bar>`;
   }
@@ -762,7 +707,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
       ${field('frames', t('Frames'), frames, MIN_FRAMES, MAX_FRAMES)}
       <span class="anim-secs to-hint" aria-live="polite">${t('{s} s', { s: (frames / fps).toFixed(1) })}</span>
       ${field('fps', t('Frames a second'), fps, MIN_FPS, MAX_FPS)}
-      <to-menu class="anim-loop" .label=${loopName(loop)} .icon=${Repeat} caret .items=${this.loopItems()}></to-menu>
+      <to-menu class="anim-loop" .label=${loopName(loop)} .icon=${Repeat} caret .items=${drawnIn(COMMANDS, 'menu:loop', this)}></to-menu>
     </div>`;
   }
 
@@ -788,8 +733,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return html`<div class="anim-time">
       <div class="anim-transport">
         <span class="anim-modes" role="group" aria-label=${t('Mode')}>
-          <button type="button" class="to-btn" aria-pressed=${String(!move)} @click=${() => this.setMode('draw')}>${icon(PenTool, 16)}<span>${t('Draw')}</span></button>
-          <button type="button" class="to-btn" aria-pressed=${String(move)} @click=${() => this.setMode('move')}>${icon(Play, 16)}<span>${t('Move')}</span></button>
+          ${cmdBtn(COMMANDS.find((c) => c.id === 'anim.draw')!, this, { keep: false })} ${cmdBtn(COMMANDS.find((c) => c.id === 'anim.move')!, this, { keep: false })}
         </span>
         <span class="anim-clock to-hint">${t('{now} s of {all} s', { now: this.secs(shown), all: this.secs(frames - 1) })}</span>
       </div>

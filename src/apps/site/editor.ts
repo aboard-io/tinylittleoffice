@@ -24,27 +24,26 @@
  * takes back. Every change is the kernel's ops (model.ts).
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CopyPlus, Eye, Palette, SquarePen } from 'lucide';
 import { applyAll, plainText, write, type Block, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
-import { btn } from '../../kit/bar.ts';
+import { cmdBtn, cmdMenu } from '../../kit/bar.ts';
+import { contextOf, drawnIn, runKey } from '../../kit/commands.ts';
+import COMMANDS, { BOX, PREVIEW } from './commands.ts';
 import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
-import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import { type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { editFence, editTable, makeDoc } from '../../kit/doc-dialog.ts';
-import { apps } from '../../kit/apps.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
-import { icon, UI, type IconNode } from '../../kit/icons.ts';
+import { icon, UI } from '../../kit/icons.ts';
 import { gateHtml, showPictures } from '../../kit/pictures.ts';
 import { t } from '../../kit/i18n.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
-import type { MenuItem } from '../../kit/menu.ts';
 import { webBlock } from '../write/model.ts';
 import { askPlace, askShop, same, type Anchor } from './forms.ts';
 import {
-  cardFields, cardRuns, duplicateObj, insertObj, kindName, kindsOf, linesOf, linkFields, linkRuns, linksOp, moveObj, objBlocks, objectAt, objectsOf, objId, pasteObj, plainRuns,
-  productsBlock, readSite, removeObj, ROW, settingOp, splitOps, themeOp, withLine, WORDS, wordsOps, type Change, type Kind, type ObjKind, type PartName, type Site,
+  cardFields, cardRuns, insertObj, linesOf, linkFields, linkRuns, objBlocks, objectAt, objectsOf, objId, pasteObj, plainRuns,
+  productsBlock, readSite, removeObj, settingOp, splitOps, themeOp, withLine, WORDS, wordsOps, type Change, type Kind, type ObjKind, type PartName, type Site,
 } from './model.ts';
 import type { Run } from '../../doc/index.ts';
-import { FACES, THEMES, faceOf, isDark, type Face, type Theme } from './theme.ts';
+import { type Theme } from './theme.ts';
 import { FRAME_SCRIPT, sitePage } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
@@ -81,29 +80,12 @@ interface Mark {
   after: string | null;
 }
 
-const THEME_NAMES = (): Record<string, string> => ({
-  indigo: t('Indigo'), teal: t('Teal'), rose: t('Rose'), amber: t('Amber'), ink: t('Ink'), forest: t('Forest'), ocean: t('Ocean'), sunset: t('Sunset'),
-  plum: t('Plum'), candy: t('Candy'), olive: t('Olive'), slate: t('Slate'), paper: t('Paper'), typewriter: t('Typewriter'), midnight: t('Midnight'), coal: t('Coal'),
-});
-const FACE_NAMES = (): Record<Face, string> => ({ sans: t('Sans serif'), serif: t('Serif'), rounded: t('Rounded'), mono: t('Monospace') });
-
 /** What a thing is called, in its form's heading and its bar's name. */
 export const objName = (k: ObjKind): string =>
   ({
     page: t('Page'), section: t('Section'), heading: t('Heading'), p: t('Paragraph'), card: t('Big link'), button: t('Button'), link: t('Small link'),
     picture: t('Web Picture'), icon: t('Big icon'), web: t('Web Embed'), doc: t('Tiny Little Office Doc'), table: t('Table'), products: t('Products'),
   })[k];
-/** A place as its chip shows it: a page of the site by its name, an address by its host, short. */
-function shortPlace(url: string): string {
-  const u = url.trim();
-  if (!u) return '';
-  const words = u.startsWith('#') ? u.slice(1) : u.replace(/^(https?:\/\/|mailto:|tel:)/, '').replace(/\/.*$/, '');
-  return words.length > 16 ? `${words.slice(0, 15)}…` : words;
-}
-const KIND_ICON: Record<Kind, IconNode> = {
-  page: UI.heading1, section: UI.heading, heading: UI.heading, p: UI.text, button: UI.link, card: UI.list, link: UI.link, picture: UI.image, icon: UI.icon, web: UI.globe, doc: UI.insert, product: UI.table,
-};
-
 export class ToSiteEditor extends DocElement<Site> {
   static properties: PropertyDeclarations = { held: { state: true }, shown: { state: true }, preview: { type: Boolean, reflect: true } };
   /** The thing in hand, by its id, or null. */
@@ -297,7 +279,7 @@ export class ToSiteEditor extends DocElement<Site> {
     else this.tell(show);
   }
   /** The thing in hand let go: its bar goes, its outline too. */
-  private release() {
+  release() {
     if (this.held === null) return;
     this.held = null;
     this.heldRect = null;
@@ -318,7 +300,7 @@ export class ToSiteEditor extends DocElement<Site> {
     return new DOMRect(fr.left + x, top, w, bottom - top);
   };
   /** A change made: its ops, and the thing it leaves in hand (scrolled into view when the page is drawn again). */
-  private change(c: Change | null) {
+  change(c: Change | null) {
     if (!c) return;
     this.edit(c.ops, undefined, { held: this.held, after: c.id } satisfies Mark);
     this.land(c.id);
@@ -348,30 +330,24 @@ export class ToSiteEditor extends DocElement<Site> {
     const m = entry.mark as Mark | undefined;
     this.land(m ? (redo ? m.after : m.held) : null);
   }
-  /** The keys of the thing in hand (docs/editing.md §6): never from a field or a button. */
+  /** The keys of the thing in hand (commands.ts; docs/editing.md §6): never from a field or a button. */
   private onBoxKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.target !== e.currentTarget || this.held === null || e.isComposing || this.asking) return;
-    const id = this.held;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key.toLowerCase();
-    const plain = !mod && !e.altKey && !e.shiftKey;
-    const upDown = e.key === 'ArrowUp' || e.key === 'ArrowDown';
-    const leftRight = e.key === 'ArrowLeft' || e.key === 'ArrowRight';
-    const go = (f: () => void) => {
-      e.preventDefault();
-      f();
-    };
-    if (e.key === 'Escape' && plain) go(() => (this.release(), this.frame?.focus({ preventScroll: true })));
-    else if (e.key === 'Enter' && plain) go(() => void this.editObj(id));
-    else if ((e.key === 'Delete' || e.key === 'Backspace') && plain) go(() => this.change(removeObj(this.doc, this.view, id)));
-    else if (upDown && e.altKey && !mod && !e.shiftKey) go(() => this.change(moveObj(this.doc, this.view, id, e.key === 'ArrowUp' ? 'up' : 'down')));
-    else if (leftRight && e.altKey && mod && !e.shiftKey) go(() => this.change(moveObj(this.doc, this.view, id, e.key === 'ArrowLeft' ? 'left' : 'right')));
-    else if (upDown && plain) go(() => this.step(e.key === 'ArrowUp' ? -1 : 1));
-    else if (mod && !e.altKey && !e.shiftKey && k === 'd') go(() => this.change(duplicateObj(this.doc, this.view, id)));
-    else if (mod && !e.altKey && !e.shiftKey && k === 'a') e.preventDefault();
+    if (runKey(e, BOX, this)) return;
+    // Select all: there is nothing more to choose than the thing in hand, and never the page's words.
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'a') e.preventDefault();
   };
+  /** Escape on the thing in hand: let go, the focus back to the page. */
+  letGo() {
+    this.release();
+    this.frame?.focus({ preventScroll: true });
+  }
+  /** A bar's button: whatever form is open closes first. */
+  fromBarDo(f: () => void) {
+    this.fromBar(f)();
+  }
   /** The thing before or after the one in hand, on the same page. */
-  private step(by: -1 | 1) {
+  step(by: -1 | 1) {
     const o = objectAt(this.view, this.held);
     if (!o) return;
     const page = this.view.sections[o.n].page;
@@ -406,25 +382,9 @@ export class ToSiteEditor extends DocElement<Site> {
     e.clipboardData.setData('text/html', docToHtml(blocks));
     if (e.type === 'cut') this.change(removeObj(this.doc, this.view, id));
   };
+  /** The bar beside the thing in hand (commands.ts). */
   private heldItems(): ContextEntry[] {
-    const id = this.held;
-    const o = objectAt(this.view, id);
-    if (!o || id === null) return [];
-    const { doc, view } = this;
-    const move = (dir: 'up' | 'down' | 'left' | 'right', label: string, icon: IconNode, keys: string): ContextEntry => ({
-      label, icon, keys, disabled: !moveObj(doc, view, id, dir), does: this.fromBar(() => this.change(moveObj(this.doc, this.view, id, dir))),
-    });
-    const place = ROW.has(o.kind) ? this.placeOf(id) : null;
-    return [
-      { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editObj(id) },
-      ...(place ? [{ label: place.url ? t('Goes to {place}', { place: place.url }) : t('Where it goes'), text: shortPlace(place.url) || t('Link'), does: this.fromBar(() => void this.editPlace(id)) }] : []),
-      move('up', t('Move up'), ArrowUp, 'Alt+ArrowUp'),
-      move('down', t('Move down'), ArrowDown, 'Alt+ArrowDown'),
-      ...(ROW.has(o.kind) ? [move('left', t('Move left'), ArrowLeft, 'Mod+Alt+ArrowLeft'), move('right', t('Move right'), ArrowRight, 'Mod+Alt+ArrowRight')] : []),
-      { label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', disabled: !duplicateObj(doc, view, id), does: this.fromBar(() => this.change(duplicateObj(this.doc, this.view, id))) },
-      SEP,
-      { label: t('Delete'), icon: UI.trash, keys: 'Delete', disabled: !removeObj(doc, view, id), does: this.fromBar(() => this.change(removeObj(this.doc, this.view, id))) },
-    ];
+    return objectAt(this.view, this.held) && this.held !== null ? (contextOf(COMMANDS, this) as ContextEntry[]) : [];
   }
 
   /* ---------- the forms ---------- */
@@ -450,7 +410,7 @@ export class ToSiteEditor extends DocElement<Site> {
     }
   }
   /** Where a button, a big link or a small link goes, and its icon. */
-  private placeOf(id: string): { url: string; icon: string } | null {
+  placeOf(id: string): { url: string; icon: string } | null {
     const o = objectAt(this.view, id);
     const b = o ? this.doc.blocks[o.at] : undefined;
     if (!o || !b) return null;
@@ -579,38 +539,16 @@ export class ToSiteEditor extends DocElement<Site> {
 
   /* ---------- the bar ---------- */
 
-  /** What Insert ▾ offers here: what the section of the thing in hand (or the one on view) can take. */
-  private inserts(): MenuItem[] {
-    const o = objectAt(this.view, this.held);
-    const put = (block: Block) => this.change(insertObj(this.doc, this.view, this.held, this.cur, block));
-    return [
-      ...kindsOf(this.view, o ? o.n : this.cur).map((k) => ({ label: kindName(k), icon: KIND_ICON[k], does: () => void this.insert(k) })),
-      { label: t('QR code of this document'), icon: UI.qr, does: () => put(qrBlock()) },
-      // A new document of another app, made in its own editor in the dialog (kit/doc-dialog.ts): a website of pages holds them, a Quick Links page does not.
-      ...(this.view.links
-        ? []
-        : apps()
-            .filter((a) => a.id !== 'site')
-            .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void makeDoc(a.id).then((f) => f && put(f)) }))),
-    ];
+  /** Insert ▾ a QR code of this document; a new document of another app, made in its own editor in the dialog (kit/doc-dialog.ts). */
+  insertQr() {
+    this.change(insertObj(this.doc, this.view, this.held, this.cur, qrBlock()));
   }
-  private setTheme(next: Partial<Theme>) {
+  async insertApp(id: string) {
+    const f = await makeDoc(id);
+    if (f) this.change(insertObj(this.doc, this.view, this.held, this.cur, f));
+  }
+  setTheme(next: Partial<Theme>) {
     this.edit([themeOp({ ...this.view.theme, ...next })]);
-  }
-  private lookItems(): MenuItem[] {
-    const th = this.view.theme;
-    const names = THEME_NAMES();
-    const faces = FACE_NAMES();
-    const mode = th.dark === undefined ? 'auto' : th.dark ? 'dark' : 'light';
-    return [
-      ...Object.entries(THEMES).map(([id, T]) => ({ label: names[id], swatch: T.a, group: t('Theme'), checked: th.id === id, does: () => this.setTheme({ id }) })),
-      { label: t('As the theme is'), group: t('Light or dark'), checked: mode === 'auto', does: () => this.setTheme({ dark: undefined }) },
-      { label: t('Light'), group: t('Light or dark'), checked: mode === 'light', does: () => this.setTheme({ dark: false }) },
-      { label: t('Dark'), group: t('Light or dark'), checked: mode === 'dark', does: () => this.setTheme({ dark: true }) },
-      ...FACES.map((f) => ({ label: faces[f], group: t('Type'), checked: faceOf(th) === f, does: () => this.setTheme({ face: f }) })),
-      { label: t('A website of pages'), group: t('Shape'), checked: !this.view.links, does: () => this.edit([linksOp(false)]) },
-      { label: t('Quick links: one column'), group: t('Shape'), checked: this.view.links, does: () => this.edit([linksOp(true)]) },
-    ];
   }
   /** Preview: the page as a visitor has it, and the Edit button that comes back. */
   startPreview() {
@@ -624,23 +562,21 @@ export class ToSiteEditor extends DocElement<Site> {
   }
   /** Escape in the preview (outside its page: the page's own Escape comes as a message) goes back to editing. */
   private onKey = (e: KeyboardEvent) => {
-    if (!this.preview || e.key !== 'Escape' || e.defaultPrevented) return;
-    e.preventDefault();
-    this.endPreview();
+    if (this.preview) runKey(e, PREVIEW, this);
   };
 
   render() {
-    const th = this.view.theme;
     const o = objectAt(this.view, this.held);
     const label = t('The website, as it will look');
     // The page in the frame with its pictures from the web grey until asked for (kit/pictures.ts).
     const framed = gateHtml(this.shown);
+    const own = (id: string) => COMMANDS.find((c) => c.id === `site.${id}`)!;
     return html`<to-bar class="site-bar">
         ${this.preview
-          ? btn({ label: t('Edit'), icon: UI.pen, cls: 'primary site-edit', does: () => this.endPreview() })
-          : html`<to-insert .items=${this.inserts()}></to-insert>
-              <to-menu class="site-look" icon-only .label=${t('Look: {theme}', { theme: `${THEME_NAMES()[th.id] ?? th.id}${isDark(th) ? ' · ' + t('Dark') : ''}` })} .icon=${Palette} .items=${this.lookItems()}></to-menu>
-              ${btn({ label: t('Preview'), icon: Eye, cls: 'site-preview-btn', does: () => this.startPreview() })} ${this.undoTools()}`}
+          ? cmdBtn(own('edit'), this, { cls: 'primary site-edit', keep: false })
+          : html`<to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+              ${cmdMenu(own('look'), this, COMMANDS, 'site-look')}
+              ${cmdBtn(own('preview'), this, { cls: 'site-preview-btn', keep: false })} ${this.undoTools()}`}
       </to-bar>
       <div class="site-page" tabindex="-1" role="group" aria-label=${label} @keydown=${this.onBoxKey}>
         ${framed.hidden

@@ -17,15 +17,16 @@
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { Calculator, ChartSpline, GripVertical } from 'lucide';
+import { GripVertical } from 'lucide';
 import { applyAll, write, type Doc, type Op } from '../../doc/index.ts';
-import { tool } from '../../kit/bar.ts';
+import { cmdTool, tool } from '../../kit/bar.ts';
+import { drawnIn, runKey } from '../../kit/commands.ts';
+import COMMANDS, { ENTRY, LINE } from './commands.ts';
 import { docToHtml, GENERATOR, pasteFrom } from '../../kit/clipboard.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { pageSvg, SERIES } from '../../kit/draw.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import type { MenuItem } from '../../kit/menu.ts';
 import { Rows, type Clip, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { addLine, clearTape, curves, dropLine, hasEngine, isNote, live, moveLines, pastedLines, readCalc, removeLine, replaceLines, setEngine, setLine, setMode, tape, tapeBlock, tidy, type CalcView, type Mode } from './model.ts';
 import { graphPage } from './view.ts';
@@ -87,6 +88,8 @@ export class ToCalcEditor extends DocElement<CalcView> {
   }
   connectedCallback() {
     super.connectedCallback();
+    // Its keys are the document: on a phone its bar is shown whatever has the focus (kit/chrome.ts).
+    this.dataset.bar = 'always';
     if (!this.ready) void loadEngine().then(() => (this.ready = true));
   }
 
@@ -114,7 +117,7 @@ export class ToCalcEditor extends DocElement<CalcView> {
   /* ---------- undo: the focus comes back ---------- */
 
   /** Every edit keeps where the focus was before it, for its undo. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? this.where());
   }
   private where(): Mark | undefined {
@@ -196,64 +199,84 @@ export class ToCalcEditor extends DocElement<CalcView> {
     if (this.settled.has(box)) return;
     if (box.value !== this.view.lines[i]) this.run((w) => setLine(w, i, box.value));
   }
+  /** The tape line a key is typed in, while its commands answer it (commands.ts). */
+  here: { i: number; box: HTMLInputElement; offset: number } | null = null;
   private onLineKey(e: KeyboardEvent, i: number) {
     if (e.isComposing || e.keyCode === 229) return;
     const box = e.target as HTMLInputElement;
     const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
-    const plain = !mod && !e.altKey && !e.shiftKey;
-    const lines = this.view.lines;
-    const offset = box.selectionStart ?? box.value.length;
-    if (mod && !e.altKey && /^[zy]$/i.test(k)) {
+    if (mod && !e.altKey && /^[zy]$/i.test(e.key)) {
       // Words typed and not yet on the tape: the box's own undo takes them back first.
-      if (box.value !== lines[i]) e.stopPropagation();
+      if (box.value !== this.view.lines[i]) e.stopPropagation();
       return;
     }
-    if (k === 'Enter') {
-      // Done: the line put on the tape, the caret to the line being typed (the tape grows at its end).
-      e.preventDefault();
-      this.runLine(i, box);
-      this.display?.focus();
-    } else if (k === 'Escape' && plain) {
-      e.preventDefault();
-      if (box.value !== lines[i]) {
-        // What the line said, back: the step out of an edit that has not been put down.
-        box.value = lines[i];
-        box.setSelectionRange(box.value.length, box.value.length);
-      } else this.rows.choose(i);
-    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && e.altKey && !mod && !e.shiftKey) {
-      e.preventDefault();
-      const by = k === 'ArrowUp' ? -1 : 1;
-      if (!box.value.trim() || (by < 0 ? i === 0 : i >= lines.length - 1)) return;
-      this.runLine(i, box, (v) => moveLines(v, i, i + 1, by));
-      this.focusLine(i + by, offset);
-    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && e.shiftKey && !mod && !e.altKey) {
-      e.preventDefault();
-      this.rows.choose(i);
-    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && plain) {
-      const to = k === 'ArrowUp' ? i - 1 : i + 1;
-      if (to < 0) return;
-      e.preventDefault();
-      if (box.value.trim()) this.runLine(i, box);
-      if (to >= lines.length) this.display?.focus();
-      else this.focusLine(to, offset);
-    } else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd') {
-      e.preventDefault();
-      const line = box.value.trim();
-      if (!line) return;
-      this.runLine(i, box, (v) => replaceLines(v, i + 1, i + 1, [v.lines[i]]));
-      this.focusLine(i + 1, offset);
-    } else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'a' && this.whole(box)) {
-      e.preventDefault();
-      this.rows.selectAll();
-    } else if (k === 'Backspace' && plain && box.value === '') {
-      e.preventDefault();
-      this.settled.add(box);
-      this.run((v) => removeLine(v, i));
-      if (i > 0) this.focusLine(i - 1, 'end');
-      else if (lines.length > 1) this.focusLine(0, 0);
-      else void this.updateComplete.then(() => this.display?.focus());
+    this.here = { i, box, offset: box.selectionStart ?? box.value.length };
+    try {
+      runKey(e, LINE, this);
+    } finally {
+      this.here = null;
     }
+  }
+  /** Enter on a line: done, the line put on the tape, the caret to the line being typed (the tape grows at its end). */
+  lineDone() {
+    const h = this.here!;
+    this.runLine(h.i, h.box);
+    this.display?.focus();
+  }
+  /** Escape on a line: what it said, back (the step out of an edit not put down); said already, the line chosen. */
+  lineBack() {
+    const { i, box } = this.here!;
+    if (box.value !== this.view.lines[i]) {
+      box.value = this.view.lines[i];
+      box.setSelectionRange(box.value.length, box.value.length);
+    } else this.rows.choose(i);
+  }
+  /** Alt+Up/Down: the line past its neighbour, the caret with it. */
+  lineMove(by: -1 | 1) {
+    const { i, box, offset } = this.here!;
+    if (!box.value.trim() || (by < 0 ? i === 0 : i >= this.view.lines.length - 1)) return;
+    this.runLine(i, box, (v) => moveLines(v, i, i + 1, by));
+    this.focusLine(i + by, offset);
+  }
+  /** Shift+Up/Down: the line chosen whole. */
+  lineChoose() {
+    this.rows.choose(this.here!.i);
+  }
+  /** Up and Down: the line before or after (after the last, the line being typed). */
+  lineStep(by: -1 | 1): boolean {
+    const { i, box, offset } = this.here!;
+    const to = i + by;
+    if (to < 0) return false;
+    if (box.value.trim()) this.runLine(i, box);
+    if (to >= this.view.lines.length) this.display?.focus();
+    else this.focusLine(to, offset);
+    return true;
+  }
+  /** Mod+D: the line again under it. */
+  lineDuplicate() {
+    const { i, box, offset } = this.here!;
+    if (!box.value.trim()) return;
+    this.runLine(i, box, (v) => replaceLines(v, i + 1, i + 1, [v.lines[i]]));
+    this.focusLine(i + 1, offset);
+  }
+  /** Backspace in an empty line: the line taken away, the caret to the end of the one before. */
+  lineRemove(): boolean {
+    const { i, box } = this.here!;
+    if (box.value !== '') return false;
+    const lines = this.view.lines;
+    this.settled.add(box);
+    this.run((v) => removeLine(v, i));
+    if (i > 0) this.focusLine(i - 1, 'end');
+    else if (lines.length > 1) this.focusLine(0, 0);
+    else void this.updateComplete.then(() => this.display?.focus());
+    return true;
+  }
+  /** Mod+A with the box's words all selected (or none): the whole tape. False while the box has words to select first. */
+  allKey(e?: Event): boolean {
+    const box = e?.target as HTMLInputElement | null;
+    if (!box || !this.whole(box)) return false;
+    this.rows.selectAll();
+    return true;
   }
   /** A box whose words are all selected (or that has none): Select All pressed again takes the whole tape. */
   private whole(box: HTMLInputElement): boolean {
@@ -362,74 +385,53 @@ export class ToCalcEditor extends DocElement<CalcView> {
   }
 
   /** The line given words of its own: the caret at their end. */
-  private setEntry(s: string) {
+  setEntry(s: string) {
     this.entry = s;
     this.caret = null;
   }
 
   /** Enter: the line goes on the tape, worked out; on a graph, it is drawn. */
-  private enter() {
+  enter() {
     if (!this.entry.trim()) return;
     this.run((v) => addLine(v, this.entry));
     this.setEntry('');
     this.recall = 0;
   }
-  /** Keys in the line being typed. Up and Down recall the tape only with no modifier: Shift+Up is the box's own selection. */
+  /** Keys in the line being typed (commands.ts). Up and Down recall the tape only with no modifier: Shift+Up is the box's own selection. */
   private onKey = (e: KeyboardEvent) => {
     if (e.isComposing || e.keyCode === 229) return;
-    const lines = this.view.lines;
-    const mod = e.metaKey || e.ctrlKey;
-    const plain = !mod && !e.altKey && !e.shiftKey;
     const box = e.target as HTMLInputElement;
-    if (mod && !e.altKey && /^[zy]$/i.test(e.key)) {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && /^[zy]$/i.test(e.key)) {
       // Words being typed are not the document: the box's own undo takes them back, not the tape's.
       if (box.value) e.stopPropagation();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      this.enter();
-    } else if (e.key === 'ArrowUp' && plain && this.recall < lines.length) {
-      e.preventDefault();
-      this.setEntry(lines[lines.length - 1 - this.recall++]);
-    } else if (e.key === 'ArrowDown' && plain && this.recall > 0) {
-      e.preventDefault();
-      this.setEntry(--this.recall ? lines[lines.length - this.recall] : '');
-    } else if (e.key === 'Escape' && plain && this.entry) {
-      e.preventDefault();
-      this.setEntry('');
-    } else if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'a' && this.whole(box)) {
-      e.preventDefault();
-      this.rows.selectAll();
+      return;
     }
+    runKey(e, ENTRY, this);
   };
+  /** Up (1) and Down (-1) in the line being typed: the tape's lines again, last first, and back to an empty line. */
+  recallKey(by: 1 | -1): boolean {
+    const lines = this.view.lines;
+    if (by > 0 && this.recall < lines.length) this.setEntry(lines[lines.length - 1 - this.recall++]);
+    else if (by < 0 && this.recall > 0) this.setEntry(--this.recall ? lines[lines.length - this.recall] : '');
+    else return false;
+    return true;
+  }
+  /** Insert ▾: words typed into the line where its caret is. */
+  typeIn(words: string) {
+    this.put(words);
+    this.display?.focus();
+  }
+  clearTape() {
+    this.run(clearTape);
+  }
 
   /* ---------- the bar ---------- */
 
-  private mode(m: Mode) {
+  mode(m: Mode) {
     this.rows.release();
     this.run((v) => setMode(v, m));
     this.setEntry('');
   }
-  private inserts(): MenuItem[] {
-    const f = (label: string, typed: string, group: string): MenuItem => ({ label, hint: typed, group, does: () => (this.put(typed), this.display?.focus()) });
-    const fns = t('Functions');
-    const more = t('Units and algebra');
-    return [
-      f(t('Sine'), 'sin(', fns),
-      f(t('Cosine'), 'cos(', fns),
-      f(t('Tangent'), 'tan(', fns),
-      f(t('Natural log'), 'ln(', fns),
-      f(t('Log base ten'), 'log(', fns),
-      f(t('Square root'), 'sqrt(', fns),
-      f(t('Absolute value'), 'abs(', fns),
-      f(t('Factorial'), '!', fns),
-      f(t('e, the number'), 'e', fns),
-      f(t('x, for a graph'), 'x', fns),
-      f(t('Convert to'), ' to ', more),
-      f(t('Derivative'), 'derivative("x^2", "x")', more),
-      f(t('Simplify'), 'simplify("2x + 3x")', more),
-    ];
-  }
-
   /* ---------- drawing ---------- */
 
   private keys() {
@@ -469,11 +471,11 @@ export class ToCalcEditor extends DocElement<CalcView> {
     const v = this.view;
     const graph = v.mode === 'graph';
     const answer = live(this.entry, v.lines, v.mode);
+    const own = (id: string) => COMMANDS.find((c) => c.id === `calc.${id}`)!;
     return html`<to-bar class="calc-bar">
-        ${tool({ label: t('Calculator'), icon: Calculator, pressed: !graph, does: () => this.mode('calc') })}
-        ${tool({ label: t('Graph'), icon: ChartSpline, pressed: graph, does: () => this.mode('graph') })}
-        <to-insert .items=${this.inserts()}></to-insert>
-        ${tool({ label: graph ? t('Clear the graph') : t('Clear the tape'), icon: UI.trash, disabled: !v.lines.length, does: () => this.run(clearTape) })}
+        ${cmdTool(own('calc'), this, { keep: false })} ${cmdTool(own('graph'), this, { keep: false })}
+        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${cmdTool(own('clear'), this, { keep: false })}
         ${this.undoTools()}
       </to-bar>
       <div class="calc ${graph ? 'calc-graphing' : ''}">

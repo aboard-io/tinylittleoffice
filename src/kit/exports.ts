@@ -16,6 +16,7 @@ import { INK, MUTED, FONT, pageSvg, stack, fileName, slug, xml } from './draw.ts
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
 import { appOf } from './apps.ts';
+import { keysText } from './commands.ts';
 import { encodeDoc } from './codec.ts';
 import { go, parseHash, routeHash } from './route.ts';
 import { parse, referenceNotes, write } from '../doc/index.ts';
@@ -335,10 +336,9 @@ export function exportItems(current: () => Current): MenuItem[] {
     does: () => {},
   });
   return [
-    { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run(() => printDoc(current())) },
+    { label: t('Print, or save as PDF'), icon: UI.print, hint: keysText('Mod+P'), does: () => void run(() => printDoc(current())) },
     ...formatsOf(def).map(row),
     ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => go(routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }
 
-const keysHint = (keys: string) => (typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? keys.replace('Mod+', '⌘') : keys.replace('Mod+', 'Ctrl+'));

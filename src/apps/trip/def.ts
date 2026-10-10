@@ -46,11 +46,6 @@ export default defineApp({
     { ext: 'gpx', label: () => t('GPX route'), mime: 'application/gpx+xml', shows: null, build: (doc) => utf8(tripToGpx(parse(doc))) },
     { ext: 'geojson', label: () => t('GeoJSON'), mime: 'application/geo+json', shows: null, build: (doc) => utf8(tripToGeoJson(parse(doc))) },
   ],
-  keys: [
-    { keys: 'Mod+Alt+Enter', does: () => t('Present: the map flies stop to stop') },
-    { keys: 'ArrowRight / Space', does: () => t('Presenting: the next stop') },
-    { keys: 'ArrowLeft', does: () => t('Presenting: the stop before') },
-    { keys: 'Escape', does: () => t('Stop presenting') },
-  ],
+  commands: () => import('./commands.ts'),
   handoffs: [{ to: 'cal', label: () => t('Put the stops on a calendar, a day each'), convert: (doc) => tripToCal(doc) }],
 });

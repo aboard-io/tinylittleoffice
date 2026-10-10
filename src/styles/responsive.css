@@ -7,6 +7,11 @@
       --to-bleed-l: calc(-1 * var(--to-inset-l));
       --to-bleed-r: calc(-1 * var(--to-inset-r));
     }
+    /* The paper meets the header's hairline: no strip of the page's grey between the border and the document (Paul,
+       2026-10-10: "it has a border that has a gap between border and the main menu area"). */
+    .to-main.to-wide:has(> to-write-editor) {
+      padding-top: 0;
+    }
   }
   @media (max-width: 760px) {
     :root {
@@ -96,8 +101,57 @@
     to-chrome[gliding] {
       transition: height 0.2s ease-out;
     }
-    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      transition: opacity 0.12s ease;
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-column.barred > .to-palette-btn {
+      transition:
+        opacity 0.12s ease,
+        transform 0.2s ease-out;
+    }
+    .to-column.barred {
+      transition: padding-bottom 0.2s ease-out;
+    }
+    /* The bar comes with the focus (kit/chrome.ts: indoc): while nothing in the document has it (reading), the bar and
+       the palette's button slide under the column's foot and its room goes with them; an editor whose keys are the
+       document (the Calculator: data-bar="always") keeps it. While words are selected the context bar is the row
+       (kit/context.ts: docked), and the bar's own steps aside under it. */
+    to-chrome:not([indoc]) .to-column.barred:not(:has(> main > .to-editor[data-bar='always'])),
+    :root[data-context-row] .to-column.barred {
+      padding-bottom: 0;
+    }
+    to-chrome:not([indoc]) .to-column.barred > main > .to-editor:not([data-bar='always']) to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    to-chrome:not([indoc]) .to-column.barred:not(:has(> main > .to-editor[data-bar='always'])) > .to-palette-btn,
+    :root[data-context-row] .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    :root[data-context-row] .to-column.barred > .to-palette-btn {
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .to-column.barred > .to-palette-btn {
+      top: auto;
+      bottom: 0;
+      border-bottom: 0;
+      border-top: 1px solid var(--to-border);
+    }
+    to-chrome:not([editing]) .to-column.barred > .to-palette-btn {
+      height: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    /* The context bar as the bottom bar's row: across the column's foot, the bar's height, its buttons in one scrolling row. */
+    .to-context[data-docked] {
+      max-width: none;
+      min-height: var(--to-bar-h);
+      padding: 0.375em var(--to-gutter);
+      border: 0;
+      border-top: 1px solid var(--to-border);
+      border-radius: 0;
+      box-shadow: none;
+      background: var(--to-bg);
+      transition: transform 0.2s ease-out;
+    }
+    @starting-style {
+      .to-context[data-docked]:popover-open {
+        transform: translateY(100%);
+      }
     }
     to-chrome[gliding] .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
       opacity: 0;

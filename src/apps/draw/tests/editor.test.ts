@@ -592,7 +592,7 @@ test('§5 Escape: one step per press, the chosen shape first, then the tool back
   expect(button(el, 'Join two shapes').getAttribute('aria-pressed')).toBe('true');
 });
 
-test('§1 the canvas\'s keys never act from a bar button: Enter presses the button, a letter is no tool, Delete removes nothing; in pixel mode Space and Enter press the bar\'s buttons', async () => {
+test('§1 the canvas\'s keys never act from a bar button: Enter presses the button, a letter is no tool, Delete removes nothing; in pixel mode Space and Enter press the bar\'s buttons, and the arrows walk the bar', async () => {
   const { el, last } = await editor(DRAWING);
   await tap(el, 96, 80);
   const zoom = button(el, 'Zoom in');
@@ -609,7 +609,9 @@ test('§1 the canvas\'s keys never act from a bar button: Enter presses the butt
   pencil.focus();
   expect(await press(el, ' ', {}, pencil)).toBe(false);
   expect(await press(el, 'Enter', {}, pencil)).toBe(false);
-  expect(await press(el, 'ArrowRight', {}, pencil)).toBe(false);
+  // The arrows are the bar's own (a toolbar: round nine): the next button, never a square.
+  expect(await press(el, 'ArrowRight', {}, pencil)).toBe(true);
+  expect(document.activeElement).toBe(button(el, 'Fill'));
   expect(last()).toBe(n);
 });
 

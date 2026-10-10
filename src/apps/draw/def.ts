@@ -72,19 +72,5 @@ export default defineApp({
   ],
   // Motion reads a drawing's table as it is; the entry shows once the Motion app is in the registry.
   handoffs: [{ to: 'anim', label: () => t('Animate this drawing'), convert: (doc) => doc }],
-  keys: [
-    { keys: 'V', does: () => t('Select') },
-    { keys: 'R', does: () => t('Rectangle') },
-    { keys: 'E', does: () => t('Ellipse') },
-    { keys: 'D', does: () => t('Diamond') },
-    { keys: 'L', does: () => t('Line') },
-    { keys: 'A', does: () => t('Arrow') },
-    { keys: 'T', does: () => t('Text') },
-    { keys: 'K', does: () => t('Join two shapes') },
-    { keys: 'P', does: () => t('Pen: any shape, a tap for each corner') },
-    { keys: 'F', does: () => t('Freehand: drag to draw a line or a shape') },
-    { keys: '[ / ]', does: () => t('Rotate left, rotate right') },
-    { keys: 'Mod+Shift+L / Mod+Shift+E / Mod+Shift+R', does: () => t('Align a text left, centred or right (the bar’s Align goes round the three)') },
-    { keys: 'Arrows', does: () => t('Nudge the shapes in hand') },
-  ],
+  commands: () => import('./commands.ts'),
 });

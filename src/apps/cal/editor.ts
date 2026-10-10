@@ -19,9 +19,11 @@
  * caret, the chosen tasks or the month of what changed.
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
-import { ArrowLeft, ArrowRight, CalendarDays, ChartGantt, Check, CopyPlus, Globe, GripVertical, Grid3x3, Repeat as RepeatIcon } from 'lucide';
+import { CalendarDays, ChartGantt, Check, CopyPlus, GripVertical, Grid3x3, Repeat as RepeatIcon } from 'lucide';
 import { applyAll, dayToYmd, family, parse, placeFamily, runLength, write, ymdString, ymdToDay, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
-import { btn, dateNav } from '../../kit/bar.ts';
+import { btn, cmdBtn, cmdMenu, dateNav } from '../../kit/bar.ts';
+import { drawnIn, labelOf, run, runKey } from '../../kit/commands.ts';
+import COMMANDS, { AT } from './commands.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import type { ContextEntry } from '../../kit/context.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
@@ -29,7 +31,6 @@ import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { Rows, type Clip, type DropHow, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { icon, UI, type IconNode } from '../../kit/icons.ts';
 import { language, t } from '../../kit/i18n.ts';
-import type { MenuItem } from '../../kit/menu.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import {
@@ -230,7 +231,7 @@ export class ToCalEditor extends DocElement<CalView> {
     if (this.editing) e.stopImmediatePropagation();
   };
   /** Every edit carries where the selection was: the chosen tasks, or the caret in a task's words. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? this.markNow());
   }
   private markNow(): Mark | undefined {
@@ -284,7 +285,7 @@ export class ToCalEditor extends DocElement<CalView> {
     const k = this.shown.y * 12 + this.shown.m - 1 + by;
     this.shown = { y: Math.floor(k / 12), m: (k % 12) + 1 };
   }
-  private setMode(mode: Mode | 'gantt') {
+  setMode(mode: Mode | 'gantt') {
     if (mode === 'gantt') return this.edit(setGantt(this.view, true));
     this.mode = mode;
     this.edit(setGantt(this.view, false));
@@ -322,11 +323,11 @@ export class ToCalEditor extends DocElement<CalView> {
     void this.openDraft(item, draftOf(item), undefined, back ?? (this.view.gantt ? `.cal-trow[data-at="${item.at}"] .cal-grip` : `.cal-chip[data-at="${item.at}"]`));
   }
   /** A new span over these days (in the colour new spans take), or a new task after the current one. */
-  private create(from: number, to = from) {
+  create(from: number, to = from) {
     this.sweep = null;
     void this.openDraft(null, newDraft(from, to, this.ink), undefined, `.cal-cell[data-day="${Math.min(from, to)}"] .cal-n`);
   }
-  private createTask() {
+  createTask() {
     const cur = this.view.items.find((i) => i.at === this.cur) ?? this.view.items.at(-1);
     const bar = cur && ganttBars(this.view).find((b) => b.item === cur);
     const start = bar ? bar.start + bar.days : this.todayDay();
@@ -576,13 +577,17 @@ export class ToCalEditor extends DocElement<CalView> {
     this.edit(ops);
     this.focusWords(mapAt(ops, at));
   }
-  /** Chosen tasks a day earlier or later (the schedule's columns are days: Mod+Alt+Left/Right, as across a board's stages). */
-  private dayItems(s: RowSpan): ContextEntry[] {
-    return [
-      { label: t('A day earlier'), icon: ArrowLeft, keys: 'Mod+Alt+ArrowLeft', does: () => this.nudge(s, -1) },
-      { label: t('A day later'), icon: ArrowRight, keys: 'Mod+Alt+ArrowRight', does: () => this.nudge(s, 1) },
-      { label: t('Dates…'), icon: CalendarDays, keys: 'Alt+Enter', does: () => this.openTask(this.rows.range?.focus ?? s.from) },
-    ];
+  /** Chosen tasks a day earlier or later (the schedule's columns are days: Mod+Alt+Left/Right, as across a board's stages), or their dates (commands.ts). */
+  private dayItems(_s: RowSpan): ContextEntry[] {
+    return drawnIn(AT('rows'), 'context', this);
+  }
+  nudgeChosen(by: 1 | -1) {
+    const s = this.rows.span();
+    if (s) this.nudge(s, by);
+  }
+  datesChosen() {
+    const s = this.rows.span();
+    if (s) this.openTask(this.rows.range?.focus ?? s.from);
   }
   private nudge(s: RowSpan, by: 1 | -1) {
     const ops = this.view.items.filter((i) => i.at >= s.from && i.at < s.to).flatMap((i) => moveItem(this.view, i, by));
@@ -619,87 +624,78 @@ export class ToCalEditor extends DocElement<CalView> {
     this.edit(r.ops);
     if (r.at >= 0) this.focusWords(r.at, r.offset);
   }
-  /** Keys in a task's words (the rows controller has had Shift+arrows, Escape and the range's keys). */
-  private onWordsKey(e: KeyboardEvent, at: number) {
+  /** Keys in a task's words (commands.ts; the rows controller has had Shift+arrows, Escape and the range's keys): what the task's block `here` gets. */
+  taskKey(what: 'nest' | 'move' | 'step' | 'duplicate' | 'tick' | 'earlier' | 'later' | 'dates', e?: Event): boolean {
+    const at = this.here?.at ?? -1;
     const i = this.item(at);
-    if (!i) return;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
+    if (!i) return false;
     const offset = this.caretIn(at);
     const span = { from: at, to: family(this.doc, at) };
+    const up = e instanceof KeyboardEvent && (e.key === 'ArrowUp' || e.shiftKey);
     let ops: Op[] | null = null;
     let to = at;
-    if (k === 'Tab' && !mod && !e.altKey) {
-      ops = shiftTasks(this.doc, span, e.shiftKey ? -1 : 1);
+    if (what === 'nest') {
+      ops = shiftTasks(this.doc, span, up ? -1 : 1);
       // Tab moves on as Tab does when there is no nesting to do.
-      if (!ops) return;
-    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && e.altKey && !mod && !e.shiftKey) {
-      ops = moveTasks(this.doc, span, k === 'ArrowUp' ? -1 : 1);
+      if (!ops) return false;
+    } else if (what === 'move') {
+      ops = moveTasks(this.doc, span, up ? -1 : 1);
       if (ops) to = mapAt(ops, at);
-    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && !e.altKey && !mod && !e.shiftKey) {
-      const n = this.view.items.indexOf(i) + (k === 'ArrowUp' ? -1 : 1);
-      const next = this.view.items[n];
-      e.preventDefault();
+    } else if (what === 'step') {
+      const next = this.view.items[this.view.items.indexOf(i) + (up ? -1 : 1)];
       if (next) this.focusWords(next.at, offset);
-      return;
-    } else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd') {
+      return true;
+    } else if (what === 'duplicate') {
       const d = duplicateTasks(this.doc, span);
       ops = d.ops;
       to = d.at;
-    } else if (mod && !e.altKey && !e.shiftKey && k === 'Enter') ops = toggleDone(this.view, i);
-    else if (mod && e.altKey && (k === 'ArrowLeft' || k === 'ArrowRight')) ops = moveItem(this.view, i, k === 'ArrowLeft' ? -1 : 1);
-    else if (e.altKey && !mod && k === 'Enter') {
-      e.preventDefault();
-      return this.openTask(at);
-    } else return;
-    e.preventDefault();
-    if (!ops?.length) return;
+    } else if (what === 'tick') ops = toggleDone(this.view, i);
+    else if (what === 'earlier' || what === 'later') ops = moveItem(this.view, i, what === 'earlier' ? -1 : 1);
+    else return this.openTask(at), true;
+    if (!ops?.length) return true;
     this.edit(ops);
     this.focusWords(to, offset);
+    return true;
   }
 
   /* ---------- keys ---------- */
 
+  /** What a key is on, while the commands answer it (commands.ts): a task's block, a day, an entry. */
+  here: { at?: number; day?: number; el?: HTMLElement } | null = null;
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.isComposing) return;
     const el = e.target as HTMLElement;
     if (el.closest('dialog, [popover], to-bar, to-context, input, select, textarea')) return;
     const words = el.closest<HTMLElement>('.cal-trow to-text');
-    if (words) return this.onWordsKey(e, Number(words.closest<HTMLElement>('.cal-trow')!.dataset.at));
-    const mod = e.metaKey || e.ctrlKey;
-    if (this.rows.range) {
-      // Chosen tasks: a day earlier or later, or their dates (the rest of a range's keys are the rows controller's).
-      const s = this.rows.span();
-      if (s && mod && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        e.preventDefault();
-        return this.nudge(s, e.key === 'ArrowLeft' ? -1 : 1);
-      }
-      if (e.altKey && !mod && e.key === 'Enter') {
-        e.preventDefault();
-        return this.openTask(this.rows.range.focus);
-      }
-      return;
-    }
     const day = el.closest<HTMLElement>('.cal-n');
-    if (day) return this.onDayKey(e, Number(day.closest<HTMLElement>('.cal-cell')!.dataset.day));
     const thing = el.closest<HTMLElement>('.cal-chip, .cal-agenda-item');
-    if (thing) return this.onThingKey(e, thing);
+    // Chosen tasks: a day earlier or later, or their dates (the rest of a range's keys are the rows controller's).
+    const [where, here] = words
+      ? (['words', { at: Number(words.closest<HTMLElement>('.cal-trow')!.dataset.at) }] as const)
+      : this.rows.range
+        ? (['rows', {}] as const)
+        : day
+          ? (['day', { day: Number(day.closest<HTMLElement>('.cal-cell')!.dataset.day) }] as const)
+          : thing
+            ? (['entry', { el: thing }] as const)
+            : ([null, null] as const);
+    if (!where) return;
+    this.here = here;
+    try {
+      runKey(e, AT(where), this);
+    } finally {
+      this.here = null;
+    }
   };
-
+  /** Enter over a sweep of days: an event over them. */
+  makeSweep() {
+    if (this.sweep) this.create(this.sweep.from, this.sweep.to);
+  }
   /** The month's days: arrows by a day and a week, PageUp/PageDown by a month, Home/End the week's ends; with Shift a sweep, which Enter makes a span over. */
-  private onDayKey(e: KeyboardEvent, day: number) {
-    const mod = e.metaKey || e.ctrlKey;
-    if (mod || e.altKey) return;
+  walkDay(e: KeyboardEvent): boolean {
+    const day = this.here?.day;
+    if (day === undefined) return false;
     const k = e.key;
-    if (k === 'Enter' && this.sweep) {
-      e.preventDefault();
-      return this.create(this.sweep.from, this.sweep.to);
-    }
-    if (k === 'Escape' && this.sweep) {
-      e.preventDefault();
-      this.sweep = null;
-      return;
-    }
     const p = dayToYmd(day);
     const wd = (p.wd - this.week0 + 7) % 7;
     const to: Record<string, number> = {
@@ -713,10 +709,10 @@ export class ToCalEditor extends DocElement<CalView> {
       PageDown: ymdToDay(p.y, p.m + 1, Math.min(p.d, ymdToDay(p.y, p.m + 2, 1) - ymdToDay(p.y, p.m + 1, 1))),
     };
     const n = to[k];
-    if (n === undefined) return;
-    e.preventDefault();
+    if (n === undefined) return false;
     this.sweep = e.shiftKey && k.startsWith('Arrow') ? { from: this.sweep?.from ?? day, to: n } : null;
     this.goToDay(n);
+    return true;
   }
   private goToDay(day: number) {
     this.focusDay = day;
@@ -731,28 +727,26 @@ export class ToCalEditor extends DocElement<CalView> {
     return today >= first && today <= last ? today : first;
   }
   /** A focused entry (on a day or in the month's list): Delete takes it out, Mod+D makes another; the focus stays near. */
-  private onThingKey(e: KeyboardEvent, el: HTMLElement) {
-    const it = this.item(Number(el.dataset.at));
-    if (!it) return;
-    const mod = e.metaKey || e.ctrlKey;
+  entryKey(what: 'delete' | 'duplicate'): boolean {
+    const el = this.here?.el;
+    const it = el && this.item(Number(el.dataset.at));
+    if (!el || !it) return false;
     const sel = el.classList.contains('cal-chip') ? '.cal-chip' : '.cal-agenda-item';
-    const all = [...this.querySelectorAll<HTMLElement>(sel)];
-    const k = all.indexOf(el);
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !mod && !e.altKey) {
-      e.preventDefault();
+    const k = [...this.querySelectorAll<HTMLElement>(sel)].indexOf(el);
+    if (what === 'delete') {
       const day = spanDays(it, this.zone)[0];
       this.edit(removeSpan(this.doc, it));
       void this.updateComplete.then(() => {
         const left = [...this.querySelectorAll<HTMLElement>(sel)];
         (left[k] ?? left[k - 1] ?? this.querySelector<HTMLElement>(`.cal-cell[data-day="${day}"] .cal-n`))?.focus();
       });
-    } else if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'd') {
-      e.preventDefault();
+    } else {
       const ops = putItem(this.doc, this.view, null, draftOf(it), this.zone);
       this.edit(ops);
       const at = ops.find((o) => o.op === 'splice')?.at ?? -1;
       void this.updateComplete.then(() => this.querySelector<HTMLElement>(`${sel}[data-at="${at}"]`)?.focus());
     }
+    return true;
   }
 
   /* ---------- the clipboard ---------- */
@@ -849,35 +843,33 @@ export class ToCalEditor extends DocElement<CalView> {
 
   /* ---------- the bar ---------- */
 
-  private inserts(): MenuItem[] {
-    if (this.view.gantt) return [{ label: t('Task'), icon: UI.plus, does: () => this.createTask() }];
+  /** Insert ▾ Event: on the day picked, else today where it is shown, else the month's first. */
+  createEvent() {
     const day = this.picked >= 0 ? this.picked : ymdToDay(this.shown.y, this.shown.m, 1) <= this.todayDay() && this.todayDay() < ymdToDay(this.shown.y, this.shown.m + 1, 1) ? this.todayDay() : ymdToDay(this.shown.y, this.shown.m, 1);
-    return [{ label: t('Event'), icon: UI.plus, does: () => this.create(day) }];
+    this.create(day);
   }
-  private views(): MenuItem[] {
-    const g = this.view.gantt;
-    return [
-      { label: t('Month'), icon: CalendarDays, checked: !g && this.mode === 'month', does: () => this.setMode('month') },
-      { label: t('Year'), icon: Grid3x3, checked: !g && this.mode === 'year', does: () => this.setMode('year') },
-      { label: t('Schedule'), hint: t('The same dates as a Gantt chart'), icon: ChartGantt, checked: g, does: () => this.setMode('gantt') },
-    ];
+  /** Back (-1) or on (1): a week of the schedule, a year, a month. */
+  page(by: -1 | 1) {
+    if (this.view.gantt) this.scrollDays(7 * by);
+    else if (this.mode === 'year') this.shown = { ...this.shown, y: this.shown.y + by };
+    else this.shiftMonth(by);
   }
-  private inks(): MenuItem[] {
-    return Object.entries(CAL_COLORS).map(([k, c]) => ({ label: this.view.legend[k] ? `${c.name()}: ${this.view.legend[k]}` : c.name(), swatch: c.hex, checked: this.ink === k, does: () => (this.ink = k) }));
+  /** Today on view (and, in a month, no day picked). */
+  toToday() {
+    if (this.view.gantt) return this.scrollDays(0, this.todayDay());
+    if (this.mode !== 'year') this.picked = -1;
+    this.showDay(this.todayDay());
   }
   private nav() {
-    if (this.view.gantt) {
-      const day = this.ganttFrom() + this.scrolled;
-      const p = dayToYmd(day);
-      return dateNav({ label: this.monthName(p.y, p.m), prev: t('A week earlier'), next: t('A week later'), onPrev: () => this.scrollDays(-7), onNext: () => this.scrollDays(7), onToday: () => this.scrollDays(0, this.todayDay()) });
-    }
-    if (this.mode === 'year') return dateNav({ label: String(this.shown.y), prev: t('Previous year'), next: t('Next year'), onPrev: () => (this.shown = { ...this.shown, y: this.shown.y - 1 }), onNext: () => (this.shown = { ...this.shown, y: this.shown.y + 1 }), onToday: () => this.showDay(this.todayDay()) });
-    return dateNav({ label: this.monthName(this.shown.y, this.shown.m), prev: t('Previous month'), next: t('Next month'), onPrev: () => this.shiftMonth(-1), onNext: () => this.shiftMonth(1), onToday: () => ((this.picked = -1), this.showDay(this.todayDay())) });
+    const own = (id: string) => COMMANDS.find((c) => c.id === `cal.${id}`)!;
+    const p = this.view.gantt ? dayToYmd(this.ganttFrom() + this.scrolled) : this.shown;
+    const label = this.view.gantt || this.mode !== 'year' ? this.monthName(p.y, p.m) : String(this.shown.y);
+    return dateNav({ label, prev: labelOf(own('prev'), this), next: labelOf(own('next'), this), onPrev: () => run(own('prev'), this), onNext: () => run(own('next'), this), onToday: () => run(own('today'), this) });
   }
   private monthName(y: number, m: number) {
     return new Intl.DateTimeFormat(language(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(y, m - 1, 1));
   }
-  private openZones = async () => {
+  openZones = async () => {
     this.zones ??= allZones();
     this.requestUpdate();
     await this.updateComplete;
@@ -890,12 +882,13 @@ export class ToCalEditor extends DocElement<CalView> {
     const v = this.view;
     const docZone = v.zone;
     const ink = CAL_COLORS[this.ink];
+    const own = (id: string) => COMMANDS.find((c) => c.id === `cal.${id}`)!;
     return html`<to-bar class="cal-bar">
         ${this.nav()}
-        <to-menu class="cal-view" icon-only .label=${t('View')} .icon=${v.gantt ? ChartGantt : this.mode === 'year' ? Grid3x3 : CalendarDays} .items=${this.views()}></to-menu>
-        <to-insert .items=${this.inserts()}></to-insert>
-        <to-menu class="cal-ink" icon-only .label=${t('Colour for new: {colour}', { colour: v.legend[this.ink] ?? ink.name() })} .icon=${dot(ink.hex)} .items=${this.inks()}></to-menu>
-        ${btn({ label: this.zone.split('/').pop()!.replace(/_/g, ' '), icon: Globe, cls: 'cal-zone', does: () => void this.openZones() })}
+        ${cmdMenu(own('view'), this, COMMANDS, 'cal-view', { icon: v.gantt ? ChartGantt : this.mode === 'year' ? Grid3x3 : CalendarDays })}
+        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${cmdMenu(own('ink'), this, COMMANDS, 'cal-ink', { icon: dot(ink.hex) })}
+        ${cmdBtn(own('zone'), this, { cls: 'cal-zone', keep: false })}
         ${this.undoTools()}
       </to-bar>
       ${v.gantt ? this.renderGantt() : this.mode === 'year' ? this.renderYear() : this.renderMonth()}

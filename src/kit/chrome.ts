@@ -10,6 +10,12 @@
  * (Paul: "The title is too small to edit"), a new document's automatic name (`fresh`) chosen whole so typing replaces
  * it; Enter keeps what was typed, Escape puts back what was there, a tap elsewhere closes it.
  *
+ * On a phone the bar comes with the focus (Paul, 2026-10-10: "We could also just hide the secondary bar unless we are
+ * editing"): `indoc` says something in the document has the focus from the person's own tap or key (words, a cell, a
+ * canvas, a chosen row, the bar itself; not the focus a document opens with), and kit.css slides the bar under the column's foot while it is not set (reading), with the glide; an editor whose keys
+ * are the document says `data-bar="always"` (the Calculator). What of the bar needs nothing in hand is a row of the
+ * drawer's This document too (kit/drawer.ts). At the bar's end is the command palette's button (kit/palette.ts).
+ *
  * Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger. The secondary nav is now aligned
  * bottom." Under a coarse pointer, while a box has the focus (a `<to-text>`, a field in an app, a page in a frame)
  * from a person's tap or key (not the focus a document opens with, which raises no keyboard), `editing` is set and
@@ -41,7 +47,7 @@
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
- * events: `to-drawer-open` (the menu button), `to-share-open` (the meter, a short link's Extend: detail.short),
+ * events: `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter, a short link's Extend: detail.short),
  * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -53,6 +59,8 @@ import { t } from './i18n.ts';
 import { ago, type Kept } from './library.ts';
 import { expiresSentence, timeLeft } from './short.ts';
 import { pinWindow, reveal } from './scroll.ts';
+import { cmdTool } from './bar.ts';
+import { PALETTE } from './keys.ts';
 
 /** The document the header names. */
 export interface DocHead {
@@ -95,6 +103,7 @@ export class ToChrome extends LitElement {
     fresh: { attribute: false },
     titling: { state: true },
     editing: { type: Boolean, reflect: true },
+    indoc: { type: Boolean, reflect: true },
     expires: { type: Number },
     extend: { type: Boolean },
     inDisplay: { type: Boolean },
@@ -116,6 +125,8 @@ export class ToChrome extends LitElement {
   private titleWas = '';
   /** A box has the focus: on a phone the header steps aside (kit.css). */
   declare editing: boolean;
+  /** Something in the document has the focus (words, a cell, a canvas, a chosen row, its bar): on a phone the bar is shown (kit.css). */
+  declare indoc: boolean;
   /** Arrived by a short link that expires then (ms since the epoch); 0: no banner. */
   declare expires: number;
   /** The banner offers Extend (the owner's link). */
@@ -137,6 +148,7 @@ export class ToChrome extends LitElement {
     this.fresh = '';
     this.titling = false;
     this.editing = false;
+    this.indoc = false;
     this.expires = 0;
     this.extend = false;
     this.inDisplay = false;
@@ -207,7 +219,7 @@ export class ToChrome extends LitElement {
   /** When the person last touched, clicked or pressed a key: a box focused by the page itself (a document opening) is not editing. */
   private touched = -Infinity;
   /** Another document opened: not editing it yet, whatever had the focus. */
-  private opened = () => ((this.editing = false), (this.touched = -Infinity));
+  private opened = () => ((this.editing = false), (this.indoc = false), (this.touched = -Infinity));
   private onPerson = (e: Event) => {
     // A tap on the bar, in a menu or on the header acts on the box in hand (or elsewhere) without being a tap into it.
     if ((e.target as Element | null)?.closest?.(`${ASIDE}, .to-burger, .to-header`)) return;
@@ -223,6 +235,16 @@ export class ToChrome extends LitElement {
     const typed = e.type === 'beforeinput';
     requestAnimationFrame(() => {
       const at = document.activeElement;
+      // The document has the focus from the person (its bar, its menus and its dialogs are the document's too): on a phone
+      // its bar comes with it. The focus a document opens with is not theirs (they are reading), as for `editing`.
+      const main = this.column;
+      const inside = !!at && !!main && main !== at && main.contains(at);
+      const indoc = inside && (this.indoc || typed || performance.now() - this.touched < 1000);
+      if (indoc !== this.indoc) {
+        this.indoc = indoc;
+        // The bar arriving or leaving changes the column's room: the same glide as a keyboard's, the caret kept in sight once it settles.
+        if (matchMedia('(pointer: coarse)').matches) this.glide();
+      }
       if (at && at !== document.body && at.closest(ASIDE)) return;
       const box = !!at && this.contains(at) && !at.closest('.to-header') && !!at.closest(BOX);
       const editing = box && (this.editing || typed || performance.now() - this.touched < 1000);
@@ -329,8 +351,10 @@ export class ToChrome extends LitElement {
     // The menu button is a hamburger (Paul, 2026-10-10: "Make the hamburger a hamburger"); the mark is the drawer's.
     const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${() => this.say('to-drawer-open')}>${icon(UI.menu, 24)}</button>`;
     const head = html`<header class="to-header ${this.titling ? 'titling' : ''}" aria-label=${t('Tiny Little Office')} @focusin=${this.openTitle} @focusout=${() => (this.titling = false)} @keydown=${this.titleKey}>${this.doc ? this.renderDoc(this.doc) : html`<a class="to-brand" href="#/">${t('Tiny Little Office')}</a>`}</header>`;
+    // The command palette's button at the bar's end (kit/palette.ts): the kit's, in the bar's row, after whatever the app's bar holds.
+    const palette = this.barred ? cmdTool(PALETTE, { palette: () => this.say('to-palette-open') }, { cls: 'to-palette-btn' }) : nothing;
     return html`${burger}${head}${this.renderArrival()}${this.renderOther()}<div class="to-column ${this.barred ? 'barred' : ''}">
-      <main class=${this.mainClass} tabindex="-1" aria-label=${this.label || nothing}>${this.main}</main>
+      <main class=${this.mainClass} tabindex="-1" aria-label=${this.label || nothing}>${this.main}</main>${palette}
     </div>`;
   }
 }

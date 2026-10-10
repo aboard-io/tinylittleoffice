@@ -271,6 +271,17 @@
       width: var(--to-touch);
     }
   }
+  /* A line under the context bar's buttons (Paste refused: use the keyboard's). */
+  .to-context-hint {
+    flex: 1 0 100%;
+    margin: 0;
+    padding: 0.125em 0.5em 0.25em;
+    font-size: 0.8125em;
+    color: var(--to-muted);
+  }
+  .to-context:has(.to-context-hint) {
+    flex-wrap: wrap;
+  }
   .to-context .to-btn[aria-pressed='true'] {
     border-color: var(--to-accent);
   }
@@ -1160,7 +1171,11 @@
   .to-drawer-doc to-menu {
     display: block;
   }
-  .to-drawer-doc :is(.to-drawer-new, .to-drawer-share, .to-drawer-download > .to-btn) {
+  /* The app's own rows under its name (a phone's: the bar is away while reading). */
+  .to-drawer-doc .to-drawer-app {
+    margin-top: 0.75em;
+  }
+  .to-drawer-doc :is(.to-drawer-new, .to-drawer-share, .to-drawer-download > .to-btn, button.to-drawer-cmd, to-menu.to-drawer-cmd > .to-btn) {
     width: 100%;
     justify-content: flex-start;
     gap: 0.625em;
@@ -1171,7 +1186,7 @@
     background: transparent;
     border-radius: var(--to-radius-sm);
   }
-  .to-drawer-doc :is(.to-drawer-new, .to-drawer-share, .to-drawer-download > .to-btn):hover {
+  .to-drawer-doc :is(.to-drawer-new, .to-drawer-share, .to-drawer-download > .to-btn, button.to-drawer-cmd, to-menu.to-drawer-cmd > .to-btn):hover {
     background: var(--to-surface-2);
   }
   .to-drawer-doc .to-menu-keys {
@@ -1418,6 +1433,72 @@
     margin: 0;
     overflow-y: hidden;
     border-bottom: 1px solid var(--to-border);
+  }
+  /* The command palette's button (kit/chrome.ts): at the end of the bar's row, the kit's, whatever the app's bar holds. */
+  .to-column.barred > .to-palette-btn {
+    position: absolute;
+    inset-inline-end: 0;
+    top: 0;
+    z-index: 4;
+    height: var(--to-bar-h);
+    width: auto;
+    padding-inline: 0.5em var(--to-gutter);
+    border: 0;
+    border-radius: 0;
+    background: var(--to-bg);
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-column.barred:has(> .to-palette-btn) > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+    padding-inline-end: calc(var(--to-touch) + var(--to-gutter));
+  }
+  /* The command palette (kit/palette.ts): the kit's dialog, near the top, its list scrolling under the box. */
+  .to-dialog.to-palette {
+    margin-top: max(2em, 8vh);
+    width: min(36em, calc(100% - 1.5em));
+  }
+  .to-palette .to-dialog-inner {
+    padding: 0.5em;
+    gap: 0.25em;
+  }
+  .to-palette-find {
+    font: inherit;
+    font-size: max(1em, 1rem);
+    width: 100%;
+    padding: 0.625em 0.75em;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface);
+    color: var(--to-ink);
+  }
+  .to-palette-find:focus-visible {
+    outline-offset: 0;
+  }
+  .to-palette-list {
+    max-height: min(24em, 55vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .to-palette-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625em;
+    min-height: 2.75em;
+    padding: 0.25em 0.625em;
+    border-radius: var(--to-radius);
+    cursor: pointer;
+  }
+  .to-palette-item[aria-selected='true'] {
+    background: var(--to-surface-2);
+    outline: 0.125em solid var(--to-accent);
+    outline-offset: -0.125em;
+  }
+  .to-palette-words {
+    flex: 1;
+    min-width: 0;
+  }
+  .to-palette-noicon {
+    width: 1.125em;
+    flex: none;
   }
   .to-header {
     flex: none;

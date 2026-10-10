@@ -1,82 +1,27 @@
 /**
- * The keyboard shortcuts dialog (Mod+/, and Keyboard shortcuts in the menu): the standard's table
- * (docs/editing.md §1) and the page's own keys, then the keys the open app answers (AppDef.keys), each
- * written the way this device writes them (⌘ on a Mac, Ctrl elsewhere). The page's own keys are answered here
- * too (pageKey, which the shell listens with), and Mod+Z and Mod+Shift+Z passed to the editor; each app answers its own.
+ * The page's own commands (the registry's 'kit' scope, kit/commands.ts): undo and redo passed to the editor, find,
+ * keep, share, download, print, the shortcuts and the command palette. The shell answers their keys (pageKey, which
+ * it listens with on the window, so every scope inside has answered first); the drawer draws Share and Download from
+ * them; every bar ends with Undo, Redo and the palette (DocElement.undoTools).
+ *
+ * The keyboard shortcuts dialog (Mod+/, and Keyboard shortcuts in the menu) is the registry as it stands: the open
+ * app's commands that have keys, then the words' (kit/text-commands.ts), then the page's, each key written the way
+ * this device writes it (keysText: ⌘ on a Mac, Ctrl elsewhere).
  */
 import { html, nothing, type TemplateResult } from 'lit';
-import type { AppDef, Shortcut } from './app.ts';
-import { keysText } from './bar.ts';
+import { Command as CommandIcon } from 'lucide';
+import type { AppDef } from './app.ts';
+import { command, inScope, keysText, labelOf, register, runKey, type Command } from './commands.ts';
 import { t } from './i18n.ts';
+import { UI } from './icons.ts';
+import { TEXT_COMMANDS } from './text-commands.ts';
 
-const k = (keys: string, does: () => string): Shortcut => ({ keys, does });
-
-/** The keys that mean the same in every app (docs/editing.md §1). */
-export const EVERYWHERE: Shortcut[] = [
-  k('Mod+Z', () => t('Undo')),
-  k('Mod+Shift+Z / Mod+Y', () => t('Redo')),
-  k('Mod+C / Mod+X / Mod+V', () => t('Copy, cut, paste what is selected')),
-  k('Mod+A', () => t('Select all: the words of the box, then everything')),
-  k('Delete / Backspace', () => t('Remove what is selected')),
-  k('Escape', () => t('Step out: close, collapse, let go')),
-  k('Enter', () => t('Edit the thing selected; the primary button in a dialog')),
-  k('Tab / Shift+Tab', () => t('Indent or bring out in a list; the next cell in a grid')),
-  k('Alt+ArrowUp / Alt+ArrowDown', () => t('Move the selected items up or down')),
-  k('Mod+D', () => t('Duplicate')),
-  k('Mod+Enter', () => t('Tick or untick a task')),
-];
-
-/** The marks on words, wherever words are typed. */
-export const WORDS: Shortcut[] = [
-  k('Mod+B', () => t('Bold')),
-  k('Mod+I', () => t('Italic')),
-  k('Mod+U', () => t('Underline')),
-  k('Mod+K', () => t('Link')),
-];
-
-/** Share… and Download, the drawer's This document (kit/drawer.ts writes them beside its rows). */
-export const SHARE_KEYS = 'Mod+Shift+S';
-export const DOWNLOAD_KEYS = 'Mod+Shift+D';
-
-/** The page's own keys, the shell's. */
-export const PAGE: Shortcut[] = [
-  k('Mod+F', () => t('Find in this document')),
-  k('Mod+S', () => t('Keep this document on the device')),
-  k(SHARE_KEYS, () => t('Share…')),
-  k(DOWNLOAD_KEYS, () => t('Download')),
-  k('Mod+P', () => t('Print, or save as PDF')),
-  k('Mod+/', () => t('Show these shortcuts')),
-];
-
-/** "Mod+Shift+Z / Mod+Y" as this device writes it. */
-export const keysWritten = (keys: string) =>
-  keys
-    .split(' / ')
-    .map((one) => keysText(one).replace('ArrowUp', '↑').replace('ArrowDown', '↓').replace('ArrowLeft', '←').replace('ArrowRight', '→'))
-    .join(' / ');
-
-/** The groups the dialog shows: the app's own first when there is an app. */
-export function shortcutGroups(def?: AppDef): { heading: string; keys: Shortcut[] }[] {
-  return [
-    ...(def?.keys?.length ? [{ heading: def.name, keys: def.keys }] : []),
-    { heading: t('Everywhere'), keys: EVERYWHERE },
-    { heading: t('Words'), keys: WORDS },
-    { heading: t('This page'), keys: PAGE },
-  ];
+/** What Undo and Redo act on: the editor (the shell's, or a bar's own). */
+export interface HasEditor {
+  editor: Element | null;
 }
-
-/** The dialog's body: a table a group. */
-export function renderShortcuts(def?: AppDef): TemplateResult {
-  return html`${shortcutGroups(def).map(
-    (g) => html`<table class="to-keys">
-      <caption>${g.heading}</caption>
-      <tbody>${g.keys.map((s) => html`<tr><th scope="row"><kbd>${keysWritten(s.keys)}</kbd></th><td>${s.does()}</td></tr>`)}</tbody>
-    </table>`,
-  )}${nothing}`;
-}
-
 /** What the page's keys act on: the shell. */
-export interface Page {
+export interface Page extends HasEditor {
   /** The link made current: a key with Alt or Mod may leave the page or the document (Back, a new tab). */
   flush(): void;
   print(): void;
@@ -86,32 +31,66 @@ export interface Page {
   /** The Share dialog; the drawer with its Download table open. */
   share(): void;
   download(): void;
+  palette(): void;
   /** A document is open (Mod+P), and for editing, not as its pages (Mod+F, Mod+S). */
   doc: boolean;
   editing: boolean;
-  editor: Element | null;
+}
+
+/** Undo or redo asked of the editor, from a key typed inside it (or with nothing focused), or from its bar. */
+const history = (which: 'docundo' | 'docredo') => (p: HasEditor, e?: Event) => {
+  const editor = p.editor;
+  if (!editor || (e instanceof KeyboardEvent && !fromEditor(e, editor))) return false;
+  // The editor says whether it took it (it cancels the event): a key it did not take stays the browser's.
+  return !editor.dispatchEvent(new CustomEvent(which, { cancelable: true, bubbles: true }));
+};
+
+export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: 'Undo', icon: UI.undo, keys: 'Mod+Z', where: ['bar'], when: (p) => !!p.editor, does: history('docundo') });
+export const REDO = command<HasEditor>({ id: 'kit.redo', scope: 'kit', label: 'Redo', icon: UI.redo, keys: 'Mod+Shift+Z / Mod+Y', where: ['bar'], when: (p) => !!p.editor, does: history('docredo') });
+export const SHARE = command<Page>({ id: 'kit.share', scope: 'kit', label: 'Share…', icon: UI.share, keys: 'Mod+Shift+S', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.share() });
+export const DOWNLOAD = command<Page>({ id: 'kit.download', scope: 'kit', label: 'Download', icon: UI.download, keys: 'Mod+Shift+D', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.download() });
+export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: 'All commands…', icon: CommandIcon, keys: 'Mod+K', where: ['bar'], does: (p) => p.palette() });
+
+/** The page's commands, in the order the dialog lists them. */
+export const KIT_COMMANDS = register([
+  UNDO,
+  REDO,
+  command<Page>({ id: 'kit.find', scope: 'kit', label: 'Find in this document', icon: UI.search, keys: 'Mod+F', where: ['keys-only'], takesFocus: true, when: (p) => p.editing && !!p.editor, does: (p) => p.find() }),
+  command<Page>({ id: 'kit.keep', scope: 'kit', label: 'Keep this document on the device', icon: UI.offline, keys: 'Mod+S', where: ['keys-only'], when: (p) => p.editing, does: (p) => p.keep() }),
+  SHARE,
+  DOWNLOAD,
+  command<Page>({ id: 'kit.print', scope: 'kit', label: 'Print, or save as PDF', icon: UI.print, keys: 'Mod+P', where: ['keys-only'], when: (p) => p.doc, does: (p) => p.print() }),
+  command<Page>({ id: 'kit.shortcuts', scope: 'kit', label: 'Show these shortcuts', icon: UI.keys, keys: 'Mod+/', where: ['keys-only'], takesFocus: true, does: (p) => p.shortcuts() }),
+  PALETTE as Command<Page>,
+]) as Command<Page>[];
+
+/** The groups the dialog shows: the app's own first when there is an app, then the words', then the page's. */
+export function shortcutGroups(def?: AppDef): { heading: string; keys: Command[] }[] {
+  const keyed = (cmds: Command[]) => cmds.filter((c) => c.keys);
+  const own = def ? keyed(inScope(def.id)) : [];
+  return [...(def && own.length ? [{ heading: def.name, keys: own }] : []), { heading: t('Words'), keys: keyed(TEXT_COMMANDS) }, { heading: t('This page'), keys: keyed(KIT_COMMANDS) }];
+}
+
+/** The dialog's body: a table a group. */
+export function renderShortcuts(def?: AppDef): TemplateResult {
+  return html`${shortcutGroups(def).map(
+    (g) => html`<table class="to-keys">
+      <caption>${g.heading}</caption>
+      <tbody>${g.keys.map((c) => html`<tr><th scope="row"><kbd>${keysText(c.keys!)}</kbd></th><td>${labelOf(c)}</td></tr>`)}</tbody>
+    </table>`,
+  )}${nothing}`;
 }
 
 /**
- * The page's keys (PAGE): Mod+P prints, Mod+/ the shortcuts, Mod+F finds, Mod+S keeps, Mod+Shift+S shares, Mod+Shift+D
- * downloads. Undo and redo are the
- * editor's (the kernel's history): the keys are only passed on, and only from the editor itself (or from nowhere, the
- * page's body). Typed in a dialog, a popover, the header, the link or note box, or a field of the kit's own, Mod+Z is
- * that place's own; during an IME composition it is the IME's.
+ * The page's keys: the kit's commands, answered last (from the window), so the words and the app have answered
+ * theirs first and a key one of them took is not the page's. A key with Alt or Mod makes the link current first. Undo
+ * and redo are the editor's (the kernel's history): the keys are only passed on, and only from the editor itself (or
+ * from nowhere, the page's body). Typed in a dialog, a popover, the header, the link or note box, or a field of the
+ * kit's own, Mod+Z is that place's own; during an IME composition it is the IME's.
  */
 export function pageKey(e: KeyboardEvent, page: Page): void {
   if ((e.metaKey || e.ctrlKey || e.altKey) && !['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) page.flush();
-  if (!(e.metaKey || e.ctrlKey) || e.altKey || e.isComposing) return;
-  const k = e.key.toLowerCase();
-  const act = k === 'p' && page.doc ? page.print : k === '/' || k === '?' ? page.shortcuts : k === 'f' && !e.shiftKey && page.editing && page.editor ? page.find : k === 's' && !e.shiftKey && page.editing ? page.keep : k === 's' && page.editing ? page.share : k === 'd' && e.shiftKey && page.editing ? page.download : null;
-  if (act) {
-    e.preventDefault();
-    return act();
-  }
-  const editor = page.editor;
-  if (!editor || !fromEditor(e, editor)) return;
-  const which = k === 'z' && !e.shiftKey ? 'docundo' : (k === 'z' && e.shiftKey) || k === 'y' ? 'docredo' : '';
-  if (which && !editor.dispatchEvent(new CustomEvent(which, { cancelable: true, bubbles: true }))) e.preventDefault();
+  runKey(e, KIT_COMMANDS, page);
 }
 
 /** Whether a key is the editor's: typed inside it, outside every dialog, popover, box and field of the kit's own (or with nothing focused). */

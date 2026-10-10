@@ -38,8 +38,9 @@ import './preview.ts';
 import type { ToDialog } from './dialog.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
-import { keysText } from './bar.ts';
-import { DOWNLOAD_KEYS, SHARE_KEYS } from './keys.ts';
+import { coarse, drawnIn, inScope, keysText, labelOf, run } from './commands.ts';
+import { DOWNLOAD, SHARE, type Page } from './keys.ts';
+import type { Offer } from './palette.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
 import './privacy-dialog.ts';
@@ -49,9 +50,13 @@ import { origin } from './network.ts';
 export const THREAT_MODEL = `${origin('github')}/ftrain/tinyoffice/blob/main/docs/threat-model.md`;
 
 export class ToDrawer extends LitElement {
-  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, downloads: { attribute: false }, def: { attribute: false } };
+  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, downloads: { attribute: false }, def: { attribute: false }, page: { attribute: false }, commands: { attribute: false } };
   /** The open document's formats, for its Download; null on the home page (and no This document then). */
   declare downloads: MenuItem[] | null;
+  /** What Share and Download act on: the shell. */
+  declare page: Page | null;
+  /** The app's commands that need nothing in hand (the registry's `document`), asked for as the drawer draws: under a finger they are This document's rows too, the bar being away while reading. */
+  declare commands: (() => Offer[]) | null;
   /** The open document's app, for its New row. */
   declare def: AppDef | null;
   declare find: string;
@@ -67,6 +72,8 @@ export class ToDrawer extends LitElement {
     this.version = null;
     this.downloads = null;
     this.def = null;
+    this.page = null;
+    this.commands = null;
   }
   createRenderRoot() {
     return this;
@@ -162,8 +169,9 @@ export class ToDrawer extends LitElement {
           ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
               ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => this.close()}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
-              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(UI.share, 18)}<span>${t('Share…')}</span><kbd class="to-menu-keys">${keysText(SHARE_KEYS)}</kbd></button>
-              <to-menu class="to-drawer-download" .label=${t('Download')} .icon=${UI.download} .keys=${DOWNLOAD_KEYS} .items=${this.downloads}></to-menu>
+              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
+              <to-menu class="to-drawer-download" .label=${labelOf(DOWNLOAD)} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
+              ${coarse() ? this.renderCommands() : nothing}
             </section>`
           : nothing}
         ${this.open
@@ -228,6 +236,19 @@ export class ToDrawer extends LitElement {
     <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>${this.version
       ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
       : nothing}`}></to-dialog>`;
+  }
+
+  /** Under a finger, the app's own commands that need nothing in hand (Present, Look, Play, the views), under its name: a row each, a menu as a menu. */
+  private renderCommands(): TemplateResult | typeof nothing {
+    const offers = this.commands?.() ?? [];
+    if (!offers.length) return nothing;
+    const scope = offers[0].cmd.scope;
+    return html`<h3 class="to-drawer-head3 to-drawer-app">${apps().find((a) => a.id === scope)?.name ?? ''}</h3>
+      ${offers.map(({ cmd, c }) =>
+        cmd.menu
+          ? html`<to-menu class="to-drawer-cmd" .label=${labelOf(cmd, c)} .icon=${cmd.icon ?? null} .items=${drawnIn(inScope(scope), `menu:${cmd.menu}`, c).map((d) => ({ ...d, does: () => (this.close(), d.does()) }))}></to-menu>`
+          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} @click=${() => (this.close(), void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, c)}</span>${cmd.keys ? html`<kbd class="to-menu-keys">${keysText(cmd.keys)}</kbd>` : nothing}</button>`,
+      )}`;
   }
 
   /** About, and the build it runs, asked for the first time it opens. */

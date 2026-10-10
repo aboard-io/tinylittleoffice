@@ -74,11 +74,13 @@
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { apply, applyAll, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
-import { copyData, pasteFrom } from './clipboard.ts';
-import { SEP, type ContextEntry, type ToContext } from './context.ts';
+import { copyData, pasteFrom, readClip, writeClip } from './clipboard.ts';
+import { contextOf, runKey } from './commands.ts';
+import { TEXT_COMMANDS } from './text-commands.ts';
+import type { ToContext } from './context.ts';
 import { lookup } from './app.ts';
 import { t } from './i18n.ts';
-import { UI, icon, iconNamed, iconsComplete, isIconName, loadIcons, onIcons, type IconNode } from './icons.ts';
+import { icon, iconNamed, iconsComplete, isIconName, loadIcons, onIcons } from './icons.ts';
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, wholeSel, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
@@ -621,63 +623,71 @@ export class ToText extends LitElement {
       return this.askNote(chip as HTMLElement);
     }
     if (e.key === 'Escape') return this.escape(e);
-    const mod = e.metaKey || e.ctrlKey;
-    const model = this.model;
-    // Alt+Up/Down: the item, with its family, past its neighbour.
-    if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && this.shape !== 'line') {
-      const r = moveItems(model, this.current(), e.key === 'ArrowUp' ? -1 : 1);
-      if (r) {
-        e.preventDefault();
-        this.emit(r.ops, r.sel, undefined, 'focus');
-      }
-      return;
-    }
-    if (mod && !e.altKey && e.key === 'Enter' && !e.shiftKey && this.shape !== 'line') {
-      // Mod+Enter on a task item ticks it (Docs' checklist key); anywhere else it is the host's.
-      const sel = this.current();
-      const at = ordered(sel)[0].block;
-      if (this.toggleDone(at, sel)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      return;
-    }
-    if (mod && !e.altKey) {
-      const k = e.key.toLowerCase();
-      // Select all in a line or lines: the first press takes the box (the browser's own); with the box already whole, or empty, the host is asked for everything (`text-selectall`).
-      // Select all in a doc: the whole document as the model's selection, cards and all, written to the DOM by us (the browser's own stops short of a card at either end).
-      if (k === 'a' && this.shape === 'doc' && !e.shiftKey) {
-        e.preventDefault();
-        return this.selectAll();
-      }
-      if (k === 'a' && this.shape !== 'doc' && !e.shiftKey) {
-        const m = this.model;
-        const sel = this.current();
-        const [a, b] = ordered(sel);
-        const whole = a.offset === 0 && b.offset >= blockLength(m[m.length - 1]) && a.block === 0 && b.block === m.length - 1;
-        if (whole) {
-          e.preventDefault();
-          this.dispatchEvent(new CustomEvent('text-selectall', { bubbles: true }));
-        }
-        return;
-      }
-      const cmd = e.shiftKey ? (k === 'x' ? 's' : k === 'h' ? 'h' : null) : k === 'b' ? 'b' : k === 'i' ? 'i' : k === 'u' ? 'u' : k === 'k' && !this.marksOnly ? 'link' : null;
-      if (cmd) {
-        e.preventDefault();
-        this.exec(cmd);
-      }
-      return;
-    }
-    // Tab shifts an item that can move; otherwise it moves the focus (never trapped).
-    if (e.key === 'Tab' && this.shape !== 'line' && !e.altKey && !mod) {
-      const sel = this.current();
-      const r = model[ordered(sel)[0].block].k === 'li' ? shiftItems(model, sel, e.shiftKey ? -1 : 1) : null;
-      if (r) {
-        e.preventDefault();
-        this.emit(r.ops, r.sel, undefined, 'focus');
-      }
-    }
+    // The words' commands (kit/text-commands.ts): the marks, Link, Tab and Shift+Tab on an item, Alt+Up/Down, Mod+Enter, Mod+A.
+    runKey(e, TEXT_COMMANDS, this);
   };
+
+  /* ---------- what the words' commands do (kit/text-commands.ts) ---------- */
+
+  /** Alt+Up/Down: the item, with its family, past its neighbour; false where there is none to move. */
+  moveItem(by: -1 | 1): boolean {
+    const r = moveItems(this.model, this.current(), by);
+    if (r) this.emit(r.ops, r.sel, undefined, 'focus');
+    return !!r;
+  }
+  /** Tab, Shift+Tab: an item shifted when it can move; false otherwise, so Tab moves the focus on (never trapped). */
+  shiftItem(by: -1 | 1): boolean {
+    const model = this.model;
+    const sel = this.current();
+    const r = model[ordered(sel)[0].block].k === 'li' ? shiftItems(model, sel, by) : null;
+    if (r) this.emit(r.ops, r.sel, undefined, 'focus');
+    return !!r;
+  }
+  /** Mod+Enter on a task item ticks it (Docs' checklist key); anywhere else it is the host's (false). */
+  tick(e?: Event): boolean {
+    const sel = this.current();
+    if (!this.toggleDone(ordered(sel)[0].block, sel)) return false;
+    e?.stopPropagation();
+    return true;
+  }
+  /**
+   * Mod+A. In a doc: the whole document as the model's selection, cards and all, written to the DOM by us (the browser's
+   * own stops short of a card at either end). In a line or lines the first press is the browser's own (false), taking the
+   * box; with the box already whole, or empty, the host is asked for everything (`text-selectall`).
+   */
+  selectAllKey(): boolean {
+    if (this.shape === 'doc') return this.selectAll(), true;
+    const m = this.model;
+    const [a, b] = ordered(this.current());
+    if (!(a.offset === 0 && b.offset >= blockLength(m[m.length - 1]) && a.block === 0 && b.block === m.length - 1)) return false;
+    this.dispatchEvent(new CustomEvent('text-selectall', { bubbles: true }));
+    return true;
+  }
+  /** Copy or Cut from a button (a phone's row): the words selected onto the clipboard as the keys put them, our TLO and our HTML. */
+  copyOut(cut: boolean) {
+    const sel = this.whole ? wholeSel(this.model) : this._sel;
+    if (!sel || collapsed(sel)) return;
+    void writeClip(copyData(this.model, sel));
+    if (cut) {
+      const d = deleteSel(this.model, sel);
+      this.emit(d.ops, d.sel, undefined, 'focus');
+    }
+  }
+  /** Paste from a button: the clipboard read where the browser allows; where it refuses, a line under the row says to use the keyboard's paste. */
+  async pasteIn() {
+    const sel = this.span();
+    const got = await readClip();
+    if (!got) {
+      const bub = this.bubble;
+      if (bub) bub.hint = t('This browser lets a page paste only from the keyboard: use its Paste.');
+      return;
+    }
+    this.paste(got, sel);
+  }
+  /** Whether the selection is whole blocks of words that can be a list: the lists are offered in the bubble then. */
+  listable(): boolean {
+    return !!this._sel && this.wholeBlocks(this._sel);
+  }
   /** Everything selected: the model's selection runs from the first words to the last (what `sel` says), and an edit takes the cards too. */
   selectAll() {
     const m = this.model;
@@ -906,20 +916,7 @@ export class ToText extends LitElement {
     const dom = !this.writing && !this.pendingSel ? document.getSelection() : null;
     const inCard = (n: Node | null | undefined) => !!(n && (n instanceof Element ? n : n.parentElement)?.closest('.tx-card'));
     if (this.noBubble || this.composing || !sel || collapsed(sel) || !focused || this.linkPop?.shown || inCard(dom?.anchorNode) || inCard(dom?.focusNode)) return bub.hide();
-    const m = marksOf(this.model, sel);
-    const mark = (cmd: Mark, label: string, icon: IconNode, keys?: string): ContextEntry => ({ label, icon, keys, pressed: !!m[cmd], does: () => this.exec(cmd) });
-    const items: ContextEntry[] = [
-      mark('b', t('Bold'), UI.bold, 'Mod+B'),
-      mark('i', t('Italic'), UI.italic, 'Mod+I'),
-      mark('u', t('Underline'), UI.underline, 'Mod+U'),
-      mark('s', t('Strikethrough'), UI.strike, 'Mod+Shift+X'),
-      mark('h', t('Highlight'), UI.highlight, 'Mod+Shift+H'),
-    ];
-    if (!this.marksOnly) items.push(SEP, { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') }, ...(this.notes ? [{ label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') }] : []));
-    if (!this.marksOnly && this.shape !== 'line' && this.wholeBlocks(sel)) {
-      const kind = kindAt(this.model, sel);
-      items.push(SEP, { label: t('Bulleted list'), icon: UI.list, pressed: kind === 'ul', does: () => this.exec('ul') }, { label: t('Numbered list'), icon: UI.listOrdered, pressed: kind === 'ol', does: () => this.exec('ol') });
-    }
+    const items = contextOf(TEXT_COMMANDS, this);
     bub.items = items;
     bub.show(() => (this._sel && !collapsed(this._sel) && this.isConnected ? this.selRect(this._sel) : null));
   }

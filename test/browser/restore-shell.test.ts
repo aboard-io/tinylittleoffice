@@ -9,7 +9,7 @@ import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { setKeeping } from '../../src/kit/store.ts';
 import { remScale, size, stepSize } from '../../src/kit/zoom.ts';
 import { place } from '../../src/kit/menu.ts';
-import { keysWritten } from '../../src/kit/keys.ts';
+import { keysText } from '../../src/kit/commands.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToFind } from '../../src/kit/find.ts';
 
@@ -135,21 +135,23 @@ test('Find in a sheet goes from matching cell to matching cell, the focus left i
   await until(() => document.activeElement?.id === 'c2_0');
 });
 
-test('Mod+/ and the menu open the keyboard shortcuts: the standard’s table, the page’s keys, and the app’s own', async () => {
+test('Mod+/ and the menu open the keyboard shortcuts, read from the command registry: the app’s own, the words’, the page’s', async () => {
   const shell = await mount(`#/v1/draw`);
   await until(() => !!shell.querySelector('to-draw-editor'));
   expect(key('/')).toBe(false);
   const dialog = () => shell.querySelector<HTMLDialogElement>('to-dialog.to-keys-dialog dialog')!;
   await until(() => dialog().open);
   const groups = [...dialog().querySelectorAll('.to-keys caption')].map((c) => c.textContent);
-  expect(groups).toEqual(['Drawing Tool', 'Everywhere', 'Words', 'This page']);
+  expect(groups).toEqual(['Drawing Tool', 'Words', 'This page']);
   expect(dialog().textContent).toContain('Find in this document');
   expect(dialog().textContent).toContain('Rectangle');
   expect(dialog().querySelector('kbd')!.textContent).toBe('V');
-  // The alignment keys, as this device writes them: the Drawing Tool's Align, round left, centre and right.
+  // The alignment keys, as this device writes them: the Drawing Tool's, a row each.
   const rows = (d: HTMLDialogElement) => [...d.querySelectorAll('.to-keys')[0].querySelectorAll('tr')].map((r) => [r.querySelector('kbd')!.textContent, r.querySelector('td')!.textContent]);
-  const shift = (k: string) => keysWritten(`Mod+Shift+${k}`);
-  expect(rows(dialog())).toContainEqual([[shift('L'), shift('E'), shift('R')].join(' / '), 'Align a text left, centred or right (the bar’s Align goes round the three)']);
+  const shift = (k: string) => keysText(`Mod+Shift+${k}`);
+  expect(rows(dialog())).toContainEqual([shift('L'), 'Align: left']);
+  expect(rows(dialog())).toContainEqual([shift('E'), 'Align: centre']);
+  expect(rows(dialog())).toContainEqual([shift('R'), 'Align: right']);
   dialog().close();
   await until(() => !dialog().open);
   // The Word Processor's four.
@@ -161,12 +163,13 @@ test('Mod+/ and the menu open the keyboard shortcuts: the standard’s table, th
   const writeDialog = () => write.querySelector<HTMLDialogElement>('to-dialog.to-keys-dialog dialog')!;
   await until(() => writeDialog().open);
   expect(writeDialog().querySelector('.to-keys caption')!.textContent).toBe('Word Processor');
-  expect(rows(writeDialog())).toEqual([
+  for (const row of [
     [shift('L'), 'Align left'],
     [shift('E'), 'Centre'],
     [shift('R'), 'Align right'],
     [shift('J'), 'Justify'],
-  ]);
+  ])
+    expect(rows(writeDialog())).toContainEqual(row);
   writeDialog().close();
   await until(() => !writeDialog().open);
   // On the home page, from the menu.
@@ -175,7 +178,7 @@ test('Mod+/ and the menu open the keyboard shortcuts: the standard’s table, th
   await until(() => !!home.querySelector('.to-drawer-keys'));
   home.querySelector<HTMLButtonElement>('.to-drawer-keys')!.click();
   await until(() => home.querySelector<HTMLDialogElement>('to-dialog.to-keys-dialog dialog')!.open);
-  expect([...home.querySelectorAll('.to-keys-dialog .to-keys caption')].map((c) => c.textContent)).toEqual(['Everywhere', 'Words', 'This page']);
+  expect([...home.querySelectorAll('.to-keys-dialog .to-keys caption')].map((c) => c.textContent)).toEqual(['Words', 'This page']);
 });
 
 test('Mod+S keeps the document under Saved, and says why not under Private', async () => {
