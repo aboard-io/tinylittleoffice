@@ -6,12 +6,12 @@ import { join as joinPath } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { createHash } from 'node:crypto';
 import { pageSvg } from '../../../kit/draw.ts';
-import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { readDrawing } from '../../draw/model.ts';
+import { applyAll, invertAll, parse, write, type Block, type Doc, type Op } from '../../../doc/index.ts';
+import { iconOf, labelLines, readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
-import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, follow, kindOf, lineOf, linesOf, demoteThing, moveAcross, moveItem, moveThing, promoteThing, newThing, nextThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Hit } from '../model.ts';
+import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, partFor, wordsInto, wordsOn, type Which, kindOf, lineOf, linesOf, demoteThing, moveAcross, moveItem, moveThing, promoteThing, newThing, nextThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Hit } from '../model.ts';
 import { templates } from '../templates.ts';
-import { diagramPage, era, layout, moment, places, regionAt, toDrawing } from '../view.ts';
+import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf } from '../view.ts';
 
 const doc = (kind: string, body: string): Doc => parse(`---\nkind: ${kind}\n---\n${body}`);
 /** The ops applied, written out; and checked: canonical, and undone exactly by their inverse. */
@@ -238,9 +238,9 @@ describe('commands as ops', () => {
     expect(connect(joined, 'API', 'Web')).toEqual([]);
     expect(run(joined, setEdge(joined, 2, { label: 'asks', dir: '--' }))).toBe('- Web\n- API\n\n~ Web -- API: asks\n');
     expect(run(net, dropOn(net, { k: 'line', at: 0, part: 'all' }, { k: 'line', at: 1, part: 'all' }))).toBe('- Web\n- API\n\n~ Web -> API\n');
-    // An org chart's connection is a dotted line, named by the person, not their role.
+    // An org chart's connection is a dotted line, named by the person, not their role (a thing's plain words, its role the second line).
     const org = doc('org', '- Ada | CEO\n- Ben | CTO\n');
-    expect(run(org, connect(org, 'Ada | CEO', 'Ben | CTO'))).toBe('- Ada | CEO\n- Ben | CTO\n\n~ Ada -- Ben\n');
+    expect(run(org, connect(org, linesOf(org)[0].all.words, 'Ben\nCTO'))).toBe('- Ada | CEO\n- Ben | CTO\n\n~ Ada -- Ben\n');
   });
   test('a name that changes is followed: the connections to a person, the overlaps naming a set; a lane renamed is every step in it', () => {
     const org = doc('org', '- Ada | CEO\n- Ben | CTO\n\n~ Ada -- Ben: advises\n');
@@ -419,7 +419,7 @@ describe('joins across a tree: a mind map\'s cross-links, a family\'s dotted lin
     expect(run(joined, [...typed, ...follow(joined, applyAll(joined, typed), 2)])).toContain('~ Prices -- Press');
     expect(run(joined, removeThing(joined, { k: 'line', at: 2, part: 'all' }))).not.toContain('~ ');
     const fam = doc('family', '- Rose + Albert | m. 1948\n  - Helen | b. 1950\n- Ada | b. 1985\n');
-    expect(run(fam, connect(fam, 'Ada | b. 1985', 'Rose + Albert | m. 1948'))).toBe('- Rose + Albert | m. 1948\n  - Helen | b. 1950\n- Ada | b. 1985\n\n~ Ada -- Rose + Albert\n');
+    expect(run(fam, connect(fam, 'Ada\nb. 1985', 'Rose + Albert\nm. 1948'))).toBe('- Rose + Albert | m. 1948\n  - Helen | b. 1950\n- Ada | b. 1985\n\n~ Ada -- Rose + Albert\n');
   });
   test('drawn: a dashed curve bowing away from the middle idea, an arrowhead where it points, its words at its middle, all tapped as the join', () => {
     const plain = layout(doc('mind', `${MIND}\n~ Pricing -- Press\n`)).shapes;
@@ -481,4 +481,107 @@ test('a thumbnail of a family tree more than twice as wide as tall is its middle
   expect(def.view(mind, { small: true, thumb: true })).toEqual(def.view(mind, { small: true }));
   expect(sha1(def.view(BRONTES))).toBe('78feff525a039b962741c71f16785f64d142ba18');
   expect(sha1(def.view(BRONTES, { small: true }))).toBe('78feff525a039b962741c71f16785f64d142ba18');
+});
+
+describe('the separators in a thing\'s words', () => {
+  /** Plain words put on part `which` of line `at` as the editor puts them; the document written, read again, and that part's words, its line's other parts and its drawn label. */
+  function put(d: Doc, at: number, which: Which, words: string) {
+    const kind = kindOf(d);
+    const l = lineOf(d.blocks[at] as Extract<Block, { k: 'li' }>, at);
+    const p = partFor(l, which)!;
+    const text = run(d, [{ op: 'text', at, from: p.from, to: p.to, runs: wordsInto(kind, l, which, [{ t: words }]) }]);
+    const again = parse(write(applyAll(d, [{ op: 'text', at, from: p.from, to: p.to, runs: wordsInto(kind, l, which, [{ t: words }]) }])));
+    const now = lineOf(again.blocks[at] as Extract<Block, { k: 'li' }>, at);
+    const shape = layout(again).shapes.find((s) => JSON.stringify(s.hit) === JSON.stringify({ k: 'line', at, part: which }));
+    const drawn = shape ? labelLines(iconOf(shape.text)[1]).map((runs) => runs.map((r) => r.t).join('')).join('\n') : null;
+    return { text, line: now, words: partFor(now, which)?.words, drawn, shown: charsOf(wordsOn(kind, now, which, partFor(now, which)!.from, partFor(now, which)!.to)) };
+  }
+
+  test('a comma in a guest\'s or a set\'s thing is one thing; a colon, a bar and a backslash in it are plain', () => {
+    const seat = doc('seating', '- Top table: Jo, Sam\n');
+    for (const w of ['Smith, Jones', 'Dr: Who', 'A | B', 'C:\\Users\\, me', 'Ann,']) {
+      const r = put(seat, 0, 1, w);
+      expect([r.words, r.drawn, r.shown]).toEqual([w, w, w]);
+      expect(r.line.items.map((p) => p.words)).toEqual(['Jo', w]);
+      expect(r.line.key!.words).toBe('Top table');
+    }
+    expect(put(seat, 0, 1, 'Smith, Jones').text).toBe('- Top table: Jo, Smith\\\\, Jones\n');
+    const venn = doc('venn', '- Fast: trains\n- Cheap: buses\n');
+    const r = put(venn, 0, 0, 'salt, pepper');
+    expect([r.words, r.drawn]).toEqual(['salt, pepper', 'salt, pepper']);
+    expect(r.line.items).toHaveLength(1);
+  });
+
+  test('a colon ending a word, an ampersand and a bar in a key are the key\'s own: a table\'s name, a set\'s, a lane\'s, a date', () => {
+    const seat = put(doc('seating', '- Top table: Jo, Sam\n'), 0, 'key', 'Sales: Q3 | west');
+    expect([seat.words, seat.drawn, seat.line.items.map((p) => p.words)]).toEqual(['Sales: Q3 | west', 'Sales: Q3 | west', ['Jo', 'Sam']]);
+    // A set's name keeps its ampersand: still one set, its circle and its things where they were.
+    const venn = put(doc('venn', '- Fast: trains\n- Cheap: buses\n- Fast & Cheap: bikes\n'), 0, 'key', 'R&D: lab');
+    expect([venn.words, venn.drawn]).toEqual(['R&D: lab', 'R&D: lab']);
+    const vd = applyAll(doc('venn', '- Fast: trains\n- Cheap: buses\n'), []);
+    const named = parse(write(applyAll(vd, [{ op: 'text', at: 0, from: 0, to: 4, runs: wordsInto('venn', linesOf(vd)[0], 'key', [{ t: 'R&D' }]) }])));
+    expect(vennOf(named).sets).toEqual(['R&D', 'Cheap']);
+    // A thing put in the overlap of a set with "&" in its name finds that set.
+    const both = regionAt(layout(named), layout(named).w / 2, layout(named).h / 2)!;
+    expect(both).toBe('R\\&D & Cheap');
+    expect(run(named, commitDraft(newThing(named, both), { k: 'li', depth: 0, runs: [{ t: 'R\\&D & Cheap: bikes' }] }))).toContain('- R\\\\&D & Cheap: bikes');
+    expect(vennOf(applyAll(named, commitDraft(newThing(named, both), newThing(named, both).block))).groups.map((g) => g.names)).toEqual([['R&D'], ['Cheap'], ['R&D', 'Cheap']]);
+    // A lane renamed with a colon in it stays one lane; a step of a lane with none keeps its colon.
+    const lanes = doc('lanes', '- Sales: Calls\n- Sales: Closes\n- Shop: Sells\n');
+    const renamed = applyAll(lanes, rename(lanes, { k: 'lane', name: 'Sales' }, 'Sales', 'Ops: night'));
+    expect(lanesOf(renamed).lanes).toEqual(['Ops: night', 'Shop']);
+    expect(write(renamed)).toContain('- Ops\\\\: night: Calls\n');
+    const keyless = put(doc('lanes', '- Calls\n'), 0, 'words', 'Note: call back');
+    expect([keyless.words, keyless.line.key]).toEqual(['Note: call back', null]);
+    const keyed = put(doc('lanes', '- Sales: Calls\n'), 0, 'words', 'Ask: why | then');
+    expect([keyed.words, keyed.drawn, keyed.text]).toEqual(['Ask: why | then', 'Ask: why | then', '- Sales: Ask: why \\\\| then\n']);
+    // A date and what happened: the first line escaped as a key, the second plain; a bar in either is a bar.
+    const tl = put(doc('timeline', '- 1990: Born\n'), 0, 'all', '10:30: am\nCoffee | tea: hot');
+    expect([tl.line.key!.words, tl.line.words.words, tl.shown]).toEqual(['10:30: am', 'Coffee | tea: hot', '10:30: am\nCoffee | tea: hot']);
+    expect(tl.drawn).toBe('10:30: am\nCoffee | tea: hot');
+  });
+
+  test('a tree\'s or a network\'s words: a bar is plain, a second line is the line\'s " | "; a family\'s "+" is the couple\'s, plain words', () => {
+    const org = put(doc('org', '- Ada | CEO\n  - Ben\n'), 0, 'all', 'Ada | Lovelace\nCEO, Board: chair');
+    expect([org.words, org.drawn, org.text]).toEqual(['Ada | Lovelace\nCEO, Board: chair', 'Ada | Lovelace\nCEO, Board: chair', '- Ada \\\\| Lovelace | CEO, Board: chair\n  - Ben\n']);
+    const fam = put(doc('family', '- Rose\n'), 0, 'all', 'Ada + Charles\n1815');
+    expect([fam.words, fam.text]).toEqual(['Ada + Charles\n1815', '- Ada + Charles | 1815\n']);
+    const mind = put(doc('mind', '- Launch\n'), 0, 'all', 'a: b, c & d');
+    expect([mind.words, mind.drawn, mind.text]).toEqual(['a: b, c & d', 'a: b, c & d', '- a: b, c & d\n']);
+  });
+
+  test('a document written before reads as it did: an unescaped separator still separates; an escaped one is byte for byte', () => {
+    expect(linesOf(doc('seating', '- Top table: Jo, Sam\n'))[0].items.map((p) => p.words)).toEqual(['Jo', 'Sam']);
+    expect(linesOf(doc('org', '- Ada | CEO\n'))[0].all.words).toBe('Ada\nCEO');
+    for (const t of ['- Top table: Smith\\\\, Jones, Ann\n', '- R\\\\&D\\\\: lab: x\n- Ops \\\\| night: y\n', '- a\\\\\\\\, b\n']) {
+      const d = doc('seating', t);
+      expect(write(d)).toBe(`---\nkind: seating\n---\n${t}`);
+    }
+    expect(linesOf(doc('seating', '- Top table: Smith\\\\, Jones, Ann\n'))[0].items.map((p) => p.words)).toEqual(['Smith, Jones', 'Ann']);
+    expect(linesOf(doc('seating', '- a\\\\\\\\, b\n'))[0].items.map((p) => p.words)).toEqual(['a\\', 'b']);
+  });
+
+  test('a connection names things by their plain words; a name holding "--", "->" or ": " is matched whole', () => {
+    const net = doc('net', '- A -- B\n- C\n- Q3: plan\n');
+    const joined = applyAll(net, connect(net, 'A -- B', 'C'));
+    expect(write(joined)).toContain('~ A -- B -> C\n');
+    expect(edgesOf(parse(write(joined)))).toMatchObject([{ from: 'A -- B', to: 'C', dir: '->', label: '' }]);
+    const two = applyAll(joined, connect(joined, 'C', 'Q3: plan'));
+    expect(edgesOf(two).map((e) => [e.from, e.to, e.label])).toEqual([['A -- B', 'C', ''], ['C', 'Q3: plan', '']]);
+    // Its words and its direction set; a name followed when it changes.
+    const said = applyAll(two, setEdge(two, 4, { label: 'asks', dir: '--' }));
+    expect(write(said)).toContain('~ C -- Q3: plan: asks\n');
+    expect(edgesOf(parse(write(said)))[1]).toMatchObject({ from: 'C', to: 'Q3: plan', dir: '--', label: 'asks' });
+    const typed: Op[] = [{ op: 'text', at: 0, from: 0, to: 6, runs: [{ t: 'A -> Z' }] }];
+    expect(run(said, [...typed, ...follow(said, applyAll(said, typed), 0)])).toContain('~ A -> Z -> C\n');
+    // Drawn: one link from the thing "A -- B" to "C", none to a thing "A".
+    const d = layout(parse(write(joined)));
+    expect(d.shapes.filter((s) => s.hit?.k === 'node')).toEqual([]);
+    expect(d.shapes.filter((s) => s.k === 'k' || s.k === 'j')).toHaveLength(1);
+    // A tree's dotted line to a person whose name holds an arrow.
+    const org = doc('org', '- Ada\n  - Ben -> Bob\n  - Eve\n');
+    const dotted = applyAll(org, connect(org, 'Ben -> Bob', 'Eve'));
+    expect(write(dotted)).toContain('~ Ben -> Bob -- Eve\n');
+    expect(layout(parse(write(dotted))).shapes.some((s) => s.hit?.k === 'edge')).toBe(true);
+  });
 });
