@@ -1758,7 +1758,6 @@ export default {
   'Open it': 'Aprilo',
   'Place cards': 'Segnaposto',
   'Play or pause': 'Riproduci o metti in pausa',
-  'Present: the map flies stop to stop': 'Presenta: la mappa vola da tappa a tappa',
   'Presenting the trip': 'Presentazione del viaggio',
   'Presenting: back': 'In presentazione: indietro',
   'Presenting: the next line or slide': 'In presentazione: la riga o la diapositiva successiva',

@@ -1756,7 +1756,6 @@ export default {
   'Open it': '開く',
   'Place cards': '席札',
   'Play or pause': '再生または一時停止',
-  'Present: the map flies stop to stop': '発表：地図が立ち寄り先から立ち寄り先へ飛びます',
   'Presenting the trip': '旅行を発表中',
   'Presenting: back': '発表中：戻る',
   'Presenting: the next line or slide': '発表中：次の行またはスライド',

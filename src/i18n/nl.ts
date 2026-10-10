@@ -1758,7 +1758,6 @@ export default {
   'Open it': 'Openen',
   'Place cards': 'Plaatskaartjes',
   'Play or pause': 'Afspelen/pauzeren',
-  'Present: the map flies stop to stop': 'Presenteren: de kaart vliegt van stop naar stop',
   'Presenting the trip': 'De reis presenteren',
   'Presenting: back': 'Presenteren: terug',
   'Presenting: the next line or slide': 'Presenteren: de volgende regel of dia',

@@ -1757,7 +1757,6 @@ export default {
   'Open it': '打开它',
   'Place cards': '座位卡',
   'Play or pause': '播放或暂停',
-  'Present: the map flies stop to stop': '放映：地图在各站点之间飞行',
   'Presenting the trip': '放映行程',
   'Presenting: back': '放映：返回',
   'Presenting: the next line or slide': '放映：下一行或下一张幻灯片',

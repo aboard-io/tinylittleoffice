@@ -1768,7 +1768,6 @@ export default {
   'Open it': 'Open it',
   'Place cards': 'Place cards',
   'Play or pause': 'Play or pause',
-  'Present: the map flies stop to stop': 'Present: the map flies stop to stop',
   'Presenting the trip': 'Presenting the trip',
   'Presenting: back': 'Presenting: back',
   'Presenting: the next line or slide': 'Presenting: the next line or slide',

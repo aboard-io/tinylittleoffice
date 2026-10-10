@@ -1759,7 +1759,6 @@ export default {
   'Open it': 'L’ouvrir',
   'Place cards': 'Cartons de table',
   'Play or pause': 'Lire ou mettre en pause',
-  'Present: the map flies stop to stop': 'Présenter : la carte vole d’arrêt en arrêt',
   'Presenting the trip': 'Présentation du voyage',
   'Presenting: back': 'En présentation : retour',
   'Presenting: the next line or slide': 'En présentation : la ligne ou la diapositive suivante',

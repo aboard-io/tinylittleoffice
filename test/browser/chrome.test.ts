@@ -45,7 +45,13 @@ async function write(hash = `#/v1/write/${encodeDoc(BIG)}`): Promise<{ shell: To
   const text = shell.querySelector<ToText>('to-write-editor to-text')!;
   await text.updateComplete;
   await frame();
+  await settled();
   return { shell, text, main: shell.querySelector<HTMLElement>('.to-main')!, chrome: shell.querySelector<ToChrome>('to-chrome')! };
+}
+/** The bar where it is going: on a phone it comes with the focus (round nine), gliding in; measured once it is there. */
+async function settled() {
+  const bar = () => document.querySelector<HTMLElement>('.to-editor to-bar')!;
+  await until(() => getComputedStyle(bar()).opacity === '1' && getComputedStyle(bar()).transform === 'none' && document.getAnimations().every((a) => a.playState !== 'running'));
 }
 
 for (const [w, h, finger] of [
@@ -122,6 +128,7 @@ test('390×844 with a finger: a tap in the words hides the header (the focus a d
   await userEvent.click(text.tx.querySelector('p')!);
   await until(() => chrome.editing);
   await frame();
+  await settled();
   expect(getComputedStyle(header).display).toBe('none');
   const b = burger.getBoundingClientRect();
   expect(b.width).toBeGreaterThan(0);
@@ -145,6 +152,7 @@ test('1440×900: the header stays while the words have the focus, and the bar is
   await userEvent.click(text.tx.querySelector('p')!);
   await until(() => chrome.editing);
   await frame();
+  await settled();
   const header = chrome.querySelector<HTMLElement>('.to-header')!.getBoundingClientRect();
   const bar = document.querySelector<HTMLElement>('.to-editor to-bar')!.getBoundingClientRect();
   expect(header.height).toBeGreaterThan(0);

@@ -117,7 +117,9 @@ export class ToPalette extends LitElement {
                   ${o.cmd.icon ? icon(o.cmd.icon, 18) : html`<span class="to-palette-noicon"></span>`}<span class="to-palette-words">${o.cmd.label(o.c)}</span>${o.cmd.keys ? html`<kbd class="to-menu-keys">${keysText(o.cmd.keys)}</kbd>` : nothing}
                 </div>`,
               )
-            : html`<p class="to-hint" role="status">${t('Nothing starts “{q}”', { q: this.query })}</p>`}
+            : this.query
+              ? html`<p class="to-hint" role="status">${t('Nothing starts “{q}”', { q: this.query })}</p>`
+              : nothing}
         </div>
       </div>
     </dialog>`;

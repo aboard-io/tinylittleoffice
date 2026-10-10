@@ -1758,7 +1758,6 @@ export default {
   'Open it': 'افتحه',
   'Place cards': 'بطاقات الأماكن',
   'Play or pause': 'تشغيل أو إيقاف مؤقت',
-  'Present: the map flies stop to stop': 'عرض: تحلّق الخريطة من محطة إلى محطة',
   'Presenting the trip': 'عرض الرحلة',
   'Presenting: back': 'العرض: رجوع',
   'Presenting: the next line or slide': 'العرض: السطر أو الشريحة التالية',

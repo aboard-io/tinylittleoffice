@@ -30,7 +30,7 @@ const TRIP: Command<R>[] = [
   command<R>({ id: 'trip.linked', scope: 'trip', label: () => t('Join the stops in order'), icon: Spline, where: ['bar'], document: true, pressed: (r) => r.view.linked, does: (r) => r.edit(setLinked(r.doc, !r.view.linked)) }),
   command<R>({ id: 'trip.fit', scope: 'trip', label: () => t('Show the whole route'), icon: Scan, where: ['bar'], document: true, disabled: (r) => !r.view.stops.length || !r.showMap, does: (r) => r.fit() }),
   command<R>({ id: 'trip.map', scope: 'trip', label: () => t('Map'), icon: MapIcon, where: ['bar'], document: true, pressed: (r) => r.showMap, does: (r) => (r.showMap = !r.showMap) }),
-  command<R>({ id: 'trip.present', scope: 'trip', label: () => t('Present'), hint: () => t('Present: the map flies stop to stop'), icon: UI.play, keys: 'Mod+Alt+Enter', where: ['bar'], document: true, takesFocus: true, disabled: (r) => !r.view.stops.length, does: (r) => r.present() }),
+  command<R>({ id: 'trip.present', scope: 'trip', label: () => t('Present'), icon: UI.play, keys: 'Mod+Alt+Enter', where: ['bar'], document: true, takesFocus: true, disabled: (r) => !r.view.stops.length, does: (r) => r.present() }),
   // Chosen stops (the rows controller draws this after Move down).
   command<R>({ id: 'trip.show', scope: 'trip', at: 'rows', label: () => t('Show on the map'), icon: Crosshair, where: ['context'], disabled: (r) => !r.hasMap, does: (r) => r.showChosen() }),
   // A stop's words.
