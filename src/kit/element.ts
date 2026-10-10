@@ -114,7 +114,7 @@ export abstract class DocElement<V> extends LitElement {
   }
 
   /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one; `mark` is handed back to `undone()`. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     if (!ops.length) return;
     const inverse = invertAll(this.doc, ops);
     this.doc = applyAll(this.doc, ops);

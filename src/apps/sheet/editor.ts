@@ -205,7 +205,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
   /* ---------- commands ---------- */
 
   /** Every edit carries where the selection was (or the cells it wrote), so an undo can put it back. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? ({ sel: [...this.sel], end: this.end && [...this.end] } satisfies Mark));
   }
   /** After an undo or a redo: the cells the edit touched selected again, the focus on the first. */

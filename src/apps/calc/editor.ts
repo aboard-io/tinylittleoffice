@@ -115,7 +115,7 @@ export class ToCalcEditor extends DocElement<CalcView> {
   /* ---------- undo: the focus comes back ---------- */
 
   /** Every edit keeps where the focus was before it, for its undo. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? this.where());
   }
   private where(): Mark | undefined {

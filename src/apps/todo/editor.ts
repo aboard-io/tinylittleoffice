@@ -106,7 +106,7 @@ export class ToTodoEditor extends DocElement<TodoView> {
     return x ? { at: x.at, offset: this.caretIn(x.at) } : undefined;
   }
   /** Every edit carries where the selection was before it. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? this.mark());
   }
   /** After an undo the caret or the chosen tasks come back as they were before the edit; after a redo, the task the change touched first. */

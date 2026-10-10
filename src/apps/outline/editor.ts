@@ -149,7 +149,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     if (this.zoom >= 0 && indexAt(this.view, this.zoom) < 0) this.zoom = -1;
   }
   /** Every edit: folds and the zoom follow the blocks they belong to; the selection before it is kept for its undo. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     const r = this.rows.range;
     const now: Mark | undefined = r ? { range: { ...r } } : this.sel >= 0 ? { at: this.sel, offset: this.caretIn(this.sel) } : undefined;
     super.edit(ops, key, mark ?? now);

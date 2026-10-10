@@ -203,7 +203,7 @@ export class ToTripEditor extends DocElement<TripView> {
     return this.view.stops[this.cur] ? { i: this.cur, field: field ?? 'name', offset: field ? this.caretIn(this.cur, field) : 0 } : undefined;
   }
   /** Every edit carries where the selection was before it. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? this.mark());
   }
   /** After an undo the caret or the chosen stops come back as they were before the edit; else (and after a redo) the stop the change touched first. */

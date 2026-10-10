@@ -230,7 +230,7 @@ export class ToCalEditor extends DocElement<CalView> {
     if (this.editing) e.stopImmediatePropagation();
   };
   /** Every edit carries where the selection was: the chosen tasks, or the caret in a task's words. */
-  protected edit(ops: Op[], key?: string, mark?: unknown) {
+  edit(ops: Op[], key?: string, mark?: unknown) {
     super.edit(ops, key, mark ?? this.markNow());
   }
   private markNow(): Mark | undefined {
