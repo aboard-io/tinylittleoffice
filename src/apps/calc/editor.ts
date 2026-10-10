@@ -27,7 +27,7 @@ import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { Rows, type Clip, type RowRange, type RowSpan } from '../../kit/rows.ts';
-import { addLine, clearTape, curves, dropLine, hasEngine, live, moveLines, pastedLines, readCalc, removeLine, replaceLines, setEngine, setLine, setMode, tape, tapeBlock, tidy, type CalcView, type Mode } from './model.ts';
+import { addLine, clearTape, curves, dropLine, hasEngine, isNote, live, moveLines, pastedLines, readCalc, removeLine, replaceLines, setEngine, setLine, setMode, tape, tapeBlock, tidy, type CalcView, type Mode } from './model.ts';
 import { graphPage } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -444,12 +444,13 @@ export class ToCalcEditor extends DocElement<CalcView> {
         const n = i + 1;
         const colour = graph ? exprs.indexOf(l) : -1;
         const ranged = this.rows.has(i);
-        return html`<li class="calc-row ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}">
+        const note = !graph && isNote(l, texts[i]);
+        return html`<li class="calc-row ${note ? 'calc-note' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}">
           <button type="button" class="calc-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('Choose line {n}: drag it to move it', { n })} title=${t('Drag to move; tap to choose')}>${icon(GripVertical, 16)}</button>
           ${graph && colour >= 0 ? html`<span class="calc-swatch" style=${`--c:${SERIES[colour % SERIES.length]}`} aria-hidden="true"></span>` : nothing}
           <input class="calc-line" aria-label=${t('Line {n}', { n })} .value=${l} autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
             @focus=${(e: Event) => this.settled.delete(e.target as HTMLInputElement)} @change=${(e: Event) => this.onLineChange(e, i)} @keydown=${(e: KeyboardEvent) => this.onLineKey(e, i)} @paste=${(e: ClipboardEvent) => this.onBoxPaste(e, i)} />
-          ${graph ? nothing : html`<button type="button" class="calc-ans" aria-label=${texts[i] ? t('Put {answer} in the line', { answer: texts[i] }) : t('No answer')} ?disabled=${!texts[i]} @mousedown=${keep} @click=${() => this.put(texts[i].replace(/−/g, '-'))}>= ${texts[i] || '?'}</button>`}
+          ${graph || note ? nothing : html`<button type="button" class="calc-ans" aria-label=${texts[i] ? t('Put {answer} in the line', { answer: texts[i] }) : t('No answer')} ?disabled=${!texts[i]} @mousedown=${keep} @click=${() => this.put(texts[i].replace(/−/g, '-'))}>= ${texts[i] || '?'}</button>`}
           ${tool({ label: t('Take away line {n}', { n }), icon: UI.close, cls: 'calc-drop', does: () => this.run((w) => removeLine(w, i)) })}
         </li>`;
       })}

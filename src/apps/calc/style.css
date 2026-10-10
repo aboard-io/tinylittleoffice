@@ -103,6 +103,11 @@
     font: 16px var(--to-font-mono);
     color: var(--to-ink-2);
   }
+  /* A note: words across the tape, in the reading font and ink, with no answer beside it. */
+  .calc-note .calc-line {
+    font: 16px var(--to-font);
+    color: var(--to-ink);
+  }
   .calc-line:hover {
     border-color: var(--to-border);
   }
