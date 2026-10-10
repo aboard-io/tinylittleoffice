@@ -1,0 +1,13 @@
+# Round nine — the common contract
+
+Everything in directive-r4-common.md holds (read it first), with directive-r6-common.md's two rules and directive-r8-common.md's rules for a rewrite (behaviour kept and proved; one mechanism, the old one deleted; nothing drawn outside the page changes; headers say the design). Round eight's tree is the base: the shell is `<to-shell>` with `<to-chrome>`, `<to-share>` and `<to-privacy>`, the page never scrolls, the document scrolls in a column, lengths are rem and em, every export format is one object.
+
+This round is Paul's answer, 2026-10-10, to "where could we get smarter about internals": *"Could we map all nav functions into a declarative graph to look for edge cases or inconsistencies? Where can we use the awesome power of math, graph theory, and automation to more rapidly test, look for bugs, lint, and offer more value to users?"* and "Do all of that. Keep the production build minimal of course."
+
+The rule of the round, beyond the contract:
+- **Nothing of this ships but what the person uses.** The command registry ships, because the bars, menus, the shortcuts dialog and the command palette are drawn from it, and it must be smaller than the code it replaces (measure the main chunk and the apps chunk before and after: no growth beyond what the palette costs, which is small). Everything else (the walks, the grammar and its generator, the width and glossary lints, the AST and module lints, the training of the dictionary) is a test, a script or a dev dependency, never in `dist`. A node test asserts the built `dist` holds no string from test/ or scripts/.
+- **Dev dependencies are allowed here where the native alternative is nothing** (fast-check for the walks, the TypeScript compiler API for the AST lint, which is already there); name the native API considered, as the rule says. No runtime dependency is added.
+- **Generated is generated.** What a script derives (the shortcuts dialog's data, docs/editing.md's tables, the skill's command list) is never edited by hand; the script is in package.json and a test fails when the committed output is stale.
+- **A finding is a failing test.** Each lint and each walk is a vitest test that fails with a message naming the command, the key, the string or the walk that broke the rule, so the next builder acts on it without reading the lint.
+
+Tests: node for the pure parts (graph lints, grammar properties, glossary), browser for what needs layout (the walks, the width lint's measuring); one test command at a time; `npx vitest run` whole at the end, and `npm run build` with the chunk sizes in the report.
