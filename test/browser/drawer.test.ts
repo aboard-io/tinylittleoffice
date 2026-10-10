@@ -122,3 +122,16 @@ test('Cancel on "Save nothing on this device" leaves things kept and puts the sw
     await setPrivate(true);
   }
 });
+
+test('About links the threat model, a link that leaves and so is asked about', async () => {
+  const { THREAT_MODEL } = await import('../../src/kit/drawer.ts');
+  const shell = await mount('');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
+  shell.querySelector<HTMLButtonElement>('.to-drawer-about')!.click();
+  await until(() => !!shell.querySelector('.to-about-dialog a.to-about-threats'));
+  const a = shell.querySelector<HTMLAnchorElement>('.to-about-dialog a.to-about-threats')!;
+  expect(a.textContent).toBe('What this protects against, and what it does not');
+  expect(a.href).toBe(THREAT_MODEL);
+  expect(THREAT_MODEL).toMatch(/\/docs\/threat-model\.md$/);
+});

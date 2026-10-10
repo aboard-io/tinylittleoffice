@@ -28,6 +28,12 @@ leak. Everything here makes that checkable by a stranger.
    inside a document; a reader fetching a picture and revealing their IP), what we do not (someone you gave
    the link to passing it on; a compromised device or browser extension; a weak password), and why each
    design choice follows. Plain words, no reassurance.
+   *Built, 2026-10-10.* `docs/threat-model.md`: what is protected against and what is not (a lost phone with
+   Saved on, the browser's history and sync, a screenshot and everything the link passes through added to
+   the list), a table of each design choice and its threat, what the Cloudflare host can see (the static
+   files' requests, the shortener's ciphertext rows and D1's own history, the proxy's fetches), and "If you
+   find a hole" pointing at `SECURITY.md` (item 8). It says plainly that whoever serves the code could read
+   the fragment, and that item 3 is the answer, not yet built. About links it.
 3. **Reproducible, attested builds** (gate). `npm run build` from a tag gives byte-identical `dist/`;
    `scripts/verify-deploy.ts` fetches the live site, hashes every file and compares with the tag's build;
    the live site serves `/version.json` (commit, tag, build time, the CSP hashes) and a build attestation
@@ -40,6 +46,11 @@ leak. Everything here makes that checkable by a stranger.
    payload form), `docs/crypto/signing.md` (Ed25519 with the P-256 fallback, the envelope's signed message,
    key storage under Saved), `docs/crypto/short-links.md` (AES-256-GCM, the key in the fragment, the owner
    capability, what tinier stores and for how long, what its logs hold: nothing).
+   *Built, 2026-10-10.* The three documents, with the byte layouts; the vectors in `test/vectors/password.json`,
+   `signing.json` (Ed25519 on RFC 8032's own test key, and a P-256 key) and `short-links.json`, checked by
+   `test/crypto-vectors.test.ts` against the kit and against WebCrypto called by hand. `sealAt` (crypt.ts)
+   and `sealShortAt` (short.ts) take a fixed IV for the vectors; a test fails if the site calls either. "Logs
+   nothing" for tinier is held by `test/tinier.test.ts` as it is for the proxy.
 6. **Self-hosting as a first-class path.** `npm run deploy` against anyone's Cloudflare account (the
    shortener included), a `docs/self-host.md` that takes thirty minutes, and the site's About naming the
    commit it runs so a self-hoster's copy is distinguishable.

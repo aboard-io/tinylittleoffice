@@ -32,6 +32,9 @@ import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
 import './privacy-dialog.ts';
 
+/** The threat model (docs/threat-model.md), read where the code is. */
+export const THREAT_MODEL = 'https://github.com/ftrain/tinyoffice/blob/main/docs/threat-model.md';
+
 export class ToDrawer extends LitElement {
   static properties = { find: { state: true }, open: { state: true } };
   declare find: string;
@@ -186,7 +189,7 @@ export class ToDrawer extends LitElement {
       </div>
     </dialog>
     <to-privacy></to-privacy>
-    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p>`}></to-dialog>`;
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);
