@@ -207,6 +207,9 @@ A model is a sheet: a column typed `name` names the cell to its right, and formu
 Budget:
 
 ```
+---
+title: Budget, October 2026
+---
 Item | Planned:money | Actual:money | Difference:money
 --- | --- | --- | ---
 Rent | 1200 | 1200 | =C1-B1
@@ -218,12 +221,13 @@ Savings | 400 | 400 | =C6-B6
 Total | =SUM(B1:B6) | =SUM(C1:C6) | =SUM(D1:D6)
 ```
 
-As a link: <https://tinylittleoffice.com/sheet/#doc=Item+%7C+Planned%3Amoney+%7C+Actual%3Amoney+%7C+Difference%3Amoney%0A---+%7C+---+%7C+---+%7C+---%0ARent+%7C+1200+%7C+1200+%7C+%3DC1-B1%0AGroceries+%7C+500+%7C+540+%7C+%3DC2-B2%0ATransport+%7C+150+%7C+120+%7C+%3DC3-B3%0AUtilities+%7C+180+%7C+175+%7C+%3DC4-B4%0AFun+%7C+200+%7C+260+%7C+%3DC5-B5%0ASavings+%7C+400+%7C+400+%7C+%3DC6-B6%0ATotal+%7C+%3DSUM%28B1%3AB6%29+%7C+%3DSUM%28C1%3AC6%29+%7C+%3DSUM%28D1%3AD6%29>
+As a link: <https://tinylittleoffice.com/sheet/#doc=---%0Atitle%3A+Budget%2C+October+2026%0A---%0AItem+%7C+Planned%3Amoney+%7C+Actual%3Amoney+%7C+Difference%3Amoney%0A---+%7C+---+%7C+---+%7C+---%0ARent+%7C+1200+%7C+1200+%7C+%3DC1-B1%0AGroceries+%7C+500+%7C+540+%7C+%3DC2-B2%0ATransport+%7C+150+%7C+120+%7C+%3DC3-B3%0AUtilities+%7C+180+%7C+175+%7C+%3DC4-B4%0AFun+%7C+200+%7C+260+%7C+%3DC5-B5%0ASavings+%7C+400+%7C+400+%7C+%3DC6-B6%0ATotal+%7C+%3DSUM%28B1%3AB6%29+%7C+%3DSUM%28C1%3AC6%29+%7C+%3DSUM%28D1%3AD6%29>
 
 A subscription business:
 
 ```
 ---
+title: A subscription business, a month
 chart: sankey
 lock: C1:C6, E6:E9
 ---
@@ -241,9 +245,9 @@ Paying | Retained | =paying-churned | Signups | =SUMIF(B1:B20, "Signups", C1:C20
 {big=Retained}
 ```
 
-As a link: <https://tinylittleoffice.com/sheet/#doc=---%0Achart%3A+sankey%0Alock%3A+C1%3AC6%2C+E6%3AE9%0A---%0AFrom+%7C+To+%7C+Amount%3Anumber+%7C+Assumption%3Aname+%7C+Value%3Anumber%0A---+%7C+---+%7C+---+%7C+---+%7C+---%0AVisitors+%7C+Signups+%7C+%3Dvisitors%2Asignup_rate%2F100+%7C+Visitors+%7C+20000%0AVisitors+%7C+Bounced+%7C+%3Dvisitors-signups+%7C+Signup+rate+%7C+6%0ASignups+%7C+Paying+%7C+%3Dsignups%2Apaid_rate%2F100+%7C+Paid+rate+%7C+25%0ASignups+%7C+Free+%7C+%3Dsignups-paying+%7C+Churn+%7C+8%0APaying+%7C+Churned+%7C+%3Dpaying%2Achurn%2F100+%7C++%7C%0APaying+%7C+Retained+%7C+%3Dpaying-churned+%7C+Signups+%7C+%3DSUMIF%28B1%3AB20%2C+%22Signups%22%2C+C1%3AC20%29%0A%7C+%7C++%7C++%7C+Paying+%7C+%3DSUMIF%28B1%3AB20%2C+%22Paying%22%2C+C1%3AC20%29%0A%7C+%7C++%7C++%7C+Churned+%7C+%3DSUMIF%28B1%3AB20%2C+%22Churned%22%2C+C1%3AC20%29%0A%7C+%7C++%7C++%7C+Retained+%7C+%3DSUMIF%28B1%3AB20%2C+%22Retained%22%2C+C1%3AC20%29%0A%7Bbig%3DRetained%7D>
+As a link: <https://tinylittleoffice.com/sheet/#doc=---%0Atitle%3A+A+subscription+business%2C+a+month%0Achart%3A+sankey%0Alock%3A+C1%3AC6%2C+E6%3AE9%0A---%0AFrom+%7C+To+%7C+Amount%3Anumber+%7C+Assumption%3Aname+%7C+Value%3Anumber%0A---+%7C+---+%7C+---+%7C+---+%7C+---%0AVisitors+%7C+Signups+%7C+%3Dvisitors%2Asignup_rate%2F100+%7C+Visitors+%7C+20000%0AVisitors+%7C+Bounced+%7C+%3Dvisitors-signups+%7C+Signup+rate+%7C+6%0ASignups+%7C+Paying+%7C+%3Dsignups%2Apaid_rate%2F100+%7C+Paid+rate+%7C+25%0ASignups+%7C+Free+%7C+%3Dsignups-paying+%7C+Churn+%7C+8%0APaying+%7C+Churned+%7C+%3Dpaying%2Achurn%2F100+%7C++%7C%0APaying+%7C+Retained+%7C+%3Dpaying-churned+%7C+Signups+%7C+%3DSUMIF%28B1%3AB20%2C+%22Signups%22%2C+C1%3AC20%29%0A%7C+%7C++%7C++%7C+Paying+%7C+%3DSUMIF%28B1%3AB20%2C+%22Paying%22%2C+C1%3AC20%29%0A%7C+%7C++%7C++%7C+Churned+%7C+%3DSUMIF%28B1%3AB20%2C+%22Churned%22%2C+C1%3AC20%29%0A%7C+%7C++%7C++%7C+Retained+%7C+%3DSUMIF%28B1%3AB20%2C+%22Retained%22%2C+C1%3AC20%29%0A%7Bbig%3DRetained%7D>
 
-Templates: Budget, Expense log, Training log, Project tracker, Loans compared, A subscription business, A café, A freelancer, A mutual aid fund, Month by month, with a chart. Its own files: `.xlsx`, `.csv`, `.chart.svg`, `.chart.png`.
+Templates: Budget, Household budget by month, Expense log, Savings goal, Habit tracker, Reading list, Workout log, Training log, Time sheet, Trip costs split, Project tracker, Schedule with dates, Grade book, Membership roll, Seating count, Poll results, Fundraising thermometer, Invoice ledger, Inventory, Petty cash, Rate card, Mortgages compared, Loans compared, Unit converter, Tournament bracket, Month by month, with a chart, A subscription business, A café, A freelancer, A mutual aid fund. Its own files: `.xlsx`, `.csv`, `.chart.svg`, `.chart.png`.
 
 ### calc: a calculator that keeps its working
 
