@@ -77,6 +77,15 @@ describe('the eight kinds drawn', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.filter((id) => !id.includes('-'))).toEqual(['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net']);
   });
+  test('the blank pages are named by their kind, the mind map first, and no template is called Blank (Paul, 2026-10-10)', () => {
+    const all = templates();
+    for (const x of all) expect(x.name, x.id).not.toMatch(/blank/i);
+    expect(all[0]).toMatchObject({ id: 'mind', name: 'Mind map', blurb: 'An empty mind map to start from.' });
+    expect(kindOf(parse(all[0].doc))).toBe(kindOf(parse(def.blank())));
+    const blanks = all.filter((x) => !x.id.includes('-'));
+    expect(blanks.map((x) => x.name)).toEqual(['Mind map', 'Org chart', 'Family tree', 'Swimlanes', 'Timeline', 'Venn', 'Seating chart', 'Network']);
+    expect(def.blankInTemplates).toBe(true);
+  });
   test('the templates: at least three real ones a kind, each a whole document with a title, a blurb and no filler', () => {
     const real = templates().filter((x) => x.id.includes('-'));
     expect(real.length).toBeGreaterThanOrEqual(24);

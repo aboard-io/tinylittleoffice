@@ -35,7 +35,7 @@ export interface Shortcut {
   does: () => string;
 }
 
-/** A way to start: Blank first on the home page, then these, each drawn small from its own document. */
+/** A way to start: Blank first on the home page (unless the app's `blankInTemplates`), then these, each drawn small from its own document. */
 export interface Template {
   id: string;
   name: string;
@@ -100,6 +100,8 @@ export interface AppDef {
   /** A new document. */
   blank(): Doc;
   readonly templates: Template[];
+  /** The app's templates carry its blank pages (a Diagram Maker's blank per kind); the lists add no Blank of their own. Its row's name still opens `blank()`. */
+  blankInTemplates?: boolean;
   /** The editor, lazily: the tag of its element (defined by the module). */
   editor(): Promise<{ tag: string }>;
   /** The document's own name, '' if it has none. (A head field; the kernel's `head` op will set it.) */

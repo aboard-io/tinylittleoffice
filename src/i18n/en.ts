@@ -1338,8 +1338,7 @@ export default {
   'a connection': 'a connection',
   'empty': 'empty',
   // The templates
-  'Blank {kind}': 'Blank {kind}',
-  'An empty {kind}: tap to add the first thing.': 'An empty {kind}: tap to add the first thing.',
+  'An empty {kind} to start from.': 'An empty {kind} to start from.',
   'A browser, an API, a database, a cache and a worker, and how they talk.': 'A browser, an API, a database, a cache and a worker, and how they talk.',
   'A building project': 'A building project',
   'A launch and everything that branches from it: product, marketing, support.': 'A launch and everything that branches from it: product, marketing, support.',

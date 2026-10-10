@@ -71,6 +71,30 @@ test('the home page lists the apps as rows, each with its templates', async () =
   expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Launch meeting {.title}');
 });
 
+test('the Diagram Maker lists a blank page a kind and no Blank of its own, its first kind chosen; the Word Processor still starts with Blank', async () => {
+  const shell = await mount('');
+  const tile = [...shell.querySelectorAll<HTMLElement>('.to-app')].find((x) => x.querySelector('.to-app-open b')!.textContent === 'Diagram Maker')!;
+  expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v1/diagram');
+  tile.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
+  await until(() => !!tile.querySelector('[role=option] svg'));
+  const options = [...tile.querySelectorAll('[role=option]')];
+  const names = options.map((o) => o.querySelector('.to-option-words span')!.textContent!);
+  expect(names).not.toContain('Blank');
+  for (const name of names) expect(name).not.toMatch(/blank/i);
+  expect(names[0]).toBe('Mind map');
+  expect(options[0].getAttribute('aria-selected')).toBe('true');
+  expect(options.filter((o) => o.getAttribute('aria-selected') === 'true').length).toBe(1);
+  (options[0] as HTMLElement).click();
+  await until(() => location.hash.startsWith('#/v1/diagram/'));
+  expect(decodeDoc(location.hash.slice('#/v1/diagram/'.length))).toContain('kind: mind');
+  // The Word Processor, beside it, keeps its Blank first.
+  const home = await mount('');
+  const write = home.querySelector<HTMLElement>('.to-app')!;
+  write.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
+  await until(() => !!write.querySelector('[role=option] svg'));
+  expect(write.querySelector('[role=option] .to-option-words span')!.textContent).toBe('Blank');
+});
+
 test('the home page has no copy: every app, in order, its icon, its name and its templates; no lede, no blurbs, no headings but the hidden one', async () => {
   const shell = await mount('');
   const h1 = shell.querySelector('to-home h1')!;
