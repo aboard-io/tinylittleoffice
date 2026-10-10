@@ -126,7 +126,7 @@ test('Escape closes the list and leaves ":ca" as typed, and the press stops ther
   await until(() => !!pop());
   await userEvent.keyboard(' ');
   await until(() => !pop());
-  expect(h.tlo).toBe('Go :car :ca \n');
+  expect(h.tlo).toBe('Go :car :ca\\ \n');
 });
 
 test('"10:30" and "re: that" open nothing', async () => {

@@ -643,7 +643,8 @@ test('Enter and the Add items open the next thing focused, its words offered and
   expect(held(seats.el)).toBe('Table 2');
   expect(line(seats.el).sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 7 } });
   await type(seats.el, 'Head');
-  expect(seats.last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Sam\n- Head:\n');
+  // (The ": " after a table's name waits for its guests, and the link keeps its space: "\ ".)
+  expect(seats.last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Sam\n- Head:\\ \n');
 });
 
 test('Join in the bar: with a thing open or focused it arms joining from it, the next tap makes the connection; Escape or a second press disarms; with nothing in hand the next two tapped are joined', async () => {

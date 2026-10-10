@@ -4,7 +4,7 @@
 // (htmlToBlocks needs the browser's DOMParser, so this runs in Chromium.)
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { parse, write, type Block, type Doc } from '../../src/doc/index.ts';
+import { normalRuns, parse, write, type Block, type Doc, type Run } from '../../src/doc/index.ts';
 import { docToHtml, htmlToBlocks } from '../../src/kit/clipboard.ts';
 import { arbitraryDoc, RUNS } from '../doc/tlo-grammar.ts';
 
@@ -43,10 +43,33 @@ const wordsOnly = (d: Doc): Block[] =>
     return [];
   });
 
+/**
+ * What HTML from elsewhere carries of a document's words: it draws no space at a line's ends and no empty line (a
+ * trailing <br> draws nothing, two draw one), so those are the markup's there, and a block left with no words is none.
+ * (Our own paste reads our TLO, which says them: test/browser/paste-spaces.test.ts.)
+ */
+function asHtml(blocks: Block[]): Block[] {
+  const loose = (r: Run | undefined): r is Run => !!r && !r.ic && r.fn === undefined;
+  const lines = (runs: Run[]): Run[] => {
+    const out: Run[][] = [[]];
+    for (const r of runs) (loose(r) ? r.t.split('\n') : [null]).forEach((t, i) => (i && out.push([]), out[out.length - 1].push(t === null ? r : { ...r, t })));
+    const trimmed = out.map((l) => {
+      let rs = normalRuns(l);
+      while (loose(rs[0]) && !rs[0].t.trim()) rs = rs.slice(1);
+      while (loose(rs[rs.length - 1]) && !rs[rs.length - 1].t.trim()) rs = rs.slice(0, -1);
+      if (loose(rs[0])) rs = [{ ...rs[0], t: rs[0].t.trimStart() }, ...rs.slice(1)];
+      if (loose(rs[rs.length - 1])) rs = [...rs.slice(0, -1), { ...rs[rs.length - 1], t: rs[rs.length - 1].t.trimEnd() }];
+      return normalRuns(rs);
+    });
+    return normalRuns(trimmed.filter((l) => l.length).flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l)));
+  };
+  return parse(text(blocks.flatMap((b): Block[] => ('runs' in b ? ((runs) => (runs.length ? [{ ...b, runs }] : []))(lines(b.runs)) : [b])))).blocks;
+}
+
 test('property: paragraphs and items pasted as HTML come back as they were: words, marks, links, icons, notes, depths', () => {
   holds('paste(words) = words', arbitraryDoc().map(wordsOnly), (blocks) => {
     // (Lists are drawn nested, so an item's depth is what the items before it allow, as when it is written.)
-    const want = parse(text(blocks)).blocks;
+    const want = asHtml(parse(text(blocks)).blocks);
     // (HTML shows two spaces as one, so a run of spaces comes back as one.)
     const spaces = (s: string) => s.replace(/ {2,}/g, ' ');
     expect(spaces(text(pasted(want)))).toBe(spaces(text(want)));

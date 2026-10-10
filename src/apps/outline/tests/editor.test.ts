@@ -858,7 +858,7 @@ test('“1. ” typed at the start of a row numbers its list, and an undo gives 
   // Not at the start, it is words.
   await choose(el, 2);
   await typeIn(el, 2, ' 1. ');
-  expect(last()!.split('\n')[2]).toBe('  - a2 1.');
+  expect(last()!.split('\n')[2]).toBe('  - a2 1.\\ ');
 });
 
 test('the bar: Indent before Bring out as under chosen rows; Connect, Zoom out and the fold arrow keep the focus; the rows never zoom the page on a double tap', async () => {

@@ -48,7 +48,8 @@ test('Enter splits a block; a heading leaves a paragraph; an empty item leaves i
   const e = splitAt(B, caret(1, 4));
   const got = after(B, e);
   expect(got[1]).toMatchObject({ k: 'p', runs: [{ t: 'Some' }] });
-  expect(tlo(got.slice(2, 3))).toBe(' **bold** words :star: and^[a note] more.\n');
+  // (The space after the split is the second half's, and the link says it: "\ ".)
+  expect(tlo(got.slice(2, 3))).toBe('\\ **bold** words :star: and^[a note] more.\n');
   expect(e.sel).toEqual(caret(2, 0));
   const h = after(B, splitAt(B, caret(0, 4)));
   expect(h[0]).toMatchObject({ k: 'h', level: 1 });

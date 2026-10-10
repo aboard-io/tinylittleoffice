@@ -31,6 +31,10 @@ document; it never parses text of its own.
    rule, `![`, `{`) gets a `\` in front, on every line of a paragraph and of an item; words that are only
    `{#id}`-like keep that backslash; a heading's words that end in `#` are written `\#`, so they are not its
    closing hashes.
+   Every space a person typed is kept: a space at a line's end (or start) is written `\ ` (the last trailing one
+   and the first leading one; the spaces between are kept by being between), in a paragraph, a heading, an item,
+   a quote's end and a table cell, and a line of a block with nothing on it (a line break at a paragraph's end, or
+   two in a row) is a line of one `\`. A reader trims a line's ends up to an escaped space and never past it.
 
 ## The model
 

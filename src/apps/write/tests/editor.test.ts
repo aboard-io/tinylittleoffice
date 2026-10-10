@@ -745,7 +745,7 @@ test('a page break: from Insert ▾ or Mod+Shift+Enter at the caret, drawn as a 
   el.text.sel = { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 3 } };
   await tick();
   await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Page break');
-  await until(() => last() === 'One\n\n---\n\n two\n');
+  await until(() => last() === 'One\n\n---\n\n\\ two\n');
   const brk = card(el, 1);
   expect(brk.classList.contains('tx-card')).toBe(true);
   expect(brk.getAttribute('contenteditable')).toBe('false');
@@ -759,14 +759,14 @@ test('a page break: from Insert ▾ or Mod+Shift+Enter at the caret, drawn as a 
   el.text.sel = { anchor: { block: 2, offset: 4 }, focus: { block: 2, offset: 4 } };
   await tick();
   expect(key(el.text.tx, 'Enter', { ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(true);
-  await until(() => last() === 'One\n\n---\n\n two\n\n---\n\n<br>\n');
+  await until(() => last() === 'One\n\n---\n\n\\ two\n\n---\n\n<br>\n');
   // A tap takes it in hand (the bar under it), Delete takes it out.
   brk.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   await until(() => document.activeElement === card(el, 1));
   await until(() => barItems().length > 0);
   expect(barItems()).toEqual(['Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
   key(card(el, 1), 'Delete');
-  await until(() => last() === 'One\n\n two\n\n---\n\n<br>\n');
+  await until(() => last() === 'One\n\n\\ two\n\n---\n\n<br>\n');
 });
 
 test('Mod+Shift+L, E, R and J align the block in hand left, centred, right and justified, each written on the menu; never taken outside the words', async () => {

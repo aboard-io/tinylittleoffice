@@ -206,7 +206,7 @@ test('Enter at the start of a card pushes it down, in the middle splits it (the 
   await focusAt(el, 1, 6);
   input(text(el, 1), 'insertParagraph');
   await settle(el);
-  expect(last()).toContain('- Write\n  - [x] Outline\n  - [ ] Draft\n- the **spec**\n-\n- Review');
+  expect(last()).toContain('- Write\\ \n  - [x] Outline\n  - [ ] Draft\n- the **spec**\n-\n- Review');
   expect(document.activeElement).toBe(text(el, 4).tx);
   await focusAt(el, 3, 2);
   input(text(el, 3), 'insertParagraph');
@@ -216,7 +216,7 @@ test('Enter at the start of a card pushes it down, in the middle splits it (the 
   await focusAt(el, 2, 0);
   input(text(el, 2), 'insertParagraph');
   await settle(el);
-  expect(last()).toContain('- Write\n  - [ ]\n  - [x] Outline\n');
+  expect(last()).toContain('- Write\\ \n  - [ ]\n  - [x] Outline\n');
   expect(document.activeElement).toBe(text(el, 3).tx);
 });
 

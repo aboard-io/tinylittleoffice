@@ -145,7 +145,8 @@ From `src/lib/richtext.ts` to `src/doc/notes.ts` unchanged: `Run`, `foldNotes`, 
 - Images: `![alt](url)` alone on a line, `<url>` accepted, `\]` in alt.
 - Quotes: `> ` lines merge into one block, written a line each.
 - Paragraphs: consecutive lines merge; a blank line separates; a line that would read as another block is written with a leading `\` (`guard`); a lone `|` is written as is (the deck's column break); Write's empty paragraph is `<br>`.
-- Inline: `**`, `__` (b), `*`, `_` (i; `_` not inside a word), `++` and `<u>` (u), `~~` (s), `==` (h); no space just inside a mark; backtick spans read as plain words; `[words](https?:|mailto:|tel:|#…)` links with spaces and parentheses percent-encoded on write; `:icon-name:`; `^[note]` with balanced brackets and `\]`; `\` before `` \`*_{}[]()#+-.!|~=:<>^ ``; a web or mail address read whole, marks inside it untouched, trailing `.,;:!?)` left out; marks close before trailing spaces.
+- Inline: `**`, `__` (b), `*`, `_` (i; `_` not inside a word), `++` and `<u>` (u), `~~` (s), `==` (h); no space just inside a mark; backtick spans read as plain words; `[words](https?:|mailto:|tel:|#…)` links with spaces and parentheses percent-encoded on write; `:icon-name:`; `^[note]` with balanced brackets and `\]`; `\` before `` \`*_{}[]()#+-.!|~=:<>^ `` and before a space; a web or mail address read whole, marks inside it untouched, trailing `.,;:!?)` left out; marks close before trailing spaces.
+- Spaces and breaks (round ten, 2026-10-10): every space a person typed is in the link, because "we cannot ever lose spaces if they're there" (Paul). A space at a line's end is written `\ ` on the last trailing one, and at a line's start on the first leading one (not in a quote, whose starts are kept as they are), wherever a plain space would be trimmed: a paragraph's, a heading's and an item's lines, a quote's ends, a table cell's ends. A line of a block with nothing on it is a line of one `\` (Shift+Enter at a paragraph's end, two in a row; a quote's empty line between two stays `>`). The reader trims a line's ends up to an escaped space, never past it, and keeps every `\` line, the last too; before attributes, the one space before `{` is theirs (`a\  {.x}` is "a " with attributes, `\ {.x}` an empty line with them). Lenient: `\ ` written by hand is a space anywhere, as `\*` is a star. A mark or a link on spaces alone at a line's end may still be let go; the spaces stay. The writer's candidate-then-check (point 2 above) reads each line back with its ends trimmed.
 
 ---
 
@@ -476,8 +477,9 @@ disagree, a property below fails naming the text, and §2's "Grammar the kernel 
 Two generators come from it, both with fast-check, both biased to the hard cases (marks at a block's edges,
 attributes that look like words, `\{`, `~~` beside a link, empty cells, items nested deep, icons and emoji in names,
 right-to-left words): `textOf(rule)` makes texts from the EBNF; `arbitraryDoc()` makes models of the kernel as far as
-the format can say them, and `sayableLine`/`sayableDoc` list, one rule a line, what it cannot (a line's words never
-begin or end with spaces; a mark never begins or ends with one; an item is at most one deeper than the item before it).
+the format can say them, and `sayableLine`/`sayableDoc` list, one rule a line, what it cannot (a mark never begins or
+ends with a space; an item is at most one deeper than the item before it; "a line's words never begin or end with
+spaces" was taken out in round ten, when the format learned to say them).
 `arbitraryOp(doc)` and `arbitraryEdits()` make operations that apply.
 
 The properties, each a `fc.assert`-style check whose failure names the shrunk counterexample (200 cases each;

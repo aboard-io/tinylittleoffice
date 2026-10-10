@@ -114,11 +114,11 @@ test('the marks in force: Bold with nothing selected marks what is typed next', 
 test('Enter splits per shape: doc and lines split the block, a heading leaves a paragraph, a line says text-enter', async () => {
   const h = await mount('# Head\n\nwords here\n', 'doc', caret(1, 5));
   await key(h, 'Enter');
-  expect(h.tlo).toBe('# Head\n\nwords\n\n here\n');
+  expect(h.tlo).toBe('# Head\n\nwords\n\n\\ here\n');
   expect(h.el.sel).toEqual(caret(2, 0));
   h.el.sel = caret(0, 4);
   await key(h, 'Enter');
-  expect(h.tlo).toBe('# Head\n\n<br>\n\nwords\n\n here\n');
+  expect(h.tlo).toBe('# Head\n\n<br>\n\nwords\n\n\\ here\n');
   expect(h.doc.blocks[1]).toMatchObject({ k: 'p', runs: [] });
   expect(parse(h.tlo).blocks).toHaveLength(4);
   const lines = await mount('- a\n- b\n', 'lines', caret(1, 1));

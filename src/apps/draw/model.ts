@@ -70,7 +70,7 @@ function plainRun(r: Run): Run {
   return out;
 }
 /** Lines of runs as a label's words: each line inline Markdown, joined by " | ". */
-export const labelText = (lines: Run[][]): string => lines.map((runs) => writeInline(runs.map((r) => plainRun({ ...r, t: r.t.replace(/\n/g, ' ') }))).trim()).join(' | ');
+export const labelText = (lines: Run[][]): string => lines.map((runs) => writeInline(runs.map((r) => plainRun({ ...r, t: r.t.replace(/\n/g, ' ') })))).join(' | ');
 /** A label as plain words, the marks taken out (what is read aloud, measured, described). */
 export const labelPlain = (text: string): string => {
   const [ic, words] = iconOf(text);
@@ -190,7 +190,8 @@ export function rowShape(row: string[], cols: Cols): Shape | null {
     w: n('w') * GRID,
     h: n('h') * GRID,
     f: (look ? +look[1] : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
-    text: get('label'),
+    // (The words as they are: a cell is read with its ends trimmed up to an escaped space, and those are the person's.)
+    text: cols.label >= 0 ? (row[cols.label] ?? '') : '',
   };
   if (isDrawn(k)) shape.pts = ptsOf(get('points'));
   if (look && look[2] in COLORS) shape.c = look[2] as Color;

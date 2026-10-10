@@ -19,7 +19,9 @@
  *
  * Both are biased to the hard cases: marks at a block's edges, attributes
  * that look like words, "\{", "~~" beside a link, empty cells, items nested
- * deep, icons and emoji in names, right-to-left words.
+ * deep, icons and emoji in names, right-to-left words, and spaces at a line's
+ * ends and empty lines in a block (a space before "{.right}", an item whose
+ * words are one space, a cell of spaces, a break at a paragraph's end).
  */
 import fc from 'fast-check';
 import { balanceNote, normalRuns, write, writeInline, type Attrs, type Block, type Column, type ColType, type Dir, type Doc, type Run } from '../../src/doc/index.ts';
@@ -41,15 +43,16 @@ field      = ? key ? , ": " , ? value ? , "\n" ;
 
 block      = paragraph | heading | items | quote | rule | table | fence | edges | image ;
 
-paragraph  = [ "\\" ] , line , { "\n" , line } , [ attrs ] , "\n" | "<br>\n" | "|\n" ;
+paragraph  = [ "\\" ] , line , { "\n" , bline } , [ attrs ] , "\n" | "<br>\n" | "|\n" ;
+bline      = line | "\\" ;
 heading    = hashes , " " , line , [ attrs ] , [ " " , hashes ] , "\n" ;
 hashes     = "#" | "##" | "###" | "####" | "#####" | "######" ;
 items      = item , { item } ;
-item       = indent , marker , " " , [ task ] , line , [ attrs ] , "\n" , [ indent , "  " , line , "\n" ] ;
+item       = indent , marker , " " , [ task ] , bline , [ attrs ] , "\n" , [ indent , "  " , bline , "\n" ] ;
 indent     = "" | "  " | "    " | "      " | "\t" ;
 marker     = "-" | "*" | "+" | "1." | "2." | "1)" ;
 task       = "[ ] " | "[x] " | "[X] " ;
-quote      = ">" , [ " " ] , line , "\n" , { "> " , line , "\n" } , [ attrs , "\n" ] ;
+quote      = ">" , [ " " ] , line , "\n" , { "> " , bline , "\n" | ">\n" } , [ attrs , "\n" ] ;
 rule       = ( "---" | "***" | "___" | "- - -" | "-----" ) , [ attrs ] , "\n" ;
 
 table      = [ "| " ] , colhead , { " | " , colhead } , [ " |" ] , "\n" , sep , "\n" , { row , "\n" } , [ attrs , "\n" ] ;
@@ -57,7 +60,7 @@ colhead    = ? name ? , [ ":" , coltype ] | ? name ? , ": " , coltype | ? name ?
 coltype    = "text" | "number" | "money" | "percent" | "date" | "time" | "check" | "url" | "rich" | "long" | "icon" | "name" | "option" ;
 sep        = "--- | ---" | "| --- | --- |" | ":--- | ---:" | "---|---|---" ;
 row        = [ "| " ] , cell , { " | " , cell } , [ " |" ] ;
-cell       = "" | ? cell ? ;
+cell       = "" | ? cell ? | "\\ " , ? cell ? | ? cell ? , "\\ " | "\\ " ;
 
 fence      = ticks , [ ? lang ? ] , [ attrs ] , "\n" , { ? body ? , "\n" } , ticks , "\n" | "~~~" , [ ? lang ? ] , "\n" , { ? body ? , "\n" } , "~~~\n" ;
 ticks      = "\u0060\u0060\u0060" | "\u0060\u0060\u0060\u0060" ;
@@ -75,7 +78,7 @@ marked     = "**" , line , "**" | "*" , line , "*" | "__" , line , "__" | "_" , 
 link       = "[" , line , "](" , ? href ? , ")" ;
 icon       = ":" , ? icon ? , ":" ;
 note       = "^[" , line , "]" ;
-escape     = "\\" , ( "*" | "_" | "{" | "[" | "]" | "#" | "|" | "~" | "=" | ":" | "<" | "^" | "\\" | "\u0060" ) ;
+escape     = "\\" , ( "*" | "_" | "{" | "[" | "]" | "#" | "|" | "~" | "=" | ":" | "<" | "^" | "\\" | "\u0060" | " " ) ;
 `;
 
 /** The words the grammar's ? name ? terms are drawn from: plain ones, and the ones that have broken something. */
@@ -183,29 +186,30 @@ export function textOf(rule = 'document'): fc.Arbitrary<string> {
 const pick = <T,>(xs: readonly T[]) => fc.constantFrom(...xs);
 const MARK_KEYS = ['b', 'i', 'u', 's', 'h'] as const;
 
-/** Words for a run: the plain and the hard. */
+/** Words for a run: the plain and the hard, now and then with spaces at their ends. */
 const word = pick([...POOLS.words.filter((w) => w.trim() === w && w), 'one', 'two', 'three']);
-const phrase = fc.array(word, { minLength: 1, maxLength: 3 }).map((ws) => ws.join(' '));
+const spaces = pick(['', '', '', ' ', '  ']);
+const phrase = fc.tuple(spaces, fc.array(word, { minLength: 1, maxLength: 3 }), spaces).map(([a, ws, z]) => a + ws.join(' ') + z);
 
 /** A run of words with marks, an icon, or a footnote whose words are themselves runs written as inline Markdown. */
 export const arbitraryRun = (notes = true): fc.Arbitrary<Run> =>
   fc.oneof(
     { weight: 6, arbitrary: fc.record({ t: phrase, marks: fc.subarray([...MARK_KEYS]), href: fc.option(pick(POOLS.href), { nil: undefined, freq: 4 }) }).map(({ t, marks, href }) => Object.assign({ t }, ...marks.map((m) => ({ [m]: true })), href ? { href } : {}) as Run) },
-    { weight: 1, arbitrary: fc.constant<Run>({ t: ' ' }) },
+    { weight: 2, arbitrary: pick([' ', '  ']).map((t): Run => ({ t })) },
     { weight: 1, arbitrary: pick(POOLS.icon).map((ic): Run => ({ t: '', ic })) },
     ...(notes ? [{ weight: 1, arbitrary: fc.array(arbitraryRun(false), { minLength: 0, maxLength: 3 }).map((rs): Run => ({ t: '', fn: balanceNote(writeInline(sayableLine(normalRuns(rs)))) })) }] : []),
   );
 
 /** One line of runs (no line break), as the format can say it. */
 const arbitraryLine = fc.array(arbitraryRun(), { minLength: 1, maxLength: 5 }).map((rs) => sayableLine(normalRuns(rs)));
-/** Lines of runs joined by '\n'. */
-const arbitraryLines = (max: number) => fc.array(arbitraryLine, { minLength: 1, maxLength: max }).map((ls) => normalRuns(ls.filter((l) => l.length).flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l))));
+/** Lines of runs joined by '\n', some of them empty (a break at a block's end, two breaks). */
+const arbitraryLines = (max: number) => fc.array(fc.oneof({ weight: 4, arbitrary: arbitraryLine }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), { minLength: 1, maxLength: max }).map((ls) => normalRuns(ls.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l))));
 
 /**
  * What the format cannot say, kept out of a generated model (each a fact of
  * Markdown's, not a bug; a rule here that turns out to be a bug is reported
- * and taken out):
- *   - a line's words never begin or end with spaces (Markdown trims a line);
+ * and taken out, as "a line's words never begin or end with spaces" was on
+ * 2026-10-10: the writer escapes them, "\ "):
  *   - a mark or a link never begins or ends with a space (it closes before
  *     trailing spaces, docs/kernel.md: "no space just inside a mark"), so a
  *     run of spaces carries no marks;
@@ -230,14 +234,7 @@ export function sayableLine(runs: Run[]): Run[] {
     spaced.push({ ...r, t: m[2] });
     if (m[3]) spaced.push({ t: m[3] });
   }
-  let rs = normalRuns(spaced);
-  // A line's ends.
-  while (rs.length && !rs[0].ic && rs[0].fn === undefined && !rs[0].t.trim()) rs = rs.slice(1);
-  while (rs.length && !rs[rs.length - 1].ic && rs[rs.length - 1].fn === undefined && !rs[rs.length - 1].t.trim()) rs = rs.slice(0, -1);
-  if (rs.length && !rs[0].ic && rs[0].fn === undefined) rs = [{ ...rs[0], t: rs[0].t.trimStart() }, ...rs.slice(1)];
-  const l = rs.length - 1;
-  if (l >= 0 && !rs[l].ic && rs[l].fn === undefined) rs = [...rs.slice(0, l), { ...rs[l], t: rs[l].t.trimEnd() }];
-  return normalRuns(rs);
+  return normalRuns(spaced);
 }
 
 const ident = pick(POOLS.ident);
@@ -257,7 +254,7 @@ const withA = <B extends Block>(b: B, a: Attrs | undefined): B => (a ? { ...b, a
 
 const COLTYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name', 'option'];
 const arbitraryColumn: fc.Arbitrary<Column> = fc.record({ name: pick(['Name', 'Qty', 'Price', '# of units', 'Time', '🚀 Launch', 'שם', 'a|b', 'Note', 'x\\y']), type: pick(COLTYPES), currency: fc.option(pick(['£', 'GBP', 'R$']), { nil: undefined }) }).map((c) => (c.type === 'money' && c.currency ? { name: c.name, type: c.type, currency: c.currency } : { name: c.name, type: c.type }));
-const arbitraryCell = pick(['', '1', '2.5', 'words', '=A1+B1', '=SUM(A1:B3)', 'a | b', 'x\\y', 'two\nlines', '🚀', 'שלום', '-', '#', '=C2*2']);
+const arbitraryCell = pick(['', '1', '2.5', 'words', '=A1+B1', '=SUM(A1:B3)', 'a | b', 'x\\y', 'two\nlines', '🚀', 'שלום', '-', '#', '=C2*2', ' ', '  ', ' a', 'b ', 'x\\ ', 'two \n']);
 
 /** A table: typed columns, raw cells (empty ones too), rows as wide as the columns. */
 export const arbitraryTable = (maxCols = 4, maxRows = 4): fc.Arbitrary<Extract<Block, { k: 'table' }>> =>
