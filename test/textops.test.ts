@@ -126,6 +126,21 @@ test('marks over a selection: on unless every word has it, then off; links set a
 test('kinds and alignment: heading, list on and off, title, indent within the rule, align classes', () => {
   expect(after(B, setKind(B, caret(1, 0), 'h2'))[1]).toMatchObject({ k: 'h', level: 2 });
   expect(kindAt(after(B, setKind(B, caret(1, 0), 'h2')), caret(1, 0))).toBe('h2');
+});
+
+test('a block of several lines made a heading is its first line, the lines after it a paragraph, and the caret follows', () => {
+  // The letter's address: a paragraph of three lines with {.right}; a heading is one line, so the rest stay a paragraph with every break.
+  const L = blocks('Mara Quill\nHarbor Studio\nPortland {.right}\n\nDear Ms Okafor\n');
+  const e = setKind(L, sel([0, 15]), 'h1');
+  const out = after(L, e);
+  expect(out.map((b) => b.k)).toEqual(['h', 'p', 'p']);
+  expect(tlo(out)).toBe('# Mara Quill {.right}\n\nHarbor Studio\nPortland {.right}\n\nDear Ms Okafor\n');
+  expect(e.sel).toEqual(sel([1, 4]));
+  // A caret in the first line stays; a caret in a block after the split is one block further on.
+  expect(setKind(L, sel([0, 3]), 'h2').sel).toEqual(sel([0, 3]));
+  expect(setKind(L, sel([0, 3], [1, 2]), 'title').sel).toEqual(sel([0, 3], [2, 2]));
+  // Back to a paragraph, or to a list, nothing splits.
+  expect(after(L, setKind(L, sel([0, 15]), 'ul')).map((b) => b.k)).toEqual(['li', 'p']);
   expect(after(B, setKind(B, caret(1, 0), 'ul'))[1]).toMatchObject({ k: 'li', depth: 0 });
   expect(after(B, setKind(B, caret(2, 0), 'ul'))[2]).toMatchObject({ k: 'p' });
   expect(after(B, setKind(B, caret(2, 0), 'ol'))[2]).toMatchObject({ k: 'li', ord: true });

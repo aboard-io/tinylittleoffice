@@ -1678,6 +1678,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': 'موجات جيبية تُجمع في طريقها إلى موجة مربعة.',
 
   'Templates for {app}': 'قوالب {app}',
+  '{app} Templates': 'قوالب {app}',
   'Templates for {app}: {name}': 'قوالب {app}: {name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'اختر السطر {n}: اسحبه لتحريكه',

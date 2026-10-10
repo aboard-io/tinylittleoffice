@@ -346,26 +346,61 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
   const items = span.filter(isText);
   const already = kind === 'ul' ? items.every((b) => b.k === 'li' && !b.ord) : kind === 'ol' ? items.every((b) => b.k === 'li' && !!b.ord) : kind === 'quote' ? items.every((b) => b.k === 'quote') : false;
   const want = already ? 'p' : kind;
-  const out = span.map((b): Block => {
-    if (!isText(b)) return b;
+  // A heading is one line (the format says no other): a block of several lines made a heading is its first line, and
+  // the lines after it stay a paragraph, every one of them (nothing typed is lost: Paul, 2026-10-10). The selection
+  // follows: a caret in a line that moved is in the paragraph, and the blocks after a split are one further on.
+  const heading = want === 'h1' || want === 'h2' || want === 'title';
+  const out: Block[] = [];
+  const splits: number[] = [];
+  span.forEach((b, i) => {
+    if (!isText(b)) return void out.push(b);
     const a: Attrs = { ...b.a, cls: (b.a?.cls ?? []).filter((c) => c !== 'title') };
+    const nl = heading ? lineEnd(b.runs) : -1;
+    const runs = nl < 0 ? b.runs : sliceRuns(b.runs, 0, nl);
     switch (want) {
       case 'p':
-        return withAttrs({ k: 'p', runs: b.runs }, a);
+        return void out.push(withAttrs({ k: 'p', runs: b.runs }, a));
       case 'quote':
-        return withAttrs({ k: 'quote', runs: b.runs }, a);
+        return void out.push(withAttrs({ k: 'quote', runs: b.runs }, a));
       case 'h1':
-        return withAttrs({ k: 'h', level: 1, runs: b.runs }, a);
+        out.push(withAttrs({ k: 'h', level: 1, runs }, a));
+        break;
       case 'h2':
-        return withAttrs({ k: 'h', level: 2, runs: b.runs }, a);
+        out.push(withAttrs({ k: 'h', level: 2, runs }, a));
+        break;
       case 'title':
-        return withAttrs({ k: 'h', level: 1, runs: b.runs }, { ...a, cls: [...(a.cls ?? []), 'title'] });
+        out.push(withAttrs({ k: 'h', level: 1, runs }, { ...a, cls: [...(a.cls ?? []), 'title'] }));
+        break;
       case 'ul':
       case 'ol':
-        return withAttrs({ k: 'li', depth: b.k === 'li' ? b.depth : 0, ...(want === 'ol' ? { ord: true } : {}), runs: b.runs }, a);
+        return void out.push(withAttrs({ k: 'li', depth: b.k === 'li' ? b.depth : 0, ...(want === 'ol' ? { ord: true } : {}), runs: b.runs }, a));
+    }
+    if (nl >= 0) {
+      out.push(withAttrs({ k: 'p', runs: sliceRuns(b.runs, nl + 1, runLength(b.runs)) }, a));
+      splits.push(from + i);
     }
   });
-  return { ops: [{ op: 'splice', at: from, n: to - from, blocks: out }], sel };
+  const moved = (p: Pos): Pos => {
+    const before = splits.filter((at) => at < p.block).length;
+    const here = splits.includes(p.block) ? lineEnd((blocks[p.block] as TextBlock).runs) : -1;
+    if (here >= 0 && p.offset > here) return { block: p.block + before + 1, offset: p.offset - here - 1 };
+    return { block: p.block + before, offset: here >= 0 ? Math.min(p.offset, here) : p.offset };
+  };
+  return { ops: [{ op: 'splice', at: from, n: to - from, blocks: out }], sel: splits.length ? { anchor: moved(sel.anchor), focus: moved(sel.focus) } : sel };
+}
+
+/** The offset of the first line break among the runs, or -1. */
+function lineEnd(runs: Run[]): number {
+  let at = 0;
+  for (const r of runs) {
+    if (isAtomic(r)) at += 1;
+    else {
+      const i = r.t.indexOf('\n');
+      if (i >= 0) return at + i;
+      at += r.t.length;
+    }
+  }
+  return -1;
 }
 
 /** Whether the first selected block is of a kind: for a bar's pressed states. */

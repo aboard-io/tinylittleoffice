@@ -1678,6 +1678,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': 'Onde sinusoidali sommate, verso un’onda quadra.',
 
   'Templates for {app}': 'Modelli per {app}',
+  '{app} Templates': 'Modelli per {app}',
   'Templates for {app}: {name}': 'Modelli per {app}: {name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'Scegli la riga {n}: trascinala per spostarla',

@@ -1676,6 +1676,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': 'サイン波を足し合わせて、矩形波に近づけます。',
 
   'Templates for {app}': '{app}のテンプレート',
+  '{app} Templates': '{app}のテンプレート',
   'Templates for {app}: {name}': '{app}のテンプレート：{name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': '{n}行目を選ぶ：ドラッグで移動',

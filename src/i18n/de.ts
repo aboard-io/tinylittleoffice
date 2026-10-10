@@ -1676,6 +1676,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': 'Summierte Sinuswellen auf dem Weg zu einer Rechteckwelle.',
 
   'Templates for {app}': 'Vorlagen für {app}',
+  '{app} Templates': 'Vorlagen für {app}',
   'Templates for {app}: {name}': 'Vorlagen für {app}: {name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'Zeile {n} wählen: zum Verschieben ziehen',

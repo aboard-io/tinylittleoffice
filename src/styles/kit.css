@@ -488,6 +488,10 @@
     min-width: 0;
   }
   /* The list takes what the head leaves and scrolls inside it (a phone's whole screen: responsive.css). */
+  /* The heading leads with the app's name, at the logotype's size but in the sans and not bold (Paul, 2026-10-10). */
+  .to-templates-dialog .to-dialog-head h2 {
+    font: 400 min(calc(1.875 * var(--to-scale)), 7vw) / 1.1 var(--to-font);
+  }
   .to-templates-dialog .to-listbox {
     flex: 1;
     min-height: 0;

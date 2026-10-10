@@ -1678,6 +1678,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': 'Sinusgolven bij elkaar opgeteld, op weg naar een blokgolf.',
 
   'Templates for {app}': 'Sjablonen voor {app}',
+  '{app} Templates': 'Sjablonen voor {app}',
   'Templates for {app}: {name}': 'Sjablonen voor {app}: {name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'Kies regel {n}: sleep om te verplaatsen',

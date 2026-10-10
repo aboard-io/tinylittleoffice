@@ -1678,6 +1678,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': 'Ondas senoidales sumadas, camino de una onda cuadrada.',
 
   'Templates for {app}': 'Plantillas para {app}',
+  '{app} Templates': 'Plantillas para {app}',
   'Templates for {app}: {name}': 'Plantillas para {app}: {name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'Elegir la línea {n}: arrástrala para moverla',

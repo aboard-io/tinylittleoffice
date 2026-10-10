@@ -1677,6 +1677,7 @@ export default {
   'Sine waves summed, on their way to a square wave.': '正弦波相加，一步步逼近方波。',
 
   'Templates for {app}': '{app}的模板',
+  '{app} Templates': '{app}的模板',
   'Templates for {app}: {name}': '{app}的模板：{name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': '选中第 {n} 行：拖动即可移动',

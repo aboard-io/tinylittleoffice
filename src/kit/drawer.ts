@@ -8,7 +8,8 @@
  * hamburger"), and on a phone, while a box has the focus, the header steps aside (kit/chrome.ts). On a touch screen the
  * dialog itself holds the focus (the search would raise the keyboard) and draws no ring for it: it is not a control,
  * and the ring drawn outside the panel stood apart from its edge as a stray line. Then: find an app, a
- * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
+ * template or a kept document; in a document, the apps as rows, each with its templates (<to-templates>, the home
+ * page's; on the home page itself the rows are the page, so the drawer has none: Paul, 2026-10-10),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
  * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
  * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
@@ -199,8 +200,10 @@ export class ToDrawer extends LitElement {
                 <input class="to-find" type="search" placeholder=${placeholder} aria-label=${placeholder} autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-drawer-apps a')?.click())} />
                                 ${want
                   ? this.renderFound(want, kept)
-                  : apps().map(
-                      (a) => html`<div class="to-app-head">
+                  : !this.downloads
+                    ? nothing
+                    : apps().map(
+                        (a) => html`<div class="to-app-head">
                         <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>
                         <to-templates .app=${a} .via=${(app: AppDef) => this.handOver(() => this.templates(app))}></to-templates>
                       </div>`,

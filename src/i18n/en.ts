@@ -1694,6 +1694,7 @@ export default {
 
   // New — sort me into a section
   'Templates for {app}': 'Templates for {app}',
+  '{app} Templates': '{app} Templates',
   'Templates for {app}: {name}': 'Templates for {app}: {name}',
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'Choose line {n}: drag it to move it',

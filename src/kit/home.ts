@@ -139,7 +139,7 @@ export class ToTemplates extends LitElement {
     return html`${this.bare ? nothing : button}
       <dialog class="to-dialog to-templates-dialog" aria-label=${t('Templates for {app}', { app: this.app.name })} @close=${this.onClose} @click=${(e: Event) => e.target === this.dialog && this.hide()}>
         <div class="to-dialog-inner">
-          <header class="to-dialog-head to-listbox-head"><h2 id=${this.uid}>${t('Templates')}</h2><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.hide()}>${icon(UI.close, 18)}</button></header>
+          <header class="to-dialog-head to-listbox-head"><h2 id=${this.uid}>${t('{app} Templates', { app: this.app.name })}</h2><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.hide()}>${icon(UI.close, 18)}</button></header>
           <div class="to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @keydown=${this.onKey}>
             ${this.drawn ? html`${this.app.blankInTemplates ? nothing : this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}` : nothing}
           </div>

@@ -5,7 +5,7 @@ import { apps } from '../../src/kit/apps.ts';
 import { running } from '../../src/kit/version.ts';
 import { siteRoot } from '../../src/kit/offline.ts';
 
-test('the hamburger opens the drawer, the apps are rows with their templates, Find narrows them, Escape closes it', async () => {
+test('the hamburger opens the drawer, the home page\'s drawer has no app rows, Find narrows what there is, Escape closes it', async () => {
   const shell = await mount('');
   const burger = shell.querySelector<HTMLButtonElement>('.to-burger')!;
   burger.focus();
@@ -16,9 +16,8 @@ test('the hamburger opens the drawer, the apps are rows with their templates, Fi
   const find = shell.querySelector<HTMLInputElement>('.to-find')!;
   // Nothing kept (Private): apps and templates are what there is to find.
   expect(find.placeholder).toBe('Find app, template');
-  const rows = [...shell.querySelectorAll('.to-drawer-apps .to-app-head')];
-  expect(rows.map((r) => r.querySelector('.to-app-open span')!.textContent)).toEqual(apps().map((a) => a.name));
-  for (const r of rows) expect(r.querySelector('to-templates .to-templates-btn')).not.toBeNull();
+  // On the home page the apps are the page, so the drawer has no rows of them (Paul, 2026-10-10); Find still finds.
+  expect(shell.querySelectorAll('.to-drawer-apps .to-app-head').length).toBe(0);
   find.value = 'zzz';
   find.dispatchEvent(new Event('input', { bubbles: true }));
   await until(() => shell.querySelectorAll('.to-drawer-apps a').length === 0);
@@ -85,7 +84,11 @@ test('a template from inside an app: each of the drawer\'s rows has its template
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
   await until(() => dialog.open);
-  const row = shell.querySelectorAll('.to-drawer-apps .to-app-head')[0];
+  // In a document the apps are rows, each with its templates button.
+  const rows = [...shell.querySelectorAll('.to-drawer-apps .to-app-head')];
+  expect(rows.map((r) => r.querySelector('.to-app-open span')!.textContent)).toEqual(apps().map((a) => a.name));
+  for (const r of rows) expect(r.querySelector('to-templates .to-templates-btn')).not.toBeNull();
+  const row = rows[0];
   row.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
   // The drawer hands over: closed, and the templates open alone (one modal at a time).
   await until(() => !!shell.querySelector('to-templates.to-drawer-templates dialog[open]'));
