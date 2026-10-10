@@ -13,6 +13,7 @@ import { TEXT_COMMANDS } from '../../src/kit/text-commands.ts';
 import { ROWS_COMMANDS } from '../../src/kit/rows-commands.ts';
 import { parse, write } from '../../src/doc/index.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import { setLoop } from '../../src/apps/anim/model.ts';
 import type { ToText } from '../../src/kit/text.ts';
 
 // What the walk opens that would leave the page: a new tab, the printer, a question.
@@ -69,8 +70,21 @@ async function walk(app: string, s: State): Promise<string[]> {
     [ROWS_COMMANDS, () => (ed.rows?.range ? ed.rows : null)],
     [KIT_COMMANDS.filter((c) => c.id !== 'kit.shortcuts'), () => shell.page],
   ];
+  const original = ed.value as string;
+  /** Each command from the state as it was set: the document put back and the state set again, so no command's turn depends on the one before. */
+  const reset = async () => {
+    closeAll();
+    if (ed.value !== original) {
+      ed.value = original;
+      await ed.updateComplete;
+      await tick(0);
+    }
+    await s.set?.(ed, shell);
+    await ed.updateComplete;
+  };
   for (const [cmds, ctxOf] of scopes)
     for (const c of cmds) {
+      await reset();
       const ctx = ctxOf();
       if (c.menu || !ctx || !c.where.length) continue;
       let ok = false;
@@ -107,6 +121,8 @@ const first = <T,>(xs: T[], f: (x: T) => boolean) => xs.find(f);
 const PLAN: Record<string, State[]> = {
   write: [
     { name: 'words', tpl: 'invoice', set: (ed) => ed.focusFirst() },
+    { name: 'words selected', tpl: 'invoice', set: (ed) => (ed.text.sel = { anchor: { block: 1, offset: 0 }, focus: { block: 1, offset: 4 } }) },
+    { name: 'a document in hand', tpl: 'news', set: (ed) => (ed.cardAt = ed.doc.blocks.findIndex((b: { k: string; lang?: string }) => b.k === 'fence' && !!b.lang)) },
     { name: 'a card in hand', tpl: 'invoice', set: (ed) => (ed.cardAt = ed.doc.blocks.findIndex((b: { k: string }) => b.k === 'table')) },
   ],
   outline: [
@@ -116,7 +132,7 @@ const PLAN: Record<string, State[]> = {
   deck: [
     { name: 'a slide', tpl: 'talk', set: (ed) => ed.focusFirst() },
     { name: 'presenting', tpl: 'talk', set: (ed) => ed.show(0) },
-    { name: 'a printed format', tpl: 'talk', set: (ed) => ed.setFormat('booklet') },
+    { name: 'a printed format', tpl: 'talk', set: (ed) => ed.setFormat('zine') },
   ],
   sheet: [
     { name: 'a cell', tpl: 'budget', set: (ed) => (ed.focusFirst(), (ed.here = { r: 1, c: 1, at: { rich: false, atStart: true, atEnd: true, all: true, empty: false, selectAll() {}, toEnd() {} } })) },
@@ -133,7 +149,8 @@ const PLAN: Record<string, State[]> = {
     { name: 'a text', tpl: 'card', set: (ed) => (ed.sel = ed.shapes.findIndex((s: { k: string }) => s.k === 't')) },
     { name: 'a pen', tpl: 'flowchart', set: (ed) => ((ed.tool = 'v'), (ed.pen = [[40, 40], [120, 40], [80, 120]])) },
     { name: 'joining', tpl: 'flowchart', set: (ed) => ((ed.tool = 'k'), (ed.sel = 0)) },
-    { name: 'pixels', tpl: 'flowchart', set: (ed) => ed.setMode(8) },
+    { name: 'a line', tpl: 'flowchart', set: (ed) => (ed.sel = ed.shapes.findIndex((s: { k: string }) => s.k === 'a' || s.k === 'l' || s.k === 'k' || s.k === 'j')) },
+    { name: 'pixels', tpl: 'flowchart', set: async (ed) => (ed.view.grid ? undefined : (ed.setMode(8), await ed.updateComplete), ed.paint(1, 1)) },
   ],
   diagram: [
     { name: 'a tree', tpl: 'mind-launch', set: (ed) => ed.open(first(ed.view.d.shapes, (s: { hit?: { k: string } }) => s.hit?.k === 'line')!.hit) },
@@ -146,11 +163,12 @@ const PLAN: Record<string, State[]> = {
     { name: 'the stage', tpl: 'bounce' },
     { name: 'a shape', tpl: 'bounce', set: (ed) => (ed.sels = [0]) },
     { name: 'drawing', tpl: 'bounce', set: (ed) => ed.setMode('draw') },
+    { name: 'four times', tpl: 'bounce', set: (ed) => ed.act(setLoop(ed.doc, 4)) },
   ],
   board: [
     { name: 'a card', tpl: 'project', set: (ed) => (ed.here = { at: ed.view.stages[0].cards[0].at, tx: ed.querySelector('.board-card to-text') }) },
     { name: 'a stage name', tpl: 'project', set: (ed) => ((ed.here = { at: ed.view.stages[1].at, tx: ed.querySelector('.board-head to-text') }), (ed.menu = ed.view.stages[1].at)) },
-    { name: 'cards chosen', tpl: 'project', set: (ed) => ed.rows.choose(ed.view.stages[0].cards[0].at) },
+    { name: 'cards chosen', tpl: 'project', set: (ed) => ed.rows.choose(ed.view.stages[1].cards[0].at) },
     { name: 'as rows', tpl: 'project', set: (ed) => ((ed.menu = ed.view.stages[1].at), ed.edit([{ op: 'head', key: 'look', value: 'rows' }])) },
   ],
   todo: [
