@@ -48,6 +48,9 @@ line is a thing from the web, shown as a card that loads only when asked (`src/k
 `text`, `number`, `money`, `percent`, `date`, `time`, `check`, `url`, `rich` (inline Markdown, written by the
 code), `long`, `icon`, `name` (each cell names the cell to its right, for formulas), `option` (one of the words
 the column holds).
+A money column may name its currency in parentheses, a symbol of up to three characters or an ISO 4217 code:
+`Price:money(£)`, `Price:money(GBP)` (a code is shown as the reader's browser writes it); one that names none
+is in the head's `currency:` where the app has one (the Word Processor, the Website Builder), else in dollars.
 
 ### The head
 

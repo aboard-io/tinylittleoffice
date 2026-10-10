@@ -23,8 +23,7 @@ import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import type { SheetView } from '../sheet/model.ts';
-import { isLetterName } from '../sheet/model.ts';
-import { money } from './model.ts';
+import { currencyAt, isLetterName } from '../sheet/model.ts';
 import '../../kit/menu.ts';
 
 export const TABLE_TAG = 'to-write-table';
@@ -51,9 +50,8 @@ function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {
 }
 
 export class ToWriteTable extends LitElement {
-  static properties = { view: { attribute: false }, currency: {}, commands: { type: Boolean }, focused: { state: true }, end: { state: true }, fillTo: { state: true }, menuRow: { state: true }, menuCol: { state: true }, naming: { state: true } };
+  static properties = { view: { attribute: false }, commands: { type: Boolean }, focused: { state: true }, end: { state: true }, fillTo: { state: true }, menuRow: { state: true }, menuCol: { state: true }, naming: { state: true } };
   declare view: SheetView | null;
-  declare currency: string;
   /** The host answers wt-do: the heads open menus, the corner holds the table's handle, the + adds a column. */
   declare commands: boolean;
   /** The cell being typed in, if any. */
@@ -79,7 +77,6 @@ export class ToWriteTable extends LitElement {
   constructor() {
     super();
     this.view = null;
-    this.currency = '';
     this.commands = false;
     this.focused = null;
     this.end = null;
@@ -440,7 +437,7 @@ export class ToWriteTable extends LitElement {
                     data-c=${c}
                     class="${num ? 'num' : ''} ${locked ? 'locked' : ''} ${typeof val === 'string' && val.startsWith('#') ? 'err' : ''}"
                     aria-label=${rcToRef(r, c)}
-                    .value=${here ? raw : money(formatCell(val, col.type), this.currency)}
+                    .value=${here ? raw : formatCell(val, col.type, currencyAt(v, c))}
                     title=${locked ? t('Locked: worked out for you') : raw.startsWith('=') ? raw : nothing}
                     ?readonly=${locked}
                     autocomplete="off"

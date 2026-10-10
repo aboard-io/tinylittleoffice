@@ -332,6 +332,20 @@ test('the templates: real sites and Quick Links pages, every icon one the page c
   expect(out).not.toContain('site-edit');
 });
 
+test('a table\'s money in its column\'s currency, else the site\'s: the plumber\'s prices and the cottage\'s weeks in pounds', async () => {
+  const html = site.exports!.find((x) => x.ext === 'html')!;
+  const page = async (id: string) => (await html.build(templates().find((t) => t.id === id)!.doc, { title: id, link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
+  const trades = await page('trades');
+  expect(trades).toContain('£85.00');
+  expect(trades).not.toContain('$85.00');
+  const cottage = await page('cottage');
+  expect(cottage).toContain('£520.00');
+  expect(cottage).toContain('£74.29');
+  // A column that names none takes the head's currency.
+  const shop = sitePage(parse('---\ncurrency: €\n---\n# Prices\n\nWhat | Cost:money\n--- | ---\nTea | 3\n'), {});
+  expect(shop).toContain('€3.00');
+});
+
 test('words typed in the page, as ops: one text op on the block, the rest of a line kept; Enter makes a paragraph; the site’s name put in where there is none', () => {
   const doc = parse(CAFE);
   const site = readSite(doc);

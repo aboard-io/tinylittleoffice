@@ -68,6 +68,8 @@ export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' 
 export interface Column {
   name: string;
   type: ColType;
+  /** A money column's currency: a symbol ("£") or an ISO 4217 code ("GBP"); none takes the document's, else "$". */
+  currency?: string;
 }
 
 /** The words alone, marks and all taken away. */

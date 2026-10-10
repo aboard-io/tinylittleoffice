@@ -264,6 +264,10 @@ function rangeCells(a: string, b: string): [number, number][] {
   return out;
 }
 
+/** A currency before an amount (its sign kept, before or after it) and after one: a code or a short symbol. */
+const MONEY_BEFORE = /^([+-]?)\s*(?:[a-z]{3}|[^\d\s.+-]{1,3})\s*(?=[+-]?\.?\d)/i;
+const MONEY_AFTER = /(?<=[\d.])\s*(?:[a-z]{3}|[^\d\s.+-]{1,3})$/i;
+
 /** A cell as typed, read as its column's type: a number, a date's day number, a check's 1 or 0, or the words themselves. Empty is null. */
 export function parseLiteral(raw: string, type: string = 'text', today = todaySerial): CellValue {
   const s = raw.trim();
@@ -281,7 +285,9 @@ export function parseLiteral(raw: string, type: string = 'text', today = todaySe
   const plain = s.replace(/^([+-]?)\$/, '$1').replace(/(\d),(?=\d{3})/g, '$1');
   const pct = /^([+-]?(?:\d+\.?\d*|\.\d+))%$/.exec(plain);
   if (pct && type !== 'text') return parseFloat(pct[1]) / 100;
-  if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(plain) && (plain === s || type === 'money' || type === 'number' || type === 'percent')) return type === 'percent' ? parseFloat(plain) / 100 : parseFloat(plain);
+  // In a money column a currency may stand before the amount or after it, a symbol or a code: "£1,200", "1200 GBP".
+  const n = type === 'money' ? plain.replace(MONEY_BEFORE, '$1').replace(MONEY_AFTER, '') : plain;
+  if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(n) && (n === s || type === 'money' || type === 'number' || type === 'percent')) return type === 'percent' ? parseFloat(n) / 100 : parseFloat(n);
   return raw;
 }
 
@@ -546,12 +552,26 @@ export function formatValue(v: CellValue): string {
   return v;
 }
 
-/** A value as its column shows it: a date, money, a percentage, a number with its commas, a check box. */
-export function formatCell(v: CellValue, type: string = 'text'): string {
+/**
+ * An amount of money as a column shows it: two decimals and commas, after the currency's symbol ("$" where none is
+ * named); a code ("GBP") as the browser writes that currency for its reader (Intl.NumberFormat).
+ */
+export function formatMoney(v: number, currency = '$'): string {
+  if (/^[A-Z]{3}$/.test(currency))
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(v);
+    } catch {
+      // Not a currency the browser knows: written as a symbol.
+    }
+  return (v < 0 ? '-' : '') + currency + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** A value as its column shows it: a date, money (in its currency), a percentage, a number with its commas, a check box. */
+export function formatCell(v: CellValue, type: string = 'text', currency?: string): string {
   if (typeof v !== 'number' || !isFinite(v)) return type === 'check' && v === null ? '' : formatValue(v);
   const tidy = (n: number, digits: number) => n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: Math.max(digits, 6) });
   if (type === 'date') return serialToIso(v);
-  if (type === 'money') return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (type === 'money') return formatMoney(v, currency || '$');
   if (type === 'percent') return tidy(Math.round(v * 1e8) / 1e6, 0) + '%';
   if (type === 'number') return Math.abs(v) >= 1e15 ? formatValue(v) : tidy(Math.round(v * 1e8) / 1e8, 0);
   if (type === 'check') return v ? '☑' : '☐';

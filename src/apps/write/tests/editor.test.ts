@@ -212,6 +212,13 @@ test('the invoice: money in the head\'s currency, Amount locked, a quantity chan
   await until(() => (last() ?? '').includes('number: 0043'));
 });
 
+test('a table\'s money: a column that names its currency beats the head\'s; one that names none takes the head\'s', async () => {
+  const { el } = await editor('---\ncurrency: €\n---\nItem | Here:money(£) | There:money\n--- | --- | ---\nTea | 3 | 4\n');
+  await until(() => !!cell(el, 'A1'));
+  expect(cell(el, 'B1').value).toBe('£3.00');
+  expect(cell(el, 'C1').value).toBe('€4.00');
+});
+
 test('a web address alone is a card that loads nothing until tapped; a tap on a task\'s box ticks it; the paper is a head field', async () => {
   const { el, last } = await editor('https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n- [ ] walk the dog\n');
   await until(() => !!el.querySelector('to-embed'));

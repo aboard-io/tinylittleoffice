@@ -150,3 +150,28 @@ test('sheet: on a phone, the row numbers are a narrow quiet side, a checkbox is 
   expect(offered).toEqual(['GOOD', 'BAD']);
   expect(errors).toEqual([]);
 });
+
+test('sheet: on a phone, Money asks its currency in a dialog inside the screen, its field 16px; the cells show it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  await cell('B1').tap();
+  await cell('B1').fill('1200');
+  await cell('A1').tap();
+  await page.getByRole('button', { name: /^Column B:/ }).tap();
+  await page.locator('.sheet-colmenu [role=menu]').getByText('Money', { exact: true }).tap();
+  const field = page.getByRole('combobox', { name: 'Currency' });
+  await expect(field).toBeVisible();
+  const box = (await page.locator('.sheet-currency-dialog dialog').boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  await field.fill('£');
+  await page.getByRole('button', { name: 'OK' }).tap();
+  await expect(field).toBeHidden();
+  await expect(cell('B1')).toHaveValue('£1,200.00');
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  expect(errors).toEqual([]);
+});

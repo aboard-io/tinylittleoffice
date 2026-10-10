@@ -561,7 +561,7 @@ Downstairs is one room with the kitchen, the stove and a window on the sea. Upst
 
 ## Prices for a week
 
-Week | Price (£):number | Per night (£):number
+Week | Price:money(£) | Per night:money(£)
 --- | --- | ---
 Winter, November to March | 520 | =B1/7
 Spring and autumn | 780 | =B2/7
@@ -603,7 +603,7 @@ Plumbing and heating in Truro and twenty miles round, since 1987. Gas Safe regis
 
 What most jobs cost, with VAT. A quote for anything bigger is free.
 
-Job | Price:money
+Job | Price:money(£)
 --- | ---
 Call-out and the first hour | 85
 Every hour after | 60

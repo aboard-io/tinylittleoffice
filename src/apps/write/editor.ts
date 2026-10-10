@@ -341,7 +341,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     if (b.k === 'table') {
       const v = tableView(this.doc, at);
       if (!v) return null;
-      return html`<to-write-table commands .view=${v} currency=${this.doc.head.currency ?? ''} @wt-cell=${(e: CustomEvent<{ r: number; c: number; raw: string }>) => this.onCell(at, e)} @wt-do=${(e: CustomEvent<TableCmd>) => (e.preventDefault(), void this.onTable(at, e.detail))} @wt-exit=${() => this.afterCard(at)}></to-write-table>`;
+      return html`<to-write-table commands .view=${v} @wt-cell=${(e: CustomEvent<{ r: number; c: number; raw: string }>) => this.onCell(at, e)} @wt-do=${(e: CustomEvent<TableCmd>) => (e.preventDefault(), void this.onTable(at, e.detail))} @wt-exit=${() => this.afterCard(at)}></to-write-table>`;
     }
     if (b.k === 'fence' && b.lang === 'signatures') return this.signaturesCard(b.body);
     if (b.k === 'fence' && b.lang) {

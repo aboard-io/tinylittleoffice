@@ -41,7 +41,8 @@ import { toast } from '../../kit/toast.ts';
 import type { Found } from '../../kit/find.ts';
 import { fold } from '../../kit/search.ts';
 import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, applyAll, clearCells, columnText, copyCells, fillCells, isLocked, isText, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, runLength, writeInline, type Block, type ColType, type Column, type Doc, type Op, type Range, type Run } from '../../doc/index.ts';
-import { MIN_COLS, addColumn, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
+import { MIN_COLS, addColumn, currencyAt, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
+import { askCurrency } from './currency.ts';
 import { cellText, chartOf, chartOfSheet } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
@@ -68,7 +69,7 @@ type Caret = { rich: boolean; atStart: boolean; atEnd: boolean; all: boolean; em
 const flat = (s: string) => s.replace(/[\t\n]+/g, ' ');
 const tsv = (rows: string[][]) => rows.map((row) => row.map(flat).join('\t')).join('\n');
 /** A table block's cells, its column names as the first row: what it is as a block of a sheet. */
-const tableCells = (b: Block) => (b.k === 'table' ? tsv([b.cols.map((c) => columnText(c.name, c.type)), ...b.rows]) : '');
+const tableCells = (b: Block) => (b.k === 'table' ? tsv([b.cols.map((c) => columnText(c.name, c.type, c.currency)), ...b.rows]) : '');
 
 /** What a column may hold, in the person's language. */
 const TYPES: { id: ColType; name: () => string; hint: () => string }[] = [
@@ -258,7 +259,14 @@ export class ToSheetEditor extends DocElement<SheetView> {
     this.edit(putRect(this.doc, clearCells(g)), undefined, this.markOf(g));
   }
   private setType(c: number, type: ColType) {
+    if (type === 'money') return void this.askMoney(c);
     this.edit(setType(this.doc, c, type));
+  }
+  /** Money picked: the column's currency asked for (what it names already in the field); closed without OK, money in the currency it had. */
+  private async askMoney(c: number) {
+    const had = this.columns()[c]?.type === 'money' ? (this.columns()[c].currency ?? '') : '';
+    const got = await askCurrency(had);
+    this.edit(setType(this.doc, c, 'money', got ?? had));
   }
   private rename(c: number, name: string) {
     this.edit(rename(this.doc, c, name));
@@ -271,7 +279,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const text = copyCells(this.view.table, g);
     const cols = this.columns();
     const shown: string[][] = [];
-    for (let r = g.r0; r <= g.r1; r++) shown.push(Array.from({ length: g.c1 - g.c0 + 1 }, (_, i) => cellText(this.val(r, g.c0 + i), cols[g.c0 + i]?.type)));
+    for (let r = g.r0; r <= g.r1; r++) shown.push(Array.from({ length: g.c1 - g.c0 + 1 }, (_, i) => cellText(this.val(r, g.c0 + i), cols[g.c0 + i]?.type, currencyAt(this.view, g.c0 + i))));
     const [head, ...rows] = shown;
     return { text, html: docToHtml([{ k: 'table', cols: head.map((name) => ({ name, type: 'text' })), rows }]) };
   }
@@ -659,7 +667,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       for (let c = 0; c < cols.length; c++) {
         const raw = this.raw(r, c);
         if (!raw) continue;
-        const words = fold(`${raw} ${cellText(this.val(r, c), cols[c]?.type)}`);
+        const words = fold(`${raw} ${cellText(this.val(r, c), cols[c]?.type, currencyAt(this.view, c))}`);
         if (terms.every((term) => words.includes(term))) hits.push([r, c]);
       }
     // Going to a cell selects it and shows it, the focus left in the find bar; leaving the bar puts the focus in it.
@@ -834,7 +842,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
     let w = 0;
     const type = this.columns()[c].type;
-    for (let r = 0; r < this.view.used.rows; r++) w = Math.max(w, ctx.measureText(cellText(this.val(r, c), type)).width);
+    for (let r = 0; r < this.view.used.rows; r++) w = Math.max(w, ctx.measureText(cellText(this.val(r, c), type, currencyAt(this.view, c))).width);
     return Math.max(MIN_COL, Math.ceil(w + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 6));
   }
   private currentWidths(): number[] {
@@ -1155,7 +1163,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
             @text-selectall=${(e: Event) => (e.stopPropagation(), this.selectAll())}
           ></to-text>`);
         }
-        const shown = isSel && (type !== 'rich' || raw.startsWith('=')) ? raw : cellText(v, type);
+        const shown = isSel && (type !== 'rich' || raw.startsWith('=')) ? raw : cellText(v, type, currencyAt(this.view, c));
         const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
         // A checkbox is ticked by a tap on its cell (Space with the keyboard); one worked out by a formula is typed into.
         const tick = type === 'check' && !locked && !raw.startsWith('=');
