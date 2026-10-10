@@ -1,5 +1,5 @@
-// Wide documents get wide thumbnails: in the templates list a landscape page is 72 tall and as wide as its shape,
-// to twice its height, beside words that ellipsise; a kept document's <to-preview> the same at its own height.
+// Every preview is the one 4:3 box whatever the page's shape, the page scaled to cover it and cropped from the top:
+// 96 by 72 in the templates list beside words that ellipsise, 72 by 54 for a kept document, 48 by 36 in the found list.
 import { test, expect } from 'vitest';
 import { render, html } from 'lit';
 import '../../src/kit/home.ts';
@@ -14,7 +14,7 @@ import '../../src/styles.css';
 
 const SHAPES: Record<string, [number, number]> = { Letter: [85, 110], Slide: [1600, 900], Page: [400, 300], Strip: [1300, 240] };
 
-test('the templates list: a portrait page 56 by 72, a landscape one as wide as its shape to twice its height; the view is asked for a thumbnail', async () => {
+test('the templates list: every page, portrait, slide, wide or a strip, in the one 96 by 72 box, cropped to cover it; the view is asked for a thumbnail', async () => {
   document.body.innerHTML = '<div id="box"></div>';
   const asked: (ViewOpts | undefined)[] = [];
   const long = 'A template whose name is far too long to sit beside a wide thumbnail on a phone';
@@ -30,8 +30,14 @@ test('the templates list: a portrait page 56 by 72, a landscape one as wide as i
   el.button.click();
   await until(() => el.listbox.matches(':popover-open') && !!el.listbox.querySelector('.to-thumb svg'));
   const thumbs = [...el.listbox.querySelectorAll<HTMLElement>('.to-thumb')].map((x) => x.getBoundingClientRect());
-  expect(thumbs.map((r) => Math.round(r.width))).toEqual([56, 128, 96, 144, 144]);
+  expect(thumbs.map((r) => Math.round(r.width))).toEqual([96, 96, 96, 96, 96]);
   for (const r of thumbs) expect(Math.round(r.height)).toBe(72);
+  // The drawing covers the box and is cut, not letterboxed: the SVG fills the box and slices from the top.
+  for (const svg of el.listbox.querySelectorAll<SVGSVGElement>('.to-thumb svg')) {
+    expect(svg.getAttribute('preserveAspectRatio')).toBe('xMidYMin slice');
+    const r = svg.getBoundingClientRect();
+    expect([Math.round(r.width), Math.round(r.height)]).toEqual([94, 70]); // inside the box's 1px border
+  }
   expect(asked.every((o) => o?.small && o.thumb)).toBe(true);
   // The words beside the widest: the name on one line, cut with an ellipsis; nothing wider than the list.
   const row = el.listbox.querySelectorAll<HTMLElement>('.to-option')[4];
@@ -42,18 +48,22 @@ test('the templates list: a portrait page 56 by 72, a landscape one as wide as i
   el.listbox.hidePopover();
 });
 
-test('a kept document’s preview: a slide is as wide as its shape, a portrait page its own, at the preview’s height and the found list’s', async () => {
+test('a kept document’s preview: a slide and a portrait page are the same 72 by 54 box, and 48 by 36 in the found list', async () => {
   const slide = routeHash('deck', encodeDoc('# A talk\n\nWords on a slide\n'));
   const letter = routeHash('write', encodeDoc('# A letter\n\nDear Sam,\n'));
   document.body.innerHTML = `<div style="display:flex"><to-preview hash="${slide}"></to-preview><to-preview hash="${letter}"></to-preview></div><div class="to-found" style="display:flex"><to-preview hash="${slide}"></to-preview></div>`;
   const all = [...document.querySelectorAll<ToPreview>('to-preview')];
   for (const p of all) p.draw();
-  const box = (p: Element) => p.querySelector('svg')!.getBoundingClientRect();
-  await until(() => all.every((p) => box(p).width > 0));
+  const box = (p: Element) => p.getBoundingClientRect();
+  await until(() => all.every((p) => !!p.querySelector('svg') && p.querySelector('svg')!.getBoundingClientRect().width > 0));
   const [wide, tall, found] = all.map(box);
-  expect(Math.round(wide.height)).toBe(56);
-  expect(Math.round(wide.width)).toBe(90); // 960 by 600
-  expect(tall.width).toBeLessThan(tall.height);
-  expect(Math.round(found.height)).toBe(40);
-  expect(Math.round(found.width)).toBe(64);
+  expect([Math.round(wide.width), Math.round(wide.height)]).toEqual([72, 54]);
+  expect([Math.round(tall.width), Math.round(tall.height)]).toEqual([72, 54]);
+  expect([Math.round(found.width), Math.round(found.height)]).toEqual([48, 36]);
+  // The drawing fills each box inside its 1px border.
+  for (const p of all) {
+    const r = p.querySelector('svg')!.getBoundingClientRect();
+    expect([Math.round(r.width), Math.round(r.height)]).toEqual([Math.round(box(p).width) - 2, Math.round(box(p).height) - 2]);
+  }
+  for (const p of all) expect(p.querySelector('svg')!.getAttribute('preserveAspectRatio')).toBe('xMidYMin slice');
 });

@@ -25,12 +25,12 @@ export function pageSvg(p: Page, attrs = ''): string {
 }
 
 /**
- * A thumbnail's shape, width over height: a portrait page its own; a landscape one as wide as its shape, to
- * twice its height (a 16:9 slide 128 by 72, a 4:3 page 96 by 72), a wider one drawn in the middle of that.
+ * Every preview is the one box, 4:3, whatever the page's shape (Paul, 2026-10-10: "All previews of docs and templates
+ * should be the same size. Cropping is fine. The grid is all over the place."): the page is scaled to cover the box
+ * and cropped, kept to the top and the middle, so a portrait page shows its head and a wide slide loses its edges.
+ * The box's size is the stylesheet's (.to-thumb, to-preview); these attributes make the drawing fill it.
  */
-export const thumbRatio = (p: { w: number; h: number }): number => (p.w > p.h ? Math.min(p.w / p.h, 2) : p.w / p.h);
-/** A thumbnail's width at this height: a landscape page by thumbRatio, a portrait one `portrait` wide (or its own shape). */
-export const thumbWidth = (p: { w: number; h: number }, height: number, portrait?: number): number => (p.w > p.h || portrait === undefined ? Math.round(height * thumbRatio(p)) : portrait);
+export const CROPPED = 'preserveAspectRatio="xMidYMin slice"';
 
 /** Several pages as one tall one. */
 export function stack(pages: Page[], gap = 16): Page {

@@ -1,6 +1,6 @@
 /**
- * <to-preview hash="#/v1/write/…">: a kept document's first page, small (about 56px tall, the page's own
- * shape, a landscape one up to twice as wide as tall: thumbRatio in kit/draw.ts), beside its name on the home
+ * <to-preview hash="#/v1/write/…">: a kept document's first page, small, in the one 4:3 box every preview has
+ * (the page scaled to cover it and cropped: CROPPED in kit/draw.ts), beside its name on the home
  * page and in the menu's results. Drawn from the link alone: the payload decoded, the app's view(doc, { small:
  * true, thumb: true }), the first page; a document whose link no longer reads is a blank page. Drawn only once the row scrolls into sight (one IntersectionObserver for every
  * preview on the page), and kept by its link in memory, so a long list costs nothing until it is seen and
@@ -8,13 +8,13 @@
  */
 import { appOf } from './apps.ts';
 import { decodeDoc } from './codec.ts';
-import { pageSvg, thumbRatio } from './draw.ts';
+import { CROPPED, pageSvg } from './draw.ts';
 import { gateSvg } from './pictures.ts';
 import { iconNamed, iconNames, iconsComplete, loadIcons } from './icons.ts';
 import { parseHash } from './route.ts';
 
 /** A page with nothing on it, the shape of a sheet of paper. */
-const BLANK = pageSvg({ w: 85, h: 110, svg: '' });
+const BLANK = pageSvg({ w: 85, h: 110, svg: '' }, CROPPED);
 const drawn = new Map<string, string>();
 
 /** Links whose documents name an icon the starter set lacks, drawn before the rest of Lucide joined: drawn again, not kept. */
@@ -25,19 +25,18 @@ export function previewOf(hash: string): string {
   const had = drawn.get(hash);
   if (had !== undefined) return had;
   let svg = BLANK;
-  let shape = thumbRatio({ w: 85, h: 110 });
   try {
     const { app, payload } = parseHash(hash);
     const def = app ? appOf(app) : undefined;
     const doc = payload ? decodeDoc(payload) : '';
     if (doc && !iconsComplete() && iconNames(doc).some((n) => !iconNamed(n))) waiting.add(hash);
     const page = def && doc ? def.view(doc, { small: true, thumb: true })[0] : undefined;
-    if (page) [svg, shape] = [gateSvg(pageSvg(page), true), thumbRatio(page)];
+    if (page) svg = gateSvg(pageSvg(page, CROPPED), true);
   } catch {
-    [svg, shape] = [BLANK, thumbRatio({ w: 85, h: 110 })];
+    svg = BLANK;
   }
-  // The height is the box's (CSS), the width the page's shape (a landscape page to twice its height); the drawing keeps its shape inside it.
-  svg = svg.replace(/^<svg([^>]*?) width="[^"]*" height="[^"]*"/, `<svg$1 aria-hidden="true" style="aspect-ratio:${+shape.toFixed(4)}"`);
+  // The box is the stylesheet's, one shape for every preview; the drawing covers it and is cropped (CROPPED, kit/draw.ts).
+  svg = svg.replace(/^<svg([^>]*?) width="[^"]*" height="[^"]*"/, '<svg$1 aria-hidden="true"');
   if (!waiting.has(hash)) drawn.set(hash, svg);
   return svg;
 }
