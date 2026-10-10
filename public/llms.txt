@@ -70,7 +70,7 @@ Meeting notes:
 ```
 # Launch meeting {.title}
 
-*2 March 2027 · The studio · Mara, Sam, Dee*
+*Monday 5 October 2026 · The studio · Mara, Sam, Dee*
 
 ## Agenda
 
@@ -84,19 +84,19 @@ The build is on time: four of the six pages are done. Sam has the words for the 
 
 ## Decisions
 
-- We launch on Friday 1 May at ten in the morning.
+- We launch on Friday 4 December at ten in the morning.
 - Dee owns the launch checklist.
 
 ## Actions
 
-- [ ] Sam: chase Acme for the five pages by 15 March
+- [ ] Sam: chase Acme for the five pages by 16 October
 - [ ] Mara: send the invoice for the first half
 - [x] Dee: book the launch call
 ```
 
-As a link: <https://tinylittleoffice.com/write/#doc=%23+Launch+meeting+%7B.title%7D%0A%0A%2A2+March+2027+%C2%B7+The+studio+%C2%B7+Mara%2C+Sam%2C+Dee%2A%0A%0A%23%23+Agenda%0A%0A1.+Where+the+site+stands%0A2.+The+words+for+the+pages%0A3.+Launch+day%0A%0A%23%23+Notes%0A%0AThe+build+is+on+time%3A+four+of+the+six+pages+are+done.+Sam+has+the+words+for+the+home+page%3B+the+other+five+are+still+with+Acme.%0A%0A%23%23+Decisions%0A%0A-+We+launch+on+Friday+1+May+at+ten+in+the+morning.%0A-+Dee+owns+the+launch+checklist.%0A%0A%23%23+Actions%0A%0A-+%5B+%5D+Sam%3A+chase+Acme+for+the+five+pages+by+15+March%0A-+%5B+%5D+Mara%3A+send+the+invoice+for+the+first+half%0A-+%5Bx%5D+Dee%3A+book+the+launch+call>
+As a link: <https://tinylittleoffice.com/write/#doc=%23+Launch+meeting+%7B.title%7D%0A%0A%2AMonday+5+October+2026+%C2%B7+The+studio+%C2%B7+Mara%2C+Sam%2C+Dee%2A%0A%0A%23%23+Agenda%0A%0A1.+Where+the+site+stands%0A2.+The+words+for+the+pages%0A3.+Launch+day%0A%0A%23%23+Notes%0A%0AThe+build+is+on+time%3A+four+of+the+six+pages+are+done.+Sam+has+the+words+for+the+home+page%3B+the+other+five+are+still+with+Acme.%0A%0A%23%23+Decisions%0A%0A-+We+launch+on+Friday+4+December+at+ten+in+the+morning.%0A-+Dee+owns+the+launch+checklist.%0A%0A%23%23+Actions%0A%0A-+%5B+%5D+Sam%3A+chase+Acme+for+the+five+pages+by+16+October%0A-+%5B+%5D+Mara%3A+send+the+invoice+for+the+first+half%0A-+%5Bx%5D+Dee%3A+book+the+launch+call>
 
-Templates: A letter, Meeting notes, Résumé, Contract, Invoice. Its own files: `.docx`, `.md`, `.rtf`, `.html`.
+Templates: A letter, Cover letter, Memo, Meeting notes, Minutes, Résumé, One-page CV, Invoice, Contract, Newsletter, Recipe, Questions and answers, Press release, News article, Interview, Book review, Music review, Thesis, Grant proposal, Syllabus, Formal complaint, Letter to a politician, Love letter, Wedding speech, Eulogy, Zine essay, Petition, Terms of service. Its own files: `.docx`, `.md`, `.rtf`, `.html`.
 
 ### outline: an outliner
 
