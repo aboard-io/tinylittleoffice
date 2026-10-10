@@ -2,7 +2,7 @@
  * Write's templates: Blank is the app's own page; these are the rest, each a real document in TLO with
  * real sample data (the studio by the harbour), canonical as the kernel writes it so each round-trips byte
  * for byte (the corpus test holds every one). The contract ends in a signatures fence, a table of
- * Name | Key | Signature that signing (a later phase) fills. The invoice is a text whose fields are head
+ * Name | Key | Signature | Signed that Sign this contract fills (contract.ts). The invoice is a text whose fields are head
  * fields and whose lines are a table block the formula engine works out in place: Amount is =Qty×Price
  * and locked, the blank row under the lines is inside the subtotal's reach so a line added there is
  * summed, and the tax rate sits in its own row's Qty cell, where a formula can read it.
@@ -91,8 +91,8 @@ Between Paul Ford and Sam Reyes, from 1 March 2027.
 ## Signed
 
 \`\`\`signatures
-Name | Key | Signature
---- | --- | ---
+Name | Key | Signature | Signed
+--- | --- | --- | ---
 \`\`\`
 `;
 

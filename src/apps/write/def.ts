@@ -9,9 +9,17 @@ import { parse } from '../../doc/index.ts';
 import { defineApp } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
+import { checkContract } from './contract.ts';
 import { retitle, titleOf } from './model.ts';
 import { templates } from './templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from './view.ts';
+
+/** The document read, its signatures verified first: a file says what was found when it was made. */
+const checked = async (text: string) => {
+  const doc = parse(text);
+  await checkContract(doc);
+  return doc;
+};
 
 export default defineApp({
   id: 'write',
@@ -37,10 +45,10 @@ export default defineApp({
   retitle,
   view: (doc, opts) => pages(doc, opts?.small),
   exports: [
-    { ext: 'docx', label: () => t('Word (DOCX)'), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', build: (doc, ctx) => docToDocx(parse(doc), ctx) },
+    { ext: 'docx', label: () => t('Word (DOCX)'), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', build: async (doc, ctx) => docToDocx(await checked(doc), ctx) },
     { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => docToMarkdown(parse(doc)) },
-    { ext: 'rtf', label: () => t('Rich Text (RTF)'), mime: 'application/rtf', build: (doc, ctx) => utf8(docToRtf(parse(doc), ctx)) },
+    { ext: 'rtf', label: () => t('Rich Text (RTF)'), mime: 'application/rtf', build: async (doc, ctx) => utf8(docToRtf(await checked(doc), ctx)) },
     // In place of the kit's pictures of the pages: the words still words, in a page anyone can read.
-    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: (doc, ctx) => docToHtml(parse(doc), ctx) },
+    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: async (doc, ctx) => docToHtml(await checked(doc), ctx) },
   ],
 });

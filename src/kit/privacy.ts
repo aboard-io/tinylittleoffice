@@ -137,6 +137,18 @@ export async function signText(app: string, text: string, by: string, now = Date
   return { by: name, created, key, sig };
 }
 
+/** This device's public key, or null when it has none yet: whose row in a contract is this device's. */
+export const myKey = (): Promise<string | null> => signer.publicKey();
+
+/** Words signed with this device's key (made now if there is none) under a name, kept as the name to sign under next time: a contract's signature. */
+export async function signWords(message: string, name: string): Promise<{ key: string; sig: string }> {
+  const who = name.replace(/\s+/g, ' ').trim();
+  if (who) store.set(NAME, who);
+  const out = await signer.sign(message);
+  changed();
+  return out;
+}
+
 /* ---------- the key ---------- */
 
 /** This device's key's fingerprint, or null when it has none. */
