@@ -6,7 +6,8 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { cdp, page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
-import { GENERATOR } from '../../src/kit/clipboard.ts';
+import { copyData, GENERATOR } from '../../src/kit/clipboard.ts';
+import { parse } from '../../src/doc/index.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToPalette } from '../../src/kit/palette.ts';
@@ -108,6 +109,25 @@ test('Copy in the row puts our words and our HTML on the clipboard; Cut takes th
   bubble(text).querySelector<HTMLButtonElement>('button[aria-label="Paste"]')!.click();
   await until(() => !!bubble(text).querySelector('.to-context-hint'));
   expect(bubble(text).querySelector('.to-context-hint')!.textContent).toContain('keyboard');
+});
+
+test('Paste in the row, where the browser allows it, reads our words and our HTML and puts them in through the editor’s paste', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { text } = await write();
+  // What another document's Copy wrote (kit/clipboard.ts copyData): the TLO, and our HTML carrying the exact runs.
+  const held = copyData(parse('Some **pasted** words\n').blocks, { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 17 } });
+  const read = vi.spyOn(navigator.clipboard, 'read').mockResolvedValue([
+    new ClipboardItem({ 'text/plain': new Blob([held.text], { type: 'text/plain' }), 'text/html': new Blob([held.html], { type: 'text/html' }) }),
+  ]);
+  await userEvent.click(text.tx.querySelector('p')!);
+  await choose(text);
+  bubble(text).querySelector<HTMLButtonElement>('button[aria-label="Paste"]')!.click();
+  // The words chosen are replaced by the words held, the mark kept: read from our HTML's runs, not the bare words.
+  await until(() => text.tx.textContent!.includes('The Some pasted words of the plan'));
+  expect(read).toHaveBeenCalled();
+  expect(text.tx.querySelector('b')!.textContent).toBe('pasted');
+  expect(bubble(text).querySelector('.to-context-hint')).toBeNull();
 });
 
 test('on a fine pointer the selection bubble floats under the words, as before, with no Cut, Copy or Paste of its own', async () => {
