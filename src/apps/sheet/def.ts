@@ -76,7 +76,7 @@ function xlsx(doc: Doc): Uint8Array {
   return tableToXlsx({ ...v.table, rows }, { values: v.values, named: v.named }, null, v.currency);
 }
 
-/** The chart as an SVG file; an empty chart's page when the sheet asks for none. */
 /** The sheet's chart, drawn; the sheet itself where it has none. */
 const chartPage = (doc: Doc) => chartOf(readSheet(parse(doc))) ?? sheetPages(doc, true)[0];
+/** The chart as an SVG file. */
 const chartSvg = (doc: Doc): Uint8Array => utf8(pageSvg(chartPage(doc)));
