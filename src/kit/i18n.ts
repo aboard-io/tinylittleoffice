@@ -12,12 +12,24 @@
  * Intl.PluralRules picks the form, Intl.NumberFormat writes the number, Intl.DisplayNames names the language,
  * and Intl.Locale says which way it runs.
  */
-import { store } from './store.ts';
 
 export type Strings = Record<string, string>;
 type Loader = () => Promise<{ default: Strings }>;
 
-const KEY = 'tinyoffice.lang';
+/**
+ * The language chosen in the menu is kept on the device in every state, Private or Saved, in localStorage and never a
+ * cookie (Paul, 2026-10-10: "Language change should be persistent across reloads. But no cookies!"): it says nothing
+ * about the person or their documents, and a page that comes back in the wrong words is a wall. kit/store.ts leaves
+ * this one key alone when Private forgets the rest.
+ */
+export const LANG_KEY = 'tinyoffice.lang';
+const device = (): Storage | null => {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+};
 const ORDER = ['zero', 'one', 'two', 'few', 'many', 'other'];
 // Languages written right to left, for a browser whose Intl.Locale cannot say.
 const RTL = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ug', 'yi', 'dv', 'ckb'];
@@ -136,12 +148,12 @@ async function use(code: string) {
 }
 
 /** The language chosen in the menu, or null to follow the browser. */
-export const chosenLanguage = (): string | null => store.get(KEY);
+export const chosenLanguage = (): string | null => device()?.getItem(LANG_KEY) ?? null;
 
 /** Choose a language (null: the browser's), from now on. */
 export async function setLanguage(code: string | null) {
-  if (code) store.set(KEY, code);
-  else store.remove(KEY);
+  if (code) device()?.setItem(LANG_KEY, code);
+  else device()?.removeItem(LANG_KEY);
   await use(code ?? browserLanguage());
 }
 

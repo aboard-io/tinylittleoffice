@@ -118,7 +118,8 @@ test('under Private an edit keeps nothing, and the home page shows no documents'
   await type(shell, 'Not kept');
   await tick(1000);
   expect(library()).toEqual([]);
-  expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.'))).toEqual([]);
+  // The language chosen is the one key a private visit keeps (kit/i18n.ts); none is chosen here.
+  expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') && k !== 'tinyoffice.lang')).toEqual([]);
   const home = await mount('');
   expect(home.querySelector('.to-drive')).toBeNull();
 });

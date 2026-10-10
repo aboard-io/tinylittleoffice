@@ -3,12 +3,13 @@
  * visit and nothing is written. Asked to keep things (the switch in the menu), it writes to localStorage
  * instead, and the preferences, the copy of the app (kit/offline.ts) and what comes later follow. Private
  * again, every trace goes. The one key written in either state is the choice itself, and only when it is
- * "keep": a private visit writes nothing at all.
+ * "keep": a private visit writes nothing at all, but the language chosen in the menu (kit/i18n.ts, its own key),
+ * which stays through Private and Saved alike and is the one thing a private visit leaves.
  */
 const KEEP = 'tinyoffice.keep';
 const memory = new Map<string, string>();
 /** The keys this site writes; anything else in localStorage is not ours to touch. */
-const ours = (k: string) => k !== KEEP && (k.startsWith('tinyoffice.') || k === 'to-theme');
+const ours = (k: string) => k !== KEEP && k !== 'tinyoffice.lang' && (k.startsWith('tinyoffice.') || k === 'to-theme');
 
 function local(): Storage | null {
   try {

@@ -128,10 +128,10 @@ export class ToDrawer extends LitElement {
     const placeholder = kept.length ? t('Find app, template, or doc') : t('Find app, template');
     const offline = offlineState();
     const chosen = chosenLanguage() ?? '';
-    return html`<dialog class="to-drawer" aria-label="Tiny Little Office" @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
+    return html`<dialog class="to-drawer" aria-label=${t('Tiny Little Office')} @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-drawer-inner">
         <header class="to-drawer-head">
-          <a class="to-brand" href="#/" @click=${() => this.close()}>${unsafeHTML(mark(24))}<span>Tiny Little Office</span></a>
+          <a class="to-brand" href="#/" @click=${() => this.close()}>${unsafeHTML(mark(24))}<span>${t('Tiny Little Office')}</span></a>
           <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button>
         </header>
         ${this.open
@@ -154,7 +154,7 @@ export class ToDrawer extends LitElement {
               <section class="to-drawer-section">
                 <label class="to-switch">
                   <input type="checkbox" role="switch" .checked=${keeping()} @change=${(e: Event) => void this.togglePrivate(e)} />
-                  <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace.')}</small></span>
+                  <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace, only the language you chose.')}</small></span>
                 </label>
                 <label class="to-switch">
                   <input type="checkbox" role="switch" .checked=${offline.on} ?disabled=${offline.status === 'saving'} @change=${(e: Event) => void setOffline((e.target as HTMLInputElement).checked)} />

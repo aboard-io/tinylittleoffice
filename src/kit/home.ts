@@ -221,7 +221,7 @@ export class ToHome extends LitElement {
     const kept = library();
     const want = this.query.trim();
     return html`<div class="to-home">
-      <h1 class="sr-only">Tiny Little Office</h1>
+      <h1 class="sr-only">${t('Tiny Little Office')}</h1>
       ${kept.length
         ? html`<input class="to-search" type="search" placeholder=${t('Search your documents')} aria-label=${t('Search your documents')} autocomplete="off" .value=${this.query} @input=${(e: Event) => (this.query = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-found-docs a')?.click())} />`
         : nothing}

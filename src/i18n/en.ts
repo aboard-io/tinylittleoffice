@@ -44,7 +44,7 @@ export default {
   'Close': 'Close',
   'Private': 'Private',
   'Private: nothing saved': 'Private: nothing saved',
-  'Nothing is saved on this device: no cookies, no trace.': 'Nothing is saved on this device: no cookies, no trace.',
+  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Nothing is saved on this device: no cookies, no trace, only the language you chose.',
   'Saved on this device': 'Saved on this device',
   'Saved on this device from now on': 'Saved on this device from now on',
   'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': 'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.',
@@ -56,6 +56,8 @@ export default {
   'Light': 'Light',
   'Dark': 'Dark',
   'About': 'About',
+  // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
+  'Tiny Little Office': 'Tiny Little Office',
   'About Tiny Little Office': 'About Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.',
   'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.',

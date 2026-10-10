@@ -253,7 +253,7 @@ export class ToShell extends LitElement {
     pinchSizes();
     window.addEventListener('drop', this.onDrop);
     this.addEventListener('to-keys', this.showKeys);
-    this.offLanguage = onLanguage(() => this.requestUpdate());
+    this.offLanguage = onLanguage(() => (this.setTitle(), this.requestUpdate()));
     this.offPictures = onPictures(() => this.requestUpdate());
     // The rest of Lucide joined (a document named an icon outside the starter set): the pages and the editor are drawn again.
     this.offIcons = onIcons(() => {
@@ -661,13 +661,13 @@ export class ToShell extends LitElement {
     const def = this.def;
     // A QR code the document holds of itself is drawn from its link as it now is.
     setSelfLink(def ? this.link : '');
-    document.title = def ? `${this.docTitle} · Tiny Little Office` : 'Tiny Little Office';
+    document.title = def ? `${this.docTitle} · ${t('Tiny Little Office')}` : t('Tiny Little Office');
   }
   /** What the document is called: the name it was given, a new one's name, or "Untitled presentation" (a link that came with none). */
   private get docTitle(): string {
     const def = this.def;
     if (def && this.sealed) return t('Locked document');
-    return def ? def.title(this.doc) || this.fresh || t('Untitled {noun}', { noun: def.noun }) : 'Tiny Little Office';
+    return def ? def.title(this.doc) || this.fresh || t('Untitled {noun}', { noun: def.noun }) : t('Tiny Little Office');
   }
   /** The link to share, the editing one: the address without the owner's query (that stays in the address bar alone) or the display flag. */
   get link(): string {
@@ -929,9 +929,9 @@ export class ToShell extends LitElement {
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
     // The menu button is a hamburger, with a border so it reads as something to press (Paul, 2026-10-10: "Make the hamburger a hamburger"); the mark is the drawer's.
     const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${drawer}>${icon(UI.menu, 24)}</button>`;
-    if (!def) return html`<header class="to-header" aria-label="Tiny Little Office">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
+    if (!def) return html`<header class="to-header" aria-label=${t('Tiny Little Office')}>${burger}<a class="to-brand" href="#/">${t('Tiny Little Office')}</a></header>`;
     if (this.sealed)
-      return html`<header class="to-header" aria-label="Tiny Little Office">
+      return html`<header class="to-header" aria-label=${t('Tiny Little Office')}>
         ${burger}
         <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
         <h1 class="to-title to-title-locked">${this.docTitle}</h1>
@@ -944,7 +944,7 @@ export class ToShell extends LitElement {
     const pct = Math.min(1, this.payloadLength / Math.max(1, available));
     const r = 9;
     const c = 2 * Math.PI * r;
-    return html`<header class="to-header ${this.titling ? 'titling' : ''}" aria-label="Tiny Little Office">
+    return html`<header class="to-header ${this.titling ? 'titling' : ''}" aria-label=${t('Tiny Little Office')}>
       ${burger}
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
