@@ -62,7 +62,19 @@ function inner(sc: HTMLElement): Box {
   const r = sc.getBoundingClientRect();
   const top = r.top + sc.clientTop;
   const left = r.left + sc.clientLeft;
-  return { top, left, bottom: top + sc.clientHeight, right: left + sc.clientWidth };
+  const box = { top, left, bottom: top + sc.clientHeight, right: left + sc.clientWidth };
+  // The column's foot under a phone's bar is covered, not room (and so is its head under a desktop's): a caret brought
+  // in stops above the bar, or below it, and above the context row docked at the foot, never under either (Paul,
+  // 2026-10-10: a new row of the outline appeared under the nav and was unreachable).
+  if (sc.classList.contains('to-main') || sc.classList.contains('to-column')) {
+    for (const el of [sc.querySelector('to-bar'), document.querySelector('.to-context[data-docked]:popover-open')]) {
+      const b = el?.getBoundingClientRect();
+      if (!b || !b.height || b.bottom <= box.top || b.top >= box.bottom) continue;
+      if (b.top - box.top < b.height) box.top = Math.min(box.bottom, b.bottom);
+      else box.bottom = Math.max(box.top, b.top);
+    }
+  }
+  return box;
 }
 /** Two boxes' overlap (empty boxes keep their order). */
 const cut = (a: Box, b: Box): Box => ({ top: Math.max(a.top, b.top), left: Math.max(a.left, b.left), bottom: Math.min(a.bottom, b.bottom), right: Math.min(a.right, b.right) });

@@ -156,6 +156,34 @@ test('390×844 with a finger: a tap in the words hides the header (the focus a d
   expect(getComputedStyle(header).display).not.toBe('none');
 });
 
+// A caret brought into the column stops above the bar at its foot, not under it (Paul, 2026-10-10: a new row of the
+// outline appeared under the nav and was unreachable): what the bar covers is not room (kit/scroll.ts inner).
+test('390×844 with a finger and a keyboard: Enter on the outline’s last row, at the column’s foot, lands the new row above the bar', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const vv = fakeViewport();
+  const rows = Array.from({ length: 40 }, (_, i) => `- Row ${i + 1}`).join('\n') + '\n';
+  const shell = await mount(`#/v1/outline/${encodeDoc(rows)}`);
+  await until(() => shell.querySelectorAll('.ol-row to-text').length === 40 && !!shell.querySelector('to-outline-editor to-bar'));
+  const last = shell.querySelectorAll<HTMLElement>('.ol-row to-text')[39];
+  await userEvent.click(last);
+  vv.height = 844 - 300;
+  vv.dispatchEvent(new Event('resize'));
+  await until(() => !shell.querySelector('to-chrome')!.hasAttribute('gliding') && shell.querySelector('to-chrome')!.getBoundingClientRect().height <= 545);
+  await userEvent.keyboard('{End}');
+  await userEvent.keyboard('{Enter}');
+  await until(() => shell.querySelectorAll('.ol-row to-text').length === 41);
+  await tick();
+  await tick();
+  const bar = shell.querySelector<HTMLElement>('to-outline-editor to-bar')!.getBoundingClientRect();
+  const focused = (document.activeElement as HTMLElement).getBoundingClientRect();
+  const caret = document.getSelection()!.getRangeAt(0).getBoundingClientRect();
+  // The bar is at the foot of the shortened column, and the new row with its caret is above it.
+  expect(Math.round(bar.bottom)).toBeLessThanOrEqual(545);
+  expect(bar.top).toBeGreaterThan(400);
+  expect(Math.max(focused.bottom, caret.bottom)).toBeLessThanOrEqual(bar.top + 0.5);
+});
+
 test('1440×900: the header stays while the words have the focus, and the bar is under it at the column’s top', async () => {
   await page.viewport(1440, 900);
   const { text, main, chrome } = await write();

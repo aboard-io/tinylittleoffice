@@ -156,6 +156,20 @@ test('Backspace joins blocks, unlists an item, takes an embed out, and says text
   await key(lines, 'Backspace');
   expect(lines.events).toContain('text-exit');
   expect(lines.tlo).toBe('a\n');
+  // In a line, the key alone says it: Safari on iOS sends no beforeinput for a Backspace with nothing to delete
+  // (Paul, 2026-10-10), so a keydown that no beforeinput follows still reaches the host, and is taken.
+  const line = await mount('ab\n', 'line', caret(0, 0));
+  const down = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true });
+  line.el.querySelector<HTMLElement>('[contenteditable]')!.dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  expect(line.events).toContain('text-exit');
+  expect(line.tlo).toBe('ab\n');
+  // Not at the start, the key is the browser's and the beforeinput that follows does the deleting.
+  line.el.sel = caret(0, 1);
+  await tick();
+  const mid = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true });
+  line.el.querySelector<HTMLElement>('[contenteditable]')!.dispatchEvent(mid);
+  expect(mid.defaultPrevented).toBe(false);
 });
 
 test('a heading pulled up into an empty line stays a heading: one <h1> left, nothing stale styled as it, the caret at its start', async () => {

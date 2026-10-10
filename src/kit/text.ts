@@ -541,7 +541,10 @@ export class ToText extends LitElement {
     // In flight for the keyboard, the column's box is not yet where it is going: it keeps the caret in sight when it settles.
     if (!dom.rangeCount || gliding()) return;
     const r = dom.getRangeAt(0).getBoundingClientRect();
+    // A caret in a box with no words yet (the row Enter just made) has no rect of its own: the box stands in for it
+    // (Paul, 2026-10-10: the outline's new row appeared under the bar, out of reach).
     if (r.height) reveal(this, { rect: r, margin: 8 });
+    else reveal(this, { margin: 8 });
   }
 
   /* ---------- edits ---------- */
@@ -696,6 +699,24 @@ export class ToText extends LitElement {
       return this.askNote(chip as HTMLElement);
     }
     if (e.key === 'Escape') return this.escape(e);
+    // In a line, Backspace at the very start and Delete at the very end are the host's (text-exit), decided here on the
+    // key: with nothing in the line to delete, Safari on iOS sends no beforeinput for either (Paul, 2026-10-10: at the
+    // start of an outline's row, delete did nothing), so the key itself says it, and the beforeinput that may follow is
+    // prevented by taking it.
+    if (this.shape === 'line' && (e.key === 'Backspace' || e.key === 'Delete') && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      const sel = this.current();
+      const at = collapsed(sel) ? sel.anchor : null;
+      const dir =
+        at && e.key === 'Backspace' && at.block === 0 && at.offset === 0
+          ? 'back'
+          : at && e.key === 'Delete' && at.block === this.model.length - 1 && at.offset >= blockLength(this.model[at.block])
+            ? 'forward'
+            : null;
+      if (dir) {
+        e.preventDefault();
+        return void this.dispatchEvent(new CustomEvent<{ dir: 'back' | 'forward' }>('text-exit', { detail: { dir }, bubbles: true }));
+      }
+    }
     // The words' commands (kit/text-commands.ts): the marks, Link, Tab and Shift+Tab on an item, Alt+Up/Down, Mod+Enter, Mod+A.
     runKey(e, TEXT_COMMANDS, this);
   };
