@@ -515,7 +515,9 @@ export function docGist(ref: string): { app: string; gist: string } {
   const app = nl < 0 ? ref : ref.slice(0, nl);
   const body = nl < 0 ? '' : ref.slice(nl + 1);
   if (app === 'web') return { app, gist: body.trim() };
-  const gist = body.split('\n').find((l) => l.trim() && !/^---/.test(l) && !/^[a-z]+:/.test(l)) ?? '';
+  // A document's title, where it has one; else its first line of words.
+  const title = /^---\n(?:(?!---).*\n)*?title: (.+)\n/.exec(body)?.[1];
+  const gist = title ?? body.split('\n').find((l) => l.trim() && !/^---/.test(l) && !/^[a-z]+:/.test(l)) ?? '';
   return { app, gist: gist.trim() };
 }
 
@@ -620,11 +622,28 @@ export function outlineToNet(v: OutlineView, head: Doc['head'] = {}): string {
   return write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'net' }, blocks: [...nodes, ...edges] });
 }
 
-/** The outline as an org chart: its people nested, each join a dotted line. */
-export function outlineToOrg(v: OutlineView, head: Doc['head'] = {}): string {
-  const edges: Block[] = liveLinks(v).map((l) => ({ k: 'edge', from: l.from, to: l.to, dir: '--', ...(l.label ? { label: l.label } : {}) }));
-  return write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'org' }, blocks: [...plainTree(v), ...edges] });
+/** A person as an org chart or a family tree writes one: "Ana Ruiz (head baker)" here is "Ana Ruiz | head baker" there, the name over the role or the years. */
+export function personOf(words: string): { name: string; what?: string } {
+  const m = /^(.*\S)\s+\(([^()]+)\)$/.exec(words.trim());
+  return m ? { name: m[1], what: m[2].trim() } : { name: words.trim() };
 }
+
+/** Its people nested, each a name and (in brackets in the outline) a role or the years; each join a dotted line between two names. */
+function peopleOf(v: OutlineView, kind: 'org' | 'family', head: Doc['head']): string {
+  const tree = v.items
+    .filter((it) => !it.doc)
+    .map((it) => {
+      const p = personOf(plainText(it.runs));
+      return itemBlock(it.depth, p.what ? [{ t: `${p.name} | ${p.what}` }] : it.runs, undefined, undefined, undefined, it.ord);
+    });
+  const edges: Block[] = liveLinks(v).map((l) => ({ k: 'edge', from: personOf(l.from).name, to: personOf(l.to).name, dir: '--', ...(l.label ? { label: l.label } : {}) }));
+  return write({ head: { ...(head.title ? { title: head.title } : {}), kind }, blocks: [...tree, ...edges] });
+}
+
+/** The outline as an org chart: its people nested, each join a dotted line. */
+export const outlineToOrg = (v: OutlineView, head: Doc['head'] = {}): string => peopleOf(v, 'org', head);
+/** The outline as a family tree: the generations nested, "Rose Hale (born 1926)" a name over its years. */
+export const outlineToFamily = (v: OutlineView, head: Doc['head'] = {}): string => peopleOf(v, 'family', head);
 
 /** The outline as a mind map: the plain tree, each join a cross-link as it was (its kind of line and its words). */
 export function outlineToMind(v: OutlineView, head: Doc['head'] = {}): string {

@@ -9,7 +9,7 @@ import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { textPdf } from '../../kit/textpdf.ts';
 import { t } from '../../kit/i18n.ts';
-import { liveItems, notesAsItems, outlineBlocks, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
+import { liveItems, notesAsItems, outlineBlocks, outlineText, outlineToDeck, outlineToMind, outlineToFamily, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
 import { appName, outlinePage } from './view.ts';
 import { templates } from './templates.ts';
 import { partOf } from '../../kit/steps.ts';
@@ -75,6 +75,7 @@ export default defineApp({
     { to: 'deck', label: () => t('Show as slides'), convert: convert(outlineToDeck) },
     { to: 'diagram', label: () => t('Draw as a mind map'), convert: convert(outlineToMind) },
     { to: 'diagram', label: () => t('Draw as an org chart'), convert: convert(outlineToOrg) },
+    { to: 'diagram', label: () => t('Draw as a family tree'), convert: convert(outlineToFamily) },
     { to: 'diagram', label: () => t('Draw as a network'), convert: convert(outlineToNet) },
   ],
   keys: [
