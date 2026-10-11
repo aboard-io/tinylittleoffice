@@ -464,6 +464,8 @@
      than the show starts at its edge (auto margins take no room they lack), so all of it can be reached. */
   .deck-show {
     user-select: none;
+    /* Sideways, a finger swipes to the next slide (editor.ts); up and down it scrolls what is taller than the screen. */
+    touch-action: pan-y;
     position: fixed;
     inset: 0;
     background: #111;
@@ -472,6 +474,9 @@
     grid-template: 100% / 100%;
     cursor: pointer;
     overflow: auto;
+  }
+  .deck-show[data-zoomed] {
+    touch-action: pan-x pan-y;
   }
   .deck-show .frame,
   .deck-show .was {
@@ -488,18 +493,30 @@
     width: 100%;
     height: 100%;
   }
+  /* The show's controls are nav (kit.css's list): a finger's size up to 120% and no further, so at 200% they stay on the
+     screen, wrapping before they would leave it. Light icons on the pill's dark backing in either theme: the buttons
+     themselves are clear (a white button had drawn white on white in the light theme). */
   .deck-show .ctl {
     position: fixed;
     right: 0.75rem;
     top: 0.75rem;
     display: flex;
-    gap: 0.25rem;
-    padding: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100vw - 1.5rem);
+    gap: 0.25em;
+    padding: 0.25em;
     background: rgb(0 0 0 / 55%);
     border-radius: var(--to-radius-pill);
   }
   .deck-show .ctl .to-btn {
     color: #fafafa;
+    background: transparent;
+    border-color: transparent;
+  }
+  .deck-show .ctl .to-btn:hover,
+  .deck-show .ctl .to-btn[aria-pressed='true'] {
+    background: rgb(255 255 255 / 18%);
   }
   .deck-show .pos {
     position: fixed;
@@ -532,7 +549,7 @@
       top: auto;
       bottom: 0.5rem;
       right: 0.5rem;
-      padding: 0.125rem;
+      padding: 0.125em;
     }
     .deck-show .ctl .to-btn {
       width: 2rem;

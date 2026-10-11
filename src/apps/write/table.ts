@@ -1,5 +1,5 @@
 /**
- * <to-write-table>: a table block inside a text, as a small grid of <input>s over the sheet's view of it
+ * <to-write-table>: a table block inside a text, as a small grid of fields over the sheet's view of it
  * (model.ts tableView): the names over the columns, the values worked out in place, the cell being typed
  * in showing its raw formula, a locked cell left be, and one blank row under the last to type the next
  * line into. It keeps a grid's ways (docs/editing.md §4): the arrows go from cell to cell (sideways from
@@ -15,6 +15,10 @@
  * Every change is an event the host turns into ops: wt-cell (r, c, raw), wt-do (a command, and the cell to
  * focus after it; the host calls preventDefault), wt-exit (back to the words). A host that does not take
  * commands (`commands` unset) gets the grid without the heads' menus, and a range written cell by cell.
+ *
+ * A cell is a <textarea> one line tall that grows with its words (CSS field-sizing), so a narrow column wraps them
+ * rather than cutting them short (the review of 2026-10-11: a worksheet's question read "First…" on a phone); Enter
+ * never puts a line in. An Option column's cell is an <input>, for the words its column holds (a <datalist>).
  */
 import { LitElement, html, nothing } from 'lit';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, GripVertical, Pencil, Trash2 } from 'lucide';
@@ -45,6 +49,9 @@ export type TableCmd = (
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
 const ARROWS: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+/** A cell's field: a <textarea> that wraps its words, or an Option column's <input>. */
+type Field = HTMLInputElement | HTMLTextAreaElement;
+const isField = (el: unknown): el is Field => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
 let tables = 0;
 
 /** Follow a pointer that `el` has captured: `move` as it goes, then `done` once it lifts. */
@@ -123,8 +130,8 @@ export class ToWriteTable extends LitElement {
   private raw(r: number, c: number): string {
     return this.view?.table.rows[r]?.[c] ?? '';
   }
-  private input(r: number, c: number): HTMLInputElement | null {
-    return this.querySelector<HTMLInputElement>(`input[data-r="${r}"][data-c="${c}"]`);
+  private input(r: number, c: number): Field | null {
+    return this.querySelector<Field>(`:is(input, textarea)[data-r="${r}"][data-c="${c}"]`);
   }
   private onGrid(r: number, c: number): [number, number] {
     return [clamp(r, 0, this.drawn - 1), clamp(c, 0, Math.max(0, this.cols.length - 1))];
@@ -180,7 +187,7 @@ export class ToWriteTable extends LitElement {
   private onCellDown(e: PointerEvent, r: number, c: number) {
     const ed = document.activeElement;
     this.hadFocus = ed === this.input(r, c);
-    if (ed instanceof HTMLInputElement && this.contains(ed) && this.focused && this.point(ed, r, c)) return e.preventDefault();
+    if (isField(ed) && this.contains(ed) && this.focused && this.point(ed, r, c)) return e.preventDefault();
     if (e.shiftKey && this.focused) {
       // Shift+click stretches the range to here; the cell it started from keeps the focus.
       e.preventDefault();
@@ -206,7 +213,7 @@ export class ToWriteTable extends LitElement {
   }
 
   /** While a formula is typed and waits for a value, a cell tapped puts its reference in at the caret. */
-  private point(ed: HTMLInputElement, r: number, c: number): boolean {
+  private point(ed: Field, r: number, c: number): boolean {
     const [sr, sc] = this.focused!;
     const val = ed.value;
     if (!val.startsWith('=') || (r === sr && c === sc)) return false;
@@ -251,8 +258,8 @@ export class ToWriteTable extends LitElement {
   /* ---------- the clipboard ---------- */
 
   private onCopy = (e: ClipboardEvent) => {
-    const input = e.target as HTMLInputElement;
-    if (!(input instanceof HTMLInputElement) || !this.view) return;
+    const input = e.target;
+    if (!isField(input) || !this.view) return;
     const some = input.selectionStart !== input.selectionEnd && !(input.selectionStart === 0 && input.selectionEnd === input.value.length);
     // Some of a cell's words, picked out, are ordinary words; otherwise it is the cell (or the range) that is copied.
     if (!this.many && some) return;
@@ -307,7 +314,7 @@ export class ToWriteTable extends LitElement {
 
   private onKey(e: KeyboardEvent, r: number, c: number) {
     if (e.isComposing) return;
-    const input = e.target as HTMLInputElement;
+    const input = e.target as Field;
     const mod = e.metaKey || e.ctrlKey;
     const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
     const atEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
@@ -462,22 +469,47 @@ export class ToWriteTable extends LitElement {
                 const num = typeof val === 'number' && col.type !== 'check';
                 const inRange = many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
                 const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
+                const cls = `${num ? 'num' : ''} ${locked ? 'locked' : ''} ${typeof val === 'string' && val.startsWith('#') ? 'err' : ''}`;
+                const shown = here ? raw : formatCell(val, col.type, currencyAt(v, c));
+                const title = locked ? t('Locked: worked out for you') : raw.startsWith('=') ? raw : nothing;
+                const focus = () => this.onFocus(r, c);
+                const blur = () => (this.focused = null);
+                const typed = (e: Event) => this.setCell(r, c, (e.target as Field).value);
+                const key = (e: KeyboardEvent) => this.onKey(e, r, c);
                 return html`<td data-r=${r} data-c=${c} class="${inRange ? 'in' : ''} ${inFill ? 'filling' : ''}" @pointerdown=${(e: PointerEvent) => this.onCellDown(e, r, c)} @pointerover=${(e: PointerEvent) => this.onCellOver(e, r, c)} @click=${() => this.onCellClick(r, c)}>
-                  <input
-                    data-r=${r}
-                    data-c=${c}
-                    class="${num ? 'num' : ''} ${locked ? 'locked' : ''} ${typeof val === 'string' && val.startsWith('#') ? 'err' : ''}"
-                    aria-label=${rcToRef(r, c)}
-                    list=${col.type === 'option' ? `${this.uid}-o${c}` : nothing}
-                    .value=${here ? raw : formatCell(val, col.type, currencyAt(v, c))}
-                    title=${locked ? t('Locked: worked out for you') : raw.startsWith('=') ? raw : nothing}
-                    ?readonly=${locked}
-                    autocomplete="off"
-                    @focus=${() => this.onFocus(r, c)}
-                    @blur=${() => (this.focused = null)}
-                    @input=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
-                    @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c)}
-                  />
+                  ${
+                    col.type === 'option'
+                      ? html`<input
+                          data-r=${r}
+                          data-c=${c}
+                          class=${cls}
+                          aria-label=${rcToRef(r, c)}
+                          list=${`${this.uid}-o${c}`}
+                          .value=${shown}
+                          title=${title}
+                          ?readonly=${locked}
+                          autocomplete="off"
+                          @focus=${focus}
+                          @blur=${blur}
+                          @input=${typed}
+                          @keydown=${key}
+                        />`
+                      : html`<textarea
+                          rows="1"
+                          data-r=${r}
+                          data-c=${c}
+                          class=${cls}
+                          aria-label=${rcToRef(r, c)}
+                          .value=${shown}
+                          title=${title}
+                          ?readonly=${locked}
+                          autocomplete="off"
+                          @focus=${focus}
+                          @blur=${blur}
+                          @input=${typed}
+                          @keydown=${key}
+                        ></textarea>`
+                  }
                   ${f && r === g.r1 && c === g.c1 ? html`<span class="wt-fill" role="button" aria-label=${t('Fill: drag to carry these cells on')} title=${t('Drag to fill')} @pointerdown=${this.onFillDown}></span>` : nothing}
                 </td>`;
               })}

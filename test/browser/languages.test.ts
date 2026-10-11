@@ -12,6 +12,7 @@ import { pseudo } from '../pseudo.ts';
 import en from '../../src/i18n/en.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
+import { keepSize, SIZE_MAX } from '../../src/kit/zoom.ts';
 
 const files = import.meta.glob<{ default: Strings }>(['../../src/i18n/*.ts', '!../../src/i18n/en.ts']);
 const fileCode = (path: string) => path.replace(/^.*\/([^/]+)\.ts$/, '$1');
@@ -19,6 +20,7 @@ const PSEUDO = ['en-xa', 'ar-xb'];
 for (const code of PSEUDO) register(code, pseudo(code, en));
 
 afterEach(async () => {
+  keepSize(1);
   await setLanguage(null);
   await page.viewport(1100, 800);
   history.replaceState(null, '', location.pathname);
@@ -72,9 +74,17 @@ async function check(strings: Strings): Promise<string[]> {
   await until(() => drawer.open && !!drawer.querySelector('.to-drawer-prefs'));
   await tick(50);
   english();
+  // The skip link, shown as the keys find it: inside the screen, its words wrapped.
+  const skip = home.querySelector<HTMLElement>('.to-skip');
+  if (skip) {
+    skip.style.transform = 'none';
+    const r = skip.getBoundingClientRect();
+    if (r.left < -0.5 || r.right > innerWidth + 0.5) problems.push(`the skip link does not fit: "${keyOf(strings, skip.textContent!)}"`);
+    skip.style.transform = '';
+  }
   const edge = drawer.getBoundingClientRect();
-  for (const el of drawer.querySelectorAll<HTMLElement>('a, button, label, b, small, span, h2, h3, p')) {
-    if (!el.getClientRects().length || el.closest('details:not([open])') || !el.textContent!.trim()) continue;
+  for (const el of drawer.querySelectorAll<HTMLElement>('a, button, label, b, small, span, h2, h3, p, select')) {
+    if (!el.getClientRects().length || el.closest('details:not([open])') || !(el.textContent!.trim() || el instanceof HTMLSelectElement)) continue;
     const r = el.getBoundingClientRect();
     const wide = el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflowX !== 'visible';
     if (wide || r.left < edge.left - 0.5 || r.right > edge.right + 0.5) for (const k of named(strings, el)) problems.push(`drawer, does not fit: "${k}"`);
@@ -129,6 +139,17 @@ test('the pseudo-languages, a third longer than English: chosen, the direction f
       code,
     ).toEqual([]);
     all.push(...problems.map((p) => `${code}: ${p}`));
+  }
+  expect(all).toEqual([]);
+});
+
+test('at the largest size (200%), the drawer, the bar and the skip link laid out at 390px still fit: nothing past the edge, in English and a third longer', async () => {
+  await page.viewport(390, 844);
+  keepSize(SIZE_MAX);
+  const all: string[] = [];
+  for (const code of ['en', ...PSEUDO]) {
+    if (code !== 'en') await choose(await mount(''), code);
+    all.push(...(await check(code === 'en' ? en : pseudo(code, en))).map((p) => `${code}: ${p}`));
   }
   expect(all).toEqual([]);
 });

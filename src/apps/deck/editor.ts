@@ -148,6 +148,9 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   /** When two fingers last lifted from the show: the tap a pinch may leave behind turns no slide. */
   private pinched = 0;
   private unpinch: (() => void) | null = null;
+  /** Where one finger came down on the show (a swipe's start), and when a swipe last turned a slide. */
+  private swipe: { x: number; y: number } | null = null;
+  private swiped = 0;
   /** Focus asked for after the next draw: the box, and the caret's place in it (or a selection to put back). */
   private focusNext: { field: Field; at: 'start' | 'end' | Sel } | null = null;
   /** A document has been read: a value after it is either ours, the head edited, or another document. */
@@ -206,7 +209,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     // modes too"): the slide zooms in place about the fingers, kept in quarters when they lift, and the show scrolls.
     const zoomTo = (z: number) => {
       this.showZoom = Math.min(4, Math.max(1, z));
-      this.querySelector<HTMLElement>('.deck-show')?.style.setProperty('--deck-zoom', String(this.showZoom));
+      const show = this.querySelector<HTMLElement>('.deck-show');
+      show?.style.setProperty('--deck-zoom', String(this.showZoom));
+      // Zoomed, a finger pans the slide every way; whole, sideways is a swipe (style.css).
+      show?.toggleAttribute('data-zoomed', this.showZoom > 1);
     };
     this.unpinch = pinchZoom(this, {
       frame: () => this.querySelector<HTMLElement>('.deck-show[data-spatial]'),
@@ -719,6 +725,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     if (i !== was) {
       this.showZoom = 1;
       this.querySelector<HTMLElement>('.deck-show')?.style.removeProperty('--deck-zoom');
+      this.querySelector<HTMLElement>('.deck-show')?.removeAttribute('data-zoomed');
     }
     // Into the show, the focus goes with it: no key reaches the box behind.
     if (i >= 0 && was < 0) {
@@ -746,12 +753,31 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     // A tap on the live card's controls is the card's; a tap anywhere else turns the slide.
     if (onLive(e)) return;
     const now = performance.now();
-    // Two fingers zoom; they never turn a slide, nor does a tap they leave as they lift.
-    if (now - this.pinched < 300) return;
+    // Two fingers zoom; they never turn a slide, nor does a tap they leave as they lift, nor one a swipe leaves.
+    if (now - this.pinched < 300 || now - this.swiped < 300) return;
     // A fast second click means "just show me the slide".
     if (now - this.lastClick < FAST) this.shown = this.steps();
     else this.forward();
     this.lastClick = now;
+  };
+  /**
+   * A finger drawn sideways across the whole slide turns it, as a book's page: to the left the next, to the right the
+   * one before (mirrored right to left). More than 40px, and more across than down; never a mouse, never on the
+   * controls, the notes or a live card, never while zoomed (a finger pans then) or as a pinch ends.
+   */
+  private onShowDown = (e: PointerEvent) => {
+    const off = e.pointerType === 'mouse' || !e.isPrimary || (e.target as Element).closest?.('.ctl, .notes, .deck-live');
+    this.swipe = off ? null : { x: e.clientX, y: e.clientY };
+  };
+  private onShowUp = (e: PointerEvent) => {
+    const from = this.swipe;
+    this.swipe = null;
+    if (!from || !e.isPrimary || this.showZoom > 1 || performance.now() - this.pinched < 300) return;
+    const [dx, dy] = [e.clientX - from.x, e.clientY - from.y];
+    if (Math.abs(dx) <= 40 || Math.abs(dx) <= Math.abs(dy)) return;
+    this.swiped = performance.now();
+    if (dx < 0 !== (getComputedStyle(this).direction === 'rtl')) this.forward();
+    else this.back();
   };
   /** While presenting, the keys are the show's (commands.ts SHOW): nothing reaches the boxes behind it. */
   private onShowKey = (e: KeyboardEvent) => {
@@ -1016,7 +1042,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const p = page(this.showing, this.shown);
     const s = slides[this.showing];
     const motion = `tr-${this.settings.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
-    return html`<div class="deck-show" data-spatial role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick}>
+    return html`<div class="deck-show" data-spatial role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick} @pointerdown=${this.onShowDown} @pointerup=${this.onShowUp} @pointercancel=${() => (this.swipe = null)}>
       ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(gateSvg(page(this.leaving).svg))}</svg></div>`) : nothing}
       ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(gateSvg(p.svg))}</svg>${this.renderLive(s)}</div>`)}
       <p class="sr-only" aria-live="polite">${t('Slide {n} of {total}', { n: this.showing + 1, total })}: ${p.alt ?? ''}</p>

@@ -20,8 +20,11 @@
   .todo-list:focus {
     outline: none;
   }
+  /* A row wraps before its words break: when the words' box and the star and menu do not fit on one line (a large
+     size on a phone), the star and the menu go under it, at the end. */
   .todo-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 0.125rem;
     min-height: var(--to-touch);
@@ -77,8 +80,9 @@
     margin: 0;
     accent-color: var(--to-accent);
   }
+  /* 8em, or what the grip and the tick leave if that is less: the words stay beside their tick. */
   .todo-body {
-    flex: 1;
+    flex: 1 1 min(8em, 100% - 1.75rem - var(--to-touch));
     min-width: 0;
     padding: 0.625rem 0;
   }
@@ -117,6 +121,9 @@
   .todo-more {
     border-color: transparent;
     background: none;
+  }
+  .todo-star {
+    margin-inline-start: auto;
   }
   .todo-star[aria-pressed='true'] {
     color: var(--to-warning);

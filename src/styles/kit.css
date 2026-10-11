@@ -41,7 +41,25 @@
      (zoom.ts NAV_MAX), while the words, the cards and the pictures go on to 200%. Each of these is drawn at the nav's
      font size and its lengths inside are em; a finger's target and the gutter are the nav's too. One list: an app's
      own bar (anything nav, not document) joins it rather than inventing its own. */
-  :is(to-bar, .to-header, .to-burger, .to-drawer, .to-dialog, .to-doc-dialog, to-context, .to-menu, to-link-pop, to-complete, to-find, .to-toast, .to-pinch-pill, .anim-props, .anim-time) {
+  :is(
+    to-bar,
+    .to-header,
+    .to-burger,
+    .to-drawer,
+    .to-dialog,
+    .to-doc-dialog,
+    to-context,
+    .to-menu,
+    to-link-pop,
+    to-complete,
+    to-find,
+    .to-toast,
+    .to-pinch-pill,
+    .anim-props,
+    .anim-time,
+    .deck-show .ctl,
+    .trip-present-ctl
+  ) {
     font-size: var(--to-nav-font);
     --to-scale: var(--to-nav-font);
     --to-touch: calc(2.75 * var(--to-nav-font));
@@ -822,7 +840,7 @@
     /* The other document is document: the words, a finger's target and the gutter at the document's scale. */
     font-size: 1rem;
     --to-scale: 1rem;
-    --to-touch: 2.75rem;
+    --to-touch: min(2.75rem, calc(2.75 * var(--to-nav-font)));
     --to-gutter: calc(var(--to-gutter-k) * 1rem);
   }
   .to-doc-dialog-body:focus {
@@ -1316,6 +1334,15 @@
   }
   .to-drawer-prefs {
     margin-top: auto;
+  }
+  /* A select goes under its label when the two do not fit on one line (the nav at its largest, a long language). */
+  .to-drawer-prefs .to-field {
+    flex-wrap: wrap;
+  }
+  .to-drawer-prefs .to-field select {
+    flex: 0 1 auto;
+    max-width: 100%;
+    margin-inline-start: auto;
   }
   .to-drawer-about {
     justify-content: flex-start;
@@ -2006,11 +2033,13 @@
   /* The row: the app (icon and name) and, at the right, the templates button. */
   .to-app-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
   }
   .to-app-open {
     display: flex;
-    flex: 1;
+    flex-wrap: wrap;
+    flex: 1 1 8em;
     min-width: 0;
     align-items: center;
     gap: 0.625em;
@@ -2026,16 +2055,19 @@
   .to-app-open .to-icon {
     color: var(--to-accent);
   }
-  /* The name is plain, not bold (Paul, 2026-10-10); a long one at a large size breaks rather than pushing the templates button off the screen. */
+  /* The name is plain, not bold (Paul, 2026-10-10). At a large size the row wraps before a word breaks: the templates
+     button goes under the name, at the end, and the name under its icon; a word wider than the screen breaks. */
   .to-app-open .to-app-name {
     font-size: var(--to-scale);
     font-weight: 400;
+    flex: 1 1 auto;
+    width: min-content;
     min-width: 0;
-    overflow-wrap: anywhere;
-    hyphens: auto;
+    overflow-wrap: break-word;
   }
   .to-app to-templates {
     display: flex;
+    margin-inline-start: auto;
   }
   .to-templates-btn {
     width: auto;
@@ -2534,6 +2566,10 @@
     left: 0.25rem;
     z-index: 10;
     transform: translateY(-200%);
+    /* Inside the screen at any size: its words wrap rather than run past the edge. */
+    max-width: calc(100% - 0.5rem);
+    white-space: normal;
+    text-align: start;
   }
   .to-skip:focus-visible {
     transform: none;
