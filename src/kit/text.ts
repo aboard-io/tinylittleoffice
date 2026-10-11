@@ -8,7 +8,7 @@
  * the DOM after each draw; `selectionchange` reads it back. The DOM is read
  * in one place only: the block the IME composed in, at compositionend.
  *
- * Three shapes. `doc`: any block, Enter splits, embeds are cards the caret
+ * Three shapes. `doc`: any block, Enter splits, a card (a table, another document) the caret
  * skips. `lines`: items and paragraphs (a slide's words), Backspace at the
  * start says `text-exit` ({dir: 'back'}). `line`: one block, Enter says
  * `text-enter` ({shift}: whether it was Shift+Enter), Delete at its end says
@@ -36,11 +36,11 @@
  * Mod+Enter ticks a task item (in a doc or lines; a line's host decides);
  * Tab indents an item only when it can move, else it moves the focus.
  *
- * What is not words (a table, a picture, another document, a web address
- * alone on its line) is a card: `contenteditable=false`, skipped by the caret,
- * taken out whole. The host may draw a card's inside through `card` (a table
- * as a grid, an address as a thing from the web); whatever it puts there
- * (inputs, buttons) keeps its own events. A picture from the web waits to be asked for (kit/pictures.ts).
+ * What is not words (a table, another document, a rule) is a card:
+ * `contenteditable=false`, skipped by the caret, taken out whole. The host
+ * may draw a card's inside through `card` (a table as a grid, another
+ * document as its first page); whatever it puts there (inputs, buttons)
+ * keeps its own events.
  * A task item's box is tapped to tick.
  *
  * What a screen reader is given: a run of items is one element, role=list (the model stays flat: each item is a block
@@ -78,7 +78,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { apply, applyAll, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
+import { applyAll, hasClass, isAtomic, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
 import { copyData, pasteFrom, readClip, writeClip } from './clipboard.ts';
 import { contextOf, runKey } from './commands.ts';
 import { TEXT_COMMANDS } from './text-commands.ts';
@@ -110,7 +110,7 @@ import {
   setMark,
   shiftItems,
   shortcut,
-  skipEmbed,
+  skipCard,
   smartQuote,
   splitAt,
   toggleMark,
@@ -123,7 +123,6 @@ import {
   type Sel,
   type Shape,
 } from './textops.ts';
-import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import { completeNamed, completions, loadCompletions, type Completion, type ToComplete } from './complete.ts';
 import { gliding, reveal, scrollerOf } from './scroll.ts';
@@ -346,17 +345,14 @@ export class ToText extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener('selectionchange', this.onSelectionChange);
-    this.offPictures = onPictures(() => this.requestUpdate());
     this.offIcons = onIcons(() => this.requestUpdate());
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('selectionchange', this.onSelectionChange);
     window.removeEventListener('keydown', this.onCompleteKey, true);
-    this.offPictures();
     this.offIcons();
   }
-  private offPictures = () => {};
   private offIcons = () => {};
 
   /** The blocks as drawn: an editor with none shows one empty paragraph to type into. */
@@ -436,13 +432,13 @@ export class ToText extends LitElement {
     if (node === tx || (node as Element).classList?.contains(LIST)) {
       const n = model.length;
       offset = this.blockAfter(node, offset);
-      return offset >= n ? skipEmbed(model, { block: n - 1, offset: blockLength(model[n - 1]) }, -1) : skipEmbed(model, { block: offset, offset: 0 }, 1);
+      return offset >= n ? skipCard(model, { block: n - 1, offset: blockLength(model[n - 1]) }, -1) : skipCard(model, { block: offset, offset: 0 }, 1);
     }
     const el = this.blockElOf(node);
     if (!el) return null;
     const block = this.blockEls().indexOf(el);
     if (block < 0) return null;
-    if (!isWords(model[block])) return skipEmbed(model, { block, offset: 0 }, 1);
+    if (!isWords(model[block])) return skipCard(model, { block, offset: 0 }, 1);
     let count = 0;
     const walk = (n: Node): boolean => {
       if (n === node && n.nodeType !== Node.TEXT_NODE) {
@@ -724,16 +720,7 @@ export class ToText extends LitElement {
     this.put(sel, [{ t: words, ...(marks ? this.fmt : {}) }]);
   }
   private put(sel: Sel, runs: Run[]) {
-    const model = this.model;
-    const e = insertRuns(model, sel, runs);
-    const [a] = ordered(sel);
-    const op = e.ops[0];
-    // The words typed have made the paragraph one web address: it is a card now, and the caret goes on to the words after it (a new paragraph when there are none).
-    if (e.ops.length === 1 && op.op === 'text' && isEmbed(apply({ head: {}, blocks: [model[a.block]] }, { ...op, at: 0 }).blocks[0])) {
-      const next = model[a.block + 1];
-      if (next && isWords(next)) return this.emit(e.ops, caret(a.block + 1, 0), 'type');
-      return this.emit([...e.ops, { op: 'splice', at: a.block + 1, n: 0, blocks: [{ k: 'p', runs: [] }] }], caret(a.block + 1, 0), 'type');
-    }
+    const e = insertRuns(this.model, sel, runs);
     this.emit(e.ops, e.sel, 'type');
   }
   private enter(sel: Sel, shift = false) {
@@ -1273,10 +1260,6 @@ export class ToText extends LitElement {
     const own = this.card?.(b, at);
     if (own) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${own}</div>`;
     switch (b.k) {
-      case 'p':
-        return html`<div class="tx-card" data-k="web" contenteditable="false" tabindex="0" role="group" aria-label=${t('From the web')}><span class="tx-card-kind">${t('From the web')}</span><span class="tx-card-gist">${b.runs[0]?.t ?? ''}</span></div>`;
-      case 'img':
-        return html`<figure class="tx-card" data-k="img" contenteditable="false" tabindex="0">${picture(b.url, b.alt)}</figure>`;
       case 'hr':
         return html`<div class="tx-card" data-k="hr" contenteditable="false" tabindex="0" role="separator"><hr /></div>`;
       case 'table':

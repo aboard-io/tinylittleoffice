@@ -58,12 +58,12 @@ export default {
   'Tiny Little Office': 'Pequeno Escritoriozinho',
   'About Tiny Little Office': 'Sobre o Pequeno Escritoriozinho',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Um pequeno pacote de escritório que vive inteiro na URL. Sem servidor, sem contas, sem salvar: o link é o documento.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nada do que você escreve sai do seu navegador, a menos que você compartilhe o link. Duas coisas consultam a web por conta própria: o mapa de uma viagem, cujas imagens vêm do OpenStreetMap enquanto ele aparece, e uma imagem de um site da lista de confiança, buscada pelo serviço de imagens deste site quando o documento dela abre.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nada do que você escreve sai do seu navegador, a menos que você compartilhe o link. Só uma coisa consulta a web por conta própria: o mapa de uma viagem, cujas imagens vêm do OpenStreetMap enquanto ele aparece.',
   'Private, the default:': 'Privado, o padrão:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Salvo, o botão deste menu, guarda suas configurações e os documentos que você abre neste dispositivo.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Um documento pode ter senha: ela é criptografada aqui, no navegador, e o link guarda só texto cifrado. Privacidade, neste menu, mostra o que este dispositivo guarda.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Menu do Pequeno Escritoriozinho',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -76,13 +76,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Alguém colocou este link no documento. As palavras mostradas num link podem não corresponder ao destino. Só siga se confiar no lugar para onde ele leva.',
   'Go': 'Ir',
   'Links of this kind do not open here.': 'Links deste tipo não abrem aqui.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Uma imagem de {host}',
-  'Show pictures from the web': 'Mostrar imagens da web',
-  'Showing them tells their site this document was opened, and when.': 'Mostrá-las conta ao site delas que este documento foi aberto, e quando.',
-  'Always show pictures from the web': 'Sempre mostrar imagens da web',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Desativado, uma imagem de outro site espera você pedir: buscá-la avisa esse site de quem está lendo.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Uma imagem que um documento guarda pelo endereço em outro site não é buscada até você pedir: buscá-la avisaria esse site de quem está lendo, e quando. Um link que sai do Pequeno Escritoriozinho mostra para onde vai, e pergunta, antes de abrir.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Um link que sai do Pequeno Escritoriozinho mostra para onde vai, e pergunta, antes de abrir.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Sem análises, sem relatórios de erro, sem fontes ou scripts de outros lugares: o site não pede nada à web que você não tenha causado.',
   'What leaves your browser': 'O que sai do seu navegador',
   'What this protects against, and what it does not': 'Contra o que isto protege, e contra o que não protege',
@@ -334,12 +328,9 @@ export default {
   'A narrow headline, two columns': 'Uma manchete estreita, duas colunas',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Quebra de página',
-  'Address of the picture': 'Endereço da imagem',
-  'Address of a video, a post, a song, a place, a page': 'Endereço de um vídeo, uma publicação, uma música, um lugar, uma página',
   'OK': 'OK', // same
   'This card': 'Este cartão',
   'Open in {app}': 'Abrir em {app}',
-  'Change the address…': 'Mudar o endereço…',
   'Locked: worked out for you': 'Bloqueado: calculado para você',
   'Footnotes': 'Notas de rodapé',
   'Back to footnote {n} in the text': 'Voltar à nota de rodapé {n} no texto',
@@ -410,36 +401,13 @@ export default {
   'Terms of service': 'Termos de serviço',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Os termos de um pequeno negócio em palavras simples: reservas, preços, chaves, e se, encerramento.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'Da web',
-  'Read on {provider}': 'Ler em {provider}',
-  'Spotify album': 'Álbum do Spotify',
-  'Spotify episode': 'Episódio do Spotify',
-  'Spotify playlist': 'Playlist do Spotify',
-  'Spotify show': 'Programa do Spotify',
-  'Spotify track': 'Faixa do Spotify',
-  '{provider} video': 'Vídeo do {provider}',
-  'Open on {provider}': 'Abrir em {provider}',
-  'Play (loads it from {provider})': 'Reproduzir (carrega de {provider})',
-  'Show (loads it from {provider})': 'Mostrar (carrega de {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Um link do Pequeno Escritoriozinho',
-  'A film, a sound, a PDF or a picture': 'Um filme, um som, um PDF ou uma imagem',
-  'No picture came from this address. Check it, or try another.': 'Nenhuma imagem veio deste endereço. Confira-o ou tente outro.',
-  'Not one of these: it goes in as a link to the page.': 'Não é um destes: entra como um link para a página.',
   'Opening the short link…': 'Abrindo o link curto…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Cole o endereço de uma imagem na web: a imagem aparece aqui.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Cole o link de outro documento do Pequeno Escritoriozinho, longo ou curto: a primeira página aparece aqui.',
   'This is not a Tiny Little Office link, or it has expired.': 'Este não é um link do Pequeno Escritoriozinho, ou ele expirou.',
   'Tiny Little Office Doc': 'Documento do Pequeno Escritoriozinho',
   'Tiny Little Office Doc…': 'Documento do Pequeno Escritoriozinho…',
-  'Web Embed': 'Conteúdo da web',
-  'Web Embed…': 'Conteúdo da web…',
-  'Web Picture': 'Imagem da web',
-  'Web Picture…': 'Imagem da web…',
-  'What it can show': 'O que pode mostrar',
-  'Words for anyone who cannot see it (optional)': 'Palavras para quem não puder ver (opcional)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Um novo documento',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -872,7 +840,6 @@ export default {
   'Everything': 'Tudo',
   'Fold': 'Recolher',
   'Fold all': 'Recolher tudo',
-  'From the web: {url}': 'Da web: {url}',
   'Item': 'Item', // same
   'Item {n}': 'Item {n}', // same
   'Kind of line': 'Tipo de linha',

@@ -10,7 +10,6 @@ import {
   applyAll,
   evaluateTable,
   hasClass,
-  isEmbed,
   isText,
   MAX_COLS,
   notesOf,
@@ -58,7 +57,7 @@ export function titleOf(text: string): string {
 export const retitle = (text: string, title: string): string => write(apply(parse(text), { op: 'head', key: 'title', value: title.replace(/\n/g, ' ').trim() || undefined }));
 
 const count = (s: string) => (s.match(/\S+/g) ?? []).length;
-/** How many words the text holds: its blocks of words (a web address alone is not words) and its footnotes. */
+/** How many words the text holds: its blocks of words and its footnotes. */
 export function wordCount(doc: Doc): number {
   let n = 0;
   for (const b of doc.blocks) n += blockWords(b);
@@ -69,7 +68,7 @@ const counted = new WeakMap<Block, number>();
 function blockWords(b: Block): number {
   let n = counted.get(b);
   if (n === undefined) {
-    n = isText(b) && !isEmbed(b) ? count(plainText(b.runs)) : 0;
+    n = isText(b) ? count(plainText(b.runs)) : 0;
     for (const fn of notesOf([b])) n += count(plainText(noteRuns(fn)));
     counted.set(b, n);
   }
@@ -171,6 +170,3 @@ export function fenceTitle(body: string): string {
   const h = d.blocks.find((b) => b.k === 'h') ?? d.blocks.find((b) => isText(b) && b.runs.length);
   return h && isText(h) ? plainText(h.runs).trim() : '';
 }
-
-/** A paragraph that is a thing from the web (the kernel's). */
-export { webBlock } from '../../doc/index.ts';

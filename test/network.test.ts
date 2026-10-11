@@ -5,7 +5,7 @@
 import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { hostMatches, listed, reaches, TRUSTED } from '../src/kit/network.ts';
+import { hostMatches, listed, reaches } from '../src/kit/network.ts';
 import { networkDoc, networkPage } from '../scripts/network-doc.ts';
 
 const root = join(import.meta.dirname, '..');
@@ -31,7 +31,7 @@ const code = (text: string) =>
     .join('\n');
 const hosts = (text: string) => [...text.matchAll(/https?:\/\/([a-z0-9-]+(?:\.[a-z0-9-]+)+|localhost)/gi)].map((m) => m[1].toLowerCase());
 
-const source = [...files('src'), ...files('tinier'), ...files('media')];
+const source = [...files('src'), ...files('tinier')];
 
 test('every host the source reaches is on the list, or localhost, or a namespace', () => {
   const stray: string[] = [];
@@ -97,40 +97,29 @@ test('no telemetry: no analytics, error-reporting, font-CDN or tag-manager host 
     ).toBe(false);
 });
 
-test('the list: every entry says what, when, what it carries, what stops it and who asks; the whitelist is its entries with a reason', () => {
+test('the list: every entry says what, when, what it carries, what stops it and who asks; none is a picture, a frame or a film', () => {
   for (const r of reaches()) for (const k of ['host', 'what', 'carries', 'stops', 'by'] as const) expect(r[k], `${r.host} ${k}`).toMatch(/\S/);
-  expect(TRUSTED).toEqual(
+  for (const r of reaches()) for (const d of r.csp ?? []) expect(['img', 'connect'], r.host).toContain(d);
+  // The one picture host is the map's: no host on the list serves a document's pictures.
+  expect(
     reaches()
-      .filter((r) => r.picture)
+      .filter((r) => r.csp?.includes('img'))
       .map((r) => r.host),
-  );
-  expect(TRUSTED).toContain('upload.wikimedia.org');
+  ).toEqual(['tile.openstreetmap.org']);
 });
 
-test('hostMatches: a first part ending in "*", a "*." name, "*" and an exact name', () => {
-  const IA = 'ia*.us.archive.org';
-  for (const h of ['ia800204.us.archive.org', 'ia601.us.archive.org', 'ia-1.us.archive.org', 'ia.us.archive.org', 'IA800.US.ARCHIVE.ORG']) expect(hostMatches(IA, h), h).toBe(true);
-  for (const h of [
-    'evil.us.archive.org', // the first part does not begin "ia"
-    'ia_1.us.archive.org', // a letter that is not a letter, digit or hyphen
-    'ia1.x.us.archive.org', // one part too many
-    'ia1.archive.org', // one part too few
-    'us.archive.org',
-    'ia1.us.archive.org.example',
-    'evil.archive.org',
-  ])
-    expect(hostMatches(IA, h), h).toBe(false);
-  // A "*." name: every host under it, not the name itself; uppercase as lowercase (as listed() did before).
+test('hostMatches: a "*." name, "*" and an exact name', () => {
+  // A "*." name: every host under it, not the name itself; uppercase as lowercase.
   expect(hostMatches('*.example.org', 'a.example.org')).toBe(true);
   expect(hostMatches('*.example.org', 'A.B.EXAMPLE.ORG')).toBe(true);
   expect(hostMatches('*.example.org', 'example.org')).toBe(false);
   expect(hostMatches('*.example.org', 'badexample.org')).toBe(false);
   // "*" names no host, and an exact name only itself.
   for (const h of ['*', 'example.org', '']) expect(hostMatches('*', h), h).toBe(false);
-  expect(hostMatches('archive.org', 'ARCHIVE.org')).toBe(true);
-  expect(hostMatches('archive.org', 'x.archive.org')).toBe(false);
-  expect(listed('ia800.us.archive.org')).toBe(true);
-  expect(listed('evil.archive.org')).toBe(false);
+  expect(hostMatches('tile.openstreetmap.org', 'TILE.openstreetmap.org')).toBe(true);
+  expect(hostMatches('tile.openstreetmap.org', 'x.tile.openstreetmap.org')).toBe(false);
+  expect(listed('tile.openstreetmap.org')).toBe(true);
+  expect(listed('upload.wikimedia.org')).toBe(false);
 });
 
 // That docs/network.md and public/network.html are current is test/lints.test.ts's (npm run docs:network writes them).

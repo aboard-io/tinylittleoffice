@@ -10,9 +10,9 @@ the site can make is listed in `docs/network.md`.
 A document is its link. The whole of it, compressed, sits after the `#` of
 `https://tinylittleoffice.com/<app>/#/v1/<app>/<payload>`, and a browser never sends the part after `#` to
 any server. The site is static files on Cloudflare; there is no account, no database of documents and no
-server code that receives one. Three services exist besides the files: the short-link service (`tinier/`),
-the picture proxy (`media/`), and nothing else of ours. Everything else the site can reach belongs to
-someone else and is reached only after a person asks (the map, an embed), as `docs/network.md` lists.
+server code that receives one. One service exists besides the files: the short-link service (`tinier/`),
+and nothing else of ours. Everything else the site can reach belongs to someone else and is reached only
+while a person uses it or after they ask (the map, a share), as `docs/network.md` lists.
 
 Two consequences follow, and the rest of this page is mostly their detail:
 
@@ -30,7 +30,7 @@ Two consequences follow, and the rest of this page is mostly their detail:
 host gets requests for the same static files every visitor gets. The site sends `Referrer-Policy:
 no-referrer`, so a link followed out of a document does not carry the document's address with it. Conditions:
 the code is this repository's (above), and the person did not choose a feature that sends something (a
-short link sends ciphertext; a picture's address goes to the proxy; see below).
+short link sends ciphertext; see below).
 
 **The short-link service reading a document.** A short link is the long link encrypted in the browser with
 AES-256-GCM under a random key that travels only in the short link's own fragment
@@ -57,18 +57,9 @@ right, set apart from the words round it, in every language, and an email addres
 reversing or invisible characters is refused rather than drawn. This shows where a link goes; it does not judge
 whether the place is honest.
 
-**A tracking picture inside a document.** A picture held by its address on another site would tell that site
-who read the document, when and from where. Such a picture is drawn as a card until the reader asks
-(`src/kit/pictures.ts`), except from a short list of hosts of public, licensed pictures (`docs/network.md`
-lists them with a reason each), and every web picture shown is fetched through the picture proxy, never from
-its own site. A picture shown without asking is followed through its redirects only to hosts on that list
-(`media/media.ts`), so an open redirect on a listed host is no way round the question.
-
-**A reader fetching a picture and revealing their address.** The proxy fetches the picture and hands it back,
-so the picture's site sees Cloudflare, not the reader. The proxy itself does see the reader's address and the
-picture's address; it writes neither down (no logs: observability is off and there is no console call in
-`media/`, both held by `test/media-worker.test.ts`). Exports carry the picture's bytes, so reading an
-exported file fetches nothing.
+**A tracking picture inside a document.** A document fetches nothing from any other site: there are no
+pictures from the web and no embeds, so it cannot hold a tracking pixel. Markdown's picture line reads as a
+link, which asks before it opens (above).
 
 **A lost phone with Saved on.** Private is the default and writes nothing to the device but three preferences
 that say nothing of a document: the language (`tinyoffice.lang`), the size of everything (`tinyoffice.size`) and
@@ -80,9 +71,10 @@ is encrypted by Tiny Little Office: the rest is as safe as the phone's lock and 
 storage encryption. See the next section for what that leaves open.
 
 **Telemetry.** There is none: no analytics, no error reporting, no fonts or scripts from another site. The
-Content-Security-Policy's `connect-src`, `img-src` and `frame-src` name the only places the browser will let
-the site reach (`public/_headers`, held by `test/csp.test.ts`), and the pages are served `no-transform` so
-Cloudflare does not add its analytics beacon (which the policy would block anyway).
+Content-Security-Policy's `connect-src` and `img-src` name the only places the browser will let the site
+reach, and it has no `frame-src` or `media-src` of another site's (`public/_headers`, held by
+`test/csp.test.ts`), and the pages are served `no-transform` so Cloudflare does not add its analytics beacon
+(which the policy would block anyway).
 
 ## What it does not protect against
 
@@ -118,9 +110,8 @@ link's app name changes what opens it, not what it says.
 library that has no password, and use the owner links to change or delete those short links. There is no
 remote wipe. Turning Saved off (from the phone) removes all of it.
 
-**After a tap, the provider.** An embed (a video, a post, a song) loads from its provider once the reader
-taps it, and the map's tiles and place search go to OpenStreetMap directly while a map is shown
-(`docs/network.md` says why). Those requests carry the reader's address to those providers.
+**The map's provider.** The map's tiles and place search go to OpenStreetMap directly while a map is shown
+(`docs/network.md` says why). Those requests carry the reader's address to OpenStreetMap.
 
 **The operator and the platform themselves.** See "What the host can see"; and above, the code.
 
@@ -138,16 +129,16 @@ taps it, and the map's tiles and place search go to OpenStreetMap directly while
 | Short link: AES-256-GCM, the key only in the fragment | The short-link service reading documents |
 | Owner key: the service keeps only its SHA-256; wrong key and no row answered alike, in the same time | Others changing or deleting a short link; probing for which ids have owners |
 | Short links expire (an hour to a year), are swept hourly, extend only on purpose | Ciphertext kept indefinitely by a service |
-| No logs in the site, the shortener or the proxy (observability off, no console calls, tests hold both) | A record of who asked for what |
+| No logs in the site or the shortener (observability off, no console calls, tests hold both) | A record of who asked for what |
 | The link guard before every link that leaves | A scam link disguised by its words |
 | No website builder: a document never runs code | A phishing page served from our own domain |
-| Web pictures asked first, through the proxy, no referrer | Tracking pixels; a picture's site learning who reads |
+| A document fetches nothing from any other site: no pictures from the web, no embeds | Tracking pixels; a picture's or an embed's site learning who reads |
 | Content-Security-Policy listing every host; no third-party scripts or fonts | Telemetry, and code injected through a document running at all |
 | WebCrypto, no crypto library | A dependency's bug or compromise in the part that matters most; and code a reader can check in an hour |
 
 ## What the host can see
 
-The site, the shortener and the proxy run on Cloudflare, on one account. Cloudflare terminates TLS, so
+The site and the shortener run on Cloudflare, on one account. Cloudflare terminates TLS, so
 whatever reaches any of them, Cloudflare and the account's operator could see.
 
 - **The site.** Requests for the static files: the reader's IP address, the time, the user agent, the
@@ -161,9 +152,6 @@ whatever reaches any of them, Cloudflare and the account's operator could see.
   own point-in-time history of the database for a limited window (Cloudflare's Time Travel); a row deleted
   from the table can be restored from that history by the account's operator until the window passes.
   Details: `docs/crypto/short-links.md`.
-- **The proxy.** The address of each web picture a reader is shown, and the reader's IP address, for the
-  length of the request; the picture itself, cached at the edge for a week. Nothing written down. A picture's
-  address can itself say something about the document it is in.
 
 What none of them can see: a document's words, a password, who a link was sent to, or that a
 given person opened a given document, beyond the timing and address of requests that a person could try to

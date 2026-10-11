@@ -58,12 +58,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'O Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Malutkie biuro, które mieszka w całości w adresie URL. Bez serwera, bez kont, bez zapisywania: link jest dokumentem.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nic, co piszesz, nie opuszcza Twojej przeglądarki, dopóki nie udostępnisz linku. Dwie rzeczy same pytają sieć: mapa podróży, której kafelki pochodzą z OpenStreetMap, gdy mapa jest widoczna, oraz obraz ze strony z listy zaufanych, pobierany przez usługę obrazów tej strony, gdy otwiera się jego dokument.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nic, co piszesz, nie opuszcza Twojej przeglądarki, dopóki nie udostępnisz linku. Tylko jedna rzecz sama pyta sieć: mapa podróży, której kafelki pochodzą z OpenStreetMap, gdy mapa jest widoczna.',
   'Private, the default:': 'Prywatnie, domyślnie:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Przełącznik „Zapisywane” w tym menu zachowuje na tym urządzeniu Twoje ustawienia i otwierane dokumenty.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Dokument może mieć hasło: jest szyfrowany tutaj, w przeglądarce, a link zawiera tylko szyfrogram. „Prywatność” w tym menu pokazuje, co przechowuje to urządzenie.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Menu Tiny Little Office',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -76,13 +76,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Ktoś wpisał ten link do dokumentu. Słowa pokazane jako link nie muszą zgadzać się z tym, dokąd prowadzi. Idź tylko wtedy, gdy ufasz temu miejscu.',
   'Go': 'Idź',
   'Links of this kind do not open here.': 'Linki tego rodzaju nie otwierają się tutaj.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Obraz z {host}',
-  'Show pictures from the web': 'Pokaż obrazy z internetu',
-  'Showing them tells their site this document was opened, and when.': 'Pokazanie ich mówi ich stronie, że ten dokument został otwarty, i kiedy.',
-  'Always show pictures from the web': 'Zawsze pokazuj obrazy z internetu',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Gdy wyłączone, obraz z innej strony czeka na Twoją zgodę: pobranie go zdradza tej stronie, kto czyta.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Obraz, który dokument trzyma pod adresem na innej stronie, nie jest pobierany, dopóki o to nie poprosisz: pobranie zdradziłoby tej stronie, kto czyta i kiedy. Link, który wychodzi z Tiny Little Office, pokazuje, dokąd prowadzi, i pyta, zanim się otworzy.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Link, który wychodzi z Tiny Little Office, pokazuje, dokąd prowadzi, i pyta, zanim się otworzy.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Bez analityki, bez raportów o błędach, bez czcionek i skryptów z zewnątrz: strona nie pyta sieci o nic, czego sam nie wywołasz.',
   'What leaves your browser': 'Co opuszcza Twoją przeglądarkę',
   'What this protects against, and what it does not': 'Przed czym to chroni, a przed czym nie',
@@ -334,12 +328,9 @@ export default {
   'A narrow headline, two columns': 'Wąski nagłówek, dwie kolumny',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Podział strony',
-  'Address of the picture': 'Adres obrazu',
-  'Address of a video, a post, a song, a place, a page': 'Adres filmu, posta, piosenki, miejsca, strony',
   'OK': 'OK', // same
   'This card': 'Ta karta',
   'Open in {app}': 'Otwórz w {app}',
-  'Change the address…': 'Zmień adres…',
   'Locked: worked out for you': 'Zablokowane: policzone za Ciebie',
   'Footnotes': 'Przypisy',
   'Back to footnote {n} in the text': 'Wróć do przypisu {n} w tekście',
@@ -410,30 +401,13 @@ export default {
   'Terms of service': 'Regulamin',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Regulamin małej firmy prostymi słowami: rezerwacje, ceny, klucze, co jeśli, zakończenie.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'Z internetu',
-  'Read on {provider}': 'Czytaj w {provider}',
-  'Open on {provider}': 'Otwórz w {provider}',
-  'Play (loads it from {provider})': 'Odtwórz (wczytuje z {provider})',
-  'Show (loads it from {provider})': 'Pokaż (wczytuje z {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Link do Tiny Little Office',
-  'A film, a sound, a PDF or a picture': 'Film, dźwięk, PDF albo obraz',
-  'No picture came from this address. Check it, or try another.': 'Z tego adresu nie przyszedł żaden obraz. Sprawdź go albo spróbuj innego.',
-  'Not one of these: it goes in as a link to the page.': 'To żaden z nich: wejdzie jako link do strony.',
   'Opening the short link…': 'Otwieram krótki link…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Wklej adres obrazu z internetu: obraz pokaże się tutaj.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Wklej link do innego dokumentu Tiny Little Office, długi lub krótki: jego pierwsza strona pokaże się tutaj.',
   'This is not a Tiny Little Office link, or it has expired.': 'To nie jest link do Tiny Little Office albo wygasł.',
   'Tiny Little Office Doc': 'Dokument TLO',
   'Tiny Little Office Doc…': 'Dokument TLO…',
-  'Web Embed': 'Osadzenie z internetu',
-  'Web Embed…': 'Osadzenie z internetu…',
-  'Web Picture': 'Obraz z internetu',
-  'Web Picture…': 'Obraz z internetu…',
-  'What it can show': 'Co może pokazać',
-  'Words for anyone who cannot see it (optional)': 'Opis dla osób, które tego nie widzą (opcjonalnie)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Nowy dokument',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -866,7 +840,6 @@ export default {
   'Everything': 'Wszystko',
   'Fold': 'Zwiń',
   'Fold all': 'Zwiń wszystko',
-  'From the web: {url}': 'Z internetu: {url}',
   'Item': 'Element',
   'Item {n}': 'Element {n}',
   'Kind of line': 'Rodzaj linii',
@@ -1613,12 +1586,6 @@ export default {
   'Download the .{ext}': 'Pobierz plik .{ext}',
   'Share the .{ext}…': 'Udostępnij plik .{ext}…',
   'View the .{ext}': 'Zobacz plik .{ext}',
-  'Spotify album': 'Album ze Spotify',
-  'Spotify episode': 'Odcinek ze Spotify',
-  'Spotify playlist': 'Playlista ze Spotify',
-  'Spotify show': 'Podcast ze Spotify',
-  'Spotify track': 'Utwór ze Spotify',
-  '{provider} video': 'Wideo: {provider}',
   'Keep them on this device': 'Zachowaj je na tym urządzeniu',
   'Nothing is saved on this device now. Keep them here, or open one.': 'Na tym urządzeniu nic teraz nie jest zapisane. Zachowaj je tutaj albo otwórz jeden.',
   'Open the first': 'Otwórz pierwszy',

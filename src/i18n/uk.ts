@@ -59,12 +59,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Про Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крихітний офісний пакет, що повністю живе в URL. Без сервера, без облікових записів, без збереження: посилання і є документом.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Усе, що ви пишете, залишається у вашому браузері, доки ви не поділитеся посиланням. Самі звертаються до інтернету лише дві речі: карта подорожі, чиї картинки беруться з OpenStreetMap, поки карту показано, і картинка із сайту з довіреного списку, яку сервіс картинок цього сайту завантажує, коли відкривається її документ.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Усе, що ви пишете, залишається у вашому браузері, доки ви не поділитеся посиланням. Сама звертається до інтернету лише одна річ: карта подорожі, чиї картинки беруться з OpenStreetMap, поки карту показано.',
   'Private, the default:': 'Приватно, за замовчуванням:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '«Збереження», перемикач у цьому меню, залишає ваші налаштування й документи, які ви відкриваєте, на цьому пристрої.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Документ можна захистити паролем: його шифрують тут, у браузері, і в посиланні лишається тільки шифротекст. «Приватність» у цьому меню показує, що зберігає цей пристрій.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Меню Tiny Little Office',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -77,13 +77,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Хтось вписав це посилання в документ. Текст, який показано замість посилання, може не збігатися з тим, куди воно веде. Переходьте, лише якщо довіряєте тому, куди воно веде.',
   'Go': 'Перейти',
   'Links of this kind do not open here.': 'Посилання такого типу тут не відкриваються.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Картинка з {host}',
-  'Show pictures from the web': 'Показати картинки з інтернету',
-  'Showing them tells their site this document was opened, and when.': 'Якщо їх показати, їхній сайт дізнається, що цей документ відкрили, і коли.',
-  'Always show pictures from the web': 'Завжди показувати картинки з інтернету',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Вимкнено: картинка, що лежить на іншому сайті, чекає, поки ви її попросите, бо завантаження каже тому сайту, хто читає.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Картинка, яка в документі задана адресою на іншому сайті, не завантажується, поки ви не попросите: завантаження сказало б тому сайту, хто читає і коли. Посилання, що веде за межі Tiny Little Office, показує, куди веде, і питає, перш ніж відкрити.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Посилання, що веде за межі Tiny Little Office, показує, куди веде, і питає, перш ніж відкрити.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Жодної аналітики, жодних звітів про помилки, жодних шрифтів чи скриптів з чужих сайтів: сайт нічого не просить в інтернету без вашої дії.',
   'What leaves your browser': 'Що залишає ваш браузер',
   'What this protects against, and what it does not': 'Від чого це захищає, а від чого ні',
@@ -335,12 +329,9 @@ export default {
   'A narrow headline, two columns': 'Вузький заголовок, два стовпці',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Розрив сторінки',
-  'Address of the picture': 'Адреса картинки',
-  'Address of a video, a post, a song, a place, a page': 'Адреса відео, допису, пісні, місця, сторінки',
   'OK': 'Гаразд',
   'This card': 'Ця картка',
   'Open in {app}': 'Відкрити в {app}',
-  'Change the address…': 'Змінити адресу…',
   'Locked: worked out for you': 'Заблоковано: рахується саме',
   'Footnotes': 'Виноски',
   'Back to footnote {n} in the text': 'Назад до виноски {n} у тексті',
@@ -411,30 +402,13 @@ export default {
   'Terms of service': 'Умови користування',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Умови маленького бізнесу простими словами: бронювання, ціни, ключі, що як, завершення.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'З інтернету',
-  'Read on {provider}': 'Читати на {provider}',
-  'Open on {provider}': 'Відкрити на {provider}',
-  'Play (loads it from {provider})': 'Відтворити (завантажить з {provider})',
-  'Show (loads it from {provider})': 'Показати (завантажить з {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Посилання Tiny Little Office',
-  'A film, a sound, a PDF or a picture': 'Відео, звук, PDF або картинка',
-  'No picture came from this address. Check it, or try another.': 'З цієї адреси картинка не прийшла. Перевірте її або спробуйте іншу.',
-  'Not one of these: it goes in as a link to the page.': 'Це не підходить: воно додасться як посилання на сторінку.',
   'Opening the short link…': 'Відкриття короткого посилання…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Вставте адресу картинки з інтернету: картинка з’явиться тут.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Вставте посилання на інший документ Tiny Little Office, довге чи коротке: його перша сторінка з’явиться тут.',
   'This is not a Tiny Little Office link, or it has expired.': 'Це не посилання Tiny Little Office, або воно вже прострочене.',
   'Tiny Little Office Doc': 'Документ Tiny Little Office',
   'Tiny Little Office Doc…': 'Документ Tiny Little Office…',
-  'Web Embed': 'Вбудований вміст',
-  'Web Embed…': 'Вбудований вміст…',
-  'Web Picture': 'Картинка з інтернету',
-  'Web Picture…': 'Картинка з інтернету…',
-  'What it can show': 'Що вона може показати',
-  'Words for anyone who cannot see it (optional)': 'Слова для тих, хто не бачить цього (необов’язково)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Новий документ',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -867,7 +841,6 @@ export default {
   'Everything': 'Усе',
   'Fold': 'Згорнути',
   'Fold all': 'Згорнути все',
-  'From the web: {url}': 'З інтернету: {url}',
   'Item': 'Пункт',
   'Item {n}': 'Пункт {n}',
   'Kind of line': 'Вид лінії',
@@ -1614,12 +1587,6 @@ export default {
   'Download the .{ext}': 'Завантажити .{ext}',
   'Share the .{ext}…': 'Поділитися .{ext}…',
   'View the .{ext}': 'Переглянути .{ext}',
-  'Spotify album': 'Альбом у Spotify',
-  'Spotify episode': 'Епізод у Spotify',
-  'Spotify playlist': 'Плейлист у Spotify',
-  'Spotify show': 'Подкаст у Spotify',
-  'Spotify track': 'Трек у Spotify',
-  '{provider} video': 'Відео: {provider}',
   'Keep them on this device': 'Залишити їх на цьому пристрої',
   'Nothing is saved on this device now. Keep them here, or open one.': 'На цьому пристрої зараз нічого не збережено. Залиште їх тут або відкрийте один.',
   'Open the first': 'Відкрити перший',

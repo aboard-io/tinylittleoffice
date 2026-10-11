@@ -20,9 +20,9 @@ a phone, and it's free, with the code open for anyone to read.
   did not cause. Everything the site can ask of the web, and when, is listed in docs/network.md, and the
   Content-Security-Policy (`public/_headers`) refuses anything else.
 
-Two small services exist, both optional, both in this repository: **tinier**, which makes a short link out
-of ciphertext it cannot read (the key stays in the link's fragment), and **media**, a picture proxy that
-logs nothing, so a picture's site never learns who read a document.
+One small service exists, optional, in this repository: **tinier**, which makes a short link out of
+ciphertext it cannot read (the key stays in the link's fragment). A document fetches nothing from any other
+site: there are no pictures from the web and no embeds.
 
 ## Running it
 
@@ -44,11 +44,10 @@ npm run docs:exports    # docs/exports.md, from the apps' definitions
 npm run docs:network   # docs/network.md and /network, from src/kit/network.ts (the build runs it first)
 npm run docs:deps       # docs/dependencies.md, from package.json and the lockfile (-- --sizes measures a build)
 npm run tinier:dev      # the link shortener on this machine (see "Living short links")
-npm run media:dev       # the picture proxy on this machine, port 8788; VITE_MEDIA_URL=/media uses it through the dev server
 npm run skill           # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
 npm run cards           # public/og/<app>.png, each app's share card (Chromium through Playwright)
 npm run tinyoffice -- link write list.md  # the command line (packages/doc/README.md)
-npm run deploy          # build, then the site, tinier and media to Cloudflare (docs/self-host.md)
+npm run deploy          # build, then the site and tinier to Cloudflare (docs/self-host.md)
 ```
 
 ## How it is built
@@ -56,8 +55,8 @@ npm run deploy          # build, then the site, tinier and media to Cloudflare (
 Three layers, each small enough to read.
 
 - **The kernel** (`src/doc/`, docs/kernel.md): one typed model of a document, a head of fields and a list of
-  blocks (headings, paragraphs of rich runs, list items, tables with typed and named columns, embeds,
-  pictures, fences), with TLO as its one reader and writer, byte-stable through a parse and a write. Edits
+  blocks (headings, paragraphs of rich runs, list items, tables with typed and named columns,
+  fences), with TLO as its one reader and writer, byte-stable through a parse and a write. Edits
   are operations on the model, undone from one op log; the formula engine evaluates a table block.
 - **The kit** (`src/kit/`): the shell (thin: the route and the document, with the chrome, the Share dialog and
   privacy as elements of their own; the page is the visible window and the document scrolls in a column,
@@ -86,8 +85,8 @@ CONTRIBUTING.md says how to work to them.
 
 ## Running your own copy
 
-`npm run deploy` against your own Cloudflare account puts up the site, the short-link service and the
-picture proxy, the same code as ours. docs/self-host.md takes about thirty minutes.
+`npm run deploy` against your own Cloudflare account puts up the site and the short-link service, the
+same code as ours. docs/self-host.md takes about thirty minutes.
 
 ## Reporting a security problem
 
@@ -128,8 +127,7 @@ src/kit/        the kit: shell, chrome (<to-chrome>: the header and the column),
                 AppDef contract), apps (registry), element (DocElement: every editor's base, with the op-log
                 undo), draw (pages, the palette), tile (a repeating background tile in one head field:
                 `tile: 8:a..a/.a.a`), chart (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded
-                lines, escaped text), zip, xlsx (a table block as a workbook), embeds (a thing from the web by
-                its address: the providers and the click-to-load <to-embed> card); the editor: text
+                lines, escaped text), zip, xlsx (a table block as a workbook); the editor: text
                 (<to-text>), textops (its maths), clipboard, history (the op log), notes (<to-notes>:
                 footnotes typed where they are drawn), link-pop
 dev/            text.html: the editor alone, in its three shapes, at /dev/text.html on the dev server (not built)
@@ -146,7 +144,6 @@ test/           unit tests under node; test/browser/ the shell in a real Chromiu
 e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
                 keyboard alone, axe over every app light and dark, and each app's own
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
-media/          the picture proxy at media.tinylittleoffice.com: a Worker, no storage, no logs (docs/network.md)
 src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
 packages/doc/   the `tinyoffice` command line, over src/api.ts
 skill/          the agent skill (SKILL.md, written from SKILL.tpl.md by scripts/make-skill.ts; also /llms.txt)
@@ -163,19 +160,12 @@ app kept on this device, newest first, only while the drawer's switch says Saved
 Each kept document shows its first page small at its left (`src/kit/preview.ts`), drawn only as its row comes into
 sight and kept in memory by its link.
 
-Privacy, links and pictures: a link that leaves Tiny Little Office never opens by itself. One catcher on the page
+Privacy and links: a link that leaves Tiny Little Office never opens by itself. One catcher on the page
 (`src/kit/link-guard.ts`, installed by the shell) asks first, in a dialog with the site's name in large type and the
 whole address under it, a red Cancel (the default) and a green Go (a new tab, no opener, no referrer); a link to
-anything but a web page, an email or a phone number does not open at all. A picture a document holds by its
-address on another site is a tracking pixel for whoever reads it, so no picture is ever fetched from its own site:
-every one comes through the picture proxy at media.tinylittleoffice.com (`media/`, a Worker that keeps a week's
-cache and logs nothing; `src/kit/media.ts` `pictureSrc`). A picture from a host on the whitelist (Wikimedia, the
-Internet Archive, Unsplash, Pexels, Flickr, GitHub: public, licensed pictures; docs/network.md says why each) shows
-at once; any other is not fetched until the reader asks: `src/kit/pictures.ts` draws it as a card with the site's
-name and "Show pictures from the web" (every picture of that document, for the visit); a picture the author put in
-this visit shows at once; under Saved a switch in the menu shows them always; a preview never fetches one; exports
-hold the pictures' bytes, fetched through the proxy; every `<img>` sends no referrer. `VITE_MEDIA_URL` names a
-self-hoster's own proxy; empty, pictures load directly and every host asks first.
+anything but a web page, an email or a phone number does not open at all. A document fetches nothing from any
+other site: there are no pictures from the web and no embeds (round seventeen; the code is on the branch
+`web-pictures-and-embeds`), and Markdown's picture line, `![words](address)`, reads as a link.
 
 A password, for every app (the shell's, `src/kit/privacy.ts`). Share holds **Password…**: the text is
 encrypted in the browser (AES-256-GCM under a key PBKDF2-SHA-256 derives from the password, 600,000 iterations,
@@ -205,11 +195,10 @@ the unit and the browser tests, then the build, then checks what the build wrote
 inline script, and `dist/version.json` naming the same hashes); when something
 on screen changed since the last deploy (`.wrangler/deployed`), the smoke run on the built site instead of the bare
 build: e2e/smoke, keyboard, and a11y (axe over every app at phone size, light and dark). Then
-`wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`), for tinier and
-for the picture proxy. `--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e
+`wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`) and for tinier. `--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e
 spec. `npm run deploy` is the same script; a self-hoster runs it against their own account (docs/self-host.md).
 
-The shortener (`tinier/`) and the picture proxy (`media/`) are Workers of their own, each with its wrangler config; nothing deploys by itself.
+The shortener (`tinier/`) is a Worker of its own, with its wrangler config; nothing deploys by itself.
 
 ### Link and Display Link
 

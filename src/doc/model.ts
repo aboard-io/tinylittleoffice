@@ -3,8 +3,8 @@
  * list of blocks. Every app draws a view of this and edits it with the
  * operations in ops.ts; TLO (tlo.ts) is its one serialisation. Text sits
  * in blocks as runs (words with their marks), a table as typed columns and
- * raw cells, and anything else as what it is: a rule, an edge, an image,
- * a fence holding another document.
+ * raw cells, and anything else as what it is: a rule, an edge, a fence
+ * holding another document.
  */
 /** The header: lowercase keys, string values (title, by, created; an app's own settings). */
 export type Head = Record<string, string>;
@@ -25,7 +25,7 @@ export interface Attrs {
 /** An edge's direction. */
 export type Dir = '->' | '<-' | '<->' | '--';
 
-/** The nine kinds of block. */
+/** The eight kinds of block. */
 export type Block =
   | { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Run[]; a?: Attrs }
   | { k: 'p'; runs: Run[]; a?: Attrs } // its lines stay lines: '\n' inside a run's t
@@ -34,8 +34,7 @@ export type Block =
   | { k: 'hr'; a?: Attrs } // a break: the next slide, page or card
   | { k: 'table'; cols: Column[]; rows: string[][]; a?: Attrs } // cells are raw strings: formulas, numbers, words
   | { k: 'fence'; lang: string; body: string; a?: Attrs } // lang names an app: another document; else text kept as written
-  | { k: 'edge'; from: string; to: string; dir: Dir; label?: string; a?: Attrs }
-  | { k: 'img'; alt: string; url: string; a?: Attrs };
+  | { k: 'edge'; from: string; to: string; dir: Dir; label?: string; a?: Attrs };
 
 /** The four kinds that hold words: h, p, li, quote. */
 export type TextBlock = Extract<Block, { runs: Run[] }>;
@@ -102,39 +101,8 @@ export const hasClass = (b: { a?: Attrs }, c: string): boolean => !!b.a?.cls?.in
 /** A key's value among a block's attributes, or undefined. */
 export const attr = (b: { a?: Attrs }, k: string): string | undefined => b.a?.kv?.[k];
 
-/** A web address and nothing else. */
-const WEB = /^https?:\/\/\S+$/;
-
-/**
- * The thing from the web a paragraph is, if it is one: one web address and
- * nothing else, or one link alone on its line, "[the title](address)", whose
- * words are the title its author gave it ('' for a bare address).
- */
-export function webOf(b: Block): { url: string; title: string } | null {
-  if (b.k !== 'p' || b.runs.length !== 1 || isAtomic(b.runs[0])) return null;
-  const r = b.runs[0];
-  // A titled link alone on its line is a thing from the web only where the site is one the kit shows (a film, an
-  // article, a song: kit/embeds.ts says which); a plain link to anywhere else stays words (Paul, 2026-10-11).
-  if (r.href) return WEB.test(r.href) && r.t.trim() && webSites.known(r.href) ? { url: r.href, title: r.t.trim() } : null;
-  return WEB.test(r.t.trim()) ? { url: r.t.trim(), title: '' } : null;
-}
-
-/**
- * Which sites a titled link alone on a line is a thing from the web for. The kernel knows no sites: the kit's
- * embeds (kit/embeds.ts) say so when they load; until then, none, and a titled link is words.
- */
-export const webSites = { known: (_url: string): boolean => false };
-
-/** A paragraph that is a thing from the web: the address alone, or, given a title, the link alone on its line. */
-export const webBlock = (url: string, title = ''): Block => ({ k: 'p', runs: [title.trim() ? { t: title.trim(), href: url.trim() } : { t: url.trim() }] });
-
-/**
- * Whether a block is a thing held in this document from elsewhere: another
- * document in a fence named for its app, a picture, or a paragraph that is a
- * thing from the web (webOf: a video, a post, a place; which one is the
- * view's to say).
- */
-export const isEmbed = (b: Block): boolean => (b.k === 'fence' && !!b.lang) || b.k === 'img' || !!webOf(b);
+/** Whether a block is another document held in this one: a fence named for its app. */
+export const isInnerDoc = (b: Block): boolean => b.k === 'fence' && !!b.lang;
 
 /** The blocks between rules: a deck's slides, a booklet's pages. */
 export function pages(blocks: Block[]): Block[][] {

@@ -101,14 +101,11 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
     const x = margin + it.depth * step;
     if (it.doc) {
       count({ k: 'hr' });
-      // Another document, as a card where its item would be: its app and its first line; a thing from the web as its address.
-      const web = it.doc.startsWith('web\n');
+      // Another document, as a card where its item would be: its app and its first line.
       const { app, gist } = docGist(it.doc);
       const cw = Math.min(w - x - margin, 360);
       svg += rect(x, y + 4, cw, 44, SHADE, `stroke="${LINE}" rx="6"`);
-      if (web) svg += `<text x="${r(x + 12)}" y="${r(y + 31)}" font-size="${r(px * 0.85)}" fill="${ACCENT}">${xml(clip(it.doc.slice(4), cw - 24, px * 0.85))}</text>`;
-      else
-        svg += `<text x="${r(x + 12)}" y="${r(y + 24)}" font-size="${r(px * 0.75)}" font-weight="700" fill="${INK}">${xml(appName(app))}</text><text x="${r(x + 12)}" y="${r(y + 41)}" font-size="${r(px * 0.7)}" fill="${MUTED}">${xml(clip(gist, cw - 24, px * 0.7))}</text>`;
+      svg += `<text x="${r(x + 12)}" y="${r(y + 24)}" font-size="${r(px * 0.75)}" font-weight="700" fill="${INK}">${xml(appName(app))}</text><text x="${r(x + 12)}" y="${r(y + 41)}" font-size="${r(px * 0.7)}" fill="${MUTED}">${xml(clip(gist, cw - 24, px * 0.7))}</text>`;
       y += 60;
       return;
     }
@@ -165,7 +162,6 @@ export function appName(id: string): string {
     trip: () => t('Trip Planner'),
     calc: () => t('Calculator'),
     anim: () => t('Animator'),
-    web: () => t('From the web'),
     locked: () => t('Locked document'),
   };
   return names[id]?.() ?? id;

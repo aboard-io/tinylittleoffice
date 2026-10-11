@@ -15,7 +15,7 @@
  *
  * What was last deployed is kept in .wrangler/deployed (this checkout's own record; with none, a change
  * counts as on screen). Wrangler deploys `wrangler.jsonc` (dist/ as static assets, with dist/_headers) and
- * `tinier/wrangler.jsonc` and `media/wrangler.jsonc`, with the account it is logged in to.
+ * `tinier/wrangler.jsonc`, with the account it is logged in to.
  */
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -82,7 +82,6 @@ if (dry) {
 }
 run('the site', 'npx wrangler deploy');
 run('the shortener', 'npx wrangler deploy -c tinier/wrangler.jsonc');
-run('the picture proxy', 'npx wrangler deploy -c media/wrangler.jsonc');
 mkdirSync('.wrangler', { recursive: true });
 writeFileSync(RECORD, head + '\n');
 console.log(`\nDeployed ${head.slice(0, 7)}.`);

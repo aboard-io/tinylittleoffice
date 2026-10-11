@@ -23,7 +23,7 @@ import { slug } from './draw.ts';
 import { forgetLanguage } from './i18n.ts';
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.size'];
+export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.shortTtl', 'tinyoffice.size'];
 /** Where the owner links are kept. */
 const LINKS = 'tinyoffice.links';
 

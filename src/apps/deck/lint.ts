@@ -7,11 +7,8 @@
  *   title-small    a headline set at its smallest size to fit
  *   body-over      words that run past the foot of the slide at their smallest size
  *   body-small     words set at their smallest size to fit
- *   picture-indirect  a picture's address that is a page, not the file (Commons' Special:FilePath, a File: page):
- *                  it redirects, the picture proxy does not follow it, and the slide shows the picture's card
  */
-import { parse, plainText, webOf, type Block } from '../../doc/index.ts';
-import { embedCaption, embedOf, type EmbedKind } from '../../kit/embeds.ts';
+import { parse, plainText, type Block } from '../../doc/index.ts';
 import { settingsOf, slidesOf, type Slide } from './model.ts';
 import { layoutSlide } from './view.ts';
 import type { Found } from '../../lint.ts';
@@ -19,27 +16,11 @@ import type { Found } from '../../lint.ts';
 const quote = (s: string, n = 48) => `"${s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s}"`;
 const said = (s: Slide) => [...s.items, ...s.right].filter((it) => plainText(it.runs).trim() || it.runs.some((r) => r.ic));
 
-/** What the document on a slide is, in a word: "the diagram", "the chart", "the table", "the picture". */
+/** What the document on a slide is, in a word: "the diagram", "the chart", "the table". */
 function subName(b: Block | undefined): string {
   if (!b) return 'the document';
   if (b.k === 'fence') return /^chart:/m.test(b.body) ? 'the chart' : `the ${b.lang || 'document'}`;
-  if (b.k === 'table') return b.a?.kv?.chart ? 'the chart' : 'the table';
-  if (b.k === 'img') return 'the picture';
-  return 'the thing from the web';
-}
-
-/** Why a picture's address is not the picture itself, and what to write instead; null for a direct address. */
-function indirect(url: string): string | null {
-  let at: URL;
-  try {
-    at = new URL(url);
-  } catch {
-    return null;
-  }
-  const page = decodeURIComponent(at.pathname);
-  if (/(?:^|\.)(?:wikimedia|wikipedia)\.org$/.test(at.hostname) && (/Special:(?:FilePath|Redirect\/file)/i.test(page + at.search) || /^\/wiki\//.test(page)))
-    return "Commons: use the file's upload.wikimedia.org address; the link page redirects and the proxy does not follow it";
-  return null;
+  return b.a?.kv?.chart ? 'the chart' : 'the table';
 }
 
 /** The slide a finding is on, and the block it is about: its headline, or its first block. */
@@ -60,15 +41,6 @@ export function lintDeck(text: string): Found[] {
         fix: `put ${bullets.length === 1 ? 'it' : 'them'} in the notes (> lines) or on a slide of ${bullets.length === 1 ? 'its' : 'their'} own`,
       });
     }
-    const sub = s.sub >= 0 ? doc.blocks[s.sub] : undefined;
-    const why = sub?.k === 'img' ? indirect(sub.url) : null;
-    if (sub?.k === 'img' && why)
-      out.push({
-        block: s.sub,
-        kind: 'picture-indirect',
-        words: `the picture ${quote(sub.alt || sub.url)} is asked for at a page, not the picture: it is not fetched, and the slide shows its card`,
-        fix: why,
-      });
     // A printed page with no layout is set as prose, by its own fitting; a slide's sizes are the deck's.
     if (printed) return;
     const L = layoutSlide(s);
@@ -114,10 +86,8 @@ export interface SlideMeasure {
   /** Lines written on the slide; on a slide that shows a document, none of them is drawn. */
   bullets: number;
   hidden: number;
-  /** The document the slide shows, by its app ('table', 'picture', 'web' for a thing from the web); '' for none. */
+  /** The document the slide shows, by its app ('table' for a table); '' for none. */
   shows: string;
-  /** A thing from the web, as its card says it: its kind, its provider, and its title (the author's, else the provider's best). */
-  embed?: { kind: EmbedKind; provider: string; title: string };
   notes: number;
 }
 
@@ -127,7 +97,6 @@ export function measureDeck(text: string): SlideMeasure[] {
     const L = layoutSlide(s);
     const b = s.sub >= 0 ? doc.blocks[s.sub] : undefined;
     const bullets = said(s).length;
-    const web = b ? webOf(b) : null;
     const lines = L.cols.reduce((a, c) => a + c.items.reduce((n, it) => n + it.lines.length, 0), 0);
     return {
       slide: i + 1,
@@ -136,8 +105,7 @@ export function measureDeck(text: string): SlideMeasure[] {
       body: { px: Math.round(L.bodyPx * 10) / 10, lines, smallest: L.fit.body.smallest, over: Math.ceil(L.fit.body.over) },
       bullets,
       hidden: s.sub >= 0 ? bullets : 0,
-      shows: !b ? '' : b.k === 'fence' ? b.lang || 'text' : b.k === 'table' ? 'table' : b.k === 'img' ? 'picture' : web ? 'web' : '',
-      ...(web ? { embed: { kind: embedOf(web.url)?.kind ?? 'link', ...embedCaption(web.url, web.title) } } : {}),
+      shows: !b ? '' : b.k === 'fence' ? b.lang || 'text' : b.k === 'table' ? 'table' : '',
       notes: s.noteLines.length,
     };
   });

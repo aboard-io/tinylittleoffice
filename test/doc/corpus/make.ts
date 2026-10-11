@@ -2,19 +2,43 @@
  * The byte-stability corpus, written from the old tree: every template
  * body, every fenced TLO example in docs/tlo.md and the skill, every
  * document behind a link in the skill, and every `example` of every app
- * definition. One JSON file a source, so a diff shows what moved.
+ * definition. One JSON file a source, so a diff shows what moved. The old
+ * tree's pictures from the web are left out, as main left them out of its
+ * templates: a picture's line goes with the blank line after it, and a
+ * table's Image column of addresses goes whole. A file whose source is the
+ * rebuilt tree (written by hand from this tree's templates) is kept, and its
+ * pictures are left out the same way.
  *
  *   node test/doc/corpus/make.ts [path to the old tree]
  */
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const old = resolve(process.argv[2] ?? join(import.meta.dirname, '../../../../tinyoffice'));
 const here = import.meta.dirname;
+const unpicture = (text: string) => {
+  const lines = text.split('\n').filter((l, i, all) => !/^!\[[^\]]*\]\(\S+\)$/.test(l) && !(l === '' && /^!\[[^\]]*\]\(\S+\)$/.test(all[i - 1] ?? '')));
+  for (let i = 0; i < lines.length; i++) {
+    const head = lines[i].split(' | ');
+    const col = head.indexOf('Image');
+    if (col < 0 || head.length < 2 || !/^---( \| ---)*$/.test(lines[i + 1] ?? '')) continue;
+    for (let j = i; j < lines.length && lines[j].includes(' | '); j++)
+      lines[j] = lines[j]
+        .split(' | ')
+        .filter((_, k) => k !== col)
+        .join(' | ');
+  }
+  return lines.join('\n');
+};
+const read = (file: string) => JSON.parse(readFileSync(join(here, file), 'utf8')) as { source: string; docs: { name: string; text: string }[] };
+const rebuilt = (file: string) => existsSync(join(here, file)) && read(file).source.includes('(the rebuilt tree)');
 const put = (file: string, source: string, docs: { name: string; text: string }[]) => {
+  docs = docs.map((d) => ({ ...d, text: unpicture(d.text) }));
   mkdirSync(join(here, file, '..'), { recursive: true });
-  writeFileSync(join(here, file), JSON.stringify({ source, docs }, null, 1) + '\n');
+  // A file keeps its indent (Prettier holds apps/ to two spaces; the top level is in .prettierignore), so a diff shows only what moved.
+  const indent = existsSync(join(here, file)) ? (/^\{\n( +)/.exec(readFileSync(join(here, file), 'utf8'))?.[1].length ?? 1) : file.startsWith('apps/') ? 2 : 1;
+  writeFileSync(join(here, file), JSON.stringify({ source, docs }, null, indent) + '\n');
   console.log(`${file}: ${docs.length}`);
 };
 
@@ -67,5 +91,13 @@ for (const file of readdirSync(apps)
     lit += q;
     docs.push({ name: `example ${docs.length + 1}`, text: new Function(`return ${lit}`)() as string });
   }
-  if (docs.length) put(`apps/${basename(file, '.def.ts')}.json`, `src/apps/${file}`, docs);
+  const out = `apps/${basename(file, '.def.ts')}.json`;
+  if (docs.length && !rebuilt(out)) put(out, `src/apps/${file}`, docs);
 }
+
+// The rebuilt tree's files, kept as they are but for pictures.
+for (const file of readdirSync(join(here, 'apps')).map((f) => `apps/${f}`))
+  if (rebuilt(file)) {
+    const { source, docs } = read(file);
+    put(file, source, docs);
+  }

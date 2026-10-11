@@ -1,6 +1,6 @@
-// Insert ▾'s dialogs (kit/insert-dialogs.ts) and another document edited in place (kit/doc-dialog.ts), in a real
-// Chromium: the address and OK are one row with the field taking the room, what the address will be shows under
-// them, nothing above moves as it arrives, OK answers with what is put in; the doc dialog holds the app's own
+// Insert ▾'s Tiny Little Office Doc (kit/insert-dialogs.ts) and another document edited in place (kit/doc-dialog.ts),
+// in a real Chromium: the link and OK are one row with the field taking the room, what the link will be shows under
+// them, OK answers with what is put in; the doc dialog holds the app's own
 // editor, Done answers its text, Cancel nothing, and a table's Rows and Columns set its size.
 import { afterEach, expect, test, vi } from 'vitest';
 import '../../src/styles.css';
@@ -8,7 +8,7 @@ import { appOf } from '../../src/kit/apps.ts';
 import { write } from '../../src/doc/index.ts';
 import { encodeDoc, toBase64Url } from '../../src/kit/codec.ts';
 import { editDoc, editTable, newTable, resizeTable } from '../../src/kit/doc-dialog.ts';
-import { askDocLink, askEmbed, askPicture, shortParts } from '../../src/kit/insert-dialogs.ts';
+import { askDocLink, shortParts } from '../../src/kit/insert-dialogs.ts';
 import { TINIER } from '../../src/kit/short.ts';
 import { tick, until } from './helpers.ts';
 
@@ -34,54 +34,6 @@ function oneRow() {
   expect(f.width).toBeGreaterThan(b.width * 3);
   expect(parseFloat(getComputedStyle(field()).fontSize)).toBeGreaterThanOrEqual(16);
 }
-
-test('Web Picture: the address and OK are one row; the picture shows as it is typed, the field stays put; OK answers the address and the words', async () => {
-  const got = askPicture();
-  await until(() => !!document.querySelector('.to-ask-picture dialog[open]'));
-  expect(document.querySelector('.to-ask-picture h2')!.textContent).toBe('Web Picture');
-  await until(() => document.activeElement === field());
-  oneRow();
-  expect(ok().disabled).toBe(true);
-  const top = field().getBoundingClientRect().top;
-  const dialogTop = document.querySelector('.to-ask-picture dialog')!.getBoundingClientRect().top;
-  await typeUrl(`${location.origin}/favicon-32.png`);
-  await until(() => !!document.querySelector('.to-ask-preview img.ok'));
-  // Hung from the top: the preview grows the dialog downwards; the field has not moved.
-  expect(field().getBoundingClientRect().top).toBe(top);
-  expect(document.querySelector('.to-ask-picture dialog')!.getBoundingClientRect().top).toBe(dialogTop);
-  expect(document.querySelector('.to-ask-preview img')!.getAttribute('referrerpolicy')).toBe('no-referrer');
-  const alt = document.querySelector<HTMLInputElement>('.to-ask-alt input')!;
-  alt.value = 'A small icon';
-  alt.dispatchEvent(new Event('input', { bubbles: true }));
-  ok().click();
-  expect(await got).toEqual({ url: `${location.origin}/favicon-32.png`, alt: 'A small icon' });
-  expect(document.querySelector('.to-ask-picture')).toBeNull();
-});
-
-test('Web Picture: an address with no picture behind it says so; closing answers null', async () => {
-  const got = askPicture({ url: `${location.origin}/no-such-picture.png` });
-  await until(() => !!document.querySelector('.to-ask-broken'));
-  expect(document.querySelector('.to-ask-broken')!.textContent).toContain('No picture came');
-  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
-  expect(await got).toBeNull();
-});
-
-test('Web Embed: the sources are a row of icons with names; an address shows the card it will be, its source marked; OK answers the address', async () => {
-  const got = askEmbed();
-  await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
-  expect(document.querySelector('.to-ask-embed h2')!.textContent).toBe('Web Embed');
-  oneRow();
-  const names = [...document.querySelectorAll('.to-ask-sources li')].map((li) => li.textContent!.trim());
-  expect(names).toEqual(expect.arrayContaining(['YouTube', 'Vimeo', 'Internet Archive', 'Bluesky', 'Mastodon', 'OpenStreetMap']));
-  expect(document.querySelectorAll('.to-ask-sources li svg').length).toBe(names.length);
-  await typeUrl('https://www.youtube.com/watch?v=abc123');
-  await until(() => !!document.querySelector('.to-ask-preview to-embed figure'));
-  expect(document.querySelector('.to-ask-sources li.on')!.textContent!.trim()).toBe('YouTube');
-  // Nothing is asked of the provider for the preview: the card is the card.
-  expect(document.querySelector('.to-ask-preview iframe')).toBeNull();
-  ok().click();
-  expect(await got).toBe('https://www.youtube.com/watch?v=abc123');
-});
 
 test("Tiny Little Office Doc: a long link shows the document's first page small; OK answers its fence", async () => {
   const got = askDocLink();
@@ -125,9 +77,9 @@ test('Tiny Little Office Doc: a short link is opened from the shortener, and onl
 });
 
 test('every dialog hangs from the top of the screen, not its middle', async () => {
-  void askEmbed();
-  await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
-  const d = document.querySelector('.to-ask-embed dialog')!.getBoundingClientRect();
+  void askDocLink();
+  await until(() => !!document.querySelector('.to-ask-doc dialog[open]'));
+  const d = document.querySelector('.to-ask-doc dialog')!.getBoundingClientRect();
   expect(d.top).toBeLessThan(innerHeight * 0.15);
   expect(innerHeight - d.bottom).toBeGreaterThan(d.top);
 });

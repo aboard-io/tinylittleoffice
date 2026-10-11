@@ -2,25 +2,7 @@
 // tlo.test, its literals as runs and columns).
 import { expect, test } from 'vitest';
 import { rng } from './helpers.ts';
-import {
-  column,
-  isEmbed,
-  noteRuns,
-  webOf,
-  webSites,
-  pages,
-  parse,
-  parseInline,
-  parseLines,
-  plainText,
-  sections,
-  splitAttrs,
-  write,
-  writeInline,
-  type Block,
-  type Doc,
-  type Run,
-} from '../../src/doc/index.ts';
+import { column, isInnerDoc, noteRuns, pages, parse, parseInline, parseLines, plainText, sections, splitAttrs, write, writeInline, type Block, type Doc, type Run } from '../../src/doc/index.ts';
 
 const t = (s: string): Run[] => [{ t: s }];
 
@@ -64,7 +46,7 @@ Q1 | 120
 ![The plan](https://tinylittleoffice.com/#/v0/deck/abc)
 `);
   expect(doc.head).toStrictEqual({ app: 'invoice', title: 'Invoice 0042', tax: '8%' });
-  expect(doc.blocks.map((b) => b.k)).toStrictEqual(['h', 'p', 'table', 'li', 'li', 'li', 'li', 'li', 'li', 'li', 'quote', 'hr', 'fence', 'edge', 'edge', 'img']);
+  expect(doc.blocks.map((b) => b.k)).toStrictEqual(['h', 'p', 'table', 'li', 'li', 'li', 'li', 'li', 'li', 'li', 'quote', 'hr', 'fence', 'edge', 'edge', 'p']);
   expect(doc.blocks[0]).toStrictEqual({ k: 'h', level: 1, runs: t('Invoice 0042'), a: { id: 'top' } });
   expect(doc.blocks[1]).toStrictEqual({ k: 'p', runs: t('Thank you for the work.\nSecond line of it.') });
   expect(doc.blocks[2]).toStrictEqual({
@@ -90,7 +72,7 @@ Q1 | 120
   ]);
   expect(doc.blocks[12]).toStrictEqual({ k: 'fence', lang: 'sheet', body: 'Q | Sales\n--- | ---\nQ1 | 120', a: { kv: { chart: 'bar' } } });
   expect(doc.blocks[13]).toStrictEqual({ k: 'edge', from: 'Web', to: 'API', dir: '->', label: 'requests' });
-  expect(doc.blocks[15]).toStrictEqual({ k: 'img', alt: 'The plan', url: 'https://tinylittleoffice.com/#/v0/deck/abc' });
+  expect(doc.blocks[15]).toStrictEqual({ k: 'p', runs: [{ t: '!' }, { t: 'The plan', href: 'https://tinylittleoffice.com/#/v0/deck/abc' }] });
   expect(column('Price:money')).toStrictEqual({ name: 'Price', type: 'money' });
   expect(column('Time: 10am')).toStrictEqual({ name: 'Time: 10am', type: 'text' });
   expect(parse(write(doc))).toStrictEqual(doc);
@@ -270,7 +252,7 @@ test('tlo: any blocks survive being written and read', () => {
   for (let n = 0; n < 500; n++) {
     const blocks: Block[] = [];
     for (let k = 0; k < 1 + r() * 6; k++) {
-      const kind = pick(['h', 'p', 'li', 'quote', 'hr', 'table', 'fence', 'edge', 'img']);
+      const kind = pick(['h', 'p', 'li', 'quote', 'hr', 'table', 'fence', 'edge']);
       const a = r() < 0.2 ? { id: 'n' + k } : undefined;
       // The words as inline Markdown reads them (a model's loose text goes through the parser first).
       const words = (s: string) => parseLines(s);
@@ -297,7 +279,6 @@ test('tlo: any blocks survive being written and read', () => {
         });
       if (kind === 'fence') blocks.push({ k: 'fence', lang: 'sheet', body: '```\ninner\n```\nA | B' });
       if (kind === 'edge') blocks.push({ k: 'edge', from: 'A', to: 'B c', dir: pick(['->', '<-', '<->', '--'] as const), ...(r() < 0.5 ? { label: 'says' } : {}) });
-      if (kind === 'img') blocks.push({ k: 'img', alt: 'A [b]', url: 'https://x.y/#/v0/deck/Zab' });
     }
     const doc: Doc = { head: r() < 0.5 ? { app: 'deck', title: 'T: x' } : {}, blocks };
     const back = parse(write(doc));
@@ -387,41 +368,28 @@ test('tlo: a link of ours in plain words, its payload holding "~~" or "__", is k
   expect(parseInline(`[the plan](${href})`)).toStrictEqual([{ t: 'the plan', href }]);
 });
 
-test('tlo: a link alone on a line is a thing from the web with its title; a bare address stays as it is (Paul, 2026-10-11)', () => {
-  const text =
-    '[The neighbourhood the road replaced](https://www.youtube.com/watch?v=eRVYwDtI2E8)\n\nhttps://en.wikipedia.org/wiki/History_of_the_Bronx\n\nSee [the road](https://x.y/) here.\n\n[Write to us](mailto:a@b.c)\n';
-  const d = parse(text);
-  expect(write(d)).toBe(text);
-  // The kernel knows no sites: a titled link is words until the kit says its site is one a card shows (kit/embeds.ts).
-  expect(d.blocks.map(isEmbed)).toEqual([false, true, false, false]);
-  const known = webSites.known;
-  webSites.known = (url) => url.includes('youtube.com');
-  expect(d.blocks.map(isEmbed)).toEqual([true, true, false, false]);
-  // A plain link to any other site alone on a line stays words (Paul, 2026-10-11).
-  expect(webOf(parse('[The society](https://bronxhistoricalsociety.org/)\n').blocks[0])).toBeNull();
-  expect(webOf(d.blocks[0])).toEqual({ url: 'https://www.youtube.com/watch?v=eRVYwDtI2E8', title: 'The neighbourhood the road replaced' });
-  expect(webOf(d.blocks[1])).toEqual({ url: 'https://en.wikipedia.org/wiki/History_of_the_Bronx', title: '' });
-  expect(webOf(d.blocks[2])).toBeNull();
-  expect(webOf({ k: 'li', depth: 0, runs: [{ t: 'A', href: 'https://x.y/' }] })).toBeNull();
-  webSites.known = known;
+test('tlo: a picture line and a link alone on a line are words with a link, written back as they came (Paul, 2026-10-11: no pictures, no embeds)', () => {
+  for (const text of ['![alt](https://example.org/x.png)\n', '[Title](https://youtu.be/x)\n', '  ![a  b](https://x.y/a_(b).jpg)  {.wide}\n']) {
+    const d = parse(text);
+    expect(d.blocks).toHaveLength(1);
+    expect(d.blocks[0].k).toBe('p');
+    expect(write(d)).toBe(write(parse(write(d))));
+  }
+  expect(parse('![alt](https://example.org/x.png)\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: '!' }, { t: 'alt', href: 'https://example.org/x.png' }] });
+  expect(write(parse('![alt](https://example.org/x.png)\n'))).toBe('![alt](https://example.org/x.png)\n');
+  expect(parse('[Title](https://youtu.be/x)\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: 'Title', href: 'https://youtu.be/x' }] });
+  expect(write(parse('[Title](https://youtu.be/x)\n'))).toBe('[Title](https://youtu.be/x)\n');
+  // A bare address alone on a line is words too, and the spaces around words are never lost.
+  const text = 'https://en.wikipedia.org/wiki/History_of_the_Bronx\n\nSee  ![the road](https://x.y/)  here.\n';
+  expect(write(parse(text))).toBe(text);
+  expect(parse(text).blocks.map(isInnerDoc)).toEqual([false, false]);
 });
 
-test("tlo: an address with a pair of brackets in it (Wikipedia's, Commons') is read whole, in a link and in a picture", () => {
-  // Paul's Bronx deck on a phone: the picture and the link were drawn as their Markdown, broken across lines.
-  const d = parse('- the [Art Deco](https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)) houses\n\n![Opening day](https://upload.wikimedia.org/x/Opening_Day_(baseball)_1.jpg)\n');
+test("tlo: an address with a pair of brackets in it (Wikipedia's) is read whole in a link", () => {
+  // Paul's Bronx deck on a phone: the link was drawn as its Markdown, broken across lines.
+  const d = parse('- the [Art Deco](https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)) houses\n');
   expect(d.blocks[0]).toMatchObject({ k: 'li', runs: [{ t: 'the ' }, { t: 'Art Deco', href: 'https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)' }, { t: ' houses' }] });
-  expect(d.blocks[1]).toEqual({ k: 'img', alt: 'Opening day', url: 'https://upload.wikimedia.org/x/Opening_Day_(baseball)_1.jpg' });
-  // Written as they were read; a lone bracket is escaped, so as not to end the address early.
-  expect(write(d)).toBe('- the [Art Deco](https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)) houses\n\n![Opening day](https://upload.wikimedia.org/x/Opening_Day_(baseball)_1.jpg)\n');
-  expect(
-    write({
-      head: {},
-      blocks: [
-        { k: 'img', alt: 'a', url: 'https://x.y/a)b c.jpg' },
-        { k: 'p', runs: [{ t: 'b', href: 'https://x.y/(a' }] },
-      ],
-    }),
-  ).toBe('![a](https://x.y/a%29b%20c.jpg)\n\n[b](https://x.y/%28a)\n');
-  // An unmatched bracket still ends it, as before.
-  expect(parse('![a](https://x.y/a)b)\n').blocks[0].k).toBe('p');
+  // Written as it was read; a lone bracket is escaped, so as not to end the address early.
+  expect(write(d)).toBe('- the [Art Deco](https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)) houses\n');
+  expect(write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'b', href: 'https://x.y/(a' }] }] })).toBe('[b](https://x.y/%28a)\n');
 });

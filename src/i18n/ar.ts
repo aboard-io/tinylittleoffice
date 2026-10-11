@@ -58,12 +58,12 @@ export default {
   'Tiny Little Office': 'مكتب صغير جدًا',
   'About Tiny Little Office': 'حول مكتب صغير جدًا',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'مجموعة مكتبية صغيرة تعيش كلها في العنوان (URL). بلا خادم ولا حسابات ولا حفظ: الرابط هو المستند.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'لا شيء مما تكتبه يغادر متصفحك إلا إذا شاركت الرابط. شيئان يطلبان من الويب من تلقاء نفسيهما: خريطة الرحلة، التي تأتي صورها من OpenStreetMap ما دامت معروضة، وصورة من موقع في القائمة الموثوقة، تجلبها خدمة الصور في هذا الموقع حين يُفتح مستندها.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'لا شيء مما تكتبه يغادر متصفحك إلا إذا شاركت الرابط. شيء واحد يطلب من الويب من تلقاء نفسه: خريطة الرحلة، التي تأتي صورها من OpenStreetMap ما دامت معروضة.',
   'Private, the default:': 'خاص، وهو الافتراضي:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'أما «محفوظ»، وهو المفتاح في هذه القائمة، فيُبقي إعداداتك والمستندات التي تفتحها على هذا الجهاز.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'يمكن أن تكون لكل مستند كلمة مرور: يُشفَّر هنا في المتصفح، ولا يحمل الرابط إلا نصًا مشفرًا. «الخصوصية» في هذه القائمة تعرض ما يحتفظ به هذا الجهاز.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'قائمة مكتب صغير جدًا',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -76,13 +76,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'كتب أحدهم هذا الرابط في المستند. قد لا يطابق النص المعروض للرابط وجهته الفعلية. تابع فقط إذا كنت تثق بالوجهة.',
   'Go': 'متابعة',
   'Links of this kind do not open here.': 'الروابط من هذا النوع لا تُفتح هنا.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'صورة من {host}',
-  'Show pictures from the web': 'إظهار الصور من الويب',
-  'Showing them tells their site this document was opened, and when.': 'إظهارها يُعلم موقعها بأن هذا المستند فُتح، ومتى.',
-  'Always show pictures from the web': 'إظهار الصور من الويب دائمًا',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'عند الإيقاف، تنتظر الصورة التي يحتفظ بها موقع آخر أن تطلبها: جلبها يُخبر ذلك الموقع بمن يقرأ.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'لا تُجلب الصورة التي يحتفظ بها المستند بعنوانها على موقع آخر حتى تطلبها: جلبها يُخبر ذلك الموقع بمن يقرأ ومتى. والرابط الذي يغادر مكتب صغير جدًا يعرض وجهته ويسأل قبل أن يُفتح.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'والرابط الذي يغادر مكتب صغير جدًا يعرض وجهته ويسأل قبل أن يُفتح.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'لا تحليلات ولا تقارير أخطاء ولا خطوط ولا سكربتات من أي مكان آخر: لا يطلب الموقع من الويب شيئًا لم تتسبب فيه.',
   'What leaves your browser': 'ما يغادر متصفحك',
   'What this protects against, and what it does not': 'ما يحميك منه هذا، وما لا يحميك منه',
@@ -334,12 +328,9 @@ export default {
   'A narrow headline, two columns': 'عنوان ضيق في عمودين',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'فاصل صفحة',
-  'Address of the picture': 'عنوان الصورة',
-  'Address of a video, a post, a song, a place, a page': 'عنوان فيديو أو منشور أو أغنية أو مكان أو صفحة',
   'OK': 'حسنًا',
   'This card': 'هذه البطاقة',
   'Open in {app}': 'فتح في {app}',
-  'Change the address…': 'تغيير العنوان…',
   'Locked: worked out for you': 'مقفل: يُحسب لك',
   'Footnotes': 'الحواشي',
   'Back to footnote {n} in the text': 'العودة إلى الحاشية {n} في النص',
@@ -410,36 +401,13 @@ export default {
   'Terms of service': 'شروط الخدمة',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'شروط عمل صغير بكلمات بسيطة: الحجز والأسعار والمفاتيح وماذا لو وكيف ينتهي.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'من الويب',
-  'Read on {provider}': 'القراءة على {provider}',
-  'Spotify album': 'ألبوم على Spotify',
-  'Spotify episode': 'حلقة على Spotify',
-  'Spotify playlist': 'قائمة تشغيل على Spotify',
-  'Spotify show': 'برنامج على Spotify',
-  'Spotify track': 'مقطوعة على Spotify',
-  '{provider} video': 'فيديو على {provider}',
-  'Open on {provider}': 'الفتح على {provider}',
-  'Play (loads it from {provider})': 'تشغيل (يُحمَّل من {provider})',
-  'Show (loads it from {provider})': 'عرض (يُحمَّل من {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'رابط مكتب صغير جدًا',
-  'A film, a sound, a PDF or a picture': 'فيلم أو صوت أو PDF أو صورة',
-  'No picture came from this address. Check it, or try another.': 'لم تأتِ صورة من هذا العنوان. تحقق منه أو جرّب غيره.',
-  'Not one of these: it goes in as a link to the page.': 'ليس واحدًا من هذه: يُدرج رابطًا إلى الصفحة.',
   'Opening the short link…': 'جارٍ فتح الرابط القصير…',
-  'Paste the address of a picture on the web: the picture shows here.': 'الصق عنوان صورة على الويب: تظهر الصورة هنا.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'الصق رابط مستند آخر في مكتب صغير جدًا، طويلًا أو قصيرًا: تظهر صفحته الأولى هنا.',
   'This is not a Tiny Little Office link, or it has expired.': 'هذا ليس رابط مكتب صغير جدًا، أو انتهت صلاحيته.',
   'Tiny Little Office Doc': 'مستند مكتب صغير جدًا',
   'Tiny Little Office Doc…': 'مستند مكتب صغير جدًا…',
-  'Web Embed': 'تضمين من الويب',
-  'Web Embed…': 'تضمين من الويب…',
-  'Web Picture': 'صورة من الويب',
-  'Web Picture…': 'صورة من الويب…',
-  'What it can show': 'ما يمكنه عرضه',
-  'Words for anyone who cannot see it (optional)': 'كلمات لمن لا يستطيع رؤيتها (اختياري)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'مستند جديد',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -872,7 +840,6 @@ export default {
   'Everything': 'كل شيء',
   'Fold': 'طي',
   'Fold all': 'طي الكل',
-  'From the web: {url}': 'من الويب: {url}',
   'Item': 'عنصر',
   'Item {n}': 'العنصر {n}',
   'Kind of line': 'نوع الخط',

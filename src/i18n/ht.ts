@@ -59,12 +59,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Apwopo Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Yon ti ansanm zouti biwo ki viv nèt nan URL la. Pa gen sèvè, pa gen kont, pa gen anrejistreman: lyen an se dokiman an.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. De bagay mande entènèt pou kont yo: kat yon vwayaj, foto li yo soti nan OpenStreetMap pandan l ap parèt, ak yon foto ki soti nan yon sit ki sou lis konfyans lan, sèvis foto sit sa a al chèche l lè dokiman li a louvri.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. Yon sèl bagay mande entènèt pou kont li: kat yon vwayaj, foto li yo soti nan OpenStreetMap pandan l ap parèt.',
   'Private, the default:': 'Prive, nòmalman:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Anrejistre, ba nan meni sa a, kenbe paramèt ou yo ak dokiman ou louvri yo sou aparèy sa a.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Yon dokiman ka gen yon modpas: yo chifre l isit la, nan navigatè a, epi lyen an pa kenbe anyen sof tèks chifre. Vi prive, nan meni sa a, montre sa aparèy sa a kenbe.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Meni Tiny Little Office',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -77,13 +77,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Yon moun te ekri lyen sa a nan dokiman an. Mo yo montre pou yon lyen pa oblije koresponn ak kote l ale. Ale sèlman si ou fè kote l mennen an konfyans.',
   'Go': 'Ale',
   'Links of this kind do not open here.': 'Lyen konsa pa louvri isit la.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Yon foto ki soti nan {host}',
-  'Show pictures from the web': 'Montre foto ki soti sou entènèt',
-  'Showing them tells their site this document was opened, and when.': 'Montre yo fè sit yo konnen dokiman sa a te louvri, ak kilè.',
-  'Always show pictures from the web': 'Toujou montre foto ki soti sou entènèt',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Si l etenn, yon foto yon lòt sit kenbe ap tann ou mande l: lè w rale l, sit sa a konnen ki moun k ap li.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Yon foto yon dokiman kenbe pa adrès li sou yon lòt sit pa rale anvan ou mande l: si yo rale l, sit sa a ta konnen ki moun k ap li, ak ki lè. Yon lyen ki kite Tiny Little Office montre kote l ale, epi mande ou anvan l louvri.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Yon lyen ki kite Tiny Little Office montre kote l ale, epi mande ou anvan l louvri.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Pa gen analitik, pa gen rapò erè, pa gen font ni script ki soti yon lòt kote: sit la pa mande entènèt anyen ou pa t lakòz.',
   'What leaves your browser': 'Sa ki kite navigatè w la',
   'What this protects against, and what it does not': 'Sa sa pwoteje w kont li, ak sa li pa pwoteje w kont li',
@@ -335,12 +329,9 @@ export default {
   'A narrow headline, two columns': 'Yon tit etwat, de kolòn',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Chanjman paj',
-  'Address of the picture': 'Adrès foto a',
-  'Address of a video, a post, a song, a place, a page': 'Adrès yon videyo, yon pòs, yon chante, yon kote, yon paj',
   'OK': 'OK', // same
   'This card': 'Fich sa a',
   'Open in {app}': 'Louvri nan {app}',
-  'Change the address…': 'Chanje adrès la…',
   'Locked: worked out for you': 'Bloke: kalkile pou ou',
   'Footnotes': 'Nòt anba paj',
   'Back to footnote {n} in the text': 'Retounen nan nòt anba paj {n} nan tèks la',
@@ -411,30 +402,13 @@ export default {
   'Terms of service': 'Kondisyon sèvis',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Kondisyon yon ti biznis an mo senp: rezèvasyon, pri, kle, e si, fen.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'Soti sou entènèt',
-  'Read on {provider}': 'Li sou {provider}',
-  'Open on {provider}': 'Louvri sou {provider}',
-  'Play (loads it from {provider})': 'Jwe (chaje l soti sou {provider})',
-  'Show (loads it from {provider})': 'Montre (chaje l soti sou {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Yon lyen Tiny Little Office',
-  'A film, a sound, a PDF or a picture': 'Yon fim, yon son, yon PDF oswa yon foto',
-  'No picture came from this address. Check it, or try another.': 'Pa gen okenn foto ki soti nan adrès sa a. Tcheke l, oswa eseye yon lòt.',
-  'Not one of these: it goes in as a link to the page.': 'Se pa youn nan sa yo: l antre kòm yon lyen ki ale nan paj la.',
   'Opening the short link…': 'Ap louvri lyen kout la…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Kole adrès yon foto sou entènèt: foto a parèt isit la.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Kole lyen yon lòt dokiman Tiny Little Office, long oswa kout: premye paj li parèt isit la.',
   'This is not a Tiny Little Office link, or it has expired.': 'Sa a pa yon lyen Tiny Little Office, oswa li ekspire.',
   'Tiny Little Office Doc': 'Dokiman Tiny Little Office',
   'Tiny Little Office Doc…': 'Dokiman Tiny Little Office…',
-  'Web Embed': 'Entegrasyon wèb',
-  'Web Embed…': 'Entegrasyon wèb…',
-  'Web Picture': 'Foto sou wèb',
-  'Web Picture…': 'Foto sou wèb…',
-  'What it can show': 'Sa l ka montre',
-  'Words for anyone who cannot see it (optional)': 'Mo pou moun ki pa ka wè l (opsyonèl)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Yon nouvo dokiman',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -867,7 +841,6 @@ export default {
   'Everything': 'Tout',
   'Fold': 'Plede',
   'Fold all': 'Plede tout',
-  'From the web: {url}': 'Soti sou entènèt: {url}',
   'Item': 'Atik',
   'Item {n}': 'Atik {n}',
   'Kind of line': 'Kalite liy',
@@ -1614,12 +1587,6 @@ export default {
   'Download the .{ext}': 'Telechaje .{ext}',
   'Share the .{ext}…': 'Pataje .{ext}…',
   'View the .{ext}': 'Gade .{ext}',
-  'Spotify album': 'Albòm Spotify',
-  'Spotify episode': 'Epizòd Spotify',
-  'Spotify playlist': 'Lis mizik Spotify',
-  'Spotify show': 'Emisyon Spotify',
-  'Spotify track': 'Chante Spotify',
-  '{provider} video': 'Videyo {provider}',
   'Keep them on this device': 'Kenbe yo sou aparèy sa a',
   'Nothing is saved on this device now. Keep them here, or open one.': 'Pa gen anyen ki anrejistre sou aparèy sa a kounye a. Kenbe yo isit la, oswa louvri youn.',
   'Open the first': 'Louvri premye a',

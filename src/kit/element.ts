@@ -14,7 +14,6 @@ import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit'
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../doc/index.ts';
 import { cmdTool } from './bar.ts';
 import { REDO, UNDO } from './keys.ts';
-import { onPictures } from './pictures.ts';
 
 /** A change, as the shell and a host hear it: the text in `detail`, and the edit's burst key (none for an undo, a redo or an edit that stands alone), so a host that holds this editor inside it (the Animator holds the Drawing Tool) keeps the same bursts in its own log. */
 export type DocChange = CustomEvent<string> & { key?: string };
@@ -63,16 +62,12 @@ export abstract class DocElement<V> extends LitElement {
     super.connectedCallback();
     this.addEventListener('docundo', this.onUndo);
     this.addEventListener('docredo', this.onRedo);
-    // Pictures from the web shown (or the switch turned): drawn again, as they now are (kit/pictures.ts).
-    this.offPictures = onPictures(() => this.requestUpdate());
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('docundo', this.onUndo);
     this.removeEventListener('docredo', this.onRedo);
-    this.offPictures();
   }
-  private offPictures = () => {};
 
   /** The pure function from the document to what the app draws. */
   protected abstract read(doc: Doc): V;

@@ -56,7 +56,6 @@ import { opensDropped, unplain } from './open.ts';
 import { parseCompare, type Side } from './compare.ts';
 import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
-import { gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { motion, reducedMotion } from './motion.ts';
 import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
@@ -216,13 +215,11 @@ export class ToShell extends LitElement {
     const redraw = () => this.requestUpdate();
     this.offs.push(
       onLanguage(() => (this.setTitle(), redraw())),
-      onPictures(redraw),
       onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())),
       onPrivacy(() => this.guard()),
     );
-    // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
+    // Every link that leaves the site asks first.
     installLinkGuard();
-    installPictures();
     installPlainCopy();
     this.onHash();
   }
@@ -279,8 +276,6 @@ export class ToShell extends LitElement {
     this.envelope = takeHead(this.doc, ENVELOPE_KEYS)[0];
     // An icon the starter set lacks: the rest of Lucide is fetched, and everything is drawn again when it joins (onIcons).
     void ensureIcons(iconNames(this.doc));
-    // Show pictures from the web is remembered for this document, as it arrived, for the visit.
-    setPictureDoc(def ? routeHash(def.id, payload) : '');
     this.display = !!def && display && !!payload;
     this.embed = !!def && asked === 'embed' && !!payload;
     this.presentSoon = !!def && !!show && !display && !this.embed;
@@ -651,11 +646,11 @@ export class ToShell extends LitElement {
 
   private trust = () => trustButton(!!this.sealed, !!this.locker, () => (this.sealed ? void this.askPassword() : void this.privacy?.show()));
 
-  /** The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for first. */
+  /** The pages one under another at their paper's width (scaled down only to fit). */
   private pages = (def: AppDef) =>
     html`<div class="to-display-pages">${def
       .view(this.doc)
-      .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</div>`;
+      .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</div>`;
 
   /**
    * The Display Link: the pages, to read or print, with Edit. The

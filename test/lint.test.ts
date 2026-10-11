@@ -37,7 +37,6 @@ describe('each finding: a document that trips it, and one that does not', () => 
     ['title', 'title-cut'],
     ['body', 'body-over'],
     ['sheet-circ', 'formula-error'],
-    ['picture-indirect', 'picture-indirect'],
   ])('%s', (name, kind) => {
     expect(kinds(name)).toContain(kind);
     expect(kinds(`${name}.ok`)).toStrictEqual([]);
@@ -45,7 +44,7 @@ describe('each finding: a document that trips it, and one that does not', () => 
 
   test('every fixture is one of those pairs', () => {
     const names = readdirSync(FIX).filter((f) => f.endsWith('.tlo'));
-    for (const f of names.filter((x) => !x.endsWith('.ok.tlo') && x !== 'deck-diagram.tlo' && x !== 'bronx.tlo')) expect(names).toContain(f.replace(/\.tlo$/, '.ok.tlo'));
+    for (const f of names.filter((x) => !x.endsWith('.ok.tlo') && x !== 'deck-diagram.tlo')) expect(names).toContain(f.replace(/\.tlo$/, '.ok.tlo'));
   });
 });
 

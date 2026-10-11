@@ -57,12 +57,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office के बारे में',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'एक छोटा-सा ऑफ़िस, जो पूरी तरह URL में रहता है। न सर्वर, न अकाउंट, न सेव करना: लिंक ही दस्तावेज़ है।',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'आप जो कुछ लिखते हैं वह आपके ब्राउज़र से बाहर नहीं जाता, जब तक आप लिंक शेयर न करें। दो चीज़ें खुद वेब से माँगती हैं: ट्रिप का नक्शा, जिसकी तस्वीरें दिखाए जाते समय OpenStreetMap से आती हैं, और भरोसेमंद सूची की किसी साइट की तस्वीर, जिसे इस साइट की तस्वीर सेवा उसका दस्तावेज़ खुलते ही लाती है।',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'आप जो कुछ लिखते हैं वह आपके ब्राउज़र से बाहर नहीं जाता, जब तक आप लिंक शेयर न करें। एक ही चीज़ खुद वेब से माँगती है: ट्रिप का नक्शा, जिसकी तस्वीरें दिखाए जाते समय OpenStreetMap से आती हैं।',
   'Private, the default:': 'निजी, डिफ़ॉल्ट रूप से:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'इस मेन्यू का स्विच “सेव”, आपकी सेटिंग और आपके खोले हुए दस्तावेज़ इस डिवाइस पर रखता है।',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'दस्तावेज़ पर पासवर्ड लगाया जा सकता है: वह यहीं, ब्राउज़र में, एन्क्रिप्ट होता है और लिंक में सिर्फ़ एन्क्रिप्टेड रूप रहता है। इस मेन्यू में “प्राइवेसी” दिखाता है कि इस डिवाइस में क्या है।',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Tiny Little Office मेन्यू',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -75,13 +75,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'यह लिंक किसी ने दस्तावेज़ में लिखा है। लिंक के लिए दिखाए गए शब्द और वह जगह जहाँ वह जाता है, अलग हो सकते हैं। तभी जाएँ जब आपको उस जगह पर भरोसा हो।',
   'Go': 'जाएँ',
   'Links of this kind do not open here.': 'इस तरह के लिंक यहाँ नहीं खुलते।',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': '{host} से एक तस्वीर',
-  'Show pictures from the web': 'वेब की तस्वीरें दिखाएँ',
-  'Showing them tells their site this document was opened, and when.': 'इन्हें दिखाने से उनकी साइट को पता चलता है कि यह दस्तावेज़ खोला गया, और कब।',
-  'Always show pictures from the web': 'वेब की तस्वीरें हमेशा दिखाएँ',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'बंद होने पर, किसी दूसरी साइट की तस्वीर आपके कहने तक रुकी रहती है: उसे लाने से उस साइट को पता चलता है कि कौन पढ़ रहा है।',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'दस्तावेज़ में किसी दूसरी साइट के पते से जुड़ी तस्वीर तब तक नहीं लाई जाती जब तक आप न कहें: उसे लाने से उस साइट को पता चलेगा कि कौन पढ़ रहा है, और कब। Tiny Little Office से बाहर जाने वाला लिंक खुलने से पहले दिखाता है कि वह कहाँ जाता है, और पूछता है।',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Tiny Little Office से बाहर जाने वाला लिंक खुलने से पहले दिखाता है कि वह कहाँ जाता है, और पूछता है।',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'कोई एनालिटिक्स नहीं, कोई एरर रिपोर्ट नहीं, कहीं और से कोई फ़ॉन्ट या स्क्रिप्ट नहीं: साइट वेब से कुछ भी नहीं माँगती जो आपने खुद न कराया हो।',
   'What leaves your browser': 'आपके ब्राउज़र से क्या बाहर जाता है',
   'What this protects against, and what it does not': 'यह किससे बचाता है, और किससे नहीं',
@@ -333,12 +327,9 @@ export default {
   'A narrow headline, two columns': 'एक तंग हेडलाइन, दो कॉलम',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'पेज ब्रेक',
-  'Address of the picture': 'तस्वीर का पता',
-  'Address of a video, a post, a song, a place, a page': 'वीडियो, पोस्ट, गाने, जगह या पेज का पता',
   'OK': 'ठीक है',
   'This card': 'यह कार्ड',
   'Open in {app}': '{app} में खोलें',
-  'Change the address…': 'पता बदलें…',
   'Locked: worked out for you': 'लॉक: आपके लिए निकाला गया',
   'Footnotes': 'फ़ुटनोट',
   'Back to footnote {n} in the text': 'टेक्स्ट में फ़ुटनोट {n} पर वापस',
@@ -409,30 +400,13 @@ export default {
   'Terms of service': 'सेवा की शर्तें',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'छोटे कारोबार की शर्तें सीधी भाषा में: बुकिंग, दाम, चाबियाँ, अगर ऐसा हुआ तो, खत्म करना।',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'वेब से',
-  'Read on {provider}': '{provider} पर पढ़ें',
-  'Open on {provider}': '{provider} पर खोलें',
-  'Play (loads it from {provider})': 'चलाएँ ({provider} से लोड होता है)',
-  'Show (loads it from {provider})': 'दिखाएँ ({provider} से लोड होता है)',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Tiny Little Office का लिंक',
-  'A film, a sound, a PDF or a picture': 'फ़िल्म, आवाज़, PDF या तस्वीर',
-  'No picture came from this address. Check it, or try another.': 'इस पते से कोई तस्वीर नहीं आई। पता जाँचें, या दूसरा आज़माएँ।',
-  'Not one of these: it goes in as a link to the page.': 'इनमें से कुछ नहीं: यह पेज के लिंक की तरह जुड़ेगा।',
   'Opening the short link…': 'शॉर्ट लिंक खुल रहा है…',
-  'Paste the address of a picture on the web: the picture shows here.': 'वेब पर किसी तस्वीर का पता पेस्ट करें: तस्वीर यहाँ दिखेगी।',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Tiny Little Office के किसी और दस्तावेज़ का लिंक पेस्ट करें, लंबा या छोटा: उसका पहला पेज यहाँ दिखेगा।',
   'This is not a Tiny Little Office link, or it has expired.': 'यह Tiny Little Office का लिंक नहीं है, या खत्म हो चुका है।',
   'Tiny Little Office Doc': 'Tiny Little Office दस्तावेज़',
   'Tiny Little Office Doc…': 'Tiny Little Office दस्तावेज़…',
-  'Web Embed': 'वेब एम्बेड',
-  'Web Embed…': 'वेब एम्बेड…',
-  'Web Picture': 'वेब तस्वीर',
-  'Web Picture…': 'वेब तस्वीर…',
-  'What it can show': 'यह क्या दिखा सकता है',
-  'Words for anyone who cannot see it (optional)': 'जो देख नहीं सकते उनके लिए शब्द (वैकल्पिक)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'एक नया दस्तावेज़',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -865,7 +839,6 @@ export default {
   'Everything': 'सब कुछ',
   'Fold': 'समेटें',
   'Fold all': 'सब समेटें',
-  'From the web: {url}': 'वेब से: {url}',
   'Item': 'आइटम',
   'Item {n}': 'आइटम {n}',
   'Kind of line': 'लाइन की किस्म',
@@ -1612,12 +1585,6 @@ export default {
   'Download the .{ext}': '.{ext} डाउनलोड करें',
   'Share the .{ext}…': '.{ext} शेयर करें…',
   'View the .{ext}': '.{ext} देखें',
-  'Spotify album': 'Spotify एल्बम',
-  'Spotify episode': 'Spotify एपिसोड',
-  'Spotify playlist': 'Spotify प्लेलिस्ट',
-  'Spotify show': 'Spotify शो',
-  'Spotify track': 'Spotify ट्रैक',
-  '{provider} video': '{provider} वीडियो',
   'Keep them on this device': 'इन्हें इस डिवाइस पर रखें',
   'Nothing is saved on this device now. Keep them here, or open one.': 'अब इस डिवाइस पर कुछ सेव नहीं है। इन्हें यहाँ रखें, या कोई खोलें।',
   'Open the first': 'पहला खोलें',

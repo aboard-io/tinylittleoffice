@@ -6,20 +6,11 @@
  * (docs/kernel.md §3) and the selection after. text.ts maps events onto
  * these; the node tests work them without a browser.
  */
-import { hasClass, isAtomic, isEmbed, isText as holdsRuns, normalRuns, runLength, sliceRuns, splitBlock, webOf, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
+import { hasClass, isAtomic, isText as holdsRuns, normalRuns, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
 
-/**
- * Whether a block is words the caret can sit in. A paragraph that is one web
- * address and nothing else (an embed) holds runs, but in the editor it is a
- * card: skipped, taken out whole, never typed into.
- */
-export const isWords = (b: Block): b is TextBlock => holdsRuns(b) && !isEmbed(b);
+/** Whether a block is words the caret can sit in: a heading, a paragraph, an item, a note. Anything else is a card. */
+export const isWords = holdsRuns;
 const isText = isWords;
-/**
- * A pasted block that goes in as words: any block of words but a bare web address alone (a card). A link alone
- * (a titled thing from the web, model.ts webOf) pasted into words is the words of a link, as copied.
- */
-const pastedWords = (b: Block): b is TextBlock => holdsRuns(b) && webOf(b)?.title !== '';
 
 export interface Pos {
   block: number;
@@ -29,7 +20,7 @@ export interface Sel {
   anchor: Pos;
   focus: Pos;
 }
-/** What the editor can be told to do; some take a word (a link's address, an icon's name, an embed's ref). */
+/** What the editor can be told to do; some take a word (a link's address, an icon's name, another document's ref). */
 export type Command =
   | 'b'
   | 'i'
@@ -87,8 +78,8 @@ export function clampPos(blocks: Block[], p: Pos): Pos {
   const block = Math.max(0, Math.min(p.block, blocks.length - 1));
   return { block, offset: Math.max(0, Math.min(p.offset, blockLength(blocks[block]))) };
 }
-/** A selection held within the blocks, and never resting on a card (an embed, a picture, a table). */
-export const clampSel = (blocks: Block[], s: Sel): Sel => ({ anchor: skipEmbed(blocks, s.anchor), focus: skipEmbed(blocks, s.focus) });
+/** A selection held within the blocks, and never resting on a card (another document, a table, a rule). */
+export const clampSel = (blocks: Block[], s: Sel): Sel => ({ anchor: skipCard(blocks, s.anchor), focus: skipCard(blocks, s.focus) });
 
 /** The nearest text block at or after `i` (dir 1) or at or before it (dir -1), or -1. */
 export function textBlock(blocks: Block[], i: number, dir: 1 | -1): number {
@@ -96,8 +87,8 @@ export function textBlock(blocks: Block[], i: number, dir: 1 | -1): number {
   return -1;
 }
 
-/** A position that sits in words: one on an embed or a picture is moved to the next text block's start (or the previous one's end). */
-export function skipEmbed(blocks: Block[], p: Pos, dir: 1 | -1 = 1): Pos {
+/** A position that sits in words: one on a card is moved to the next text block's start (or the previous one's end). */
+export function skipCard(blocks: Block[], p: Pos, dir: 1 | -1 = 1): Pos {
   if (!blocks.length || isText(blocks[Math.min(p.block, blocks.length - 1)])) return clampPos(blocks, p);
   let j = textBlock(blocks, p.block, dir);
   if (j < 0) j = textBlock(blocks, p.block, dir === 1 ? -1 : 1);
@@ -216,7 +207,7 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const first = put[0];
   const last = put[put.length - 1];
   // One block of words goes in as words; a paragraph that is one web address (a card) stands on its own.
-  if (put.length === 1 && pastedWords(first)) return insertRuns(blocks, sel, first.runs);
+  if (put.length === 1 && isWords(first)) return insertRuns(blocks, sel, first.runs);
   const cur = baseOf(blocks, a, b);
   const end = blocks[b.block];
   const left = sliceRuns(cur.runs, 0, a.offset);
@@ -224,13 +215,13 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const out: Block[] = [];
   let from = 0;
   let to = put.length;
-  if (pastedWords(first)) {
+  if (isWords(first)) {
     // Into a block with no words, the pasted block comes as it is (its own kind); else its words join the block.
     out.push(cur.runs.length ? { ...cur, runs: normalRuns([...left, ...first.runs]) } : first);
     from = 1;
   } else if (left.length) out.push({ ...cur, runs: left });
   let tail: TextBlock;
-  if (pastedWords(last) && put.length > 1) {
+  if (isWords(last) && put.length > 1) {
     to = put.length - 1;
     tail = { ...last, runs: normalRuns([...last.runs, ...right]) };
   } else tail = { k: 'p', runs: right };
@@ -263,7 +254,7 @@ export function splitAt(blocks: Block[], sel: Sel): Edit {
 
 /**
  * Backspace with the caret together: one character or one atomic run; at a
- * block's start a list item comes out of its list, an embed before it is
+ * block's start a list item comes out of its list, a card before it is
  * taken out, or the block joins the one before. 'exit' at the very start
  * when the editor is not a document; null when there is nothing to do.
  */
@@ -290,7 +281,7 @@ export function backspace(blocks: Block[], sel: Sel, shape: Shape): Edit | 'exit
   return join(block - 1, prev, cur, caret(block - 1, runLength(prev.runs)));
 }
 
-/** Delete: one character or atomic run forward; at a block's end the next block joins this one, or an embed after it is taken out. */
+/** Delete: one character or atomic run forward; at a block's end the next block joins this one, or a card after it is taken out. */
 export function forwardDelete(blocks: Block[], sel: Sel): Edit | null {
   if (!collapsed(sel)) return deleteSel(blocks, sel);
   const { block, offset } = sel.anchor;

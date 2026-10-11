@@ -18,26 +18,27 @@ test('copy: the selected blocks as TLO, the first and last cut at the selection,
   expect(html).toContain('<p>Some <b>bold</b></p>');
 });
 
-test('docToHtml: lists nest by depth, chips and links and pictures come through', () => {
+test('docToHtml: lists nest by depth, chips and links come through; a picture is words with a link', () => {
   const html = docToHtml(B);
   expect(html).toContain('<ul>\n<li>a</li>\n<ol>\n<li>b</li>\n</ol>\n</ul>');
   expect(html).toContain('<a href="https://x.y">words</a>');
   expect(html).toContain('<span data-icon="star">:star:</span>');
   expect(html).toContain('<sup data-fn="a note">*</sup>');
   expect(html).toContain('<hr>');
-  expect(html).toContain('<img src="https://p.q/r.png" alt="pic" referrerpolicy="no-referrer">');
+  expect(html).toContain('<p>!<a href="https://p.q/r.png">pic</a></p>');
+  expect(html).not.toContain('<img');
   expect(runsToHtml([{ t: 'a<b', b: true, i: true, u: true, s: true, h: true }, { t: 'x\ny' }])).toBe('<b><i><u><s><mark>a&lt;b</mark></s></u></i></b>x<br>y');
 });
 
-test('paste, in order: our HTML → the TLO; a Tiny Little Office link → a fence; an address → a card; lines → TLO; words → words', () => {
+test('paste, in order: our HTML → the TLO; a Tiny Little Office link → a fence; lines → TLO; words, an address among them → words', () => {
   const own = pasteFrom({ text: '# T\n\n- i\n', html: '<meta name="generator" content="TinyLittleOffice"><h1>T</h1>' }, 'doc');
   expect(own).toEqual({ blocks: parse('# T\n\n- i\n').blocks });
   const link = `https://tinylittleoffice.com/#/v1/sheet/${encodeDoc('A | B\n--- | ---\n1 | 2\n')}`;
   expect(linkToFence(link)).toMatchObject({ k: 'fence', lang: 'sheet', body: 'A | B\n--- | ---\n1 | 2\n' });
   expect(linkToFence('https://example.com/#/v1/sheet')).toBeNull();
   expect(pasteFrom({ text: ` ${link} `, html: '' }, 'doc')).toMatchObject({ blocks: [{ k: 'fence', lang: 'sheet' }] });
-  expect(pasteFrom({ text: 'https://example.com/a', html: '' }, 'doc')).toEqual({ blocks: [{ k: 'p', runs: [{ t: 'https://example.com/a' }] }] });
-  // Not a document shape: an address is words.
+  // Any other address is words, in a document as in a line.
+  expect(pasteFrom({ text: 'https://example.com/a', html: '' }, 'doc')).toEqual({ runs: [{ t: 'https://example.com/a' }] });
   expect(pasteFrom({ text: 'https://example.com/a', html: '' }, 'line')).toEqual({ runs: [{ t: 'https://example.com/a' }] });
   expect(pasteFrom({ text: '## Two\n\n- one\n- two\n', html: '' }, 'doc')).toEqual({ blocks: parse('## Two\n\n- one\n- two\n').blocks });
   expect(pasteFrom({ text: 'just words', html: '' }, 'doc')).toEqual({ runs: [{ t: 'just words' }] });
@@ -52,7 +53,7 @@ test('paste, in order: our HTML → the TLO; a Tiny Little Office link → a fen
   expect(pasteFrom({ text: '', html: '' }, 'doc')).toBeNull();
 });
 
-test('fitting: lines keeps items and paragraphs (a heading becomes a paragraph, a picture its description); a line joins every word with spaces', () => {
+test('fitting: lines keeps items and paragraphs (a heading becomes a paragraph); a line joins every word with spaces', () => {
   expect(fitBlocks(B, 'doc')).toEqual({ blocks: B });
   const lines = fitBlocks(B, 'lines');
   expect('blocks' in lines && lines.blocks.map((b) => b.k)).toEqual(['p', 'p', 'li', 'li', 'p']);

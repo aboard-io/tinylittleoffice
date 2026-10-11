@@ -58,12 +58,12 @@ export default {
     'Tiny Little Office': 'Tiny Little Office', // same
     'About Tiny Little Office': 'Tiny Little Office کا تعارف',
     'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'ایک چھوٹا سا آفس سویٹ جو پورا URL میں رہتا ہے۔ نہ سرور، نہ اکاؤنٹ، نہ محفوظ کرنے کا جھنجھٹ: لنک ہی دستاویز ہے۔',
-    'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ دو چیزیں خود ویب سے کچھ مانگتی ہیں: سفر کا نقشہ، جس کی تصویریں دکھائے جانے تک OpenStreetMap سے آتی ہیں، اور بھروسے کی فہرست والی کسی سائٹ کی تصویر، جسے اس سائٹ کی تصویری سروس اس کی دستاویز کھلتے ہی لاتی ہے۔',
+    'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ صرف ایک چیز خود ویب سے کچھ مانگتی ہے: سفر کا نقشہ، جس کی تصویریں دکھائے جانے تک OpenStreetMap سے آتی ہیں۔',
     'Private, the default:': 'نجی، پہلے سے:',
     'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'اس مینو میں "محفوظ" کا سوئچ آپ کی سیٹنگز اور کھولی ہوئی دستاویزات کو اس ڈیوائس پر رکھتا ہے۔',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'دستاویز پر پاس ورڈ لگایا جا سکتا ہے: وہ یہیں، براؤزر میں انکرپٹ ہوتی ہے اور لنک میں صرف انکرپٹڈ متن ہوتا ہے۔ اس مینو میں ”رازداری“ دکھاتا ہے کہ اس آلے میں کیا محفوظ ہے۔',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
     'Tiny Little Office menu': 'Tiny Little Office مینو',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -76,13 +76,7 @@ export default {
     'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'یہ لنک کسی نے دستاویز میں لکھا ہے۔ لنک کے لیے دکھائے گئے الفاظ کا اس کی منزل سے میل کھانا ضروری نہیں۔ صرف تب جائیں جب آپ کو منزل پر بھروسا ہو۔',
     'Go': 'جائیں',
     'Links of this kind do not open here.': 'اس قسم کے لنکس یہاں نہیں کھلتے۔',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-    'A picture from {host}': '{host} کی ایک تصویر',
-    'Show pictures from the web': 'ویب کی تصویریں دکھائیں',
-    'Showing them tells their site this document was opened, and when.': 'انہیں دکھانے سے ان کی سائٹ کو پتا چلتا ہے کہ یہ دستاویز کھولی گئی، اور کب۔',
-    'Always show pictures from the web': 'ویب کی تصویریں ہمیشہ دکھائیں',
-    'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'بند ہو تو دوسری سائٹ کی تصویر آپ کے کہنے کا انتظار کرتی ہے: اسے لانے سے اس سائٹ کو پتہ چل جاتا ہے کہ کون پڑھ رہا ہے۔',
-    'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'جو تصویر دستاویز میں کسی دوسری سائٹ کے پتے سے لگی ہو، وہ آپ کے کہنے تک نہیں لائی جاتی: اسے لانے سے اس سائٹ کو پتہ چل جائے گا کہ کون پڑھ رہا ہے، اور کب۔ جو لنک Tiny Little Office سے باہر جاتا ہے وہ کھلنے سے پہلے دکھاتا ہے کہ کہاں جا رہا ہے، اور پوچھتا ہے۔',
+    'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'جو لنک Tiny Little Office سے باہر جاتا ہے وہ کھلنے سے پہلے دکھاتا ہے کہ کہاں جا رہا ہے، اور پوچھتا ہے۔',
     'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'نہ اینالیٹکس، نہ ایرر رپورٹس، نہ کہیں اور سے فونٹس یا اسکرپٹس: سائٹ ویب سے ایسا کچھ نہیں مانگتی جو آپ نے نہ کروایا ہو۔',
     'What leaves your browser': 'آپ کے براؤزر سے کیا باہر جاتا ہے',
     'What this protects against, and what it does not': 'یہ کس سے بچاتا ہے، اور کس سے نہیں',
@@ -334,12 +328,9 @@ export default {
     'A narrow headline, two columns': 'ایک تنگ سرخی، دو کالم',
   // Insert ▾'s rule in a document: what follows starts the next page.
     'Page break': 'صفحے کا وقفہ',
-    'Address of the picture': 'تصویر کا پتہ',
-    'Address of a video, a post, a song, a place, a page': 'ویڈیو، پوسٹ، گانے، جگہ یا صفحے کا پتہ',
     'OK': 'ٹھیک ہے',
     'This card': 'یہ کارڈ',
     'Open in {app}': '{app} میں کھولیں',
-    'Change the address…': 'پتہ بدلیں…',
     'Locked: worked out for you': 'مقفل: آپ کے لیے خود نکلتا ہے',
     'Footnotes': 'حواشی',
     'Back to footnote {n} in the text': 'متن میں حاشیہ {n} پر واپس',
@@ -410,30 +401,13 @@ export default {
     'Terms of service': 'سروس کی شرائط',
     'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'ایک چھوٹے کاروبار کی شرائط سادہ الفاظ میں: بکنگ، قیمتیں، چابیاں، اگر ایسا ہو تو، ختم کرنا۔',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-    'From the web': 'ویب سے',
-    'Read on {provider}': '{provider} پر پڑھیں',
-    'Open on {provider}': '{provider} پر کھولیں',
-    'Play (loads it from {provider})': 'چلائیں ({provider} سے لاتا ہے)',
-    'Show (loads it from {provider})': 'دکھائیں ({provider} سے لاتا ہے)',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
     'A Tiny Little Office link': 'Tiny Little Office کا لنک',
-    'A film, a sound, a PDF or a picture': 'فلم، آواز، PDF یا تصویر',
-    'No picture came from this address. Check it, or try another.': 'اس پتے سے کوئی تصویر نہیں آئی۔ اسے جانچیں، یا کوئی اور آزمائیں۔',
-    'Not one of these: it goes in as a link to the page.': 'ان میں سے کوئی نہیں: یہ صفحے کے لنک کی صورت میں لگ جاتا ہے۔',
     'Opening the short link…': 'مختصر لنک کھل رہا ہے…',
-    'Paste the address of a picture on the web: the picture shows here.': 'ویب پر موجود تصویر کا پتہ پیسٹ کریں: تصویر یہاں دکھائی دے گی۔',
     'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Tiny Little Office کی کسی اور دستاویز کا لنک پیسٹ کریں، لمبا یا مختصر: اس کا پہلا صفحہ یہاں دکھائی دے گا۔',
     'This is not a Tiny Little Office link, or it has expired.': 'یہ Tiny Little Office کا لنک نہیں ہے، یا اس کی میعاد ختم ہو گئی ہے۔',
     'Tiny Little Office Doc': 'Tiny Little Office دستاویز',
     'Tiny Little Office Doc…': 'Tiny Little Office دستاویز…',
-    'Web Embed': 'ویب ایمبیڈ',
-    'Web Embed…': 'ویب ایمبیڈ…',
-    'Web Picture': 'ویب تصویر',
-    'Web Picture…': 'ویب تصویر…',
-    'What it can show': 'یہ کیا دکھا سکتا ہے',
-    'Words for anyone who cannot see it (optional)': 'ان کے لیے الفاظ جو اسے دیکھ نہیں سکتے (اختیاری)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
     'A new document': 'نئی دستاویز',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -866,7 +840,6 @@ export default {
     'Everything': 'سب کچھ',
     'Fold': 'سمیٹیں',
     'Fold all': 'سب سمیٹیں',
-    'From the web: {url}': 'ویب سے: {url}',
     'Item': 'چیز',
     'Item {n}': 'چیز {n}',
     'Kind of line': 'لکیر کی قسم',
@@ -1613,12 +1586,6 @@ export default {
     'Download the .{ext}': '.{ext} ڈاؤن لوڈ کریں',
     'Share the .{ext}…': '.{ext} شیئر…',
     'View the .{ext}': '.{ext} دیکھیں',
-    'Spotify album': 'اسپوٹیفائی البم',
-    'Spotify episode': 'اسپوٹیفائی ایپی سوڈ',
-    'Spotify playlist': 'اسپوٹیفائی پلے لسٹ',
-    'Spotify show': 'اسپوٹیفائی شو',
-    'Spotify track': 'اسپوٹیفائی ٹریک',
-    '{provider} video': '{provider} ویڈیو',
     'Keep them on this device': 'انہیں اس ڈیوائس پر رکھیں',
     'Nothing is saved on this device now. Keep them here, or open one.': 'اب اس ڈیوائس پر کچھ محفوظ نہیں۔ انہیں یہاں رکھیں، یا کوئی ایک کھولیں۔',
     'Open the first': 'پہلا کھولیں',

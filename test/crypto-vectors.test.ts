@@ -72,7 +72,7 @@ test('short links: the ciphertext, the owner hash on both sides, the two links',
 test("the entry points that take an IV are the tests' alone: nothing in the site calls them", () => {
   const files = (dir: string): string[] =>
     readdirSync(new URL(dir, import.meta.url), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? files(`${dir}${d.name}/`) : d.name.endsWith('.ts') ? [`${dir}${d.name}`] : []));
-  const callers = [...files('../src/'), ...files('../tinier/'), ...files('../media/')].filter((f) => {
+  const callers = [...files('../src/'), ...files('../tinier/')].filter((f) => {
     const text = readFileSync(new URL(f, import.meta.url), 'utf8');
     const uses = (text.match(/\bsealAt\(|\bsealShortAt\(/g) ?? []).length;
     const defines = (text.match(/function sealAt\(|function sealShortAt\(/g) ?? []).length;

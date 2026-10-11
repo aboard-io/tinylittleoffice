@@ -20,7 +20,6 @@
 import { html, nothing, type PropertyDeclarations, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { gateSvg } from '../../kit/pictures.ts';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, ChevronDown, ChevronRight, GripVertical, ListOrdered, Minus, ZoomIn } from 'lucide';
 import { applyAll, family, fenceRef, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { cmdBtn, cmdTool, tool } from '../../kit/bar.ts';
@@ -41,7 +40,7 @@ import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { noteMarks, type NoteMark, type ToNotes } from '../../kit/notes.ts';
-import { askDocLink, askEmbed } from '../../kit/insert-dialogs.ts';
+import { askDocLink } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { parseHash, routeHash } from '../../kit/route.ts';
 import type { NoteAt, Sel, TextOps, ToText } from '../../kit/text.ts';
@@ -86,7 +85,6 @@ import {
   spanOf,
   topsOf,
   unlink,
-  webAddress,
   type Dir,
   type Item,
   type Link,
@@ -650,7 +648,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- documents ---------- */
 
-  /** A document (or a thing from the web, `web\n<address>`) under the item chosen when it was asked for (or at the end). */
+  /** A document under the item chosen when it was asked for (or at the end). */
   private putDoc(sel: number, ref: string) {
     const r = insertDoc(this.doc, this.view, sel, ref);
     this.edit(r.ops);
@@ -661,11 +659,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const sel = this.sel;
     const fence = await makeDoc(id);
     if (fence) this.putDoc(sel, fenceRef(fence));
-  }
-  async insertWeb() {
-    const sel = this.sel;
-    const url = await askEmbed();
-    if (url) this.putDoc(sel, refOfLink(url) ?? `web\n${url}`);
   }
   async insertLinked() {
     const sel = this.sel;
@@ -848,15 +841,14 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   }
   /** Another document under an item: its app and first line, a way to open it in its own app, and the way back (its link pasted over the card). */
   private renderDoc(it: Item) {
-    const web = it.doc!.startsWith('web\n');
     const { app, gist } = docGist(it.doc!);
     const body = it.doc!.slice(it.doc!.indexOf('\n') + 1);
     const locked = app === LOCKED_LANG;
-    const href = web ? it.doc!.slice(4) : placedLink(app, body, encodeDoc, location.pathname);
-    return html`<div class="ol-doc" tabindex="0" role="group" aria-label=${web ? t('From the web: {url}', { url: href }) : appOf(app) ? t('A {noun}', { noun: appOf(app)!.noun }) : t('{app} document', { app: appName(app) })} @paste=${(e: ClipboardEvent) => this.onDocPaste(it.at, e)}>
-      <span class="ol-doc-kind">${web ? icon(UI.globe, 16) : locked ? icon(UI.lock, 16) : appOf(app) ? icon(appOf(app)!.icon, 16) : nothing}<b>${web ? t('From the web') : appName(app)}</b></span>
-      <span class="ol-doc-gist">${web ? href : locked ? t('Locked with a password') : gist || t('Empty')}</span>
-      ${!web && (locked || appOf(app)) ? tool({ label: t('Edit'), icon: UI.pen, cls: 'ol-doc-edit', does: () => void this.editRow(it.at) }) : nothing}
+    const href = placedLink(app, body, encodeDoc, location.pathname);
+    return html`<div class="ol-doc" tabindex="0" role="group" aria-label=${appOf(app) ? t('A {noun}', { noun: appOf(app)!.noun }) : t('{app} document', { app: appName(app) })} @paste=${(e: ClipboardEvent) => this.onDocPaste(it.at, e)}>
+      <span class="ol-doc-kind">${locked ? icon(UI.lock, 16) : appOf(app) ? icon(appOf(app)!.icon, 16) : nothing}<b>${appName(app)}</b></span>
+      <span class="ol-doc-gist">${locked ? t('Locked with a password') : gist || t('Empty')}</span>
+      ${locked || appOf(app) ? tool({ label: t('Edit'), icon: UI.pen, cls: 'ol-doc-edit', does: () => void this.editRow(it.at) }) : nothing}
       <a class="to-btn to-tool" href=${href} target="_blank" rel="noopener" aria-label=${t('Open in a new tab')} title=${t('Open in a new tab')}>${icon(UI.open, 16)}</a>
       ${tool({ label: t('Take it away'), icon: UI.close, does: () => this.removeRow(it.at) })}
     </div>`;
@@ -872,8 +864,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const c = this.connecting;
     const block = at >= 0 ? this.doc.blocks[at] : this.ghost;
     const words = plainText(it.runs).trim();
-    // A row that is one web address shows as a thing from the web once the caret has left it.
-    const asDoc = !!it.doc && !(it.doc.startsWith('web\n') && this.sel === at && block.k === 'li' && webAddress(block.runs));
+    const asDoc = !!it.doc;
     const inside = kids ? familyEnd(items, i) - i - 1 : 0;
     return html`<div
       class="ol-row ${at === this.sel && !this.rows.range ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${kids ? 'parent' : ''} ${kids && shut ? 'shut' : ''} ${d?.id === at ? 'dragging' : ''} ${c?.from === at ? 'source' : ''}"
@@ -1009,7 +1000,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     return html`<to-notes class="ol-fn" role="group" aria-label=${t('Footnotes')} .notes=${notes} @note-change=${this.onNoteChange} @note-back=${this.onNoteBack} @note-remove=${this.onNoteRemove}></to-notes>`;
   }
   private renderPageDialog() {
-    return html`<to-dialog class="ol-page-dialog" heading=${t('As a page')} @to-close=${() => (this.showing = false)} .body=${this.showing ? html`<div class="ol-page">${unsafeSVG(gateSvg(pageSvg(outlinePage(this.doc))))}</div>` : nothing}></to-dialog>`;
+    return html`<to-dialog class="ol-page-dialog" heading=${t('As a page')} @to-close=${() => (this.showing = false)} .body=${this.showing ? html`<div class="ol-page">${unsafeSVG(pageSvg(outlinePage(this.doc)))}</div>` : nothing}></to-dialog>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToOutlineEditor);

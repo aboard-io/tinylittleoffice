@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { fillHeaders, mediaSource } from './scripts/headers.ts';
+import { fillHeaders } from './scripts/headers.ts';
 import { gitFacts, versionJson, versionOf } from './scripts/version.ts';
 import type { AppDef } from './src/kit/app.ts';
 
@@ -16,13 +16,13 @@ const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve
 
 /**
  * After the build: a page per app (dist/<id>/index.html, the shell with that app's name and blurb in its
- * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes and the picture
- * proxy written into _headers (public/_headers has the placeholders, scripts/headers.ts fills them); and which
+ * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes and hosts
+ * written into _headers (public/_headers has the placeholders, scripts/headers.ts fills them); and which
  * build this is, dist/version.json (the commit, its tag and date, those hashes: scripts/version.ts). Each app's
  * page names its own share card (public/og/<id>.png, drawn by scripts/make-cards.ts) where there is one; dist/embed/index.html is the shell again, at the one address another site may frame (the embed
  * view, public/_headers).
  */
-function afterBuild(site: string, media: string | undefined): Plugin {
+function afterBuild(site: string): Plugin {
   const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return {
     name: 'tinyoffice-after-build',
@@ -50,7 +50,7 @@ function afterBuild(site: string, media: string | undefined): Plugin {
         writeFileSync(resolve(dist, app.id, 'index.html'), page);
       }
       const hashes = pageScripts().map((code) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`);
-      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, media: mediaSource(media) }));
+      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes }));
       writeFileSync(resolve(dist, 'version.json'), versionJson(versionOf(gitFacts(import.meta.dirname), hashes)));
     },
   };
@@ -75,13 +75,12 @@ export default defineConfig(({ mode }) => ({
         .VITE_ALLOWED_HOSTS?.split(',')
         .filter(Boolean) ?? []),
     ],
-    // The shortener and the picture proxy on this machine (npm run tinier:dev, media:dev), under the dev server's own address.
+    // The shortener on this machine (npm run tinier:dev), under the dev server's own address.
     proxy: {
       '/tinier/': { target: 'http://127.0.0.1:8787', rewrite: (p) => p.slice('/tinier'.length) },
-      '/media/': { target: 'http://127.0.0.1:8788', rewrite: (p) => p.slice('/media'.length) },
     },
   },
-  plugins: [afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '', loadEnv(mode, import.meta.dirname).VITE_MEDIA_URL)],
+  plugins: [afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '')],
   build: {
     target: 'es2022',
     outDir: 'dist',

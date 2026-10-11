@@ -57,12 +57,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office 정보',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'URL 안에 통째로 들어 있는 작은 오피스 모음이에요. 서버도, 계정도, 저장도 없어요. 링크가 곧 문서예요.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 스스로 웹에 요청하는 건 두 가지예요. 여행 지도는 보이는 동안 OpenStreetMap에서 사진을 가져오고, 신뢰 목록에 있는 사이트의 사진은 문서가 열릴 때 이 사이트의 사진 서비스를 거쳐 가져와요.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 스스로 웹에 요청하는 건 한 가지예요. 여행 지도는 보이는 동안 OpenStreetMap에서 사진을 가져와요.',
   'Private, the default:': '비공개, 기본값:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '이 메뉴의 스위치인 저장을 켜면 설정과 연 문서가 이 기기에 남아요.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': '문서에는 비밀번호를 걸 수 있어요. 브라우저에서 바로 암호화되고 링크에는 암호문만 들어 있어요. 이 메뉴의 개인정보에서 이 기기에 있는 것을 볼 수 있어요.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Tiny Little Office 메뉴',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -75,13 +75,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': '누군가 이 링크를 문서에 넣었어요. 링크로 보이는 글과 실제 가는 곳이 다를 수 있어요. 가는 곳을 믿을 수 있을 때만 이동하세요.',
   'Go': '이동',
   'Links of this kind do not open here.': '이런 링크는 여기서 열리지 않아요.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': '{host}의 사진',
-  'Show pictures from the web': '웹 사진 보기',
-  'Showing them tells their site this document was opened, and when.': '보여 주면 그 사이트가 이 문서가 열렸다는 것과 그 시각을 알게 돼요.',
-  'Always show pictures from the web': '웹 사진 항상 보기',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': '끄면 다른 사이트에 있는 사진은 요청할 때까지 기다려요. 사진을 가져오면 그 사이트에 누가 읽는지 알려지기 때문이에요.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': '문서가 다른 사이트의 주소로 가진 사진은 요청하기 전에는 가져오지 않아요. 가져오면 그 사이트에 누가 언제 읽는지 알려지기 때문이에요. Tiny Little Office를 벗어나는 링크는 열기 전에 가는 곳을 보여 주고 먼저 물어봐요.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Tiny Little Office를 벗어나는 링크는 열기 전에 가는 곳을 보여 주고 먼저 물어봐요.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': '분석도, 오류 보고도 없고 다른 곳의 글꼴이나 스크립트도 가져오지 않아요. 직접 하지 않은 일로는 웹에 아무것도 요청하지 않아요.',
   'What leaves your browser': '브라우저 밖으로 나가는 것',
   'What this protects against, and what it does not': '무엇을 막아 주고 무엇은 못 막는지',
@@ -333,12 +327,9 @@ export default {
   'A narrow headline, two columns': '좁은 표제, 두 단',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': '페이지 나누기',
-  'Address of the picture': '사진 주소',
-  'Address of a video, a post, a song, a place, a page': '동영상, 게시물, 노래, 장소, 페이지의 주소',
   'OK': '확인',
   'This card': '이 카드',
   'Open in {app}': '{app}에서 열기',
-  'Change the address…': '주소 바꾸기…',
   'Locked: worked out for you': '잠김: 자동으로 계산돼요',
   'Footnotes': '각주',
   'Back to footnote {n} in the text': '본문의 각주 {n}(으)로 돌아가기',
@@ -409,30 +400,13 @@ export default {
   'Terms of service': '이용 약관',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': '작은 가게의 약관을 쉬운 말로. 예약, 가격, 열쇠, 만약의 경우, 종료.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': '웹에서',
-  'Read on {provider}': '{provider}에서 읽기',
-  'Open on {provider}': '{provider}에서 열기',
-  'Play (loads it from {provider})': '재생 ({provider}에서 불러와요)',
-  'Show (loads it from {provider})': '보기 ({provider}에서 불러와요)',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Tiny Little Office 링크',
-  'A film, a sound, a PDF or a picture': '영상, 소리, PDF 또는 사진',
-  'No picture came from this address. Check it, or try another.': '이 주소에서 사진을 가져오지 못했어요. 주소를 확인하거나 다른 주소를 써 보세요.',
-  'Not one of these: it goes in as a link to the page.': '여기에 해당하지 않아서 페이지 링크로 들어가요.',
   'Opening the short link…': '짧은 링크를 여는 중…',
-  'Paste the address of a picture on the web: the picture shows here.': '웹에 있는 사진의 주소를 붙여넣으세요. 사진이 여기에 나와요.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': '다른 Tiny Little Office 문서의 링크를 긴 것이든 짧은 것이든 붙여넣으세요. 첫 페이지가 여기에 나와요.',
   'This is not a Tiny Little Office link, or it has expired.': 'Tiny Little Office 링크가 아니거나 만료됐어요.',
   'Tiny Little Office Doc': 'Tiny Little Office 문서',
   'Tiny Little Office Doc…': 'Tiny Little Office 문서…',
-  'Web Embed': '웹 삽입',
-  'Web Embed…': '웹 삽입…',
-  'Web Picture': '웹 사진',
-  'Web Picture…': '웹 사진…',
-  'What it can show': '보여 줄 수 있는 것',
-  'Words for anyone who cannot see it (optional)': '볼 수 없는 사람을 위한 설명 (선택)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': '새 문서',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -865,7 +839,6 @@ export default {
   'Everything': '전체',
   'Fold': '접기',
   'Fold all': '모두 접기',
-  'From the web: {url}': '웹에서: {url}',
   'Item': '항목',
   'Item {n}': '항목 {n}',
   'Kind of line': '선 종류',
@@ -1612,12 +1585,6 @@ export default {
   'Download the .{ext}': '.{ext} 다운로드',
   'Share the .{ext}…': '.{ext} 공유…',
   'View the .{ext}': '.{ext} 보기',
-  'Spotify album': 'Spotify 앨범',
-  'Spotify episode': 'Spotify 에피소드',
-  'Spotify playlist': 'Spotify 플레이리스트',
-  'Spotify show': 'Spotify 프로그램',
-  'Spotify track': 'Spotify 트랙',
-  '{provider} video': '{provider} 동영상',
   'Keep them on this device': '이 기기에 보관',
   'Nothing is saved on this device now. Keep them here, or open one.': '지금은 이 기기에 아무것도 저장되지 않아요. 여기에 보관하거나 하나를 여세요.',
   'Open the first': '첫 번째 열기',

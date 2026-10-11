@@ -23,7 +23,7 @@ import {
   setMark,
   shiftItems,
   shortcut,
-  skipEmbed,
+  skipCard,
   sliceBlocks,
   smartQuote,
   splitAt,
@@ -46,8 +46,8 @@ test('positions: a chip and a line break count one; clamping; a caret on a card 
   expect(blockLength(B[1])).toBe('Some bold words '.length + 1 + ' and'.length + 1 + ' more.'.length);
   expect(blockLength(B[4])).toBe(0);
   expect(clampPos(B, { block: 9, offset: 99 })).toEqual({ block: 5, offset: 5 });
-  expect(skipEmbed(B, { block: 4, offset: 0 }, 1)).toEqual({ block: 5, offset: 0 });
-  expect(skipEmbed(B, { block: 4, offset: 0 }, -1)).toEqual({ block: 3, offset: 1 });
+  expect(skipCard(B, { block: 4, offset: 0 }, 1)).toEqual({ block: 5, offset: 0 });
+  expect(skipCard(B, { block: 4, offset: 0 }, -1)).toEqual({ block: 3, offset: 1 });
   expect(ordered(sel([2, 1], [0, 3]))).toEqual([
     { block: 0, offset: 3 },
     { block: 2, offset: 1 },
@@ -344,15 +344,14 @@ test('the whole document selected (Select All): an edit over it takes the cards 
 });
 const deleteSelOf = (b: Block[]) => backspace(b, wholeSel(b), 'doc') as Edit;
 
-test('a linked word is words, not a thing from the web: its marks show the link, and pasted into words it goes in as words', () => {
-  // A link alone on a line is a thing from the web (model.ts webOf); a piece of words that is one link is not.
+test('a linked word is words: its marks show the link, and pasted into words it goes in as words', () => {
   const B: Block[] = [{ k: 'p', runs: [{ t: 'make ' }, { t: 'this', href: 'https://x.y' }, { t: ' a link' }] }];
   expect(marksOf(B, sel([0, 5], [0, 9]))).toEqual({ href: 'https://x.y' });
   const e = insertBlocks([{ k: 'p', runs: [{ t: 'see  now' }] }], caret(0, 4), [{ k: 'p', runs: [{ t: 'the film', href: 'https://www.youtube.com/watch?v=abc' }] }]);
   expect(applyAll({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see  now' }] }] }, e.ops).blocks).toEqual([
     { k: 'p', runs: [{ t: 'see ' }, { t: 'the film', href: 'https://www.youtube.com/watch?v=abc' }, { t: ' now' }] },
   ]);
-  // A bare address pasted alone stands on its own, a card, as before.
+  // A bare address pasted alone is words too, in the line where it was put, its spaces kept.
   const bare = insertBlocks([{ k: 'p', runs: [{ t: 'see  now' }] }], caret(0, 4), [{ k: 'p', runs: [{ t: 'https://www.youtube.com/watch?v=abc' }] }]);
-  expect(applyAll({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see  now' }] }] }, bare.ops).blocks).toHaveLength(3);
+  expect(applyAll({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see  now' }] }] }, bare.ops).blocks).toEqual([{ k: 'p', runs: [{ t: 'see https://www.youtube.com/watch?v=abc now' }] }]);
 });

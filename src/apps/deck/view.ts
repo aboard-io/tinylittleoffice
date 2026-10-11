@@ -8,15 +8,14 @@
  */
 import { lookup, type Page } from '../../kit/app.ts';
 import { encodeDoc } from '../../kit/codec.ts';
-import { FAINT, FONT, INK, LINE, MUTED, PAPER, pageSvg, r, rect, textWidth, xml } from '../../kit/draw.ts';
-import { embedCaption, embedOf, kindGlyph, playsKind } from '../../kit/embeds.ts';
-import { glyphNamed, iconGlyph, iconNamed } from '../../kit/icons.ts';
+import { FAINT, FONT, INK, MUTED, PAPER, pageSvg, r, rect, textWidth, xml } from '../../kit/draw.ts';
+import { glyphNamed, iconNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { MOTION_JS } from '../../kit/motion.ts';
 import { pageScript } from '../../kit/page.ts';
 import { QR_MAX_BYTES, qrSvg } from '../../kit/qr.ts';
 import { routeHash } from '../../kit/route.ts';
-import { attr, markNotes, noteNumbers, noteRuns, parse, plainText, runLinks, webOf, write, type Doc, type Run } from '../../doc/index.ts';
+import { attr, markNotes, noteNumbers, noteRuns, parse, plainText, runLinks, write, type Doc, type Run } from '../../doc/index.ts';
 import { iconHex, isBlank, panelOf, settingsOf, slideNotes, slideText, slidesOf, type Format, type Item, type Settings, type Slide } from './model.ts';
 import { themeOf, type DeckTheme } from './theme.ts';
 
@@ -181,7 +180,7 @@ export function place(p: Page, x: number, y: number, w: number, h: number): stri
 
 /* ---------- the document a slide shows ---------- */
 
-/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture over its card; a thing from the web a card by its kind (webCard). `open`: in the editor (a locked document opened this visit drawn open). `still`: drawn where nothing can move (an animation a frame). */
+/** The page another document makes on a slide: its own app draws it small; a table is a sheet. `open`: in the editor (a locked document opened this visit drawn open). `still`: drawn where nothing can move (an animation a frame). */
 export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still = false): Page | null {
   const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
   if (!b) return null;
@@ -208,67 +207,7 @@ export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still =
     const rows = [b.cols.map((c) => c.name), ...b.rows];
     return { w: 480, h: 24 + rows.length * 26, svg: rows.map((row, i) => line(24, 20 + i * 26, row.join('   '), { px: 14, bold: i === 0 })).join(''), alt: t('Table') };
   }
-  if (b.k === 'img') return pictureCard(b.url, b.alt);
-  const web = webOf(b);
-  return web ? webCard(web.url, web.title) : null;
-}
-
-/** Up to `max` lines of words wrapped to a width, the last ending in "…" when there was more. */
-function clipped(words: string, max: number, px: number, lines: number, bold = false): string[] {
-  const all = wrapText(words, max, px, bold);
-  if (all.length <= lines) return all;
-  const out = all.slice(0, lines);
-  out[lines - 1] = `${out[lines - 1].replace(/\s*\S{0,3}$/, '')}…`;
-  return out;
-}
-
-/**
- * A thing from the web as a card, where nothing loads (the reader, the export, a thumbnail): drawn by its kind
- * (a film or a song the play mark on a dark field, an article its glyph, anything else the globe), the provider
- * small and the author's title large; its address is never drawn, and the whole card is a link to the thing on
- * its provider. In the editor and the show the live card (<to-embed>, editor.ts) lies over it.
- */
-export function webCard(url: string, title = ''): Page {
-  const kind = embedOf(url)?.kind ?? 'link';
-  const { provider, title: name } = embedCaption(url, title);
-  const W = 640;
-  let svg: string;
-  let H: number;
-  if (playsKind(kind)) {
-    H = 360;
-    const lines = clipped(name, W - 64, 30, 2, true);
-    svg =
-      rect(0, 0, W, H, '#18181b', 'rx="12"') +
-      `<circle cx="${W / 2}" cy="128" r="52" fill="#ffffff" fill-opacity="0.14"/>` +
-      iconGlyph(kindGlyph(kind), W / 2 - 22, 106, 44, '#fafafa') +
-      line(32, H - 40 - lines.length * 36, provider, { px: 16, fill: '#a1a1aa' }) +
-      lines.map((l, i) => line(32, H - 28 - (lines.length - 1 - i) * 36, l, { px: 30, bold: true, fill: '#fafafa' })).join('');
-  } else {
-    const lines = clipped(name, W - 152, 28, 3, true);
-    H = Math.max(176, 96 + lines.length * 34);
-    svg =
-      rect(0, 0, W, H, '#ffffff', `stroke="${LINE}" rx="12"`) +
-      iconGlyph(kindGlyph(kind), 36, 36, 56, MUTED) +
-      line(120, 56, provider, { px: 16, fill: MUTED }) +
-      lines.map((l, i) => line(120, 96 + i * 34, l, { px: 28, bold: true })).join('');
-  }
-  return { w: W, h: H, svg: `${linkOpen(url, ` data-kind="${kind}"`)}${svg}</a>`, alt: name };
-}
-
-/**
- * A picture over its card: the card (the picture glyph and the alt text) is what shows where the picture cannot
- * be fetched, never the browser's broken glyph; in a live page the kit's catcher (kit/pictures.ts installPictures)
- * hides the card once the picture has come, and the picture if it never does.
- */
-export function pictureCard(url: string, alt: string): Page {
-  const W = 640;
-  const H = 400;
-  const lines = alt ? clipped(alt, W - 96, 22, 3) : [];
-  const card =
-    rect(0, 0, W, H, '#f4f4f5', `stroke="${LINE}" rx="12"`) +
-    iconGlyph(kindGlyph('image'), W / 2 - 28, H / 2 - 28 - lines.length * 14, 56, MUTED) +
-    lines.map((l, i) => line(W / 2, H / 2 + 52 - lines.length * 14 + i * 28, l, { px: 22, fill: MUTED, anchor: 'middle' })).join('');
-  return { w: W, h: H, svg: `<g data-pic=""><g data-pic-card="">${card}</g><image href="${xml(url)}" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/></g>`, alt };
+  return null;
 }
 
 /* ---------- the layout ---------- */

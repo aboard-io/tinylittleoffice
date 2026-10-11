@@ -512,20 +512,52 @@
   .write-doc figcaption small {
     color: var(--to-paper-muted);
   }
-  .write-page .to-embed {
-    color: var(--to-paper-ink);
-    border-color: var(--to-paper-line);
-    background: #fff;
+  .write-signatures {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--to-paper-line);
+    border-radius: 0.625rem;
   }
-  .write-page .to-embed figcaption {
-    background: var(--to-paper-shade);
-    border-top-color: var(--to-paper-line);
+  .write-sig-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14em, 1fr));
+    gap: 0.75rem 1.5rem;
   }
-  .write-page .to-embed-what small,
-  .write-page .to-embed figcaption small {
+  .write-sig {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+    padding-top: 0.375rem;
+    border-top: 0.125rem solid var(--to-paper-ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .write-sig-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1px 0.5rem;
+    border-radius: var(--to-radius-pill);
     color: var(--to-paper-muted);
+    background: var(--to-paper);
   }
-
+  .write-sig.valid .write-sig-state {
+    color: var(--to-signed-ink);
+    background: var(--to-signed-bg);
+  }
+  .write-sig.mismatch {
+    border-top-color: var(--to-mismatch-ink);
+  }
+  .write-sig.mismatch .write-sig-state {
+    color: var(--to-mismatch-ink);
+    background: var(--to-mismatch-bg);
+  }
+  .write-signatures .write-sign {
+    align-self: flex-start;
+  }
   /* The notes under the text: a thin rule, small type, each with the way back to its mark. */
   .write-notes {
     margin-top: 1.5rem;

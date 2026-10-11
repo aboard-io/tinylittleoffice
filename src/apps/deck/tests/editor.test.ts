@@ -12,6 +12,7 @@ import type { ToDeckEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
 import { remScale } from '../../../kit/zoom.ts';
+import { encodeDoc } from '../../../kit/codec.ts';
 
 async function editor(value = ''): Promise<{ el: ToDeckEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
@@ -518,15 +519,15 @@ test('keys never act from a dialog or a field; PageUp/PageDown change slides fro
   await settle(el);
   expect(el.cur).toBe(1);
   await until(() => document.activeElement === thumbs(el)[1]);
-  // The address box of Insert ▾'s Web Picture: Mod+Shift+Enter there makes no slide.
-  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Web Picture');
-  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
-  const field = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
+  // The link box of Insert ▾'s Tiny Little Office Doc: Mod+Shift+Enter there makes no slide.
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Tiny Little Office Doc');
+  await until(() => !!document.querySelector('.to-ask-doc .to-ask-url'));
+  const field = document.querySelector<HTMLInputElement>('.to-ask-doc .to-ask-url')!;
   key(field, 'Enter', { ctrlKey: true, shiftKey: true });
   key(field, 'd', { ctrlKey: true });
   await settle(el);
   expect(thumbs(el)).toHaveLength(4);
-  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
+  document.querySelector<HTMLDialogElement>('.to-ask-doc dialog')!.close();
 });
 
 test('undo shows the slide the change was on and puts the caret back where it was', async () => {
@@ -577,24 +578,25 @@ test('a box’s edges: Delete at the headline’s end goes on to the words; Back
   expect(el.cur).toBe(1);
 });
 
-test('a lone web address pasted into empty words is the thing from the web on the slide; Delete on it takes it off', async () => {
+test('a lone Tiny Little Office link pasted into empty words is its document on the slide, Delete takes it off; any other address is words', async () => {
   const { el, last } = await editor('## Watch\n');
   await caretIn(el, 'words');
-  await clip(box(el, 'words'), 'paste', { 'text/plain': 'https://example.com/a' });
+  const link = `https://tinylittleoffice.com/#/v1/sheet/${encodeDoc('A | B\n--- | ---\n1 | 2')}`;
+  await clip(box(el, 'words'), 'paste', { 'text/plain': link });
   await settle(el);
-  expect(last()).toBe('## Watch\n\nhttps://example.com/a\n');
+  expect(last()).toBe('## Watch\n\n```sheet\nA | B\n--- | ---\n1 | 2\n```\n');
   const fig = el.querySelector<HTMLElement>('figure.deck-sub')!;
   expect(fig).toBeTruthy();
   fig.focus();
   key(fig, 'Delete');
   await settle(el);
   expect(last()).toBe('## Watch\n');
-  // Words already there: the address is words.
+  // Any other address is words, alone or not: nothing is put on the slide.
   await caretIn(el, 'words');
-  await type(el, box(el, 'words'), 'Hi ');
-  await clip(box(el, 'words'), 'paste', { 'text/plain': 'https://example.com/b' });
+  await clip(box(el, 'words'), 'paste', { 'text/plain': 'https://example.com/a' });
   await settle(el);
-  expect(last()).toContain('- Hi https://example.com/b');
+  expect(last()).toBe('## Watch\n\n- https://example.com/a\n');
+  expect(el.querySelector('figure.deck-sub')).toBeNull();
 });
 
 /* ---------- Insert ▾: the kit's dialogs, other documents on the slide, the speaker notes ---------- */
@@ -607,7 +609,8 @@ test('Insert ▾ puts other local documents on the slide: an outline is made in 
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
   const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(labels).toEqual(expect.arrayContaining(['Web Picture…', 'Table', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Outliner']));
+  expect(labels).toEqual(expect.arrayContaining(['Table', 'Tiny Little Office Doc…', 'Drawing Tool', 'Outliner']));
+  expect(labels.filter((l) => /Picture|Embed/.test(l))).toEqual([]);
   expect(labels).not.toContain('Presentation Builder');
   opener.click();
   await tick();

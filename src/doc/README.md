@@ -9,8 +9,8 @@ One model of a document, one way to read and write it, one set of edits. Everyth
 Doc = { head: Record<string, string>; blocks: Block[] }
 ```
 
-Nine block kinds: `h` (level 1–6), `p`, `li` (depth, `ord`, `done`), `quote`, `hr`, `table` (typed `cols`, raw `rows`),
-`fence` (`lang` names an app: another document; else text kept as written), `edge` (`~ A -> B: label`), `img`. Any
+Eight block kinds: `h` (level 1–6), `p`, `li` (depth, `ord`, `done`), `quote`, `hr`, `table` (typed `cols`, raw
+`rows`), `fence` (`lang` names an app: another document; else text kept as written), `edge` (`~ A -> B: label`). Any
 block may carry `a: { id, cls, kv }`. The four text kinds hold **runs**: `{ t, b, i, u, s, h, href, ic, fn }`, words
 with their marks; an icon (`ic`) or a footnote (`fn`, the note's words as inline Markdown) is a run of its own with
 no words, and counts as one character. A line break inside a paragraph or an item is `'\n'` among the words; marks
@@ -18,8 +18,9 @@ never cross it. Table cells stay strings (formulas, numbers, words); a `rich` co
 parsed by its view and written by the code (`writeInline`), never typed; an `option` column's are words, one of
 those the column already holds or a new one.
 
-There is no embed kind: another document is a `fence` named for its app, a picture is an `img`, a thing from the web
-is a `p` that is one address and nothing else (`isEmbed`). A table's lock and chart are not fields of the block: they
+There is no embed kind: another document is a `fence` named for its app (`isInnerDoc`). There is no picture kind
+and no thing from the web: a web address, or a link, alone on a line is a `p` of words, and `![alt](address)` reads
+as the words `!` and a link. A table's lock and chart are not fields of the block: they
 ride on the head for a sheet document (its first table) and on the table's attributes anywhere else (`tableAt`,
 `withTable`), and `chart-at: top` beside the chart draws it above the table (a chart put in goes there; one without
 it stays below).

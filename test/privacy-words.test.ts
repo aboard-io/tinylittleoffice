@@ -13,8 +13,8 @@ test("no string promises what the browser's history makes untrue", () => {
   expect(source).not.toMatch(/nothing is kept/i);
   // A forgotten short link is gone for those who come later, not for those who already opened it.
   expect(source).not.toMatch(/Anyone who has it will find nothing/i);
-  // The map is not the one thing that asks the web by itself: a trusted site's picture is fetched as its document opens.
-  expect(source).not.toMatch(/the one thing that asks the web/i);
+  // No picture is fetched for a document (round seventeen): the map is the one thing that asks the web by itself.
+  expect(source).not.toMatch(/picture service|trusted list/i);
 });
 
 test('the words that say what is true are there', () => {
@@ -23,6 +23,6 @@ test('the words that say what is true are there', () => {
   expect(keys).toContain('Your browser’s history');
   expect(keys).toContain('Every document opened here, in full, unless it has a password.');
   expect(keys).toContain('Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.');
-  expect(keys).toContain('Showing them tells their site this document was opened, and when.');
+  expect(keys).toContain('Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.');
   expect(keys).toContain('Turn on Saved and keep it here');
 });

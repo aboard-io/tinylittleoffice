@@ -59,12 +59,12 @@ export default {
   'Tiny Little Office': '小小辦公室',
   'About Tiny Little Office': '關於小小辦公室',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': '一套完全住在網址裡的迷你辦公室。沒有伺服器，不用帳號，也不用存檔：連結就是文件。',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '除非你分享連結，否則你寫的任何內容都不會離開瀏覽器。會自己連上網路的只有兩處：旅程的地圖，顯示時圖片來自 OpenStreetMap；以及信任清單上網站的圖片，在文件開啟時透過本站的圖片服務取得。',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': '除非你分享連結，否則你寫的任何內容都不會離開瀏覽器。會自己連上網路的只有一處：旅程的地圖，顯示時圖片來自 OpenStreetMap。',
   'Private, the default:': '私密（預設）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '開啟本選單裡的「儲存」開關，就會把你的設定和開啟過的文件保留在此裝置上。',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': '文件可以設定密碼：它會在這裡、在瀏覽器中加密，連結裡只有密文。本選單裡的「隱私」會顯示此裝置保存了什麼。',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': '小小辦公室選單',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -77,13 +77,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': '這個連結是有人寫進文件的。連結顯示的文字不一定和它實際前往的地方相同。只有在你信任目的地時才繼續。',
   'Go': '前往',
   'Links of this kind do not open here.': '這類連結無法在此開啟。',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': '來自 {host} 的圖片',
-  'Show pictures from the web': '顯示網路圖片',
-  'Showing them tells their site this document was opened, and when.': '顯示它們會讓其網站知道這份文件被開啟過，以及開啟的時間。',
-  'Always show pictures from the web': '一律顯示網路圖片',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': '關閉時，其他網站上的圖片要等你同意才會載入：載入圖片會讓那個網站知道有人在閱讀。',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': '文件裡若有圖片存放在其他網站，要等你同意才會載入：載入圖片會讓那個網站知道誰在讀、何時在讀。離開小小辦公室的連結會先顯示它通往哪裡，並在開啟前詢問你。',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': '離開小小辦公室的連結會先顯示它通往哪裡，並在開啟前詢問你。',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': '沒有分析追蹤，沒有錯誤回報，不從其他地方載入字型或腳本：本站不會在你沒有觸發的情況下向網路要任何東西。',
   'What leaves your browser': '哪些內容會離開你的瀏覽器',
   'What this protects against, and what it does not': '這能防範什麼，又不能防範什麼',
@@ -335,12 +329,9 @@ export default {
   'A narrow headline, two columns': '窄版大標題，雙欄',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': '分頁符號',
-  'Address of the picture': '圖片位址',
-  'Address of a video, a post, a song, a place, a page': '影片、貼文、歌曲、地點或頁面的位址',
   'OK': '確定',
   'This card': '這張卡片',
   'Open in {app}': '在{app}中開啟',
-  'Change the address…': '更改位址…',
   'Locked: worked out for you': '已鎖定：由系統為你計算',
   'Footnotes': '註腳',
   'Back to footnote {n} in the text': '回到內文的註腳 {n}',
@@ -411,30 +402,13 @@ export default {
   'Terms of service': '服務條款',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': '小生意的條款，用白話寫成：預約、價格、鑰匙、萬一怎麼辦、終止。',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': '來自網路',
-  'Read on {provider}': '在 {provider} 上閱讀',
-  'Open on {provider}': '在 {provider} 上開啟',
-  'Play (loads it from {provider})': '播放（從 {provider} 載入）',
-  'Show (loads it from {provider})': '顯示（從 {provider} 載入）',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': '小小辦公室連結',
-  'A film, a sound, a PDF or a picture': '影片、聲音、PDF 或圖片',
-  'No picture came from this address. Check it, or try another.': '這個位址沒有傳回圖片。請檢查位址，或換一個。',
-  'Not one of these: it goes in as a link to the page.': '這些都不是：它會以網頁連結的形式放進去。',
   'Opening the short link…': '正在開啟短連結…',
-  'Paste the address of a picture on the web: the picture shows here.': '貼上網路上圖片的位址：圖片會顯示在這裡。',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': '貼上另一份小小辦公室文件的連結（長短皆可）：它的第一頁會顯示在這裡。',
   'This is not a Tiny Little Office link, or it has expired.': '這不是小小辦公室的連結，或已經到期。',
   'Tiny Little Office Doc': '小小辦公室文件',
   'Tiny Little Office Doc…': '小小辦公室文件…',
-  'Web Embed': '網頁嵌入',
-  'Web Embed…': '網頁嵌入…',
-  'Web Picture': '網路圖片',
-  'Web Picture…': '網路圖片…',
-  'What it can show': '可以顯示什麼',
-  'Words for anyone who cannot see it (optional)': '給看不到的人看的文字說明（選填）',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': '新文件',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -867,7 +841,6 @@ export default {
   'Everything': '全部',
   'Fold': '摺疊',
   'Fold all': '全部摺疊',
-  'From the web: {url}': '來自網路：{url}',
   'Item': '項目',
   'Item {n}': '項目 {n}',
   'Kind of line': '線條種類',
@@ -1614,12 +1587,6 @@ export default {
   'Download the .{ext}': '下載 .{ext}',
   'Share the .{ext}…': '分享 .{ext}…',
   'View the .{ext}': '檢視 .{ext}',
-  'Spotify album': 'Spotify 專輯',
-  'Spotify episode': 'Spotify 單集',
-  'Spotify playlist': 'Spotify 播放清單',
-  'Spotify show': 'Spotify 節目',
-  'Spotify track': 'Spotify 單曲',
-  '{provider} video': '{provider} 影片',
   'Keep them on this device': '保留在此裝置',
   'Nothing is saved on this device now. Keep them here, or open one.': '此裝置目前沒有儲存任何內容。請把它們保留在這裡，或開啟其中一份。',
   'Open the first': '開啟第一份',

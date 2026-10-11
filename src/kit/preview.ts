@@ -4,12 +4,11 @@
  * page and in the menu's results. Drawn from the link alone: the payload decoded, the app's view(doc, { small:
  * true, thumb: true }), the first page; a document whose link no longer reads is a blank page. Drawn only once the row scrolls into sight (one IntersectionObserver for every
  * preview on the page), and kept by its link in memory, so a long list costs nothing until it is seen and
- * nothing twice. A web picture in a preview is a grey box, never fetched (kit/pictures.ts).
+ * nothing twice.
  */
 import { appOf } from './apps.ts';
 import { decodeDoc } from './codec.ts';
 import { CROPPED, pageSvg } from './draw.ts';
-import { gateSvg } from './pictures.ts';
 import { iconNamed, iconNames, iconsComplete, loadIcons } from './icons.ts';
 import { parseHash } from './route.ts';
 
@@ -31,7 +30,7 @@ export function previewOf(hash: string): string {
     const doc = payload ? decodeDoc(payload) : '';
     if (doc && !iconsComplete() && iconNames(doc).some((n) => !iconNamed(n))) waiting.add(hash);
     const page = def && doc ? def.view(doc, { small: true, thumb: true })[0] : undefined;
-    if (page) svg = gateSvg(pageSvg(page, CROPPED), true);
+    if (page) svg = pageSvg(page, CROPPED);
   } catch {
     svg = BLANK;
   }

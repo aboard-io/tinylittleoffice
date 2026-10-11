@@ -14,39 +14,33 @@ The strongest fact is architectural: no server holds documents, so there is noth
 leak. Everything here makes that checkable by a stranger.
 
 1. **What leaves your browser** (gate). A page, `docs/network.md` and `/network` on the site, generated from
-   the code: every request the site can make (map tiles and place search, the short-link service, the
-   Bluesky and Wikipedia embeds, the icon set's lazy chunk, web pictures), when it happens (only after a tap,
-   or never until a switch), what it carries, and the switch that stops it. A test in `test/network.test.ts`
-   greps the built site for every host it can reach and fails if one is not on the page. The `connect-src`,
-   `img-src` and `frame-src` of the CSP are generated from the same list.
-   *Pictures (built, 2026-10-09).* Every web picture the site draws goes through the picture proxy at
-   media.tinylittleoffice.com (`media/`, a Worker that logs nothing), so a picture's site never learns who
-   read a document; a whitelist of hosts with public, licensed pictures shows at once, every other host asks
-   first; exports carry the bytes. docs/network.md has the rules, the whitelist with a reason for each host,
-   and what else the site may ask and why. The CSP's `img-src` is the site, the proxy and the map's tiles
-   (no `https:` at large), filled from `VITE_MEDIA_URL` by `scripts/headers.ts` and held by
-   `test/csp.test.ts`.
+   the code: every request the site can make (map tiles and place search, the short-link service, the icon
+   set's lazy chunk, a share to a service), when it happens (only after a tap, or while a map is shown), what
+   it carries, and what stops it. A test in `test/network.test.ts` greps the site for every host it can reach
+   and fails if one is not on the page. The `connect-src` and `img-src` of the CSP are generated from the same
+   list.
+   *Pictures and embeds removed, 2026-10-11 (round seventeen).* A document fetches nothing from any other
+   site: there are no pictures from the web, no picture proxy and no embeds (the code is kept on the branch
+   `web-pictures-and-embeds`). The CSP's `img-src` is the site, `data:`, `blob:` and the map's tiles (no
+   `https:` at large), and it has no `frame-src` or `media-src` of another site's, held by `test/csp.test.ts`.
    *Built, 2026-10-10.* `src/kit/network.ts` is the one list of every host the site can reach (what, when,
    what it carries, what stops it, the module, the CSP directive); every module that asks the web takes its
-   host from it, and the picture whitelist (`src/kit/media.ts` `TRUSTED`) is its entries with a reason.
-   `scripts/network-doc.ts` (`npm run docs:network`, run first by `npm run build`) writes `docs/network.md`
-   and `public/network.html` (`/network`, plain HTML, no script, linked from About and the README), the
-   proxy's host from `scripts/headers.ts` `mediaSource`. `scripts/headers.ts` writes `connect-src`, `img-src`,
-   `frame-src` and `media-src` from the list (`test/csp.test.ts`: every host in its directive and nothing
-   else; the map's tiles left `connect-src`, which nothing used). Builds are not run in tests, so
-   `test/network.test.ts` reads the source (`src/`, `tinier/`, `media/`) instead of the built site: every
-   host must be on the list (or localhost, or an XML namespace; tests exempt, said why), `src/` names hosts
-   only through the list, and the committed page must be
+   host from it. `scripts/network-doc.ts` (`npm run docs:network`, run first by `npm run build`) writes
+   `docs/network.md` and `public/network.html` (`/network`, plain HTML, no script, linked from About and the
+   README). `scripts/headers.ts` writes `connect-src` and `img-src` from the list (`test/csp.test.ts`: every
+   host in its directive and nothing else; the map's tiles left `connect-src`, which nothing used). Builds are
+   not run in tests, so `test/network.test.ts` reads the source (`src/`, `tinier/`) instead of the built site: every
+   host must be on the list (or localhost, or an XML namespace; tests exempt, said why), `src/` names hosts only through the list, and the committed page must be
    what the list says.
 2. **A threat model** (gate). `docs/threat-model.md`: what we protect against (the host learning a document;
    a short link's service reading one; a shared link altered in transit; a scam link or a tracking picture
-   inside a document; a reader fetching a picture and revealing their IP), what we do not (someone you gave
+   inside a document), what we do not (someone you gave
    the link to passing it on; a compromised device or browser extension; a weak password), and why each
    design choice follows. Plain words, no reassurance.
    *Built, 2026-10-10.* `docs/threat-model.md`: what is protected against and what is not (a lost phone with
    Saved on, the browser's history and sync, a screenshot and everything the link passes through added to
    the list), a table of each design choice and its threat, what the Cloudflare host can see (the static
-   files' requests, the shortener's ciphertext rows and D1's own history, the proxy's fetches), and "If you
+   files' requests, the shortener's ciphertext rows and D1's own history), and "If you
    find a hole" pointing at `SECURITY.md` (item 8). It says plainly that whoever serves the code could read
    the fragment, and that item 3 is the answer, not yet built. About links it. *2026-10-11:* About says the
    list in the page's language itself, and links the whole document in the public repository, said to be in English.
@@ -85,17 +79,17 @@ leak. Everything here makes that checkable by a stranger.
    and `short-links.json`, checked by
    `test/crypto-vectors.test.ts` against the kit and against WebCrypto called by hand. `sealAt` (crypt.ts)
    and `sealShortAt` (short.ts) take a fixed IV for the vectors; a test fails if the site calls either. "Logs
-   nothing" for tinier is held by `test/tinier.test.ts` as it is for the proxy.
+   nothing" for tinier is held by `test/tinier.test.ts`.
 6. **Self-hosting as a first-class path.** `npm run deploy` against anyone's Cloudflare account (the
    shortener included), a `docs/self-host.md` that takes thirty minutes, and the site's About naming the
    commit it runs so a self-hoster's copy is distinguishable.
-   *Built, 2026-10-10:* `docs/self-host.md` (the three Workers, D1, the names to change, the policy's
+   *Built, 2026-10-10:* `docs/self-host.md` (the two Workers, D1, the names to change, the policy's
    `connect-src`, `npm run deploy`). The About dialog's commit waits for `/version.json` (item 3).
 7. **No telemetry, asserted.** No analytics, no error reporting, no fonts from a CDN, no fetch the person did
    not cause; a test asserts the built site contains no such host, and the threat model says so.
    *Built, 2026-10-10 (the threat model's sentence waits for item 2).* `test/network.test.ts` fails on any
    analytics, error-reporting, font-CDN, tag-manager or session-recording host (a deny-list of 22) anywhere in
-   `src/`, `tinier/`, `media/`, `public/`, `index.html`, `vite.config.ts` and `wrangler.jsonc`; About says,
+   `src/`, `tinier/`, `public/`, `index.html`, `vite.config.ts` and `wrangler.jsonc`; About says,
    in one sentence, that the site asks the web for nothing you did not cause, and links /network.
 8. **Hygiene.** `SECURITY.md` (a disclosure address, a 72-hour acknowledgement, coordinated disclosure, no
    bounty yet, a thanks list); signed release tags; a changelog naming security-relevant changes;

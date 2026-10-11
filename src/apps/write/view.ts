@@ -2,37 +2,18 @@
  * A text drawn and exported, with no DOM: its pages on paper (letter or A4, the margin an inch), with the
  * title large, the document's own head fields under it, headings, paragraphs, lists, quotes, a table block
  * drawn by the sheet's renderer and worked out in place, another document as a picture of its first page,
- * a thing from the web as a card, and the footnotes small at the end; and the same text as a web page, as
+ * and the footnotes small at the end; and the same text as a web page, as
  * Word (.docx), as RTF and as Markdown. A rule (`hr`) is a page break: the next page on paper, in print
  * and in .docx and .rtf; `---` in Markdown. The look (look.ts) sets the type in each: its faces, justified lines, indented paragraphs,
  * small capitals, two columns on paper. (Ported from the old tree's write.def.ts onto runs.)
  */
 import { encodeDoc } from '../../kit/codec.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw.ts';
-import { embedCaption } from '../../kit/embeds.ts';
 import { glyphNamed } from '../../kit/icons.ts';
 import { LOCKED_LANG, placedLink } from '../../kit/locked.ts';
 import { XML_HEAD, zip } from '../../kit/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/app.ts';
-import {
-  formatCell,
-  listNumbers,
-  markNotes,
-  noteNumbers,
-  noteRuns,
-  notesOf,
-  parse,
-  plainText,
-  referenceNotes,
-  runLinks,
-  write,
-  isEmbed,
-  webOf,
-  isText,
-  type Block,
-  type Doc,
-  type Run,
-} from '../../doc/index.ts';
+import { formatCell, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, parse, plainText, referenceNotes, runLinks, write, isText, type Block, type Doc, type Run } from '../../doc/index.ts';
 import { currencyAt } from '../sheet/model.ts';
 import { tablePage } from '../sheet/view.ts';
 import { PAPERS, fenceTitle, fieldsOf, paperOf, tableView, titleBlock } from './model.ts';
@@ -294,38 +275,12 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
       bits.push({ h: h + 12, first: h + 12, svg: (y) => rect(M, y, cw, h, SHADE, 'rx="6"') + lines.map((l, i) => lineSvg(M + 12, y + 23 + i * 18, [{ t: l, mono: true }], 13)).join('') });
       continue;
     }
-    if (b.k === 'img') {
-      const h = Math.min(360, cw * 0.6);
-      bits.push({
-        h: h + 36,
-        first: h + 36,
-        svg: (y) =>
-          `<image href="${xml(b.url)}" x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" preserveAspectRatio="xMidYMid meet"/>` +
-          (b.alt ? svgText(M + cw / 2, y + h + 18, b.alt, { px: 12, fill: MUTED, anchor: 'middle' }) : ''),
-      });
-      continue;
-    }
     if (b.k === 'hr') {
       bits.push({ h: 0, first: 0, brk: true, svg: () => '' });
       continue;
     }
     if (b.k === 'edge') {
       bits.push({ h: 28, first: 28, svg: (y) => svgText(M, y + 16, `${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`, { px: 16 }) });
-      continue;
-    }
-    if (isEmbed(b)) {
-      // A thing from the web: a card with the provider and the address, which a reader can follow.
-      const web = webOf(b)!;
-      const url = web.url;
-      const { provider, title: what } = embedCaption(url, web.title);
-      bits.push({
-        h: 72,
-        first: 72,
-        svg: (y) =>
-          rect(M, y, cw, 56, '#fff', `stroke="${LINE}" rx="8"`) +
-          svgText(M + 16, y + 24, what, { px: 14, bold: true }) +
-          svgText(M + 16, y + 43, provider === what ? url : `${provider} · ${url}`, { px: 11, fill: MUTED }),
-      });
       continue;
     }
     if (!isText(b)) continue;
@@ -519,7 +474,7 @@ function tableHtml(doc: Doc, at: number): string {
   return `<table>${named ? `<thead><tr>${head.map((h) => `<th scope="col">${xml(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${rows.join('')}</tbody></table>`;
 }
 
-/** The body of the text as HTML: headings, paragraphs, nested lists, tables, embedded documents as figures, the footnotes at the end. */
+/** The body of the text as HTML: headings, paragraphs, nested lists, tables, documents held in it as figures, the footnotes at the end. */
 export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
   const next = noteNumbers();
   const inner = (b: { runs: Run[] }) => b.runs.map((run) => (run.fn === undefined ? htmlRun(run) : noteMarkHtml(next(), stem))).join('');
@@ -551,8 +506,6 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
           return '<hr class="page-break">';
         case 'table':
           return tableHtml(doc, doc.blocks.indexOf(b));
-        case 'img':
-          return `<figure><img src="${xml(b.url)}" alt="${xml(b.alt)}" referrerpolicy="no-referrer" loading="lazy">${b.alt ? `<figcaption>${xml(b.alt)}</figcaption>` : ''}</figure>`;
         case 'edge':
           return `<p>${xml(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}</p>`;
         case 'fence': {
@@ -560,17 +513,10 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
           const def = appOfLazy(b.lang);
           const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
           const page = def?.view(b.body, { small: true })[0];
-          return `<figure class="embed">${page ? `<a href="${xml(fenceLink(b.lang, b.body, site))}">${pageSvg(page, `role="img" aria-label="${xml(name)}"`)}</a>` : `<pre>${xml(b.body)}</pre>`}<figcaption><a href="${xml(fenceLink(b.lang, b.body, site))}">${xml(name)}</a>${def ? ` <small>${xml(def.name)}</small>` : ''}</figcaption></figure>`;
+          return `<figure class="doc">${page ? `<a href="${xml(fenceLink(b.lang, b.body, site))}">${pageSvg(page, `role="img" aria-label="${xml(name)}"`)}</a>` : `<pre>${xml(b.body)}</pre>`}<figcaption><a href="${xml(fenceLink(b.lang, b.body, site))}">${xml(name)}</a>${def ? ` <small>${xml(def.name)}</small>` : ''}</figcaption></figure>`;
         }
-        default: {
-          if (isEmbed(b)) {
-            const web = webOf(b)!;
-            const url = web.url;
-            const { provider, title: what } = embedCaption(url, web.title);
-            return `<figure class="embed web"><a href="${xml(url)}" rel="noopener">${xml(what)}</a> <small>${xml(provider)}</small></figure>`;
-          }
+        default:
           return `<p${alignStyle(b)}>${inner(b) || '<br>'}</p>`;
-        }
       }
     },
   );
@@ -616,7 +562,7 @@ p,li{margin:0 0 .6em}blockquote{margin:0 0 .6em;padding-left:12px;border-left:3p
 li.task{list-style:none;margin-left:-1.4em}li.done{color:${MUTED}}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:1em;margin:0 0 1.5em}.fields dt{font-size:.7em;letter-spacing:.06em;text-transform:uppercase;color:${MUTED}}.fields dd{margin:.2em 0 0}
 table{border-collapse:collapse;margin:0 0 1em;font-size:.95em}th{background:${SHADE};text-align:left;font-size:.85em;padding:.4em .7em;border:1px solid ${LINE}}td{padding:.4em .7em;border:1px solid ${LINE}}td.n{text-align:right;font-variant-numeric:tabular-nums}
-figure{margin:1em 0}figure.embed svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figure img{max-width:100%;height:auto}figcaption,figure.embed{color:${MUTED};font-size:.9em}figure.embed.web{padding:.8em 1em;border:1px solid ${LINE};border-radius:8px}
+figure{margin:1em 0}figure.doc svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figcaption,figure.doc{color:${MUTED};font-size:.9em}
 mark{background:#fde68a}pre{padding:.8em 1em;background:${SHADE};border-radius:8px;overflow:auto;font-size:.85em}
 a{color:${ACCENT}}.fn a{text-decoration:none}.fn-notes{margin-top:2em;font-size:.8em;color:${MUTED}}.fn-notes hr{width:72px;margin:0 0 .6em;border:0;border-top:1px solid ${LINE}}.fn-notes ol{padding-left:1.6em}
 hr.page-break{margin:2em 0;border:0;border-top:1px dashed ${LINE}}@media print{hr.page-break{break-after:page;margin:0;border:0}}
@@ -693,7 +639,7 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
     const n = number(b);
     const own = b.a?.cls?.includes('center') ? '\\qc' : b.a?.cls?.includes('right') ? '\\qr' : b.a?.cls?.includes('justify') ? '\\qj' : '';
     // A book's paragraphs: justified, run on with no gap, each after the first indented; its headings centred in small capitals.
-    const para = b.k === 'p' && !isEmbed(b);
+    const para = b.k === 'p';
     const jc = own || (look.justify && para ? '\\qj' : '') || (look.caps && b.k === 'h' && b !== title ? '\\qc' : '');
     const book = look.indent && para ? `${blocks[at - 1]?.k === 'p' ? '\\fi360' : ''}${blocks[at + 1]?.k === 'p' ? '\\sa0' : ''}` : '';
     if (b.k === 'table') {
@@ -720,23 +666,12 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
       );
       continue;
     }
-    if (b.k === 'img') {
-      out.push(`{\\pard\\sa160 {\\field{\\*\\fldinst HYPERLINK "${rtfText(b.url)}"}{\\fldrslt {\\ul\\cf1 ${rtfText(b.alt || b.url)}}}}\\par}`);
-      continue;
-    }
     if (b.k === 'hr') {
       out.push('\\page');
       continue;
     }
     if (b.k === 'edge') {
       out.push(`{\\pard\\sa160 ${rtfText(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}\\par}`);
-      continue;
-    }
-    if (isEmbed(b)) {
-      const web = webOf(b)!;
-      const url = web.url;
-      const { provider, title: what } = embedCaption(url, web.title);
-      out.push(`{\\pard\\sa160 {\\field{\\*\\fldinst HYPERLINK "${rtfText(url)}"}{\\fldrslt {\\ul\\cf1 ${rtfText(what)}}}} {\\i (${rtfText(provider)})}\\par}`);
       continue;
     }
     if (!isText(b)) continue;
@@ -825,7 +760,7 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
   const blocks = doc.blocks;
   for (const [at, b] of blocks.entries()) {
     const cls = b.a?.cls ?? [];
-    const para = b.k === 'p' && !isEmbed(b);
+    const para = b.k === 'p';
     // A book's paragraphs justified, run on with no gap, each after the first indented (its headings are their styles').
     const how = cls.includes('center') ? 'center' : cls.includes('right') ? 'right' : cls.includes('justify') || (look.justify && para) ? 'both' : '';
     const jc =
@@ -868,25 +803,12 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
       );
       continue;
     }
-    if (b.k === 'img') {
-      paras.push(`<w:p><w:hyperlink r:id="${rel(b.url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">${xml(b.alt || b.url)}</w:t></w:r></w:hyperlink></w:p>`);
-      continue;
-    }
     if (b.k === 'hr') {
       paras.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
       continue;
     }
     if (b.k === 'edge') {
       paras.push(`<w:p>${plain(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}</w:p>`);
-      continue;
-    }
-    if (isEmbed(b)) {
-      const web = webOf(b)!;
-      const url = web.url;
-      const { provider, title: what } = embedCaption(url, web.title);
-      paras.push(
-        `<w:p><w:hyperlink r:id="${rel(url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">${xml(what)}</w:t></w:r></w:hyperlink>${plain(` (${provider})`, '<w:i/>')}</w:p>`,
-      );
       continue;
     }
     if (!isText(b)) continue;

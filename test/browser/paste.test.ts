@@ -86,7 +86,9 @@ test('words that look like syntax come through as the words: the writer escapes 
 test("fitted to the host: a slide's words keep items and paragraphs, a table becomes its rows; a label takes the words alone", () => {
   const lines = paste(DOCS.html, DOCS.text, 'lines');
   expect(tlo(lines)).toBe('Plan\n\n- **Bold** start\n  - *nested*\n- [a link](https://example.com/)\n1. first\n2. second\n  its second paragraph\n');
-  expect(tlo(paste('<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table><img src="https://p.q/r.png" alt="a cat"><hr>', '', 'lines'))).toBe('A\tB\n\n1\t2\n\na cat\n');
+  expect(tlo(paste('<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table><img src="https://p.q/r.png" alt="a cat"><hr>', '', 'lines'))).toBe(
+    'A\tB\n\n1\t2\n\n[a cat](https://p.q/r.png)\n',
+  );
   expect(paste(DOCS.html, DOCS.text, 'line')).toEqual({
     runs: [{ t: 'Plan ' }, { t: 'Bold', b: true }, { t: ' start ' }, { t: 'nested', i: true }, { t: ' ' }, { t: 'a link', href: 'https://example.com/' }, { t: ' first second its second paragraph' }],
   });

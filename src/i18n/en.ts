@@ -75,12 +75,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office',
   'About Tiny Little Office': 'About Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.',
   'Private, the default:': 'Private, the default:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Saved, the switch in this menu, keeps your settings and the documents you open on this device.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Tiny Little Office menu',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -93,13 +93,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.',
   'Go': 'Go',
   'Links of this kind do not open here.': 'Links of this kind do not open here.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'A picture from {host}',
-  'Show pictures from the web': 'Show pictures from the web',
-  'Showing them tells their site this document was opened, and when.': 'Showing them tells their site this document was opened, and when.',
-  'Always show pictures from the web': 'Always show pictures from the web',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.',
   'What leaves your browser': 'What leaves your browser',
   'What this protects against, and what it does not': 'What this protects against, and what it does not',
@@ -354,12 +348,9 @@ export default {
   'A narrow headline, two columns': 'A narrow headline, two columns',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Page break',
-  'Address of the picture': 'Address of the picture',
-  'Address of a video, a post, a song, a place, a page': 'Address of a video, a post, a song, a place, a page',
   'OK': 'OK',
   'This card': 'This card',
   'Open in {app}': 'Open in {app}',
-  'Change the address…': 'Change the address…',
   'Locked: worked out for you': 'Locked: worked out for you',
   'Footnotes': 'Footnotes',
   'Back to footnote {n} in the text': 'Back to footnote {n} in the text',
@@ -430,30 +421,13 @@ export default {
   'Terms of service': 'Terms of service',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'A small business\'s terms in plain words: booking, prices, keys, what if, ending.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'From the web',
-  'Read on {provider}': 'Read on {provider}',
-  'Open on {provider}': 'Open on {provider}',
-  'Play (loads it from {provider})': 'Play (loads it from {provider})',
-  'Show (loads it from {provider})': 'Show (loads it from {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'A Tiny Little Office link',
-  'A film, a sound, a PDF or a picture': 'A film, a sound, a PDF or a picture',
-  'No picture came from this address. Check it, or try another.': 'No picture came from this address. Check it, or try another.',
-  'Not one of these: it goes in as a link to the page.': 'Not one of these: it goes in as a link to the page.',
   'Opening the short link…': 'Opening the short link…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Paste the address of a picture on the web: the picture shows here.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Paste the link of another Tiny Little Office document, long or short: its first page shows here.',
   'This is not a Tiny Little Office link, or it has expired.': 'This is not a Tiny Little Office link, or it has expired.',
   'Tiny Little Office Doc': 'Tiny Little Office Doc',
   'Tiny Little Office Doc…': 'Tiny Little Office Doc…',
-  'Web Embed': 'Web Embed',
-  'Web Embed…': 'Web Embed…',
-  'Web Picture': 'Web Picture',
-  'Web Picture…': 'Web Picture…',
-  'What it can show': 'What it can show',
-  'Words for anyone who cannot see it (optional)': 'Words for anyone who cannot see it (optional)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'A new document',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -886,7 +860,6 @@ export default {
   'Everything': 'Everything',
   'Fold': 'Fold',
   'Fold all': 'Fold all',
-  'From the web: {url}': 'From the web: {url}',
   'Item': 'Item',
   'Item {n}': 'Item {n}',
   'Kind of line': 'Kind of line',
@@ -1634,12 +1607,6 @@ export default {
   'Download the .{ext}': 'Download the .{ext}',
   'Share the .{ext}…': 'Share the .{ext}…',
   'View the .{ext}': 'View the .{ext}',
-  'Spotify album': 'Spotify album',
-  'Spotify episode': 'Spotify episode',
-  'Spotify playlist': 'Spotify playlist',
-  'Spotify show': 'Spotify show',
-  'Spotify track': 'Spotify track',
-  '{provider} video': '{provider} video',
   'Keep them on this device': 'Keep them on this device',
   'Nothing is saved on this device now. Keep them here, or open one.': 'Nothing is saved on this device now. Keep them here, or open one.',
   'Open the first': 'Open the first',

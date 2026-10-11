@@ -27,7 +27,7 @@ The packed form: after `#/v1/<app>/` comes one letter and then base64url bytes (
 
 ## TLO: Markdown, and what it adds
 
-Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested by two spaces, `- [ ]` and `- [x]` tasks, `> ` quotes, `---` rules, tables with a `--- | ---` line under their header row, and inline `**bold**`, `*italic*`, `~~strike~~`, `[words](https://…)`, `![what it shows](https://…picture)`. A footnote sits where it belongs: `^[the note's words]` (Markdown's `[^1]` with a `[^1]: the note` paragraph reads too). TLO adds:
+Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested by two spaces, `- [ ]` and `- [x]` tasks, `> ` quotes, `---` rules, tables with a `--- | ---` line under their header row, and inline `**bold**`, `*italic*`, `~~strike~~`, `[words](https://…)`. A footnote sits where it belongs: `^[the note's words]` (Markdown's `[^1]` with a `[^1]: the note` paragraph reads too). TLO adds:
 
 | Write | Means |
 | --- | --- |
@@ -37,10 +37,8 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `~ A -> B: label` | A connection between two things (`->`, `<-`, `<->`, `--`) |
 | a code fence named for an app: ```` ```sheet ```` | Another document inside this one, written in that app's TLO: a chart on a slide, a table in a text |
 | `==highlight==`, `++underline++`, `:icon-name:` | A highlight, an underline, an icon in the line (Lucide's names: `rocket`, `calendar`, `coffee`…) |
-| a line that is only a web address | That thing from the web, as a card that loads it only when the reader taps it (a video, a post, a track, a map, a picture, a PDF) |
-| a line that is only a link, `[The title](https://…)` | The same thing from the web, its card titled with your words, for a site the card can show (YouTube, Wikipedia, Spotify and the rest below): give every video and article a title, or its card says only "YouTube video". A link to any other site alone on a line stays words |
 
-`---` between blocks starts the next slide, page or card. A table anywhere is a spreadsheet: its formulas work.
+`---` between blocks starts the next slide, page or card. A table anywhere is a spreadsheet: its formulas work. A link is words: `[words](https://…)` or a web address, alone on a line or among other words, is words that go there when the reader follows them. Nothing in a document is fetched from another site: there are no pictures from the web and no embedded videos or posts, and Markdown's picture line, `![words](https://…)`, reads as a link.
 
 ## The apps
 
@@ -529,10 +527,9 @@ Before you share a link, lint it: `tinyoffice lint <link or file.tlo>` (or `awai
 - `title-cut`, `title-small`: a headline cut after two lines, or set at its smallest size.
 - `body-over`, `body-small`: a slide's words running off its foot, or set at their smallest size.
 - `formula-error`: a table's formula that works out to an error (`#CIRC`, `#REF`, `#DIV/0`, `#NAME`, `#VALUE`, `#NUM`, `#ERR`), in any table, a fenced one too: the cell, the formula, the error and the fix. A total over its own column takes in its own cell when the rows are counted from the header: rows count from the first data row, so the eighth row's total of the seven above is `=SUM(B1:B7)`.
-- `picture-indirect`: a picture asked for at a page rather than the picture itself (Commons' `Special:FilePath` or a `File:` page): it redirects, the picture proxy does not follow it, and the slide shows the picture's card instead. Use the file's own `upload.wikimedia.org` address.
 - `length`: a link past 2,000 characters, which some chat apps cut.
 
-A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides, what it shows (`shows`) and, for a thing from the web, its `embed`: kind, provider and the title its card will say; per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages. If you do open a development copy of the site, pictures from the web show there only while its picture proxy runs (`npm run media:dev`, with `SITE` set to the site's address), as short links need its shortener (`npm run tinier:dev`); without it every web picture is its card.
+A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides, what it shows (`shows`); per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages. If you do open a development copy of the site, short links need its shortener (`npm run tinier:dev`).
 
 ## Driving the editors
 
