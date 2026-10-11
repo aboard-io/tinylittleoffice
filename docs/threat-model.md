@@ -34,14 +34,14 @@ short link sends ciphertext; a picture's address goes to the proxy; see below).
 
 **The short-link service reading a document.** A short link is the long link encrypted in the browser with
 AES-256-GCM under a random key that travels only in the short link's own fragment
-(`…/<id>#<key>`). The service stores the ciphertext, an IV, an expiry and a hash of the owner's key, and
-cannot decrypt any of it. It can see that a link was made, when, from which address, and how long the
-ciphertext is. Details: `docs/crypto/short-links.md`. The same condition applies: the page at
-`tinier.tinylittleoffice.com/<id>` that decrypts is served by the service.
+(`…/<id>#<key>`). The service stores the ciphertext, an IV and an expiry, and cannot decrypt any of it. It
+can see that a link was made, when, from which address, and how long the ciphertext is. Details:
+`docs/crypto/short-links.md`. The same condition applies: the page at `tinier.tinylittleoffice.com/<id>` that
+decrypts is served by the service.
 
-**Someone updating or deleting a short link they do not own.** An update or a delete must present `o`, 32
-random bytes that exist only in the owner's link (`#<key>.<o>`); the service keeps only `sha256(o)`. A wrong
-`o` and an unknown id get the same answer in the same time.
+**Someone changing or recalling a short link.** Nobody can, its maker included: a short link cannot be
+changed or recalled once made, and expires on its own (Paul, 2026-10-11). There is no update, no delete and
+no owner key, so there is no secret beside the document in anyone's address bar to give that power away.
 
 **A shared link altered on the way.** Two different protections, for two different cases:
 - A document with a password is authenticated by AES-GCM's tag: a changed byte, a cut-short link or a
@@ -82,7 +82,7 @@ exported file fetches nothing.
 that say nothing of a document: the language (`tinyoffice.lang`), the size of everything (`tinyoffice.size`) and
 the theme (`to-theme`), all three cleared by Forget everything. With Saved on, the
 device keeps the preferences, the documents opened there (`src/kit/library.ts`),
-the owner links of short links made there, and the signing key. A document under a password is kept as its
+the short links made there, and the signing key. A document under a password is kept as its
 ciphertext with no title and no first words, so the library does not give away even its name. Nothing else
 is encrypted by Tiny Little Office: the rest is as safe as the phone's lock and the operating system's own
 storage encryption. See the next section for what that leaves open.
@@ -95,15 +95,15 @@ Cloudflare does not add its analytics beacon (which the policy would block anywa
 ## What it does not protect against
 
 **Someone you gave the link to passing it on.** A link is a copy of the document. It cannot be recalled. A
-short link can be deleted or left to expire, but whoever opened it has the long link in their address bar.
+short link cannot be recalled either: it expires on its own, and whoever opened it has the long link in their
+address bar.
 
 **Everything the link passes through.** A chat service, an email provider, a link-preview robot, a
 clipboard manager, a note-taking app: each holds the document if it holds the link. A password is the
 answer, and only if the password is not sent the same way.
 
 **The browser's own history and sync.** The address bar holds the document, so the browser's history does,
-and so does its sync service if that is on. An owner arriving by an owner link has the owner key in the
-history too (`?s=…&k=…&o=…` in the fragment). Private does not change what the browser itself records.
+and so does its sync service if that is on. Private does not change what the browser itself records.
 
 **A compromised device, browser or extension.** An extension allowed to read the site's pages reads the
 document as it is shown, the password as it is typed, and the signing key from storage. So does malware on
@@ -122,8 +122,14 @@ link's are as long as the compressed document plus a fixed overhead.
 route (`#/v1/text/…`). A signature covers the app; a password's tag does not. Someone who changes a sealed
 link's app name changes what opens it, not what it says.
 
+**The shortener, to a stranger.** It is a store of up to 16 KB of opaque bytes per link, a hundred links a
+day per address, kept up to a month, readable by whoever has the id, and never opened anywhere but the site:
+its page decrypts only a link to Tiny Little Office and goes nowhere else. It cannot tell a document from any
+other ciphertext, so someone could keep other bytes there; the limits are what bound it, and many addresses
+make many hundreds.
+
 **A lost phone, in full.** With Saved on, a person holding the unlocked phone can read every document in the
-library that has no password, use the owner links to change or delete those short links, and sign as you
+library that has no password, open the short links made there while they last, and sign as you
 with your key. There is no remote wipe and no way to revoke a signing key: a key's fingerprint is all a
 reader checks, and a stolen key makes a signature that checks. Turning Saved off (from the phone) removes
 all of it.
@@ -153,8 +159,9 @@ taps it, and the map's tiles and place search go to OpenStreetMap directly while
 | A locked document's title reaches nothing but its own page: not the tab title or history, the library, a kept short link, a post, the embed, the QR file, or the share sheet (which gets no picture either) | History, tab sync and the apps a link is shared to telling what a sealed document is |
 | Ed25519 signatures over app, time, words, title and name; P-256 where Ed25519 is missing | A shared document altered, or its name or date changed, without the reader being able to tell |
 | Short link: AES-256-GCM, the key only in the fragment | The short-link service reading documents |
-| Owner key: the service keeps only its SHA-256; wrong key and no row answered alike, in the same time | Others changing or deleting a short link; probing for which ids have owners |
-| Short links expire (an hour to a year), are swept hourly, extend only on purpose | Ciphertext kept indefinitely by a service |
+| Short links cannot be changed or recalled: no update, no delete, no owner key | A short link replaced under the people it was sent to; a key to replace it copied out of an address bar |
+| Short links expire (an hour to a month) and are swept hourly | Ciphertext kept indefinitely by a service |
+| A hundred links a day per address, counted under a keyed hash kept two days | The shortener used as free storage by a stranger; a record of who made links |
 | No logs in the site, the shortener or the proxy (observability off, no console calls, tests hold both) | A record of who asked for what |
 | The link guard before every link that leaves | A scam link disguised by its words |
 | No website builder: a document never runs code | A phishing page served from our own domain |
@@ -171,13 +178,15 @@ whatever reaches any of them, Cloudflare and the account's operator could see.
   path (which names the app: `/sheet/`), and the files the page then loads. Not the fragment, so never the document, its title, its password or its signature.
   Cloudflare keeps its own aggregate traffic counts for the account, as for any site it serves; per-request
   Worker logs are off (`wrangler.jsonc`, held by `test/tinier.test.ts`).
-- **The shortener.** For each short link: the ciphertext, its IV, its expiry, its version count, when it
-  was last updated, and the hash of its owner key, kept in Cloudflare D1 until it expires; the IP address of
-  each request, counted in memory by the rate limit and not written down. Not the key, so never the long
-  link, and not `o` except in the one update or delete that proves it (in the body, over TLS). D1 keeps its
-  own point-in-time history of the database for a limited window (Cloudflare's Time Travel); a row deleted
-  from the table can be restored from that history by the account's operator until the window passes.
-  Details: `docs/crypto/short-links.md`.
+- **The shortener.** For each short link: the ciphertext, its IV and its expiry, kept in Cloudflare D1
+  until it expires. For two days, for each address that made a link: a count, under
+  `sha256(BRAKE_KEY ‖ day ‖ address)`, where `BRAKE_KEY` is a secret of the deployment (a Worker secret,
+  never in the repository). Without the key the row says nothing of the address; with it, only that the
+  address made links that day, and how many. The IP address of each request is seen for the length of the
+  request and not written down. Never the key, so never the long link. D1 keeps its own point-in-time
+  history of the database for a limited window (Cloudflare's Time Travel); a row deleted from the table can
+  be restored from that history by the account's operator until the window passes. Details:
+  `docs/crypto/short-links.md`.
 - **The proxy.** The address of each web picture a reader is shown, and the reader's IP address, for the
   length of the request; the picture itself, cached at the edge for a week. Nothing written down. A picture's
   address can itself say something about the document it is in.

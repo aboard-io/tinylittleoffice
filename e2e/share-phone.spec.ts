@@ -27,6 +27,8 @@ test('share: on a phone, one full-screen sheet; a tap chooses a lifetime; the ar
   // A tap on "A month" chooses it.
   await dialog.locator('.to-ttl label', { hasText: 'A month' }).tap();
   await expect(dialog.locator('.to-ttl input:checked')).toHaveValue(String(30 * 86400));
+  // A month is the longest life: no year.
+  await expect(dialog.locator('.to-ttl label')).toHaveText(['An hour', 'A day', 'A week', 'A month']);
   for (const b of await dialog.locator('button:visible').all()) {
     const r = (await b.boundingBox())!;
     expect(r.x).toBeGreaterThanOrEqual(0);

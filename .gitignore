@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.*
+.dev.vars
 !.env.example
 test-results/
 playwright-report/

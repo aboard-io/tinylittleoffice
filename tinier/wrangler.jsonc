@@ -1,4 +1,4 @@
-// tinier, the link shortener, as a Worker: the ciphertext in D1, swept hourly.
+// tinier, the link shortener, as a Worker: the ciphertext and the daily counts in D1, swept hourly.
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "tinier",
@@ -15,9 +15,9 @@
       "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5",
     },
   ],
-  // A gentle brake on one address making or changing many links. Counted per Cloudflare location, in memory, never written down.
-  "ratelimits": [{ "name": "LIMITER", "namespace_id": "1", "simple": { "limit": 10, "period": 60 } }],
-  // Expired links go every hour; a read of one goes sooner.
+  // A hundred links a day from one address, counted in D1 under a keyed hash (tinier.ts); the key is the secret
+  // BRAKE_KEY (`wrangler secret put BRAKE_KEY`), never here. Expired links, and the counts of days before
+  // yesterday, go every hour; a read of an expired link removes it sooner.
   "triggers": { "crons": ["17 * * * *"] },
   // No logs: the server learns that a link was made, and keeps even that to itself.
   "observability": { "enabled": false },

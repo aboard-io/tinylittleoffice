@@ -1,9 +1,10 @@
-// The shortener's rows in a Map: what D1 does, for the tests.
-import type { Link, Revision, Store } from '../tinier/tinier.ts';
+// The shortener's rows in Maps: what D1 does, for the tests.
+import { dayOf, type Link, type Store } from '../tinier/tinier.ts';
 
-/** The rows in a Map: what D1 does, for the test. */
+/** The rows in Maps: what D1 does, for the test. */
 export class MemStore implements Store {
   rows = new Map<string, Link>();
+  brakes = new Map<string, { n: number; day: number }>();
   async get(id: string) {
     return this.rows.get(id) ?? null;
   }
@@ -12,16 +13,17 @@ export class MemStore implements Store {
     this.rows.set(id, link);
     return true;
   }
-  async revise(id: string, rev: Revision) {
-    const row = this.rows.get(id)!;
-    this.rows.set(id, { ...row, ...rev, ver: row.ver + 1 });
-  }
   async drop(id: string) {
     this.rows.delete(id);
   }
-  async sweep(now: number) {
-    let n = 0;
-    for (const [id, l] of this.rows) if (l.exp < now) (this.rows.delete(id), n++);
+  async count(h: string, day: number) {
+    const n = (this.brakes.get(h)?.n ?? 0) + 1;
+    this.brakes.set(h, { n, day });
     return n;
+  }
+  async sweep(now: number) {
+    const today = dayOf(now);
+    for (const [id, l] of this.rows) if (l.exp < now) this.rows.delete(id);
+    for (const [h, b] of this.brakes) if (b.day !== today && b.day !== today - 1) this.brakes.delete(h);
   }
 }

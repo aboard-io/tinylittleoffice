@@ -120,9 +120,9 @@ export const NETWORK = {
   },
   tinier: {
     host: 'tinier.tinylittleoffice.com',
-    what: 'Short links: made, opened, updated or forgotten',
+    what: 'Short links: made or opened',
     when: 'after a tap',
-    carries: 'The long link encrypted here, which the service cannot read, and how long to keep it; the owner’s secret to update or forget it',
+    carries: 'The long link encrypted here, which the service cannot read, and how long to keep it',
     stops: 'Not making a short link: the long link needs no one',
     by: 'kit/short.ts',
     csp: ['connect'],

@@ -994,12 +994,8 @@
     margin: 0;
     font-size: var(--to-scale);
   }
-  .to-share-section .to-hint,
-  .to-share-own {
+  .to-share-section .to-hint {
     margin: 0;
-  }
-  .to-share-own {
-    font-weight: 600;
   }
   .to-share-field {
     display: flex;
@@ -1018,12 +1014,6 @@
   }
   .to-share-field .to-btn {
     height: 3.2em;
-  }
-  .to-share-extend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5em;
-    width: 100%;
   }
   /* A row of segments: a radio group (the lifetimes) or two pressed buttons (Link, Display Link). */
   .to-seg {
@@ -1086,11 +1076,9 @@
     outline-offset: 0.125em;
     position: relative;
   }
-  .to-owner,
   .to-kept-list {
     width: 100%;
   }
-  .to-owner summary,
   .to-kept-list summary {
     min-height: var(--to-touch);
     display: flex;
@@ -1098,29 +1086,19 @@
     cursor: pointer;
     list-style-position: inside;
   }
-  .to-owner summary::before,
   .to-kept-list summary::before {
     content: '▸';
     margin-right: 0.5em;
     color: var(--to-ink-3);
   }
-  .to-owner[open] summary::before,
   .to-kept-list[open] summary::before {
     content: '▾';
   }
-  .to-owner summary::-webkit-details-marker,
   .to-kept-list summary::-webkit-details-marker {
     display: none;
   }
-  .to-owner summary,
   .to-kept-list summary {
     list-style: none;
-  }
-  .to-owner[open] {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5em;
   }
   .to-qr-code {
     align-self: stretch;

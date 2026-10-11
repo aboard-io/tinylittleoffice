@@ -4,7 +4,7 @@
  *   - Private or Saved: whether the device keeps anything. Private (the default) writes nothing of the site's
  *     but the language chosen in the menu (kit/i18n.ts): no cookies, no storage. The browser's own history still
  *     holds every link opened, and a link is the document; that is not ours to clear. Saved keeps the preferences, the documents
- *     opened here (kit/library.ts), the short links' owner links (kit/links.ts) and the signing
+ *     opened here (kit/library.ts), the short links made here (kit/links.ts) and the signing
  *     key. Turned back to Private, all of it goes from the device, the key from the visit too. Forget everything
  *     forgets the language chosen as well.
  *   - The password: a document sealed (kit/crypt.ts) and opened, here. A password is never kept, under
@@ -33,7 +33,7 @@ import { forgetLanguage } from './i18n.ts';
 
 /** The preferences this site may keep, by key. */
 export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
-/** Where the key, the signer's name and the owner links are kept. */
+/** Where the key, the signer's name and the short links made here are kept. */
 const KEY = 'tinyoffice.key';
 const NAME = 'tinyoffice.name';
 const LINKS = 'tinyoffice.links';
@@ -223,7 +223,7 @@ export interface Holdings {
   prefs: number;
   /** Documents in the library. */
   documents: number;
-  /** Short links' owner links. */
+  /** The short links made here. */
   links: number;
   /** The signing key's fingerprint, or null. */
   key: string | null;

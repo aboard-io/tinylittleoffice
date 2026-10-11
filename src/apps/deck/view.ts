@@ -889,7 +889,7 @@ export function sheetsOf(doc: Doc, s: Settings = settingsOf(doc), still = false)
  */
 export function takeHomeLink(doc: Doc, site = typeof location !== 'undefined' ? location.origin + location.pathname : ''): string {
   const notes = new Set(slidesOf(doc).flatMap((s) => Array.from({ length: s.notes[1] - s.notes[0] }, (_, i) => s.notes[0] + i)));
-  return site + routeHash('deck', encodeDoc(write({ ...doc, blocks: doc.blocks.filter((_, i) => !notes.has(i)) })), '', null, true);
+  return site + routeHash('deck', encodeDoc(write({ ...doc, blocks: doc.blocks.filter((_, i) => !notes.has(i)) })), '', true);
 }
 
 /** Whether the deck ends with its code: not a printed thing, not an empty deck, not when the header says "qr: no". */

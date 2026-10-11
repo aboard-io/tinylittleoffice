@@ -43,7 +43,7 @@ npm run build           # the lint, then dist/ with a page per app, the CSP hash
 npm run docs:exports    # docs/exports.md, from the apps' definitions
 npm run docs:network   # docs/network.md and /network, from src/kit/network.ts (the build runs it first)
 npm run docs:deps       # docs/dependencies.md, from package.json and the lockfile (-- --sizes measures a build)
-npm run tinier:dev      # the link shortener on this machine (see "Living short links")
+npm run tinier:dev      # the link shortener on this machine (see "Short links")
 npm run media:dev       # the picture proxy on this machine, port 8788; VITE_MEDIA_URL=/media uses it through the dev server
 npm run skill           # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
 npm run cards           # public/og/<app>.png, each app's share card (Chromium through Playwright)
@@ -120,7 +120,7 @@ src/kit/        the kit: shell, chrome (<to-chrome>: the header and the column),
                 words), find (Find in this document, Mod+F), keys (the shortcuts dialog), zoom (the size of
                 everything), steps (a document presented a part at a time), qr-picture (a document's QR code
                 as a fence), locked and locked-doc (a document locked with a password placed in another: the
-                locked card, and opened with its password in an editor), share, short (links), links (the owner links kept), library (the documents
+                locked card, and opened with its password in an editor), share, short (links), links (the short links made here), library (the documents
                 kept), exports, i18n, theme, icons (the UI set and the starter library; a document may name
                 any Lucide icon, the rest arriving in one lazy load, icons-full, that views and exports wait
                 for), icons-search (keywords, suggestions, search; no DOM), icons-picker (the library in a
@@ -146,7 +146,7 @@ test/           unit tests under node; test/browser/ the shell in a real Chromiu
                 lints.ts and lints.test.ts the rules of the code (CONTRIBUTING.md), fixtures/lints/ what each catches
 e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
                 keyboard alone, axe over every app light and dark, and each app's own
-tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
+tinier/         the link shortener: a Worker, its D1 schema, its page (see "Short links")
 media/          the picture proxy at media.tinylittleoffice.com: a Worker, no storage, no logs (docs/network.md)
 src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
 packages/doc/   the `tinyoffice` command line, over src/api.ts
@@ -228,57 +228,45 @@ read or print, with an Edit button that drops the flag. The QR code and a short 
 A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the app's noun, the local date, and the
 first number the device's library leaves free that day); the name goes into the head with the first change.
 
-### Living short links
+### Short links
 
 Share opens one dialog: the document's title and, in one line, where its link fits ("This link: 1,240
 characters, too long for an NFC sticker"); **Copy link** (opens in the editor) and **Copy display link** (opens
 as pages to read), and the device's own share sheet where there is one; a short link that expires; the QR code,
-drawn in place when the link fits in one; and, folded, the short links kept on this device.
+drawn in place when the link fits in one; and, folded, the short links made on this device.
 
 A short link comes from tinier.tinylittleoffice.com and lives an hour, a day, a week (the default, and the
-choice is remembered under Saved), a month or a year, chosen in one row; it opens the editor or the pages. The
-long link is encrypted in the browser with a random AES-256-GCM key; only the ciphertext goes to the service,
-and the key travels in the short link's fragment (`#…`), which browsers never send to any server. Opening a
-short link fetches the ciphertext, decrypts it on the page, and goes to the document with `?s=<id>&x=<expires>`
-after it, so whoever arrives sees a banner above the bar, green over a week, amber within one, red on the last
-day: "This link expires in 12 days", with **Copy into a new document** (the same document, "Copy of …", as a
-plain link of its own in a new tab).
+choice is remembered under Saved) or a month, chosen in one row; it opens the editor or the pages. The long
+link is encrypted in the browser with a random AES-256-GCM key; only the ciphertext goes to the service, and
+the key travels in the short link's fragment (`…/<id>#<key>`), which browsers never send to any server.
+Opening a short link fetches the ciphertext, decrypts it on the page, and goes to the document with
+`?s=<id>&x=<expires>` after it, so whoever arrives sees a banner above the bar, green over a week, amber within
+one, red on the last day: "This link expires in 12 days", with **Copy into a new document** (the same
+document, "Copy of …", as a plain link of its own in a new tab).
 
-A short link comes as two links. The **public** one, `…/<id>#<key>`, is for sharing; it always opens the
-latest version, and is shown big with Copy beside it. The **owner's**, `…/<id>#<key>.<o>`, is folded under it
-("Keep the owner link, to update it later"): `o` is 32 random bytes made beside the key, and the service stores
-only `sha256(o)`. Opened, the owner link arrives at the document as `#/v1/<app>/<payload>?s=<id>&k=<key>&o=<o>&x=<expires>`;
-the query stays in the address while the owner edits (so a reload keeps it) and is stripped from every link the
-shell shares, copies or shows as a code. The dialog then says "You own this short link", with **Update** (once
-the document has changed: a new ciphertext under the same id, with the same key), the lifetimes with
-**Extend** (a longer life from now, never a shorter one), and **Forget**; the banner's Extend opens it there. A
-document that has just made a short link owns it the same way. Under "Saved on this device" the owner link can
-be kept in the device's list (`src/kit/links.ts`); under Private it is offered to copy and nothing is written.
-
-What the service knows: ciphertext, an IV, a hash of the owner key, timestamps, and that a request came. It
-cannot read a link, cannot tell one version from another, and cannot forge an update. `o` is never in a public
-link, a log, or any request but the PUT or DELETE that proves it, over TLS, by hashing it and comparing in
-constant time. An unknown id (404) and a wrong key (403) carry the same body and take the same time; ids are
-seven random letters. PUT and DELETE are braked like POST.
+A short link cannot be changed or recalled once made; it expires on its own (Paul, 2026-10-11). There is no
+owner, no update and no delete, so nothing but the document is ever in the address bar. Each one made is kept
+in the device's list (`src/kit/links.ts`): for the visit under Private, on the device under Saved.
 
 ```
-POST   /api        {c, iv, ttl, owner}   → 201 {id, exp}             owner = base64url(sha256(o))
-GET    /api/<id>                         → {c, iv, exp, ver, updated}
-PUT    /api/<id>   {c, iv, o, ttl?}      → {id, exp, ver, updated}   ver one more; ttl extends exp
-DELETE /api/<id>   {o}                   → 204
-GET    /<id>       the page that decrypts and redirects; "#<key>.<o>" hands o on to the document's hash
+POST /api        {c, iv, ttl}   → 201 {id, exp}     ttl: 3600, 86400, 604800 or 2592000
+GET  /api/<id>                  → {c, iv, exp}      404 once gone; anything else under /api is 405
+GET  /<id>       the page that decrypts and redirects
 ```
 
-The service is `tinier/`: one file of logic (`tinier.ts`, tested against a Map) run as a Cloudflare Worker
-(`worker.ts`, the D1 rows) with `schema.sql` (idempotent for a fresh D1: the service launches with the owner,
-version and updated columns, so there is no ALTER path), a rate-limit binding as the brake on one address, and
-an hourly cron that forgets expired links (a read of one forgets it sooner). A link holds 16 KiB of
+The service is `tinier/`: one file of logic (`tinier.ts`, tested against Maps) run as a Cloudflare Worker
+(`worker.ts`; `d1.ts` its rows in D1, tested on node's SQLite) with `schema.sql` (production's four columns:
+id, c, iv, exp) and `migrations/0001-brakes.sql`. One address may make a hundred links a UTC day, counted in D1
+under `sha256(BRAKE_KEY ‖ day ‖ address)` (a Worker secret; never in the repository), so no address is kept
+in the clear; the 101st gets 429 and `Retry-After` to the next day. An hourly cron forgets expired links and
+the counts of days before yesterday (a read of an expired link forgets it sooner). A link holds 16 KiB of
 ciphertext; `src/kit/short.ts` carries the same cap and refuses before sending, and the room meter has a
-"Short link" row.
+"Short link" row. `docs/crypto/short-links.md` has the details.
 
 To run it on this machine, beside `npm run dev`, with `VITE_TINIER=/tinier/` in `.env.development`:
 
 ```sh
+echo "BRAKE_KEY=$(openssl rand -base64 32)" > tinier/.dev.vars   # once; ignored by git
 SITE=https://pefdev.exe.xyz:4178 npm run tinier:dev   # local D1 in .wrangler/, schema applied, port 8787
 ```
 

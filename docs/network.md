@@ -16,7 +16,7 @@ not on this list is refused by the browser itself.
 | any https address | A picture from a site not on the list, asked of the proxy (above), so the site sees the proxy | never until a switch | The picture’s address, to the proxy | “Show pictures from the web” (this document, this visit) or, under Saved, “Always show pictures from the web” in the menu: off by default | kit/pictures.ts | none: the proxy asks |
 | `tile.openstreetmap.org` | The map’s pictures (tiles) in the Trip Planner, asked directly as OpenStreetMap’s policy asks | while shown | Which squares of the map are on the screen; no referrer | Map, in the Trip Planner’s bar, turned off | apps/trip/editor.ts | `img-src` |
 | `nominatim.openstreetmap.org` | Place search in the Trip Planner | after a tap | The words searched for; no referrer | Not searching: typing a stop’s place by hand asks no one | apps/trip/editor.ts | `connect-src` |
-| `tinier.tinylittleoffice.com` | Short links: made, opened, updated or forgotten | after a tap | The long link encrypted here, which the service cannot read, and how long to keep it; the owner’s secret to update or forget it | Not making a short link: the long link needs no one | kit/short.ts | `connect-src` |
+| `tinier.tinylittleoffice.com` | Short links: made or opened | after a tap | The long link encrypted here, which the service cannot read, and how long to keep it | Not making a short link: the long link needs no one | kit/short.ts | `connect-src` |
 | `public.api.bsky.app` | Who a Bluesky handle is, for a post’s frame | after a tap | The handle; no referrer | Not tapping the post’s card | kit/embeds.ts | `connect-src` |
 | `*.wikipedia.org` | An article’s summary, for its card | after a tap | The article’s title; no referrer | Not tapping the article’s card | kit/embeds.ts | `connect-src` |
 | `www.youtube-nocookie.com` | A YouTube video, from its privacy endpoint | after a tap | What the address names (the video, the post, the song); no referrer, in a sandboxed frame | Not tapping the card: until then it is the provider’s name and nothing is asked | kit/embeds.ts | `frame-src` |
@@ -105,7 +105,7 @@ a tracker) never is.
   They are not proxied: OpenStreetMap's usage policies are written for the browser that shows the map
   asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people
   not to make. The site sends no referrer.
-- **Short links.** Only when a short link is made, opened, updated or forgotten; the service holds
+- **Short links.** Only when a short link is made or opened; the service holds
   ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send
   (tinier/tinier.ts).
 - **Sharing to a service.** Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in

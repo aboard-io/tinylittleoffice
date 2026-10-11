@@ -20,6 +20,7 @@ afterEach(() => {
   vi.useRealTimers();
   setKeeping(false);
   store.remove('tinyoffice.shortTtl');
+  store.remove('tinyoffice.links');
   history.replaceState(null, '', location.pathname);
 });
 
@@ -85,7 +86,7 @@ test('the lifetimes: one row of segments, a week by default, the choice written 
   let shell = await written(null!);
   let d = await open(shell);
   const radios = () => [...d.querySelectorAll<HTMLInputElement>('.to-share-short .to-ttl input[type=radio]')];
-  expect(radios().map((r) => r.parentElement!.textContent)).toEqual(['An hour', 'A day', 'A week', 'A month', 'A year']);
+  expect(radios().map((r) => r.parentElement!.textContent)).toEqual(['An hour', 'A day', 'A week', 'A month']);
   expect(radios().find((r) => r.checked)!.value).toBe(String(7 * 86400));
   expect(shell.querySelector<ToShare>('to-share')!.shortTtl).toBe(7 * 86400);
   // One row.
@@ -109,7 +110,11 @@ test('Make calls the short service and shows the link in a read-only field with 
     return new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } });
   });
   const d = await open(shell);
-  expect(d.querySelector('.to-share-short .to-hint')!.textContent).toMatch(/^Encrypted here/);
+  // Said where the lifetime is chosen: it cannot be changed or recalled, and how many a day.
+  expect(d.querySelector('.to-share-short .to-short-fixed')!.textContent).toBe('A short link cannot be changed or recalled once made; it expires on its own.');
+  expect(d.querySelector('.to-share-short .to-short-fixed + .to-hint')!.textContent).toBe(
+    'Encrypted here: the service holds only ciphertext, and only until then. Up to a hundred links a day from one address.',
+  );
   d.querySelector<HTMLButtonElement>('.to-make')!.click();
   await until(() => !!d.querySelector('.to-short-field'));
   expect(calls.length).toBe(1);
@@ -124,10 +129,10 @@ test('Make calls the short service and shows the link in a read-only field with 
   expect(d.querySelector('.to-short-expires')!.textContent).toMatch(/^Expires in 7 days \(/);
 });
 
-test('Saved: the owner link can be kept here, and the kept list folds under "n short links kept here"', async () => {
+test('every short link made is kept in the list folded under "n short links kept here", with Remove', async () => {
   setKeeping(true);
-  keepLink({ owner: `https://tinier.tinylittleoffice.com/zzzzzzz#${'K'.repeat(43)}.${'O'.repeat(43)}`, title: 'Old notes', made: Date.now() - DAY, expires: Date.now() + 3 * DAY });
-  const shell = await written(null!);
+  keepLink({ link: `https://tinier.tinylittleoffice.com/zzzzzzz#${'K'.repeat(43)}`, title: 'Old notes', made: Date.now() - DAY, expires: Date.now() + 3 * DAY });
+  const shell = await written(null!, '---\ntitle: New notes\n---\nWords.\n');
   vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } }));
   const d = await open(shell);
   let kept = d.querySelector<HTMLDetailsElement>('.to-kept-list')!;
@@ -139,21 +144,19 @@ test('Saved: the owner link can be kept here, and the kept list folds under "n s
   expect(kept.querySelector('li small')!.textContent).toMatch(/^Expires in 3 days/);
 
   d.querySelector<HTMLButtonElement>('.to-make')!.click();
-  await until(() => !!d.querySelector('.to-owner'));
-  const owner = d.querySelector<HTMLDetailsElement>('.to-owner')!;
-  owner.querySelector('summary')!.click();
-  await until(() => owner.open);
-  const keep = owner.querySelector<HTMLButtonElement>('.to-keep')!;
-  expect(keep.textContent!.trim()).toBe('Keep on this device');
-  keep.click();
   await until(() => d.querySelector('.to-kept-list summary')?.textContent === '2 short links kept here');
-  expect(owner.querySelector<HTMLButtonElement>('.to-keep')!.disabled).toBe(true);
+  const made = keptLinks().find((l) => l.link.includes('/abcdefg#'))!;
+  expect(made).toMatchObject({ title: 'New notes', link: d.querySelector<HTMLInputElement>('.to-short-field')!.value });
+  // Nothing about owning it: the link is all there is.
+  expect(d.querySelector('.to-owner, .to-keep, .to-update, .to-forget, .to-extend')).toBeNull();
+  expect(Object.keys(made).sort()).toEqual(['expires', 'link', 'made', 'title']);
   // Remove one.
   kept = d.querySelector<HTMLDetailsElement>('.to-kept-list')!;
   kept.open = true;
   await tick();
   [...kept.querySelectorAll<HTMLButtonElement>('li button')].at(-1)!.click();
   await until(() => d.querySelector('.to-kept-list summary')?.textContent === '1 short link kept here');
+  dropKept(made.link);
 });
 
 test('the QR code: drawn inline when the link fits, with PNG and SVG; else one sentence why', async () => {
@@ -234,13 +237,10 @@ test('a sealed document says nothing of itself: Share… sends no picture and no
   setKeeping(true);
   vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } }));
   d.querySelector<HTMLButtonElement>('.to-make')!.click();
-  await until(() => !!d.querySelector('.to-owner .to-keep'));
-  const owner = d.querySelector<HTMLButtonElement>('.to-owner .to-keep')!;
-  owner.click();
-  await until(() => keptLinks().length > 0);
-  const kept = keptLinks().find((l) => l.owner.includes('abcdefg'))!;
+  await until(() => keptLinks().some((l) => l.link.includes('/abcdefg#')));
+  const kept = keptLinks().find((l) => l.link.includes('/abcdefg#'))!;
   expect(kept.title).toBe('');
-  dropKept(kept.owner);
+  dropKept(kept.link);
 });
 
 /* ---------- arriving by a short link ---------- */
@@ -268,7 +268,7 @@ test('the banner: how long the link has left, coloured by how soon', async () =>
     expect(banner.compareDocumentPosition(shell.querySelector('to-bar')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const header = shell.querySelector('.to-header')!.getBoundingClientRect();
     expect(Math.round(banner.getBoundingClientRect().top)).toBe(Math.round(header.bottom));
-    // Not the owner: no Extend.
+    // A short link cannot be extended: the banner has no Extend.
     expect(banner.querySelector('.to-arrival-extend')).toBeNull();
   }
   // Each colour differs from the next, and the words read on it.
@@ -289,7 +289,7 @@ test('the banner: a plain document has none; Close puts it away for the visit', 
 });
 
 test('Copy into a new document opens the same document as a fresh plain link, "Copy of …", in a new tab', async () => {
-  const shell = await arrive(12, `&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}`);
+  const shell = await arrive(12);
   const opened: string[] = [];
   vi.spyOn(window, 'open').mockImplementation((url?: string | URL) => (opened.push(String(url)), null));
   shell.querySelector<HTMLButtonElement>('.to-arrival-copy')!.click();
@@ -300,12 +300,6 @@ test('Copy into a new document opens the same document as a fresh plain link, "C
   expect(doc).toContain('title: Copy of Plans');
   expect(doc).toContain('Words.');
   await until(() => said() === 'A copy opened in a new tab');
-  // The owner's banner has Extend, which opens the Share dialog at the short link's section.
-  shell.querySelector<HTMLButtonElement>('.to-arrival-extend')!.click();
-  await until(() => dialogOf(shell).dialog.open && !!dialogOf(shell).querySelector('.to-share-extend'));
-  expect(dialogOf(shell).querySelector('.to-share-short')!.textContent).toContain('You own this short link');
-  expect(dialogOf(shell).querySelector('.to-short-expires')!.textContent).toMatch(/^Expires in 12 days \(/);
-  expect(document.activeElement?.matches('.to-ttl input[type=radio]:checked')).toBe(true);
 });
 
 test('the banner on the Display Link too, at the top', async () => {
@@ -322,7 +316,7 @@ test('at 390px: the Share dialog is one full-screen sheet, nothing wider, every 
   await page.viewport(390, 844);
   try {
     vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } }));
-    const shell = await arrive(12, `&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}`);
+    const shell = await arrive(12);
     vi.useRealTimers();
     await tick(50);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
