@@ -231,9 +231,11 @@ in the device's list (`src/kit/links.ts`): for the visit under Private, on the d
 
 ```
 POST /api        {c, iv, ttl}   → 201 {id, exp}     ttl: 3600, 86400, 604800 or 2592000
-GET  /api/<id>                  → {c, iv, exp}      404 once gone; anything else under /api is 405
+GET  /api/<id>                  → {c, iv, exp}      404 once gone; anything else answers 404 like an unknown link
 GET  /<id>       the page that decrypts and redirects
 ```
+
+The only answers are 201, 200, 400, 404, 429 and 503.
 
 The service is `tinier/`: one file of logic (`tinier.ts`, tested against Maps) run as a Cloudflare Worker
 (`worker.ts`; `d1.ts` its rows in D1, tested on node's SQLite) with `schema.sql` (production's four columns:
