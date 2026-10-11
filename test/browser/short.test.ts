@@ -2,7 +2,7 @@
 // dialog's short-link section offers Update (once changed), Extend over the lifetimes, and Forget, in that
 // order; a short link made here comes big with Copy, the owner link folded under it.
 import { test, expect, afterEach, vi } from 'vitest';
-import { mount, tick, until, openShare } from './helpers.ts';
+import { mount, tick, until, openShare, said } from './helpers.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { parse, write } from '../../src/doc/index.ts';
@@ -75,7 +75,7 @@ test('opened from an owner link, the document can update its short link; the sha
   const update = section(shell).querySelector<HTMLButtonElement>('.to-update')!;
   expect(update.disabled).toBe(false);
   update.click();
-  await until(() => document.querySelector('[role=status]')!.textContent === 'Updated · version 3');
+  await until(() => said() === 'Updated · version 3');
   expect(sent.length).toBe(1);
   expect(sent[0].method).toBe('PUT');
   expect(sent[0].url).toMatch(/\/api\/abcdefg$/);
@@ -93,7 +93,7 @@ test('opened from an owner link, the document can update its short link; the sha
   section(shell).querySelector<HTMLButtonElement>('.to-extend')!.click();
   await until(() => sent.length === 2);
   expect(sent[1].body.ttl).toBe(365 * 86400);
-  await until(() => /^Expires in /.test(document.querySelector('[role=status]')!.textContent ?? ''));
+  await until(() => /^Expires in /.test(said()));
 
   // Forget asks first.
   // Asked in words that are true: those who come later find nothing, those who already opened it still have it.

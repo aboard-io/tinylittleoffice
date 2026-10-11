@@ -316,6 +316,8 @@ export default {
   'Remove link': 'Link weghalen',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Opmaak',
+  'done': 'gedaan',
+  'not done': 'niet gedaan',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|één dia|# dia’s}',

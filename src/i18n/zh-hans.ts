@@ -315,6 +315,8 @@ export default {
   'Remove link': '移除链接',
   // The selection bubble's name: what can be done to the words selected.
   'Format': '格式',
+  'done': '已完成',
+  'not done': '未完成',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|# 张幻灯片}',

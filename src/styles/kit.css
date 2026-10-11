@@ -1417,6 +1417,11 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+  /* What a toast says (kit/toast.ts), in the page or a dialog: at the corner of what holds it, never below the page's foot. */
+  .to-said {
+    top: 0;
+    left: 0;
+  }
   /* The size of everything while a pinch is in hand (kit/pinch.ts): top centre, above everything, moving nothing. */
   .to-pinch-pill {
     position: fixed;

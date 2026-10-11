@@ -316,6 +316,8 @@ export default {
   'Remove link': 'Usuń link',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Formatuj',
+  'done': 'zrobione',
+  'not done': 'do zrobienia',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|# slajd|# slajdy|# slajdów|# slajdu}',

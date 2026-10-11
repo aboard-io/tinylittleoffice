@@ -292,6 +292,8 @@ export default {
   'Edit link': 'লিংক বদলান',
   'Remove link': 'লিংক সরান',
   'Format': 'ফরম্যাট',
+  'done': 'সম্পন্ন',
+  'not done': 'অসম্পন্ন',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|#|#}টি স্লাইড',

@@ -14,6 +14,9 @@ import { ariaKeys, chords, drawnIn, keysText, labelOf, run, say, type Command } 
 
 export { keysText };
 
+/** Said by a bar as it is put in the page: the chrome makes a bar slid away inert (kit/chrome.ts). */
+export const BAR_HERE = 'to-bar-here';
+
 export class ToBar extends HTMLElement {
   private watch: ResizeObserver | null = null;
   private soon = 0;
@@ -25,6 +28,7 @@ export class ToBar extends HTMLElement {
     this.watch.observe(this);
     new MutationObserver(() => this.fadeSoon()).observe(this, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'class'] });
     this.fadeSoon();
+    this.dispatchEvent(new Event(BAR_HERE, { bubbles: true }));
   }
   disconnectedCallback() {
     this.removeEventListener('keydown', this.walk);

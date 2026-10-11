@@ -2,7 +2,8 @@
  * <to-dialog>: a native <dialog>, modal, with a heading and a close button. Escape closes it, a click on
  * the backdrop too, and focus goes back where it was (the browser's own doing, and this element's where the browser's
  * finds nothing: a frame whose page had it). Give it `body`, a
- * template, and call show(); the body is drawn only while it is open.
+ * template, and call show(); the body is drawn only while it is open. `describedby`, the ids of elements in the body,
+ * is the dialog's description: what a screen reader says after its name as it opens (the link guard's host).
  *
  * One modal at a time (Paul, 2026-10-10: "the outer one hands over"): a dialog opened from a control inside another is
  * never stacked on it. A task with a step of its own (Share's Password…) steps aside with handOver() and comes back as it
@@ -38,8 +39,9 @@ export function handBack(close: () => void, back: HTMLElement | null, open: () =
 }
 
 export class ToDialog extends LitElement {
-  static properties = { heading: {}, body: { attribute: false }, open: { state: true } };
+  static properties = { heading: {}, describedby: {}, body: { attribute: false }, open: { state: true } };
   declare heading: string;
+  declare describedby: string;
   declare body: TemplateResult | typeof nothing;
   declare open: boolean;
   readonly uid = `to-dialog-${++n}`;
@@ -47,6 +49,7 @@ export class ToDialog extends LitElement {
   constructor() {
     super();
     this.heading = '';
+    this.describedby = '';
     this.body = nothing;
     this.open = false;
   }
@@ -95,7 +98,7 @@ export class ToDialog extends LitElement {
     this.dispatchEvent(new Event('to-close'));
   };
   render() {
-    return html`<dialog class="to-dialog" aria-labelledby=${this.uid} @close=${this.onClose} @click=${(e: Event) => e.target === this.dialog && this.close()}>
+    return html`<dialog class="to-dialog" aria-labelledby=${this.uid} aria-describedby=${this.describedby || nothing} @close=${this.onClose} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-dialog-inner">
         <header class="to-dialog-head"><h2 id=${this.uid}>${this.heading}</h2><button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button></header>
         <div class="to-dialog-body">${this.open ? this.body : nothing}</div>

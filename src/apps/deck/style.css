@@ -113,7 +113,8 @@
   .lay-i .deck-words-row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
-  .deck-canvas .tx > * {
+  .deck-canvas .tx > *,
+  .deck-canvas .tx-list > * {
     margin: 0 0 0.45em;
   }
   .deck-canvas .tx li {

@@ -315,6 +315,8 @@ export default {
   'Remove link': '링크 제거',
   // The selection bubble's name: what can be done to the words selected.
   'Format': '서식',
+  'done': '완료',
+  'not done': '미완료',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '슬라이드 {n}장',

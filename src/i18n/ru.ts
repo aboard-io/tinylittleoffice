@@ -315,6 +315,8 @@ export default {
   'Remove link': 'Убрать ссылку',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Формат',
+  'done': 'выполнено',
+  'not done': 'не выполнено',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|# слайд|# слайда|# слайдов|# слайда}',

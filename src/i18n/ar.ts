@@ -316,6 +316,8 @@ export default {
   'Remove link': 'إزالة الرابط',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'تنسيق',
+  'done': 'منجز',
+  'not done': 'غير منجز',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|لا شرائح|شريحة واحدة|شريحتان|# شرائح|# شريحة|# شريحة}',

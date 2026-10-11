@@ -3,7 +3,7 @@
 // them or open one; one document opens; and Download everything, then the zip opened on an empty device, gives the
 // same library.
 import { test, expect, afterEach, beforeAll, vi } from 'vitest';
-import { mount, tick, until } from './helpers.ts';
+import { mount, said, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { keep, library, forgetAll } from '../../src/kit/library.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
@@ -24,7 +24,7 @@ afterEach(() => {
   history.replaceState(null, '', location.pathname);
 });
 
-const toast = () => document.querySelector('[role=status]')?.textContent ?? '';
+const toast = said;
 const zipFile = (files: Record<string, string>) => new File([zip(files) as BlobPart], 'tiny-little-office.zip', { type: 'application/zip' });
 
 /** Open a file…, from the drawer, given `file` as the picker gives it. */

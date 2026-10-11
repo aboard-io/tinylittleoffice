@@ -603,3 +603,26 @@ test('390×844 with a finger: the bar’s button focused while the bar is away (
   expect(shell.querySelector<HTMLElement>('.to-column')!.scrollTop).toBe(0);
   expect(header.getBoundingClientRect().top).toBe(top);
 });
+
+test('390×844 with a finger: the bar and the palette’s button slid away are inert (out of Tab and a screen reader’s swipes), back with the bar; under a docked context row too', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { shell, text, chrome } = await write();
+  const bar = shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
+  const palette = shell.querySelector<HTMLElement>('.to-palette-btn')!;
+  // Reading: away, and inert.
+  expect(chrome.hasAttribute('indoc')).toBe(false);
+  expect([bar.inert, palette.inert]).toEqual([true, true]);
+  await tapWords(text);
+  expect([bar.inert, palette.inert]).toEqual([false, false]);
+  // The context row docked over it: the bar away again, inert; undocked, back.
+  document.documentElement.setAttribute('data-context-row', '');
+  await until(() => bar.inert && palette.inert);
+  document.documentElement.removeAttribute('data-context-row');
+  await until(() => !bar.inert && !palette.inert);
+  // At a desktop's size with a mouse the bar is never away.
+  await coarse(false);
+  await page.viewport(1440, 900);
+  const desk = await write();
+  expect(desk.shell.querySelector<HTMLElement>('to-write-editor to-bar')!.inert).toBe(false);
+});

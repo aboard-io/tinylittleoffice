@@ -22,7 +22,9 @@
     touch-action: manipulation;
   }
   to-text .tx.blank::before {
+    /* Drawn, not read: a screen reader has it as the box's aria-placeholder (text.ts). */
     content: attr(data-placeholder);
+    content: attr(data-placeholder) / '';
     position: absolute;
     inset: 0 auto auto 0;
     color: var(--to-placeholder);
@@ -32,10 +34,16 @@
     margin: 0 0 0.6em;
     white-space: pre-wrap;
   }
-  to-text .tx > :last-child {
+  /* A run of items is one element, a list (text.ts): its items are spaced as the box's blocks are, and take its white space. */
+  to-text .tx-list > * {
+    margin: 0 0 0.6em;
+  }
+  to-text .tx > :last-child,
+  to-text .tx-list > :last-child {
     margin-bottom: 0;
   }
-  to-text[shape='line'] .tx > * {
+  to-text[shape='line'] .tx > *,
+  to-text[shape='line'] .tx-list > * {
     margin: 0;
   }
   to-text .tx h1,
@@ -64,21 +72,27 @@
     position: relative;
     padding-left: calc(1.5em + var(--d, 0) * 1.5em);
   }
+  /* The marks are drawn, not read (the empty alt after the slash): an item's role, level and place say it is in a list,
+     and a task's state is words of its own (text.ts). The plain value first is for a browser without the alt. */
   to-text .tx li::before {
     content: '•';
+    content: '•' / '';
     position: absolute;
     left: calc(var(--d, 0) * 1.5em + 0.25em);
     color: var(--to-ink-3);
   }
   to-text .tx li[data-n]::before {
     content: attr(data-n) '.';
+    content: attr(data-n) '.' / '';
     font-variant-numeric: tabular-nums;
   }
   to-text .tx li[data-done]::before {
     content: '☐';
+    content: '☐' / '';
   }
   to-text .tx li[data-done='true']::before {
     content: '☑';
+    content: '☑' / '';
     color: var(--to-success);
   }
   to-text .tx li[data-done='true'] {
