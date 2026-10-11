@@ -9,9 +9,10 @@ the site can make is listed in `docs/network.md`.
 
 A document is its link. The whole of it, compressed, sits after the `#` of
 `https://tinylittleoffice.com/<app>/#/v1/<app>/<payload>`, and a browser never sends the part after `#` to
-any server. The site is static files on Cloudflare; there is no account, no database of documents and no
-server code that receives one. One service exists besides the files: the short-link service (`tinier/`),
-and nothing else of ours. Everything else the site can reach belongs to someone else and is reached only
+any server. The site is static files on Cloudflare; there is no account, no database of documents in the
+clear and no server code that receives one. One service exists besides the files: the short-link service
+(`tinier/`), and nothing else of ours; it holds a document only when someone makes a short link, encrypted
+under a key it never receives, until the link expires. Everything else the site can reach belongs to someone else and is reached only
 while a person uses it or after they ask (the map, a share), as `docs/network.md` lists.
 
 Two consequences follow, and the rest of this page is mostly their detail:
@@ -23,8 +24,14 @@ Two consequences follow, and the rest of this page is mostly their detail:
 - **Whoever serves the code can read the document.** The page that reads the fragment is code the site
   sends. The host cannot see a document while it serves the code in this repository; a host that served
   other code (compromised, coerced, or simply changed) could send the fragment anywhere. The answer to that
-  is being able to check that the live site is this repository's build (docs/transparency.md §1 item 3,
-  reproducible and attested builds), which is not built yet. Until it is, this is trust in the operator.
+  is being able to check that the live site is this repository's build: a build is reproducible, the site
+  names the commit it was built from in `/version.json`, and `npm run verify-deploy` builds that commit and
+  compares every file (docs/transparency.md §1 item 3). Short of someone checking, this is trust in the operator.
+
+What is kept, and where: Private is the default, and keeps nothing on the device (but two preferences that say
+nothing of a document, below) and nothing on any server; the link is the document. Saved is a choice, and keeps documents and short links on the device, in the browser's own
+storage, never on a server. A short link is the one thing a server holds: the document, encrypted with a key the
+server never sees, until it expires.
 
 There is no shared document: every link is a copy. Whoever opens one has their own, and what they change is in
 their link, never in the sender's; Share says so under the link, in every language.
@@ -45,8 +52,8 @@ can see that a link was made, when, from which address, and how long the ciphert
 decrypts is served by the service.
 
 **Someone changing or recalling a short link.** Nobody can, its maker included: a short link cannot be
-changed or recalled once made, and expires on its own (Paul, 2026-10-11). There is no update, no delete and
-no owner key, so there is no secret beside the document in anyone's address bar to give that power away.
+changed or recalled once made, and expires on its own (Paul, 2026-10-11). There is no update and no delete,
+and so no secret beside the document in anyone's address bar to give that power away.
 
 **A shared link altered on the way.** A document with a password is authenticated by AES-GCM's tag: a
 changed byte, a cut-short link or a forged payload does not open, and says nothing about why. Someone who knows
@@ -56,9 +63,9 @@ against alteration: anyone who passes it on can change it.
 **A scam link inside a document.** Words in a document can say one address and link to another. No link that
 leaves the site opens without first showing, large, the site it goes to and the whole address, with Cancel
 as the default (`src/kit/link-guard.ts`); a link to anything but a web page, an email address or a phone
-number never opens. There is no website builder: a document never runs code, and nothing in one is drawn as a
+number never opens. A document never runs code, and nothing in one is drawn as a
 page of its own. The address is drawn left to
-right, set apart from the words round it, in every language, and an email address or a phone number that hides
+right, set apart from the words around it, in every language, and an email address or a phone number that hides
 reversing or invisible characters is refused rather than drawn. This shows where a link goes; it does not judge
 whether the place is honest.
 
@@ -132,19 +139,19 @@ Turning Saved off (from the phone) removes all of it.
 | Choice | Threat |
 |---|---|
 | The document in the fragment, not the path or a query | The host, its logs and every proxy on the way learning the document |
-| No accounts, no server storage of documents | A breach, a subpoena or a leak of stored documents: there are none to give |
+| No accounts, no server storage of documents, except a short link's encrypted document, which the server cannot read and forgets when the link expires | A breach, a subpoena or a leak of stored documents: there are none to give but the ciphertext of short links not yet expired, without their keys |
 | Private by default; Saved only when switched on, and switched off erases | A shared or lost device holding what was done on it |
 | Password: PBKDF2-SHA-256, 600,000 rounds, random salt; AES-256-GCM with a fresh IV per edit | The link's holders, and anything it passes through, reading a document they were not told the password of; alteration of a sealed document |
 | A password never stored; the key held in memory for the visit, non-extractable | A device or a backup giving the password away |
 | A sealed document kept in the library with no title or first words | The library telling what a sealed document is |
 | A locked document's title reaches nothing but its own page: not the tab title or history, the library, a kept short link, a post, the embed, the QR file, or the share sheet (which gets no picture either) | History, tab sync and the apps a link is shared to telling what a sealed document is |
 | Short link: AES-256-GCM, the key only in the fragment | The short-link service reading documents |
-| Short links cannot be changed or recalled: no update, no delete, no owner key | A short link replaced under the people it was sent to; a key to replace it copied out of an address bar |
+| Short links cannot be changed or recalled: no update, no delete, no key that could do either | A short link replaced under the people it was sent to; a key to replace it copied out of an address bar |
 | Short links expire (an hour to a month) and are swept hourly | Ciphertext kept indefinitely by a service |
 | A hundred links a day per address, counted under a keyed hash kept two days | The shortener used as free storage by a stranger; a record of who made links |
 | No logs in the site or the shortener (observability off, no console calls, tests hold both) | A record of who asked for what |
 | The link guard before every link that leaves | A scam link disguised by its words |
-| No website builder: a document never runs code | A phishing page served from our own domain |
+| No app draws a document as a web page of its own: a document never runs code | A phishing page served from our own domain |
 | A document fetches nothing from any other site: no pictures from the web, no embeds | Tracking pixels; a picture's or an embed's site learning who reads |
 | Content-Security-Policy listing every host; no third-party scripts or fonts | Telemetry, and code injected through a document running at all |
 | WebCrypto, no crypto library | A dependency's bug or compromise in the part that matters most; and code a reader can check in an hour |

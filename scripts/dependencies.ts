@@ -1,6 +1,6 @@
 /**
  * docs/dependencies.md, written from package.json and the lockfile: every dependency at its exact version,
- * its licence (its own package.json in node_modules, else the lockfile's), the native web API it beat and
+ * its license (its own package.json in node_modules, else the lockfile's), the native web API it beat and
  * why (scripts/dependencies.json, one hand-written line each, required: a dependency without one fails the
  * script), and the bytes it adds to the site. Then what the runtime dependencies bring with them.
  *
@@ -69,7 +69,7 @@ function locate(lock: Lock, name: string, from = ''): string | null {
   }
 }
 
-function licence(lock: Lock, key: string): string {
+function license(lock: Lock, key: string): string {
   const own = resolve(root, key, 'package.json');
   if (existsSync(own)) {
     const l = (JSON.parse(readFileSync(own, 'utf8')) as { license?: string | { type?: string } }).license;
@@ -134,11 +134,11 @@ export function dependenciesDoc(sizes: Record<string, string> = existsSync(DOC) 
   const entry = (name: string) => {
     const key = locate(lock, name);
     if (!key) throw new Error(`${name} is not in package-lock.json: run npm install.`);
-    return { key, version: lock.packages[key]!.version ?? '?', licence: licence(lock, key) };
+    return { key, version: lock.packages[key]!.version ?? '?', license: license(lock, key) };
   };
   const row = (name: string, adds: string) => {
     const e = entry(name);
-    return `| \`${name}\` | ${e.version} | ${e.licence} | ${cell(why[name]!)} | ${adds} |`;
+    return `| \`${name}\` | ${e.version} | ${e.license} | ${cell(why[name]!)} | ${adds} |`;
   };
 
   // What the runtime dependencies bring with them, walked through the lockfile.
@@ -162,7 +162,7 @@ export function dependenciesDoc(sizes: Record<string, string> = existsSync(DOC) 
     .sort((a, b) => nameOf(a.key).localeCompare(nameOf(b.key)))
     .map(({ key, by }) => {
       const name = nameOf(key);
-      return `| \`${name}\` | ${lock.packages[key]!.version} | ${licence(lock, key)} | ${[...by]
+      return `| \`${name}\` | ${lock.packages[key]!.version} | ${license(lock, key)} | ${[...by]
         .sort()
         .map((b) => `\`${b}\``)
         .join(', ')} | ${sizes[name] ?? unmeasured} |`;
@@ -179,8 +179,8 @@ export function dependenciesDoc(sizes: Record<string, string> = existsSync(DOC) 
 
   return `# Dependencies
 
-Every package Tiny Little Office depends on, at the exact version the lockfile holds, with its licence, the
-native web API it beat and why, and what it adds to the site. The standing rule (docs/rebuild.md): the
+Every package Tiny Little Office depends on, at the exact version the lockfile holds, with its license, the
+native web API it beat and why, and what it adds to the site. The standing rule (CONTRIBUTING.md): the
 browser first; a dependency names what it beat. This page is written by \`npm run docs:deps\`
 (\`scripts/dependencies.ts\`) from package.json, package-lock.json and the reasons in
 \`scripts/dependencies.json\`; a test fails when it is out of date, and the script fails for a dependency
@@ -193,27 +193,27 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 
 ## Built into the site
 
-| Package | Version | Licence | The native API it beat, and why | Adds |
+| Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
 ${runtime.map((n) => row(n, adds(n))).join('\n')}
 
 ## What those bring with them
 
-| Package | Version | Licence | Comes with | Adds |
+| Package | Version | License | Comes with | Adds |
 | --- | --- | --- | --- | --- |
 ${inner.join('\n')}
 
 ## Type
 
 The type is IBM Plex, and the site serves it itself: no font comes from another host (the policy's \`font-src\` is
-\`'self'\`). The files are IBM's own release, copied as released into \`public/fonts/\` with the licence beside them
+\`'self'\`). The files are IBM's own release, copied as released into \`public/fonts/\` with the license beside them
 (\`public/fonts/LICENSE.txt\`, the SIL Open Font License 1.1, OFL-1.1), listed in \`scripts/dependencies.ts\`
 (\`FONTS\`) and declared in \`src/styles/fonts.css\`, each face behind its \`unicode-range\` so a page loads only the
 faces its words need. The browser has fonts of its own, but each system's differs in width, so the same words would
 fit a slot on one and not on another; Plex is one type everywhere, and the type the box measures in. Bengali, Korean,
 Japanese and Chinese are drawn in the device's own type, and Urdu in its Nastaliq.
 
-| Family | From | Version | Licence | For | Files |
+| Family | From | Version | License | For | Files |
 | --- | --- | --- | --- | --- | --- |
 ${FONTS.map((f) => `| ${f.family} | \`${f.from}\` | ${f.version} | OFL-1.1 | ${f.for} | ${f.files.map((n) => `\`${n}\``).join(', ')} (${kb(f.files.reduce((n, name) => n + statSync(resolve(root, 'public/fonts', name)).size, 0))}) |`).join('\n')}
 
@@ -224,7 +224,7 @@ group) is data, not code: the browser lists no emoji by name, and the characters
 system's own font. It is written by \`npm run emoji\` (\`scripts/emoji.ts\`) from Unicode's
 [emoji-test.txt](${EMOJI_SOURCES.test}) (which emoji are fully qualified, and their groups) and CLDR's English
 [annotations](${EMOJI_SOURCES.annotations}) and [derived annotations](${EMOJI_SOURCES.derived}) (names and
-keywords), at those pinned versions, under the Unicode licence (Unicode-3.0), and checked in. It loads only with
+keywords), at those pinned versions, under the Unicode license (Unicode-3.0), and checked in. It loads only with
 the picker; neither source is a dependency.
 
 ## For building and testing
@@ -232,7 +232,7 @@ the picker; neither source is a dependency.
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile
 holds ${devAll} packages for development.
 
-| Package | Version | Licence | The native API it beat, and why | Adds |
+| Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
 ${dev.map((n) => row(n, 'not shipped')).join('\n')}
 `;

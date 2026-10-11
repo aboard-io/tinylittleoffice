@@ -2,7 +2,7 @@
 
 The source is public at **https://github.com/aboard-io/tinylittleoffice**, in the Aboard organization, under
 the MIT License. It was renamed, moved to the organization and opened on 2026-10-11; GitHub redirects the old
-address. This page is what the files in the repository cannot do: the settings set by hand, each a box to tick,
+address. This page is what the files in the repository cannot do: the settings set by hand, each a box to check,
 with the strings exact, to paste. The files assume every one of them.
 
 ## Who may push
@@ -24,14 +24,14 @@ with the strings exact, to paste. The files assume every one of them.
 - [ ] **Require a pull request before merging**: 0 approvals while Paul works alone (1 once there is a second
       maintainer); dismiss stale approvals; require conversation resolution.
 - [ ] **Require status checks to pass**: the check `check` (the CI workflow's one job, `.github/workflows/ci.yml`:
-      every check a deploy runs, then the lints, the advisories and the build made twice); tick **Require
+      every check a deploy runs, then the lints, the advisories and the build made twice); check **Require
       branches to be up to date before merging**.
 - [ ] **Require signed commits**: recommended, not required, until every contributor signs; revisit at launch.
 - [ ] Bypass list: the organization's admins, for the deploy commits made from Paul's machine.
 
 ## The About box (the repository's front page, the gear beside About)
 
-- [ ] Description: `A free office suite where your document is the link. No account, nothing stored, the code open.`
+- [ ] Description: `A free office suite where your document is the link. No account; nothing kept unless you choose; the code open.`
 - [ ] Website: `https://tinylittleoffice.com`
 - [ ] Topics: `office-suite` `privacy` `local-first` `no-backend` `pwa` `web-components` `lit` `cloudflare-workers`
       `typescript` `url-as-document` `markdown`
@@ -42,7 +42,7 @@ with the strings exact, to paste. The files assume every one of them.
 
 - [ ] Social preview: the Office mark's share card, `public/og.png` (drawn by `npm run icons`).
 - [ ] Features: **Issues** on; **Discussions** off; **Wiki** off (the docs are in `docs/`); **Projects** off.
-- [ ] Pull requests: allow **squash merging** and **merge commits**, not rebase merging; tick **Always suggest
+- [ ] Pull requests: allow **squash merging** and **merge commits**, not rebase merging; check **Always suggest
       updating pull request branches** and **Automatically delete head branches**.
 
 ## Issues (Issues → Labels)

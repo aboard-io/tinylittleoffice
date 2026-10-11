@@ -14,6 +14,24 @@ npx playwright install chromium webkit   # the browsers the tests run in
 npm run dev                              # the site at http://localhost:4178
 ```
 
+## Where things are
+
+```
+src/doc/        the document kernel: the model, TLO (the one reader and writer), the operations, the formulas
+src/kit/        the kit every app stands on: the shell, the bar, the menu, dialogs, the one editor (<to-text>),
+                links and the codec, privacy and passwords, short links, exports, strings; each file headed by what it does
+src/apps/<id>/  an app: its definition (def.ts), its editor, its stylesheet, its templates and its tests
+src/i18n/       the strings: en.ts is every key; each other file is a language
+src/api.ts      the API for programs, served as /api.js
+packages/doc/   the tinyoffice command line, over the API
+skill/          the agent skill, written from SKILL.tpl.md by npm run skill (also public/llms.txt)
+tinier/         the short-link service: a Cloudflare Worker and its D1 tables
+public/         the Content-Security-Policy (_headers), the fonts, icons and share cards
+scripts/        the build's checks, the generated docs, the deploy
+test/, e2e/     unit tests under Node, browser tests in Chromium (test/browser/), and the built site under Playwright
+docs/           how it is made and why (docs/README.md lists every page)
+```
+
 ## Before a pull request
 
 The whole suite passes, as CI runs it (`.github/workflows/ci.yml`, the same checks a deploy runs):

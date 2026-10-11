@@ -60,11 +60,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': '小小辦公室',
   'About Tiny Little Office': '關於小小辦公室',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': '一套完全住在網址裡的迷你辦公室。沒有伺服器，不用帳號，也不用存檔：連結就是文件。',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': '一套連結就是文件的迷你辦公室。不用帳號。除非你選擇保留在此裝置上，否則什麼都不會存到任何地方。',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': '除非你分享連結，否則你寫的任何內容都不會離開瀏覽器。會自己連上網路的只有一處：旅程的地圖，顯示時圖片來自 OpenStreetMap。',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': '沒有大家共用的文件：每個連結都是一份副本，在一份裡做的修改，永遠不會出現在另一份裡。',
   'Private, the default:': '私密（預設）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '開啟本選單裡的「儲存」開關，就會把你的設定和開啟過的文件保留在此裝置上。',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': '短連結是伺服器唯一保存的東西：用伺服器永遠看不到的金鑰加密的文件，直到連結過期。',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': '文件可以設定密碼：它會在這裡、在瀏覽器中加密，連結裡只有密文。本選單裡的「隱私」會顯示此裝置保存了什麼。',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

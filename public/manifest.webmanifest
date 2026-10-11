@@ -3,7 +3,7 @@
   "name": "Tiny Little Office",
   "lang": "en",
   "short_name": "Tiny Office",
-  "description": "A tiny office suite that lives entirely in the URL.",
+  "description": "A tiny office suite where the link is the document.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

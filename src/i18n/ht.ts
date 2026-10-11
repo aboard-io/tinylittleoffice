@@ -60,11 +60,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Apwopo Tiny Little Office',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Yon ti ansanm zouti biwo ki viv nèt nan URL la. Pa gen sèvè, pa gen kont, pa gen anrejistreman: lyen an se dokiman an.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Yon ti ansanm zouti biwo kote lyen an se dokiman an. Pa gen kont. Anyen pa anrejistre okenn kote sof si ou chwazi kenbe l sou aparèy sa a.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. Yon sèl bagay mande entènèt pou kont li: kat yon vwayaj, foto li yo soti nan OpenStreetMap pandan l ap parèt.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Pa gen yon sèl dokiman tout moun pataje: chak lyen se yon kopi, e sa yo chanje nan youn pa janm rive nan yon lòt.',
   'Private, the default:': 'Prive, nòmalman:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Anrejistre, ba nan meni sa a, kenbe paramèt ou yo ak dokiman ou louvri yo sou aparèy sa a.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Yon lyen kout se sèl bagay yon sèvè kenbe: dokiman an, chifre ak yon kle sèvè a pa janm wè, jiskaske lyen an ekspire.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Yon dokiman ka gen yon modpas: yo chifre l isit la, nan navigatè a, epi lyen an pa kenbe anyen sof tèks chifre. Vi prive, nan meni sa a, montre sa aparèy sa a kenbe.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

@@ -1,7 +1,7 @@
 # Dependencies
 
-Every package Tiny Little Office depends on, at the exact version the lockfile holds, with its licence, the
-native web API it beat and why, and what it adds to the site. The standing rule (docs/rebuild.md): the
+Every package Tiny Little Office depends on, at the exact version the lockfile holds, with its license, the
+native web API it beat and why, and what it adds to the site. The standing rule (CONTRIBUTING.md): the
 browser first; a dependency names what it beat. This page is written by `npm run docs:deps`
 (`scripts/dependencies.ts`) from package.json, package-lock.json and the reasons in
 `scripts/dependencies.json`; a test fails when it is out of date, and the script fails for a dependency
@@ -14,7 +14,7 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 
 ## Built into the site
 
-| Package | Version | Licence | The native API it beat, and why | Adds |
+| Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
 | `d3-sankey` | 0.12.3 | BSD-3-Clause | Sankey charts (src/kit/chart.ts). SVG draws the picture, but no browser API lays out a flow: placing the nodes in columns and relaxing the links so they cross least is the library's whole job. | 9.5 KB (its own: 5.9 KB) |
 | `fflate` | 0.8.3 | MIT | The link codec and every zip (src/kit/codec.ts, src/kit/zip.ts). CompressionStream has no preset dictionary, which makes short documents 20 to 35 percent smaller, is asynchronous, and writes a gzip stream, not a zip archive (.docx, .xlsx, .pptx, Download everything). | 13.1 KB |
@@ -25,7 +25,7 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 
 ## What those bring with them
 
-| Package | Version | Licence | Comes with | Adds |
+| Package | Version | License | Comes with | Adds |
 | --- | --- | --- | --- | --- |
 | `@babel/runtime` | 7.29.10 | MIT | `mathjs` | 933 B |
 | `@lit-labs/ssr-dom-shim` | 1.6.0 | BSD-3-Clause | `lit` | none |
@@ -49,14 +49,14 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 ## Type
 
 The type is IBM Plex, and the site serves it itself: no font comes from another host (the policy's `font-src` is
-`'self'`). The files are IBM's own release, copied as released into `public/fonts/` with the licence beside them
+`'self'`). The files are IBM's own release, copied as released into `public/fonts/` with the license beside them
 (`public/fonts/LICENSE.txt`, the SIL Open Font License 1.1, OFL-1.1), listed in `scripts/dependencies.ts`
 (`FONTS`) and declared in `src/styles/fonts.css`, each face behind its `unicode-range` so a page loads only the
 faces its words need. The browser has fonts of its own, but each system's differs in width, so the same words would
 fit a slot on one and not on another; Plex is one type everywhere, and the type the box measures in. Bengali, Korean,
 Japanese and Chinese are drawn in the device's own type, and Urdu in its Nastaliq.
 
-| Family | From | Version | Licence | For | Files |
+| Family | From | Version | License | For | Files |
 | --- | --- | --- | --- | --- | --- |
 | IBM Plex Sans | `@ibm/plex-sans` | 1.1.0 | OFL-1.1 | The interface and the Sans look | `IBMPlexSans-Regular.woff2`, `IBMPlexSans-Italic.woff2`, `IBMPlexSans-SemiBold.woff2`, `IBMPlexSans-SemiBoldItalic.woff2` (261.7 KB) |
 | IBM Plex Serif | `@ibm/plex-serif` | 2.0.0 | OFL-1.1 | The Serif look, and the name on the home page | `IBMPlexSerif-Regular.woff2`, `IBMPlexSerif-Italic.woff2`, `IBMPlexSerif-SemiBold.woff2`, `IBMPlexSerif-SemiBoldItalic.woff2` (288.7 KB) |
@@ -71,7 +71,7 @@ group) is data, not code: the browser lists no emoji by name, and the characters
 system's own font. It is written by `npm run emoji` (`scripts/emoji.ts`) from Unicode's
 [emoji-test.txt](https://unicode.org/Public/17.0.0/emoji/emoji-test.txt) (which emoji are fully qualified, and their groups) and CLDR's English
 [annotations](https://cdn.jsdelivr.net/npm/cldr-annotations-full@48.2.0/annotations/en/annotations.json) and [derived annotations](https://cdn.jsdelivr.net/npm/cldr-annotations-derived-full@48.2.0/annotationsDerived/en/annotations.json) (names and
-keywords), at those pinned versions, under the Unicode licence (Unicode-3.0), and checked in. It loads only with
+keywords), at those pinned versions, under the Unicode license (Unicode-3.0), and checked in. It loads only with
 the picker; neither source is a dependency.
 
 ## For building and testing
@@ -79,7 +79,7 @@ the picker; neither source is a dependency.
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile
 holds 198 packages for development.
 
-| Package | Version | Licence | The native API it beat, and why | Adds |
+| Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
 | `@axe-core/playwright` | 4.13.0 | MPL-2.0 | The accessibility checks in e2e/a11y.spec.ts. Chromium exposes its accessibility tree but no rules to judge it by; axe is the rule set. Tests only. | not shipped |
 | `@playwright/test` | 1.64.0 | Apache-2.0 | The end-to-end runner (e2e/). node:test has no browser; WebDriver BiDi is a protocol, not a runner, and WebKit at phone size is what an iPhone gets. Tests only. | not shipped |
@@ -91,6 +91,6 @@ holds 198 packages for development.
 | `playwright` | 1.64.0 | Apache-2.0 | The browsers themselves (Chromium, WebKit) for the browser tests and e2e, pinned to @playwright/test's version. Tests only. | not shipped |
 | `prettier` | 3.9.10 | MIT | The one style of the code (npm run format writes it, npm run lint checks it: .prettierrc is single quotes, lines to 200, templates left as written). Node has no formatter, and a style held by hand drifted with every builder. Not built into the site. | not shipped |
 | `typescript` | 7.0.2 | Apache-2.0 | The type check (npm run lint), and its scanner reads the source for the lints of the code (test/lints.ts: the words in templates, the module graph). Node strips types natively and runs the scripts as written, but checks none of them, and has no tokenizer for TypeScript. Not built into the site. | not shipped |
-| `vite` | 8.3.4 | MIT | The build. Browsers load ES modules unbundled, but a page per app, hashed file names a browser may keep for ever, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site. | not shipped |
+| `vite` | 8.3.4 | MIT | The build. Browsers load ES modules unbundled, but a page per app, hashed file names a browser may keep forever, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site. | not shipped |
 | `vitest` | 5.0.3 | MIT | The unit and browser tests. node:test runs the unit tests' shape but not in a browser; one runner for both layers keeps one way to write a test. Not built into the site. | not shipped |
 | `wrangler` | 4.149.0 | MIT OR Apache-2.0 | Deploys the two Workers and runs them locally (npm run deploy, tinier:dev). Cloudflare's REST API could, by hand; wrangler is Cloudflare's own tool for it. Not built into the site. | not shipped |

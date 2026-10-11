@@ -2,7 +2,7 @@
  * docs/network.md and public/network.html (the site's /network), written from src/kit/network.ts: every
  * request the site can make, when, what it carries and what stops it. The words around the list are
  * here, as prose the script carries; the list is the registry's, so the page cannot drift from the code.
- * The page is plain HTML: no script, the site's colours inline, dark when the device is.
+ * The page is plain HTML: no script, the site's colors inline, dark when the device is.
  *
  *   node scripts/network-doc.ts           write both
  *   node scripts/network-doc.ts --check   write nothing; fail if either is not what the registry says

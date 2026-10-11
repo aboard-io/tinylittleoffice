@@ -10,7 +10,7 @@ any copy reads it). This takes about thirty minutes, most of it waiting for a do
 | Worker | Config | What it is | Storage |
 | --- | --- | --- | --- |
 | the site | `wrangler.jsonc` | `dist/` as static assets, with `dist/_headers` (the Content-Security-Policy). No script runs on the server. | none |
-| tinier | `tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out, a hundred links a day per address (README, "Short links") | D1: two tables, swept hourly by a cron trigger |
+| tinier | `tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out, a hundred links a day per address (docs/crypto/short-links.md) | D1: two tables, swept hourly by a cron trigger |
 
 Each has `observability` off and `workers_dev` off: no logs, and no `*.workers.dev` copy. Keep it that way
 unless you mean to change what your copy knows about its readers.

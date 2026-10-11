@@ -59,11 +59,12 @@ export default {
   'About': 'Info',
   'Tiny Little Office': 'Piepklein Kantoortje',
   'About Tiny Little Office': 'Over Piepklein Kantoortje',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Een piepklein kantoorpakket dat helemaal in de URL leeft. Geen server, geen accounts, niets opslaan: de link is het document.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Een piepklein kantoorpakket waarin de link het document is. Geen accounts. Niets wordt ergens bewaard, tenzij je ervoor kiest het op dit apparaat te houden.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Niets wat je schrijft verlaat je browser, tenzij je de link deelt. Eén ding roept zelf het web aan: de kaart van een reis, waarvan de kaartbeelden van OpenStreetMap komen zolang de kaart zichtbaar is.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Er is geen gedeeld document: elke link is een kopie, en wat in de ene verandert, komt nooit in een andere terecht.',
   'Private, the default:': 'Privé, de standaard:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Opgeslagen, de schakelaar in dit menu, bewaart je instellingen en de documenten die je opent op dit apparaat.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Een korte link is het enige wat een server bewaart: het document, versleuteld met een sleutel die de server nooit ziet, tot de link verloopt.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Een document kan een wachtwoord hebben: het wordt hier in de browser versleuteld en de link bevat alleen versleutelde tekst. Privacy, in dit menu, laat zien wat dit apparaat bewaart.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

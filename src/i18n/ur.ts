@@ -59,11 +59,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
     'Tiny Little Office': 'Tiny Little Office', // same
     'About Tiny Little Office': 'Tiny Little Office کا تعارف',
-    'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'ایک چھوٹا سا آفس سویٹ جو پورا URL میں رہتا ہے۔ نہ سرور، نہ اکاؤنٹ، نہ محفوظ کرنے کا جھنجھٹ: لنک ہی دستاویز ہے۔',
+    'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'ایک چھوٹا سا آفس سویٹ جس میں لنک ہی دستاویز ہے۔ کوئی اکاؤنٹ نہیں۔ کچھ بھی کہیں محفوظ نہیں ہوتا، جب تک آپ اسے اس ڈیوائس پر رکھنے کا انتخاب نہ کریں۔',
     'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'کوئی ایسی دستاویز نہیں جسے سب مل کر بدلیں: ہر لنک ایک کاپی ہے، اور ایک میں کی گئی تبدیلی کبھی دوسری تک نہیں پہنچتی۔',
     'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ صرف ایک چیز خود ویب سے کچھ مانگتی ہے: سفر کا نقشہ، جس کی تصویریں دکھائے جانے تک OpenStreetMap سے آتی ہیں۔',
     'Private, the default:': 'نجی، پہلے سے:',
     'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'اس مینو میں "محفوظ" کا سوئچ آپ کی سیٹنگز اور کھولی ہوئی دستاویزات کو اس ڈیوائس پر رکھتا ہے۔',
+    'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'مختصر لنک وہ واحد چیز ہے جو کوئی سرور رکھتا ہے: دستاویز، ایسی کلید سے انکرپٹ کی ہوئی جو سرور کبھی نہیں دیکھتا، جب تک لنک کی میعاد ختم نہ ہو۔',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'دستاویز پر پاس ورڈ لگایا جا سکتا ہے: وہ یہیں، براؤزر میں انکرپٹ ہوتی ہے اور لنک میں صرف انکرپٹڈ متن ہوتا ہے۔ اس مینو میں ”رازداری“ دکھاتا ہے کہ اس آلے میں کیا محفوظ ہے۔',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

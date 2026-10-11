@@ -58,11 +58,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office 정보',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'URL 안에 통째로 들어 있는 작은 오피스 모음이에요. 서버도, 계정도, 저장도 없어요. 링크가 곧 문서예요.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': '링크가 곧 문서인 작은 오피스 모음이에요. 계정은 없어요. 이 기기에 보관하기로 하지 않으면 어디에도 저장되지 않아요.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 스스로 웹에 요청하는 건 한 가지예요. 여행 지도는 보이는 동안 OpenStreetMap에서 사진을 가져와요.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': '함께 고치는 문서는 없어요. 링크마다 따로 된 사본이라, 한 사본에서 바꾼 내용은 다른 사본에 절대 닿지 않아요.',
   'Private, the default:': '비공개, 기본값:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '이 메뉴의 스위치인 저장을 켜면 설정과 연 문서가 이 기기에 남아요.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': '짧은 링크만은 서버가 보관해요. 서버가 볼 수 없는 키로 암호화된 문서를, 링크가 만료될 때까지요.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': '문서에는 비밀번호를 걸 수 있어요. 브라우저에서 바로 암호화되고 링크에는 암호문만 들어 있어요. 이 메뉴의 개인정보에서 이 기기에 있는 것을 볼 수 있어요.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

@@ -1,13 +1,12 @@
-<!-- Designed 2026-10-09 against the old tree at commit 15f0acb, before the greenfield decision. Read with
-docs/rebuild.md. Greenfield adjustments and the three decisions are at the end (§8). The apps are named here by
-their working names (Write, Sheet, Deck, …); the names people read are listed by id at the end of the plan's
-app table in docs/rebuild.md. -->
+<!-- Designed 2026-10-09 against the old tree at commit 15f0acb, before the greenfield decision, and kept as the
+design as it was built. Read with docs/history/rebuild.md. The apps are named here by their working names (Write,
+Sheet, Deck, …). -->
 
 # The document kernel, the one editor, and sheets as the data model
 
-Phases 1, 2 and 3 of docs/rebuild.md, designed against the code as it stands at commit 15f0acb. Phase 0 (per-app folders, `src/kit/`) has not landed yet; paths below assume it has for new files (`src/doc/`, `src/kit/`) and name today's paths for what is deleted.
+**Reading this now.** §1 to §7 are the design as it was written, phases 1, 2 and 3 of the rebuild's plan (docs/history/rebuild.md), against the old tree at commit 15f0acb (tagged `v0-before-rebuild`): where they say "today" they mean that tree, and the apps they name (Gantt, Invoice, the fold apps, the page sections, the small tools) are the old tree's, most of them since folded into the ten apps as templates or modes, or gone. §8 says what changed when the rebuild went greenfield, and §9 to §12 describe the tree as it is. The code is the last word: `src/doc/` and `src/kit/`, each file headed by what it does.
 
-The short version. Today `src/lib/tlo.ts` already holds the kernel in embryo: `Tlo = { head, blocks }` with nine block kinds, a lenient reader and a canonical writer that every app reads its document through. What is missing is (a) runs: text sits in blocks as raw inline Markdown strings and is parsed again by every drawing (`parseInline` is called in outline rows, slide layout, write's `parseDoc`), and `src/lib/richtext.ts` keeps a second `Block` type for Write alone; (b) an operation set: every app edits its own model type and re-serialises the whole text; (c) the table block is strings with no notion of columns, so `formula.ts` builds its own padded `Grid` and `Sheet`. The kernel is those three things added to what tlo.ts already is, moved to `src/doc/`, with nothing left behind in `src/lib/`.
+The short version. Today `src/lib/tlo.ts` already holds the kernel in embryo: `Tlo = { head, blocks }` with nine block kinds, a lenient reader and a canonical writer that every app reads its document through. What is missing is (a) runs: text sits in blocks as raw inline Markdown strings and is parsed again by every drawing (`parseInline` is called in outline rows, slide layout, write's `parseDoc`), and `src/lib/richtext.ts` keeps a second `Block` type for Write alone; (b) an operation set: every app edits its own model type and re-serializes the whole text; (c) the table block is strings with no notion of columns, so `formula.ts` builds its own padded `Grid` and `Sheet`. The kernel is those three things added to what tlo.ts already is, moved to `src/doc/`, with nothing left behind in `src/lib/`.
 
 ---
 
@@ -47,7 +46,7 @@ export type Block =
   | { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Run[]; a?: Attrs }
   | { k: 'p'; runs: Run[]; a?: Attrs }                                   // its lines stay lines: '\n' inside a run's t
   | { k: 'li'; depth: number; ord?: true; done?: boolean; runs: Run[]; a?: Attrs }
-  | { k: 'quote'; runs: Run[]; a?: Attrs }                               // a note: speaker's note, a page's aside, a site's button
+  | { k: 'quote'; runs: Run[]; a?: Attrs }                               // a note: speaker's note, a page's aside
   | { k: 'hr'; a?: Attrs }                                               // a break: the next slide, page or card
   | { k: 'table'; cols: Column[]; rows: string[][]; a?: Attrs }          // cells are raw strings: formulas, numbers, words
   | { k: 'fence'; lang: string; body: string; a?: Attrs }                // lang names an app: another document; else text kept as written
@@ -91,7 +90,7 @@ Why runs in the model rather than text with runs derived: every view already par
 | draw, pixel mode | one `p`, a line a row | `grid` (8, 16, 32, 64); `tile` (kit/tile.ts) on any page | — |
 | gantt | `table` Task\|Start:date\|Days:number\|Done:percent | — | nesting is `- ` prefixes inside the Task cell: a tree in a table by convention |
 | trip | `table` Place\|Lat:number\|Lon:number\|Note | `units route` | — |
-| cal | `li` `when: label` with `color= every= times= until=` | `zone`, colour names | *when* is text inside the run, not a field |
+| cal | `li` `when: label` with `color= every= times= until=` | `zone`, color names | *when* is text inside the run, not a field |
 | invoice | `table` What\|Qty:number\|Units\|Price:money, `p` notes | `from to number date due tax currency terms` | the sums are not in the document (see §5) |
 | site, links | `h` 1 (pages), `h` 2 (sections), `li` (`:icon: Head \| detail` cards; links' small links), `quote` (`Label \| url` buttons), `p` `:icon:` (big icon), `table` Name\|Price:money\|About (shop), `fence` | `theme currency orders` | card and button fields are `\|` conventions in a run |
 | lanes, timeline, seating, venn, net, spinner, santa, wordsearch, split | `h` 1 title, `li` `Key: words` (or `Set: a, b`), `edge`, `table` (split's payments) | `between` | the `Key:` and comma-list conventions are text, read by `lines.ts` patterns |
@@ -103,7 +102,7 @@ Everything in the table is representable without loss in the nine kinds; the rig
 
 ---
 
-## 2. Serialisation: TLO, one parser
+## 2. Serialization: TLO, one parser
 
 ### Moves to `src/doc/tlo.ts` unchanged
 
@@ -113,7 +112,7 @@ From `src/lib/richtext.ts` to `src/doc/notes.ts` unchanged: `Run`, `foldNotes`, 
 
 ### Changes
 
-1. **Runs at parse time.** In `parse`, where a text block is pushed (`flush`, the heading, the list item), `text` becomes `runs: lines(text)` where `lines(s) = s.split('\n').map(parseInline)` joined by `{ t: '\n' }` runs (merged into a neighbour when the marks agree). Inline marks therefore do not cross a line, exactly as today, where every consumer splits lines before `parseInline`. `writeBlock` writes `writeLines(runs)`: split at `\n`, `writeInline` each line.
+1. **Runs at parse time.** In `parse`, where a text block is pushed (`flush`, the heading, the list item), `text` becomes `runs: lines(text)` where `lines(s) = s.split('\n').map(parseInline)` joined by `{ t: '\n' }` runs (merged into a neighbor when the marks agree). Inline marks therefore do not cross a line, exactly as today, where every consumer splits lines before `parseInline`. `writeBlock` writes `writeLines(runs)`: split at `\n`, `writeInline` each line.
 2. **The writer is byte-stable on canonical text.** `writeInline` writes a candidate with *minimal* escaping (only `\`, `^[`, `:name:`, `[x](y)`, `<u>`, a backtick, and a mark at a position where `parseInline` would open or close one), parses it back, and if the runs differ falls back to today's full `escapePlain`. This makes `writeInline(parseInline(s)) === s` for every canonical `s` the examples hold (today `5 * 3 * 2` on the calculator's tape or `snake_case` in an outline item would come back `5 \* 3 \* 2`, `snake\_case` once a block passes through runs — a change in bytes the kernel must not make). A property test over every template body and every skill example asserts `write(parse(x)) === x`.
 3. **Columns at parse time.** `head: string[]` becomes `cols: Column[]` via `column(h)`; `writeBlock` writes `columnText(c.name, c.type)`. Canonical headings (`Price:money`, `Time: 10am`) are byte-stable; `Price: money` is read leniently and written canonically.
 4. **Reference footnotes fold in `parse`.** `foldNotes` runs in the kernel for every app (today only Write and Deck fold `[^id]: note` paragraphs). Canonical documents hold the inline form only, so no example changes.
@@ -258,7 +257,7 @@ Every `beforeinput` is `preventDefault()`ed and turned into ops, except while co
 
 ### Rendering and reconciliation
 
-Lit `repeat` keyed by block object identity (a `WeakMap<Block, number>` hands out keys). A block renders as one element: `h1.title`/`h1`/`h2`/`p`/`li` (lists are flat `li`s with `style="--d"`; the `ul`/`ol` wrappers of today's `blocksHtml` are not needed in the editor, which draws its own bullets and numbers via `listNumbers`), `blockquote`, a card (fence, table, rule, edge). Inside, runs render to `<b>/<i>/<u>/<s>/<mark>/<a>` nesting as `markedHtml`, atomic runs to `<span class=ic data-icon contenteditable=false role=img>` (the icon's SVG inside; a name outside the starter set after the one lazy load, a name nothing has as its name in small type), `<sup class=fn data-fn tabindex=0 contenteditable=false>`, `'\n'` to `<br>`. Only blocks whose identity changed re-render (the ops say which: a `text` op touches one block), and a changed block is re-rendered whole — no run-level diffing. After render, the model `sel` is written to the DOM selection (`Pos → Range`: walk the block's text nodes, counting atomic elements as 1). `selectionchange` maps back (`Range → Pos`) and fires `text-select`, from which the host's toolbar sets its pressed states (today's `queryCommandState` goes).
+Lit `repeat` keyed by block object identity (a `WeakMap<Block, number>` hands out keys). A block renders as one element: `h1.title`/`h1`/`h2`/`p`/`li` (lists are `li`s side by side, their depth in `style="--d"`; the `ul`/`ol` wrappers of today's `blocksHtml` are not needed in the editor, which draws its own bullets and numbers via `listNumbers`), `blockquote`, a card (fence, table, rule, edge). Inside, runs render to `<b>/<i>/<u>/<s>/<mark>/<a>` nesting as `markedHtml`, atomic runs to `<span class=ic data-icon contenteditable=false role=img>` (the icon's SVG inside; a name outside the starter set after the one lazy load, a name nothing has as its name in small type), `<sup class=fn data-fn tabindex=0 contenteditable=false>`, `'\n'` to `<br>`. Only blocks whose identity changed re-render (the ops say which: a `text` op touches one block), and a changed block is re-rendered whole — no run-level diffing. After render, the model `sel` is written to the DOM selection (`Pos → Range`: walk the block's text nodes, counting atomic elements as 1). `selectionchange` maps back (`Range → Pos`) and fires `text-select`, from which the host's toolbar sets its pressed states (today's `queryCommandState` goes).
 
 ### IME and composition
 
@@ -285,7 +284,7 @@ The editable's font-size is never below 16px (prevents the focus zoom); `focus({
 1. **Write** (`src/apps/write.ts` → `src/apps/write/editor.ts`, ~350 lines of toolbar, notes list, bubble and popover around one `<to-text shape=doc>`). Deleted: `domToBlocks`, `embedBeside`, `noteBeside`, `blockOf`, `isBlockTag`, `caretAfter`, `renumber`, `chips`, `insertAsked`, `insertHtmlByHand`, the DOM-surgery `link()`, `makeTitle`, `exec` with `execCommand`/`styleWithCSS`, `onPaste`, `insertEmbed`, `removeEmbed`, `onBlur` re-linkify, `itemAtStart`, `unlist`, `onBeforeInput` (its two rules move into the editor), `onKey`'s Tab/Backspace handling, `onSelection` with `queryCommandState`, `loadHtml`/`blocksToHtml`/`runsToHtml` (the editor renders), `shift()`, `mode`, the `to-rich` element. Kept: `blocksHtml`/`markedHtml`/`docToHtml` in write.def.ts (exports), `footnotes.css`.
 2. **Outline** — each row's `<to-rich mode=line>` becomes `<to-text shape=line .blocks=${[item block]}>`; `rich-change` → `text-ops` offset by the row's block index; `rich-enter` → `text-enter`; the toolbar's `this.field?.exec` stays (same name). Deleted: `focusItem`'s range dance (set `sel`), `notesIn` counting (the editor numbers from `noteStart`).
 3. **Deck, zine, booklet, brochure, poster, badges, comic** (`pages.ts`, `deck.ts`, `fold.ts`): headline `<to-text shape=line>` over the `h`; bullets `<to-text shape=lines>` over the span's li/p blocks (Tab = indent op, so `shift()` by two spaces goes); notes `<to-text shape=lines>` over the `quote` (replacing the `<textarea>`). Deleted: `headline()`/`words()`/`textTools()`'s to-rich glue, `patch({ bullets })` string lists, `depthOf` on leading spaces.
-4. **Page sections** (site, links): gone with the Website Builder (Paul, 2026-10-11); a document never runs code.
+4. **Page sections** (site, links): gone, with the app that drew them (Paul, 2026-10-11); a document never runs code.
 
 Tests: `test/dom/text.test.ts`, `deck-write.test.ts`, `footnotes.test.ts`, `lists.test.ts`, `outline.test.ts` type by setting `innerHTML` and firing `input` — that is the contentEditable contract and it goes. They are rewritten against a helper `typeIn(el, text)` that dispatches `beforeinput` (`inputType: 'insertText'`, `data`) and `key(el, 'Enter')` that dispatches `beforeinput insertParagraph`; selection is set through the element's `sel` setter. Whether happy-dom's `InputEvent`/`Selection` suffice is the first risk below; if not, the editor's tests land in Vitest browser mode (phase 6 pulled forward for this one file).
 
@@ -393,7 +392,7 @@ Tests that must be rewritten: `tlo.test` (literals), `richtext.test` (folded), t
 
 1. **Runs are the stored model (recommended), or text is stored and runs are a derived view.** Runs-in-model is what rebuild.md names and what the editor and views need; its cost is the byte-stable writer (the parse-back check, ~30 lines) and the acceptance that *any* app now writes canonical inline Markdown for blocks it touches. The alternative keeps `text: string` in blocks and parses to runs on demand; smaller step 2, but rich text then lives in two forms and the editor converts at every edge.
 2. **Undo stays the shell's text-snapshot `History` with the selection added (recommended), or becomes an op log in the kernel using `invert`.** Snapshots work for every app today and across the title; `invert` exists either way (tests, IME rollback). An op log would give per-op granularity and selection by construction, but every app's change must then be ops (true after 3e) and the shell's `state()`/`step()` and `shell-undo` tests are rewritten.
-3. **Page sections**: none; there is no Website Builder (decision 3 below).
+3. **Page sections**: none (decision 3 below).
 
 ### Critical files for implementation
 
@@ -410,9 +409,9 @@ In the old tree (tagged `v0-before-rebuild`):
 
 ## 8. Greenfield adjustments and the decisions (2026-10-09)
 
-The rebuild is greenfield on the branch `next` (docs/rebuild.md). So:
+The rebuild went greenfield, on a branch of its own that became main (docs/history/rebuild.md). So:
 
-- §6 is not a migration; it is the **order of building** `src/doc/` and the apps on it: model + tlo + notes (steps 1–2 as one: port `src/lib/tlo.ts` and the helpers of `richtext.ts` from the old tree with runs and columns in the blocks from the start, byte-stable writer, `foldNotes` in parse), then `ops.ts`, `table.ts`, `formula.ts`; then `<to-text>`; then the apps in the order of docs/rebuild.md.
+- §6 is not a migration; it is the **order of building** `src/doc/` and the apps on it: model + tlo + notes (steps 1–2 as one: port `src/lib/tlo.ts` and the helpers of `richtext.ts` from the old tree with runs and columns in the blocks from the start, byte-stable writer, `foldNotes` in parse), then `ops.ts`, `table.ts`, `formula.ts`; then `<to-text>`; then the apps in the order of docs/history/rebuild.md.
 - The byte-stability gate is a property test over every template and every example in the old tree's docs/tlo.md and skill/tinyoffice/SKILL.md: `write(parse(x)) === x`.
 - The editor's tests run in **Vitest browser mode** from the first commit (risk 2 is gone); `Pos↔offset`, ops, paste fitting are node tests.
 - There is no `to-rich`, no `pageedit.ts`, no `execCommand`, no contenteditable outside `<to-text>`, ever.
@@ -423,13 +422,13 @@ The rebuild is greenfield on the branch `next` (docs/rebuild.md). So:
 
 **Decision 2 — undo is an op log in the kernel**, not text snapshots. Greenfield removes the reason for snapshots (the old shell tests). Every editor emits ops; `History` holds `{ ops, inverse, sel }` entries, coalescing typing bursts (700 ms) and composition; the title and head fields are `head` ops like any other. `invert` is therefore load-bearing and property-tested.
 
-**Decision 3 — there are no page sections.** Paul, 2026-10-11: "Let's get rid of the Website Builder entirely." It rendered arbitrary HTML, CSS and script from a link inside a page served from tinylittleoffice.com, a phishing kit with our domain on it, which no sandbox makes safe. A document never runs code; the Display Link shows every app's pages as pictures.
+**Decision 3 — there are no page sections.** Paul, 2026-10-11, removed the app that drew them. It rendered arbitrary HTML, CSS and script from a link inside a page served from tinylittleoffice.com, a phishing kit with our domain on it, which no sandbox makes safe. A document never runs code; the Display Link shows every app's pages as pictures.
 
 ---
 
 ## 9. The shell, the chrome and the column (round eight, 2026-10-10)
 
-The shell is thin. `<to-shell>` (kit/shell.ts) keeps the route, the document, its projection to the link (`writeLink`, `flushLink`, the 150 ms pause), the library's keep (kit/library.ts `Keeper`), the title and the editor's mounting. Round it are elements that take their state as properties and speak back by events, each under 500 lines:
+The shell is thin. `<to-shell>` (kit/shell.ts) keeps the route, the document, its projection to the link (`writeLink`, `flushLink`, the 150 ms pause), the library's keep (kit/library.ts `Keeper`), the title and the editor's mounting. Around it are elements that take their state as properties and speak back by events, each under 500 lines:
 
 | element | file | what it is | says back |
 |---|---|---|---|
@@ -439,13 +438,13 @@ The shell is thin. `<to-shell>` (kit/shell.ts) keeps the route, the document, it
 
 and, as before, the editor, `<to-drawer>` (which, with a document open, begins with This document: Share… and Download), `<to-find>`, `<to-toast>` and the shortcuts dialog. The page's keys are kit/keys.ts `pageKey`.
 
-**The page is the visible window; the column scrolls.** `html` and `body` are `height: 100%; overflow: hidden; overscroll-behavior: none` on the screen (print flows on). `<to-chrome>` is a column exactly the visual viewport's height, set from `visualViewport.height` as it resizes (the layout viewport's while a desktop pinch has zoomed in), and the window is put back at its top whenever the visual viewport scrolls (`pinWindow`), so the layout viewport never slides. In it: the header, the banners, and `.to-column`, which holds the bar's place and `.to-main`, `overflow-y: auto; overscroll-behavior: contain`, the document. The column's height is `--to-col-h` on the chrome, for what fills it (the Drawing Tool's canvas, the Diagram Maker's picture, the Animator's stage, the Website Builder's frame, the Trip Planner's map, the Spreadsheet's box).
+**The page is the visible window; the column scrolls.** `html` and `body` are `height: 100%; overflow: hidden; overscroll-behavior: none` on the screen (print flows on). `<to-chrome>` is a column exactly the visual viewport's height, set from `visualViewport.height` as it resizes (the layout viewport's while a desktop pinch has zoomed in), and the window is put back at its top whenever the visual viewport scrolls (`pinWindow`), so the layout viewport never slides. In it: the header, the banners, and `.to-column`, which holds the bar's place and `.to-main`, `overflow-y: auto; overscroll-behavior: contain`, the document. The column's height is `--to-col-h` on the chrome, for what fills it (the Drawing Tool's canvas, the Diagram Maker's picture, the Animator's stage, the Trip Planner's map, the Spreadsheet's box).
 
 **The bar's place.** The app's bar stays the editor's first child, drawn by the app as ever; the stylesheet takes it out of the document's flow and sets it in `.to-column.barred` (absolutely, against the column, which `.to-main` does not clip): at the column's top on a wide screen, under the header as it always was, and at its bottom under a coarse pointer, so on a phone it sits above the keyboard as one scrolling row however the words are scrolled. Its height is the nav's (`--to-bar-h`), and the column keeps that much room for it.
 
 **On a phone, editing.** Under a coarse pointer, while a box has the focus (a `<to-text>`, a field in an app), `<to-chrome>` has `editing` and the header steps aside; the menu button alone stays, floating on a card at the column's top inline end, and a short link's banner goes small. The header returns when the focus leaves the box (a tap outside, Escape, Done); a hop to the bar, a menu or a dialog and back is not leaving. The menu button is at the inline end on every screen (the right in a left-to-right language, the left in Arabic): the words begin at the inline start, so a button there would cover the first line and the caret, and on an iPhone the left edge is Safari's back swipe. The drawer slides in from the same side. Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger. The secondary nav is now aligned bottom."
 
-**Scrolling, in one place.** kit/scroll.ts has `scrollerOf(el)` (the nearest box that scrolls, else the column), `reveal(el, opts)` (each box round it moved by what it takes, nothing behind a dialog or a popover, the window never) and `room()` (where a menu, the context bar, the link box or the completion list may sit: the column's box within the visual viewport). The caret kept in view (`keepCaretVisible`), Find's match, a note, a completion, a card or a stop brought in, the Outliner's drag at the column's edge and a pinch keeping the words under the fingers all go through it. A node test (test/scroll.test.ts) fails on any other module that reads `window.scrollY` or scrolls the window; the Website Builder's frame and a site's own page script scroll windows of their own.
+**Scrolling, in one place.** kit/scroll.ts has `scrollerOf(el)` (the nearest box that scrolls, else the column), `reveal(el, opts)` (each box around it moved by what it takes, nothing behind a dialog or a popover, the window never) and `room()` (where a menu, the context bar, the link box or the completion list may sit: the column's box within the visual viewport). The caret kept in view (`keepCaretVisible`), Find's match, a note, a completion, a card or a stop brought in, the Outliner's drag at the column's edge and a pinch keeping the words under the fingers all go through it. A node test (test/scroll.test.ts) fails on any other module that reads `window.scrollY` or scrolls the window.
 
 **Why, and the price.** Safari on iOS does not make the page shorter for the keyboard, only the visible window; a bar stuck to the page's top had to be measured into place (`--to-vv-top`, `--to-stuck-h`, a frame-by-frame watch after every resize, focus and touch) after events that came late or never, and was found parked a third of the way down. A column the visible window's height puts the bar where it belongs with nothing measured but the window. **The price is Safari's toolbar: it no longer collapses as the words scroll**, since the page itself never scrolls, so a phone shows a little less of the document than a page that scrolled the window would.
 
@@ -514,7 +513,7 @@ a phone's keyboard up and down; another app and back), and after every step the 
 | focus | the focus is inside what is open, else in the document or the chrome; never under `aria-hidden` |
 | back | after Escape or a dialog's backdrop, the focus is where it was when the thing opened (or on what was tapped to open it, or, for a command's dialog opened from a button, on the words it acts on) |
 | modal | at most one modal `<dialog>` is open |
-| window | `window.scrollY` is 0, and the chrome round the column never scrolls: the column does |
+| window | `window.scrollY` is 0, and the chrome around the column never scrolls: the column does |
 | link | the address, flushed, is the document the shell holds, written back as it is read |
 | bar | the app's bar, where it is shown, is one row inside the visible window |
 | overflow | no words run off the screen sideways; the page is no wider than the window |
@@ -523,7 +522,7 @@ a phone's keyboard up and down; another app and back), and after every step the 
 | errors | nothing throws |
 
 One test per app family (text: Write, Outline, Deck; grid: Sheet, Calendar, Calculator; canvas: Drawing, Diagram,
-Animation; lists: Trip; Site) at 390×844 with a coarse pointer and at 1440×900. The default suite walks 16
+Animation; lists: Trip) at 390×844 with a coarse pointer and at 1440×900. The default suite walks 16
 steps from fixed seeds (about twenty seconds); `npm run walks` walks 200 steps, twice a test, from fresh seeds (about
 five minutes). A failure prints the seed, the path and the replay path, the steps in words with where the focus was
 after each, shrunk to the fewest that break the rule; `VITE_WALK_SEED`, `VITE_WALK_PATH` and `VITE_WALK_REPLAY` replay it.
@@ -542,7 +541,7 @@ focused while the bar was away scrolled the whole chrome up by the header's heig
 
 ## 12. The text layer (round seventeen, 2026-10-11)
 
-Paul: "Deal with the Display Link." A Display Link was pages of flat SVG text in `role=group` boxes, each with one
+Paul: "Deal with the Display Link." A Display Link was pages of SVG text in `role=group` boxes, each with one
 label: an outline read as its title, a deck's table as its slide's. Now every document has one text layer, what it
 says in the order it says it, and the pages are a picture of it.
 
@@ -550,17 +549,16 @@ says in the order it says it, and the pages are a picture of it.
   headings (h1 to h4; deeper is h4), paragraphs and quotes as runs with their marks and links (an icon left out, a
   footnote's mark its number carrying the note), lists nested by depth with a task's state, tables as the values a
   reader sees (formulas worked out, money and dates formatted, empty rows and nameless empty columns dropped), fences
-  as written, pictures (alt and address), things from the web (title and address), a document held in this one
+  as written, a document held in this one
   (`inner`, given by the host: its app reads it), the footnotes at the end, and a break for each `hr`. The Word
-  Processor, Outliner, Presentation Builder, To-do List, Spreadsheet, Calculator (its lines) and Kanban Board (columns as
-  headings, cards as items) have no code of their own for it.
+  Processor, Outliner, Presentation Builder, Spreadsheet and Calculator (its lines) have no code of their own for it.
 - **A spatial app's own** (`AppDef.text`, same nodes): Diagram (each thing a heading by its depth with its words, then
   Connections as "A → B: label"; the mind map, the org chart and the rest), Calendar (each day a heading in the reader's
   language, its events with their times in the calendar's zone and how they repeat), Trip Planner (the stops in order
-  with their notes), Drawing Tool and Motion (the alt, else a description from the shapes, and each shape's label). The
+  with their notes), Drawing Tool and Animator (the alt, else a description from the shapes, and each shape's label). The
   locked card says it is locked; a QR code, its address. `kit/text-layer.ts` `textLayer(def, doc)` picks.
 - **Drawn** (`kit/text-view.ts`): plain HTML, tables with column heads, a task's state said before its words, a link
-  through the link guard, a picture through the pictures' gate (its card until asked for). The Display Link puts it
+  through the link guard. The Display Link puts it
   first, visually hidden (shown should the keyboard reach a link in it), and the pages after it `aria-hidden`; its Text
   button shows the words in the pages' place, reflowed at the person's size in the theme's colors, the column no
   longer a picture (a pinch is the size of everything), and puts `&text` in the address (`route.ts` `withText`), so the

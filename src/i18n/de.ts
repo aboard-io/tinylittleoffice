@@ -57,11 +57,12 @@ export default {
   'About': 'Info',
   'Tiny Little Office': 'Winzig Kleines Büro',
   'About Tiny Little Office': 'Über Winzig Kleines Büro',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Ein winziges Office-Paket, das ganz in der URL lebt. Kein Server, keine Konten, kein Speichern: Der Link ist das Dokument.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Ein winziges Office-Paket, in dem der Link das Dokument ist. Keine Konten. Nichts wird irgendwo gespeichert, es sei denn, du entscheidest dich, es auf diesem Gerät zu behalten.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nichts, was du schreibst, verlässt deinen Browser, solange du den Link nicht teilst. Ein Ding fragt von sich aus das Web: die Karte einer Reise, deren Bilder von OpenStreetMap kommen, solange sie angezeigt wird.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Es gibt kein gemeinsames Dokument: Jeder Link ist eine Kopie, und was in einer geändert wird, kommt nie in einer anderen an.',
   'Private, the default:': 'Privat, die Voreinstellung:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '„Gespeichert“, der Schalter in diesem Menü, behält deine Einstellungen und die Dokumente, die du öffnest, auf diesem Gerät.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Ein Kurzlink ist das Einzige, was ein Server aufbewahrt: das Dokument, verschlüsselt mit einem Schlüssel, den der Server nie sieht, bis der Link abläuft.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Ein Dokument kann ein Passwort haben: Es wird hier im Browser verschlüsselt, und der Link enthält nur Geheimtext. „Datenschutz“ in diesem Menü zeigt, was dieses Gerät enthält.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

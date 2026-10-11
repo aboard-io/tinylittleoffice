@@ -3,7 +3,7 @@
   "version": "1.0.0-next",
   "private": true,
   "type": "module",
-  "description": "A tiny office suite that lives entirely in the URL.",
+  "description": "A tiny office suite where the link is the document.",
   "homepage": "https://tinylittleoffice.com",
   "repository": {
     "type": "git",
