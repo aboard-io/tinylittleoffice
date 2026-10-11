@@ -1865,10 +1865,22 @@
     background: #fff;
   }
   /* A page at its paper's width (a letter page about 816px), smaller only to fit a narrower screen, centred; never stretched. */
+  /* The pages in a box two fingers zoom (kit/shell.ts pinchZoom): --to-view-zoom is their width over the column's, 1 to 4,
+     and the column scrolls sideways to the rest (Paul, 2026-10-11: pinch zoom in view modes too). */
+  .to-display-pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: calc(100% * var(--to-view-zoom, 1));
+  }
   .to-display-page {
     width: 100%;
-    max-width: var(--page-w, 51rem);
+    max-width: calc(var(--page-w, 51rem) * var(--to-view-zoom, 1));
     margin: 0 auto;
+  }
+  .to-display {
+    overflow-x: auto;
   }
   .to-display-page svg {
     display: block;

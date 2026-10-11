@@ -415,3 +415,27 @@ test("WebKit's gesture events stand in where two pointers never arrive", async (
   await tick();
   expect(size()).toBe(1.5);
 });
+
+// The reader's pages are a picture to two fingers (Paul, 2026-10-11: pinch zoom in view modes too): they zoom in place
+// about the fingers, kept in quarters when lifted, and the size of everything is untouched.
+test('two fingers over a Display Link’s pages zoom the pages in place, not the size of everything', async () => {
+  await page.viewport(390, 844);
+  const was = size();
+  const shell = await mount(`${WRITE}?d`);
+  await until(() => !!shell.querySelector('main.to-display[data-spatial] .to-display-pages .to-display-page svg'));
+  const pages = shell.querySelector<HTMLElement>('.to-display-pages')!;
+  const page1 = shell.querySelector<HTMLElement>('.to-display-page')!;
+  const w0 = page1.getBoundingClientRect().width;
+  const y = page1.getBoundingClientRect().top + 100;
+  await pinch(page1, [150, y], [240, y], [60, y], [330, y]);
+  await tick(50);
+  const zoom = Number(pages.style.getPropertyValue('--to-view-zoom'));
+  expect(zoom).toBeGreaterThan(1);
+  expect(zoom * 4).toBe(Math.round(zoom * 4));
+  expect(page1.getBoundingClientRect().width).toBeGreaterThan(w0 * 1.5);
+  expect(size()).toBe(was);
+  expect(pill()?.classList.contains('shown') ?? false).toBe(false);
+  // The column scrolls sideways to the rest of a page wider than it.
+  const main = shell.querySelector<HTMLElement>('main.to-display')!;
+  expect(main.scrollWidth).toBeGreaterThan(main.clientWidth);
+});

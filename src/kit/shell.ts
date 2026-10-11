@@ -69,7 +69,7 @@ import { TEXT_COMMANDS } from './text-commands.ts';
 import type { ToText } from './text.ts';
 import type { Offer, ToPalette } from './palette.ts';
 import './palette.ts';
-import { pinchSizes } from './pinch.ts';
+import { pinchSizes, pinchZoom } from './pinch.ts';
 import { applySize } from './zoom.ts';
 import './chrome.ts';
 import './share-dialog.ts';
@@ -126,6 +126,9 @@ export class ToShell extends LitElement {
   private checkRun = 0;
   private presentSoon = false; // a deck's show link: presenting starts once the editor is up
   private focusSoon = false; // just opened for editing: once drawn, the focus goes where a person starts
+  /** The reader's pages zoomed in place by a pinch: their width over the column's, 1 to 4. */
+  private viewZoom = 1;
+  private unpinch = () => {};
   private refocus = false; // the address changed under the focus: a page with no editor puts it in its column once drawn
   private displayOwner = false; // a short link's owner arrived with "?d": the short link goes on opening the pages
   private edited: Doc = ''; // what the editor was last given or gave: without the new name the link carries for it
@@ -195,6 +198,22 @@ export class ToShell extends LitElement {
     // The size of everything (kit/zoom.ts), and a pinch on a touch screen sets it outside the spatial canvases (kit/pinch.ts).
     applySize();
     pinchSizes();
+    // The reader's pages (the Display Link, the embed) are a picture: two fingers zoom them in place about the fingers, as
+    // in a spatial canvas, never the size of everything (Paul, 2026-10-11: "I should be able to pinch zoom where
+    // appropriate in view modes too"). The zoom is the pages' width, one to four times the column's, kept in quarters.
+    this.unpinch = pinchZoom(this, {
+      frame: () => this.querySelector<HTMLElement>('main.to-display[data-spatial]'),
+      picture: () => this.querySelector('main.to-display > .to-display-pages'),
+      zoom: () => this.viewZoom,
+      set: (z) => {
+        this.viewZoom = Math.min(4, Math.max(1, z));
+        this.querySelector<HTMLElement>('main.to-display > .to-display-pages')?.style.setProperty('--to-view-zoom', String(this.viewZoom));
+      },
+      end: (z) => {
+        this.viewZoom = Math.min(4, Math.max(1, Math.round(z * 4) / 4));
+        this.querySelector<HTMLElement>('main.to-display > .to-display-pages')?.style.setProperty('--to-view-zoom', String(this.viewZoom));
+      },
+    });
     // The rest of Lucide joined (an icon outside the starter set): the editor is drawn again; a key imported or
     // forgotten changes whose signature this is.
     const redraw = () => this.requestUpdate();
@@ -211,6 +230,7 @@ export class ToShell extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.unpinch();
     this.onLeave();
     for (const off of this.offs.splice(0)) off();
     if (this.guarded) window.removeEventListener('beforeunload', this.onUnload);
@@ -641,7 +661,9 @@ export class ToShell extends LitElement {
 
   /** The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for first. */
   private pages = (def: AppDef) =>
-    def.view(this.doc).map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`);
+    html`<div class="to-display-pages">${def
+      .view(this.doc)
+      .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</div>`;
 
   /**
    * The Display Link: the pages, to read or print (a website: the site itself, as a visitor has it), with Edit. The
