@@ -68,7 +68,7 @@ test('the home page lists the apps as rows, each with its templates', async () =
   // Choosing a template opens the app with that document.
   (options[4] as HTMLElement).click();
   await until(() => location.hash.startsWith('#/v1/write/'));
-  expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Launch meeting {.title}');
+  expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Meeting {.title}');
 });
 
 test('the Diagram Maker lists a blank page a kind and no Blank of its own, its first kind chosen; the Word Processor still starts with Blank', async () => {
