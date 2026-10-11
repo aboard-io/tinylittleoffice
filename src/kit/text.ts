@@ -662,6 +662,15 @@ export class ToText extends LitElement {
         this.emit(sp.ops, sp.sel, 'type');
         return this.emit(s.ops, s.sel, undefined, 'keep', false);
       }
+      // Two spaces at the end of a link end it (Paul, 2026-10-11): typing after a link stays in it, and a second space in
+      // a row steps out, the one space before the caret made plain and the second not written, so what comes next is
+      // normal text.
+      const [a] = ordered(sel);
+      const block = model[a.block];
+      const before = collapsed(sel) && a.offset > 0 && isWords(block) ? runAt(block.runs, a.offset - 1) : null;
+      if (this.fmt.href && before?.run.href && !isAtomic(before.run) && before.run.t.endsWith(' ') && before.start + before.run.t.length === a.offset) {
+        return this.emit([{ op: 'text', at: a.block, from: a.offset - 1, to: a.offset, runs: [{ t: ' ' }] }], caret(a.block, a.offset), 'type');
+      }
     }
     let words = data;
     if (data === '"' || data === "'") {
