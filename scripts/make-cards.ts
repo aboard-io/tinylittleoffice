@@ -38,14 +38,15 @@ const markSvg = (size: number) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${markPaths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
 
 /** The page a card shows: the first template's first page that is more than a blank one. */
-function pageOf(def: AppDef) {
-  const tpl = def.templates.find((t) => t.doc.length > 60) ?? def.templates[0];
+async function pageOf(def: AppDef) {
+  const all = await def.templates();
+  const tpl = all.find((t) => t.doc.length > 60) ?? all[0];
   return def.view(tpl ? tpl.doc : def.blank(), { still: true })[0];
 }
 
 /** The card as a page for Chromium to draw: words at the left, the document's page at the right. */
-export function cardHtml(def: AppDef): string {
-  const page = pageOf(def);
+export async function cardHtml(def: AppDef): Promise<string> {
+  const page = await pageOf(def);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:${PAPER};font-family:${FONT};color:${INK}}
 .bar{position:absolute;inset:0 0 auto 0;height:12px;background:${ACCENT}}
@@ -69,7 +70,7 @@ async function main() {
   // Nothing from the web: a card is drawn from the template alone.
   await tab.route('**/*', (r) => (r.request().url().startsWith('data:') ? r.continue() : r.abort()));
   for (const def of apps()) {
-    await tab.setContent(cardHtml(def), { waitUntil: 'load' });
+    await tab.setContent(await cardHtml(def), { waitUntil: 'load' });
     await tab.screenshot({ path: join(out, `${def.id}.png`), type: 'png' });
   }
   await browser.close();

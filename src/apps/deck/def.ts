@@ -14,7 +14,6 @@ import { pixels, raster } from '../../kit/raster.ts';
 import { zip } from '../../kit/zip.ts';
 import { retitle, titleOf } from './model.ts';
 import { buildPptx } from './pptx.ts';
-import { templates } from './templates.ts';
 import { deckFrames, deckPages, deckToHtml } from './view.ts';
 
 /** How long each frame of the film stays: a slide, then each line as it is revealed. */
@@ -36,9 +35,7 @@ export default defineApp({
     return t('Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

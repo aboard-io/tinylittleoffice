@@ -8,7 +8,6 @@ import { apply, parse, write } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { templates } from './templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from './view.ts';
 import { tripToCal } from './convert.ts';
 import { readTrip } from './model.ts';
@@ -33,9 +32,7 @@ export default defineApp({
     return t('A route on a map: stops in order, each with a note, and how far between them.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

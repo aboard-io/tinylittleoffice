@@ -4,6 +4,7 @@ import { cdp } from 'vitest/browser';
 import { mount, openDrawerDoc, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { apps } from '../../src/kit/apps.ts';
+import { templatesOf } from '../../src/kit/home.ts';
 import { running } from '../../src/kit/version.ts';
 import { siteRoot } from '../../src/kit/apps.ts';
 
@@ -53,6 +54,8 @@ test('Find finds apps, templates by name or app, and kept documents by title, ea
     expect(find.placeholder).toBe('Find app, template, or doc');
     find.value = 'meeting';
     find.dispatchEvent(new Event('input', { bubbles: true }));
+    // Find asks for every app's templates (a chunk an app, lazily) and the list grows as they arrive.
+    await until(() => apps().every((a) => !!templatesOf(a)));
     await until(() => shell.querySelectorAll('.to-drawer-apps h3').length === 2);
     expect([...shell.querySelectorAll('.to-drawer-apps h3')].map((h) => h.textContent)).toEqual(['Templates', 'Documents']);
     const found = [...shell.querySelectorAll<HTMLAnchorElement>('.to-drawer-apps a.to-found')];
@@ -65,8 +68,14 @@ test('Find finds apps, templates by name or app, and kept documents by title, ea
     // A template by its app's name: every Word Processor template.
     find.value = 'word processor';
     find.dispatchEvent(new Event('input', { bubbles: true }));
-    await until(() => shell.querySelectorAll('.to-drawer-apps a.to-found').length > 2);
-    expect(shell.querySelectorAll('.to-drawer-apps a.to-found').length).toBe(1 + apps().find((a) => a.id === 'write')!.templates.length);
+    const writes =
+      1 +
+      (
+        await apps()
+          .find((a) => a.id === 'write')!
+          .templates()
+      ).length;
+    await until(() => shell.querySelectorAll('.to-drawer-apps a.to-found').length === writes);
     // Enter opens the first, and the drawer closes as the document opens.
     find.value = 'meeting';
     find.dispatchEvent(new Event('input', { bubbles: true }));
@@ -97,7 +106,8 @@ test("a template from inside an app: each of the drawer's rows has its templates
   // The drawer hands over: closed, and the templates open alone (one modal at a time).
   await until(() => !!shell.querySelector('to-templates.to-drawer-templates dialog[open]'));
   const list = shell.querySelector('to-templates.to-drawer-templates')!;
-  await until(() => !dialog.open && !!list.querySelector('dialog[open] [role=option] svg'));
+  // Blank is there at once; the Word Processor's own templates as their chunk arrives.
+  await until(() => !dialog.open && list.querySelectorAll('dialog[open] [role=option] svg').length > 1);
   const options = [...list.querySelectorAll<HTMLElement>('[role=option]')];
   options[1].click();
   await until(() => location.hash.startsWith('#/v1/write/'));

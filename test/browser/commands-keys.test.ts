@@ -181,7 +181,7 @@ const PLACES: Record<string, Record<string, Place[]>> = {
 async function tryKey(cmd: Command, key: string, place: Place): Promise<boolean> {
   const [app, tpl] = place.tpl.split(':');
   const def = appOf(app)!;
-  const shell = await mount(`#/v1/${app}/${encodeDoc(def.templates.find((x) => x.id === tpl)!.doc)}`);
+  const shell = await mount(`#/v1/${app}/${encodeDoc((await def.templates()).find((x) => x.id === tpl)!.doc)}`);
   await until(() => !!shell.editor, 5000);
   const ed = shell.editor as Ed;
   await ed.updateComplete;

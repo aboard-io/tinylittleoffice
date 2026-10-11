@@ -44,7 +44,7 @@ function closeAll() {
 /** One state of one app: every command in force, run; what failed, by id. */
 async function walk(app: string, s: State): Promise<string[]> {
   const def = appOf(app)!;
-  const tpl = def.templates.find((x) => x.id === s.tpl)!;
+  const tpl = (await def.templates()).find((x) => x.id === s.tpl)!;
   const shell = await mount(`#/v1/${app}/${encodeDoc(tpl.doc)}`);
   await until(() => !!shell.editor && !!(shell.editor as Ed).updateComplete, 5000);
   const ed = shell.editor as Ed;

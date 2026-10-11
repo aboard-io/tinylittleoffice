@@ -283,9 +283,9 @@ async function openDrawer(r: Real): Promise<HTMLElement | null> {
 }
 
 /** A template of another app, as its link. */
-const templateLink = (app: string) => {
+const templateLink = async (app: string) => {
   const def = appOf(app)!;
-  return routeHash(app, encodeDoc(def.templates[0]?.doc ?? def.blank()));
+  return routeHash(app, encodeDoc((await def.templates())[0]?.doc ?? def.blank()));
 };
 
 async function act(s: Step, r: Real): Promise<string> {
@@ -397,10 +397,10 @@ async function act(s: Step, r: Real): Promise<string> {
     case 'route':
       r.shell.flushLink();
       r.backTo = location.hash;
-      go(templateLink(s.to));
+      go(await templateLink(s.to));
       return '';
     case 'back':
-      go(r.backTo || templateLink(FAMILIES[r.family][0]));
+      go(r.backTo || (await templateLink(FAMILIES[r.family][0])));
       return '';
   }
 }
@@ -706,7 +706,7 @@ async function start(app: string, family: string, size: Size): Promise<{ model: 
   slowWord = '';
   let vv: FakeVV | null = null;
   if (size === 'phone') vv = fakeViewport();
-  const shell = await mount(templateLink(app));
+  const shell = await mount(await templateLink(app));
   const real: Real = { shell, family, size, vv, log: [], layers: [], backTo: '', errors: [], out: false };
   await until(() => !!shell.editor && !!(shell.editor as Ed).updateComplete, 5000);
   await until(() => inScope(app).length > 0);

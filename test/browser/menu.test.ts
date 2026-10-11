@@ -254,7 +254,7 @@ test('the templates list keeps the same keys: the arrows wrap, letters find, Ent
     icon: UI.plus,
     blurb: '',
     blank: () => '',
-    templates: ['Budget', 'Brief', 'Log'].map((name) => ({ id: name.toLowerCase(), name, blurb: '', doc: name })),
+    templates: async () => ['Budget', 'Brief', 'Log'].map((name) => ({ id: name.toLowerCase(), name, blurb: '', doc: name })),
     editor: async () => ({ tag: 'x' }),
     title: () => '',
     retitle: (d: string) => d,

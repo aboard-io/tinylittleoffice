@@ -59,7 +59,8 @@ test('the home page lists the apps as rows, each with its templates', async () =
   expect(tile.querySelector('.to-app-head')!.contains(picker)).toBe(true);
   expect(picker.getBoundingClientRect().left).toBeGreaterThan(tile.querySelector('.to-app-open')!.getBoundingClientRect().right - 1);
   picker.click();
-  await until(() => !!tile.querySelector('[role=option] svg'));
+  // Blank at once; the templates, a chunk of their own, when they arrive.
+  await until(() => tile.querySelectorAll('[role=option] svg').length >= 26);
   const options = [...tile.querySelectorAll('[role=option]')];
   const names = options.map((o) => o.querySelector('.to-option-words span')!.textContent);
   expect(names.slice(0, 5)).toEqual(['Blank', 'A letter', 'Cover letter', 'Memo', 'Meeting notes']);

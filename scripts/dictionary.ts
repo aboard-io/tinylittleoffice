@@ -92,8 +92,9 @@ export function train(docs: string[], size: number): Uint8Array {
 }
 
 /** Today's dictionary against a trained one over every template: the numbers, and whether the rule is met. */
-export function report(trained: Uint8Array) {
-  const rows = apps().flatMap((a) => a.templates.map((t) => ({ name: `${a.id}/${t.id}`, chars: t.doc.length, today: linkLength(t.doc, DICTIONARY), trained: linkLength(t.doc, trained) })));
+export async function report(trained: Uint8Array) {
+  const all = await Promise.all(apps().map(async (a) => ({ a, templates: await a.templates() })));
+  const rows = all.flatMap(({ a, templates }) => templates.map((t) => ({ name: `${a.id}/${t.id}`, chars: t.doc.length, today: linkLength(t.doc, DICTIONARY), trained: linkLength(t.doc, trained) })));
   const largest = rows.reduce((a, b) => (b.chars > a.chars ? b : a));
   const longer = rows.filter((r) => r.trained > r.today);
   const sum = (k: 'today' | 'trained') => rows.reduce((n, r) => n + r[k], 0);
@@ -104,7 +105,7 @@ export function report(trained: Uint8Array) {
 
 if (import.meta.main) {
   const trained = train(corpus(), SIZE);
-  const r = report(trained);
+  const r = await report(trained);
   const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
   if (args.includes('--json')) console.log(JSON.stringify({ size: trained.length, ...r, win: undefined }, null, 1));
   else {

@@ -10,7 +10,6 @@ import { defineApp, isStill } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { retitle, titleOf } from './model.ts';
-import { templates } from './templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from './view.ts';
 import { writeToDeck, writeToOutline } from './convert.ts';
 
@@ -30,9 +29,7 @@ export default defineApp({
     return t('Words on a page: headings, lists, links and notes, a table that adds up, printed on letter or A4.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

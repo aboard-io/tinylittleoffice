@@ -9,7 +9,6 @@ import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, lookup, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { templates } from './templates.ts';
 import { diagramToOutline } from './model.ts';
 import { diagramPage, diagramSvg, layout, toDrawing } from './view.ts';
 
@@ -33,9 +32,7 @@ export default defineApp({
     return t('Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   // A blank page a kind, the mind map first: no generic Blank above them (Paul, 2026-10-10).
   blankInTemplates: true,
   editor: () => import('./editor.ts'),

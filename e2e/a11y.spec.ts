@@ -42,7 +42,7 @@ test('axe finds nothing in any app, at phone size, light and dark', async ({ pag
     await expect(page.locator('.to-app-open').first()).toBeVisible();
     expect.soft((await axe(page)).violations.map(said), `home, ${scheme}`).toEqual([]);
     for (const app of apps()) {
-      const tpl = app.templates[0];
+      const tpl = (await app.templates())[0];
       // A fresh load each time, so nothing of the app before is on the page.
       await page.goto('about:blank');
       await page.goto(`/${routeHash(app.id, encodeDoc(tpl.doc))}`);
@@ -65,7 +65,7 @@ test('the Word Processor’s words, as a screen reader is given them', async ({ 
     await drawn(page);
     return page.locator('to-write-editor to-text .tx').first();
   };
-  await expect(await open(write.templates[0].doc)).toMatchAriaSnapshot(`
+  await expect(await open((await write.templates())[0].doc)).toMatchAriaSnapshot(`
     - textbox "Document":
       - paragraph: Your name Street and number Town and postcode you@example.com
       - paragraph: The date
@@ -77,7 +77,7 @@ test('the Word Processor’s words, as a screen reader is given them', async ({ 
       - paragraph
       - paragraph: Your name
   `);
-  await expect(await open(write.templates.find((tp) => tp.id === 'meeting')!.doc)).toMatchAriaSnapshot(`
+  await expect(await open((await write.templates()).find((tp) => tp.id === 'meeting')!.doc)).toMatchAriaSnapshot(`
     - textbox "Document":
       - heading "Meeting" [level=1]
       - paragraph: The date · where · who came

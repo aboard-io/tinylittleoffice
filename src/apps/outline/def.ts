@@ -11,7 +11,6 @@ import { textPdf } from '../../kit/textpdf.ts';
 import { t } from '../../kit/i18n.ts';
 import { liveItems, notesAsItems, outlineBlocks, outlineText, outlineToDeck, outlineToMind, outlineToFamily, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
 import { appName, outlinePage } from './view.ts';
-import { templates } from './templates.ts';
 import { partOf } from '../../kit/steps.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
@@ -57,9 +56,7 @@ export default defineApp({
     return t('An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same tree a deck or a mind map reads.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

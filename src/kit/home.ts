@@ -7,7 +7,9 @@
  * the page, not cards, so it looks on a desktop as it does on a phone (round four: "Don't make apps into cards.
  * Just make them into rows with docs below."). Each document shows its first page small at its left
  * (<to-preview>, drawn as it scrolls into sight: "When you list documents under apps, show them with
- * previews"). <to-templates> is the drawer's too: there a row's button (`via`) hands over to the drawer's one dialog
+ * previews"). An app's templates are a chunk of their own, asked for when its list opens (Blank shown at once, the
+ * rest added as they arrive, no spinner) or ahead of the tap, as a pointer comes over its row (`loadTemplates`).
+ * <to-templates> is the drawer's too: there a row's button (`via`) hands over to the drawer's one dialog
  * (`bare`, drawn outside the drawer's own), the drawer closing first (one modal at a time: kit/drawer.ts).
  *
  * Below the apps, the foot: who made it, Aboard a link to aboard.com, and "Open source", a link to the repository
@@ -43,11 +45,32 @@ const SHOWN = 5;
 
 let n = 0;
 
+/** Each app's templates once they have arrived, by its id: what the lists draw while they ask again. */
+const arrived = new Map<string, Template[]>();
+/** The apps whose templates a pointer has already asked for. */
+const asking = new Map<string, Promise<Template[]>>();
+// Their names are read in the language of the moment: a language chosen, they are asked for again.
+onLanguage(() => (arrived.clear(), asking.clear()));
+/** An app's templates if they have arrived, else undefined. */
+export const templatesOf = (app: AppDef): Template[] | undefined => arrived.get(app.id);
+/** An app's templates, asked for: its chunk is fetched the first time (a pointer over its row asks ahead of the tap), and the names are read again in the language of the moment. */
+export async function loadTemplates(app: AppDef): Promise<Template[]> {
+  const list = await app.templates();
+  arrived.set(app.id, list);
+  return list;
+}
+/** Intent: a pointer over an app's row fetches its templates' chunk ahead of the tap, once, so its list is full as it opens (and the drawer's Find, once something is typed, asks for every app's). */
+export function preloadTemplates(app: AppDef): Promise<Template[]> {
+  let asked = asking.get(app.id);
+  if (!asked) asking.set(app.id, (asked = loadTemplates(app)));
+  return asked;
+}
+
 /** The link that opens an app with a template's document; Blank is the app's own page. */
 export const templateHash = (app: AppDef, tpl: Template | null) => (tpl ? routeHash(app.id, encodeDoc(tpl.doc)) : routeHash(app.id));
 
 export class ToTemplates extends LitElement {
-  static properties = { app: { attribute: false }, via: { attribute: false }, bare: { type: Boolean }, chosen: { state: true }, drawn: { state: true } };
+  static properties = { app: { attribute: false }, via: { attribute: false }, bare: { type: Boolean }, chosen: { state: true }, drawn: { state: true }, list: { state: true } };
   declare app: AppDef;
   /** The button opens the templates through this instead of a dialog of its own (a drawer's row: kit/drawer.ts). */
   declare via: ((app: AppDef) => void) | null;
@@ -59,6 +82,8 @@ export class ToTemplates extends LitElement {
   declare chosen: string;
   /** The thumbnails are drawn once the list first opens: a home page of many apps costs nothing until then. */
   declare drawn: boolean;
+  /** The app's templates once they have arrived (Blank is shown before). */
+  declare list: Template[] | undefined;
   readonly uid = `to-templates-${++n}`;
 
   private off = () => {};
@@ -75,7 +100,7 @@ export class ToTemplates extends LitElement {
   }
   connectedCallback() {
     super.connectedCallback();
-    this.off = onLanguage(() => this.requestUpdate());
+    this.off = onLanguage(() => (this.drawn ? this.load() : this.requestUpdate()));
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -94,19 +119,28 @@ export class ToTemplates extends LitElement {
   private options(): HTMLElement[] {
     return [...this.querySelectorAll<HTMLElement>('[role=option]')];
   }
+  /** The app's templates asked for, and drawn when they arrive. */
+  private load() {
+    const app = this.app;
+    this.list = templatesOf(app);
+    void loadTemplates(app).then((list) => {
+      if (this.app === app) this.list = list;
+    });
+  }
   /** The list, over the whole screen (Paul, 2026-10-10: "a large modal that takes over the screen, don't cut them off based on where the invoking icon is"). */
   show() {
     const pointer = openedByPointer();
     this.drawn = true;
+    this.load();
     const at = document.activeElement;
     this.from = at instanceof HTMLElement && at !== document.body ? at : null;
     void this.updateComplete.then(() => {
       if (this.dialog.open) return;
       this.dialog.showModal();
       if (!this.bare) this.button.setAttribute('aria-expanded', 'true');
-      // Opened by a key, the chosen template has the focus; by a pointer, the list itself, and the first arrow goes in.
+      // Opened by a key, the chosen template has the focus; by a pointer (or before a list with no Blank has arrived), the list itself, and the first arrow goes in.
       if (pointer) this.listbox.focus({ preventScroll: true });
-      else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus({ preventScroll: true });
+      else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0] ?? this.listbox).focus({ preventScroll: true });
     });
   }
   hide() {
@@ -120,7 +154,7 @@ export class ToTemplates extends LitElement {
   private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.hide());
   /** The id of the option shown chosen: '' is Blank, or the first template where the list has no Blank. */
   private get current(): string {
-    return this.chosen || (this.app.blankInTemplates ? (this.app.templates[0]?.id ?? '') : '');
+    return this.chosen || (this.app.blankInTemplates ? (this.list?.[0]?.id ?? '') : '');
   }
   private choose(tpl: Template | null) {
     this.chosen = tpl?.id ?? '';
@@ -138,7 +172,7 @@ export class ToTemplates extends LitElement {
     </div>`;
   }
   render() {
-    const chosen = this.app.templates.find((x) => x.id === this.chosen);
+    const chosen = this.list?.find((x) => x.id === this.chosen);
     // The button is the small arrow alone, no icon and no words (Paul, 2026-10-09: "don't use the word Blank over and over"; 2026-10-10: "just the small arrow to the right"); its name says what it holds.
     const button = html`<button type="button" class="to-btn to-tool to-templates-btn" aria-haspopup="dialog" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')} @click=${() => (this.via ? this.via(this.app) : this.show())}>
         ${icon(UI.down, 18, 'to-caret')}
@@ -149,7 +183,7 @@ export class ToTemplates extends LitElement {
         <div class="to-dialog-inner">
           <header class="to-dialog-head to-listbox-head"><h2 id=${this.uid}>${t('{app} Templates', { app: this.app.name })}</h2><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.hide()}>${icon(UI.close, 18)}</button></header>
           <div class="to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @keydown=${this.onKey}>
-            ${this.drawn ? html`${this.app.blankInTemplates ? nothing : this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}` : nothing}
+            ${this.drawn ? html`${this.app.blankInTemplates ? nothing : this.option(null)}${(this.list ?? []).map((tpl) => this.option(tpl))}` : nothing}
           </div>
         </div>
       </dialog>`;
@@ -262,7 +296,7 @@ export class ToHome extends LitElement {
       <div class="to-apps" ?hidden=${!!want}>
         ${apps().map(
           (a) => html`<section class="to-app" aria-label=${a.name}>
-            <div class="to-app-head">
+            <div class="to-app-head" @pointerenter=${() => void preloadTemplates(a)}>
               <a class="to-app-open" href=${routeHash(a.id)} @click=${startEditing}>${icon(a.icon, 20)}<span class="to-app-name">${a.name}</span></a>
               <to-templates .app=${a}></to-templates>
             </div>

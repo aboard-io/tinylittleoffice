@@ -277,9 +277,23 @@ test("CSV: a calendar's spans, a schedule's tasks with their level", () => {
   expect(plan.split('\r\n').slice(0, 3)).toEqual(['Task;Level;Start;End;Days;Done %', 'Discovery;1;2027-03-01;2027-03-12;12;80', 'Stakeholder interviews;2;2027-03-01;2027-03-03;3;100']);
 });
 
-test('the templates are canonical, and the definition names its exports', () => {
+test('the templates are canonical, and the definition names its exports', async () => {
   for (const tpl of templates()) expect(write(parse(tpl.doc))).toBe(tpl.doc);
-  expect(def.templates.map((x) => x.id)).toEqual(['family', 'school', 'bills', 'rota', 'holidays', 'fixtures', 'garden', 'content', 'editorial', 'training', 'project', 'conference', 'festival']);
+  expect((await def.templates()).map((x) => x.id)).toEqual([
+    'family',
+    'school',
+    'bills',
+    'rota',
+    'holidays',
+    'fixtures',
+    'garden',
+    'content',
+    'editorial',
+    'training',
+    'project',
+    'conference',
+    'festival',
+  ]);
   expect(def.exports!.map((e) => e.ext)).toEqual(['ics', 'csv']);
   expect(def.retitle(DOC, 'Team')).toBe(DOC.replace('green: Sam\n', 'green: Sam\ntitle: Team\n'));
   expect(def.title(def.retitle(DOC, 'Team'))).toBe('Team');

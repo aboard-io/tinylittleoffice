@@ -46,12 +46,12 @@ test('words are counted in the text and its notes; a web address alone is a word
 });
 
 test('every template is canonical and parses as the kernel wrote it', () => {
-  const ids = write_.templates.map((t) => t.id);
+  const ids = templates().map((t) => t.id);
   expect(ids.length).toBeGreaterThanOrEqual(25);
   expect(new Set(ids).size).toBe(ids.length);
   expect(ids.slice(0, 4)).toEqual(['letter', 'cover', 'memo', 'meeting']);
   for (const id of ['thesis', 'book-review', 'news', 'interview', 'music-review', 'complaint', 'politician', 'love']) expect(ids).toContain(id);
-  for (const t of write_.templates) {
+  for (const t of templates()) {
     expect(write(parse(t.doc)), t.id).toBe(t.doc);
     expect(t.doc.endsWith('\n')).toBe(true);
     expect(write_.view(t.doc).length).toBeGreaterThan(0);
@@ -59,12 +59,12 @@ test('every template is canonical and parses as the kernel wrote it', () => {
 });
 
 test('signatures are gone (Paul, 2026-10-11): no template holds a signatures fence, and the contract lints clean', () => {
-  for (const t of write_.templates)
+  for (const t of templates())
     expect(
       parse(t.doc).blocks.some((b) => b.k === 'fence' && b.lang === 'signatures'),
       t.id,
     ).toBe(false);
-  const contract = write_.templates.find((t) => t.id === 'contract')!.doc;
+  const contract = templates().find((t) => t.id === 'contract')!.doc;
   expect(contract).not.toMatch(/sign/i);
   expect(lint('write', contract)).toEqual([]);
 });
@@ -243,7 +243,7 @@ test('a page break: the next page on paper (never a blank one), break-after in p
 });
 
 test('every template is a whole document: a name and a blurb, no placeholder words, and a look only where one is known', () => {
-  for (const t of write_.templates) {
+  for (const t of templates()) {
     expect(t.name, t.id).toBeTruthy();
     expect(t.blurb, t.id).toMatch(/\.$/);
     expect(t.doc, t.id).not.toMatch(/[Ll]orem ipsum|TODO|Day Month Year|[Ii]nsert here/);
@@ -292,7 +292,7 @@ const BEFORE: Record<string, number> = {
 };
 
 test('every template is its shape and a hint at each part, not a story: a third of its words, the prose in italics (Paul, 2026-10-11)', () => {
-  for (const t of write_.templates) {
+  for (const t of templates()) {
     const doc = parse(t.doc);
     const n = wordCount(doc);
     // Under a third of what it carried; the three that carried a heading's worth (the invoice, the contract, the résumé) no more than they did.

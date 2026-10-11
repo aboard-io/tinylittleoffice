@@ -56,7 +56,7 @@ export const qrPicture: AppDef = {
     return t('A QR code of this document');
   },
   blank: () => '',
-  templates: [],
+  templates: async () => [],
   editor: () => Promise.reject(new Error('A QR code is drawn, not edited')),
   title: () => '',
   retitle: (doc) => doc,

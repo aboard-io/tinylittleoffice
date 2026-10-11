@@ -17,7 +17,10 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 ## Phases
 
 0. **Per-app folders and layers** — `src/apps/<id>/` holds `def.ts`, `editor.ts`, `style.css`, `templates.ts`,
-   `tests/`; `src/kit/` is the kit. CSS cascade made explicit with `@layer tokens, kit, apps, responsive, a11y`.
+   `tests/`; `src/kit/` is the kit. A definition is light: `def.ts` names its templates lazily
+   (`templates: () => import('./templates.ts').then((m) => m.templates())`), so the templates are a chunk of their
+   own (`templates-<id>`), loaded when the app's list opens or a pointer comes over its row, and the registry the
+   home page imports carries none of their words (round seventeen; budgets.json weighs each). CSS cascade made explicit with `@layer tokens, kit, apps, responsive, a11y`.
    Strings: every UX string through `t()`, all in one hand-edited `src/i18n/en.ts`; sibling files are languages;
    the browser chooses. (Cleanup pass two and the translations pass are this phase.)
 1. **The document kernel** — `src/doc/`: one typed model of a document — head fields and blocks (heading,

@@ -4,10 +4,14 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from 'vitest';
-import { measure, overBudget, readBudgets } from '../scripts/budgets.ts';
+import { eagerTemplates, firstLoad, measure, overBudget, readBudgets } from '../scripts/budgets.ts';
 
 const dist = join(import.meta.dirname, '../dist');
 
 test.skipIf(!existsSync(join(dist, 'assets')))('the build in dist/ is within the chunk budgets', () => {
   expect(overBudget(measure(dist), readBudgets())).toStrictEqual([]);
+});
+
+test.skipIf(!existsSync(join(dist, 'assets')))('the home page’s first load holds no app’s templates: each is a chunk loaded when asked for', () => {
+  expect(eagerTemplates(firstLoad(dist))).toStrictEqual([]);
 });

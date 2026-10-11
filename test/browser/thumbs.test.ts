@@ -31,12 +31,13 @@ test('the templates list: every page, portrait, slide, wide or a strip, in the o
     blurb: '',
     blank: () => 'Letter',
     blankInTemplates: true,
-    templates: [...Object.keys(SHAPES), long].map((name) => ({
-      id: name.toLowerCase(),
-      name,
-      blurb: name === long ? 'And a blurb that wraps onto a second line rather than pushing the row wider' : '',
-      doc: SHAPES[name] ? name : 'Strip',
-    })),
+    templates: async () =>
+      [...Object.keys(SHAPES), long].map((name) => ({
+        id: name.toLowerCase(),
+        name,
+        blurb: name === long ? 'And a blurb that wraps onto a second line rather than pushing the row wider' : '',
+        doc: SHAPES[name] ? name : 'Strip',
+      })),
     editor: async () => ({ tag: 'x' }),
     title: () => '',
     retitle: (d: string) => d,
@@ -46,7 +47,7 @@ test('the templates list: every page, portrait, slide, wide or a strip, in the o
   const el = document.querySelector<ToTemplates>('to-templates')!;
   await el.updateComplete;
   el.button.click();
-  await until(() => el.dialog.open && !!el.listbox.querySelector('.to-thumb svg'));
+  await until(() => el.dialog.open && el.listbox.querySelectorAll('.to-thumb svg').length === 5);
   const thumbs = [...el.listbox.querySelectorAll<HTMLElement>('.to-thumb')].map((x) => css(x.getBoundingClientRect()));
   expect(thumbs.map((r) => Math.round(r.width))).toEqual([96, 96, 96, 96, 96]);
   for (const r of thumbs) expect(Math.round(r.height)).toBe(72);

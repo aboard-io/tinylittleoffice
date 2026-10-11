@@ -13,7 +13,6 @@ import { drawn, raster } from '../../kit/raster.ts';
 import { blankTile, tileSvg, type Tile } from '../../kit/tile.ts';
 import { readDrawing } from './model.ts';
 import { drawingPage, drawingToSvg } from './view.ts';
-import { templates } from './templates.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 export const titleOf = (doc: Doc): string => headOf(doc).head.title ?? '';
@@ -43,9 +42,7 @@ export default defineApp({
     return t('Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
