@@ -2616,3 +2616,16 @@
     overflow: hidden;
   }
 }
+@layer a11y {
+  /* The instant of a copy (kit/clipboard.ts installPlainCopy): the words black on white whatever the theme, so a
+     rendering the browser takes of the selection carries no dark theme's white into a paste. */
+  :root[data-copying] {
+    color-scheme: light;
+  }
+  :root[data-copying] to-shell,
+  :root[data-copying] to-shell * {
+    color: #000 !important;
+    background-color: #fff !important;
+    text-shadow: none !important;
+  }
+}
