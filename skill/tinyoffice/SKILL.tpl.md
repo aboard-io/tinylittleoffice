@@ -246,9 +246,10 @@ Before you share a link, lint it: `tinyoffice lint <link or file.tlo>` (or `awai
 - `fence-bullets`: bullets on a slide that shows a document, not drawn.
 - `title-cut`, `title-small`: a headline cut after two lines, or set at its smallest size.
 - `body-over`, `body-small`: a slide's words running off its foot, or set at their smallest size.
+- `formula-error`: a table's formula that works out to an error (`#CIRC`, `#REF`, `#DIV/0`, `#NAME`, `#VALUE`, `#NUM`, `#ERR`), in any table, a fenced one too: the cell, the formula, the error and the fix. A total over its own column takes in its own cell when the rows are counted from the header: rows count from the first data row, so the eighth row's total of the seven above is `=SUM(B1:B7)`.
 - `length`: a link past 2,000 characters, which some chat apps cut.
 
-A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides; per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages.
+A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides; per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages.
 
 ## Driving the editors
 

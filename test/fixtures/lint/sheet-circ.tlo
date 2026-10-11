@@ -1,0 +1,14 @@
+---
+app: sheet
+title: The codebase
+---
+Folder | Lines:number
+--- | ---
+src/doc | 4210
+src/kit | 9876
+src/apps | 31540
+src/i18n | 2210
+packages | 820
+scripts | 640
+test | 18900
+Total | =SUM(B2:B8)
