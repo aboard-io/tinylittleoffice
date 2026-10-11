@@ -214,7 +214,10 @@
     /* While a box has the focus (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger"):
        the header steps aside, a short link's banner goes small, and the menu button slides into the very corner on a
        card of its own, translucent so the words under it show through ("Make the hamburger translucent when I'm
-       editing. Maybe even move it further top right"); opaque under a hover, a key's focus, and while the drawer is open. */
+       editing. Maybe even move it further top right"); opaque under a hover, a key's focus, and while the drawer is open.
+       Faded, it keeps an edge of its own, so it is still a button over a line of words (the review of 2026-10-11
+       measured 1.35:1 without one); and it does not fade at all for a person who asked for more: the size above 100%
+       (zoom.ts data-large) or more contrast (a11y.css). */
     to-chrome[editing] .to-header {
       display: none;
     }
@@ -222,10 +225,12 @@
       top: max(0.25em, env(safe-area-inset-top));
       inset-inline-end: max(0.25em, env(safe-area-inset-right));
       opacity: 0.55;
+      border: 1px solid var(--to-border-strong);
       border-radius: 0.5em;
       box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
     }
     to-chrome[editing] .to-burger:is(:hover, :focus-visible),
+    :root[data-large] to-chrome[editing] .to-burger,
     to-shell:has(dialog.to-drawer[open]) to-chrome[editing] .to-burger {
       opacity: 1;
     }

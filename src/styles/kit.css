@@ -3,7 +3,7 @@
 
    Lengths, one rule for every stylesheet: rem for the document, em inside a nav element, px only for hairlines and
    media queries (test/stylesheets.test.ts holds every sheet to it). The size of everything (kit/zoom.ts) is two plain
-   numbers on the root: --to-doc, the root's font size (16px × it), which every rem follows; and --to-nav, the font
+   numbers on the root: --to-doc, the root's font size (the browser's default × it), which every rem follows; and --to-nav, the font
    size of each nav element (the list below), which every em inside it follows and which stops at the nav's limit. A
    font size inside the nav is a part of --to-scale (the 16px of the scale it is under: the document's rem, the nav's
    font size), never of its parent's, so a small label in a small box is not smaller again. A length measured on the
@@ -21,10 +21,12 @@
     /* A pinch on a touch screen never zooms the browser: it is the size of everything (kit/pinch.ts), or a spatial
        canvas's own zoom. One finger pans as ever. */
     touch-action: pan-x pan-y;
-    /* The document's scale: what a rem is. */
-    font-size: calc(16px * var(--to-doc, 1));
-    /* The nav's: the font size of every nav element, which its ems follow. */
-    --to-nav-font: calc(16px * var(--to-nav, 1));
+    /* The document's scale: what a rem is. The person's own size is the 100%: the browser's default (16px unless they
+       chose larger type), never a fixed 16px. */
+    font-size: calc(100% * var(--to-doc, 1));
+    /* The nav's: the font size of every nav element, which its ems follow; the same default (a rem without the
+       document's scale) times the nav's. Written here, worked out where it is used: a rem is the root's anywhere. */
+    --to-nav-font: calc(1rem / var(--to-doc, 1) * var(--to-nav, 1));
     --to-scale: 1rem;
   }
   /* Paper is not the screen: a page printed from here (a Display Link's pages) is drawn at its own size, whatever the
@@ -1417,6 +1419,12 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+  /* A pointer that hovers holds a toast while it is on it (toast.ts); a finger's taps go through it to the bar below. */
+  @media (hover: hover) {
+    .to-toast.shown {
+      pointer-events: auto;
+    }
+  }
   /* The size of everything while a pinch is in hand (kit/pinch.ts): top centre, above everything, moving nothing. */
   .to-pinch-pill {
     position: fixed;
@@ -2607,6 +2615,11 @@
   /* ---- the size of everything, in the menu: the steps go under a label too long to sit beside them ---- */
   .to-size {
     flex-wrap: wrap;
+  }
+  /* Near the drawer's top (drawer.ts), a row of its own. */
+  .to-drawer-inner > .to-size {
+    padding: 0.5em 1em;
+    border-bottom: 1px solid var(--to-border);
   }
   .to-size-step {
     display: inline-flex;

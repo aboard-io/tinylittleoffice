@@ -76,7 +76,9 @@ picture's address; it writes neither down (no logs: observability is off and the
 `media/`, both held by `test/media-worker.test.ts`). Exports carry the picture's bytes, so reading an
 exported file fetches nothing.
 
-**A lost phone with Saved on.** Private is the default and writes nothing to the device. With Saved on, the
+**A lost phone with Saved on.** Private is the default and writes nothing to the device but three preferences
+that say nothing of a document: the language (`tinyoffice.lang`), the size of everything (`tinyoffice.size`) and
+the theme (`to-theme`), all three cleared by Forget everything. With Saved on, the
 device keeps the preferences, the documents opened there (`src/kit/library.ts`),
 the owner links of short links made there, and the signing key. A document under a password is kept as its
 ciphertext with no title and no first words, so the library does not give away even its name. Nothing else

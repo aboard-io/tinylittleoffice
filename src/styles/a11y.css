@@ -25,6 +25,10 @@
       --to-ink-3: var(--to-ink-2);
       --to-border: var(--to-border-strong);
     }
+    /* The menu button does not fade while typing (responsive.css): it is the only way to the menu. */
+    to-chrome[editing] .to-burger {
+      opacity: 1;
+    }
   }
   @media (forced-colors: active) {
     .to-btn[aria-pressed='true'] {

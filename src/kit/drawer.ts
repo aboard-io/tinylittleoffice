@@ -5,7 +5,8 @@
  * document of the app, `def`: the header's icon goes home now, kit/chrome.ts), Share… and Download (the table of
  * formats, `downloads`, its menu), and the page's other commands drawn in the drawer (Find in this document: a phone's
  * way to it), each with its keys at the right where there is a keyboard (kit/bar.ts keysKbd; the review of 2026-10-11:
- * never under a finger until a key with Ctrl, ⌘ or Alt is typed, and never part of the row's name). They are here alone: the header is
+ * never under a finger until a key with Ctrl, ⌘ or Alt is typed, and never part of the row's name). Then the size of everything (zoom.ts,
+ * the page's commands of kit/keys.ts), first under the head on the home page. They are here alone: the header is
  * the title (Paul, 2026-10-10: "Let's get rid of share and download in the top nav and move that functionality to the
  * hamburger"), and on a phone, while a box has the focus, the header steps aside (kit/chrome.ts). On a touch screen the
  * dialog itself holds the focus (the search would raise the keyboard) and draws no ring for it: it is not a control,
@@ -13,7 +14,7 @@
  * template or a kept document; in a document, the apps as rows, each with its templates (<to-templates>, the home
  * page's; on the home page itself the rows are the page, so the drawer has none: Paul, 2026-10-10),
  * so a template is reachable from inside any app; Private or Saved; Language;
- * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it (install.ts)
+ * Theme; Keyboard shortcuts; Add to home screen where the browser offers it (install.ts)
  * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; says what the site does not protect against, limits(); and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt, a zip of them: kit/open.ts) and Compare… (this document beside another link:
@@ -36,7 +37,7 @@ import { chosenLanguage, languageName, languages, onLanguage, setLanguage, t } f
 import { THEMES, setTheme, theme, themeName, type Theme } from './theme.ts';
 import { keeping, onPrivacy, setPrivate } from './privacy.ts';
 import { canInstall, install, installByHand, onInstall } from './install.ts';
-import { size, SIZE_MAX, SIZE_MIN, stepSize } from './zoom.ts';
+import { size } from './zoom.ts';
 import { toast } from './toast.ts';
 import { reveal } from './scroll.ts';
 import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
@@ -49,9 +50,9 @@ import { handBack, type ToDialog } from './dialog.ts';
 import type { ToTemplates } from './home.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
-import { coarse, drawnIn, inScope, labelOf, live, run } from './commands.ts';
+import { coarse, drawnIn, inScope, labelOf, live, run, type Command } from './commands.ts';
 import { keysAria, keysKbd } from './bar.ts';
-import { DOWNLOAD, KIT_COMMANDS, SHARE, type Page } from './keys.ts';
+import { DOWNLOAD, KIT_COMMANDS, LARGER, NORMAL_SIZE, SHARE, SMALLER, type Page } from './keys.ts';
 import type { Offer } from './palette.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
@@ -62,6 +63,9 @@ import './privacy-dialog.ts';
  * in the page's language. About's last section; its link goes there (the review of 2026-10-11: the link to the
  * document on GitHub was in English and, while the repository is private, a 404).
  */
+/** The size of everything's commands, drawn as the stepper rather than as rows of This document. */
+const STEPPER: readonly Command<never>[] = [SMALLER, NORMAL_SIZE, LARGER];
+
 const limits = () => [
   t('The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.'),
   t('Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.'),
@@ -240,6 +244,12 @@ export class ToDrawer extends LitElement {
             </section>`
             : nothing
         }
+        <!-- The size of everything near the top: under the head, after This document when one is open (above it, This document's Download menu would no longer fit under its row on a phone at 150%): a person who needs it larger finds it before the apps, the switches and the rest (the review of 2026-10-11). -->
+        <div class="to-field to-size" role="group" aria-label=${t('Size of everything')}>${icon(UI.view, 18)}<span>${t('Size of everything')}</span>
+          <span class="to-size-step">
+            ${this.sizeButton(SMALLER, 'to-size-less', icon(UI.minus, 16))}${this.sizeButton(NORMAL_SIZE, 'to-size-now', `${Math.round(size() * 100)}%`)}${this.sizeButton(LARGER, 'to-size-more', icon(UI.plus, 16))}
+          </span>
+        </div>
         ${
           this.open
             ? html`<nav class="to-drawer-apps" aria-label=${t('Apps')}>
@@ -286,13 +296,6 @@ export class ToDrawer extends LitElement {
                   </select>
                 </label>
                 <button type="button" class="to-btn to-drawer-privacy" @click=${() => this.handOver(() => this.querySelector<ToPrivacy>('to-privacy')?.show())}>${icon(UI.key, 18)}<span>${t('Privacy and keys')}</span></button>
-                <div class="to-field to-size" role="group" aria-label=${t('Size of everything')}>${icon(UI.view, 18)}<span>${t('Size of everything')}</span>
-                  <span class="to-size-step">
-                    <button type="button" class="to-btn to-tool to-size-less" aria-label=${t('Everything a little smaller')} title=${t('Everything a little smaller')} ?disabled=${size() <= SIZE_MIN} @click=${() => (stepSize(-1), this.requestUpdate())}>${icon(UI.minus, 16)}</button>
-                    <button type="button" class="to-btn to-size-now" aria-label=${t('Back to the normal size')} title=${t('Back to the normal size')} @click=${() => (stepSize(0), this.requestUpdate())}>${Math.round(size() * 100)}%</button>
-                    <button type="button" class="to-btn to-tool to-size-more" aria-label=${t('Everything a little larger')} title=${t('Everything a little larger')} ?disabled=${size() >= SIZE_MAX} @click=${() => (stepSize(1), this.requestUpdate())}>${icon(UI.plus, 16)}</button>
-                  </span>
-                </div>
                 <button type="button" class="to-btn to-drawer-keys" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-keys', { bubbles: true })))}>${icon(UI.keys, 18)}<span>${t('Keyboard shortcuts')}</span></button>
                 ${
                   canInstall()
@@ -316,6 +319,12 @@ export class ToDrawer extends LitElement {
     }`}></to-dialog>`;
   }
 
+  /** A button of the size stepper: the page's command (kit/keys.ts), its words its name. */
+  private sizeButton(cmd: Command, cls: string, face: unknown): TemplateResult {
+    const tool = cmd === NORMAL_SIZE ? '' : ' to-tool';
+    return html`<button type="button" class="to-btn${tool} ${cls}" aria-label=${labelOf(cmd)} title=${labelOf(cmd)} ?disabled=${!!cmd.disabled?.(this.page)} @click=${() => (run(cmd, this.page), this.requestUpdate())}>${face}</button>`;
+  }
+
   /** Under a finger, the app's own commands that need nothing in hand (Present, Look, Play, the views), under its name: a row each, a menu as a menu. */
   private renderCommands(): TemplateResult | typeof nothing {
     const offers = this.commands?.() ?? [];
@@ -336,11 +345,11 @@ export class ToDrawer extends LitElement {
     h?.focus({ preventScroll: true });
   }
 
-  /** The page's other rows of This document (the registry's 'drawer' beside Share and Download): Find in this document, a phone's way to it (the review of 2026-10-11). */
+  /** The page's other rows of This document (the registry's 'drawer' beside Share and Download, the size's stepper apart): Find in this document, a phone's way to it (the review of 2026-10-11). */
   private renderPage(): TemplateResult[] | typeof nothing {
     const page = this.page;
     if (!page) return nothing;
-    return KIT_COMMANDS.filter((cmd) => cmd !== SHARE && cmd !== DOWNLOAD && cmd.where.includes('drawer') && live(cmd, page)).map(
+    return KIT_COMMANDS.filter((cmd) => cmd !== SHARE && cmd !== DOWNLOAD && !STEPPER.includes(cmd) && cmd.where.includes('drawer') && live(cmd, page)).map(
       (cmd) =>
         html`<button type="button" class="to-btn to-drawer-cmd cmd-${cmd.id.replace(/\./g, '-')}" aria-keyshortcuts=${keysAria(cmd.keys)} @click=${() => this.handOver(() => void run(cmd, page))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, page)}</span>${keysKbd(cmd.keys)}</button>`,
     );

@@ -1,9 +1,10 @@
 /**
  * The page's own commands (the registry's 'kit' scope, kit/commands.ts): undo and redo passed to the editor, find,
- * keep, share, download, print, the shortcuts and the command palette. The shell answers their keys (pageKey, which
- * it listens with on the window, so every scope inside has answered first); the drawer draws Share, Download and Find
- * in this document from them; every bar ends with Undo, Redo and the palette (DocElement.undoTools), and under a finger
- * Undo and Redo are pinned there, outside the bar's scroll, so a phone always has Undo on screen (the review of 2026-10-11).
+ * keep, share, download, print, the shortcuts, the size of everything and the command palette. The shell answers their
+ * keys (pageKey, which it listens with on the window, so every scope inside has answered first); the drawer draws
+ * Share, Download and Find in this document from them; every bar ends with Undo, Redo and the palette
+ * (DocElement.undoTools), and under a finger Undo and Redo are pinned there, outside the bar's scroll, so a phone always
+ * has Undo on screen (the review of 2026-10-11).
  *
  * The keyboard shortcuts dialog (Mod+/, and Keyboard shortcuts in the menu) is the registry as it stands: the open
  * app's commands that have keys, then the words' (kit/text-commands.ts), then the page's, each key written the way
@@ -16,6 +17,7 @@ import { command, inScope, keyboard, keysText, labelOf, register, runKey, type C
 import { t } from './i18n.ts';
 import { UI } from './icons.ts';
 import { TEXT_COMMANDS } from './text-commands.ts';
+import { size, SIZE_MAX, SIZE_MIN, stepSize } from './zoom.ts';
 
 /** What Undo and Redo act on: the editor (the shell's, or a bar's own). */
 export interface HasEditor {
@@ -82,6 +84,21 @@ export const DOWNLOAD = command<Page>({
   when: (p) => p.editing,
   does: (p) => p.download(),
 });
+/**
+ * The size of everything (kit/zoom.ts), from the palette and the drawer's head, with no keys: Ctrl+=, Ctrl+- and Ctrl+0
+ * are the browser's own zoom, and a keyboard keeps them.
+ */
+export const LARGER = command<unknown>({ id: 'kit.larger', scope: 'kit', label: 'Everything larger', icon: UI.plus, where: ['drawer'], disabled: () => size() >= SIZE_MAX, does: () => stepSize(1) });
+export const SMALLER = command<unknown>({
+  id: 'kit.smaller',
+  scope: 'kit',
+  label: 'Everything smaller',
+  icon: UI.minus,
+  where: ['drawer'],
+  disabled: () => size() <= SIZE_MIN,
+  does: () => stepSize(-1),
+});
+export const NORMAL_SIZE = command<unknown>({ id: 'kit.normal-size', scope: 'kit', label: 'Normal size', icon: UI.view, where: ['drawer'], does: () => stepSize(0) });
 export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: 'All commands…', icon: CommandIcon, keys: 'Mod+K', where: ['bar'], does: (p) => p.palette() });
 
 /** The page's commands, in the order the dialog lists them. */
@@ -104,6 +121,9 @@ export const KIT_COMMANDS = register([
   DOWNLOAD,
   command<Page>({ id: 'kit.print', scope: 'kit', label: 'Print, or save as PDF', icon: UI.print, keys: 'Mod+P', where: ['keys-only'], when: (p) => p.doc, does: (p) => p.print() }),
   command<Page>({ id: 'kit.shortcuts', scope: 'kit', label: 'Show these shortcuts', icon: UI.keys, keys: 'Mod+/', where: ['keys-only'], takesFocus: true, does: (p) => p.shortcuts() }),
+  LARGER,
+  SMALLER,
+  NORMAL_SIZE,
   PALETTE as Command<Page>,
 ]) as Command<Page>[];
 
