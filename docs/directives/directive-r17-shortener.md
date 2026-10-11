@@ -26,7 +26,7 @@
 
 ## Proof
 
-- The tinier node tests: POST and GET only (PUT and DELETE answer 405); the 100th allowed, the 101st refused with Retry-After, a new day counts afresh, the sweep drops old days and expired links, the hash differs by day and by key, no address appears in the store in the clear, and the store's schema has no owner column.
+- The tinier node tests: POST and GET only (PUT, DELETE and every other method or path answer 404 with the body of an unknown link, no Allow header and no sentence about what the service used to do: Paul, 2026-10-11, "There should be a 404"; a 405 advertises an API that does not exist); the 100th allowed, the 101st refused with Retry-After, a new day counts afresh, the sweep drops old days and expired links, the hash differs by day and by key, no address appears in the store in the clear, and the store's schema has no owner column.
 - `test/route.test.ts`: `k` and `o` are not parsed or written; `s` and `x` are.
 - `test/browser/short.test.ts`: a short link made, opened, its lifetime shown; no Update and no Forget in the dialog.
 - `npm run tinier:dev` with `.dev.vars` holding a BRAKE_KEY: the 101st POST from one address is 429.
@@ -35,3 +35,5 @@
 
 - No per-minute limit of any kind, and no counting by anything but the address.
 - No change to the link's encryption.
+
+**Amended 2026-10-11 (Paul: "There should be a 404"):** a PUT or DELETE to `/api/<id>`, a POST anywhere but `/api`, and any other method answer **404** with the same body an unknown link gets (`{error: 'No such link, or it has expired.'}`), never 405 and never an `allow` header. The only answers the API gives are 201, 200, 400, 404, 429 and 503. The test "PUT and DELETE answer 405" becomes "answer 404, the same as an unknown link, and the row is as it was".
