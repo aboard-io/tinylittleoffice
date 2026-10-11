@@ -9,14 +9,14 @@
 import { lookup, type Page } from '../../kit/app.ts';
 import { encodeDoc } from '../../kit/codec.ts';
 import { FAINT, FONT, INK, LINE, MUTED, PAPER, pageSvg, r, rect, textWidth, xml } from '../../kit/draw.ts';
-import { embedCaption } from '../../kit/embeds.ts';
-import { glyphNamed, iconNamed } from '../../kit/icons.ts';
+import { embedCaption, embedOf, kindGlyph, playsKind } from '../../kit/embeds.ts';
+import { glyphNamed, iconGlyph, iconNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { MOTION_JS } from '../../kit/motion.ts';
 import { pageScript } from '../../kit/page.ts';
 import { QR_MAX_BYTES, qrSvg } from '../../kit/qr.ts';
 import { routeHash } from '../../kit/route.ts';
-import { attr, markNotes, noteNumbers, noteRuns, parse, plainText, runLinks, write, type Doc, type Run } from '../../doc/index.ts';
+import { attr, markNotes, noteNumbers, noteRuns, parse, plainText, runLinks, webOf, write, type Doc, type Run } from '../../doc/index.ts';
 import { iconHex, isBlank, panelOf, settingsOf, slideNotes, slideText, slidesOf, type Format, type Item, type Settings, type Slide } from './model.ts';
 import { themeOf, type DeckTheme } from './theme.ts';
 
@@ -34,7 +34,8 @@ export interface Span {
   u?: true;
   s?: true;
   h?: true;
-  link?: boolean;
+  /** Where these words link. */
+  link?: string;
   sup?: boolean;
   ic?: string;
 }
@@ -63,7 +64,7 @@ export function spansOf(runs: Run[], next: () => number = noteNumbers()): Span[]
       ...(run.s ? { s: true as const } : {}),
       ...(run.h ? { h: true as const } : {}),
     };
-    for (const p of runLinks(run)) out.push({ t: p.t.replace(/\n/g, ' '), ...marks, ...(p.url ? { link: true } : {}) });
+    for (const p of runLinks(run)) out.push({ t: p.t.replace(/\n/g, ' '), ...marks, ...(p.url ? { link: p.url } : {}) });
   }
   return out;
 }
@@ -135,6 +136,11 @@ export interface LineStyle {
   anchor?: 'start' | 'middle' | 'end';
 }
 
+/** The addresses a drawn link may go to: a web page, an email, a phone number. */
+const OPENS = /^(?:https?:|mailto:|tel:)/i;
+/** An <a> opening in a new tab with nothing of this page sent along. */
+const linkOpen = (url: string, more = '') => `<a href="${xml(url)}" target="_blank" rel="noopener noreferrer"${more}>`;
+
 /** One line of spans as SVG text at a baseline: highlights behind the words, icons drawn as glyphs where their span sits. */
 export function line(x: number, y: number, content: string | Span[], style: LineStyle = {}): string {
   const { px = 16, bold = false, fill = INK, link: linkFill = fill, anchor = 'start' } = style;
@@ -156,7 +162,9 @@ export function line(x: number, y: number, content: string | Span[], style: Line
         (s.i ? ' font-style="italic"' : '') +
         (s.link ? ` fill="${linkFill}"` : s.h ? ` fill="${INK}"` : '') +
         (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
-      return a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
+      const words = a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
+      // A link is a link: a tap in the reader or the show follows it (through the link guard), an export's reader opens it.
+      return s.link && OPENS.test(s.link) ? `${linkOpen(s.link)}${words}</a>` : words;
     })
     .join('');
   return (
@@ -173,7 +181,7 @@ export function place(p: Page, x: number, y: number, w: number, h: number): stri
 
 /* ---------- the document a slide shows ---------- */
 
-/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture, or a thing from the web, a card. `open`: in the editor (a locked document opened this visit drawn open). `still`: drawn where nothing can move (an animation a frame). */
+/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture over its card; a thing from the web a card by its kind (webCard). `open`: in the editor (a locked document opened this visit drawn open). `still`: drawn where nothing can move (an animation a frame). */
 export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still = false): Page | null {
   const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
   if (!b) return null;
@@ -200,19 +208,67 @@ export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still =
     const rows = [b.cols.map((c) => c.name), ...b.rows];
     return { w: 480, h: 24 + rows.length * 26, svg: rows.map((row, i) => line(24, 20 + i * 26, row.join('   '), { px: 14, bold: i === 0 })).join(''), alt: t('Table') };
   }
-  if (b.k === 'img') return { w: 640, h: 400, svg: `<image href="${xml(b.url)}" width="640" height="400" preserveAspectRatio="xMidYMid meet"/>`, alt: b.alt };
-  // A thing from the web: a card with the provider and the address, which a reader can follow.
-  const url = plainText(b.k === 'p' ? b.runs : []).trim();
-  const { provider, title } = embedCaption(url);
-  return {
-    w: 640,
-    h: 160,
-    svg:
-      rect(0, 0, 640, 160, '#fff', `stroke="${LINE}" rx="12"`) +
-      line(32, 70, title, { px: 24, bold: true }) +
-      line(32, 108, provider === title ? url : `${provider} · ${url}`, { px: 15, fill: MUTED }),
-    alt: title,
-  };
+  if (b.k === 'img') return pictureCard(b.url, b.alt);
+  const web = webOf(b);
+  return web ? webCard(web.url, web.title) : null;
+}
+
+/** Up to `max` lines of words wrapped to a width, the last ending in "…" when there was more. */
+function clipped(words: string, max: number, px: number, lines: number, bold = false): string[] {
+  const all = wrapText(words, max, px, bold);
+  if (all.length <= lines) return all;
+  const out = all.slice(0, lines);
+  out[lines - 1] = `${out[lines - 1].replace(/\s*\S{0,3}$/, '')}…`;
+  return out;
+}
+
+/**
+ * A thing from the web as a card, where nothing loads (the reader, the export, a thumbnail): drawn by its kind
+ * (a film or a song the play mark on a dark field, an article its glyph, anything else the globe), the provider
+ * small and the author's title large; its address is never drawn, and the whole card is a link to the thing on
+ * its provider. In the editor and the show the live card (<to-embed>, editor.ts) lies over it.
+ */
+export function webCard(url: string, title = ''): Page {
+  const kind = embedOf(url)?.kind ?? 'link';
+  const { provider, title: name } = embedCaption(url, title);
+  const W = 640;
+  let svg: string;
+  let H: number;
+  if (playsKind(kind)) {
+    H = 360;
+    const lines = clipped(name, W - 64, 30, 2, true);
+    svg =
+      rect(0, 0, W, H, '#18181b', 'rx="12"') +
+      `<circle cx="${W / 2}" cy="128" r="52" fill="#ffffff" fill-opacity="0.14"/>` +
+      iconGlyph(kindGlyph(kind), W / 2 - 22, 106, 44, '#fafafa') +
+      line(32, H - 40 - lines.length * 36, provider, { px: 16, fill: '#a1a1aa' }) +
+      lines.map((l, i) => line(32, H - 28 - (lines.length - 1 - i) * 36, l, { px: 30, bold: true, fill: '#fafafa' })).join('');
+  } else {
+    const lines = clipped(name, W - 152, 28, 3, true);
+    H = Math.max(176, 96 + lines.length * 34);
+    svg =
+      rect(0, 0, W, H, '#ffffff', `stroke="${LINE}" rx="12"`) +
+      iconGlyph(kindGlyph(kind), 36, 36, 56, MUTED) +
+      line(120, 56, provider, { px: 16, fill: MUTED }) +
+      lines.map((l, i) => line(120, 96 + i * 34, l, { px: 28, bold: true })).join('');
+  }
+  return { w: W, h: H, svg: `${linkOpen(url, ` data-kind="${kind}"`)}${svg}</a>`, alt: name };
+}
+
+/**
+ * A picture over its card: the card (the picture glyph and the alt text) is what shows where the picture cannot
+ * be fetched, never the browser's broken glyph; in a live page the kit's catcher (kit/pictures.ts installPictures)
+ * hides the card once the picture has come, and the picture if it never does.
+ */
+export function pictureCard(url: string, alt: string): Page {
+  const W = 640;
+  const H = 400;
+  const lines = alt ? clipped(alt, W - 96, 22, 3) : [];
+  const card =
+    rect(0, 0, W, H, '#f4f4f5', `stroke="${LINE}" rx="12"`) +
+    iconGlyph(kindGlyph('image'), W / 2 - 28, H / 2 - 28 - lines.length * 14, 56, MUTED) +
+    lines.map((l, i) => line(W / 2, H / 2 + 52 - lines.length * 14 + i * 28, l, { px: 22, fill: MUTED, anchor: 'middle' })).join('');
+  return { w: W, h: H, svg: `<g data-pic=""><g data-pic-card="">${card}</g><image href="${xml(url)}" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet"/></g>`, alt };
 }
 
 /* ---------- the layout ---------- */
@@ -882,7 +938,7 @@ export function deckFrames(text: string): Page[] {
 
 /**
  * The player's script: fixed, so the site's policy allows it by hash (kit/page.ts). Tap the right of the page to
- * go on, the left to go back; the keys do the same. A slide that comes on starts its animations from the
+ * go on, the left to go back; the keys do the same; a tap on a link follows it and turns no slide. A slide that comes on starts its animations from the
  * beginning and the others are paused (kit/motion.ts).
  */
 const PLAYER = pageScript(`${MOTION_JS}
@@ -898,7 +954,7 @@ function go(n) {
 }
 document.getElementById('back').onclick = function (e) { e.stopPropagation(); go(at - 1); };
 document.getElementById('next').onclick = function (e) { e.stopPropagation(); go(at + 1); };
-document.getElementById('pages').onclick = function (e) { go(at + (e.clientX > innerWidth / 3 ? 1 : -1)); };
+document.getElementById('pages').onclick = function (e) { if (e.target.closest && e.target.closest('a')) return; go(at + (e.clientX > innerWidth / 3 ? 1 : -1)); };
 document.onkeydown = function (e) {
   if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') go(at + 1);
   if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') go(at - 1);

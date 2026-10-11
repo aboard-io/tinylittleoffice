@@ -242,7 +242,7 @@ test('a thing from the web in a section is a card on the page, loaded only by it
   expect(s.sections[0].embeds).toEqual([{ web: 'https://youtu.be/dQw4w9WgXcQ' }]);
   const html = page(text);
   expect(html).toContain(
-    '<div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-title="Video dQw4w9WgXcQ"><button type="button" class="btn web-load">Play (loads it from YouTube)</button></div>',
+    '<div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-title="YouTube video"><button type="button" class="btn web-load">Play (loads it from YouTube)</button></div>',
   );
   expect(html).not.toContain('<iframe');
   expect(html).toContain('data-as="audio" data-kind="audio" data-src="https://example.org/talk.mp3"');

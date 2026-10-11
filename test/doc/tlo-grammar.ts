@@ -41,7 +41,7 @@ document   = [ head ] , block , { "\n" , block } ;
 head       = "---\n" , field , { field } , ( "---\n" | "...\n" ) ;
 field      = ? key ? , ": " , ? value ? , "\n" ;
 
-block      = paragraph | heading | items | quote | rule | table | fence | edges | image ;
+block      = paragraph | heading | items | quote | rule | table | fence | edges | image | web ;
 
 paragraph  = [ "\\" ] , line , { "\n" , bline } , [ attrs ] , "\n" | "<br>\n" | "|\n" ;
 bline      = line | "\\" ;
@@ -67,7 +67,8 @@ ticks      = "\u0060\u0060\u0060" | "\u0060\u0060\u0060\u0060" ;
 edges      = edge , { edge } ;
 edge       = "~ " , ? node ? , " " , dir , " " , ? node ? , [ ": " , ? words ? ] , [ attrs ] , "\n" ;
 dir        = "->" | "<-" | "<->" | "--" ;
-image      = "![" , ? alt ? , "](" , [ "<" ] , ? url ? , [ ">" ] , ")" , [ attrs ] , "\n" ;
+image      = "![" , ? alt ? , "](" , [ "<" ] , ( ? url ? | ? page ? ) , [ ">" ] , ")" , [ attrs ] , "\n" ;
+web        = ( ? url ? | "[" , ? words ? , "](" , ? page ? , ")" ) , "\n" ;
 
 attrs      = " {" , attr , { " " , attr } , "}" ;
 attr       = "#" , ? ident ? | "." , ? ident ? | ? ident ? , "=" , ? ident ? | ? ident ? , "=\"" , ? words ? , "\"" ;
@@ -75,7 +76,7 @@ attr       = "#" , ? ident ? | "." , ? ident ? | ? ident ? , "=" , ? ident ? | ?
 line       = inline , { inline } ;
 inline     = ? words ? | " " | escape | ? url ? | icon | marked | link | note ;
 marked     = "**" , line , "**" | "*" , line , "*" | "__" , line , "__" | "_" , line , "_" | "~~" , line , "~~" | "==" , line , "==" | "++" , line , "++" | "<u>" , line , "</u>" | "\u0060" , ? words ? , "\u0060" ;
-link       = "[" , line , "](" , ? href ? , ")" ;
+link       = "[" , line , "](" , ( ? href ? | ? page ? ) , ")" ;
 icon       = ":" , ? icon ? , ":" ;
 note       = "^[" , line , "]" ;
 escape     = "\\" , ( "*" | "_" | "{" | "[" | "]" | "#" | "|" | "~" | "=" | ":" | "<" | "^" | "\\" | "\u0060" | " " ) ;
@@ -128,6 +129,8 @@ export const POOLS: Record<string, string[]> = {
     'done.',
   ],
   url: ['https://x.y/', 'https://e.com/a_b?q=1&r=_2_', 'http://x.y/a*b*', 'mailto:a@b.c', 'https://x.y/~~s~~'],
+  // An address with a pair of brackets in it (Wikipedia's, Commons'): read whole, written with the brackets escaped.
+  page: ['https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)', 'https://upload.wikimedia.org/x/A_(b)_1.jpg', 'https://www.youtube.com/watch?v=eRVYwDtI2E8'],
   href: ['https://x.y/', 'https://e.com/a_b?q=1', 'mailto:a@b.c', 'tel:+1', '#top', 'https://x.y/a%20b'],
   icon: ['star', 'rocket', 'map-pin', 'x', 'a1'],
   ident: ['a', 'id', 'big', 'x-y', 'due', 'depth', 'chart', 'lock', '2'],

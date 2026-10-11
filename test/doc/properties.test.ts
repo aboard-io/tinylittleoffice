@@ -28,7 +28,7 @@ test('the grammar reads: every rule defined, every name it uses has a rule or a 
   expect(RULES.size).toBeGreaterThanOrEqual(30);
   expect(() => readGrammar('a = b ;')).toThrow(/no rule b/);
   expect(() => readGrammar('a = ? nothing ? ;')).toThrow(/no pool nothing/);
-  expect(TLO_EBNF).toContain('block      = paragraph | heading | items | quote | rule | table | fence | edges | image ;');
+  expect(TLO_EBNF).toContain('block      = paragraph | heading | items | quote | rule | table | fence | edges | image | web ;');
   // It makes texts of every kind of block.
   const kinds = new Set(fc.sample(textOf('document'), { numRuns: 300, seed: 1 }).flatMap((t) => parse(t).blocks.map((b) => b.k)));
   expect([...kinds].sort()).toStrictEqual(['edge', 'fence', 'h', 'hr', 'img', 'li', 'p', 'quote', 'table']);

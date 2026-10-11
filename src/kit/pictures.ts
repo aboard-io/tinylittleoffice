@@ -13,7 +13,8 @@
  * picture() is an <img> or the card, for an editor; gateSvg() and gateHtml() do the same to drawn pages
  * (an SVG <image>) and to a generated web page (an <img>); with `quiet` (a preview, a thumbnail) a web
  * picture is a grey box and never fetched. A card drawn inside an SVG carries data-webpic, and the one
- * catcher installPictures() puts on the document answers its tap (and Enter) for every page at once.
+ * catcher installPictures() puts on the document answers its tap (and Enter) for every page at once, and
+ * hides a picture's card once the picture has come (or the picture, when it cannot be fetched).
  * Every <img> drawn sends no referrer.
  */
 import { scrollerOf } from './scroll.ts';
@@ -190,12 +191,33 @@ export function watchPictures(root: Document = document) {
   }).observe(root.body ?? root, { childList: true, subtree: true });
 }
 
+/**
+ * A picture drawn over its card (`<g data-pic>`, the card a `<g data-pic-card>` beneath the `<image>`, as the deck
+ * draws one): once it has come the card is hidden, so nothing shows round it; if it never comes, the picture is,
+ * so the card shows and never the browser's broken glyph.
+ */
+function onPicture(e: Event) {
+  const img = e.target;
+  if (!(img instanceof SVGImageElement)) return;
+  const group = img.parentElement?.closest('[data-pic]');
+  if (!group) return;
+  const card = group.querySelector('[data-pic-card]');
+  // (The stand-in pixel of a picture not yet near the screen, watchPictures, is not the picture.)
+  if (e.type === 'load' && !img.hasAttribute('data-src')) card?.setAttribute('visibility', 'hidden');
+  if (e.type === 'error') {
+    img.setAttribute('visibility', 'hidden');
+    card?.removeAttribute('visibility');
+  }
+}
+
 const caught = new WeakSet<Document>();
-/** One catcher for the cards drawn inside pages: a tap, or Enter or Space on one, shows the document's web pictures. */
+/** One catcher for the cards drawn inside pages: a tap, or Enter or Space on one, shows the document's web pictures; a picture over its card is answered as it comes or fails (onPicture). */
 export function installPictures(root: Document = document) {
   if (caught.has(root)) return;
   caught.add(root);
   watchPictures(root);
+  root.addEventListener('load', onPicture, true);
+  root.addEventListener('error', onPicture, true);
   const card = (e: Event) => e.composedPath().some((n) => n instanceof Element && n.hasAttribute('data-webpic'));
   root.addEventListener('click', (e) => card(e) && (e.preventDefault(), e.stopPropagation(), showPictures()), true);
   root.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && card(e) && (e.preventDefault(), showPictures()), true);

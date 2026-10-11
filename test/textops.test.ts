@@ -343,3 +343,16 @@ test('the whole document selected (Select All): an edit over it takes the cards 
   }
 });
 const deleteSelOf = (b: Block[]) => backspace(b, wholeSel(b), 'doc') as Edit;
+
+test('a linked word is words, not a thing from the web: its marks show the link, and pasted into words it goes in as words', () => {
+  // A link alone on a line is a thing from the web (model.ts webOf); a piece of words that is one link is not.
+  const B: Block[] = [{ k: 'p', runs: [{ t: 'make ' }, { t: 'this', href: 'https://x.y' }, { t: ' a link' }] }];
+  expect(marksOf(B, sel([0, 5], [0, 9]))).toEqual({ href: 'https://x.y' });
+  const e = insertBlocks([{ k: 'p', runs: [{ t: 'see  now' }] }], caret(0, 4), [{ k: 'p', runs: [{ t: 'the film', href: 'https://www.youtube.com/watch?v=abc' }] }]);
+  expect(applyAll({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see  now' }] }] }, e.ops).blocks).toEqual([
+    { k: 'p', runs: [{ t: 'see ' }, { t: 'the film', href: 'https://www.youtube.com/watch?v=abc' }, { t: ' now' }] },
+  ]);
+  // A bare address pasted alone stands on its own, a card, as before.
+  const bare = insertBlocks([{ k: 'p', runs: [{ t: 'see  now' }] }], caret(0, 4), [{ k: 'p', runs: [{ t: 'https://www.youtube.com/watch?v=abc' }] }]);
+  expect(applyAll({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see  now' }] }] }, bare.ops).blocks).toHaveLength(3);
+});

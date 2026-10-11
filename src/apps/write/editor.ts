@@ -29,7 +29,7 @@ import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { guard } from 'lit/directives/guard.js';
 import { gateSvg } from '../../kit/pictures.ts';
 import { SquarePen } from 'lucide';
-import { isEmbed, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { isEmbed, parse, webOf, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { cmdTool } from '../../kit/bar.ts';
 import { contextOf, drawnIn, labelOf, runKey } from '../../kit/commands.ts';
@@ -373,7 +373,8 @@ export class ToWriteEditor extends DocElement<Doc> {
       </figure>`;
     }
     if (b.k === 'hr') return html`<div class="write-break" role="separator" aria-label=${t('Page break')}><span>${t('Page break')}</span></div>`;
-    if (b.k === 'p' && isEmbed(b)) return html`<to-embed url=${plainText(b.runs).trim()}></to-embed>`;
+    const web = webOf(b);
+    if (web) return html`<to-embed url=${web.url} alt=${web.title}></to-embed>`;
     return null;
   };
   private tableEl(at: number): ToWriteTable | null {
@@ -483,8 +484,10 @@ export class ToWriteEditor extends DocElement<Doc> {
             const pic = await askPicture({ url: b.url, alt: b.alt });
             if (pic) swap({ ...b, url: pic.url, alt: pic.alt });
           } else {
-            const url = await askEmbed(plainText(b.runs).trim());
-            if (url) swap(webBlock(url));
+            const web = webOf(b);
+            const url = await askEmbed(web?.url ?? '');
+            // A new address keeps the title its author gave the old one.
+            if (url) swap(webBlock(url, web?.title));
           }
           this.holdCard(at);
         },

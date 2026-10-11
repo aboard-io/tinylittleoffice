@@ -307,8 +307,8 @@ export function setSub(s: Slide, block: Block | null): Op[] {
   return block ? [{ op: 'splice', at: s.words[1], n: 0, blocks: [block] }] : [];
 }
 
-/** A paragraph that is one web address: a thing from the web, which takes the slide. */
-export const webBlock = (url: string): Block => ({ k: 'p', runs: [{ t: url.trim() }] });
+/** A paragraph that is a thing from the web (the kernel's), which takes the slide. */
+export { webBlock } from '../../doc/index.ts';
 
 /**
  * Markdown as a person or a model loosely writes it: with no rules between them, each heading starts a

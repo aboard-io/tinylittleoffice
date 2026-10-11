@@ -29,6 +29,7 @@ import {
   runLinks,
   write,
   isEmbed,
+  webOf,
   isText,
   type Block,
   type Doc,
@@ -349,8 +350,9 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
     }
     if (isEmbed(b)) {
       // A thing from the web: a card with the provider and the address, which a reader can follow.
-      const url = plainText(b.runs).trim();
-      const { provider, title: what } = embedCaption(url);
+      const web = webOf(b)!;
+      const url = web.url;
+      const { provider, title: what } = embedCaption(url, web.title);
       bits.push({
         h: 72,
         first: 72,
@@ -601,8 +603,9 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
         }
         default: {
           if (isEmbed(b)) {
-            const url = plainText(b.runs).trim();
-            const { provider, title: what } = embedCaption(url);
+            const web = webOf(b)!;
+            const url = web.url;
+            const { provider, title: what } = embedCaption(url, web.title);
             return `<figure class="embed web"><a href="${xml(url)}" rel="noopener">${xml(what)}</a> <small>${xml(provider)}</small></figure>`;
           }
           return `<p${alignStyle(b)}>${inner(b) || '<br>'}</p>`;
@@ -775,8 +778,9 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
       continue;
     }
     if (isEmbed(b)) {
-      const url = plainText(b.runs).trim();
-      const { provider, title: what } = embedCaption(url);
+      const web = webOf(b)!;
+      const url = web.url;
+      const { provider, title: what } = embedCaption(url, web.title);
       out.push(`{\\pard\\sa160 {\\field{\\*\\fldinst HYPERLINK "${rtfText(url)}"}{\\fldrslt {\\ul\\cf1 ${rtfText(what)}}}} {\\i (${rtfText(provider)})}\\par}`);
       continue;
     }
@@ -929,8 +933,9 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
       continue;
     }
     if (isEmbed(b)) {
-      const url = plainText(b.runs).trim();
-      const { provider, title: what } = embedCaption(url);
+      const web = webOf(b)!;
+      const url = web.url;
+      const { provider, title: what } = embedCaption(url, web.title);
       paras.push(
         `<w:p><w:hyperlink r:id="${rel(url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">${xml(what)}</w:t></w:r></w:hyperlink>${plain(` (${provider})`, '<w:i/>')}</w:p>`,
       );

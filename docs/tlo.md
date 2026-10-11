@@ -53,7 +53,10 @@ A document is a head and a list of blocks. Nine kinds of block:
 | `img` | `![alt](address)` | A picture by its address. |
 
 Any block may end with attributes: `{#id .class key=value}` (classes before values). A web address alone on a
-line is a thing from the web, shown as a card that loads only when asked (`src/kit/embeds.ts`).
+line is a thing from the web, shown as a card that loads only when asked (`src/kit/embeds.ts`); a link alone on a
+line, `[The title](https://…)`, is the same with the title its author gave it (`webOf` in `src/doc/model.ts`). An
+address may hold one pair of brackets, as Wikipedia's and Commons' do (`…/Grand_Concourse_(Bronx)`); a lone
+bracket is written `%28` or `%29`.
 
 ### Column types
 
@@ -112,7 +115,8 @@ paragraphs reads as a tree too.
 
 **deck** (Presentation Builder): a slide between each `---`. `## :icon-name: Headline {.title}` (or `.two`,
 `.icon`); `- ` bullets; a paragraph `|` between the columns of a `.two` slide; `> ` speaker notes; a fence, a
-table, a picture or a web address alone is the slide's document. Head: `theme: midnight`, `transition: cut`
+table, a picture or a thing from the web (an address or a titled link alone) is the slide's document: a card by
+its kind in the reader, the live card in the editor and the show; a link in a slide's words is a link. Head: `theme: midnight`, `transition: cut`
 (`slide`, `zoom`), `color: red`, `qr: no` (no closing QR slide), and `format: zine` (`booklet`, `brochure`,
 `comic`, `poster`, `badges`) for a printed thing, with `sides: 2` and `pages: 12`.
 

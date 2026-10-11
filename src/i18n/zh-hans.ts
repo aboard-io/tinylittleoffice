@@ -420,6 +420,12 @@ export default {
   // ---- a thing from the web (kit/embeds.ts) ----
   'From the web': '来自网络',
   'Read on {provider}': '在{provider}上阅读',
+  'Spotify album': 'Spotify 专辑',
+  'Spotify episode': 'Spotify 单集',
+  'Spotify playlist': 'Spotify 播放列表',
+  'Spotify show': 'Spotify 节目',
+  'Spotify track': 'Spotify 曲目',
+  '{provider} video': '{provider} 视频',
   'Open on {provider}': '在{provider}上打开',
   'Play (loads it from {provider})': '播放（从{provider}加载）',
   'Show (loads it from {provider})': '显示（从{provider}加载）',
