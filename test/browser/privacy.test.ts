@@ -234,31 +234,31 @@ test('what this device holds, item by item with Forget, and Download everything:
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   privacy.querySelector<HTMLButtonElement>('.to-forget-all')!.click();
   await until(() => now('to-held-prefs') === 'None');
-  // The language aside, as shell.test.ts sets it aside: another browser test file, running at once on this origin, may choose one after the forgetting.
-  expect(Object.keys(localStorage).filter((k) => (k.startsWith('tinyoffice.') && k !== 'tinyoffice.lang') || k === 'to-theme')).toEqual([]);
+  expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
   await tick();
 });
 
-test('Forget everything forgets the language chosen too, and the page keeps its words for the visit', async () => {
+test('the language is never among what the device holds: chosen, it counts no preference, and after Forget everything no key remains', async () => {
   try {
     setKeeping(true);
     store.set('to-theme', 'dark');
-    store.set('tinyoffice.size', '1.2');
     await setLanguage('de');
-    expect(localStorage.getItem('tinyoffice.lang')).toBe('de');
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     const shell = await mount('');
     shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
     await until(() => !!shell.querySelector('.to-drawer-privacy'));
     shell.querySelector<HTMLButtonElement>('.to-drawer-privacy')!.click();
     const privacy = shell.querySelector<ToPrivacy>('to-drawer to-privacy')!;
-    await until(() => !!privacy.querySelector('.to-forget-all'));
+    await until(() => !!privacy.querySelector('.to-held'));
+    const now = (cls: string) => privacy.querySelector(`.${cls} .to-held-now`)!.textContent;
+    // The theme alone: the language is in the link, not on the device.
+    expect(now('to-held-prefs')!.startsWith('1 ')).toBe(true);
+    expect(location.hash).toBe('#/?lang=de');
     privacy.querySelector<HTMLButtonElement>('.to-forget-all')!.click();
-    await until(() => localStorage.getItem('tinyoffice.lang') === null);
+    await until(() => localStorage.getItem('to-theme') === null);
     expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
-    // The page does not change language under the person: German for the rest of the visit, and the menu says so.
+    // Nothing on the device ever held it, so nothing changes under the person: the page is in German still, as its link says.
     expect(language()).toBe('de');
-    expect(document.documentElement.lang).toBe('de');
     expect(chosenLanguage()).toBe('de');
   } finally {
     await setLanguage(null);

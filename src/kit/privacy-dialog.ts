@@ -181,7 +181,7 @@ export class ToPrivacy extends LitElement {
       <h3 id="to-privacy-device-h">${t('What this device holds')}</h3>
       <p class="to-trust-line quiet">${icon(keeping() ? UI.device : UI.private, 18)}<span>${keeping() ? t('Saved on this device') : t('Private: nothing is written to this device. What is listed lasts for this visit.')}</span></p>
       <ul class="to-held">
-        ${row('to-held-prefs', t('Preferences'), t('Theme, language, the lifetime of short links.'), held.prefs ? t('{n} set', { n: held.prefs }) : t('None'), held.prefs ? () => forgetPrefs() : null)}
+        ${row('to-held-prefs', t('Preferences'), t('Theme, the lifetime of short links.'), held.prefs ? t('{n} set', { n: held.prefs }) : t('None'), held.prefs ? () => forgetPrefs() : null)}
         ${row('to-held-docs', t('Your documents'), t('Their names and links, for the home page.'), t('{n|# document|# documents}', { n: held.documents }), held.documents ? () => forgetDocuments() : null)}
         ${row('to-held-links', t('Short links'), t('The short links made here, until they expire.'), t('{n|# link|# links}', { n: held.links }), held.links ? () => forgetLinks() : null)}
         ${row('to-held-history', t('Your browser’s history'), t('Every document opened here, in full, unless it has a password.'), t('Not ours to clear'), null)}

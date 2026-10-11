@@ -180,7 +180,7 @@ export default {
   'The short links made here, until they expire.': 'Короткі посилання, створені тут, доки не спливе їхній термін.',
   'The two passwords differ': 'Паролі не збігаються',
   'Their names and links, for the home page.': 'Їхні назви та посилання — для головної сторінки.',
-  'Theme, language, the lifetime of short links.': 'Тема, мова, термін дії коротких посилань.',
+  'Theme, the lifetime of short links.': 'Тема, термін дії коротких посилань.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'У цього документа є пароль. У посиланні на нього, і в будь-якому коротшому посиланні, лише шифротекст.',
   'This document is locked': 'Цей документ заблоковано',
   'This document is locked with a password.': 'Цей документ заблоковано паролем.',

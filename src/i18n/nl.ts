@@ -179,7 +179,7 @@ export default {
   'The short links made here, until they expire.': 'De korte links die hier zijn gemaakt, tot ze verlopen.',
   'The two passwords differ': 'De twee wachtwoorden verschillen',
   'Their names and links, for the home page.': 'Hun namen en links, voor de startpagina.',
-  'Theme, language, the lifetime of short links.': 'Thema, taal, de levensduur van korte links.',
+  'Theme, the lifetime of short links.': 'Thema, de levensduur van korte links.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'Dit document heeft een wachtwoord. De link, en elke korte link daarvan, bevat alleen versleutelde tekst.',
   'This document is locked': 'Dit document is vergrendeld',
   'This document is locked with a password.': 'Dit document is met een wachtwoord vergrendeld.',

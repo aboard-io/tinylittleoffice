@@ -180,7 +180,7 @@ export default {
   'The short links made here, until they expire.': '在這裡建立的短連結，保留到過期為止。',
   'The two passwords differ': '兩次輸入的密碼不一樣',
   'Their names and links, for the home page.': '它們的名稱和連結，供首頁使用。',
-  'Theme, language, the lifetime of short links.': '主題、語言、短連結的有效期限。',
+  'Theme, the lifetime of short links.': '主題、短連結的有效期限。',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': '這份文件設有密碼。連結和由它產生的任何短連結裡都只有密文。',
   'This document is locked': '這份文件已鎖定',
   'This document is locked with a password.': '這份文件已用密碼鎖定。',

@@ -1,7 +1,8 @@
 /**
  * Every string a person sees goes through t(). English is the key: t('Find app, template'). A language is a file
  * in src/i18n/ (en.ts is the list of every key, hand-edited; es.ts would map each key to Spanish), and the
- * browser chooses the one nearest navigator.languages, unless a choice was made in the menu.
+ * browser chooses the one nearest navigator.languages, unless the link names one ("?lang=ht", kit/route.ts) or a choice
+ * was made in the menu, which puts it in the link.
  *
  *   t('Downloaded {name}', { name })            a placeholder: {name}
  *   t('{n|one slide|# slides}', { n: 3 })       a plural: the forms of the word in the language's own order
@@ -17,21 +18,12 @@ export type Strings = Record<string, string>;
 type Loader = () => Promise<{ default: Strings }>;
 
 /**
- * The language chosen in the menu is kept on the device in every state, Private or Saved, in localStorage and never a
- * cookie (Paul, 2026-10-10: "Language change should be persistent across reloads. But no cookies!"): it says nothing
- * about the person or their documents, and a page that comes back in the wrong words is a wall. kit/store.ts leaves
- * this one key alone when Private forgets the rest. Forget everything (kit/privacy.ts) forgets it too, since for some
- * the language is itself a trace (the review of 2026-10-11): the choice stays in memory for the visit, so the page
- * does not change its words under the person (forgetLanguage).
+ * The language chosen is a parameter of the link and is never written to the device, in any state (Paul, 2026-10-11:
+ * "Why are we writing language at all instead of encoding the parameter in the link?"): no storage, no cookie. A link
+ * with "?lang=" opens in that language; the menu's choice puts it in the address (kit/shell.ts) and so in every link
+ * the page makes; the visit holds it in memory as the person goes from page to page. A link without one follows the
+ * browser's language.
  */
-export const LANG_KEY = 'tinyoffice.lang';
-const device = (): Storage | null => {
-  try {
-    return localStorage;
-  } catch {
-    return null;
-  }
-};
 const ORDER = ['zero', 'one', 'two', 'few', 'many', 'other'];
 // Languages written right to left, for a browser whose Intl.Locale cannot say.
 const RTL = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ug', 'yi', 'dv', 'ckb'];
@@ -82,9 +74,10 @@ export function onLanguage(cb: () => void): () => void {
   return () => listeners.delete(cb);
 }
 
-/** A dictionary given by hand (a test's in-memory Spanish). */
-export function register(code: string, strings: Strings) {
-  dicts.set(code, strings);
+/** A dictionary given by hand (a test's in-memory Spanish), or a loader for one (a test's slow chunk). */
+export function register(code: string, strings: Strings | Loader) {
+  if (typeof strings === 'function') loaders.set(code, strings);
+  else dicts.set(code, strings);
 }
 
 /** A language's plural rules, the categories it has in ORDER's order, and its numbers: made once per language (each is costly to make, and a word count is plural on every keystroke). */
@@ -150,11 +143,17 @@ export function directionOf(code: string): 'ltr' | 'rtl' {
   }
 }
 
+/** The newest language asked for: a slower dictionary arriving after a newer choice is not put in force. */
+let wanted = '';
+/** A dictionary on its way: the shell draws once it is here, so a link in Kreyòl never flashes English first. */
+let loading: Promise<void> | null = null;
 async function use(code: string) {
+  wanted = code;
   if (code !== 'en' && !dicts.has(code)) {
     const load = loaders.get(code);
     if (!load) return;
     dicts.set(code, (await load()).default);
+    if (wanted !== code) return;
   }
   current = code;
   if (typeof document !== 'undefined') {
@@ -163,24 +162,21 @@ async function use(code: string) {
   }
   for (const cb of listeners) cb();
 }
+/** The language being loaded, or null when the one in force is the one asked for. */
+export const languagePending = (): Promise<void> | null => loading;
 
-/** The choice as this visit holds it once the device has forgotten it (forgetLanguage). */
-let visit: string | null = null;
-/** The language chosen in the menu, or null to follow the browser. */
-export const chosenLanguage = (): string | null => device()?.getItem(LANG_KEY) ?? visit;
+/** The language chosen, in the menu or by the link that brought the page, for this visit; null to follow the browser. */
+let chosen: string | null = null;
+/** The language chosen, or null to follow the browser: what the link carries as "lang". */
+export const chosenLanguage = (): string | null => chosen;
 
-/** Choose a language (null: the browser's), from now on. */
-export async function setLanguage(code: string | null) {
-  visit = null;
-  if (code) device()?.setItem(LANG_KEY, code);
-  else device()?.removeItem(LANG_KEY);
-  await use(code ?? browserLanguage());
-}
-
-/** The device forgets the language chosen; this visit keeps it in memory, its words unchanged. */
-export function forgetLanguage() {
-  visit = chosenLanguage();
-  device()?.removeItem(LANG_KEY);
+/** Choose a language (null: the browser's), from now on. The shell puts it in the address (onLanguage). */
+export function setLanguage(code: string | null): Promise<void> {
+  chosen = code && languages().includes(code) ? code : null;
+  const run = use(chosen ?? browserLanguage());
+  loading = run;
+  void run.finally(() => loading === run && (loading = null));
+  return run;
 }
 
 /**
@@ -205,5 +201,5 @@ export function browserLanguage(wanted: readonly string[] = typeof navigator !==
   return 'en';
 }
 
-/** At load: the chosen language, or the browser's. */
-export const initLanguage = () => use(chosenLanguage() ?? browserLanguage());
+/** At load: the language the link chose (the shell has read it already), or the browser's. */
+export const initLanguage = (): Promise<void> => (chosen ? (loading ?? Promise.resolve()) : setLanguage(null));

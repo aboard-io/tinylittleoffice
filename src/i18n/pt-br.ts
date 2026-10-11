@@ -179,7 +179,7 @@ export default {
   'The short links made here, until they expire.': 'Os links curtos criados aqui, até expirarem.',
   'The two passwords differ': 'As duas senhas são diferentes',
   'Their names and links, for the home page.': 'Seus nomes e links, para a página inicial.',
-  'Theme, language, the lifetime of short links.': 'Tema, idioma, a duração dos links curtos.',
+  'Theme, the lifetime of short links.': 'Tema, a duração dos links curtos.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'Este documento tem senha. O link, e qualquer link curto feito a partir dele, guarda só texto cifrado.',
   'This document is locked': 'Este documento está bloqueado',
   'This document is locked with a password.': 'Este documento está bloqueado com senha.',

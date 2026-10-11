@@ -177,7 +177,7 @@ export default {
   'The short links made here, until they expire.': 'ここで作った短縮リンク（期限が切れるまで）。',
   'The two passwords differ': '2つのパスワードが一致しません',
   'Their names and links, for the home page.': '名前とリンクです。ホームページに使います。',
-  'Theme, language, the lifetime of short links.': 'テーマ、言語、短縮リンクの有効期間です。',
+  'Theme, the lifetime of short links.': 'テーマ、短縮リンクの有効期間です。',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'このドキュメントにはパスワードがあります。リンクも、そこから作った短縮リンクも、中身は暗号文だけです。',
   'This document is locked': 'このドキュメントはロックされています',
   'This document is locked with a password.': 'このドキュメントはパスワードでロックされています。',

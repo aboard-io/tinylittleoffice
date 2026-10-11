@@ -178,7 +178,7 @@ export default {
   'The short links made here, until they expire.': '在这里生成的短链接，保留到过期为止。',
   'The two passwords differ': '两次输入的密码不一致',
   'Their names and links, for the home page.': '它们的名称和链接，用于主页。',
-  'Theme, language, the lifetime of short links.': '主题、语言、短链接的有效期。',
+  'Theme, the lifetime of short links.': '主题、短链接的有效期。',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': '此文档设有密码。链接以及由它生成的任何短链接里都只有密文。',
   'This document is locked': '此文档已锁定',
   'This document is locked with a password.': '此文档已用密码锁定。',

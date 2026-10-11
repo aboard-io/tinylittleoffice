@@ -178,7 +178,7 @@ export default {
   'The short links made here, until they expire.': 'Короткие ссылки, созданные здесь, пока не истечёт их срок.',
   'The two passwords differ': 'Пароли не совпадают',
   'Their names and links, for the home page.': 'Их названия и ссылки для главной страницы.',
-  'Theme, language, the lifetime of short links.': 'Тема, язык, срок жизни коротких ссылок.',
+  'Theme, the lifetime of short links.': 'Тема, срок жизни коротких ссылок.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'У этого документа есть пароль. В ссылке и в любой короткой ссылке из неё только зашифрованный текст.',
   'This document is locked': 'Этот документ заблокирован',
   'This document is locked with a password.': 'Этот документ заблокирован паролем.',

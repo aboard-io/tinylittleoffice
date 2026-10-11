@@ -179,7 +179,7 @@ export default {
   'The short links made here, until they expire.': 'الروابط القصيرة التي أُنشئت هنا، حتى تنتهي صلاحيتها.',
   'The two passwords differ': 'كلمتا المرور مختلفتان',
   'Their names and links, for the home page.': 'أسماؤها وروابطها، للصفحة الرئيسية.',
-  'Theme, language, the lifetime of short links.': 'المظهر واللغة ومدة بقاء الروابط القصيرة.',
+  'Theme, the lifetime of short links.': 'المظهر ومدة بقاء الروابط القصيرة.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'لهذا المستند كلمة مرور. الرابط، وأي رابط قصير يُصنع منه، لا يحمل إلا نصًا مشفرًا.',
   'This document is locked': 'هذا المستند مقفل',
   'This document is locked with a password.': 'هذا المستند مقفل بكلمة مرور.',

@@ -24,6 +24,7 @@ test('a link from a file, and the file back from the link', () => {
 
 test('stdin, the plain form, a show link, and JSON', () => {
   expect(run(['link', 'deck', '--title', 'Talk', '--view', 'show'], '## One\n').trim()).toMatch(/\?show$/);
+  expect(run(['link', 'write', '--lang', 'ht'], 'Bonjou\n').trim()).toMatch(/\?lang=ht$/);
   expect(run(['link', 'outline', '--plain', '--title', 'Shop'], '- [ ] Milk\n').trim()).toBe('https://tinylittleoffice.com/outline/#title=Shop&doc=-+%5B+%5D+Milk');
   expect(JSON.parse(run(['read', 'https://tinylittleoffice.com/outline/#title=Shop&doc=-+%5B+%5D+Milk', '--json']))).toMatchObject({ app: 'outline', title: 'Shop' });
 });

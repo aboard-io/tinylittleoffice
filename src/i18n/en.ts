@@ -197,7 +197,7 @@ export default {
   'The short links made here, until they expire.': 'The short links made here, until they expire.',
   'The two passwords differ': 'The two passwords differ',
   'Their names and links, for the home page.': 'Their names and links, for the home page.',
-  'Theme, language, the lifetime of short links.': 'Theme, language, the lifetime of short links.',
+  'Theme, the lifetime of short links.': 'Theme, the lifetime of short links.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'This document has a password. The link, and any short link made from it, holds only ciphertext.',
   'This document is locked': 'This document is locked',
   'This document is locked with a password.': 'This document is locked with a password.',

@@ -25,6 +25,16 @@ test('link makes the packed link, with a title and by in the head; read takes it
   expect(() => read('https://tinylittleoffice.com/write/#/v1/write/zAAAA')).toThrow(/cannot be read/);
 });
 
+test('a link can open in a language: lang, beside the Display Link and the show link, read back', () => {
+  const url = link('write', '# Bonjou\n', { lang: 'ht' });
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v1\/write\/[yzr][A-Za-z0-9_~]+\?lang=ht$/);
+  expect(read(url)).toMatchObject({ app: 'write', text: '# Bonjou\n', lang: 'ht' });
+  expect(read(link('write', 'x'))).not.toHaveProperty('lang');
+  expect(link('deck', '## A', { show: true, display: true, lang: 'pt-br' })).toMatch(/\?d&lang=pt-br&show$/);
+  expect(link('deck', '## A', { show: true, lang: 'ar' })).toMatch(/\?lang=ar&show$/);
+  expect(() => link('write', 'x', { lang: 'Not a language' })).toThrow(/language/);
+});
+
 test('a plain link is read as the document it stands for', () => {
   const url = plain('outline', '- [ ] Milk\n', { title: 'Shop', by: 'agent' });
   expect(url).toBe('https://tinylittleoffice.com/outline/#title=Shop&by=agent&doc=-+%5B+%5D+Milk');

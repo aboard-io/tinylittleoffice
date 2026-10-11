@@ -167,7 +167,7 @@ export default {
   'The short links made here, until they expire.': 'এখানে বানানো ছোট লিংকগুলো, মেয়াদ শেষ হওয়া পর্যন্ত।',
   'The two passwords differ': 'দুটি পাসওয়ার্ড মিলছে না',
   'Their names and links, for the home page.': 'হোম পাতাের জন্য এগুলোর নাম ও লিংক।',
-  'Theme, language, the lifetime of short links.': 'থিম, ভাষা, ছোট লিংকের মেয়াদ।',
+  'Theme, the lifetime of short links.': 'থিম, ছোট লিংকের মেয়াদ।',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'এই নথিতে পাসওয়ার্ড আছে। লিংকে এবং এর থেকে বানানো ছোট লিংকে শুধু এনক্রিপ্ট করা লেখা থাকে।',
   'This document is locked': 'এই নথিতে তালা দেওয়া',
   'This document is locked with a password.': 'এই নথিতে পাসওয়ার্ডের তালা দেওয়া।',

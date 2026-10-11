@@ -178,7 +178,7 @@ export default {
   'The short links made here, until they expire.': 'यहाँ बने शॉर्ट लिंक, उनकी मियाद ख़त्म होने तक।',
   'The two passwords differ': 'दोनों पासवर्ड अलग हैं',
   'Their names and links, for the home page.': 'उनके नाम और लिंक, होम पेज के लिए।',
-  'Theme, language, the lifetime of short links.': 'थीम, भाषा, शॉर्ट लिंक की उम्र।',
+  'Theme, the lifetime of short links.': 'थीम, शॉर्ट लिंक की उम्र।',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'इस दस्तावेज़ पर पासवर्ड है। इसका लिंक, और इससे बना कोई भी शॉर्ट लिंक, सिर्फ़ एन्क्रिप्टेड रूप रखता है।',
   'This document is locked': 'यह दस्तावेज़ लॉक है',
   'This document is locked with a password.': 'यह दस्तावेज़ पासवर्ड से लॉक है।',

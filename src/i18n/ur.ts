@@ -179,7 +179,7 @@ export default {
     'The short links made here, until they expire.': 'یہاں بنائے گئے مختصر لنکس، ان کی میعاد ختم ہونے تک۔',
     'The two passwords differ': 'دونوں پاس ورڈ مختلف ہیں',
     'Their names and links, for the home page.': 'ان کے نام اور لنکس، ہوم پیج کے لیے۔',
-  'Theme, language, the lifetime of short links.': 'تھیم، زبان، مختصر لنکس کی میعاد۔',
+  'Theme, the lifetime of short links.': 'تھیم، مختصر لنکس کی میعاد۔',
     'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'اس دستاویز پر پاس ورڈ ہے۔ لنک میں، اور اس سے بنے ہر مختصر لنک میں، صرف انکرپٹڈ متن ہے۔',
     'This document is locked': 'یہ دستاویز مقفل ہے',
     'This document is locked with a password.': 'یہ دستاویز پاس ورڈ سے مقفل ہے۔',

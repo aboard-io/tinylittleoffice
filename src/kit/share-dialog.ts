@@ -20,7 +20,7 @@ import type { Locker } from './crypt.ts';
 import { withHead } from '../doc/tlo.ts';
 import { readEnvelope } from './envelope.ts';
 import { ensureIcons, icon, iconNames, UI } from './icons.ts';
-import { t } from './i18n.ts';
+import { chosenLanguage, t } from './i18n.ts';
 import { picture, raster, saveFile, slug, utf8 } from './exports.ts';
 import { parseHash, routeHash } from './route.ts';
 import { fitLine, roomFor } from './limits.ts';
@@ -58,7 +58,7 @@ export function openCopy(def: AppDef, doc: string, title: string, locker: Locker
   const copy = withHead(def.retitle(doc, t('Copy of {title}', { title })), { by: '', created: '' });
   const open = (payload: string) => {
     const u = new URL(location.href);
-    u.hash = routeHash(def.id, payload);
+    u.hash = routeHash(def.id, payload, '', false, null, chosenLanguage());
     window.open(u.href, '_blank', 'noopener');
     toast(t('A copy opened in a new tab'));
   };
@@ -224,7 +224,9 @@ export class ToShare extends LitElement {
 
   /** A deck's show link: the same deck, opening already presenting. */
   get showLink(): string {
-    return `${this.link}?show`;
+    const u = new URL(this.link);
+    u.hash += u.hash.includes('?') ? '&show' : '?show';
+    return u.href;
   }
 
   /** The link to a service's compose box: Bluesky, Mastodon (its server asked once), X, LinkedIn, Email; each opened through the link guard. */
@@ -270,7 +272,8 @@ export class ToShare extends LitElement {
     const u = new URL(this.link);
     u.pathname = `${siteDir()}embed/`;
     u.search = '';
-    u.hash = routeHash(this.app, parseHash(u.hash).payload, 'embed');
+    const { payload, lang } = parseHash(u.hash);
+    u.hash = routeHash(this.app, payload, 'embed', false, null, lang ?? null);
     return u.href;
   }
   private renderEmbedCode() {

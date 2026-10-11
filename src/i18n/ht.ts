@@ -180,7 +180,7 @@ export default {
   'The short links made here, until they expire.': 'Lyen kout ki fèt isit la, jiskaske yo ekspire.',
   'The two passwords differ': 'De modpas yo pa menm',
   'Their names and links, for the home page.': 'Non yo ak lyen yo, pou paj akèy la.',
-  'Theme, language, the lifetime of short links.': 'Tèm, lang, dire lyen kout yo.',
+  'Theme, the lifetime of short links.': 'Tèm, dire lyen kout yo.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'Dokiman sa a gen yon modpas. Lyen an, ak nenpòt lyen kout yo fè ak li, kenbe sèlman tèks chifre.',
   'This document is locked': 'Dokiman sa a bloke',
   'This document is locked with a password.': 'Dokiman sa a bloke ak yon modpas.',

@@ -251,7 +251,9 @@ test("the take-home QR is the slides: the Display Link, every speaker note cut; 
   expect(slidesOf(doc).some((s) => s.noteLines.length)).toBe(true);
   const link = takeHomeLink(doc, 'https://tinylittleoffice.com/');
   const route = parseHash(new URL(link).hash);
-  expect([route.app, route.display]).toEqual(['deck', true]);
+  expect([route.app, route.display, route.lang]).toEqual(['deck', true, undefined]);
+  // In the language the deck is shown in, when one was chosen.
+  expect(parseHash(new URL(takeHomeLink(doc, 'https://tinylittleoffice.com/', 'ht')).hash)).toMatchObject({ app: 'deck', display: true, lang: 'ht' });
   const home = parse(decodeDoc(route.payload));
   expect(home.blocks.some((b) => b.k === 'quote')).toBe(false);
   expect(slidesOf(home).map((s) => plainText(s.title))).toEqual(slidesOf(doc).map((s) => plainText(s.title)));

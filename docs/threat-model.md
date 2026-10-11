@@ -18,6 +18,8 @@ Two consequences follow, and the rest of this page is mostly their detail:
 
 - **Whoever has the link has the document.** That is the design, not a flaw in it. Everything that holds
   the link (a chat, an email, a browser's history, a person) holds the document, unless it has a password.
+  A link made after a language was chosen in the menu also carries that language (`?lang=ht`), so it says
+  which language its maker chose; one made by someone who never chose carries none.
 - **Whoever serves the code can read the document.** The page that reads the fragment is code the site
   sends. The host cannot see a document while it serves the code in this repository; a host that served
   other code (compromised, coerced, or simply changed) could send the fragment anywhere. The answer to that
@@ -61,9 +63,10 @@ whether the place is honest.
 pictures from the web and no embeds, so it cannot hold a tracking pixel. Markdown's picture line reads as a
 link, which asks before it opens (above).
 
-**A lost phone with Saved on.** Private is the default and writes nothing to the device but three preferences
-that say nothing of a document: the language (`tinyoffice.lang`), the size of everything (`tinyoffice.size`) and
-the theme (`to-theme`), all three cleared by Forget everything. With Saved on, the
+**A lost phone with Saved on.** Private is the default and writes nothing to the device but two preferences
+that say nothing of a document: the size of everything (`tinyoffice.size`) and the theme (`to-theme`), both
+cleared by Forget everything. Nothing is written to the device for the language, in either state: the link
+carries it. With Saved on, the
 device keeps the preferences, the documents opened there (`src/kit/library.ts`),
 the short links made there. A document under a password is kept as its
 ciphertext with no title and no first words, so the library does not give away even its name. Nothing else
