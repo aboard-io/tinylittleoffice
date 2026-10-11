@@ -108,7 +108,10 @@ test('sheet: under a finger, a tap selects a cell whole, heads and row numbers a
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   await bar.getByRole('button', { name: 'Clear these cells' }).tap();
   await expect(cell('A1')).toHaveValue('');
-  // Undo from the bar brings it back.
+  // Undo from the bar brings it back. (On a phone the block's bar is the bottom row while the block is in hand, and the
+  // app's bar, with its Undo, steps aside under it, kit/context.ts docked: a tap on a cell lets the block go.)
+  await cell('A2').tap();
+  await expect(bar).toBeHidden();
   await page.locator('to-bar.sheet-bar').getByRole('button', { name: 'Undo' }).tap();
   await expect(cell('A1')).toHaveValue('Food');
   // Column C holds checkboxes: a tap on C1 ticks it, and no keyboard comes up (the focus stays off the cell).
@@ -133,18 +136,24 @@ test('sheet: on a phone, the row numbers are a narrow quiet side, a checkbox is 
     const head = document.querySelector<HTMLElement>('table.sheet thead tr:first-child th')!;
     const surface = getComputedStyle(document.querySelector('.sheet-scroll')!).backgroundColor;
     const quiet = (el: HTMLElement) => getComputedStyle(el).backgroundColor === surface && getComputedStyle(el).borderRightWidth === '0px' && getComputedStyle(el).borderBottomWidth === '0px';
-    return { side: th.getBoundingClientRect().width, head: document.querySelector<HTMLElement>('table.sheet .col-head')!.getBoundingClientRect().height, quiet: quiet(th) && quiet(head) };
+    return {
+      base: parseFloat(getComputedStyle(document.documentElement).fontSize) / 16,
+      side: th.getBoundingClientRect().width,
+      head: document.querySelector<HTMLElement>('table.sheet .col-head')!.getBoundingClientRect().height,
+      quiet: quiet(th) && quiet(head),
+    };
   });
-  expect(look.side).toBeLessThanOrEqual(30);
+  // (30px at the size of 100%; kit/zoom.ts BASE draws it 1.3 times that. src/apps/sheet/tests/editor.test.ts measures it to the digit.)
+  expect(look.side).toBeLessThanOrEqual(30 * look.base);
   expect(look.head).toBeGreaterThanOrEqual(44);
   expect(look.quiet).toBe(true);
-  // Column B holds checkboxes: a 24px box in a cell a finger can hit, ticked by a tap, no keyboard coming up.
+  // Column B holds checkboxes: a 24px box (at the size of 100%) in a cell a finger can hit, ticked by a tap, no keyboard coming up.
   await page.getByRole('button', { name: /^Column B:/ }).tap();
   await page.locator('.sheet-colmenu [role=menu]').getByText('Checkbox', { exact: true }).tap();
   const tick = page.getByRole('button', { name: 'Tick B1', exact: true });
   expect((await tick.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   const box = (await tick.locator('.box').boundingBox())!;
-  expect([box.width, box.height]).toEqual([24, 24]);
+  expect([box.width, box.height].map((x) => Math.round(x / look.base))).toEqual([24, 24]);
   await tick.tap();
   await expect(tick).toHaveAttribute('aria-pressed', 'true');
   await expect(cell('B1')).not.toBeFocused();

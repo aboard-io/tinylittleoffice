@@ -229,6 +229,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
   connectedCallback() {
     super.connectedCallback();
     this.addEventListener('keydown', this.onKey);
+    this.addEventListener('focusin', this.onFocusIn);
+    this.addEventListener('focusout', this.onFocusOut);
     // On the document: with nothing selected a browser may send the event to the body rather than the canvas.
     for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener);
     // Two fingers zoom the canvas about them and pan it, read as every spatial canvas reads them.
@@ -256,6 +258,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('keydown', this.onKey);
+    this.removeEventListener('focusin', this.onFocusIn);
+    this.removeEventListener('focusout', this.onFocusOut);
     for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener);
     this.unpinch?.();
     this.unpinch = null;
@@ -267,8 +271,20 @@ export class ToDrawEditor extends DocElement<DrawView> {
     // A new document from outside, or pixel mode: the words in hand are let go.
     if (this.editing >= 0 && (this.view.grid || !this.view.shapes[this.editing])) this.closeWords(false, false);
   }
+  /** The mode last drawn (0 for shapes, else the grid's side). */
+  private drawnGrid?: number;
+  /** The focus is here, or left here for nowhere (the body). */
+  private hadFocus = false;
+  private onFocusIn = () => (this.hadFocus = true);
+  private onFocusOut = (e: FocusEvent) => (this.hadFocus = !e.relatedTarget || this.contains(e.relatedTarget as Node));
   protected updated(changed: Map<string, unknown>) {
     super.updated(changed);
+    // The other mode draws another bar and surface, so the focused button (the mode's menu, Background, Undo) went with
+    // the old bar: the focus goes to the new surface rather than to the body, where on a phone the bar would go with it.
+    const grid = this.view.grid;
+    const at = document.activeElement;
+    if (this.hadFocus && this.drawnGrid !== grid && (!at || at === document.body || !at.isConnected)) this.focusCanvas();
+    this.drawnGrid = grid;
     if (this.editing >= 0) this.placeWords();
     const bar = this.querySelector<ToContext>('.draw-context');
     if (!bar) return;

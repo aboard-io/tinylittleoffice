@@ -77,7 +77,9 @@ test('board: on a phone, a card is typed without the page moving, and carried by
   await page.keyboard.type('Photograph the studio');
   await expect(page).toHaveURL(/#\/v1\/board\/[ryz]/);
   const seen = [await measure(page, 'to-board-editor')];
-  expect((await page.locator('.board-main').first().boundingBox())!.height).toBe(44);
+  // A finger's height at least (it was exactly 44 at the old size; at the size of 100%, kit/zoom.ts BASE, the words wrap
+  // to two lines in a stage this narrow).
+  expect((await page.locator('.board-main').first().boundingBox())!.height).toBeGreaterThanOrEqual(44);
   // Carried by the grip to the next stage, at the right edge of the screen.
   const grip = (await page.locator('.board-grip').first().boundingBox())!;
   const next = (await cols.nth(1).boundingBox())!;
@@ -112,14 +114,15 @@ test('board: on a phone, a tap on a grip chooses the card, the bar above it move
   await page.keyboard.type('Pay rent');
   await expect.poll(() => value(page, 'to-board-editor')).toContain('- Call the printer\n- Pay rent\n');
   expect(await page.locator('.board').evaluate((el) => getComputedStyle(el).touchAction)).toBe('manipulation');
-  // A tap on the second card's grip chooses it; the bar comes up above it, inside the screen.
+  // A tap on the second card's grip chooses it; its bar is the bottom row (kit/context.ts docked), clear of it, inside the screen.
   await page.locator('.board-card').nth(1).locator('.board-grip').tap();
   await expect(page.locator('.board-card.ranged')).toHaveCount(1);
   const bar = page.locator('to-context.to-rows-context .to-context');
   await expect(bar).toBeVisible();
   const b = (await bar.boundingBox())!;
   const card = (await page.locator('.board-card.ranged').boundingBox())!;
-  expect(b.y + b.height).toBeLessThanOrEqual(card.y + 1);
+  expect(b.y).toBeGreaterThanOrEqual(card.y + card.height - 1);
+  expect(b.y + b.height).toBeLessThanOrEqual(await page.evaluate(() => window.visualViewport!.height + 0.5));
   expect(b.x).toBeGreaterThanOrEqual(0);
   expect(b.x + b.width).toBeLessThanOrEqual(390);
   for (const btn of await bar.locator('button').all()) {
@@ -144,7 +147,9 @@ test('board: on a phone, stages as rows read top to bottom; a card is carried by
   await page.goto('/#/v1/board');
   const cols = page.locator('.board-col');
   await expect(cols).toHaveCount(3);
-  await page.getByRole('button', { name: 'Stages as rows' }).tap();
+  // Stages as rows needs nothing in hand: while reading it is a row of the drawer's This document (kit/drawer.ts).
+  await page.locator('.to-burger').tap();
+  await page.getByRole('region', { name: 'This document' }).getByRole('button', { name: 'Stages as rows' }).tap();
   await expect(page.locator('.board.rows')).toHaveCount(1);
   await expect.poll(() => value(page, 'to-board-editor')).toMatch(/^---\nlook: rows\n---\n/);
   await cols.first().locator('.board-more').tap();

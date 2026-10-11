@@ -27,13 +27,17 @@ test('motion: a shape drawn, then moved at the last moment, keys itself there', 
   // An empty stage opens in Draw mode, which is Draw itself.
   const canvas = page.locator('to-anim-editor svg.draw-canvas');
   await expect(canvas).toBeVisible();
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the canvas is touched before the bar is reached for.
+  await canvas.click({ position: { x: 4, y: 4 } });
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * 0.2, y: box.height * 0.3 } });
   await expect(page).toHaveURL(/#\/v1\/anim\/[ryz]/);
   expect(await value(page)).toMatch(/^Kind \| X \| Y \| W \| H \| Style \| Label\n--- \| --- \| --- \| --- \| --- \| --- \| ---\nr \| \d+ \| \d+ \| 12 \| 6 \| 0 \|\n$/);
 
-  // Move mode: the last moment, then the rectangle dragged down and to the right.
+  // Move mode: the last moment, then the rectangle dragged down and to the right. On a phone the chosen shape's bar is
+  // the bottom row and the app's bar steps aside under it (kit/context.ts docked), so the shape is let go first.
+  await canvas.click({ position: { x: box.width - 4, y: box.height - 4 } });
   await page.getByRole('button', { name: 'Move', exact: true }).click();
   const stage = page.locator('svg.anim-stage');
   await expect(stage).toBeVisible();
@@ -55,17 +59,19 @@ test('motion: a shape drawn, then moved at the last moment, keys itself there', 
   await page.mouse.up();
   await expect.poll(() => value(page)).toMatch(/\n\nShape \| Keys\n--- \| ---\n0 \| 0,0,0,0,1,0; 23,\d+,\d+,0,1,0\n$/);
   await expect(page.locator('.anim-keys .key')).toHaveCount(2);
-  // A key dot is drawn 14px, and a finger reaches it 18px from its centre.
-  const reached = await page.evaluate(() => {
-    const dot = document.querySelector<HTMLElement>('.anim-keys .key')!;
-    const r = dot.getBoundingClientRect();
-    return document.elementFromPoint(r.left + r.width / 2 + 18, r.top + r.height / 2) === dot;
-  });
-  expect(reached).toBe(await page.evaluate(() => matchMedia('(pointer: coarse)').matches));
   const after = await measure(page);
   expect(after.bar).toBe(first.bar);
   expect(after.pageTop).toBe(top);
   expect(after.wide).toBeLessThanOrEqual(0);
+  // A key dot is drawn 14px, and a finger reaches it 18px from its centre.
+  // (The column scrolls: on a phone the keys can sit under its foot, so the dot is brought into view first.)
+  const reached = await page.evaluate(() => {
+    const dot = document.querySelector<HTMLElement>('.anim-keys .key')!;
+    dot.scrollIntoView({ block: 'center' });
+    const r = dot.getBoundingClientRect();
+    return document.elementFromPoint(r.left + r.width / 2 + 18, r.top + r.height / 2) === dot;
+  });
+  expect(reached).toBe(await page.evaluate(() => matchMedia('(pointer: coarse)').matches));
   // The length is typed, the speed too, and the repeat chosen: the head says so, and the seconds follow.
   await page.getByRole('spinbutton', { name: 'Frames', exact: true }).fill('48');
   await page.keyboard.press('Enter');
@@ -89,14 +95,18 @@ test('motion: a tap chooses a shape and its contextual bar comes up under it, 44
   await page.goto('/#/v1/anim');
   const canvas = page.locator('to-anim-editor svg.draw-canvas');
   await expect(canvas).toBeVisible();
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the canvas is touched before the bar is reached for.
+  await canvas.click({ position: { x: 4, y: 4 } });
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * 0.3, y: box.height * 0.3 } });
   await expect(page).toHaveURL(/#\/v1\/anim\/[ryz]/);
+  await canvas.click({ position: { x: box.width - 4, y: box.height - 4 } });
   await page.getByRole('button', { name: 'Move', exact: true }).click();
   const stage = page.locator('svg.anim-stage');
   await expect(stage).toBeVisible();
-  expect(await stage.evaluate((el) => getComputedStyle(el).touchAction)).toBe('manipulation');
+  // A finger on the empty stage scrolls; the browser never zooms it (a pinch there is the stage's own zoom, kit/pinch.ts).
+  expect(await stage.evaluate((el) => getComputedStyle(el).touchAction)).toBe('pan-x pan-y');
   const hit = stage.locator('g.hit > rect').first();
   await hit.click();
   const bar = page.locator('to-context.anim-context .to-context');

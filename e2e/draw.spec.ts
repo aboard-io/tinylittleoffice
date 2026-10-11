@@ -25,6 +25,10 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
         wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the canvas is touched before the bar is reached for.
+  await canvas.click({ position: { x: 4, y: 4 } });
+  // (The bar glides in: measured once it has settled.)
+  await expect.poll(async () => (await measure()).rows).toBe(1);
   const first = await measure();
   expect(first.rows).toBe(1);
   expect(first.bar).toBeLessThanOrEqual(56);
@@ -38,7 +42,9 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   const after = await measure();
   expect(after.bar).toBe(first.bar);
   expect(after.pageTop).toBe(0);
-  // Pixel mode from the menu: a square painted, then the grid made the background.
+  // Pixel mode from the menu: a square painted, then the grid made the background. (On a phone the chosen shape's bar is
+  // the bottom row and the app's bar steps aside under it, kit/context.ts docked: the shape is let go first.)
+  await canvas.click({ position: { x: box.width - 4, y: box.height - 4 } });
   await page.locator('.draw-mode > button').click();
   await page.getByRole('menuitemcheckbox', { name: 'Pixels 8×8' }).click();
   const grid = page.locator('svg.draw-pixels');
@@ -62,6 +68,8 @@ test("draw: a shape tapped has its contextual bar inside the screen, and the bar
   const touch = !!info.project.use.hasTouch;
   const box = (await canvas.boundingBox())!;
   const at = (x: number, y: number) => ({ position: { x: (x / 640) * box.width, y: (y / 400) * box.height } });
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the canvas is touched before the bar is reached for.
+  if (touch) await canvas.tap(at(600, 380));
   // A rectangle at (192, 120), 96 by 48; a tap on nothing lets it go, a tap on it takes it again.
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   await canvas.click(at(192, 120));
@@ -92,6 +100,8 @@ test("draw: a shape tapped has its contextual bar inside the screen, and the bar
   await expect(canvas.locator('[data-idx="0"] text')).toHaveText('Hi there');
   await expect(bar).toBeVisible();
   // The T tool and a tap: a text whose words are open at once, the focus in them (no mouse event after the touch takes it).
+  // On a phone the shape in hand has the bottom row, so it is let go before the bar's Text is reached for.
+  if (touch) await canvas.tap(at(600, 380));
   await page.getByRole('button', { name: /^Text/ }).click();
   if (touch) await canvas.tap(at(400, 300));
   else await canvas.click(at(400, 300));
@@ -135,6 +145,8 @@ test("draw by finger: two taps on a shape type its words; the fitted canvas and 
   const touch = !!info.project.use.hasTouch;
   const box = (await canvas.boundingBox())!;
   const at = (x: number, y: number) => ({ position: { x: (x / 640) * box.width, y: (y / 400) * box.height } });
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the canvas is touched before the bar is reached for.
+  if (touch) await canvas.tap(at(600, 380));
   const hit = (x: number, y: number) => (touch ? canvas.tap(at(x, y)) : canvas.click(at(x, y)));
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   await hit(192, 120);
@@ -180,9 +192,13 @@ test("draw: the turn handle is in reach above a chosen shape and turns it; a fin
   const touch = !!info.project.use.hasTouch;
   const box = (await canvas.boundingBox())!;
   const at = (x: number, y: number) => ({ position: { x: (x / 640) * box.width, y: (y / 400) * box.height } });
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the canvas is touched before the bar is reached for.
+  if (touch) await canvas.tap(at(600, 380));
   const hit = (x: number, y: number) => (touch ? canvas.tap(at(x, y)) : canvas.click(at(x, y)));
   // Two rectangles, 96 by 48: at (96, 120) and (320, 120).
   for (const x of [96, 320]) {
+    // (On a phone the first, in hand, has the bottom row: it is let go before the bar's Rectangle is reached for.)
+    if (touch && x !== 96) await hit(600, 380);
     await page.getByRole('button', { name: /^Rectangle/ }).click();
     await hit(x, 120);
   }

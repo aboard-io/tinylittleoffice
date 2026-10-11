@@ -88,8 +88,9 @@ test("calendar: on a phone, the schedule's tasks are rows: a tap on a grip choos
   await page.locator('to-cal-editor').evaluate((el, t) => ((el as HTMLElement & { value: string }).value = t), PLAN);
   const grip = page.locator('.cal-trow[data-at="0"] .cal-grip');
   await expect(grip).toBeVisible();
-  const hit = await grip.evaluate((h) => ({ coarse: matchMedia('(pointer: coarse)').matches, w: getComputedStyle(h, '::before').width, touch: getComputedStyle(h).touchAction }));
-  expect(hit).toEqual({ coarse: true, w: '44px', touch: 'none' });
+  // The grip reaches 44px to a finger at least: 2.75rem, drawn 57.2px at the size of 100% (kit/zoom.ts BASE).
+  const hit = await grip.evaluate((h) => ({ coarse: matchMedia('(pointer: coarse)').matches, w: parseFloat(getComputedStyle(h, '::before').width) >= 44, touch: getComputedStyle(h).touchAction }));
+  expect(hit).toEqual({ coarse: true, w: true, touch: 'none' });
   await grip.tap();
   const bar = page.locator('.cal-context .to-context');
   await expect(bar).toBeVisible();
