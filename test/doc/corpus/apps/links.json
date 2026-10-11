@@ -3,7 +3,7 @@
   "docs": [
     {
       "name": "example 1",
-      "text": "---\ntheme: rose\n---\n# Ada Diaz\n\n![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)\n\nPotter in Lisbon. Mugs, bowls, the odd lamp.\n\n> :cart: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:ada@example.com\n\n- :camera: Instagram | https://instagram.com/ada\n- :film: YouTube | https://youtube.com/@ada"
+      "text": "---\ntheme: rose\n---\n# Ada Diaz\n\nPotter in Lisbon. Mugs, bowls, the odd lamp.\n\n> :cart: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:ada@example.com\n\n- :camera: Instagram | https://instagram.com/ada\n- :film: YouTube | https://youtube.com/@ada"
     }
   ]
 }

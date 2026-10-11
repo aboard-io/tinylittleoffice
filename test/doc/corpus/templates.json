@@ -135,7 +135,7 @@
   },
   {
    "name": "links/maker",
-   "text": "---\ntheme: rose\n---\n# Your name\n\n![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)\n\nWhat you make, and where.\n\n> :cart: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:you@example.com\n\n- :camera: Instagram | https://instagram.com/you\n- :film: YouTube | https://youtube.com/@you"
+   "text": "---\ntheme: rose\n---\n# Your name\n\nWhat you make, and where.\n\n> :cart: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:you@example.com\n\n- :camera: Instagram | https://instagram.com/you\n- :film: YouTube | https://youtube.com/@you"
   },
   {
    "name": "links/group",
@@ -143,7 +143,7 @@
   },
   {
    "name": "links/band",
-   "text": "---\ntheme: midnight\n---\n# The Harbour Lights\n\n![](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400)\n\nNew record out Friday.\n\n> :headphones: Listen | https://example.com/listen\n> :calendar: Tour dates | https://example.com/dates\n> :gift: Merch | https://example.com/merch\n\n- :camera: Instagram | https://instagram.com/harbourlights\n- :film: YouTube | https://youtube.com/@harbourlights\n- :music: Bandcamp | https://harbourlights.bandcamp.com"
+   "text": "---\ntheme: midnight\n---\n# The Harbour Lights\n\nNew record out Friday.\n\n> :headphones: Listen | https://example.com/listen\n> :calendar: Tour dates | https://example.com/dates\n> :gift: Merch | https://example.com/merch\n\n- :camera: Instagram | https://instagram.com/harbourlights\n- :film: YouTube | https://youtube.com/@harbourlights\n- :music: Bandcamp | https://harbourlights.bandcamp.com"
   },
   {
    "name": "links/shop",

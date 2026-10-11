@@ -912,7 +912,7 @@ test("editing surfaces: touch-action manipulation on the box; under a finger the
 });
 
 test('two spaces at the end of a link end it: typing after a link stays in it, a second space steps out to plain words (Paul, 2026-10-11)', async () => {
-  // (A link with words beside it: a link alone on its line is a thing from the web, a card, model.ts webOf.)
+  // (A link with words beside it; a link alone on its line is words like any other.)
   const h = await mount('my site\n', 'doc', { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 7 } });
   h.el.exec('link', 'https://x.y/');
   await h.el.updateComplete;
