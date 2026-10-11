@@ -18,7 +18,7 @@ test('an in-memory Spanish dictionary takes over the shell when chosen', async (
   await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
   const select = [...shell.querySelectorAll<HTMLSelectElement>('.to-drawer select')].find((s) => [...s.options].some((o) => o.value === 'es'))!;
   const es = [...select.options].find((o) => o.value === 'es')!;
-  expect(es.textContent).toBe('español');
+  expect(es.textContent).toBe('Español');
   select.value = 'es';
   select.dispatchEvent(new Event('change', { bubbles: true }));
   await until(() => document.documentElement.lang === 'es');

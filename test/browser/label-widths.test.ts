@@ -1,7 +1,9 @@
 // Each command's words, in each language, measured against the room its slot gives them: the source of the length rule
 // (src/i18n/en.ts's header points here). The registry says where a command is drawn (kit/commands.ts `where`); the
 // stylesheet says how wide that place is; the box's own fonts say how wide the words are, measured with the font the
-// slot's words are drawn in (the canvas's measureText, given the slot's computed font).
+// slot's words are drawn in (the canvas's measureText, given the slot's computed font), with the family of the
+// language's script first where it is not Latin or Cyrillic (test/browser/fonts.ts: the Noto of each script, which the
+// box must have).
 //
 // The slots, and the room each gives:
 // - a bar button that shows its words (bar.ts cmdBtn, a menu with words, a <to-menu> labelled with a command):
@@ -34,6 +36,7 @@ import '../../src/kit/keys.ts';
 import '../../src/kit/text-commands.ts';
 import '../../src/kit/rows-commands.ts';
 import en from '../../src/i18n/en.ts';
+import { FAMILIES, fontIn, installed } from './fonts.ts';
 
 import.meta.glob('../../src/apps/*/commands.ts', { eager: true });
 const sources = import.meta.glob<string>(['../../src/apps/*/*.ts', '!../../src/apps/*/commands.ts'], { query: '?raw', import: 'default', eager: true });
@@ -236,6 +239,13 @@ test('the slots are found: the bar commands that show their words, the menus’ 
   expect(long % line).toBe(0);
 });
 
+test('the box has the type of every script it measures, so a width is a width and not a row of fallback boxes', () => {
+  const missing = FAMILIES.filter(([family, sample]) => !installed(family, sample)).map(([family]) => family);
+  expect(missing, 'install fonts-noto-core, fonts-noto-cjk and fonts-noto-extra').toEqual([]);
+  expect(fontIn('bn', '600 13.6px system-ui, sans-serif')).toBe("600 13.6px 'Noto Sans Bengali', system-ui, sans-serif");
+  expect(fontIn('ru', '600 13.6px system-ui, sans-serif')).toBe('600 13.6px system-ui, sans-serif');
+});
+
 for (const path of Object.keys(files)) {
   const lang = codeOf(path);
   test(`${lang}: every command's words fit their slot`, async () => {
@@ -246,7 +256,7 @@ for (const path of Object.keys(files)) {
       const words = strings[m.key];
       if (!words) continue;
       const allowed = allowedFor(m);
-      const measured = width(words, m.font);
+      const measured = width(words, fontIn(lang, m.font));
       if (measured <= allowed + 0.5) continue;
       if (RAISED.some((r) => r.langs.includes(lang) && r.key === m.key && r.slot === m.slot)) {
         raised.add(`${m.slot}|${m.key}`);

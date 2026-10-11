@@ -5,7 +5,7 @@ import { test, expect, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { t, register, setLanguage, languages, languageName, missed } from '../src/kit/i18n.ts';
-import { checkLanguage, gaps, languageFiles, likeness, nearest, pluralCount, placeholders, tokens } from '../scripts/i18n-extract.ts';
+import { checkLanguage, gaps, languageFiles, likeness, nearest, pluralCount, placeholders, tokens, withForms } from '../scripts/i18n-extract.ts';
 import { pseudo } from './pseudo.ts';
 import en from '../src/i18n/en.ts';
 
@@ -138,19 +138,65 @@ test('in development, a key the language in use lacks is recorded, so a test can
 
 // Names a language file must be called by in the menu: each in itself.
 const NAMES: Record<string, string> = {
-  es: 'español',
-  fr: 'français',
+  es: 'Español',
+  fr: 'Français',
   de: 'Deutsch',
-  'pt-br': 'português (Brasil)',
-  it: 'italiano',
+  'pt-br': 'Português (Brasil)',
+  it: 'Italiano',
   nl: 'Nederlands',
   ja: '日本語',
   'zh-hans': '简体中文',
   ar: 'العربية',
+  // The second nine, New York's (2026-10-11): Haitian Creole has no name in itself in Intl yet, and is given one.
+  ru: 'Русский',
+  uk: 'Українська',
+  pl: 'Polski',
+  bn: 'বাংলা',
+  hi: 'हिन्दी',
+  ur: 'اردو',
+  ht: 'Kreyòl ayisyen',
+  ko: '한국어',
+  'zh-hant': '繁體中文',
 };
 
-test('each language named in itself, not in English', () => {
+test('each language named in itself, not in English, and the menu ordered by those names: Latin, Cyrillic, Arabic, Indic, Hangul, Han', () => {
   for (const [code, name] of Object.entries(NAMES)) expect(languageName(code), code).toBe(name);
+  for (const code of Object.keys(NAMES)) if (!languages().includes(code)) register(code, {});
+  expect(languages().filter((c) => c in NAMES || c === 'en')).toEqual(['en', 'de', 'es', 'fr', 'it', 'ht', 'nl', 'pl', 'pt-br', 'ru', 'uk', 'ur', 'ar', 'hi', 'bn', 'ko', 'ja', 'zh-hans', 'zh-hant']);
+});
+
+test('the plural forms of the second nine: ru, uk, pl four (21 is one in ru and uk, many in pl), bn, hi, ur, ht two, ko and Chinese one', async () => {
+  const FILES = '{n|one file|# files}';
+  const cases: [string, string, Record<number, string>][] = [
+    ['ru', '{n|# файл|# файла|# файлов|# файла}', { 1: '1 файл', 2: '2 файла', 5: '5 файлов', 21: '21 файл' }],
+    ['uk', '{n|# файл|# файли|# файлів|# файлу}', { 1: '1 файл', 2: '2 файли', 5: '5 файлів', 21: '21 файл' }],
+    ['pl', '{n|# plik|# pliki|# plików|# pliku}', { 1: '1 plik', 2: '2 pliki', 5: '5 plików', 21: '21 plików' }],
+    // Bengali writes its own digits; Hindi and Urdu, by default, Western ones.
+    ['bn', '{n|#টি ফাইল|#টি ফাইল}', { 1: '১টি ফাইল', 2: '২টি ফাইল', 5: '৫টি ফাইল', 21: '২১টি ফাইল' }],
+    ['hi', '{n|# फ़ाइल|# फ़ाइलें}', { 1: '1 फ़ाइल', 2: '2 फ़ाइलें', 5: '5 फ़ाइलें', 21: '21 फ़ाइलें' }],
+    ['ur', '{n|# فائل|# فائلیں}', { 1: '1 فائل', 2: '2 فائلیں', 5: '5 فائلیں', 21: '21 فائلیں' }],
+    ['ht', '{n|# fichye|# fichye yo}', { 1: '1 fichye', 2: '2 fichye yo', 5: '5 fichye yo', 21: '21 fichye yo' }],
+    ['ko', '{n|파일 #개}', { 1: '파일 1개', 2: '파일 2개', 5: '파일 5개', 21: '파일 21개' }],
+    ['zh-hant', '{n|# 個檔案}', { 1: '1 個檔案', 2: '2 個檔案', 5: '5 個檔案', 21: '21 個檔案' }],
+  ];
+  for (const [code, forms, want] of cases) {
+    expect(checkLanguage(code, { [FILES]: FILES }, { [FILES]: forms }).errors, code).toEqual([]);
+    register(code, { [FILES]: forms });
+    await setLanguage(code);
+    for (const [n, out] of Object.entries(want)) expect(t(FILES, { n: Number(n) }), `${code} ${n}`).toBe(out);
+  }
+  await setLanguage(null);
+});
+
+test('i18n:gaps writes the plural forms a language needs, named, and the English so written is still the English to the check', () => {
+  const base = { '{n|one file|# files}': '{n|one file|# files}', Menu: 'Menu' };
+  expect(withForms('ru', '{n|one file|# files} left')).toBe('{n|one file|# files|# files|# files} left');
+  expect(withForms('zh-hant', '{n|one file|# files}')).toBe('{n|# files}');
+  expect(gaps(base, {}, 'pl')).toEqual(["  '{n|one file|# files}': '{n|one file|# files|# files|# files}', // one, few, many, other", "  'Menu': 'Menu',"]);
+  expect(gaps(base, {}, 'ko')).toEqual(["  '{n|one file|# files}': '{n|# files}', // other", "  'Menu': 'Menu',"]);
+  const left = { '{n|one file|# files} left': '', Menu: '' };
+  const pasted = { '{n|one file|# files} left': '{n|one file|# files|# files|# files} left', Menu: 'Menu' };
+  expect(checkLanguage('pl', left, pasted).errors.join('\n')).toContain('2 the same as the English');
 });
 
 for (const [code, path] of files) {

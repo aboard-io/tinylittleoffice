@@ -154,3 +154,66 @@ Decisions for Paul: formal or informal address per language (the plan proposes t
 choice above); Nastaliq or Naskh for Urdu; whether a language goes live machine-translated with the label
 or waits for its review; and who reviews (the sheet-based review needs one speaker per language for about
 a day each).
+
+## 8. The second nine: New York's languages (2026-10-11)
+
+Nine languages join the first nine (es, fr, de, pt-br, it, nl, ja, zh-hans, ar): **Russian (`ru`), Ukrainian
+(`uk`), Polish (`pl`), Bengali (`bn`), Hindi (`hi`), Urdu (`ur`), Haitian Creole (`ht`), Korean (`ko`) and
+Traditional Chinese (`zh-hant`)**. They are New York City's designated citywide languages (Local Law 30) with
+Hindi and Traditional Chinese added, and Ukrainian (Paul: "make sure the major languages of NYC are addressed and
+colloquially appropriate for the communities here", "Ukrainian too please"). Each is written for the people of
+that community in the city, in the words they use on their phones, not for a textbook.
+
+What the tree does for them before a word is translated:
+
+- **Listed and named in itself.** A file `src/i18n/<code>.ts` is enough to be listed. The drawer's picker
+  names each language in itself, its first letter capitalised as a menu begins it (Русский, Українська, Polski,
+  বাংলা, हिन्दी, اردو, Kreyòl ayisyen, 한국어, 繁體中文), and orders them by those names under the root collation:
+  English first, then the Latin names A to Z, then Cyrillic, Arabic, Devanagari, Bengali, Hangul and Han, so a
+  reader finds theirs among their own script. Intl has no name for Haitian Creole in itself yet; `NATIVE` in
+  kit/i18n.ts gives it.
+- **Found from the browser.** Each code is matched as itself (`ru-RU` finds `ru`); a Chinese tag finds its script
+  through `Intl.Locale(...).maximize()`: `zh-TW`, `zh-HK`, `zh-MO` and `zh-Hant-*` are `zh-hant`; `zh-CN`, `zh-SG`,
+  `zh-Hans-*` and `zh` alone are `zh-hans`.
+- **Plurals.** Russian, Ukrainian and Polish have four forms (one, few, many, other: Polish 21 is *many*, Russian
+  and Ukrainian 21 is *one*); Bengali, Hindi, Urdu and Haitian Creole two; Korean and Chinese one.
+  `npm run i18n:gaps -- <code>` writes every plural with the forms the language needs and a comment naming them,
+  and works before the file exists (every key, the start of the file); a line pasted in untranslated is still
+  English to `i18n:check`.
+- **The glossary lint by script** (test/glossary.ts): Cyrillic and Latin by stem; Hindi and Bengali by stem in
+  letters as a reader counts them (a vowel sign or a virama stays on its consonant); Korean by its first
+  syllable block or two (the particle comes off: 링크를 is 링크); Traditional Chinese by character pair; Urdu by
+  Arabic root or by stem (its Persian, Hindustani and English words are not Arabic roots).
+- **Type for the measuring tests.** The box has `fonts-noto-core`, `fonts-noto-cjk` and `fonts-noto-extra`;
+  test/browser/fonts.ts names the Noto of each script, the label-width test measures each language's words in
+  it, and `kit/draw.ts`'s `textWidth` has a width per script (Cyrillic, Arabic, Devanagari, Bengali, Hangul,
+  Han and kana; a combining mark adds nothing), held within a tenth of Chromium by test/browser/metrics.test.ts
+  on words Intl writes in each language. `/etc/fonts/local.conf` keeps DejaVu Sans the box's Latin sans-serif,
+  as it was before Noto Sans arrived with the rest.
+
+What is particular to each, for the translator:
+
+- **Russian.** The formal `вы` as interfaces use it; the infinitive on buttons and menus (Копировать,
+  Поделиться), throughout. Long:
+  check the bar and the menus at 390px.
+- **Ukrainian.** Its own translation from the English, never a transliteration or an adaptation of the Russian
+  file: its own words (посилання, never a calque of the Russian ссылка), the 2019 orthography, `ви`.
+- **Polish.** Four forms with *many* for 5 to 21 and 25 to 31 alike; the infinitive or the imperative on
+  buttons as Polish office suites do (Kopiuj, Udostępnij), consistently.
+- **Bengali.** As the city's Bangladeshi community writes it (standard Bangla, Bangladesh usage). Intl writes
+  Bengali digits (১২৩) in counts; that is right in prose.
+- **Hindi.** Everyday Hindi of the interfaces people use (लिंक, फ़ाइल, टेम्पलेट where those are the words), not a
+  Sanskritised register; `आप`. Western digits, as Intl gives by default.
+- **Urdu.** Right to left, like Arabic (`dir` follows from `directionOf`, and everything the Arabic round made
+  logical holds); written in Nastaliq where the device has it (iOS draws Urdu in Noto Nastaliq Urdu, and the
+  label-width test measures in it; Android draws Naskh), which is taller and wider than Naskh: keep labels short.
+  `آپ`; Western digits. Whether the stylesheet asks for Nastaliq itself is Paul's decision (§7).
+- **Haitian Creole.** The official orthography of 1979: every sound written one way (Kreyòl, not *Créole*;
+  *-syon*, not *-tion*; *k*, not *qu*; `ou`, `yo`), no French spellings, as the city's Haitian community reads it
+  on its signs and forms. Intl has no Kreyòl months or names, so dates fall back to
+  English month names inside the language's own words; say a date with numbers where it matters.
+- **Korean.** `합니다`-style polite forms on buttons and messages as Korean apps do; one plural form, the counter
+  where Korean uses one (파일 3개).
+- **Traditional Chinese.** Its own translation for the Hong Kong and Taiwan usage of the city's Cantonese- and
+  Taiwanese-speaking communities, never a character conversion of the Simplified file: the words differ
+  (檔案 not 文件 for a file, 連結, 範本, 投影片, 試算表), and the punctuation is full-width with 「」 for quotes.
