@@ -432,6 +432,8 @@ test('two fingers over a slide in the show zoom it in place, not the size of eve
   const r = frame().getBoundingClientRect();
   const y = r.top + r.height / 2;
   await pinch(frame(), [150, y], [240, y], [60, y], [330, y]);
+  // The tap the fingers leave as they lift turns nothing.
+  show.click();
   await tick(50);
   const zoom = Number(show.style.getPropertyValue('--deck-zoom'));
   expect(zoom).toBeGreaterThan(1);
@@ -443,7 +445,7 @@ test('two fingers over a slide in the show zoom it in place, not the size of eve
   // The pinch turned nothing; the show scrolls sideways to the rest of the slide.
   expect(show.querySelector('.pos')!.textContent).toMatch(/^1 \//);
   expect(show.scrollWidth).toBeGreaterThan(show.clientWidth);
-  // A tap goes to the next slide, which arrives whole.
+  // A tap a moment later goes to the next slide, which arrives whole.
   await tick(400);
   show.click();
   await until(() => /^2 \//.test(show.querySelector('.pos')!.textContent!));
