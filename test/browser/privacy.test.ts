@@ -7,9 +7,9 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { mount, tick, until, openShare as openShareFromDrawer } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { exportKey, forgetKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
+import { PREFS, exportKey, forgetKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
 import { verify } from '../../src/kit/sign.ts';
-import { keep, library } from '../../src/kit/library.ts';
+import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
 import { BASE } from '../../src/kit/zoom.ts';
@@ -28,6 +28,7 @@ afterEach(() => {
   forgetKey();
   store.remove('tinyoffice.name');
   setKeeping(false);
+  store.remove('to-theme');
   history.replaceState(null, '', location.pathname);
 });
 
@@ -335,10 +336,14 @@ test('the key: Export (a file, and the text), Import on another device signs as 
 
 test('what this device holds, item by item with Forget, and Download everything: every kept document in one zip', async () => {
   setKeeping(true);
+  // What an earlier test kept, carried in from the visit's memory, is not this test's.
+  forgetAll();
   keep({ id: 'a', app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc('---\ntitle: Launch notes\n---\nGo.\n')}`, at: Date.now() });
   keep({ id: 'b', app: 'sheet', title: '', hash: `#/v1/sheet/${encodeDoc('a | b\n--- | ---\n1 | 2\n')}`, at: Date.now() - 1 });
   keep({ id: 'c', app: 'write', title: '', hash: `#/v1/write/${await pack('secret', await lockWith('pw'))}`, at: Date.now() - 2 });
   keepLink({ owner: 'https://tinier.example/abcdefg#k.o', title: 'Launch notes', made: Date.now(), expires: Date.now() + 86_400_000 });
+  // The preferences other test files on this origin left on the device are not this test's: gone, then the one it sets.
+  for (const k of PREFS) (store.remove(k), localStorage.removeItem(k));
   store.set('to-theme', 'dark');
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
@@ -351,8 +356,8 @@ test('what this device holds, item by item with Forget, and Download everything:
   const now = (cls: string) => privacy.querySelector(`.${cls} .to-held-now`)!.textContent;
   expect(now('to-held-docs')).toBe('3 documents');
   expect(now('to-held-links')).toBe('1 link');
-  // The theme; the language too when another browser test file, running at once on this origin, has chosen one.
-  expect(now('to-held-prefs')).toMatch(/^[12] set$/);
+  // The theme, and nothing else.
+  expect(now('to-held-prefs')).toBe('1 set');
   expect(now('to-held-key')).toBe('None');
   // The zip: each document as its text, the locked one as its link; the key only when asked.
   await saved(async (files) => {

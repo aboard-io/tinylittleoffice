@@ -1,10 +1,18 @@
 /**
  * The size of everything: a stepper in the menu, 70% to 200% in steps of 10%, and on a touch screen a pinch outside a
- * spatial canvas (kit/pinch.ts), which sets it continuously and keeps it to the nearest 5%. Kept like any preference
- * (under Saved, on the device; under Private, for the visit).
+ * spatial canvas (kit/pinch.ts), which sets it continuously and keeps it to the nearest 5%. Kept on the device under
+ * Private and Saved alike, as the language is (kit/store.ts): a link opened from a message or a QR code is at the size
+ * the person reads at, not at 100% again. Read once, when first asked, so a page is at one size whatever another tab
+ * does. Reached from the drawer's head and from the palette ('Everything larger', 'Everything smaller', 'Normal size':
+ * kit/keys.ts), with no key of its own: Ctrl+=, Ctrl+- and Ctrl+0 are the browser's zoom, and a keyboard keeps them.
+ *
+ * The person's own size is the 100%: the root's font size is the browser's default (100%) × the size × BASE, so a
+ * browser set to larger type draws everything larger. An iPhone's browser keeps 16px whatever the device's text size
+ * (Settings, Larger Text), so there, while nothing is kept, the size starts at the body text style's size over its
+ * normal 17px (`deviceStart`). Above 100%, the root carries `data-large` (the menu button is opaque then: responsive.css).
  *
  * The size is two plain numbers on the root, and the stylesheet does the rest (kit.css's header): `--to-doc`, the
- * document's scale, which is the root's font size (16px × it), so every length in rem follows it; and `--to-nav`, the
+ * document's scale, which is the root's font size (the browser's default × it), so every length in rem follows it; and `--to-nav`, the
  * nav's, which is the font size of each nav element, so every length in em inside one follows that. A length measured
  * on the screen is then a length set in CSS, and whatever is placed from the page's coordinates (a menu, the context
  * bar, the link box) is placed by them as they are. Until round eight the size was the root's CSS `zoom`: every
@@ -38,12 +46,39 @@ export const clampSize = (n: number) => Math.round(Math.min(SIZE_MAX, Math.max(S
 
 /** The size a pinch has in hand, drawn but not yet kept. */
 let live: number | null = null;
+/** The size kept, as read from the device the first time it is asked for. */
+let kept: number | null = null;
+
+/** Where a size starts on an iPhone from the body text style's size in px (17 at the device's normal text size): to the nearest 5%. */
+export const deviceStart = (px: number): number => (px > 0 ? clampSize(Math.round((px / 17) * 20) / 20) : 1);
+
+/** Where the size starts on this device, once read. */
+let start: number | null = null;
+/** The device's own text size, where nothing is kept: on an iPhone or iPad, its body text style read from a probe; elsewhere the browser's default already is the 100%. */
+function fromDevice(): number {
+  return (start ??= readDevice());
+}
+function readDevice(): number {
+  if (typeof document === 'undefined') return 1;
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // An engine that has no such style (WebKit off Apple's systems) would give the probe the root's size instead.
+  if (!ios || !CSS.supports('font', '-apple-system-body')) return 1;
+  const probe = document.createElement('span');
+  probe.style.font = '-apple-system-body';
+  document.documentElement.append(probe);
+  const px = parseFloat(getComputedStyle(probe).fontSize);
+  probe.remove();
+  return deviceStart(px);
+}
 
 /** The size chosen: 1 is the normal size. */
 export function size(): number {
   if (live !== null) return live;
-  const n = Number(store.get(KEY));
-  return Number.isFinite(n) && n > 0 ? clampSize(n) : 1;
+  if (kept === null) {
+    const n = Number(store.get(KEY));
+    kept = Number.isFinite(n) && n > 0 ? clampSize(n) : fromDevice();
+  }
+  return kept;
 }
 
 /** The size the nav is drawn at: the size, up to 120%. */
@@ -55,6 +90,7 @@ export function applySize() {
   const root = document.documentElement.style;
   root.setProperty('--to-doc', String(drawn(size())));
   root.setProperty('--to-nav', String(drawn(navSize())));
+  document.documentElement.toggleAttribute('data-large', size() > 1);
   window.dispatchEvent(new Event('to-size'));
 }
 
@@ -69,7 +105,9 @@ export function pinchSize(n: number): number {
 export function keepSize(n: number): number {
   live = null;
   const k = clampSize(Math.round(n * 20) / 20);
-  if (k === 1) store.remove(KEY);
+  kept = k;
+  // Where the device starts is not written down; 100% on an iPhone set to larger text is.
+  if (k === fromDevice()) store.remove(KEY);
   else store.set(KEY, String(k));
   applySize();
   return k;

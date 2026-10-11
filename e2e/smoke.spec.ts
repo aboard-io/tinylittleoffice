@@ -101,3 +101,19 @@ test('a link that leaves the site asks first, in a dialog inside the screen', as
   await dialog.locator('.lg-cancel').click();
   await expect(dialog).toHaveCount(0);
 });
+
+test('the person’s own size is the 100%: a browser set to 20px type draws a rem at 20 × 1.3, and the nav at its own share of it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the default size is set through Chromium');
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Page.setFontSizes', { fontSizes: { standard: 20, fixed: 13 } });
+  await page.goto('/');
+  await expect(page.locator('.to-app-name').first()).toHaveText('Word Processor');
+  const px = (sel: string) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  // kit/zoom.ts BASE: the normal size draws everything at 1.3 of the browser's default.
+  expect(await px('html')).toBeCloseTo(26, 1);
+  expect(await px('.to-header')).toBeCloseTo(26, 1);
+});

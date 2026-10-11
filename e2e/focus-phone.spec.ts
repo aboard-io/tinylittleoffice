@@ -53,3 +53,22 @@ test('every app opens with the focus where a person starts, the page not scrolle
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0);
   expect(errors).toEqual([]);
 });
+
+test('while typing, the menu button fades with an edge of its own, and at 200% it does not fade at all', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const burger = page.locator('.to-burger');
+  const look = () => burger.evaluate((el) => ({ opacity: getComputedStyle(el).opacity, edge: getComputedStyle(el).borderTopWidth }));
+  await page.goto('/#/v1/write');
+  // A person's own tap in the words: editing (kit/chrome.ts), where the opening focus is reading.
+  await page.locator('to-write-editor to-text .tx').tap();
+  await expect(page.locator('to-chrome[editing]')).toHaveCount(1);
+  await expect.poll(look).toEqual({ opacity: '0.55', edge: '1px' });
+  // The largest size, kept on the device though the visit is private (kit/zoom.ts SIZE_MAX), and opened anew.
+  await page.evaluate(() => localStorage.setItem('tinyoffice.size', '2'));
+  await page.reload();
+  // A person's own tap in the words: editing (kit/chrome.ts), where the opening focus is reading.
+  await page.locator('to-write-editor to-text .tx').tap();
+  await expect(page.locator('to-chrome[editing]')).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.hasAttribute('data-large'))).toBe(true);
+  await expect.poll(async () => (await look()).opacity).toBe('1');
+});

@@ -186,6 +186,9 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `Mod+Shift+D` | Download | drawer |
 | `Mod+P` | Print, or save as PDF | keys only |
 | `Mod+/` | Show these shortcuts | keys only |
+|  | Everything larger | drawer |
+|  | Everything smaller | drawer |
+|  | Normal size | drawer |
 | `Mod+K` | All commands… | bar |
 
 ### Words (wherever words are typed) (`text`)

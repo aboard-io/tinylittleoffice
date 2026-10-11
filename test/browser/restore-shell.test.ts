@@ -237,6 +237,41 @@ test('the skip link is the first thing a Tab reaches, hidden until then, and tak
   expect(shell.querySelector('to-write-editor to-text')!.contains(document.activeElement) || document.activeElement?.localName === 'to-text').toBe(true);
 });
 
+test('the size of everything is first under the menu’s head on the home page, and the palette finds it by “larger” and “size”, with no key of its own; a new visit keeps it, Private or not', async () => {
+  const shell = await mount('');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
+  // On the home page straight under the head, before anything else in the menu.
+  expect(shell.querySelector('.to-drawer-head')!.nextElementSibling!.classList.contains('to-size')).toBe(true);
+  expect(shell.querySelector('.to-size-more')!.getAttribute('aria-label')).toBe('Everything larger');
+  shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.close();
+  const pal = () => shell.querySelector('to-palette')!;
+  const items = () => [...pal().querySelectorAll('.to-palette-item')].map((i) => i.querySelector('.to-palette-words')!.textContent!.trim());
+  const chosen = async (words: string, label: string) => {
+    void shell.showPalette();
+    await until(() => !!pal().querySelector('dialog[open]'));
+    await userEvent.type(pal().querySelector<HTMLInputElement>('.to-palette-find')!, words);
+    await until(() => items().includes(label));
+    const row = [...pal().querySelectorAll('.to-palette-item')].find((i) => i.textContent!.includes(label))!;
+    expect(row.querySelector('kbd')).toBeNull();
+    (row as HTMLElement).click();
+    await until(() => !pal().querySelector('dialog[open]'));
+    // The dialog's close event comes a task later; the next opening waits for it.
+    await tick(50);
+  };
+  await chosen('larger', 'Everything larger');
+  await until(() => size() === 1.1);
+  await chosen('larger', 'Everything larger');
+  await until(() => size() === 1.2);
+  // Kept on the device though the visit is private, as the language is.
+  expect(localStorage.getItem('tinyoffice.size')).toBe('1.2');
+  await chosen('smaller', 'Everything smaller');
+  await until(() => size() === 1.1);
+  await chosen('size', 'Normal size');
+  await until(() => size() === 1);
+  expect(localStorage.getItem('tinyoffice.size')).toBeNull();
+});
+
 test('the size of everything: 70% to 200% from the menu, on the root at 1.3 times itself, and a menu still opens under its button', async () => {
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();

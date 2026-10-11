@@ -1,5 +1,5 @@
-// Light or dark, before the first paint: the saved choice if there is one, otherwise whatever the device says
-// (kit/theme.ts keeps it afterwards). A file rather than a script in the page, so the site's
+// Light or dark, before the first paint: the choice in the menu if there is one (kept on the device under Private
+// and Saved alike: kit/store.ts), otherwise whatever the device says (kit/theme.ts keeps it afterwards). A file rather than a script in the page, so the site's
 // Content-Security-Policy allows no inline script at all.
 (function () {
   var mq = window.matchMedia('(prefers-color-scheme: dark)');

@@ -3,14 +3,17 @@
  * visit and nothing is written. Asked to keep things (the switch in the menu), it writes to localStorage
  * instead, and the preferences and what comes later follow. Private
  * again, every trace goes. The one key written in either state is the choice itself, and only when it is
- * "keep": a private visit writes nothing at all, but the language chosen in the menu (kit/i18n.ts, its own key),
- * which stays through Private and Saved alike and is the one thing a private visit leaves, until Forget everything
- * (kit/privacy.ts) forgets it too.
+ * "keep": a private visit writes nothing about a document, but the language chosen in the menu (kit/i18n.ts, its
+ * own key), the size of everything (kit/zoom.ts) and the theme (kit/theme.ts) stay through Private and Saved alike:
+ * they say nothing of a document, and a link opened from a message at the wrong size is a wall to a person who
+ * reads at 200% (the review of 2026-10-11). Forget everything forgets them with the rest.
  */
 const KEEP = 'tinyoffice.keep';
 const memory = new Map<string, string>();
-/** The keys this site writes; anything else in localStorage is not ours to touch. */
-const ours = (k: string) => k !== KEEP && k !== 'tinyoffice.lang' && (k.startsWith('tinyoffice.') || k === 'to-theme');
+/** Preferences kept on the device in either state, written there straight through `store`. */
+const DEVICE = ['tinyoffice.size', 'to-theme'];
+/** The keys this site writes that Private moves into memory; anything else in localStorage is not ours to touch. */
+const ours = (k: string) => k !== KEEP && k !== 'tinyoffice.lang' && !DEVICE.includes(k) && k.startsWith('tinyoffice.');
 
 function local(): Storage | null {
   try {
@@ -27,21 +30,22 @@ export function keeping(): boolean {
 
 export const store = {
   get(key: string): string | null {
-    return keeping() ? (local()?.getItem(key) ?? null) : (memory.get(key) ?? null);
+    return keeping() || DEVICE.includes(key) ? (local()?.getItem(key) ?? null) : (memory.get(key) ?? null);
   },
   set(key: string, value: string) {
-    if (keeping()) local()?.setItem(key, value);
+    if (keeping() || DEVICE.includes(key)) local()?.setItem(key, value);
     else memory.set(key, value);
   },
   remove(key: string) {
-    if (keeping()) local()?.removeItem(key);
+    if (keeping() || DEVICE.includes(key)) local()?.removeItem(key);
     else memory.delete(key);
   },
   /** Every key of ours that holds something. */
   keys(): string[] {
-    if (!keeping()) return [...memory.keys()];
     const l = local();
-    return l ? Object.keys(l).filter(ours) : [];
+    const device = DEVICE.filter((k) => l?.getItem(k) != null);
+    if (!keeping()) return [...memory.keys(), ...device];
+    return l ? [...Object.keys(l).filter(ours), ...device] : [];
   },
 };
 
@@ -54,7 +58,7 @@ export function setKeeping(on: boolean) {
     for (const [k, v] of memory) l.setItem(k, v);
     memory.clear();
   } else {
-    for (const k of store.keys()) {
+    for (const k of Object.keys(l).filter(ours)) {
       memory.set(k, l.getItem(k)!);
       l.removeItem(k);
     }
