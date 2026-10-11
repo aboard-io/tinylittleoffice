@@ -66,4 +66,15 @@ test('measure gives the sizes the layouts chose, as JSON', () => {
   expect(m).toMatchObject({ app: 'deck', slides: [{ slide: 1, body: { px: 14, smallest: true } }] });
   expect(m.slides[0].body.over).toBeGreaterThan(0);
   expect(JSON.parse(run(['measure', join(FIX, 'edge-end.tlo')])).diagram.edges).toStrictEqual({ written: 1, drawn: 0, dropped: 1 });
+  expect(JSON.parse(run(['measure', join(FIX, 'sheet-circ.tlo')])).tables).toStrictEqual([{ block: 0, formulas: 1, errors: [{ cell: 'B8', formula: '=SUM(B2:B8)', error: '#CIRC' }] }]);
+});
+
+test('lint works out a table’s formulas: a total that takes in its own cell is a finding, with the range it meant', () => {
+  const FIX = fileURLToPath(new URL('./fixtures/lint/', import.meta.url));
+  const bad = spawnSync(process.execPath, [CLI, 'lint', join(FIX, 'sheet-circ.tlo')], { encoding: 'utf8' });
+  expect([bad.status, bad.stdout]).toStrictEqual([
+    1,
+    'sheet · block 1 · the table "The codebase": B8, =SUM(B2:B8), is #CIRC · the range includes the cell itself; rows count from the first data row: =SUM(B1:B7)\n',
+  ]);
+  expect(spawnSync(process.execPath, [CLI, 'lint', join(FIX, 'sheet-circ.ok.tlo')], { encoding: 'utf8' }).status).toBe(0);
 });

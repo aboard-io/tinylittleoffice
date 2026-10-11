@@ -545,6 +545,28 @@ export function evaluateTable(t: Table, today = todaySerial()): Evaluated {
   return { values: t.rows.map((row, r) => row.map((_, c) => cell(r, c))), named };
 }
 
+/**
+ * What a formula reads, as written: the cells its references, ranges and names point at (row, column), the
+ * functions it calls that the engine does not know, and the names no cell has. Nothing for one that cannot be read.
+ */
+export function formulaReads(raw: string, named: Map<string, [number, number]>): { cells: [number, number][]; unknown: string[] } {
+  const cells: [number, number][] = [];
+  const unknown: string[] = [];
+  let toks: Tok[] = [];
+  try {
+    toks = tokenize(raw.replace(/^=/, ''));
+  } catch {
+    // Unreadable: it reads nothing.
+  }
+  for (const tok of toks) {
+    if (tok.t === 'ref') cells.push(...(refToRC(tok.v) ? [refToRC(tok.v)!] : []));
+    else if (tok.t === 'range' && refToRC(tok.v[0]) && refToRC(tok.v[1])) cells.push(...rangeCells(tok.v[0], tok.v[1]));
+    else if (tok.t === 'name') named.has(tok.v) ? cells.push(named.get(tok.v)!) : unknown.push(tok.v);
+    else if (tok.t === 'fn' && tok.v !== 'AVERAGE' && !FUNCTIONS.some(([f]) => f === tok.v)) unknown.push(tok.v);
+  }
+  return { cells, unknown };
+}
+
 /** The table at block `at` (the document's first, unless said) worked out; null where there is no table. */
 export function evaluate(doc: Doc, at = firstTable(doc), today = todaySerial()): Evaluated | null {
   const t = tableAt(doc, at);

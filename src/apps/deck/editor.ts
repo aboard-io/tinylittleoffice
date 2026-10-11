@@ -16,13 +16,15 @@
  * with a box whole takes every slide; Enter or a double tap on a thumbnail edits it. The keys of §8: a new
  * slide is Mod+Shift+Enter, Present Mod+Alt+Enter, PageUp/PageDown on the rail only. A printed format shows
  * its sheets on request; presenting takes the focus and shows one slide at a time with the transition the
- * header names, and ends on the QR code of the deck.
+ * header names, and ends on the QR code of the deck. Two fingers on the slide in the show zoom it in place, as in a
+ * spatial canvas (kit/pinch.ts pinchZoom): the show is its frame, scrolled to the rest; a pinch never turns a slide.
  */
 import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
 import { motion, reducedMotion } from '../../kit/motion.ts';
+import { pinchZoom } from '../../kit/pinch.ts';
 import { ChevronDown, ChevronUp, GripVertical, StickyNote } from 'lucide';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
@@ -125,6 +127,11 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private forwards = true;
   private settle = 0;
   private lastClick = 0;
+  /** The slide's width in the show over its whole-screen width, 1 to 4: what two fingers set (--deck-zoom). */
+  private showZoom = 1;
+  /** When two fingers last lifted from the show: the tap a pinch may leave behind turns no slide. */
+  private pinched = 0;
+  private unpinch: (() => void) | null = null;
   /** Focus asked for after the next draw: the box, and the caret's place in it (or a selection to put back). */
   private focusNext: { field: Field; at: 'start' | 'end' | Sel } | null = null;
   /** A document has been read: a value after it is either ours, the head edited, or another document. */
@@ -179,6 +186,23 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.addEventListener('text-selectall', this.onSelectAll);
     window.addEventListener('keydown', this.onShowKey);
     window.addEventListener(OPENED_EVENT, this.onOpened);
+    // The show is a picture to two fingers (Paul, 2026-10-11: "I should be able to pinch zoom where appropriate in view
+    // modes too"): the slide zooms in place about the fingers, kept in quarters when they lift, and the show scrolls.
+    const zoomTo = (z: number) => {
+      this.showZoom = Math.min(4, Math.max(1, z));
+      this.querySelector<HTMLElement>('.deck-show')?.style.setProperty('--deck-zoom', String(this.showZoom));
+    };
+    this.unpinch = pinchZoom(this, {
+      frame: () => this.querySelector<HTMLElement>('.deck-show[data-spatial]'),
+      picture: () => this.querySelector('.deck-show > .frame'),
+      zoom: () => this.showZoom,
+      start: () => (this.pinched = Infinity),
+      set: zoomTo,
+      end: (z) => {
+        zoomTo(Math.round(z * 4) / 4);
+        this.pinched = performance.now();
+      },
+    });
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -187,6 +211,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.removeEventListener('text-selectall', this.onSelectAll);
     window.removeEventListener('keydown', this.onShowKey);
     window.removeEventListener(OPENED_EVENT, this.onOpened);
+    this.unpinch?.();
+    this.unpinch = null;
     clearTimeout(this.settle);
   }
   protected read(doc: Doc): Slide[] {
@@ -669,6 +695,11 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     if (i < 0) this.fromLink = false;
     this.showing = i;
     this.shown = shown;
+    // Each slide arrives whole: a zoom is the slide's it was set on.
+    if (i !== was) {
+      this.showZoom = 1;
+      this.querySelector<HTMLElement>('.deck-show')?.style.removeProperty('--deck-zoom');
+    }
     // Into the show, the focus goes with it: no key reaches the box behind.
     if (i >= 0 && was < 0) {
       this.rows.release();
@@ -693,6 +724,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   }
   private onShowClick = () => {
     const now = performance.now();
+    // Two fingers zoom; they never turn a slide, nor does a tap they leave as they lift.
+    if (now - this.pinched < 300) return;
     // A fast second click means "just show me the slide".
     if (now - this.lastClick < FAST) this.shown = this.steps();
     else this.forward();
@@ -935,7 +968,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const p = page(this.showing, this.shown);
     const s = slides[this.showing];
     const motion = `tr-${this.settings.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
-    return html`<div class="deck-show" role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick}>
+    return html`<div class="deck-show" data-spatial role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick}>
       ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(gateSvg(page(this.leaving).svg))}</svg></div>`) : nothing}
       ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(gateSvg(p.svg))}</svg></div>`)}
       <p class="sr-only" aria-live="polite">${t('Slide {n} of {total}', { n: this.showing + 1, total })}: ${p.alt ?? ''}</p>

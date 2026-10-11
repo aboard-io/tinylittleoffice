@@ -6,11 +6,13 @@
  * layouts' own results (each app's lint.ts), with the fallback metrics the exports use, and never a browser.
  *
  * A document fenced inside another (a diagram on a slide, a chart in a text) is linted by its own app, its
- * findings at the fence's block. Loaded lazily by src/api.ts (`lint`, `measure`) and the command line.
+ * findings at the fence's block. Every table, wherever it is, has its formulas worked out (apps/sheet/lint.ts):
+ * one whose value is an error is a finding. Loaded lazily by src/api.ts (`lint`, `measure`) and the command line.
  */
 import { parse, type Doc } from './doc/index.ts';
 import { lintDiagram, measureDiagram } from './apps/diagram/lint.ts';
 import { lintDeck, measureDeck } from './apps/deck/lint.ts';
+import { lintSheet, measureSheet } from './apps/sheet/lint.ts';
 import { slidesOf } from './apps/deck/model.ts';
 
 /** One thing the eye would have seen: the block it is about, what kind of finding, the words that say it, what to do. */
@@ -31,6 +33,10 @@ export interface Finding extends Found {
 export const LINK_MAX = 2000;
 
 const LINTS: Record<string, (text: string) => Found[]> = { diagram: lintDiagram, deck: lintDeck };
+/** The apps a fence may hold that the lint reads: those with a lint of their own, and the sheet, whose tables every document's lint reads. */
+const linted = (lang: string) => lang in LINTS || lang === 'sheet';
+/** A document's own findings in an app: its app's, and its tables'. */
+const lintOf = (app: string, text: string): Found[] => [...(LINTS[app]?.(text) ?? []), ...lintSheet(text)];
 
 /** Where block i is, as a person finds it: a deck's slide, else the block's number (from 1). */
 function placeOf(app: string, doc: Doc): (i: number) => string {
@@ -43,10 +49,10 @@ function placeOf(app: string, doc: Doc): (i: number) => string {
 export function lint(app: string, text: string, url = ''): Finding[] {
   const doc = parse(text);
   const where = placeOf(app, doc);
-  const out: Finding[] = (LINTS[app]?.(text) ?? []).map((f) => ({ app, at: where(f.block), ...f }));
+  const out: Finding[] = lintOf(app, text).map((f) => ({ app, at: where(f.block), ...f }));
   doc.blocks.forEach((b, i) => {
-    if (b.k !== 'fence' || !LINTS[b.lang]) return;
-    for (const f of LINTS[b.lang](b.body)) out.push({ ...f, app: b.lang, at: where(i), block: i });
+    if (b.k !== 'fence' || !linted(b.lang)) return;
+    for (const f of lintOf(b.lang, b.body)) out.push({ ...f, app: b.lang, at: where(i), block: i });
   });
   if (url.length > LINK_MAX)
     out.push({
@@ -63,14 +69,16 @@ export function lint(app: string, text: string, url = ''): Finding[] {
 /** A finding as one line: app · where · the finding · what to do. */
 export const findingLine = (f: Finding): string => `${f.app} · ${f.at} · ${f.words} · ${f.fix}`;
 
-/** The numbers the layouts chose for a document: per slide or per diagram, and its fenced documents', with the link's length. */
+/** The numbers the layouts chose for a document: per slide or per diagram, per table its formulas, and its fenced documents', with the link's length. */
 export interface Measure {
   app: string;
   length: number;
   slides?: ReturnType<typeof measureDeck>;
   diagram?: ReturnType<typeof measureDiagram>;
+  /** Each table, by its block: its formulas, and the ones whose value is an error. */
+  tables?: ReturnType<typeof measureSheet>;
   /** The documents fenced in it, each where it is and as its app measures it. */
-  fences?: { at: string; block: number; app: string; diagram?: ReturnType<typeof measureDiagram>; slides?: ReturnType<typeof measureDeck> }[];
+  fences?: ({ at: string; block: number; app: string } & Omit<Measure, 'app' | 'length' | 'fences'>)[];
 }
 
 const MEASURES: Record<string, (text: string) => Partial<Measure>> = {
@@ -78,9 +86,15 @@ const MEASURES: Record<string, (text: string) => Partial<Measure>> = {
   deck: (text) => ({ slides: measureDeck(text) }),
 };
 
+/** A document's own numbers in an app: its app's, and its tables'. */
+function measureOf(app: string, text: string): Partial<Measure> {
+  const tables = measureSheet(text);
+  return { ...(MEASURES[app]?.(text) ?? {}), ...(tables.length ? { tables } : {}) };
+}
+
 export function measure(app: string, text: string, url = ''): Measure {
   const doc = parse(text);
   const where = placeOf(app, doc);
-  const fences = doc.blocks.flatMap((b, i) => (b.k === 'fence' && MEASURES[b.lang] ? [{ at: where(i), block: i, app: b.lang, ...MEASURES[b.lang](b.body) }] : []));
-  return { app, length: url.length, ...(MEASURES[app]?.(text) ?? {}), ...(fences.length ? { fences } : {}) };
+  const fences = doc.blocks.flatMap((b, i) => (b.k === 'fence' && (b.lang in MEASURES || b.lang === 'sheet') ? [{ at: where(i), block: i, app: b.lang, ...measureOf(b.lang, b.body) }] : []));
+  return { app, length: url.length, ...measureOf(app, text), ...(fences.length ? { fences } : {}) };
 }

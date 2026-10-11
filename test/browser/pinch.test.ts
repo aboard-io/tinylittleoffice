@@ -6,7 +6,7 @@
 // font size or a length is read as it is, on the screen.
 import { test, expect, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until, openShare } from './helpers.ts';
+import { mount, tick, until, openShare, pinch } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { BASE, NAV_MAX, SIZE_MAX, size, stepSize, keepSize } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -26,27 +26,6 @@ afterEach(async () => {
 
 const PARAS = Array.from({ length: 24 }, (_, i) => `Paragraph ${i + 1}: the ferry leaves the quay at nine and the café closes at five, so the walk is a long one.`).join('\n\n');
 const WRITE = `#/v1/write/${encodeDoc(`# The quay\n\n${PARAS}\n`)}`;
-
-/** Two touch pointers put down at a and b, moved to a2 and b2 in steps, and lifted unless `hold`. */
-async function pinch(at: Element, a: [number, number], b: [number, number], a2: [number, number], b2: [number, number], hold = false) {
-  const fire = (type: string, id: number, [x, y]: [number, number]) => {
-    const target = type === 'pointerdown' ? at : (document.elementFromPoint(x, y) ?? document.body);
-    target.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 11, clientX: x, clientY: y, bubbles: true, cancelable: true, composed: true }));
-  };
-  fire('pointerdown', 11, a);
-  fire('pointerdown', 12, b);
-  const steps = 6;
-  for (let i = 1; i <= steps; i++) {
-    const f = (p: [number, number], q: [number, number]): [number, number] => [p[0] + ((q[0] - p[0]) * i) / steps, p[1] + ((q[1] - p[1]) * i) / steps];
-    fire('pointermove', 11, f(a, a2));
-    fire('pointermove', 12, f(b, b2));
-    await new Promise(requestAnimationFrame);
-  }
-  if (hold) return () => (fire('pointerup', 11, a2), fire('pointerup', 12, b2));
-  fire('pointerup', 11, a2);
-  fire('pointerup', 12, b2);
-  return () => {};
-}
 
 async function write(): Promise<ToShell> {
   window.scrollTo(0, 0);
@@ -438,4 +417,37 @@ test('two fingers over a Display Link’s pages zoom the pages in place, not the
   // The column scrolls sideways to the rest of a page wider than it.
   const main = shell.querySelector<HTMLElement>('main.to-display')!;
   expect(main.scrollWidth).toBeGreaterThan(main.clientWidth);
+});
+
+// The deck's show is a picture too (Paul, 2026-10-11): two fingers zoom the slide in place, the show scrolls to the
+// rest of it, and a tap after still turns to the next slide; the pinch itself never does.
+test('two fingers over a slide in the show zoom it in place, not the size of everything; a tap after goes on', async () => {
+  await page.viewport(390, 844);
+  const was = size();
+  const shell = await mount(`#/v1/deck/${encodeDoc('## The ferry leaves the quay at nine\n\n## The café closes at five\n')}?show`);
+  await until(() => !!shell.querySelector('.deck-show[data-spatial] .frame svg'));
+  const show = shell.querySelector<HTMLElement>('.deck-show')!;
+  const frame = () => show.querySelector<HTMLElement>('.frame')!;
+  const w0 = frame().getBoundingClientRect().width;
+  const r = frame().getBoundingClientRect();
+  const y = r.top + r.height / 2;
+  await pinch(frame(), [150, y], [240, y], [60, y], [330, y]);
+  // The tap the fingers leave as they lift turns nothing.
+  show.click();
+  await tick(50);
+  const zoom = Number(show.style.getPropertyValue('--deck-zoom'));
+  expect(zoom).toBeGreaterThan(1);
+  expect(zoom).toBeLessThanOrEqual(4);
+  expect(zoom * 4).toBe(Math.round(zoom * 4));
+  expect(frame().getBoundingClientRect().width).toBeGreaterThan(w0 * 1.5);
+  expect(size()).toBe(was);
+  expect(pill()?.classList.contains('shown') ?? false).toBe(false);
+  // The pinch turned nothing; the show scrolls sideways to the rest of the slide.
+  expect(show.querySelector('.pos')!.textContent).toMatch(/^1 \//);
+  expect(show.scrollWidth).toBeGreaterThan(show.clientWidth);
+  // A tap a moment later goes to the next slide, which arrives whole.
+  await tick(400);
+  show.click();
+  await until(() => /^2 \//.test(show.querySelector('.pos')!.textContent!));
+  expect(show.style.getPropertyValue('--deck-zoom')).toBe('');
 });

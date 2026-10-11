@@ -36,6 +36,7 @@ describe('each finding: a document that trips it, and one that does not', () => 
     ['fence-bullets', 'fence-bullets'],
     ['title', 'title-cut'],
     ['body', 'body-over'],
+    ['sheet-circ', 'formula-error'],
   ])('%s', (name, kind) => {
     expect(kinds(name)).toContain(kind);
     expect(kinds(`${name}.ok`)).toStrictEqual([]);
@@ -116,6 +117,50 @@ describe('what each finding says', () => {
     expect(found.map((f) => [f.app, f.at, f.kind])).toStrictEqual([['diagram', 'slide 1', 'edge-end']]);
   });
 
+  test('a total whose range takes in its own cell: the table, the cell, the formula, the error, and the range it meant', () => {
+    const found = lint('sheet', fixture('sheet-circ').text);
+    expect(found).toHaveLength(1);
+    expect(findingLine(found[0])).toBe('sheet · block 1 · the table "The codebase": B8, =SUM(B2:B8), is #CIRC · the range includes the cell itself; rows count from the first data row: =SUM(B1:B7)');
+    // A range that starts at the first row has nowhere to move to: it stops above the cell.
+    expect(lint('sheet', 'Day | Miles:number\n--- | ---\nMon | 1\nTue | 2\nAll | =SUM(B1:B3)\n')[0].fix).toBe('the range includes the cell itself; rows count from the first data row: =SUM(B1:B2)');
+  });
+
+  test('every error the engine has is a finding, at the cell it starts in, not the cells that read it', () => {
+    const doc = [
+      'Item | Cost:number | Note',
+      '--- | --- | ---',
+      'Rent | 1200 | =B1/0',
+      'Food | =B5 | =C1 + 1',
+      'Fun | =BOGUS(B1) | =nowhere * 2',
+      'Odd | =A1 * 2 | =SQRT(-1)',
+      'Loop | =B2 | =SUM(B1:',
+      'Far | =B1001 | ',
+    ].join('\n');
+    const found = lint('sheet', doc + '\n');
+    expect(found.map((f) => /: (\w+), (.+), is (#[A-Z/0]+)$/.exec(f.words)!.slice(1))).toStrictEqual([
+      ['C1', '=B1/0', '#DIV/0'],
+      ['B2', '=B5', '#CIRC'],
+      ['B3', '=BOGUS(B1)', '#NAME'],
+      ['C3', '=nowhere * 2', '#NAME'],
+      ['B4', '=A1 * 2', '#VALUE'],
+      ['C4', '=SQRT(-1)', '#NUM'],
+      ['B5', '=B2', '#CIRC'],
+      ['C5', '=SUM(B1:', '#ERR'],
+      ['B6', '=B1001', '#REF'],
+    ]);
+    // C2 reads C1's error and is not said again; each fix says what to do.
+    expect(found.find((f) => f.words.includes('B3'))!.fix).toContain('BOGUS');
+    expect(found.find((f) => f.words.includes('C3'))!.fix).toContain('NOWHERE');
+    expect(found.find((f) => f.words.includes('B2'))!.fix).toBe('the formula comes back to its own cell through B5: point one of them at another cell');
+  });
+
+  test('a table anywhere: in a text, and fenced on a slide, at its block and its slide', () => {
+    const text = '# Costs\n\nItem | Cost:number\n--- | ---\nRent | 1200\nTotal | =SUM(B1:B2)\n';
+    expect(lint('write', text).map((f) => [f.app, f.at, f.words])).toStrictEqual([['write', 'block 2', 'the table "Costs": B2, =SUM(B1:B2), is #CIRC']]);
+    const deck = '## The weight of it\n\n```sheet\nChunk | Kilobytes:number\n--- | ---\nMain | 40\nAll | =SUM(B1:B2)\n```\n';
+    expect(lint('deck', deck).map((f) => [f.app, f.at, f.kind, f.words])).toStrictEqual([['sheet', 'slide 1', 'formula-error', 'the table (Chunk | Kilobytes): B2, =SUM(B1:B2), is #CIRC']]);
+  });
+
   test('a link past 2,000 characters', () => {
     const text = Array.from({ length: 300 }, (_, i) => `- [ ] ${((i * 2654435761) % 4294967296).toString(36)} ${((i * 40503) % 65536).toString(36)}`).join('\n') + '\n';
     const url = link('todo', text);
@@ -133,6 +178,12 @@ describe('the measures are the layouts’ own', () => {
     ]);
     const s = slidesOf(parse(fixture('body.ok').text))[0];
     expect(measure('deck', fixture('body.ok').text).slides![0].body.px).toBe(layoutSlide(s).bodyPx);
+  });
+
+  test('a table: its formulas, and the ones that fail', () => {
+    expect(measure('sheet', fixture('sheet-circ').text).tables).toStrictEqual([{ block: 0, formulas: 1, errors: [{ cell: 'B8', formula: '=SUM(B2:B8)', error: '#CIRC' }] }]);
+    expect(measure('sheet', fixture('sheet-circ.ok').text).tables).toStrictEqual([{ block: 0, formulas: 1, errors: [] }]);
+    expect(measure('deck', fixture('deck-diagram').text).tables).toBeUndefined();
   });
 
   test('a diagram: its things, its connections drawn and dropped, each label as set', () => {
