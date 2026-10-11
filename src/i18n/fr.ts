@@ -60,11 +60,12 @@ export default {
   'About': 'Infos',
   'Tiny Little Office': 'Tout Petit Bureau',
   'About Tiny Little Office': 'À propos de Tout Petit Bureau',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Une toute petite suite bureautique qui vit entièrement dans l’URL. Pas de serveur, pas de compte, pas d’enregistrement : le lien, c’est le document.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Une toute petite suite bureautique où le lien, c’est le document. Pas de compte. Rien n’est enregistré nulle part, sauf si vous choisissez de le garder sur cet appareil.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Rien de ce que vous écrivez ne quitte votre navigateur, sauf si vous partagez le lien. Une seule chose interroge le web d’elle-même : la carte d’un voyage, dont les images viennent d’OpenStreetMap tant qu’elle est affichée.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Il n’y a pas de document partagé : chaque lien est une copie, et ce qu’on change dans l’une n’arrive jamais dans une autre.',
   'Private, the default:': 'Privé, par défaut :',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Enregistré, l’interrupteur de ce menu, garde vos réglages et les documents que vous ouvrez sur cet appareil.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Un lien court est la seule chose qu’un serveur conserve : le document, chiffré avec une clé que le serveur ne voit jamais, jusqu’à ce que le lien expire.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Un document peut avoir un mot de passe : il est chiffré ici, dans le navigateur, et le lien ne contient que du texte chiffré. Vie privée, dans ce menu, montre ce que cet appareil conserve.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

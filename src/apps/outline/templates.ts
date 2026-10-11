@@ -114,7 +114,7 @@ export const templates = (): Template[] => [
       item(2, 'Nothing is sent anywhere; the browser never shares the part after the #^[Browsers keep the fragment to themselves: it is not in the request a server receives.]'),
       item(2, 'Copy the link and you have copied the file'),
       item(1, 'What it means', undefined, '5 min'),
-      item(2, 'No sign-up, no saving, no servers to trust'),
+      item(2, 'No sign-up, nothing kept unless you choose, no servers to trust'),
       item(2, 'A document is as private as the link'),
       item(2, 'Try it: tinylittleoffice.com'),
     ),

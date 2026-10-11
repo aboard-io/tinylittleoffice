@@ -11,7 +11,7 @@ against WebCrypto called by hand.
 | Key derivation | PBKDF2 with HMAC-SHA-256 |
 | Iterations | 600,000 (`PBKDF2_ITERATIONS`) |
 | Salt | 16 bytes from `crypto.getRandomValues`, made when the password is set |
-| Password bytes | the password normalised to Unicode NFKC, then UTF-8 |
+| Password bytes | the password normalized to Unicode NFKC, then UTF-8 |
 | Derived key | 32 bytes, imported as a non-extractable AES-GCM key |
 | Cipher | AES-256-GCM |
 | IV | 12 bytes from `crypto.getRandomValues`, fresh for every seal |

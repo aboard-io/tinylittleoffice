@@ -6,7 +6,7 @@
  * sees, worked out), fences as written, a document held in this one, footnotes, and the breaks between pages or slides.
  *
  * textOf builds it from the blocks every text-shaped app shares (Word Processor, Outliner, Presentation Builder,
- * To-do List, Spreadsheet, Calculator); an app whose model is spatial gives its own in the same shape (kit/app.ts
+ * Spreadsheet, Calculator); an app whose model is spatial gives its own in the same shape (kit/app.ts
  * AppDef.text). A fence naming an app is another document: the host says how to read it (`inner`); with none, it is
  * its text as written. textMarkdown writes the nodes as Markdown through the kernel's own writer (TLO is Markdown),
  * so read back and written again it is the same bytes. Read-only: nothing here edits a document.

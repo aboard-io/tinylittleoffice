@@ -51,11 +51,12 @@ export default {
   'About': 'পরিচিতি',
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office সম্পর্কে',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'একটি ছোট্ট অফিস স্যুট, যা পুরোপুরি URL-এর মধ্যে থাকে। সার্ভার নেই, অ্যাকাউন্ট নেই, সংরক্ষণ নেই: লিংকই নথি।',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'একটি ছোট্ট অফিস স্যুট, যেখানে লিংকই নথি। অ্যাকাউন্ট নেই। আপনি এই ডিভাইসে রাখতে না চাইলে কিছুই কোথাও সংরক্ষিত হয় না।',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'আপনি লিংক শেয়ার না করলে আপনার লেখা কিছুই ব্রাউজারের বাইরে যায় না। একটি জিনিসই নিজে থেকে ওয়েবে অনুরোধ পাঠায়: ভ্রমণের ম্যাপ, যার ছবি দেখানোর সময় OpenStreetMap থেকে আসে।',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'সবাই মিলে বদলায় এমন কোনো নথি নেই: প্রতিটি লিংক একটা আলাদা কপি, একটিতে যা বদলায় তা অন্যটিতে কখনো পৌঁছায় না।',
   'Private, the default:': 'ব্যক্তিগত, ডিফল্টে:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'এই মেনুর “সংরক্ষিত” সুইচটি আপনার সেটিংস ও খোলা নথিগুলো এই ডিভাইসে রাখে।',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'ছোট লিংকই একমাত্র জিনিস যা কোনো সার্ভারে থাকে: নথিটি, এমন একটি চাবি দিয়ে এনক্রিপ্ট করা যা সার্ভার কখনো দেখে না, লিংকের মেয়াদ শেষ হওয়া পর্যন্ত।',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'নথিতে পাসওয়ার্ড দেওয়া যায়: এটি এখানেই, ব্রাউজারে, এনক্রিপ্ট হয় এবং লিংকে থাকে শুধু এনক্রিপ্ট করা লেখা। এই মেনুর “গোপনীয়তা” দেখায় এই ডিভাইসে কী আছে।',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

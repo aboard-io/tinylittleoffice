@@ -58,11 +58,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office के बारे में',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'एक छोटा-सा ऑफ़िस, जो पूरी तरह URL में रहता है। न सर्वर, न अकाउंट, न सेव करना: लिंक ही दस्तावेज़ है।',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'एक छोटा-सा ऑफ़िस, जिसमें लिंक ही दस्तावेज़ है। कोई अकाउंट नहीं। जब तक आप इसे इस डिवाइस पर रखना न चुनें, कुछ भी कहीं सेव नहीं होता।',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'आप जो कुछ लिखते हैं वह आपके ब्राउज़र से बाहर नहीं जाता, जब तक आप लिंक शेयर न करें। एक ही चीज़ खुद वेब से माँगती है: ट्रिप का नक्शा, जिसकी तस्वीरें दिखाए जाते समय OpenStreetMap से आती हैं।',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'ऐसा कोई दस्तावेज़ नहीं जिसे सब मिलकर बदलें: हर लिंक एक कॉपी है, और एक में किया बदलाव कभी दूसरे तक नहीं पहुँचता।',
   'Private, the default:': 'निजी, डिफ़ॉल्ट रूप से:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'इस मेन्यू का स्विच “सेव”, आपकी सेटिंग और आपके खोले हुए दस्तावेज़ इस डिवाइस पर रखता है।',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'शॉर्ट लिंक ही अकेली चीज़ है जो किसी सर्वर पर रहती है: दस्तावेज़, एक ऐसी चाबी से एन्क्रिप्ट किया हुआ जिसे सर्वर कभी नहीं देखता, जब तक लिंक की मियाद खत्म न हो।',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'दस्तावेज़ पर पासवर्ड लगाया जा सकता है: वह यहीं, ब्राउज़र में, एन्क्रिप्ट होता है और लिंक में सिर्फ़ एन्क्रिप्टेड रूप रहता है। इस मेन्यू में “प्राइवेसी” दिखाता है कि इस डिवाइस में क्या है।',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

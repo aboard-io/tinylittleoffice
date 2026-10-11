@@ -64,7 +64,7 @@ written `%28` or `%29`.
 code), `long`, `icon`, `name` (each cell names the cell to its right, for formulas), `option` (one of the words
 the column holds).
 A money column may name its currency in parentheses, a symbol of up to three characters or an ISO 4217 code:
-`Price:money(£)`, `Price:money(GBP)` (a code is shown as the reader's browser writes it); one that names none
+`Price:money(€)`, `Price:money(EUR)` (a code is shown as the reader's browser writes it); one that names none
 is in the head's `currency:` where the app has one (the Word Processor), else in dollars.
 
 ### The head

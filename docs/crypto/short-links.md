@@ -6,8 +6,8 @@ tables, `page.html` the page that opens a short link). WebCrypto alone: no crypt
 `test/vectors/short-links.json`, checked by `test/crypto-vectors.test.ts`.
 
 A short link cannot be changed or recalled once made; it expires on its own (Paul, 2026-10-11: "Let's just
-make the short link immutable for now"). There is no update, no delete, no owner and no owner key. (The
-living short link of round nine, with its owner key, is in git history.)
+make the short link immutable for now"). There is no update, no delete and no owner. (Round nine's short links,
+which their maker could change, are in git history.)
 
 ## The cipher
 

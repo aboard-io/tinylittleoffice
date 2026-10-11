@@ -1,290 +1,92 @@
 # Tiny Little Office
 
-**Tiny Little Office is a free office suite where your document is the link. There's no account, nothing is
-stored anywhere, and whoever has the link has the document.**
+Tiny Little Office is an office suite in which the document is the link. Write a letter, a spreadsheet, a
+presentation or a calendar, and the whole of it is in the address of the page: copy the link and you have copied
+the document. Open it on another phone or computer and it is there; send it to someone and they have it, to read
+and to change. Whoever has the link has the document. There is no account and nothing to sign up for.
 
-Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a calendar. When
-you want to share it, copy the link. The whole document lives inside that link, so sending it is like
-handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you write.
-If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It works on
-a phone, and it's free, with the code open for anyone to read.
+Private is the default: nothing is kept on your device and nothing on any server; the link is the document.
+Saved is a choice, a switch in the menu: it keeps your documents and your short links on your own device, in the
+browser's own storage, never on a server. A short link is the one thing a server holds: the document, encrypted
+with a key the server never sees, until the link expires. Apart from that, no document ever reaches us.
+
+## What is in it
+
+Ten apps, each with templates to start from:
+
+- **Word Processor:** words on a page, with headings, lists, links, footnotes and a table that adds up.
+- **Outliner:** ideas under ideas, folded, unfolded and moved around.
+- **Presentation Builder:** slides, or a zine, a booklet, a brochure, a comic, a poster or name badges to print.
+- **Spreadsheet:** formulas, named cells and charts.
+- **Calculator:** a calculator that shows its work, with units, conversions and graphs.
+- **Drawing Tool:** boxes, arrows, icons and labels on a grid, and pixel art.
+- **Diagram Maker:** mind maps, org charts, family trees, timelines, seating charts and more, from a few lines.
+- **Animator:** a drawing that moves.
+- **Calendar:** days and times on a month, a year or a schedule, in any time zone.
+- **Trip Planner:** a route on a map, its stops in order.
+
+Around them: nineteen languages, chosen in the menu and carried in the link; the **Display Link**, which opens a
+document as pages to read or print rather than to edit; a **password** on any document; **short links** that
+expire after an hour, a day, a week or a month; a QR code; files in the formats other programs read (PDF, Word,
+PowerPoint, Excel, iCalendar, Markdown and more); and **Download everything**, every document kept on your device
+in one file.
 
 ## What it is not
 
-- **Not a server that holds your documents.** A document is one text, written in TLO (Markdown with a few
-  additions, docs/tlo.md), compressed into the part of the address after `#`, which browsers never send to
-  any server. The site is static files; there is no database of documents to breach, subpoena or leak.
-- **Not an account.** There is nothing to sign up for. "Saved", a switch in the menu, keeps documents on your
-  own device, and only there; "Private", the default, keeps nothing.
-- **Not watching.** No analytics, no error reporting, no fonts or scripts from anyone else, no request you
-  did not cause. Everything the site can ask of the web, and when, is listed in docs/network.md, and the
-  Content-Security-Policy (`public/_headers`) refuses anything else.
+- **Not collaborative.** Every link is a copy. The person who opens a link you sent has their own document: what
+  they change is in their link, not in yours, and nothing changed in one copy ever reaches another.
+- **Not a cloud.** No server keeps your documents, so there is nothing there to sign in to, lose or leak.
+- **Not a place where anything of yours is kept,** unless you choose Saved, and then only on your own device.
 
-One small service exists, optional, in this repository: **tinier**, which makes a short link out of
-ciphertext it cannot read (the key stays in the link's fragment). A document fetches nothing from any other
-site: there are no pictures from the web and no embeds.
+## Privacy and security
 
-## Running it
+A link reveals its document to whoever holds it, and to everything it passes through: a chat service, an email
+provider, the browser's own history. A password encrypts the document in your browser (AES-256-GCM, under a key
+derived from the password), so the link holds only ciphertext, and nobody without the password sees anything of
+it, not even its title. The short-link service holds a document encrypted under a key that travels only in the
+short link itself, which the service never receives, and forgets it when it expires. A document asks the web for
+nothing: it holds no pictures or frames from other sites, and the one thing that reaches another site by itself
+is a trip's map, whose tiles come from OpenStreetMap while it is shown. What this protects against, and what it
+does not, is [docs/threat-model.md](docs/threat-model.md); the cryptography, byte by byte, is in `docs/crypto/`
+([passwords](docs/crypto/password.md), [short links](docs/crypto/short-links.md)); every request the site can
+make is listed in [docs/network.md](docs/network.md).
+
+## For agents
+
+An agent makes a document by writing its link, with no code: `https://tinylittleoffice.com/<app>/#doc=…` holds
+the document as text, in TLO, which is Markdown with a few additions. The guide to every app's format, with one
+of its templates as each example, is the skill, [skill/tinyoffice/SKILL.md](skill/tinyoffice/SKILL.md), served
+to any agent as [/llms.txt](public/llms.txt). A program can import the site's API, `/api.js`, to write and read
+links, check a document and make its files; [packages/doc](packages/doc/README.md) is the same from the command
+line.
+
+## For developers
 
 Node 24 or later.
 
 ```sh
-npm ci && npm run dev    # http://localhost:4178, every app
+npm install
+npm run dev          # the site at http://localhost:4178
 ```
 
 ```sh
-npm run lint            # the type check and the lints of the code (CONTRIBUTING.md); npm run typecheck adds the Workers
-npm run i18n:check      # every t('…') in src/ is in src/i18n/en.ts, placeholders matching, nothing undecided
-npm run i18n:gaps -- fr # the lines fr.ts lacks, an old translation offered as a draft where a key changed a little
-npm run i18n:extract    # append the missing keys to en.ts, at the end, to be sorted by hand
-npm test                # unit (node) and browser (Chromium) tests
-npm run test:e2e        # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots
-npm run build           # the lint, then dist/ with a page per app, the CSP hashes, version.json; then the chunk budgets
-npm run docs:exports    # docs/exports.md, from the apps' definitions
-npm run docs:network   # docs/network.md and /network, from src/kit/network.ts (the build runs it first)
-npm run docs:deps       # docs/dependencies.md, from package.json and the lockfile (-- --sizes measures a build)
-npm run tinier:dev      # the link shortener on this machine (see "Short links")
-npm run skill           # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
-npm run cards           # public/og/<app>.png, each app's share card (Chromium through Playwright)
-npm run tinyoffice -- link write list.md  # the command line (packages/doc/README.md)
-npm run deploy          # build, then the site and tinier to Cloudflare (docs/self-host.md)
+npm test             # every test: the pure code under Node, the kit and every editor in Chromium
+npm run lint         # the types, Prettier and the lints of the code
+npm run test:browser # the browser tests alone, in Vitest's browser mode
+npm run test:e2e     # the built site in Chromium and an iPhone-sized WebKit, axe in light and dark
+npm run build        # the site as it ships, its chunks held to their budgets
+npm run deploy       # the checks, then the site and the short-link service to Cloudflare
 ```
 
-## How it is built
+Running a copy of your own on your own Cloudflare account is [docs/self-host.md](docs/self-host.md). How it is
+made: the document kernel and the one editor, [docs/kernel.md](docs/kernel.md); the editing standard every app
+keeps, [docs/editing.md](docs/editing.md); the document format, [docs/tlo.md](docs/tlo.md); the languages,
+[docs/translation.md](docs/translation.md). Every document in `docs/` is listed in
+[docs/README.md](docs/README.md). To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md); to report a security
+problem, privately, read [SECURITY.md](SECURITY.md).
 
-Three layers, each small enough to read.
+## Who made it
 
-- **The kernel** (`src/doc/`, docs/kernel.md): one typed model of a document, a head of fields and a list of
-  blocks (headings, paragraphs of rich runs, list items, tables with typed and named columns,
-  fences), with TLO as its one reader and writer, byte-stable through a parse and a write. Edits
-  are operations on the model, undone from one op log; the formula engine evaluates a table block.
-- **The kit** (`src/kit/`): the shell (thin: the route and the document, with the chrome, the Share dialog and
-  privacy as elements of their own; the page is the visible window and the document scrolls in a column,
-  docs/kernel.md §9), the bar, Insert ▾, the menu, dialogs, the router, the codec, the
-  store, privacy (passwords, what the device holds), short links, exports, strings, icons; and
-  the one rich-text editor, `<to-text>`, over the kernel: every `beforeinput` becomes operations, and only
-  the blocks that changed are drawn again. There is no contenteditable anywhere else.
-- **The apps** (`src/apps/<id>/`): definitions on the kit. Each is a view of the kernel's document and the
-  commands it adds: the Word Processor, Spreadsheet, Presentation Builder, Outliner, Calculator, Calendar,
-  Drawing Tool, Animator, Diagram Maker and Trip Planner.
-  Each is a chunk of its own; the home page loads the kit and nothing else.
-
-The plan of the rebuild is docs/rebuild.md; every document in `docs/` is listed in docs/README.md.
-
-## The standards it keeps
-
-- **docs/editing.md:** every app edits the way the editors people already use do, by keyboard, pointer and
-  finger; words are edited where they are drawn.
-- **docs/kernel.md:** one model, one parser, one editor, one undo; apps as definitions on one kit.
-- **Phone first,** at 390 pixels in WebKit; dark mode through tokens; accessible, checked with axe in light
-  and dark.
-- **Native web APIs first:** each dependency names the native API it beat and why (docs/dependencies.md).
-- **Nothing leaves the browser** that docs/network.md does not list.
-
-CONTRIBUTING.md says how to work to them.
-
-## Running your own copy
-
-`npm run deploy` against your own Cloudflare account puts up the site and the short-link service, the
-same code as ours. docs/self-host.md takes about thirty minutes.
-
-## Reporting a security problem
-
-Report it privately on GitHub (the Security tab, "Report a vulnerability"), not as an issue. SECURITY.md says
-what happens next.
-
-## License
-
-The MIT License (LICENSE), Copyright (c) 2026 Paul Ford. Contributors keep the code of conduct (CODE_OF_CONDUCT.md).
-
-## History
-
-This is the rebuilt tree. The first tree, the one that came before the rebuild, keeps its whole history in
-this repository, tagged `v0-before-rebuild`.
-
-## Details
-
-### Layout
-
-```
-src/doc/        the document kernel (docs/kernel.md, src/doc/README.md)
-src/kit/        the kit: shell, chrome (<to-chrome>: the header and the column), share-dialog (<to-share>),
-                scroll (every scroll-to), bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
-                privacy (Private or Saved, the password, what the device holds), privacy-dialog (<to-privacy>),
-                crypt (a password: PBKDF2 to AES-GCM), envelope (by and created), link-guard (links
-                that leave ask first), pictures (web pictures asked for first), media (the picture proxy's
-                address, the whitelist, an export's picture bytes), preview (a kept document's first page,
-                small), mark (the Office mark), install (Add to home screen), search (the library, by its
-                words), find (Find in this document, Mod+F), keys (the shortcuts dialog), zoom (the size of
-                everything), steps (a document presented a part at a time), qr-picture (a document's QR code
-                as a fence), locked and locked-doc (a document locked with a password placed in another: the
-                locked card, and opened with its password in an editor), share, short (links), links (the short links made here), library (the documents
-                kept), exports, i18n, theme, icons (the UI set and the starter library; a document may name
-                any Lucide icon, the rest arriving in one lazy load, icons-full, that views and exports wait
-                for), icons-search (keywords, suggestions, search; no DOM), icons-picker (the library in a
-                dialog, with icons-meta, its tags and categories, and the Emoji set: emoji and emoji-data,
-                Unicode's and CLDR's names written by scripts/emoji.ts), app (the
-                AppDef contract), apps (registry), element (DocElement: every editor's base, with the op-log
-                undo), draw (pages, the palette), tile (a repeating background tile in one head field:
-                `tile: 8:a..a/.a.a`), chart (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded
-                lines, escaped text), zip, xlsx (a table block as a workbook); the editor: text
-                (<to-text>), textops (its maths), clipboard, history (the op log), notes (<to-notes>:
-                footnotes typed where they are drawn), link-pop
-dev/            text.html: the editor alone, in its three shapes, at /dev/text.html on the dev server (not built)
-src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy chunk), style.css
-                (wrapped in @layer apps), templates.ts, tests/
-src/i18n/       the strings: en.ts is every key, by hand; a sibling file is a language
-src/styles.css  declares the cascade: @layer tokens, kit, apps, responsive, a11y; src/styles/ holds each
-public/         _headers (the Content-Security-Policy), manifest, icons, theme.js, network.html (written by scripts/network-doc.ts)
-scripts/        i18n-extract.ts (the strings, checked), deploy.mjs (the checks, then Cloudflare), check-build.ts
-                (the policy's hashes and version.json), exports-doc.ts, dependencies.ts and network-doc.ts (the generated pages in docs/,
-                each with --check: generated.ts), budgets.ts (the built chunks against budgets.json)
-test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode);
-                lints.ts and lints.test.ts the rules of the code (CONTRIBUTING.md), fixtures/lints/ what each catches
-e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
-                keyboard alone, axe over every app light and dark, and each app's own
-tinier/         the link shortener: a Worker, its D1 schema, its page (see "Short links")
-src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
-packages/doc/   the `tinyoffice` command line, over src/api.ts
-skill/          the agent skill (SKILL.md, written from SKILL.tpl.md by scripts/make-skill.ts; also /llms.txt)
-.github/        CI (every check on every push and pull request), the issue and pull request templates
-```
-
-The editor: `<to-text>` (src/kit/text.ts) is the one rich-text editor, model-driven over the kernel: every
-`beforeinput` becomes operations fired as `text-ops`, the host applies them and hands the blocks back, and only the
-blocks whose identity changed are drawn again. Undo is an op log (src/kit/history.ts). See docs/kernel.md §4 and §8.
-
-The home page: every app as its icon and name (open it blank), its templates ▾, and under it the documents of that
-app kept on this device, newest first, only while the drawer's switch says Saved (`src/kit/library.ts`, through
-`src/kit/store.ts`); under Private nothing is kept and the list is not there.
-Each kept document shows its first page small at its left (`src/kit/preview.ts`), drawn only as its row comes into
-sight and kept in memory by its link.
-
-Privacy and links: a link that leaves Tiny Little Office never opens by itself. One catcher on the page
-(`src/kit/link-guard.ts`, installed by the shell) asks first, in a dialog with the site's name in large type and the
-whole address under it, a red Cancel (the default) and a green Go (a new tab, no opener, no referrer); a link to
-anything but a web page, an email or a phone number does not open at all. A document fetches nothing from any
-other site: there are no pictures from the web and no embeds (round seventeen; the code is on the branch
-`web-pictures-and-embeds`), and Markdown's picture line, `![words](address)`, reads as a link.
-
-A password, for every app (the shell's, `src/kit/privacy.ts`). Share holds **Password…**: the text is
-encrypted in the browser (AES-256-GCM under a key PBKDF2-SHA-256 derives from the password, 600,000 iterations,
-`src/kit/crypt.ts`) and the link carries `E<salt | iv | ciphertext>`; while a password is set every change is sealed
-again before it reaches the address bar, so the link, the library and a short link only ever hold ciphertext. A
-sealed link opens with the unlock dialog and nothing of the document, not even its title; a wrong password is said
-so; the password is never kept, but what opened a document opens it again for the rest of the visit. The head
-carries `by` and `created` (stamped to the minute at the first change; `src/kit/envelope.ts`, docs/kernel.md §1).
-Beside the title, while there is a password, a lock (Locked, or Protected by a password); it opens the Privacy
-dialog (`src/kit/privacy-dialog.ts`, also "Privacy" in the menu): the document's password, what this device holds
-item by item with Forget and Forget everything, and Download everything, every kept document as its .tlo text in
-one zip, named by its title and the title in its head (a locked one as its link).
-A locked document placed inside another goes in as its sealed link (a ```` ```locked ```` fence, `src/kit/locked.ts`)
-and is drawn everywhere as a locked card: the lock, "Locked with a password", its app; in an editor a tap asks for the
-password and the card draws the document for the rest of the visit, while the outer link goes on holding only the
-seal (Edit seals the changes again under the same password). Its embed view is the locked card with Unlock.
-
-The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and the favicon; `npm run icons`
-(`scripts/icons.ts`, through sharp) draws the app icons and the share card from it into `public/`.
-
-Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
-`{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.
-
-Deploy: `node scripts/deploy.mjs` ships a commit, never a working tree. It runs the types, the strings,
-the unit and the browser tests, then the build, then checks what the build wrote after the bundler
-(scripts/check-build.ts: the Content-Security-Policy in `dist/_headers` holding the hash of every page script and
-inline script, and `dist/version.json` naming the same hashes); when something
-on screen changed since the last deploy (`.wrangler/deployed`), the smoke run on the built site instead of the bare
-build: e2e/smoke, keyboard, and a11y (axe over every app at phone size, light and dark). Then
-`wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`) and for tinier. `--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e
-spec. `npm run deploy` is the same script; a self-hoster runs it against their own account (docs/self-host.md).
-
-The shortener (`tinier/`) is a Worker of its own, with its wrangler config; nothing deploys by itself.
-
-### Link and Display Link
-
-Share → **Copy link** copies the editing link; **Copy display link** copies the same link with `?d` after the payload
-(`#/v1/<app>/<payload>?d`, never inside it), which opens the document as its pages, one under another, to
-read or print, with an Edit button that drops the flag. The QR code and a short link can carry either.
-
-A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the app's noun, the local date, and the
-first number the device's library leaves free that day); the name goes into the head with the first change.
-
-### Short links
-
-Share opens one dialog: the document's title and, in one line, where its link fits ("This link: 1,240
-characters, too long for an NFC sticker"); **Copy link** (opens in the editor) and **Copy display link** (opens
-as pages to read), and the device's own share sheet where there is one; a short link that expires; the QR code,
-drawn in place when the link fits in one; and, folded, the short links made on this device.
-
-A short link comes from tinier.tinylittleoffice.com and lives an hour, a day, a week (the default, and the
-choice is remembered under Saved) or a month, chosen in one row; it opens the editor or the pages. The long
-link is encrypted in the browser with a random AES-256-GCM key; only the ciphertext goes to the service, and
-the key travels in the short link's fragment (`…/<id>#<key>`), which browsers never send to any server.
-Opening a short link fetches the ciphertext, decrypts it on the page, and goes to the document with
-`?s=<id>&x=<expires>` after it, so whoever arrives sees a banner above the bar, green over a week, amber within
-one, red on the last day: "This link expires in 12 days", with **Copy into a new document** (the same
-document, "Copy of …", as a plain link of its own in a new tab).
-
-A short link cannot be changed or recalled once made; it expires on its own (Paul, 2026-10-11). There is no
-owner, no update and no delete, so nothing but the document is ever in the address bar. Each one made is kept
-in the device's list (`src/kit/links.ts`): for the visit under Private, on the device under Saved.
-
-```
-POST /api        {c, iv, ttl}   → 201 {id, exp}     ttl: 3600, 86400, 604800 or 2592000
-GET  /api/<id>                  → {c, iv, exp}      404 once gone; anything else answers 404 like an unknown link
-GET  /<id>       the page that decrypts and redirects
-```
-
-The only answers are 201, 200, 400, 404, 429 and 503.
-
-The service is `tinier/`: one file of logic (`tinier.ts`, tested against Maps) run as a Cloudflare Worker
-(`worker.ts`; `d1.ts` its rows in D1, tested on node's SQLite) with `schema.sql` (production's four columns:
-id, c, iv, exp) and `migrations/0001-brakes.sql`. One address may make a hundred links a UTC day, counted in D1
-under `sha256(BRAKE_KEY ‖ day ‖ address)` (a Worker secret; never in the repository), so no address is kept
-in the clear; the 101st gets 429 and `Retry-After` to the next day. An hourly cron forgets expired links and
-the counts of days before yesterday (a read of an expired link forgets it sooner). A link holds 16 KiB of
-ciphertext; `src/kit/short.ts` carries the same cap and refuses before sending, and the room meter has a
-"Short link" row. `docs/crypto/short-links.md` has the details.
-
-To run it on this machine, beside `npm run dev`, with `VITE_TINIER=/tinier/` in `.env.development`:
-
-```sh
-echo "BRAKE_KEY=$(openssl rand -base64 32)" > tinier/.dev.vars   # once; ignored by git
-SITE=https://pefdev.exe.xyz:4178 npm run tinier:dev   # local D1 in .wrangler/, schema applied, port 8787
-```
-
-The dev server hands everything under `/tinier/` to it, so short links come out as the dev server's own
-address. `SITE` is that address as the browser sees it: the only place a local short link may lead.
-`npm run typecheck` generates the Worker's types (`tinier/worker-configuration.d.ts`, not committed) and
-checks `tinier/` with them.
-
-### Documents by URL, for agents and programs
-
-A document can be written as a plain link, by a person or an agent, with no codec: `/<app>/#title=…&doc=…`
-(`by=` says who made it, `view=` asks for a file or a deck's show; `md=` is `doc=` by another name, a text when no
-app is named). The shell turns it into the packed `#/v1/…` link on arrival (`src/kit/plain.ts`): one letter and
-base64url bytes, with `~` for 62 where RFC 4648 has `-`, since a hyphen is where a pasted link breaks across a
-line (`-` is still read). The guide to every
-app's format is the agent skill, `skill/tinyoffice/SKILL.md`, served as `/llms.txt`; every example in it is one of
-an app's templates, checked to round-trip (`npm run skill`, `test/skill.test.ts`).
-
-Programs import `/api.js` (`link`, `plain`, `read`, `encode`/`decode`, `parse`/`write`, `compare`, `apps`,
-`templates`, `file`); `packages/doc/tinyoffice.ts` is the same from the command line: links from files and files
-from links. A page of anyone's can import `/tinyoffice.js` (`link()` for a plain link, `embed()` for the frame), with
-no build and no other code.
-
-A `.tlo` file is a document's text with `app:` in its head: Download → Text (TLO) makes one, and dropping one on the
-page, or Open a file… in the menu, opens it as its own app (a `.md` or `.txt` opens in the app at hand); a zip of them (Download everything's) puts every
-document in it back on the device, or, under Private, lists them to keep or open. Every app
-also downloads Markdown and a `.pdf` file (its pages as JPEGs, `src/kit/pdf.ts`; Print saves a PDF whose words stay
-words); the Outliner's `.pdf` is its words, as sections and bullets (`src/kit/textpdf.ts`). Download is a row per
-format, each with View (a new tab, where the browser shows the file), Share (the share sheet, where the device takes
-it), Download, and Copy link: a link that downloads the file as it opens (`#/v1/<app>.<ext>/…`).
-
-Compare… in the menu (`#/compare/<app>/<payload>/<app>/<payload>`) puts two links side by side, block by block,
-with what the second changed marked (`src/kit/compare.ts`, `src/kit/diff.ts`). Share posts the link to Bluesky,
-Mastodon (its server asked once), X, LinkedIn or email, each through the link guard; copies a deck's show link
-(`…?show`, which opens presenting); and copies the embed code: a lazy, no-referrer frame of `/embed/#/v1/<app>.embed/…`,
-the pages alone with Open in Tiny Little Office, the one address `public/_headers` lets another site frame. Each
-app's own page previews with its card, `public/og/<app>.png` (`npm run cards`); the home page's is the Office mark.
-
+Tiny Little Office is made by [Aboard](https://aboard.com). The code is at
+[github.com/aboard-io/tinylittleoffice](https://github.com/aboard-io/tinylittleoffice), under the MIT License
+([LICENSE](LICENSE)). Everyone who takes part keeps the [code of conduct](CODE_OF_CONDUCT.md).

@@ -14,7 +14,7 @@ definitions by `node scripts/exports-doc.ts`; a test fails when it is out of dat
 | Format | What the file holds |
 | --- | --- |
 | Print, or save as PDF | The browser's own print dialog, which saves a PDF: a page per page the app draws, at its own size, the words in the SVG still text. Mod+P. |
-| `.pdf` | PDF file: the document exactly as its link holds it (docs/tlo.md). |
+| `.pdf` | PDF file: its pages as pictures, a page of the file each. |
 | `.png` | Picture (PNG): the whole document as one picture, its pages stacked. |
 | `.html` | Web page (HTML): a web page of its pages as pictures (an app with its own web page lists it below, and that one is used). |
 | `.md` | Markdown: the document exactly as its link holds it (docs/tlo.md). |
@@ -23,7 +23,7 @@ definitions by `node scripts/exports-doc.ts`; a test fails when it is out of dat
 Text files are UTF-8; only CSV carries a byte order mark, which Excel needs. A file is named from the
 document's title, or from what one of the app's documents is called.
 
-An animation, on its own or placed in another document (a slide, a site's page, a text), plays wherever the
+An animation, on its own or placed in another document (a slide, a text), plays wherever the
 page can move: the Display Link, an embed, a slideshow, a web page. Print, a PDF and a PNG cannot move, so
 there it is drawn still, at its resting moment (`ViewOpts.still`).
 

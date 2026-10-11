@@ -6,7 +6,8 @@ piece of work with a check; the launch waits for the checks marked **gate**.
 
 **Reread on 2026-10-11, the day the repository opened** at https://github.com/aboard-io/tinylittleoffice: every
 gate below (items 1, 2, 3 and 5) is built, and so is everything §2 asked for before the repository went public,
-but for what §2 now strikes. What is left is marked *Not yet*.
+but for what §2 now strikes. What is left is marked *Not yet*. Reread again at the end of round seventeen: the
+words of §3 are struck, and the README's first two paragraphs say what this is.
 
 ## 1. Verifiable, not claimed
 
@@ -20,7 +21,7 @@ leak. Everything here makes that checkable by a stranger.
    and fails if one is not on the page. The `connect-src` and `img-src` of the CSP are generated from the same
    list.
    *Pictures and embeds removed, 2026-10-11 (round seventeen).* A document fetches nothing from any other
-   site: there are no pictures from the web, no picture proxy and no embeds (the code is kept on the branch
+   site: there are no pictures from the web, no proxy for them and no embeds (the code is kept on the branch
    `web-pictures-and-embeds`). The CSP's `img-src` is the site, `data:`, `blob:` and the map's tiles (no
    `https:` at large), and it has no `frame-src` or `media-src` of another site's, held by `test/csp.test.ts`.
    *Built, 2026-10-10.* `src/kit/network.ts` is the one list of every host the site can reach (what, when,
@@ -42,7 +43,7 @@ leak. Everything here makes that checkable by a stranger.
    the list), a table of each design choice and its threat, what the Cloudflare host can see (the static
    files' requests, the shortener's ciphertext rows and D1's own history), and "If you
    find a hole" pointing at `SECURITY.md` (item 8). It says plainly that whoever serves the code could read
-   the fragment, and that item 3 is the answer, not yet built. About links it. *2026-10-11:* About says the
+   the fragment, and that item 3 is the answer (built the same day). About links it. *2026-10-11:* About says the
    list in the page's language itself, and links the whole document in the public repository, said to be in English.
 3. **Reproducible, attested builds** (gate). `npm run build` from a tag gives byte-identical `dist/`;
    `scripts/verify-deploy.ts` fetches the live site, hashes every file and compares with the tag's build;
@@ -65,7 +66,7 @@ leak. Everything here makes that checkable by a stranger.
    the script hashes, how to check). Signed tags: `docs/github-setup.md`. CI (`.github/workflows/ci.yml`) runs
    `npm run build:verify` after its build.
 4. **Dependencies you can read in one sitting.** `docs/dependencies.md` generated from package.json: each
-   dependency, its exact version, its licence, the native API it beat and why (the standing rule), and the
+   dependency, its exact version, its license, the native API it beat and why (the standing rule), and the
    size it adds. Nothing vendored minified; the lockfile committed; `npm audit` in CI with no ignores.
    *Built, 2026-10-10.* `npm run docs:deps` (`scripts/dependencies.ts`) writes it from package.json, the
    lockfile and `scripts/dependencies.json`, the one-line reasons it refuses to run without; the sizes come
@@ -79,8 +80,8 @@ leak. Everything here makes that checkable by a stranger.
    fails a build that names a face it does not hold.
 5. **The crypto in the open** (gate). One short document each, with test vectors in the repo and the fact
    that it is WebCrypto with no library: `docs/crypto/password.md` (PBKDF2 → AES-GCM: parameters, the sealed
-   payload form), `docs/crypto/short-links.md` (AES-256-GCM, the key in the fragment, the owner
-   capability, what tinier stores and for how long, what its logs hold: nothing).
+   payload form), `docs/crypto/short-links.md` (AES-256-GCM, the key in the fragment, ~~the owner
+   capability~~ (struck 2026-10-11: a short link cannot be changed or recalled), what tinier stores and for how long, what its logs hold: nothing).
    *Built, 2026-10-10.* The two documents, with the byte layouts; the vectors in `test/vectors/password.json`
    and `short-links.json`, checked by
    `test/crypto-vectors.test.ts` against the kit and against WebCrypto called by hand. `sealAt` (crypt.ts)
@@ -112,13 +113,12 @@ leak. Everything here makes that checkable by a stranger.
 Done once, before the repo went public; Paul renamed it, moved it to the aboard-io organization and opened it on
 2026-10-11. The settings set by hand are docs/github-setup.md.
 
-- Name `tinylittleoffice` (*met*: aboard-io/tinylittleoffice); description "A free
-  office suite where your document is the link. No account, nothing stored, the code open."; the website
+- Name `tinylittleoffice` (*met*: aboard-io/tinylittleoffice); description "A free office suite where your document is the link. No account; nothing kept unless you choose; the code open."
+  (2026-10-11: the earlier description said nothing was kept as an absolute); the website
   field; topics: `office-suite`, `privacy`, `local-first`, `no-backend`, `pwa`, `web-components`, `lit`,
   `cloudflare-workers`, `typescript`, `url-as-document`, `markdown`.
-- README that opens with the one-sentence and the paragraph below, then: what it is not (no server, no
-  account, no telemetry), how to run it (`npm ci && npm run dev`), how it is built (the kernel, the kit,
-  the apps), the standards it keeps, how to self-host, how to report a security issue, licence.
+- ~~README that opens with the one-sentence and the paragraph of §3~~ (*superseded*, 2026-10-11: the README
+  was rewritten whole for a stranger, and says the truth about saving; §3).
 - Social preview image from the Office mark; the per-app share cards in `public/og/`.
 - ~~Discussions on~~ (*struck*, 2026-10-11: Discussions are off; issues are the one place). Issues with two
   templates (a bug, with the link that shows it, redacted of anything private; a feature) and the chooser's
@@ -129,12 +129,12 @@ Done once, before the repo went public; Paul renamed it, moved it to the aboard-
   Dependabot asks for npm updates weekly, grouped (`.github/dependabot.yml`).
 - `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `.github/` with the CI workflow, the
   release workflow (build, attest, publish `dist/` as the release's artifact), and the issue templates.
-- The old tree's history is in the same repo (tagged `v0-before-rebuild`): keep it; the README says what
+- The old tree's history is in the same repo (tagged `v0-before-rebuild`): keep it; docs/history/README.md says what
   it is.
 - A `docs/` index page listing every document in the folder, so a reader starts from one place.
 
 *Built, 2026-10-10:* the README (the sentence and the paragraph, then the rest in this order), `docs/README.md`
-(the index, held to the folder by `test/docs-index.test.ts`), `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`,
+(the index, held to the folder by `test/docs.test.ts`), `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`,
 `CONTRIBUTING.md`, and `.github/`: the CI workflow, the bug and idea templates, the chooser's Security link to
 SECURITY.md (no security template), the pull request template. The settings (description, topics,
 Discussions, labels, the ruleset on `main`) are a checklist in `docs/github-setup.md`. The release workflow
@@ -144,18 +144,17 @@ in the idea's place, the pull request template three lines, CI running every che
 
 ## 3. How to explain it
 
-One sentence: **Tiny Little Office is a free office suite where your document is the link. There's no
-account, nothing is stored anywhere, and whoever has the link has the document.**
+*Struck, 2026-10-11.* The sentence and the paragraph that stood here, the README's first draft, said as absolutes
+that nothing was kept and that we never saw a word anyone wrote. Neither is true as said (Paul: "Saying we never
+save anything is wrong; we should say that's the default"). Private is the default, and keeps nothing on the
+device and nothing on any server; Saved is a choice, and keeps documents and short links on the device, never on
+a server; a short link is the one thing a server holds, the document encrypted with a key the server never sees,
+until it expires. No document ever reaches us otherwise.
 
-A paragraph: *Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a calendar.
-When you want to share it, copy the link. The whole document lives inside that link, so sending it
-is like handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you
-write. If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It
-works on a phone, and it's free, with the code open for anyone to read.*
+The words now are the README's first two paragraphs, and in a sentence, for About, the page's description and the
+share cards: *A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you
+choose to keep it on this device.*
 
-The metaphor: the note passed in class. The note is the thing, not a reference to something kept elsewhere.
-Lead with "nothing is stored", not "the URL encodes the document"; the technical readers find the second
-behind the first.
-
-For the About page, the App Store-style blurb and the share cards, use these words; for the threat model and
-the network page, use none of them.
+The metaphor still holds: the note passed in class. The note is the thing, not a reference to something kept
+elsewhere. Lead with "the link is the document", not "the URL encodes the document"; the technical readers find
+the second behind the first. For the threat model and the network page, use none of these words.

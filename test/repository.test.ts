@@ -97,10 +97,10 @@ test('every YAML file in .github is YAML', () => {
   for (const f of files) expect(() => yaml(read(f)), f).not.toThrow();
 });
 
-test('no old name and no path of this machine anywhere in the tree (the directives and the reviews are a record, and kept)', () => {
+test('no old name and no path of this machine anywhere in the tree (docs/history is a record, and kept)', () => {
   const old = ['ftrain', 'tinyoffice'].join('/');
   const home = ['', 'home', 'exedev'].join('/');
-  const r = spawnSync('git', ['grep', '-n', '-I', '-F', '-e', old, '-e', home, '--', '.', ':!docs/directives', ':!docs/reviews'], { cwd: root, encoding: 'utf8' });
+  const r = spawnSync('git', ['grep', '-n', '-I', '-F', '-e', old, '-e', home, '--', '.', ':!docs/history'], { cwd: root, encoding: 'utf8' });
   expect(r.status === 0 ? r.stdout.trim().split('\n') : [], r.stderr).toEqual([]);
   expect(`https://github.com/${REPO}`).toBe(URL);
 });

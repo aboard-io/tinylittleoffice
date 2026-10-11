@@ -59,11 +59,12 @@ export default {
   'About': 'Acerca de',
   'Tiny Little Office': 'Oficinita Diminuta',
   'About Tiny Little Office': 'Acerca de Oficinita Diminuta',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Una pequeña suite de oficina que vive por completo en la URL. Sin servidor, sin cuentas, sin guardar: el enlace es el documento.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Una pequeña suite de oficina donde el enlace es el documento. Sin cuentas. No se guarda nada en ningún sitio, salvo que elijas conservarlo en este dispositivo.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nada de lo que escribes sale de tu navegador a menos que compartas el enlace. Una sola cosa consulta la web por su cuenta: el mapa de un viaje, cuyas imágenes vienen de OpenStreetMap mientras se muestra.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'No hay un documento compartido: cada enlace es una copia, y lo que se cambia en una nunca llega a otra.',
   'Private, the default:': 'Privado, por defecto:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Guardado, el interruptor de este menú, conserva tus ajustes y los documentos que abres en este dispositivo.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Un enlace corto es lo único que guarda un servidor: el documento, cifrado con una clave que el servidor nunca ve, hasta que el enlace caduca.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Un documento puede tener contraseña: se cifra aquí, en el navegador, y el enlace solo contiene texto cifrado. Privacidad, en este menú, muestra lo que guarda este dispositivo.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

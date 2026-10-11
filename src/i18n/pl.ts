@@ -59,11 +59,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'O Tiny Little Office',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Malutkie biuro, które mieszka w całości w adresie URL. Bez serwera, bez kont, bez zapisywania: link jest dokumentem.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Malutkie biuro, w którym link jest dokumentem. Bez kont. Nic nie jest nigdzie zapisywane, chyba że zdecydujesz się zachować to na tym urządzeniu.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nic, co piszesz, nie opuszcza Twojej przeglądarki, dopóki nie udostępnisz linku. Tylko jedna rzecz sama pyta sieć: mapa podróży, której kafelki pochodzą z OpenStreetMap, gdy mapa jest widoczna.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Nie ma wspólnego dokumentu: każdy link to kopia, a to, co zmieni się w jednej, nigdy nie trafia do innej.',
   'Private, the default:': 'Prywatnie, domyślnie:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Przełącznik „Zapisywane” w tym menu zachowuje na tym urządzeniu Twoje ustawienia i otwierane dokumenty.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Krótki link to jedyna rzecz, którą przechowuje serwer: dokument zaszyfrowany kluczem, którego serwer nigdy nie widzi, do czasu wygaśnięcia linku.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Dokument może mieć hasło: jest szyfrowany tutaj, w przeglądarce, a link zawiera tylko szyfrogram. „Prywatność” w tym menu pokazuje, co przechowuje to urządzenie.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

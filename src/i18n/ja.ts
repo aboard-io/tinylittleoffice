@@ -57,11 +57,12 @@ export default {
   'About': '概要',
   'Tiny Little Office': 'ちいさなちいさなオフィス',
   'About Tiny Little Office': 'ちいさなちいさなオフィスについて',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'URLの中だけで動く、小さなオフィスアプリです。サーバーも、アカウントも、保存もありません。リンクがそのままドキュメントです。',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'リンクがそのままドキュメントになる、小さなオフィスアプリです。アカウントは不要です。この端末に残すことを選ばないかぎり、どこにも保存されません。',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'リンクを共有しないかぎり、書いた内容がブラウザの外に出ることはありません。自分からウェブに問い合わせるのは一つだけです。旅行の地図は、表示するあいだ画像をOpenStreetMapから取得します。',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'みんなで共有するドキュメントはありません。リンクはどれもコピーで、ひとつのコピーで変えたことが、ほかのコピーに届くことはありません。',
   'Private, the default:': 'プライベート（標準）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'このメニューのスイッチ「保存」をオンにすると、設定と開いたドキュメントをこの端末に保存します。',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': '短縮リンクだけは、サーバーが保管します。保管するのは、サーバーが決して見ることのない鍵で暗号化されたドキュメントで、リンクの期限が切れるまでです。',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'ドキュメントにはパスワードを付けられます。暗号化はここ、ブラウザの中で行われ、リンクには暗号文だけが入ります。この端末に何があるかは、このメニューの「プライバシー」で見られます。',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

@@ -60,11 +60,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Про Tiny Little Office',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крихітний офісний пакет, що повністю живе в URL. Без сервера, без облікових записів, без збереження: посилання і є документом.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'Крихітний офісний пакет, де посилання і є документом. Без облікових записів. Ніщо ніде не зберігається, якщо ви самі не вирішите залишити це на цьому пристрої.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Усе, що ви пишете, залишається у вашому браузері, доки ви не поділитеся посиланням. Сама звертається до інтернету лише одна річ: карта подорожі, чиї картинки беруться з OpenStreetMap, поки карту показано.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Спільного документа немає: кожне посилання — це копія, і те, що змінено в одній, ніколи не потрапить до іншої.',
   'Private, the default:': 'Приватно, за замовчуванням:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '«Збереження», перемикач у цьому меню, залишає ваші налаштування й документи, які ви відкриваєте, на цьому пристрої.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'Коротке посилання — єдине, що зберігає сервер: документ, зашифрований ключем, якого сервер ніколи не бачить, доки посилання не спливе.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'Документ можна захистити паролем: його шифрують тут, у браузері, і в посиланні лишається тільки шифротекст. «Приватність» у цьому меню показує, що зберігає цей пристрій.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----

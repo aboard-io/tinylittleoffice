@@ -76,11 +76,12 @@ export default {
   // The name itself is translated too (Paul, 2026-10-10): each language says it in its own words.
   'Tiny Little Office': 'Tiny Little Office',
   'About Tiny Little Office': 'About Tiny Little Office',
-  'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.',
+  'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.': 'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.',
   'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.',
   'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'There is no shared document: every link is a copy, and what is changed in one never reaches another.',
   'Private, the default:': 'Private, the default:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Saved, the switch in this menu, keeps your settings and the documents you open on this device.',
+  'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.': 'A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.': 'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.',
 
   // ---- links that leave the site (kit/link-guard.ts) ----
