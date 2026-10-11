@@ -160,7 +160,7 @@ test('pages draw the table worked out, the head fields, a footnote, a web card a
   const p = { svg: all.map((x) => x.svg).join('') };
   expect(all[0].svg).toContain('$5,486.40');
   expect(p.svg).toContain('FROM');
-  expect(p.svg).toContain('Harbor Studio');
+  expect(p.svg).toContain('Street and number');
   expect(p.svg).toContain('Said in passing');
   expect(p.svg).toContain('YouTube');
   expect(p.svg).toContain(appOf('sheet')!.name);
@@ -251,9 +251,34 @@ test('every template is a whole document: a name and a blurb, no placeholder wor
 
 /** Each template's words before they were lightened (2026-10-11), the prose its sample story carried. */
 const BEFORE: Record<string, number> = {
-  letter: 121, cover: 175, memo: 158, meeting: 94, minutes: 153, resume: 50, cv: 103, invoice: 6, contract: 45, newsletter: 130,
-  recipe: 150, faq: 192, press: 148, news: 243, interview: 274, 'book-review': 258, 'music-review': 197, thesis: 436, grant: 207,
-  syllabus: 148, complaint: 263, politician: 203, love: 197, wedding: 228, eulogy: 229, zine: 230, petition: 156, terms: 234,
+  letter: 121,
+  cover: 175,
+  memo: 158,
+  meeting: 94,
+  minutes: 153,
+  resume: 50,
+  cv: 103,
+  invoice: 6,
+  contract: 45,
+  newsletter: 130,
+  recipe: 150,
+  faq: 192,
+  press: 148,
+  news: 243,
+  interview: 274,
+  'book-review': 258,
+  'music-review': 197,
+  thesis: 436,
+  grant: 207,
+  syllabus: 148,
+  complaint: 263,
+  politician: 203,
+  love: 197,
+  wedding: 228,
+  eulogy: 229,
+  zine: 230,
+  petition: 156,
+  terms: 234,
 };
 
 test('every template is its shape and a hint at each part, not a story: a third of its words, the prose in italics (Paul, 2026-10-11)', () => {
