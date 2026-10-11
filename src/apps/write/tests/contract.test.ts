@@ -165,7 +165,7 @@ test('printed: a signature block with the name, the day, the key and "verified";
   expect(svg).toMatch(/Signed \d{4}-\d{2}-\d{2} · key [0-9a-f]{5}-[0-9a-f]{5} · verified/);
   const html = String(await def.exports!.find((x) => x.ext === 'html')!.build(last(), { def, title: 'Deal', link: '' }));
   expect(html).toContain('<div class="valid"><strong>Paul Ford</strong>');
-  const changed = last().replace('noon', 'one');
+  const changed = last().replace('in return', 'at once');
   const file = String(await def.exports!.find((x) => x.ext === 'html')!.build(changed, { def, title: 'Deal', link: '' }));
   expect(file).toContain('does not match these words');
 });
