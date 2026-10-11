@@ -126,7 +126,7 @@ export async function lint(app: string, text: string, opts: LinkOptions = {}): P
   return (await import('./lint.ts')).lint(app, text, link(app, text, opts));
 }
 
-/** The numbers the layouts chose, so words can be set from them: per slide the headline's and the words' sizes, lines and what was cut; per diagram its things and connections, drawn and dropped, and how each label was set. */
+/** The numbers the layouts chose, so words can be set from them: per slide the headline's and the words' sizes, lines and what was cut; per diagram its things and connections, drawn and dropped, and how each label was set; and whether the link fits in a short link (`short: { fits, over }`). */
 export async function measure(app: string, text: string, opts: LinkOptions = {}): Promise<import('./lint.ts').Measure> {
   return (await import('./lint.ts')).measure(app, text, link(app, text, opts));
 }

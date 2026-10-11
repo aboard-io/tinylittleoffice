@@ -15,6 +15,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'このリンクには読み取れないものが入っています。コピーのときに途中で切れたのかもしれません。',
   '{n} of {max} link characters left': 'リンクの残り文字数 {n}/{max}',
   '{n} characters over the link limit': 'リンクの上限を{n}文字超えています',
+  '{n} characters over the link limit; a short link holds {max}': 'リンクの上限を{n}文字超えています。短縮リンクには{max}文字まで入ります',
+  '{n} characters over what a short link holds': '短縮リンクに入る量を{n}文字超えています',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'この文書はリンクの中にだけあります',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'この端末には何も保存されていません。残すにはリンクをコピーするか、この端末に保存してください。「戻る」でも戻れます。',
@@ -137,6 +139,7 @@ export default {
   'QR code': 'QRコード',
   'QR code of this document': 'ドキュメントのQRコード',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'このドキュメントは{n}バイトで、QRコードに入る最大は{max}バイトです。{over}バイト短くすれば収まります。',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'このドキュメントは{n}文字で、短縮リンクに入る最大は{max}文字です。{over}文字短くすれば収まります。',
   'Expires after': '期限',
   'An hour': '1時間',
   'A day': '1日',

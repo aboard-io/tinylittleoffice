@@ -15,6 +15,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': '이 링크에 읽을 수 없는 내용이 들어 있어요. 복사하다가 중간에 잘렸을 수 있어요.',
   '{n} of {max} link characters left': '링크 글자 {n}/{max}자 남음',
   '{n} characters over the link limit': '링크 한도를 {n}자 넘었어요',
+  '{n} characters over the link limit; a short link holds {max}': '링크 한도를 {n}자 넘었어요. 짧은 링크에는 {max}자까지 들어가요',
+  '{n} characters over what a short link holds': '짧은 링크에 들어가는 양보다 {n}자 많아요',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': '이 문서는 링크 안에만 있어요',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': '이 기기에는 아무것도 저장되어 있지 않아요. 링크를 복사해 두거나 이 기기에 보관하세요. 뒤로 가기를 눌러도 다시 열 수 있어요.',
@@ -138,6 +140,7 @@ export default {
   'QR code': 'QR 코드',
   'QR code of this document': '이 문서의 QR 코드',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': '이 문서는 {n}바이트인데 가장 큰 QR 코드에는 {max}바이트까지 들어가요. {over}바이트를 줄이면 들어가요.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': '이 문서는 {n}자인데 짧은 링크에는 {max}자까지 들어가요. {over}자를 줄이면 들어가요.',
   'Expires after': '만료까지',
   'An hour': '1시간',
   'A day': '1일',

@@ -17,6 +17,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Deze link bevat iets wat niet te lezen is. Misschien is hij afgekapt bij het kopiëren.',
   '{n} of {max} link characters left': 'nog {n} van {max} tekens voor de link',
   '{n} characters over the link limit': '{n} tekens boven de limiet van de link',
+  '{n} characters over the link limit; a short link holds {max}': '{n} tekens boven de limiet van de link; een korte link bevat {max}',
+  '{n} characters over what a short link holds': '{n} tekens meer dan een korte link bevat',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'Dit document leeft in zijn link',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Er wordt niets op dit apparaat opgeslagen. Kopieer de link om het te bewaren, of bewaar het op dit apparaat; Terug brengt het ook terug.',
@@ -139,6 +141,7 @@ export default {
   'QR code': 'QR-code',
   'QR code of this document': 'QR-code van dit document',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Dit document is {n} bytes; de grootste QR-code bevat {max}. Maak het {over} bytes korter en het past.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'Dit document is {n} tekens; een korte link bevat {max}. Maak het {over} korter en het past.',
   'Expires after': 'Verloopt na',
   'An hour': 'Een uur',
   'A day': 'Een dag',

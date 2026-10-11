@@ -17,6 +17,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': '這個連結的內容無法讀取，可能是複製時被截斷了。',
   '{n} of {max} link characters left': '連結還剩 {n}／{max} 個字元',
   '{n} characters over the link limit': '超出連結上限 {n} 個字元',
+  '{n} characters over the link limit; a short link holds {max}': '超出連結上限 {n} 個字元；短連結最多容納 {max}',
+  '{n} characters over what a short link holds': '超出短連結容量 {n} 個字元',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': '這份文件只存在於它的連結裡',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': '此裝置上沒有儲存任何內容。複製連結就能留住它，或把它保留在此裝置上；按「返回」也能再回到它。',
@@ -140,6 +142,7 @@ export default {
   'QR code': 'QR 碼',
   'QR code of this document': '此文件的 QR 碼',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': '這份文件有 {n} 位元組；最大的 QR 碼只能容納 {max}。縮短 {over} 位元組就能放得下。',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': '這份文件有 {n} 個字元；短連結最多容納 {max}。縮短 {over} 個字元就能放得下。',
   'Expires after': '到期時間',
   'An hour': '一小時',
   'A day': '一天',

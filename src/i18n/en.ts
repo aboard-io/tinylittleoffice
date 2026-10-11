@@ -31,6 +31,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'This link holds something that cannot be read. It may have been cut short when it was copied.',
   '{n} of {max} link characters left': '{n} of {max} link characters left',
   '{n} characters over the link limit': '{n} characters over the link limit',
+  '{n} characters over the link limit; a short link holds {max}': '{n} characters over the link limit; a short link holds {max}',
+  '{n} characters over what a short link holds': '{n} characters over what a short link holds',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'This document lives in its link',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.',
@@ -157,6 +159,7 @@ export default {
   'QR code': 'QR code',
   'QR code of this document': 'QR code of this document',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.',
   'Expires after': 'Expires after',
   'An hour': 'An hour',
   'A day': 'A day',

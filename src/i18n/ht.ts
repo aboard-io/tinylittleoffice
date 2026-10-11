@@ -17,6 +17,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Lyen sa a gen yon bagay ki pa ka li. Li ka koupe lè yo te kopye l.',
   '{n} of {max} link characters left': 'Rete {n} sou {max} karaktè nan lyen an',
   '{n} characters over the link limit': '{n} karaktè depase limit lyen an',
+  '{n} characters over the link limit; a short link holds {max}': '{n} karaktè depase limit lyen an; yon lyen kout kenbe {max}',
+  '{n} characters over what a short link holds': '{n} karaktè plis pase sa yon lyen kout kenbe',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'Dokiman sa a rete nan lyen li a',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Pa gen anyen ki anrejistre sou aparèy sa a. Kopye lyen an pou kenbe l, oswa kenbe l sou aparèy sa a; bouton Retounen an ap ramene l tou.',
@@ -140,6 +142,7 @@ export default {
   'QR code': 'Kòd QR',
   'QR code of this document': 'Kòd QR dokiman sa a',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Dokiman sa a gen {n} byte; pi gwo kòd QR a kenbe {max}. Redui l ak {over} byte epi l ap antre.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'Dokiman sa a gen {n} karaktè; yon lyen kout kenbe {max}. Redui l ak {over} epi l ap antre.',
   'Expires after': 'Ekspire apre',
   'An hour': 'Yon èdtan',
   'A day': 'Yon jou',

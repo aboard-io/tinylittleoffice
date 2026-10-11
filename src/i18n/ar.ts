@@ -17,6 +17,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'يحتوي هذا الرابط على شيء لا يمكن قراءته. ربما قُطع أثناء نسخه.',
   '{n} of {max} link characters left': 'بقي {n} من {max} حرفًا في الرابط',
   '{n} characters over the link limit': 'تجاوز الرابط الحد بمقدار {n} حرفًا',
+  '{n} characters over the link limit; a short link holds {max}': 'تجاوز الرابط الحد بمقدار {n} حرفًا؛ والرابط القصير يتسع لـ{max}',
+  '{n} characters over what a short link holds': 'يزيد بمقدار {n} حرفًا عما يتسع له الرابط القصير',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'هذا المستند يعيش في رابطه',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'لا شيء محفوظ على هذا الجهاز. انسخ الرابط لتحتفظ به، أو احفظه على هذا الجهاز؛ وزر الرجوع يعيده أيضًا.',
@@ -139,6 +141,7 @@ export default {
   'QR code': 'رمز QR',
   'QR code of this document': 'رمز QR لهذا المستند',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'حجم هذا المستند {n} بايت، وأكبر رمز QR يتسع لـ{max}. اختصره بمقدار {over} بايت ليناسب.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'حجم هذا المستند {n} حرفًا، والرابط القصير يتسع لـ{max}. اختصره بمقدار {over} ليناسب.',
   'Expires after': 'ينتهي بعد',
   'An hour': 'ساعة',
   'A day': 'يوم',

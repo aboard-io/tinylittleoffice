@@ -17,6 +17,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'У цьому посиланні є щось, чого не можна прочитати. Можливо, його обрізало під час копіювання.',
   '{n} of {max} link characters left': 'Залишилося символів у посиланні: {n} з {max}',
   '{n} characters over the link limit': 'Символів понад ліміт посилання: {n}',
+  '{n} characters over the link limit; a short link holds {max}': 'Символів понад ліміт посилання: {n}; коротке посилання вміщує {max}',
+  '{n} characters over what a short link holds': 'Більше, ніж вміщує коротке посилання, на {n} символів',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'Цей документ живе у своєму посиланні',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'На цьому пристрої нічого не збережено. Скопіюйте посилання, щоб не втратити документ, або залиште його на цьому пристрої; кнопка «Назад» теж поверне його.',
@@ -140,6 +142,7 @@ export default {
   'QR code': 'QR-код',
   'QR code of this document': 'QR-код цього документа',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Цей документ важить {n} байт, а найбільший QR-код вміщує {max}. Скоротіть його на {over} байт, і він влізе.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'У цьому документі {n} символів, а коротке посилання вміщує {max}. Скоротіть його на {over}, і він влізе.',
   'Expires after': 'Спливає через',
   'An hour': 'Година',
   'A day': 'День',

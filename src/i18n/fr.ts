@@ -18,6 +18,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Ce lien contient quelque chose d’illisible. Il a peut-être été coupé lors de la copie.',
   '{n} of {max} link characters left': '{n} caractères de lien restants sur {max}',
   '{n} characters over the link limit': '{n} caractères au-delà de la limite du lien',
+  '{n} characters over the link limit; a short link holds {max}': '{n} caractères au-delà de la limite du lien ; un lien court en contient {max}',
+  '{n} characters over what a short link holds': '{n} caractères de plus que ce que contient un lien court',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'Ce document vit dans son lien',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Rien n’est enregistré sur cet appareil. Copiez le lien pour le garder, ou gardez-le sur cet appareil ; Retour le ramène aussi.',
@@ -140,6 +142,7 @@ export default {
   'QR code': 'QR code', // same
   'QR code of this document': 'QR code de ce document',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Ce document fait {n} octets ; le plus grand QR code en contient {max}. Raccourcissez-le de {over} octets et il tiendra.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'Ce document fait {n} caractères ; un lien court en contient {max}. Raccourcissez-le de {over} et il tiendra.',
   'Expires after': 'Expire après',
   'An hour': 'Une heure',
   'A day': 'Un jour',

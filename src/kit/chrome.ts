@@ -58,7 +58,7 @@ import { routeHash } from './route.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { ago, type Kept } from './library.ts';
-import { expiresSentence, timeLeft } from './short.ts';
+import { expiresSentence, SHORT_LINK_MAX, timeLeft } from './short.ts';
 import { pinWindow, reveal } from './scroll.ts';
 import { BAR_HERE, cmdTool } from './bar.ts';
 import { PALETTE } from './keys.ts';
@@ -405,11 +405,19 @@ export class ToChrome extends LitElement {
     const home = t('Home');
     const here = html`<a class="to-here" href="#/" title=${home} aria-label=${home}>${icon(d.def.icon, 24)}</a>`;
     if (d.locked) return html`${here}<h1 class="to-title to-title-locked">${d.title}</h1>${d.trust}`;
-    const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(d.def.id)}/`);
+    const prefix = `${location.origin}${location.pathname}${routeHash(d.def.id)}/`;
+    const { available } = budgetFor(prefix);
     const left = available - d.used;
     const pct = Math.min(1, d.used / Math.max(1, available));
     const c = 2 * Math.PI * 9;
-    const room = left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available });
+    // Past some browsers' limit, the next place the link no longer fits is a short link (kit/limits.ts): said by name, or the room it has left.
+    const shortLeft = SHORT_LINK_MAX - prefix.length - d.used;
+    const room =
+      shortLeft < 0
+        ? t('{n} characters over what a short link holds', { n: -shortLeft })
+        : left < 0
+          ? t('{n} characters over the link limit; a short link holds {max}', { n: -left, max: SHORT_LINK_MAX })
+          : t('{n} of {max} link characters left', { n: left, max: available });
     const share = () => this.say('to-share-open');
     return html`${here}<h1 class="sr-only">${d.title}</h1>
       <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: d.def.noun })} aria-label=${t('Title')} autocomplete="off" enterkeyhint="done" .value=${d.value} @change=${(e: Event) => this.say('to-retitle', (e.target as HTMLInputElement).value.trim())} />

@@ -15,6 +15,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'В этой ссылке что-то, что не удаётся прочитать. Возможно, при копировании она оборвалась.',
   '{n} of {max} link characters left': 'Осталось символов в ссылке: {n} из {max}',
   '{n} characters over the link limit': 'Лишних символов в ссылке: {n}',
+  '{n} characters over the link limit; a short link holds {max}': 'Лишних символов в ссылке: {n}; в короткую ссылку помещается {max}',
+  '{n} characters over what a short link holds': 'Больше, чем помещается в короткую ссылку, на {n} символов',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': 'Этот документ живёт в ссылке',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'На этом устройстве ничего не сохранено. Скопируйте ссылку, чтобы не потерять документ, или храните его на устройстве; «Назад» тоже вернёт его.',
@@ -138,6 +140,7 @@ export default {
   'QR code': 'QR-код',
   'QR code of this document': 'QR-код этого документа',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Этот документ весит {n} байт, а в самый большой QR-код помещается {max}. Сократите его на {over} байт, и он поместится.',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'В этом документе {n} символов, а в короткую ссылку помещается {max}. Сократите его на {over}, и он поместится.',
   'Expires after': 'Истекает через',
   'An hour': 'Час',
   'A day': 'Сутки',

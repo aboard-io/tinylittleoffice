@@ -85,6 +85,8 @@ const utf8 = (s: string) => new TextEncoder().encode(s);
 
 /** What a link costs at the shortener: its ciphertext, in base64url characters (AES-GCM adds a 16-byte tag). */
 export const shortCost = (link: string): number => Math.ceil(((utf8(link).length + 16) * 4) / 3);
+/** The longest link a short link holds, in characters (bytes, past ASCII): the inverse of shortCost at SHORT_MAX. */
+export const SHORT_LINK_MAX = Math.floor((SHORT_MAX * 3) / 4) - 16;
 /** The public short link: the owner's link, or any short link, without its ".<o>" (a key alone is left as it is). */
 export const publicLink = (link: string): string => link.replace(/(#[A-Za-z0-9_~-]+)\.[A-Za-z0-9_~-]+$/, '$1');
 /** The owner's link from what the shell carries. */
