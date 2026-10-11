@@ -54,8 +54,6 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `draw` | Drawing Tool | Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile. |
 | `diagram` | Diagram Maker | Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines. |
 | `anim` | Animator | Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes. |
-| `board` | Kanban Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
-| `todo` | To-Do List | Tasks to tick off, with stars and due dates. |
 | `cal` | Calendar | Days and times on a month, a year or a schedule, in any time zone. |
 | `trip` | Trip Planner | A route on a map: stops in order, each with a note, and how far between them. |
 | `site` | Website Builder | A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell. |
@@ -408,71 +406,6 @@ Templates: Lift off, Bouncing ball, Loading spinner, Title card, Birthday card, 
 
 ## Plans
 
-### board: a kanban board
-
-`## Stage` headings (`## Doing {limit=2 color=g}` holds two cards at most and colours the stage), each followed by a `- card` list; a task list indented under a card (`  - [ ] step`) is its checklist.
-
-A project:
-
-```
----
-title: The Harbour Studio website
----
-## To do {color=b}
-
-- Write the words for the **About** page
-  - [x] Interview Mara about the first ten years
-  - [ ] First draft, about 400 words
-  - [ ] Dee reads it
-- Photograph the studio on a bright morning
-- Set up the contact form
-
-## Doing {limit=2 color=g}
-
-- Build the home page
-  - [x] Layout
-  - [x] Header and footer
-  - [ ] The gallery of twelve projects
-- Choose the typeface: a serif or a grotesque
-
-## Waiting on {color=y}
-
-- Pellow & Sons to send the logo as a vector file
-
-## Done {color=p}
-
-- Pick the domain name
-- Sign off the budget: £4,800, live by Monday 2 November
-```
-
-As a link: <https://tinylittleoffice.com/board/#doc=---%0Atitle%3A+The+Harbour+Studio+website%0A---%0A%23%23+To+do+%7Bcolor%3Db%7D%0A%0A-+Write+the+words+for+the+%2A%2AAbout%2A%2A+page%0A++-+%5Bx%5D+Interview+Mara+about+the+first+ten+years%0A++-+%5B+%5D+First+draft%2C+about+400+words%0A++-+%5B+%5D+Dee+reads+it%0A-+Photograph+the+studio+on+a+bright+morning%0A-+Set+up+the+contact+form%0A%0A%23%23+Doing+%7Blimit%3D2+color%3Dg%7D%0A%0A-+Build+the+home+page%0A++-+%5Bx%5D+Layout%0A++-+%5Bx%5D+Header+and+footer%0A++-+%5B+%5D+The+gallery+of+twelve+projects%0A-+Choose+the+typeface%3A+a+serif+or+a+grotesque%0A%0A%23%23+Waiting+on+%7Bcolor%3Dy%7D%0A%0A-+Pellow+%26+Sons+to+send+the+logo+as+a+vector+file%0A%0A%23%23+Done+%7Bcolor%3Dp%7D%0A%0A-+Pick+the+domain+name%0A-+Sign+off+the+budget%3A+%C2%A34%2C800%2C+live+by+Monday+2+November>
-
-Templates: A project, A week, Moving house, Hiring, Content calendar, Editorial board, Sales pipeline, Bug triage, Class projects, Mutual aid. Its own files: `.csv`.
-
-### todo: a to-do list
-
-`- [ ] task` and `- [x] done`. A star and a due date are attributes: `- [ ] Renew passport {.star due=2027-03-01}`.
-
-Shopping:
-
-```
----
-title: Shopping
----
-- [x] Oat milk
-- [x] Coffee beans
-- [ ] Lemons
-- [ ] Sourdough
-- [ ] A dozen eggs
-- [ ] Olive oil
-- [ ] Basil, the live kind
-- [ ] Candles for Mira's cake on Saturday {.star due=2026-10-17}
-```
-
-As a link: <https://tinylittleoffice.com/todo/#doc=---%0Atitle%3A+Shopping%0A---%0A-+%5Bx%5D+Oat+milk%0A-+%5Bx%5D+Coffee+beans%0A-+%5B+%5D+Lemons%0A-+%5B+%5D+Sourdough%0A-+%5B+%5D+A+dozen+eggs%0A-+%5B+%5D+Olive+oil%0A-+%5B+%5D+Basil%2C+the+live+kind%0A-+%5B+%5D+Candles+for+Mira%27s+cake+on+Saturday+%7B.star+due%3D2026-10-17%7D>
-
-Templates: This week, Daily routine, Shopping, Groceries by aisle, Reading list, Packing for a trip, Garden by season, Project launch, Onboarding, Moving out, Wedding checklist. Its own files: `.md`, `.ics`.
-
 ### cal: a calendar, or a schedule
 
 A list item per thing: `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`. Attributes give a colour and a repeat: `{color=green every=week times=6}` (or `until=2027-06-01`). The head holds the time zone, `zone: Europe/London`, and may say what a colour stands for: `green: Sam`. `view: gantt` in the head draws the same items as a schedule: an item nested under another is part of it, `{done=40%}` is how far along it is, `- [x]` that it is done.
@@ -691,8 +624,6 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - **Drawing Tool**: `V` Select; `R` Rectangle; `E` Ellipse; `D` Diamond; `L` Line; `A` Arrow; `T` Text; `K`/`Shift+K` Join two shapes; `P` Pen; `F` Freehand; `[` Rotate left; `]` Rotate right; `Enter` Edit the words; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter` Done; `Escape` Step out: close, collapse, let go; `Backspace` Delete; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Enter` Join two shapes; `Mod+A` Select all: the words of the box, then everything; `Mod+Shift+L` Align: left; `Mod+Shift+E` Align: centre; `Mod+Shift+R` Align: right; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge the shapes in hand; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` Tap or drag to paint; the arrow keys move, Enter paints.; `Enter`/`Space` Tap or drag to paint; the arrow keys move, Enter paints..
 - **Diagram Maker**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Tab` Indent; `Shift+Tab` Bring out; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter`/`Space` Edit; `Mod+Alt+ArrowLeft` Move left; `Mod+Alt+ArrowRight` Move right; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before; `ArrowDown`/`ArrowRight` The next or the one before; `Escape` Step out: close, collapse, let go; `Mod+Enter` Done.
 - **Animator**: `Space` Play; `K` Add a key here; `Enter` Edit the words; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `,`/`.` A frame back, a frame on; `Home`/`End` The first frame, the last; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge the shapes in hand; with none, step a frame; `Mod+A` Select all: the words of the box, then everything; `Escape` Step out: close, collapse, let go.
-- **Kanban Board**: `Mod+Alt+ArrowLeft` Move to the stage before; `Mod+Alt+ArrowRight` Move to the stage after; `Mod+Alt+ArrowLeft`/`Mod+Alt+ArrowRight` Move the cards to the stage before or after; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task.
-- **To-Do List**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before.
 - **Calendar**: `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Tab`/`Shift+Tab` Indent or bring out in a list; the next cell in a grid; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task; `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Enter` Event; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Home`/`End`/`PageUp`/`PageDown` The next or the one before; `Delete`/`Backspace` Delete; `Mod+D` Duplicate.
 - **Trip Planner**: `Mod+Alt+Enter` Present; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `Mod+D` Duplicate; `ArrowUp`/`ArrowDown` The next or the one before; `ArrowRight`/`Space`/`PageDown`/`Enter` Presenting: the next stop; `ArrowLeft`/`PageUp`/`Backspace` Presenting: the stop before; `Home`/`End` The first, the last; `Escape` Stop presenting; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown` Nudge the shapes in hand; `Delete`/`Backspace` Delete; `Escape` Step out: close, collapse, let go.
 - **Website Builder**: `Escape` Edit; `Enter` Edit; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Alt+ArrowLeft` Move left; `Mod+Alt+ArrowRight` Move right; `Mod+D` Duplicate; `Delete`/`Backspace` Delete; `Escape` Step out: close, collapse, let go; `ArrowUp`/`ArrowDown` The next or the one before.
@@ -702,7 +633,7 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - Numbers, a table, a chart, a model: `sheet`. A quick sum or a conversion: `calc`.
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
-- A wall of work in stages: `board`. Things to tick off: `todo`. Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`.
+- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
 - Something to publish: `site`. Anything else visual: `draw`; moving: `anim`.
 
 ## Good practice

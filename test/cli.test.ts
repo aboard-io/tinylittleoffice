@@ -11,26 +11,26 @@ const run = (args: string[], input = '') => execFileSync(process.execPath, [CLI,
 
 test('a link from a file, and the file back from the link', () => {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-'));
-  writeFileSync(join(dir, 'chores.tlo'), '---\ntitle: Chores\napp: todo\n---\n- [ ] Sweep\n- [x] Shop\n');
+  writeFileSync(join(dir, 'chores.tlo'), '---\ntitle: Chores\napp: outline\n---\n- [ ] Sweep\n- [x] Shop\n');
   const url = run(['link', join(dir, 'chores.tlo')]).trim();
-  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/todo\/#\/v1\/todo\/[yzr]/);
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/outline\/#\/v1\/outline\/[yzr]/);
   expect(run(['read', url])).toBe('---\ntitle: Chores\n---\n- [ ] Sweep\n- [x] Shop\n');
   const out = join(dir, 'back.tlo');
   expect(run(['file', url, '--out', out]).trim()).toBe(out);
-  expect(readFileSync(out, 'utf8')).toBe('---\ntitle: Chores\napp: todo\n---\n- [ ] Sweep\n- [x] Shop\n');
+  expect(readFileSync(out, 'utf8')).toBe('---\ntitle: Chores\napp: outline\n---\n- [ ] Sweep\n- [x] Shop\n');
   // The app's own Markdown, where it has one (a list's is the list).
   expect(run(['file', url, '--as', 'md', '--out', '-'])).toContain('- [ ] Sweep\n- [x] Shop\n');
 });
 
 test('stdin, the plain form, a show link, and JSON', () => {
   expect(run(['link', 'deck', '--title', 'Talk', '--view', 'show'], '## One\n').trim()).toMatch(/\?show$/);
-  expect(run(['link', 'todo', '--plain', '--title', 'Shop'], '- [ ] Milk\n').trim()).toBe('https://tinylittleoffice.com/todo/#title=Shop&doc=-+%5B+%5D+Milk');
-  expect(JSON.parse(run(['read', 'https://tinylittleoffice.com/todo/#title=Shop&doc=-+%5B+%5D+Milk', '--json']))).toMatchObject({ app: 'todo', title: 'Shop' });
+  expect(run(['link', 'outline', '--plain', '--title', 'Shop'], '- [ ] Milk\n').trim()).toBe('https://tinylittleoffice.com/outline/#title=Shop&doc=-+%5B+%5D+Milk');
+  expect(JSON.parse(run(['read', 'https://tinylittleoffice.com/outline/#title=Shop&doc=-+%5B+%5D+Milk', '--json']))).toMatchObject({ app: 'outline', title: 'Shop' });
 });
 
 test('diff says what changed and exits 1; the same document exits 0; a bad link is said so', () => {
-  const a = run(['link', 'todo'], '- [ ] Milk\n- [ ] Eggs\n').trim();
-  const b = run(['link', 'todo'], '- [ ] Milk\n- [x] Eggs\n').trim();
+  const a = run(['link', 'outline'], '- [ ] Milk\n- [ ] Eggs\n').trim();
+  const b = run(['link', 'outline'], '- [ ] Milk\n- [x] Eggs\n').trim();
   const d = spawnSync(process.execPath, [CLI, 'diff', a, b], { encoding: 'utf8' });
   expect(d.status).toBe(1);
   expect(d.stdout).toBe('  - [ ] Milk\n- - [ ] Eggs\n+ - [x] Eggs\n');

@@ -162,8 +162,6 @@ export function appName(id: string): string {
     outline: () => t('Outliner'),
     diagram: () => t('Diagram Maker'),
     cal: () => t('Calendar'),
-    todo: () => t('To-Do List'),
-    board: () => t('Kanban Board'),
     trip: () => t('Trip Planner'),
     site: () => t('Website Builder'),
     calc: () => t('Calculator'),

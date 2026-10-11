@@ -87,10 +87,7 @@ const PLACES: Record<string, Record<string, Place[]>> = {
     ],
   },
   rows: {
-    '': [
-      ...[1, 2, 3, 4].map((i) => ({ tpl: 'outline:talk', set: (ed: Ed) => ed.rows.choose(ed.items[i].at), at: (ed: Ed) => ed.rows.o.box() })),
-      { tpl: 'todo:week', set: (ed) => ed.rows.choose(ed.view.tasks[1].at), at: (ed) => ed.rows.o.box() },
-    ],
+    '': [...[1, 2, 3, 4].map((i) => ({ tpl: 'outline:talk', set: (ed: Ed) => ed.rows.choose(ed.items[i].at), at: (ed: Ed) => ed.rows.o.box() }))],
   },
   write: {
     words: [{ tpl: 'write:invoice', set: (ed) => ed.focusFirst(), at: words('to-text.write-text') }],
@@ -164,14 +161,6 @@ const PLACES: Record<string, Record<string, Place[]>> = {
       { tpl: 'anim:bounce', set: (ed) => ed.toggle(), at: (ed) => ed.querySelector('svg.anim-stage') },
     ],
   },
-  board: {
-    words: [
-      { tpl: 'board:project', at: (ed) => nth(ed, '.board-card > .board-main to-text', 2) },
-      { tpl: 'board:project', at: (ed) => nth(ed, '.board-items to-text', 0) },
-    ],
-    rows: [{ tpl: 'board:project', set: (ed) => ed.rows.choose(ed.view.stages[1].cards[0].at), at: (ed) => ed.rows.o.box() }],
-  },
-  todo: { words: [{ tpl: 'todo:week', at: (ed) => nth(ed, '.todo-row to-text', 1) }] },
   cal: {
     words: [{ tpl: 'cal:project', at: (ed) => nth(ed, '.cal-trow to-text', 2) }],
     rows: [{ tpl: 'cal:project', set: (ed) => ed.rows.choose(ed.view.items[1].at), at: (ed) => ed.rows.o.box() }],

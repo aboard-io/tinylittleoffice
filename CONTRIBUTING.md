@@ -76,8 +76,8 @@ raised into budgets.json in a commit of its own whose message says why.
 ## Commits and pull requests
 
 One change per pull request, with its tests and every check green (CI runs them). Commit messages are
-sentences in plain words: what changed, and why, as a person would say it ("The To-Do List keeps the
-Outliner's measure on a wide screen: a list of words, not a board"), not a type prefix and a fragment. Keep
+sentences in plain words: what changed, and why, as a person would say it ("The Outliner keeps the
+page's measure on a wide screen: a list of words, not a spreadsheet"), not a type prefix and a fragment. Keep
 the lockfile committed and never commit a secret, a `.env` file or `dist/`.
 
 By contributing you agree that your work is released under the [MIT licence](LICENSE).

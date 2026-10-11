@@ -845,7 +845,7 @@ test('Insert ▾ lists the web things by their names and every other app; a new 
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
   const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(labels).toEqual(expect.arrayContaining(['Table', 'Web Picture…', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board', 'Spreadsheet']));
+  expect(labels).toEqual(expect.arrayContaining(['Table', 'Web Picture…', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Calendar', 'Spreadsheet']));
   expect(labels).not.toContain('Word Processor');
   opener.click();
   await tick();

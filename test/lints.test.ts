@@ -48,7 +48,7 @@ export const SHARED: Record<string, string> = {
   'src/apps/draw/model.ts': 'the shapes and their reading and writing: Animation’s frames and Diagram’s boxes are Draw’s shapes',
   'src/apps/draw/view.ts': 'a shape drawn as SVG, the same in Draw, Animation and Diagram',
   'src/apps/draw/editor.ts': 'Draw’s editor, which is Animation’s Draw mode (<to-draw-editor> inside it)',
-  'src/apps/cal/model.ts': 'a calendar’s item block, made by the Spreadsheet’s, the To-Do List’s and the Trip Planner’s “Open as calendar”',
+  'src/apps/cal/model.ts': 'a calendar’s item block, made by the Spreadsheet’s and the Trip Planner’s “Open as calendar”',
   'src/apps/sheet/model.ts': 'the table block’s columns and cells, which the Word Processor’s tables edit',
   'src/apps/sheet/view.ts': 'a table drawn as a page, which the Word Processor draws its tables with',
   'src/apps/write/model.ts': 'the web block of a text, which the Website Builder’s pages are written in',

@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a Tiny Little Office URL: spreadsheets and charts, models of a small business, text, letters, résumés, contracts, invoices, slide decks, outlines, zines, booklets, brochures, comics, posters, name badges, drawings and pixel art, diagrams (mind map, org chart, family tree, swimlanes, timeline, Venn, seating chart, network), animations, kanban boards, to-do lists, calendars and Gantt schedules, trips on a map, websites of little pages and link-in-bio pages, shops, and a calculator that keeps its working. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a Tiny Little Office URL: spreadsheets and charts, models of a small business, text, letters, résumés, contracts, invoices, slide decks, outlines, zines, booklets, brochures, comics, posters, name badges, drawings and pixel art, diagrams (mind map, org chart, family tree, swimlanes, timeline, Venn, seating chart, network), animations, calendars and Gantt schedules, trips on a map, websites of little pages and link-in-bio pages, shops, and a calculator that keeps its working. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # Tiny Little Office links
@@ -154,22 +154,6 @@ A drawing's table, then a table `Shape | Keys`: for each moving shape (its row n
 
 ## Plans
 
-### board: a kanban board
-
-`## Stage` headings (`## Doing {limit=2 color=g}` holds two cards at most and colours the stage), each followed by a `- card` list; a task list indented under a card (`  - [ ] step`) is its checklist.
-
-{{tpl:board:project}}
-
-{{templates:board}} {{exports:board}}
-
-### todo: a to-do list
-
-`- [ ] task` and `- [x] done`. A star and a due date are attributes: `- [ ] Renew passport {.star due=2027-03-01}`.
-
-{{tpl:todo:shopping}}
-
-{{templates:todo}} {{exports:todo}}
-
 ### cal: a calendar, or a schedule
 
 A list item per thing: `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`. Attributes give a colour and a repeat: `{color=green every=week times=6}` (or `until=2027-06-01`). The head holds the time zone, `zone: Europe/London`, and may say what a colour stands for: `green: Sam`. `view: gantt` in the head draws the same items as a schedule: an item nested under another is part of it, `{done=40%}` is how far along it is, `- [x]` that it is done.
@@ -264,7 +248,7 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - Numbers, a table, a chart, a model: `sheet`. A quick sum or a conversion: `calc`.
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
-- A wall of work in stages: `board`. Things to tick off: `todo`. Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`.
+- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
 - Something to publish: `site`. Anything else visual: `draw`; moving: `anim`.
 
 ## Good practice

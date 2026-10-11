@@ -1,7 +1,7 @@
 // A pinch on a touch screen is the size of everything (kit/pinch.ts, kit/zoom.ts): two fingers spreading over the Word
 // Processor change the size live with a pill showing it, lifting keeps it to the nearest 5%, the nav stops at 120%
 // while the words go on to 200%, a pinch begun on a spatial canvas changes nothing, the paragraph under the fingers
-// stays in view, and at 200% on a 390px screen the home page, Write, Outline and Board all fit. Every size is drawn at
+// stays in view, and at 200% on a 390px screen the home page, Write and Outline all fit. Every size is drawn at
 // BASE (1.3) times itself: the root's --to-doc is BASE × the size (a rem is that × 16px) and --to-nav the nav's, so a
 // font size or a length is read as it is, on the screen.
 import { test, expect, afterEach } from 'vitest';
@@ -161,7 +161,7 @@ function fits(shell: ToShell, where: string, nav = NAV_MAX) {
   expect(burger.width).toBeLessThan(80);
 }
 
-/** At the size kept now on a 390px screen (the nav at `nav`): the home page, the drawer, Write and its dialogs, Outline and Board all fit. */
+/** At the size kept now on a 390px screen (the nav at `nav`): the home page, the drawer, Write and its dialogs, and Outline all fit. */
 async function allFit(nav: number) {
   // The home page and the drawer.
   const home = await mount('');
@@ -242,24 +242,16 @@ async function allFit(nav: number) {
   await tick(100);
   fits(outline, 'outline', nav);
   for (const row of outline.querySelectorAll<HTMLElement>('to-text')) expect(row.getBoundingClientRect().right, 'outline: a row reflows').toBeLessThanOrEqual(innerWidth + 0.5);
-  // Board: a column is still a column.
-  const board = await mount(`#/v1/board/${encodeDoc('## To do\n\n- Post the letter\n- Buy coffee\n\n## Done\n\n- Walk the dog\n')}`);
-  await until(() => !!board.querySelector('.to-editor to-bar button'));
-  await tick(100);
-  fits(board, 'board', nav);
-  const col = board.querySelector<HTMLElement>('.board-col')!.getBoundingClientRect();
-  expect(col.width, 'board: a column is a column, within the screen').toBeLessThanOrEqual(innerWidth);
-  expect(col.height).toBeGreaterThan(col.width / 2);
 }
 
-test('at the normal size, nothing stored, on a 390px screen: the home page, the drawer, Write and its dialogs, Outline and Board all fit', async () => {
+test('at the normal size, nothing stored, on a 390px screen: the home page, the drawer, Write and its dialogs, and Outline all fit', async () => {
   await page.viewport(390, 844);
   stepSize(0);
   expect(size()).toBe(1);
   await allFit(1);
 });
 
-test('at 200% on a 390px screen: the home page, the drawer, Write and its dialogs, Outline and Board all fit', async () => {
+test('at 200% on a 390px screen: the home page, the drawer, Write and its dialogs, and Outline all fit', async () => {
   await page.viewport(390, 844);
   keepSize(SIZE_MAX);
   await allFit(NAV_MAX);

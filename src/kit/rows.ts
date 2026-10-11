@@ -1,6 +1,6 @@
 /**
  * Rows: the one implementation of things chosen whole in a list (docs/editing.md §3 and §6). An app with rows (Outline's
- * items, Todo's items, Board's cards, Trip's stops, the schedule's tasks) draws its rows and hands this controller the
+ * items, Trip's stops, the schedule's tasks) draws its rows and hands this controller the
  * rows on screen; the controller keeps which of them are chosen and answers everything a person does to them.
  *
  *   const rows = new Rows<number>(this, {
@@ -91,7 +91,7 @@ export interface RowsOptions<Id> {
   paste(data: Clip, span: RowSpan | null): void;
   /** A dragged row (with its family) put under or after another. */
   drop?(id: Id, to: Id, how: DropHow): void;
-  /** The app's own context items (Move to a stage, Numbered): after Move down. */
+  /** The app's own context items (Numbered): after Move down. */
   extra?(span: RowSpan): ContextEntry[];
   /** What scrolls during a drag near its edges (default: the nearest scrolling ancestor of the box, or the page). */
   scroller?(): HTMLElement | null;

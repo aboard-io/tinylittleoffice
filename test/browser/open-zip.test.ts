@@ -60,7 +60,7 @@ test('Download everything, then the zip opened on an empty device: the same libr
   keep({ id: 'a', app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc('---\ntitle: Launch notes\n---\nGo.\n')}`, at: now });
   keep({ id: 'b', app: 'sheet', title: '', hash: `#/v1/sheet/${encodeDoc('a | b\n--- | ---\n1 | 2\n')}`, at: now - 1 });
   keep({ id: 'c', app: 'write', title: '', hash: `#/v1/write/${await pack('secret', await lockWith('pw'))}`, at: now - 2 });
-  keep({ id: 'd', app: 'todo', title: 'Errands', hash: `#/v1/todo/${encodeDoc('---\ntitle: Errands\n---\n- [ ] Milk\n')}`, at: now - 3 });
+  keep({ id: 'd', app: 'outline', title: 'Errands', hash: `#/v1/outline/${encodeDoc('---\ntitle: Errands\n---\n- [ ] Milk\n')}`, at: now - 3 });
   const before = shape();
   let shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
@@ -164,11 +164,11 @@ test('a zip dropped on the page, under Saved: its documents kept', async () => {
   setKeeping(true);
   await mount('');
   const dt = new DataTransfer();
-  dt.items.add(zipFile({ 'write/a.tlo': '---\ntitle: A\n---\nA\n', 'todo/b.tlo': '---\ntitle: B\n---\n- [ ] B\n' }));
+  dt.items.add(zipFile({ 'write/a.tlo': '---\ntitle: A\n---\nA\n', 'outline/b.tlo': '---\ntitle: B\n---\n- [ ] B\n' }));
   window.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
   await until(() => toast() === '2 documents kept');
   expect(library().map((k) => [k.app, k.title])).toEqual([
     ['write', 'A'],
-    ['todo', 'B'],
+    ['outline', 'B'],
   ]);
 });

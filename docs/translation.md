@@ -86,15 +86,14 @@ Arabic and Urdu are the two RTL languages; mirroring is not enough, and some thi
    directions line by line, and its caret movement and Home/End follow the block's direction (the browser
    does this; we only need to stop assuming "left is start" in `textops` and in selection rectangles).
 3. **What mirrors and what does not.** Navigation, bars, menus, the drawer, back/forward arrows, indent and
-   outdent, chevrons, list bullets, the rail of slides, the Kanban's stages (the first stage sits at the
-   inline start), the Outliner's tree and its handles, the sheet's row numbers (inline start) and column
-   order (A at the start): all mirror. What does not: clocks, media controls, charts' axes, the calendar's
-   week order (it follows the locale's first day but days run start to end), a drawing's canvas, a map, the
-   QR code, checkmarks, the brand mark, and icons that depict a real object. Lucide icons that are
-   directional get a list (`src/kit/icons.ts`: `MIRRORED`) and are drawn with `transform: scaleX(-1)` under
-   `[dir=rtl]`; the rest stay.
+   outdent, chevrons, list bullets, the rail of slides, the Outliner's tree and its handles, the sheet's row
+   numbers (inline start) and column order (A at the start): all mirror. What does not: clocks, media controls,
+   charts' axes, the calendar's week order (it follows the locale's first day but days run start to end), a
+   drawing's canvas, a map, the QR code, checkmarks, the brand mark, and icons that depict a real object. Lucide
+   icons that are directional get a list (`src/kit/icons.ts`: `MIRRORED`) and are drawn with `transform:
+   scaleX(-1)` under `[dir=rtl]`; the rest stay.
 4. **Keys.** Arrow Left/Right keep their physical meaning (as native apps do) but "forward/back" in the
-   standard's words means inline start/end: Tab, Shift+Tab, Mod+Alt+Left/Right across stages, and the
+   standard's words means inline start/end: Tab, Shift+Tab, Mod+Alt+Left/Right across columns, and the
    contextual bar's Move left/right act in logical terms and their labels say "earlier/later" in RTL
    languages. docs/editing.md gets a §10 on direction.
 5. **Numbers and digits.** Arabic and Urdu users expect their language's digits in prose (`Intl.NumberFormat`

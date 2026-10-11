@@ -57,6 +57,6 @@ test('the folder and the app are searched too', () => {
 
 test("a document's lines come from the kernel: words without their marks, a table's rows, a document inside", async () => {
   const { linesOf } = await import('../src/kit/search.ts');
-  const text = '---\ntitle: Plan\nzone: Europe/Lisbon\n---\n# The **launch**\n\n- [ ] Call *Dee*\n\n| Item | Cost:money |\n|---|---|\n| Rent | 1200 |\n\n```todo\n- [ ] Pack\n```\n';
+  const text = '---\ntitle: Plan\nzone: Europe/Lisbon\n---\n# The **launch**\n\n- [ ] Call *Dee*\n\n| Item | Cost:money |\n|---|---|\n| Rent | 1200 |\n\n```outline\n- Pack\n```\n';
   assert.deepEqual(linesOf(text), ['Europe/Lisbon', 'The launch', 'Call Dee', 'Rent · 1200', 'Pack']);
 });

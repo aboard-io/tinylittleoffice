@@ -12,7 +12,7 @@ holds every one).
 - **A lesson**: a Year 7 science lesson: aims, what they know, the model, the phases in two columns, a big-icon slide, a check, homework, the check's answers last; the teacher's notes under each (Chalkboard).
 - **Conference talk**: a talk with speaker notes on every slide, a bar chart of results, a footnote, and the lessons to write down (Ocean).
 - **Quarterly review**: a bike shop's quarter for its partners: revenue by month on a chart, wins and misses, a table of the numbers that matter, next quarter, decisions (green icons).
-- **Workshop agenda**: a Saturday repair workshop: the timetable as a table, a to-do list of what to bring on the slide, the steps, two columns of fixes (Confetti).
+- **Workshop agenda**: a Saturday repair workshop: the timetable as a table, an outline of what to bring on the slide, the steps, two columns of fixes (Confetti).
 - **Product launch**: a kettle in a sentence, what it does, prices in a money table, the launch dates, the press contact (orange icons, zoom).
 - **Town-hall notice**: a residents' meeting about a playground: why, what is proposed, the budget as a pie, when, how to have a say and access (Sunset).
 - **Trivia night**: a pub quiz in four rounds, a score table that adds itself up, the answers on the last slide, and no closing QR code (so the room cannot read ahead) (Arcade).

@@ -451,13 +451,7 @@ Tell us what you can do and when. An hour a month is a real help.
 - :package: The pantry | Sorting on Wednesdays, opening on Thursdays
 - :phone: Callers | Ten minutes, five mornings a week
 
-\`\`\`todo
-- [x] Fifty tins of soup from the school harvest festival
-- [x] A second freezer for the hall
-- [ ] Two more Thursday volunteers before Christmas
-- [ ] Nappies, sizes 4 and 5
-- [ ] A driver for Tuesday mornings
-\`\`\`
+Still needed before Christmas: two more Thursday volunteers, nappies in sizes 4 and 5, and a driver for Tuesday mornings.
 
 > :heart: Say you can help | mailto:offer@elmstreet.example
 `;
@@ -503,11 +497,7 @@ Fill in the permission slip with a grown-up and bring it to Mr Adeyemi in D3.
 
 > :mail: Ask Mr Adeyemi | mailto:t.adeyemi@northfieldschool.example
 
-\`\`\`todo
-- [ ] The signed permission slip
-- [ ] Old clothes: there is glue
-- [ ] A snack for after school
-\`\`\`
+On the first Tuesday, bring the signed slip, old clothes (there is glue) and a snack for after school.
 `;
 
 const NEWSLETTER = `---

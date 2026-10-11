@@ -33,7 +33,7 @@ test('typing in Insert ▾ narrows it to the items with a word starting so; Back
   const all = names(ins).length;
   expect(all).toBeGreaterThan(12);
   await typeIn(ins, 't');
-  expect(names(ins)).toEqual(expect.arrayContaining(['Table', 'Tiny Little Office Doc…', 'QR code of this document', 'To-Do List', 'Trip Planner']));
+  expect(names(ins)).toEqual(expect.arrayContaining(['Table', 'Tiny Little Office Doc…', 'QR code of this document', 'Trip Planner']));
   expect(names(ins)).not.toContain('Web Picture…');
   expect(names(ins).length).toBeLessThan(all);
   await typeIn(ins, 'a');

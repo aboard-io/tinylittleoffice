@@ -164,10 +164,10 @@ describe('what each finding says', () => {
 
   test('a link past 2,000 characters', () => {
     const text = Array.from({ length: 300 }, (_, i) => `- [ ] ${((i * 2654435761) % 4294967296).toString(36)} ${((i * 40503) % 65536).toString(36)}`).join('\n') + '\n';
-    const url = link('todo', text);
+    const url = link('outline', text);
     expect(url.length).toBeGreaterThan(LINK_MAX);
-    expect(lint('todo', text, url).map((f) => [f.kind, f.at])).toStrictEqual([['length', 'the link']]);
-    expect(lint('todo', '- [ ] One\n', link('todo', '- [ ] One\n'))).toStrictEqual([]);
+    expect(lint('outline', text, url).map((f) => [f.kind, f.at])).toStrictEqual([['length', 'the link']]);
+    expect(lint('outline', '- [ ] One\n', link('outline', '- [ ] One\n'))).toStrictEqual([]);
   });
 });
 

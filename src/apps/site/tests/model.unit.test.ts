@@ -52,7 +52,7 @@ const code = (tag: string) => tag.slice('<script>'.length, -'</script>'.length);
 
 test('pages, sections, theme, pictures, icons, documents and buttons are read from the blocks, each with its span', () => {
   const text =
-    '---\ntheme: teal serif dark\n---\n# Harbor\n\nOn the quay.\n\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n```todo\n- grind\n```\n\n# Last\n\nLast.\n';
+    '---\ntheme: teal serif dark\n---\n# Harbor\n\nOn the quay.\n\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n```outline\n- grind\n```\n\n# Last\n\nLast.\n';
   const s = readSite(parse(text));
   expect(s.name).toBe('Harbor');
   expect(s.theme).toEqual({ id: 'teal', face: 'serif', dark: true });
@@ -78,7 +78,7 @@ test('pages, sections, theme, pictures, icons, documents and buttons are read fr
   ]);
   expect(coffee.cards.map((c) => [c.icon, c.head[0].t, c.detail[0].t])).toEqual([['coffee', 'Espresso', '3.00']]);
   expect(coffee.pics).toEqual([{ url: 'https://example.com/beans.png', alt: '' }]);
-  expect(coffee.embeds).toEqual([{ lang: 'todo', body: '- grind' }]);
+  expect(coffee.embeds).toEqual([{ lang: 'outline', body: '- grind' }]);
   // A site of one page is navigated by its sections; lines and fields are cut where the text says.
   expect(readSite(parse('# A\n\nabout\n\n## B\n\n- x\n')).pages[0].sections.map((x) => x.title)).toEqual(['A', 'B']);
   const li = parse('- **Big** one | small *words*\n').blocks[0];

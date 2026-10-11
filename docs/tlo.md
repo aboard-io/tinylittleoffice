@@ -156,12 +156,6 @@ one of them; the backslash is in the item's words, so the text holds it doubled 
 is two guests). An unescaped separator still separates. A connection names things by their plain words, and a name
 holding an arrow or `: ` (`~ A -- B -> C`) is read against the things there are, a whole name first.
 
-**board** (Kanban Board): `## Stage {limit=2 color=g}` headings, each with `- card` items; a card's checklist is
-the task items one level under it. `look: rows` in the head draws the stages as bands.
-
-**todo** (To-Do List): a task list; a star and a due date are attributes:
-`- [ ] Renew passport {.star due=2027-03-01}`.
-
 **cal** (Calendar): an item a span. `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`,
 `- 2027-03-10 09:00-10:30: Retro {color=green every=week times=9}` (or `until=2027-06-01`),
 `- 2027-03-10 22:00 to 2027-03-11 01:00: Party`. Head: `zone: Europe/London`, the colours' names
@@ -180,5 +174,5 @@ it a Quick Links page (one column, the buttons stacked, `- ` items small links a
 
 ## Opening another app's reading
 
-The Download menu's "Open in" turns a document into another app's (a list as a board, a text as slides, a trip as
-a calendar): pure functions in `src/apps/<id>/convert.ts`, listed in `docs/exports.md`.
+The Download menu's "Open in" turns a document into another app's (a text as slides, an outline as a mind map, a
+trip as a calendar): pure functions in `src/apps/<id>/convert.ts`, listed in `docs/exports.md`.

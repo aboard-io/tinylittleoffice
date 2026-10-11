@@ -14,7 +14,7 @@ canonical TLO, held byte for byte by the corpus test (test/doc/corpus/apps/site.
 - **A band**: the Harbour Lights' new record, four tour dates each linked to its tickets, merch with a cart.
 - **A clinic**: a family practice in Leith, hours, out of hours and emergencies, services, the way in.
 - **A campaign**: keeping a branch library open, three numbers, the cost added up, the hearing, a QR code for the petition.
-- **A mutual-aid group**: Elm Street Neighbours, how to ask, how to offer, what the group needs as a list.
+- **A mutual-aid group**: Elm Street Neighbours, how to ask, how to offer, what the group still needs.
 - **A school club**: a robotics club, when it meets, the regional final, T-shirts and brownies for the coach, what to bring.
 - **A newsletter sign-up**: an allotment letter, one button to subscribe, the last three letters linked.
 - **A holiday cottage**: a cottage in Port Isaac, the rooms, prices by season worked out per night, booking, a map.

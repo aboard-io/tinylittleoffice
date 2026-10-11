@@ -8,7 +8,7 @@ serves at `/api.js`. Node 24 runs it as it is, with no build: in a clone, `npm c
 ```sh
 tinyoffice apps                                  # every app, with a line on each
 tinyoffice templates deck                        # a deck's templates; `template deck talk` prints one
-echo "- [ ] Sweep" | tinyoffice link todo --title Chores --by chores-agent
+echo "- [ ] Sweep" | tinyoffice link write --title Chores --by chores-agent
 tinyoffice link plan.tlo                         # a .tlo file names its app in its head
 tinyoffice link deck talk.md --view show         # a deck that opens presenting
 tinyoffice link sheet budget.md --plain          # the readable form: /sheet/#title=…&doc=…

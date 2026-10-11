@@ -27,13 +27,13 @@ with a keyboard (those have a button or a bar item too).
 | Mod+B / I / U, Mod+K | Bold, italic, underline, link on selected words (or the marks for what is typed next) | the bar; the selection bubble |
 | `:` + letters | In any rich text, at the start of a block or after a space (never "10:30"): a list of icons and emoji under the caret, best first. Up/Down move, Enter or Tab picks it in place of the `:word`, Escape closes it and leaves the words as typed, a space or moving the caret away closes it; a known `:name:` typed whole becomes the icon. Emoji alone where the words hold no icon (a drawn label, plain words) | a tap on a row; Insert ▾ Icon |
 | Mod+Shift+L / E / R / J | Align the block in hand left, centred, right or justified (Google Docs' and Word's keys): the Word Processor, while its words have the focus (so Mod+Shift+R, the browser's hard reload, is taken there alone); the Drawing Tool's texts take L, E and R (§8) | the bar's Align menu, which writes the keys beside each; the Keyboard shortcuts dialog lists them under each app |
-| Mod+Enter | On a task item (the To-Do List, a Kanban Board checklist, a task list in the Word Processor): tick or untick it. In a one-line box: done (Enter's meaning). Never anything else | the 44px box on the row |
-| Mod+Alt+Arrow Left/Right | Move the selected thing across stages or columns (the Kanban Board); fold/unfold is Mod+Alt+Up/Down (the Outliner). Alt+Left/Right alone are never taken: they move the caret by a word on a Mac | drag; the bar |
+| Mod+Enter | On a task item (a task list in the Word Processor or the Outliner, a schedule's task): tick or untick it. In a one-line box: done (Enter's meaning). Never anything else | the 44px box on the row |
+| Mod+Alt+Arrow Left/Right | Move the selected thing across columns (a schedule's days, a row of the Website Builder's cards); fold/unfold is Mod+Alt+Up/Down (the Outliner). Alt+Left/Right alone are never taken: they move the caret by a word on a Mac | drag; the bar |
 | Space on a focused toggle | Tick/untick | tap |
 | Undo, Redo | The last two tools of every app's bar (`undoTools()` from DocElement), disabled when there is nothing to undo. Under a finger they are pinned (the registry's `pinned`): held at the bar's inline end beside the palette's button, outside its scroll, so a phone always has Undo on screen while the bar is; on a bar under 360px Undo alone. The shell forwards the keys only when the focus is in the app's editor, never from a dialog, a popover, the header or a field of the kit's own | — |
 
 Rules:
-- **A document opens with the focus where a person starts**, without scrolling, whether it is new (from the home page, the menu, a template) or opened from a link: the Word Processor: the caret at the start of the first words block; the Spreadsheet: cell A1, its words selected as a keyboard move leaves them; the Presentation Builder: the first slide's headline; the Outliner: the first row's words; the To-Do List: the first task; the Kanban Board: the first stage's first card's words, else the stage's name; the Calculator: the entry line; the Drawing Tool: the canvas (the select tool, nothing chosen); the Animator: the stage; the Diagram Maker: the picture (nothing being edited); the Calendar: today's day (else the shown month's first; a Gantt chart's first task); the Trip Planner: the first stop's name, else the map; the Website Builder: the site's name, open in the page. Never the title box, never the body. Display mode and a locked document focus nothing (unlocked, the document takes the focus). On a phone the same: iOS raises no keyboard without a tap, and the caret is there when it does. The editor's `focusFirst()` (docs/kernel.md §3) does it.
+- **A document opens with the focus where a person starts**, without scrolling, whether it is new (from the home page, the menu, a template) or opened from a link: the Word Processor: the caret at the start of the first words block; the Spreadsheet: cell A1, its words selected as a keyboard move leaves them; the Presentation Builder: the first slide's headline; the Outliner: the first row's words; the To-Do List: the first task; the Calculator: the entry line; the Drawing Tool: the canvas (the select tool, nothing chosen); the Animator: the stage; the Diagram Maker: the picture (nothing being edited); the Calendar: today's day (else the shown month's first; a Gantt chart's first task); the Trip Planner: the first stop's name, else the map; the Website Builder: the site's name, open in the page. Never the title box, never the body. Display mode and a locked document focus nothing (unlocked, the document takes the focus). On a phone the same: iOS raises no keyboard without a tap, and the caret is there when it does. The editor's `focusFirst()` (docs/kernel.md §3) does it.
 - **Mod** is ⌘ on Apple devices and Ctrl elsewhere; tooltips write it the way the device does (`tip()` in bar.ts).
 - A shortcut means the same in every app. Nothing takes a shortcut from this table for another purpose.
 - An app's single-letter tool keys (the Drawing Tool's V R E D L A T K P F) work only when the canvas has the focus and no words are being edited; they never fire inside a text box, an input or a popover.
@@ -68,7 +68,7 @@ Rules:
 - IME: a composition is left to the browser and read back at `compositionend` as one op; no selection is written during a composition.
 - On a phone: focusing never scrolls the page (nothing does: the column scrolls, kit/scroll.ts); the caret is kept inside the column, above the bar and the keyboard; the box, the bubble and the popovers stay inside the column's box, which is the visual viewport's; inputs are ≥16px so Safari does not zoom.
 
-## 3. Lists and outlines (the Outliner, the lists in the Word Processor and the Presentation Builder, Kanban Board checklists, the To-Do List)
+## 3. Lists and outlines (the Outliner, the lists in the Word Processor and the Presentation Builder)
 
 - Enter at the end → next item (first child when children are showing); Enter at the start → a new empty item above (the node is pushed down); Enter in the middle → split.
 - Backspace at the start of a non-empty item joins it to the item before; on an empty item, removes it (its children come out a level).
@@ -101,13 +101,13 @@ Rules:
 - Wheel with Mod (or a pinch) zooms; the wheel alone scrolls.
 - Everything drawn is undoable in one step per gesture (a drag is one step, not one per pixel).
 
-## 6. Things in rows and columns (Kanban Board cards, To-Do List items, Calendar entries, Trip Planner stops, Website Builder sections, Presentation Builder slides, Diagram Maker nodes)
+## 6. Things in rows and columns (Calendar entries, Trip Planner stops, Website Builder sections, Presentation Builder slides, Diagram Maker nodes)
 
-- A tap on a thing's handle (its grip, bullet or thumbnail) selects it; Shift+arrows extend; a second handle tap extends on a touch screen. A selected thing has the contextual bar in this order: Edit, Move up, Move down (Move to a stage where there are stages), Indent/Bring out where things nest, Duplicate | Copy, Cut, Paste | Delete. Delete/Backspace, Mod+D, Mod+C/X/V, Alt+Up/Down and Mod+A act on the selection. Enter, a double tap, or a tap on its words edits them in place. The kit's `rows.ts` is the one implementation of this (the Outliner's), used by every app with rows.
-- Alt+Up/Down moves the thing among its siblings, keeping the caret in the same field; Mod+Alt+Left/Right moves it across stages/columns where there are any; drag by the handle does the same with a drawn target, by pointer events (never HTML5 drag-and-drop, which iOS starts only from a long press).
-- A thing's words follow §3 where they are one line each (a to-do, a checklist, a stop, a task): Enter at the start pushes it down, at the end makes the next, in the middle splits; Backspace at the start joins, on an empty thing removes it; Delete at the end joins. A multi-line paste makes several things. A new thing is made where the finger or the caret is (direct manipulation and Insert ▾ after the thing in hand), never from an Add button at the foot.
+- A tap on a thing's handle (its grip, bullet or thumbnail) selects it; Shift+arrows extend; a second handle tap extends on a touch screen. A selected thing has the contextual bar in this order: Edit, Move up, Move down, Indent/Bring out where things nest, Duplicate | Copy, Cut, Paste | Delete. Delete/Backspace, Mod+D, Mod+C/X/V, Alt+Up/Down and Mod+A act on the selection. Enter, a double tap, or a tap on its words edits them in place. The kit's `rows.ts` is the one implementation of this (the Outliner's), used by every app with rows.
+- Alt+Up/Down moves the thing among its siblings, keeping the caret in the same field; Mod+Alt+Left/Right moves it across columns where there are any; drag by the handle does the same with a drawn target, by pointer events (never HTML5 drag-and-drop, which iOS starts only from a long press).
+- A thing's words follow §3 where they are one line each (an item, a stop, a task): Enter at the start pushes it down, at the end makes the next, in the middle splits; Backspace at the start joins, on an empty thing removes it; Delete at the end joins. A multi-line paste makes several things. A new thing is made where the finger or the caret is (direct manipulation and Insert ▾ after the thing in hand), never from an Add button at the foot.
 - Undo brings back the selection or caret of the thing that changed: every app restores it in `undone()` from the entry's first op.
-- Done/star/due toggles are 44px tap targets on the row itself.
+- A done toggle is a 44px tap target on the row itself.
 - **Words are edited where they are drawn. A box over the picture for words alone is never used; a form is used only where a thing has fields that are not words (a date, an address, an icon).** A name shown on a thing (a line's name in the Outliner, a column's head in a table) becomes a field where it is shown, focused in the gesture that asked for it; Enter or a tap elsewhere keeps it, Escape leaves it be.
 
 ## 7. Pointer and finger
@@ -126,8 +126,8 @@ Rules:
 
 Paul, 2026-10-10: a low-vision reader wants big, scrollable nav, a useful menu, and the document as large and legible as it can be, its words reflowed within the screen; a spatial picture grows without anything in it moving relative to anything else.
 
-1. **A pinch on a touch screen never zooms the browser.** The root takes `touch-action: pan-x pan-y`, so the layout viewport stays the screen; nothing is ever wider than it unless it scrolls sideways on purpose (the bar, a table, a sheet, the Kanban Board's columns). One finger pans as ever.
-2. **In a non-spatial app a pinch is the size of everything** (the drawer's stepper, kit/zoom.ts): the nav, the words, the cards and the dialogs grow or shrink together, live under the fingers, and the words reflow within the screen; the element under the fingers stays under them. A pill at the top says the size ("140%") while the fingers are down and half a second after. Lifted, the size is kept to the nearest 5%; the stepper goes on in tens from there. Non-spatial: the home page, the Word Processor, the Outliner's list, the Presentation Builder, the Kanban Board, the Spreadsheet, the To-do List, the Calendar, the Calculator, the Website Builder's editor, the Trip Planner's list, every dialog and the drawer.
+1. **A pinch on a touch screen never zooms the browser.** The root takes `touch-action: pan-x pan-y`, so the layout viewport stays the screen; nothing is ever wider than it unless it scrolls sideways on purpose (the bar, a table, a sheet). One finger pans as ever.
+2. **In a non-spatial app a pinch is the size of everything** (the drawer's stepper, kit/zoom.ts): the nav, the words, the cards and the dialogs grow or shrink together, live under the fingers, and the words reflow within the screen; the element under the fingers stays under them. A pill at the top says the size ("140%") while the fingers are down and half a second after. Lifted, the size is kept to the nearest 5%; the stepper goes on in tens from there. Non-spatial: the home page, the Word Processor, the Outliner's list, the Presentation Builder, the Spreadsheet, the Calendar, the Calculator, the Website Builder's editor, the Trip Planner's list, every dialog and the drawer.
 3. **In a spatial app a pinch zooms the picture, about the fingers, and two fingers pan it**; nothing in it reflows or moves relative to anything else, and the nav keeps the size of everything. A spatial canvas's frame is marked `data-spatial`, and the size of everything leaves a pinch begun inside one alone; a pinch begun on the bar, a field or a dialog beside it is the size of everything. As built: the Drawing Tool's canvas (`.draw-wrap`: 50% to 400%), the Diagram Maker's picture (`.dg-wrap`: 25% to 300%), the Animator's stage in Move mode (`.anim-wrap`: 100% to 400%; in Draw mode it is the Drawing Tool's), each by kit/pinch.ts's `pinchZoom`; the Trip Planner's map (`.trip-map`, Leaflet's own pinch); and the Outliner drawn as a mind map or a family tree, which is the Diagram Maker's picture (the Outliner's View menu draws it there), while the Outliner's list stays non-spatial. In the three pictures the zoom follows the fingers' spread continuously, the point of the picture under them when the second finger came down stays under their midpoint (the frame scrolls by what the zoom moved it, and the column round it takes what the frame cannot), so two fingers moving together pan; lifted, the zoom is rounded to the canvas's quarter step. The pinch begins with the second finger, and whatever the first began (a drag, a box, a move) is let go; a tap, a one-finger drag and the tools are as before. Under two fingers in a frame the browser neither pans nor zooms, so it moves once. Each frame holds still while its picture zooms (the Drawing Tool's and the Diagram Maker's are the column's height below the bar; the Animator's the height its stage has when it fits, so the sliders under it stay put), and a picture's hit-testing divides by its own scale alone. Mod+wheel (and the Drawing Tool's and the Diagram Maker's Zoom in and out in the bar) is the same zoom on a desktop. Every pinch is read by one module, kit/pinch.ts (`onPinch`).
 4. **100% is the normal size, and it is large**: Paul, 2026-10-10, on his iPhone: "Start at what we now call 130%." The stylesheet's lengths draw at `BASE` (1.3, kit/zoom.ts) times the size (a rem is 16px × that), so 100%, the default and what a new visitor gets, is what the stepper called 130% before; the stepper and the pill say the size alone, so 100% reads as normal. A 390px phone is 300 of the stylesheet's pixels wide; a 1440px desktop, 1108. **The size of everything runs from 70% to 200%** in steps of 10%; a pinch sets it continuously and the stepper rounds. **The nav has a natural limit**: the bar, the menu button, the header, the drawer, the dialogs, the context bar, the menus, the link box, the completion list, the find bar and the pills grow with the size up to 120% and no further, while the words, the cards and the pictures go on to 200%. They are one list in kit.css, which an app's own nav (the Animator's sliders and transport) joins. At every size on a 390px screen the bar is one scrolling row, the menu button opens the drawer, the drawer fits, dialogs fit and nothing scrolls sideways but what is meant to. **The mechanism is two scales and nothing zoomed**: the size is `--to-doc` and `--to-nav` on the root (kit/zoom.ts), the root's font size is 16px × `--to-doc` and each nav element's 16px × `--to-nav`, and every length is rem in the document, em inside a nav element and px only for hairlines and media queries (test/stylesheets.test.ts), so a length measured on the screen is the length CSS sets and nothing placed from it is divided by anything. Paper is not the screen: print, the PDF, the PNG, the thumbnails, the cards and the Display Link's pages are drawn from the document alone in their own pixels, and a page printed from the screen has both scales put back to 1.
 5. **Desktop is the browser's**: Ctrl or ⌘ with the wheel, a trackpad pinch, and Mod with plus or minus are browser zoom, which reflows; the spatial canvases keep taking Mod+wheel for their own zoom. The viewport meta is not touched (no maximum-scale, no user-scalable), and the system's accessibility zoom is the system's.
@@ -135,7 +135,7 @@ Paul, 2026-10-10: a low-vision reader wants big, scrollable nav, a useful menu, 
 ## 8. Deliberate differences
 
 - A grid cell replaces its content when typed on (spreadsheet convention); a selected shape, card or node does not. The Spreadsheet's Mod+D is fill down (every spreadsheet's), and Mod+Alt+= / Mod+Alt+- insert and delete the selected rows (Google Sheets' chords); Escape in a cell restores what was there and keeps the focus on the cell.
-- Backspace at the start of an item: in a document (the Word Processor, the Presentation Builder, the Website Builder) it unlists first (§2); in an outliner and in rows (the Outliner, the To-Do List, checklists, stops, tasks) it joins (§3).
+- Backspace at the start of an item: in a document (the Word Processor, the Presentation Builder, the Website Builder) it unlists first (§2); in an outliner and in rows (the Outliner, stops, tasks) it joins (§3).
 - The Drawing Tool's single-letter tool keys exist only on the canvas. A shape's label is rich: a one-line `<to-text>` whose bubble holds the five marks alone (`marks-only`: no link, no footnote, no list; Mod+K does nothing), written as inline Markdown in the Label column by the code, never typed; Shift+Enter in it is a line break kept as " | ". A shape (not a line, an arrow or a join) rotates: by the round handle above it (Shift holds 15° steps), by the bar's Rotate left and Rotate right, and by `[` and `]` on the canvas (15° each), all about its centre (the Rot column). A text (the Text tool's shape, not a box's words, which are always centred) is left, centred or right: one Align item beside the text sizes shows the alignment it has and goes on to the next (left, centre, right) on a tap, and Mod+Shift+L, Mod+Shift+E and Mod+Shift+R set each, on the canvas and while its words are typed (the Word Processor's keys, §1, which are Google Docs' and Word's; one item that cycles where the Word Processor has a menu of four, and no justify, which a line of a drawing has no use for; they are not taken elsewhere on the canvas, whose tool letters have no modifier); each is one undo step, written as a trailing "=" or ">" in its Style. The Animator's Draw mode is the same editor.
 - The Presentation Builder's Enter in the headline moves to the words of the slide (a headline is one line), not to a new slide; Delete at its end moves on too. A new slide is Mod+Shift+Enter (in every format) or Insert ▾; Present is Mod+Alt+Enter; PageUp/PageDown change slides only when the focus is on the rail, not in a box.
 - The Diagram Maker: a single tap on a thing opens its words at once, typed on the thing (§5: no box beside it; there is no selected-but-idle state), and a tap on empty space makes a thing there with its words offered ("New idea", "Name", "Table 3") and chosen, so the first letter replaces them; Escape takes the new thing away again. Its words are plain (`no-bubble`); Shift+Enter is a second line where the thing draws one (an org chart's role, a family's years, a timeline's "what happened" under its date), written by the code as " | " (a timeline's as ": "). No separator of the format is ever typed: a thing's words may hold a comma, a colon, a bar, an ampersand or an arrow and they stay its words (the code escapes them, docs/tlo.md). Two keys act, and only at the end of the words: a comma ending a guest at a table or a thing of a set makes the next one, as Enter does; a "+" ending a family's name (its first line) starts the partner's, written " + ". Anywhere else in the words they are a comma and a plus; ":" and "|" are always plain characters, since a key and a second line come from the thing's own place and Shift+Enter. A lane's name, a table's, a set's and a connection's words are typed where they are drawn the same way. A new thing (a tap, Insert ▾, Enter, the Add items) has its words focused in the gesture itself, so a phone's keyboard comes up. Where things join (a network; across a tree: a mind map's cross-links, drawn as a dashed curve bowing away from the middle idea, and an org chart's or a family's dotted lines) the bar's Join arms joining from the thing in hand, or from the next thing tapped with none, and the next tap makes the connection; Escape or a second press disarms. A tap on a connection opens its words, with its kind of line (plain or an arrow) and Delete in its row. In a tree (a mind map, an org chart, a family) Tab and Shift+Tab indent a thing under the one before it and bring it out to its grandparent, its children with it, as in the Outliner, on the focused thing or in its open words (they stay open on it), and its row has Indent and Bring out; where it can go no further Tab moves the focus on.
@@ -148,7 +148,6 @@ Paul, 2026-10-10: a low-vision reader wants big, scrollable nav, a useful menu, 
 - Lists inside a document (the Word Processor, the Presentation Builder, the Website Builder): items are words in one box, so Shift+arrows extend the selection by characters as Docs does, and there are no handles; Alt+Up/Down, Tab, cut and paste move items. The §3 node selection belongs to the Outliner and to rows.
 - The Drawing Tool: Alt+Up/Down move the chosen shapes one place in the stack (there is no "past a neighbour" on a canvas). The Diagram Maker drags the thing itself (a 6px threshold, `touch-action: none` on the thing alone) since a tap on it edits; it has no grip.
 - The Calendar's month: entries are drawn small (about 16px) so a cell can hold several; the finger's way to every entry is the month's list below, whose rows are 44px.
-- The Kanban Board: a card whose words are one web address shows that thing's preview under the line. With the stages as rows (the bar's Stages as rows, `look: rows`), the stage beside is the one above or below: Mod+Alt+Left/Right and the bar's Move to carry a card there, and a dragged card lands before the card whose left half is under the pointer.
 - The Word Processor: Mod+Shift+Enter (or Insert ▾ Page break) puts a page break at the caret, the kernel's rule (`---`): a card drawn as a dashed rule, the next page on paper, in print, in .docx and in .rtf. It is the one Mod+Shift+Enter outside the Presentation Builder, where the same rule is the next slide.
 
 ## 9. The audit
@@ -571,54 +570,6 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown`, `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+ArrowUp`, `Mod+ArrowDown` | Nudge the shapes in hand; with none, step a frame | keys only, at: stage |
 | `Mod+A` | Select all: the words of the box, then everything | keys only, at: stage |
 | `Escape` | Step out: close, collapse, let go | keys only, at: stage |
-
-### Kanban Board (`board`)
-
-| Keys | Command | Where |
-|---|---|---|
-|  | Card | insert ▾ |
-|  | Checklist item | insert ▾ |
-|  | Stage | insert ▾ |
-|  | Icon | bar |
-|  | Stages as rows | bar, drawer on a phone |
-|  | Add a card | stage ▾ |
-|  | Move left | stage ▾ |
-|  | Move up | stage ▾ |
-|  | Move right | stage ▾ |
-|  | Move down | stage ▾ |
-|  | No limit | stage ▾ |
-|  | 1 | stage ▾ |
-|  | 2 | stage ▾ |
-|  | 3 | stage ▾ |
-|  | 5 | stage ▾ |
-|  | 8 | stage ▾ |
-|  | Automatic | stage ▾ |
-|  | Delete stage | stage ▾ |
-| `Mod+Alt+ArrowLeft` | Move to the stage before | context, at: rows |
-| `Mod+Alt+ArrowRight` | Move to the stage after | context, at: rows |
-| `Mod+Alt+ArrowLeft`, `Mod+Alt+ArrowRight` | Move the cards to the stage before or after | keys only, at: words |
-| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: words |
-| `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: words |
-| `Mod+D` | Duplicate | keys only, at: words |
-| `Mod+Enter` | Tick or untick a task | keys only, at: words |
-
-### To-Do List (`todo`)
-
-| Keys | Command | Where |
-|---|---|---|
-|  | Task | insert ▾ |
-|  | All | show ▾ |
-|  | Open | show ▾ |
-|  | Done | show ▾ |
-|  | Clear done | bar, drawer on a phone |
-|  | Due date… | task ▾ |
-|  | No due date | task ▾ |
-| `Alt+ArrowUp` | Move up | task ▾, at: words |
-| `Alt+ArrowDown` | Move down | task ▾, at: words |
-| `Mod+D` | Duplicate | task ▾, at: words |
-|  | Delete task | task ▾ |
-| `Mod+Enter` | Tick or untick a task | keys only, at: words |
-| `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight` | The next or the one before | keys only, at: words |
 
 ### Calendar (`cal`)
 

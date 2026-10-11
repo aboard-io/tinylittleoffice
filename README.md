@@ -3,7 +3,7 @@
 **Tiny Little Office is a free office suite where your document is the link. There's no account, nothing is
 stored anywhere, and whoever has the link has the document.**
 
-Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list, a website. When
+Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a calendar, a website. When
 you want to share it, copy the link. The whole document lives inside that link, so sending it is like
 handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you write.
 If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It works on
@@ -47,7 +47,7 @@ npm run tinier:dev      # the link shortener on this machine (see "Living short 
 npm run media:dev       # the picture proxy on this machine, port 8788; VITE_MEDIA_URL=/media uses it through the dev server
 npm run skill           # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
 npm run cards           # public/og/<app>.png, each app's share card (Chromium through Playwright)
-npm run tinyoffice -- link todo list.md   # the command line (packages/doc/README.md)
+npm run tinyoffice -- link write list.md  # the command line (packages/doc/README.md)
 npm run deploy          # build, then the site, tinier and media to Cloudflare (docs/self-host.md)
 ```
 
@@ -66,8 +66,8 @@ Three layers, each small enough to read.
   the one rich-text editor, `<to-text>`, over the kernel: every `beforeinput` becomes operations, and only
   the blocks that changed are drawn again. There is no contenteditable anywhere else.
 - **The apps** (`src/apps/<id>/`): definitions on the kit. Each is a view of the kernel's document and the
-  commands it adds: the Word Processor, Spreadsheet, Presentation Builder, Outliner, To-Do List, Kanban
-  Board, Calculator, Calendar, Drawing Tool, Animator, Diagram Maker, Trip Planner and Website Builder.
+  commands it adds: the Word Processor, Spreadsheet, Presentation Builder, Outliner, Calculator, Calendar,
+  Drawing Tool, Animator, Diagram Maker, Trip Planner and Website Builder.
   Each is a chunk of its own; the home page loads the kit and nothing else.
 
 The plan of the rebuild is docs/rebuild.md; every document in `docs/` is listed in docs/README.md.

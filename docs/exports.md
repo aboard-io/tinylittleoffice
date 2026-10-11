@@ -54,9 +54,6 @@ there it is drawn still, at its resting moment (`ViewOpts.still`).
 | Diagram Maker | `.svg` | Picture (SVG) |
 | Animator | `.gif` | Animated GIF |
 | Animator | `.svg` | Animated SVG |
-| Kanban Board | `.csv` | CSV |
-| To-Do List | `.md` | Markdown |
-| To-Do List | `.ics` | Calendar to-dos (ICS) |
 | Calendar | `.ics` | iCalendar (ICS) |
 | Calendar | `.csv` | CSV |
 | Trip Planner | `.gpx` | GPX route |
@@ -85,8 +82,4 @@ Under Download, "Open in": the document as another app reads it, converted by a 
 | Drawing Tool | Animator | Animate this drawing |
 | Diagram Maker | Outliner | Show as outline |
 | Diagram Maker | Drawing Tool | Open in Drawing Tool |
-| Kanban Board | To-Do List | Make a to-do list of the cards |
-| To-Do List | Kanban Board | Show on a board |
-| To-Do List | Calendar | Put the dated tasks on a calendar |
-| Calendar | To-Do List | Make a to-do list of it |
 | Trip Planner | Calendar | Put the stops on a calendar, a day each |

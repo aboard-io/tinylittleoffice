@@ -2,7 +2,7 @@
 import { test, expect } from 'vitest';
 import { appInHead, plainLink, readFile, readPlain, tloText } from '../src/kit/plain.ts';
 
-const known = (id: string) => ['write', 'sheet', 'todo', 'deck'].includes(id);
+const known = (id: string) => ['write', 'sheet', 'outline', 'deck'].includes(id);
 
 test('a plain link is read: the doc, the title and by, the app from the path, the parameter or the head', () => {
   expect(readPlain('#title=Budget&doc=Item+%7C+Cost%0A---+%7C+---%0ARent+%7C+1200', 'sheet', known)).toEqual({
@@ -11,7 +11,7 @@ test('a plain link is read: the doc, the title and by, the app from the path, th
     view: '',
     title: 'Budget',
   });
-  expect(readPlain('#app=todo&doc=-+%5B+%5D+Milk&by=chores-agent', '', known)).toEqual({ app: 'todo', text: '---\nby: chores-agent\n---\n- [ ] Milk\n', view: '', title: '' });
+  expect(readPlain('#app=outline&doc=-+%5B+%5D+Milk&by=chores-agent', '', known)).toEqual({ app: 'outline', text: '---\nby: chores-agent\n---\n- [ ] Milk\n', view: '', title: '' });
   // The head may name the app (and is the link's no longer).
   expect(readPlain('#doc=' + encodeURIComponent('---\napp: sheet\nchart: bar\n---\nA | B\n'), '', known)).toEqual({ app: 'sheet', text: '---\nchart: bar\n---\nA | B\n', view: '', title: '' });
   // md is the same words; with no app named anywhere, a text.
@@ -39,10 +39,10 @@ test('a plain link is written so that it reads back as the same document', () =>
 
 test('a .tlo file carries its app in its head; opened, the app comes out of it', () => {
   const doc = '---\ntitle: Groceries\n---\n- [ ] Milk\n';
-  const file = tloText('todo', doc);
-  expect(file).toBe('---\ntitle: Groceries\napp: todo\n---\n- [ ] Milk\n');
-  expect(appInHead(file)).toEqual(['todo', doc]);
-  expect(readFile('groceries.tlo', file, 'write', known)).toEqual({ app: 'todo', text: doc, view: '', title: 'groceries' });
+  const file = tloText('outline', doc);
+  expect(file).toBe('---\ntitle: Groceries\napp: outline\n---\n- [ ] Milk\n');
+  expect(appInHead(file)).toEqual(['outline', doc]);
+  expect(readFile('groceries.tlo', file, 'write', known)).toEqual({ app: 'outline', text: doc, view: '', title: 'groceries' });
   // Windows line ends and a byte order mark are the same file.
   expect(readFile('g.tlo', '﻿' + file.replace(/\n/g, '\r\n'), 'write', known)!.text).toBe(doc);
   // A Markdown file opens in the app open now, else a text; a file that is not words does not open.

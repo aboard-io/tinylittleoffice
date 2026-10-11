@@ -9,30 +9,6 @@ import { deckFrames, slideSteps } from '../src/apps/deck/view.ts';
 const def = (id: string) => appOf(id)!;
 const texts = (svg: string) => [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
 
-test('a to-do list builds a task a step, on the page the whole list makes', () => {
-  const doc = '- [ ] One\n- [x] Two\n- [ ] Three\n';
-  const todo = def('todo');
-  expect(todo.steps!(doc)).toBe(3);
-  const whole = todo.view(doc, { small: true })[0];
-  const two = todo.view(doc, { small: true, upTo: 2 })[0];
-  expect([two.w, two.h]).toEqual([whole.w, whole.h]);
-  expect(texts(two.svg)).toEqual(['One', 'Two']);
-  expect(texts(todo.view(doc, { small: true, upTo: 0 })[0].svg)).not.toContain('One');
-  // Drawn small, a slide shows eight: eight steps at most.
-  expect(todo.steps!(Array.from({ length: 12 }, (_, i) => `- [ ] Task ${i}\n`).join(''))).toBe(8);
-});
-
-test('a board builds a card a step, in the order the document holds them, each in its stage', () => {
-  const doc = '## To do\n\n- Alpha\n  - [ ] part\n- Beta\n\n## Done\n\n- Gamma\n';
-  const board = def('board');
-  expect(board.steps!(doc)).toBe(3);
-  const one = board.view(doc, { small: true, upTo: 1 })[0];
-  expect(texts(one.svg).join(' ')).toContain('Alpha');
-  expect(texts(one.svg).join(' ')).not.toContain('Beta');
-  expect(texts(one.svg).join(' ')).toContain('Done');
-  expect(one.h).toBe(board.view(doc, { small: true })[0].h);
-});
-
 test('an outline builds an item a step, from the top', () => {
   const doc = '- Launch\n  - Product\n  - Marketing\n';
   const outline = def('outline');
@@ -58,7 +34,7 @@ test('a trip builds a stop a step on the map that fits them all; a drawing a sha
 });
 
 test('a slide that shows a document builds as the document does; the deck’s frames take every step', () => {
-  const deck = '## Our week\n\n```todo\n- [ ] One\n- [ ] Two\n```\n\n---\n\n## Words\n\n- a\n- b\n';
+  const deck = '## Our week\n\n```outline\n- One\n- Two\n```\n\n---\n\n## Words\n\n- a\n- b\n';
   const doc = parse(deck);
   const [withList, words] = slidesOf(doc);
   expect(slideSteps(withList, doc)).toBe(2);
@@ -67,7 +43,7 @@ test('a slide that shows a document builds as the document does; the deck’s fr
   // 0, 1, 2 for each slide, then the closing code.
   const frames = deckFrames(deck);
   expect(frames.length).toBe(3 + 3 + 1);
-  expect(texts(frames[1].svg)).toContain('One');
-  expect(texts(frames[1].svg)).not.toContain('Two');
-  expect(texts(frames[2].svg)).toContain('Two');
+  expect(frames[1].svg).toContain('One');
+  expect(frames[1].svg).not.toContain('Two');
+  expect(frames[2].svg).toContain('Two');
 });

@@ -32,7 +32,7 @@ export const FAMILIES: Record<string, string[]> = {
   text: ['write', 'outline', 'deck'],
   grid: ['sheet', 'cal', 'calc'],
   canvas: ['draw', 'diagram', 'anim'],
-  lists: ['board', 'todo', 'trip'],
+  lists: ['trip'],
   site: ['site'],
 };
 /** The scopes in force in every app: the page's, the words', the rows'. */

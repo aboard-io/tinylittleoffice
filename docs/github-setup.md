@@ -39,9 +39,8 @@ change itself is last, and is Paul's click.
 
 - [ ] `bug` (`#d73a4a`, "Something is wrong") and `idea` (`#a2eeef`, "Something it could do"): the issue
       templates apply these.
-- [ ] One per app, colour `#c5def5`: `app: write`, `app: sheet`, `app: deck`, `app: outline`, `app: todo`,
-      `app: board`, `app: calc`, `app: cal`, `app: draw`, `app: anim`, `app: diagram`, `app: trip`,
-      `app: site`.
+- [ ] One per app, colour `#c5def5`: `app: write`, `app: sheet`, `app: deck`, `app: outline`, `app: calc`,
+      `app: cal`, `app: draw`, `app: anim`, `app: diagram`, `app: trip`, `app: site`.
 - [ ] `kit` (`#fbca04`, "The shell, the bar, the editor and the rest of src/kit"), `kernel` (`#fbca04`,
       "src/doc: the model, TLO, the operations"), `tinier` and `media` (`#bfd4f2`, "A Worker"),
       `docs` (`#0075ca`), `security` (`#b60205`, "Security-relevant, after disclosure").

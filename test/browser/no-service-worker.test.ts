@@ -22,7 +22,7 @@ test('no service worker: the drawer has no switch to keep the app, and nothing r
   setKeeping(true);
   localStorage.setItem('tinyoffice.offline', '1');
   await import('../../src/main.ts');
-  const shell = await mount('#/v1/todo');
+  const shell = await mount('#/v1/outline');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
   const drawer = shell.querySelector('.to-drawer')!;
