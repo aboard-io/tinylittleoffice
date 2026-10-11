@@ -71,9 +71,10 @@ test('a toast stays long enough to read: a hundred characters are still shown at
   await new Promise((r) => setTimeout(r, 5000));
   expect(region().textContent).toBe(words);
   // A pointer on it holds it: past its time, it is still there; the pointer gone, it goes.
-  region().dispatchEvent(new PointerEvent('pointerenter'));
+  const seen = document.querySelector<HTMLElement>('.to-toast')!;
+  seen.dispatchEvent(new PointerEvent('pointerenter'));
   await new Promise((r) => setTimeout(r, 2800));
   expect(region().textContent).toBe(words);
-  region().dispatchEvent(new PointerEvent('pointerleave'));
+  seen.dispatchEvent(new PointerEvent('pointerleave'));
   await until(() => region().textContent === '', 8000);
 }, 20000);
