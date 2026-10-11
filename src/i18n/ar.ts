@@ -1080,7 +1080,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'مزرعة تقطف منها بنفسك: ما ينمو ومتى وكيف تجري الأمور والأسعار والحظيرة وكيف تجدها.',
   'A pitch': 'عرض ترويجي',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'منتج في جملة، وما يفعله، والأسعار في جدول، ومواعيد الإطلاق، وجهة الاتصال الصحفية.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'مسابقة معلومات في حانة بأربع جولات، والإجابات في ملاحظات المتحدث حيث لا تراها القاعة، وجدول نتائج.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'مسابقة معلومات في حانة بأربع جولات، وجدول نتائج، والإجابات في الشريحة الأخيرة.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'اجتماع سكان عن ملعب جديد: لماذا وما المقترح والميزانية دائرية ومتى وكيف تبدي رأيك.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'درس علوم على السبورة: الأهداف وما يعرفونه والنموذج وتحقق والواجب؛ وملاحظات المعلم تحت كل شريحة.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'عرض تمويل أولي في ثماني شرائح: المشكلة والمنتج والزخم على مخطط والعمل والفريق والطلب.',

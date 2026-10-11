@@ -1078,7 +1078,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'もぎ取り農園：いつ何が実るか、仕組み、料金、納屋、行き方。',
   'A pitch': 'ピッチ',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': '製品を一文で、できること、料金表、発売日、報道向けの連絡先。',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': '4ラウンドのパブクイズ。会場から見えないスピーカーノートに答えを入れ、得点表も付けます。',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': '4ラウンドのパブクイズ。得点表付きで、答えは最後のスライドにあります。',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': '新しい遊び場についての住民会議：理由、提案内容、予算を円グラフで、日時、意見の出し方。',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': '黒板で行う理科の授業：ねらい、知っていること、モデル、確認、宿題。各ページに先生用のメモ。',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': '8枚のシードピッチ：課題、製品、グラフで見せる成長、事業、チーム、お願い。',

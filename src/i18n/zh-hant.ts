@@ -1075,7 +1075,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': '自摘農場：什麼時候長什麼、怎麼運作、價格、穀倉，以及怎麼找到這裡。',
   'A pitch': '一場提案',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': '用一句話說明產品、它的功能、表格裡的價格、上市日期，以及媒體聯絡人。',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': '四回合的酒吧問答，答案放在觀眾看不到的講者備忘稿裡，另有計分表。',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': '四回合的酒吧問答，另有計分表，答案放在最後一張投影片。',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': '關於新遊樂場的住戶會議：為什麼、提案內容、圓餅圖預算、時間，以及如何表達意見。',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': '黑板上的自然課：目標、他們已經知道的、模型、檢核、回家作業；每一頁底下有老師的備忘。',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': '八張投影片的種子輪募資簡報：問題、產品、圖表上的成長、商業模式、團隊、訴求。',

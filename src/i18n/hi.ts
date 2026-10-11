@@ -1073,7 +1073,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'खुद तोड़ने वाला फ़ार्म: कब क्या उगता है, कैसे चलता है, दाम, खलिहान और कैसे पहुँचें।',
   'A pitch': 'एक पिच',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'एक वाक्य में प्रोडक्ट, वह क्या करता है, टेबल में दाम, लॉन्च की तारीख़ें और प्रेस संपर्क।',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'चार राउंड की पब क्विज़, जवाब स्पीकर नोट्स में जहाँ कमरा नहीं देख सकता, और स्कोर की टेबल।',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'चार राउंड की पब क्विज़, स्कोर की टेबल, और जवाब आख़िरी स्लाइड पर।',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'नए खेल के मैदान पर निवासियों की मीटिंग: क्यों, क्या प्रस्ताव है, पाई में बजट, कब, अपनी बात कैसे रखें।',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'ब्लैकबोर्ड पर विज्ञान का पाठ: उद्देश्य, वे क्या जानते हैं, मॉडल, एक जाँच, होमवर्क; हर एक के नीचे शिक्षक के नोट।',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'आठ स्लाइड में सीड पिच: समस्या, प्रोडक्ट, चार्ट पर रफ़्तार, कारोबार, टीम, माँग।',

@@ -1,12 +1,13 @@
 // The Share dialog, section by section, and the banner a short link's visitor arrives under (Paul, 2026-10-09:
 // "The short link function modal needs to be redesigned … point out how many days are left before they expire.
 // Make this big and colorful at the top. Give people a copy button to copy into a new document.")
-import { test, expect, afterEach, vi } from 'vitest';
+import { test, expect, afterEach, onTestFinished, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { mount, tick, until, openShare } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
-import { keepLink } from '../../src/kit/links.ts';
+import { keepLink, keptLinks, dropKept } from '../../src/kit/links.ts';
+import { lockCost, lockWith, pack } from '../../src/kit/privacy.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToShare } from '../../src/kit/share-dialog.ts';
@@ -169,6 +170,77 @@ test('the QR code: drawn inline when the link fits, with PNG and SVG; else one s
   d = await open(shell);
   expect(qr().querySelector('.to-qr-code')).toBeNull();
   expect(qr().querySelector('.to-qr-why')!.textContent).toMatch(/^This document is [\d,]+ bytes; the largest QR code holds/);
+});
+
+/* ---------- a document with a password ---------- */
+
+/** A sheet sealed with a password, opened with it: the shell's own document, its link ciphertext. */
+async function sealedSheet(title: string) {
+  lockCost.iterations = 1000;
+  const text = `---\ntitle: ${title}\n---\nName | Phone\n--- | ---\nAda | 555 0101\n`;
+  const shell = await mount(`#/v1/sheet/${await pack(text, await lockWith('pw'))}`);
+  await until(() => !!shell.querySelector('to-dialog.to-unlock-dialog dialog[open] .to-unlock-field'));
+  const field = shell.querySelector<HTMLInputElement>('.to-unlock-field')!;
+  field.value = 'pw';
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
+  await until(() => !!shell.querySelector('to-sheet-editor'));
+  return shell;
+}
+
+test('a sealed document says nothing of itself: Share… sends no picture and no title, and Post, the QR file, the embed and a kept short link carry no title', async () => {
+  const shell = await sealedSheet('Mutual aid contacts');
+  const sent: ShareData[] = [];
+  // The device's share sheet, which takes files.
+  Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => void sent.push(data) });
+  Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+  onTestFinished(() => void (delete (navigator as { share?: unknown }).share, delete (navigator as { canShare?: unknown }).canShare));
+  const d = await open(shell);
+  expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Locked document');
+  d.querySelector<HTMLButtonElement>('.to-share-native')!.click();
+  await until(() => sent.length === 1);
+  expect(sent[0].files).toBeUndefined();
+  expect(`${sent[0].title} ${sent[0].text}`).not.toContain('Mutual aid');
+  expect(sent[0].url).toBe(shell.link);
+  // Post: the compose box's words are not the title.
+  const opened = vi.spyOn(window, 'open').mockImplementation(() => null);
+  for (const cls of ['x', 'email']) {
+    d.querySelector<HTMLButtonElement>(`.to-post-${cls}`)!.click();
+    await until(() => !!document.querySelector('to-dialog.to-link-guard dialog[open] .lg-go'));
+    document.querySelector<HTMLButtonElement>('to-dialog.to-link-guard .lg-go')!.click();
+    await until(() => opened.mock.calls.length > 0);
+    expect(decodeURIComponent(String(opened.mock.calls.pop()![0]))).not.toContain('Mutual aid');
+    await tick(30);
+  }
+  // The QR code's file is "document-qr".
+  const names: string[] = [];
+  const w = window as unknown as { showSaveFilePicker?: unknown };
+  const had = w.showSaveFilePicker;
+  w.showSaveFilePicker = async (o: { suggestedName: string }) => (names.push(o.suggestedName), { createWritable: async () => ({ write: async () => {}, close: async () => {} }) });
+  try {
+    [...d.querySelectorAll<HTMLButtonElement>('.to-share-qr button')].find((b) => b.textContent!.trim() === 'SVG')!.click();
+    await until(() => names.length === 1);
+  } finally {
+    w.showSaveFilePicker = had;
+  }
+  expect(names).toEqual(['document-qr.svg']);
+  // The embed code's frame is not named after it.
+  await clipboard(async (copied) => {
+    d.querySelector<HTMLButtonElement>('.to-copy-embed')!.click();
+    await until(() => copied().includes('<iframe'));
+    expect(copied()).not.toContain('Mutual aid');
+  });
+  // A short link kept under Saved keeps no title.
+  setKeeping(true);
+  vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } }));
+  d.querySelector<HTMLButtonElement>('.to-make')!.click();
+  await until(() => !!d.querySelector('.to-owner .to-keep'));
+  const owner = d.querySelector<HTMLButtonElement>('.to-owner .to-keep')!;
+  owner.click();
+  await until(() => keptLinks().length > 0);
+  const kept = keptLinks().find((l) => l.owner.includes('abcdefg'))!;
+  expect(kept.title).toBe('');
+  dropKept(kept.owner);
 });
 
 /* ---------- arriving by a short link ---------- */

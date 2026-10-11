@@ -1075,7 +1075,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'Yon ferm kote w pran tèt ou: kisa k pouse ki lè, ki jan sa mache, pri yo, depo a ak ki jan pou jwenn li.',
   'A pitch': 'Yon prezantasyon pou envestisè',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'Yon pwodwi nan yon fraz, sa l fè, pri nan yon tablo, dat lansman yo ak kontak laprès la.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'Yon kiz bar an kat wonn, repons yo nan nòt oratè a kote sal la pa ka wè yo, ak yon tablo pwen.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'Yon kiz bar an kat wonn, yon tablo pwen, ak repons yo sou dènye dyapozitiv la.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'Yon reyinyon rezidan sou yon nouvo teren jwèt: poukisa, sa yo pwopoze, bidjè a an gato, ki lè, kijan pou pale.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'Yon leson syans sou tablo nwa a: objektif, sa yo konnen deja, modèl la, yon verifikasyon, devwa; nòt pwofesè a anba chak.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'Yon prezantasyon pou premye envestisman nan uit dyapozitiv: pwoblèm lan, pwodwi a, tirè sou yon graf, biznis la, ekip la, demann lan.',

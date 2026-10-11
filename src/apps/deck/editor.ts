@@ -70,7 +70,7 @@ import {
   type Settings,
   type Slide,
 } from './model.ts';
-import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
+import { closingPage, emptySlide, wantsClosing, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/doc-dialog.ts';
 import '../../kit/embeds.ts';
@@ -991,7 +991,13 @@ export class ToDeckEditor extends DocElement<Slide[]> {
           ${s ? html`<button type="button" class="deck-grip to-rows-handle" tabindex="-1" aria-label=${t('Move this slide: drag it onto another')} title=${t('Drag to move')}>${icon(GripVertical, 14)}</button>` : nothing}
         </div>`;
       })}
-      ${end ? html`<div class="deck-end" role="img" aria-label=${t('Last slide, added for you: a QR code of this whole deck')} title=${t('Ends with a QR code of this deck, so the room can take it home. The QR button turns it off.')}>${icon(UI.qr, 28)}<span>${t('QR code of this deck')}</span></div>` : nothing}
+      ${
+        end
+          ? html`<div class="deck-end" role="img" aria-label=${t('Last slide, added for you: a QR code of this whole deck')} title=${t('Ends with a QR code of this deck, so the room can take it home. The QR button turns it off.')}>${icon(UI.qr, 28)}<span>${t('QR code of this deck')}</span></div>`
+          : !g && wantsClosing(this.doc, st)
+            ? html`<div class="deck-end deck-end-long">${icon(UI.qr, 28)}<span>${t('Too long for a QR code: shorten the document, or share a short link.')}</span></div>`
+            : nothing
+      }
     </nav>`;
   }
   private renderSheets() {

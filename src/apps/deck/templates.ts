@@ -123,8 +123,9 @@ const LESSON = headed(
   '## :sun: The model\n\n1. The Sun lights half of the Moon, always\n2. The Moon goes round the Earth once in about 29.5 days\n3. From the Earth we see a different share of the lit half\n4. That share is the phase\n\n> Lamp at the front, a polystyrene ball on a pencil each. Lights off.',
   '## :moon: The eight phases {.two}\n\n- New Moon\n- Waxing crescent\n- First quarter\n- Waxing gibbous\n\n|\n\n- Full Moon\n- Waning gibbous\n- Last quarter\n- Waning crescent',
   "## :warning: Not the shadow {.icon}\n\n- The Earth's shadow only touches the Moon in an eclipse\n- That happens a couple of times a year, not every month\n- A phase is about where we stand, not what is in the way",
-  '## :check: Check\n\n- Draw the Moon at first quarter: which side is lit?\n- Why can you sometimes see the Moon at breakfast?\n- What phase comes after full?\n\n> Exit tickets on the way out. Answers: the right side; it is up in the day for half the month; waning gibbous.',
+  '## :check: Check\n\n- Draw the Moon at first quarter: which side is lit?\n- Why can you sometimes see the Moon at breakfast?\n- What phase comes after full?\n\n> Exit tickets on the way out.',
   "## :book: For Tuesday\n\n- Look at the Moon three nights this week and draw it\n- Write the date and the time beside each drawing\n- Bring it in: we will put the class's together on the wall",
+  '## :check: Answers\n\n- First quarter: the right side is lit\n- At breakfast: the Moon is up in the daytime for half the month\n- After full: waning gibbous',
 );
 
 const CONFERENCE = headed(
@@ -195,11 +196,12 @@ const TRIVIA = headed(
   { theme: 'arcade', transition: 'slide', qr: 'no' },
   '## :trophy: Quiz night at the Ship Inn {.title}\n\n- Thursday 19 November 2026 · Four rounds, teams of up to six\n- £2 a head, all of it to the Whitby lifeboat station',
   "## :info: The rules\n\n- No phones on the table: a phone seen is a point lost\n- Answers on the sheet, team name at the top\n- The quizmaster's spelling is final\n\n> Read these slowly. Hand out the sheets and pens now.",
-  '## :globe: Round one: the world\n\n1. What is the capital of Australia?\n2. Which river flows through Cairo?\n3. How many countries share a border with Germany?\n4. In which country is the city of Porto?\n\n> Answers: Canberra; the Nile; nine; Portugal.',
-  '## :music: Round two: music\n\n1. Which band was Freddie Mercury the singer of?\n2. How many strings does a standard violin have?\n3. Which Beatles album has a zebra crossing on the cover?\n4. What does "forte" tell a musician to do?\n\n> Answers: Queen; four; Abbey Road; play loudly.',
-  '## :fish: Round three: the sea\n\n1. What is the largest ocean?\n2. How many arms does an octopus have?\n3. What is a baby seal called?\n4. Which lifeboat station is the busiest in Britain?\n\n> Answers: the Pacific; eight; a pup; Tower, on the Thames in London.',
-  '## :star: Picture round, without pictures\n\n1. What has keys but cannot open a lock?\n2. What gets wetter the more it dries?\n3. What has a neck but no head?\n4. What can you catch but not throw?\n\n> Answers: a piano; a towel; a bottle; a cold.',
+  '## :globe: Round one: the world\n\n1. What is the capital of Australia?\n2. Which river flows through Cairo?\n3. How many countries share a border with Germany?\n4. In which country is the city of Porto?',
+  '## :music: Round two: music\n\n1. Which band was Freddie Mercury the singer of?\n2. How many strings does a standard violin have?\n3. Which Beatles album has a zebra crossing on the cover?\n4. What does "forte" tell a musician to do?',
+  '## :fish: Round three: the sea\n\n1. What is the largest ocean?\n2. How many arms does an octopus have?\n3. What is a baby seal called?\n4. Which lifeboat station is the busiest in Britain?',
+  '## :star: Picture round, without pictures\n\n1. What has keys but cannot open a lock?\n2. What gets wetter the more it dries?\n3. What has a neck but no head?\n4. What can you catch but not throw?',
   '## :trophy: The scores\n\nTeam | One | Two | Three | Four | Total\n--- | --- | --- | --- | --- | ---\nQuiz Team Aguilera | 4 | 3 | 3 | 4 | =SUM(B1:E1)\nThe Ship Regulars | 3 | 4 | 4 | 2 | =SUM(B2:E2)\nLess Than Pointless | 2 | 3 | 2 | 4 | =SUM(B3:E3)\nKnow It Ales | 3 | 2 | 3 | 3 | =SUM(B4:E4)\n\n> Fill this in as the sheets come back. Winners get the bottle of rum.',
+  '## :check: Answers {.two}\n\n- Round one: Canberra; the Nile; nine; Portugal\n- Round two: Queen; four; Abbey Road; play loudly\n\n|\n\n- Round three: the Pacific; eight; a pup; Tower, on the Thames in London\n- Round four: a piano; a towel; a bottle; a cold',
 );
 
 /* ---------- more printed things ---------- */
@@ -276,7 +278,7 @@ export const templates = (): Template[] => [
   { id: 'workshop', name: t('Workshop agenda'), blurb: t('A morning workshop: the timetable, a checklist of what to bring, the steps, and where to go next.'), doc: WORKSHOP },
   { id: 'launch', name: t('Product launch'), blurb: t('A product in a sentence, what it does, prices in a table, the launch dates and the press contact.'), doc: LAUNCH },
   { id: 'townhall', name: t('Town-hall notice'), blurb: t("A residents' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say."), doc: TOWNHALL },
-  { id: 'trivia', name: t('Trivia night'), blurb: t('A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.'), doc: TRIVIA },
+  { id: 'trivia', name: t('Trivia night'), blurb: t('A pub quiz in four rounds, a score table, and the answers on the last slide.'), doc: TRIVIA },
   { id: 'wedding', name: t('Wedding slideshow'), blurb: t('Their story for the reception, from how they met to the question, with a timeline and a thank-you.'), doc: WEDDING },
   { id: 'zine', name: t('Zine'), blurb: t('Eight small pages from one sheet of paper: print, fold and cut, or read it by tapping on a phone.'), doc: ZINE },
   { id: 'soups', name: t('Recipe zine'), blurb: t('Seven soups for a cold week, one a page, in a zine folded from one sheet.'), doc: SOUPS },

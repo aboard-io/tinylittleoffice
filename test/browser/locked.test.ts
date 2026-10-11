@@ -10,6 +10,7 @@ import { forgetOpened, lockedFence } from '../../src/kit/locked.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { write } from '../../src/doc/index.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import { setKeeping, store } from '../../src/kit/store.ts';
 
 beforeAll(() => {
   // A password is slow to try on purpose; here, for both sides at once, it is quick.
@@ -112,4 +113,25 @@ test('Edit: opened with its password, edited in its own app, sealed again under 
   expect(again.sealed && again.payload !== payload).toBe(true);
   expect(next.body).not.toContain('open words');
   expect((await unlock('pw', again.payload))?.text).toBe(inner.replace('secret', 'open'));
+});
+
+test('a sealed document, unlocked: the tab title and the library carry no title; the page itself still shows it', async () => {
+  setKeeping(true);
+  store.remove('tinyoffice.library');
+  try {
+    const shell: ToShell = await mount(`#/v1/write/${await sealed()}`);
+    await until(() => document.title.startsWith('Locked document'));
+    await tryPassword(shell, 'pw');
+    await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
+    expect(document.title).not.toContain('Salaries');
+    expect(document.title).toContain('Locked document');
+    expect(shell.querySelector<HTMLInputElement>('input.to-title')!.value).toBe('Salaries');
+    shell.keepNow();
+    const library = JSON.parse(store.get('tinyoffice.library') ?? '[]');
+    expect(library[0].title).toBe('');
+    expect(JSON.stringify(localStorage)).not.toContain('Salaries');
+  } finally {
+    store.remove('tinyoffice.library');
+    setKeeping(false);
+  }
 });

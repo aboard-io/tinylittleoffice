@@ -883,18 +883,25 @@ export function sheetsOf(doc: Doc, s: Settings = settingsOf(doc), still = false)
 
 /* ---------- the closing slide ---------- */
 
-/** The address a deck opens at: on the site it is shown from (in a browser), else the fragment alone. */
-export const deckLink = (text: string, site = typeof location !== 'undefined' ? location.origin + location.pathname : ''): string => site + routeHash('deck', encodeDoc(text));
+/**
+ * The deck the room takes home: its slides as the Display Link, every speaker note cut (the quotes at each slide's
+ * end are the speaker's, never the room's), on the site it is shown from (in a browser), else the fragment alone.
+ */
+export function takeHomeLink(doc: Doc, site = typeof location !== 'undefined' ? location.origin + location.pathname : ''): string {
+  const notes = new Set(slidesOf(doc).flatMap((s) => Array.from({ length: s.notes[1] - s.notes[0] }, (_, i) => s.notes[0] + i)));
+  return site + routeHash('deck', encodeDoc(write({ ...doc, blocks: doc.blocks.filter((_, i) => !notes.has(i)) })), '', null, true);
+}
+
+/** Whether the deck ends with its code: not a printed thing, not an empty deck, not when the header says "qr: no". */
+export const wantsClosing = (doc: Doc, s: Settings): boolean => s.qr && !s.format && doc.blocks.length > 0;
 
 /**
- * The deck ends with a slide that is a QR code of the whole deck, its title beneath: whoever is in the
- * room can take it home. Drawn, not written. None for a printed thing, for an empty deck, when the
- * header says "qr: no", or when the deck is too long for a code.
+ * The deck ends with a slide that is a QR code of its slides, its title beneath: whoever is in the room can take
+ * them home. Drawn, not written. None unless wanted (wantsClosing), or when the slides are too long for a code.
  */
 export function closingPage(text: string, doc: Doc = parse(text), s: Settings = settingsOf(doc), look = lookOf(s)): Page | null {
-  if (!s.qr || s.format || !doc.blocks.length) return null;
-  const link = deckLink(text);
-  const bytes = new TextEncoder().encode(link);
+  if (!wantsClosing(doc, s)) return null;
+  const bytes = new TextEncoder().encode(takeHomeLink(doc));
   if (bytes.length > QR_MAX_BYTES) return null;
   const T = look.theme;
   const code = qrSvg(bytes);

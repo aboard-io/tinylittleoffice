@@ -526,7 +526,7 @@ export class ToShell extends LitElement {
     if (!keeping()) return void toast(t('Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.'));
     if (!this.doc.trim() || this.doc === def.blank()) return void toast(t('Nothing to keep yet'));
     const payload = parseHash(location.hash).payload || encodeDoc(this.doc);
-    this.kept.soon({ app: def.id, title: def.title(this.doc) || this.fresh || firstWords(this.doc), hash: routeHash(def.id, payload) });
+    this.kept.soon({ app: def.id, title: this.locker ? '' : def.title(this.doc) || this.fresh || firstWords(this.doc), hash: routeHash(def.id, payload) });
     this.kept.flush();
     history.replaceState(this.state(), '', location.href);
     this.other = null;
@@ -544,13 +544,17 @@ export class ToShell extends LitElement {
     const def = this.def;
     // A QR code the document holds of itself is drawn from its link as it now is.
     setSelfLink(def ? this.link : '');
-    document.title = def ? `${this.docTitle} · ${t('Tiny Little Office')}` : t('Tiny Little Office');
+    document.title = def ? `${this.outerTitle} · ${t('Tiny Little Office')}` : t('Tiny Little Office');
   }
   /** What the document is called: the name it was given, a new one's name, or "Untitled presentation" (a link that came with none). */
   private get docTitle(): string {
     const def = this.def;
     if (def && this.sealed) return t('Locked document');
     return def ? def.title(this.doc) || this.fresh || t('Untitled {noun}', { noun: def.noun }) : t('Tiny Little Office');
+  }
+  /** What the world outside the page is told the document is called (the tab, history, the share sheet): nothing of a locked one. */
+  private get outerTitle(): string {
+    return this.def && (this.locker || this.sealed) ? t('Locked document') : this.docTitle;
   }
   /** The link to share, the editing one: the address without the owner's query (that stays in the address bar alone) or the display flag. */
   get link(): string {
@@ -745,7 +749,7 @@ export class ToShell extends LitElement {
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands} .def=${def ?? null}></to-drawer><to-palette></to-palette>`}<to-toast></to-toast>
       ${
         def
-          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.docTitle} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
+          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.outerTitle} .locked=${!!this.locker} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
             <to-privacy doc .app=${def.id} .sealed=${this.sealed} .signature=${this.signature} ?protected=${!!this.locker} .by=${this.envelope.by ?? ''} ?signed=${!!this.envelope.sig} .signable=${this.signable} @to-unlock=${this.onUnlock} @to-lock=${this.onLock} @to-signed=${this.onSigned}></to-privacy>`
           : nothing
       }

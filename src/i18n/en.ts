@@ -1089,7 +1089,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.',
   'A pitch': 'A pitch',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'A pub quiz in four rounds, a score table, and the answers on the last slide.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.',

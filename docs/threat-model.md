@@ -144,6 +144,7 @@ taps it, and the map's tiles and place search go to OpenStreetMap directly while
 | Password: PBKDF2-SHA-256, 600,000 rounds, random salt; AES-256-GCM with a fresh IV per edit | The link's holders, and anything it passes through, reading a document they were not told the password of; alteration of a sealed document |
 | A password never stored; the key held in memory for the visit, non-extractable | A device or a backup giving the password away |
 | A sealed document kept in the library with no title or first words | The library telling what a sealed document is |
+| A locked document's title reaches nothing but its own page: not the tab title or history, the library, a kept short link, a post, the embed, the QR file, or the share sheet (which gets no picture either) | History, tab sync and the apps a link is shared to telling what a sealed document is |
 | Ed25519 signatures over app, time, words, title and name; P-256 where Ed25519 is missing | A shared document altered, or its name or date changed, without the reader being able to tell |
 | Short link: AES-256-GCM, the key only in the fragment | The short-link service reading documents |
 | Owner key: the service keeps only its SHA-256; wrong key and no row answered alike, in the same time | Others changing or deleting a short link; probing for which ids have owners |

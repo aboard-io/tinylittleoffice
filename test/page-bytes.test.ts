@@ -28,4 +28,4 @@ test('the pages of three documents, and their thumbnails, are the same bytes as 
   expect(drawn()).toEqual(EXPECTED);
 });
 
-const EXPECTED = ['write: 99d352286d96c4d9 99d352286d96c4d9', 'deck: c0a9ad69b66ce9ca 2b93a1c61971ee4d', 'draw: 2d08ac410fa23349 2d08ac410fa23349'];
+const EXPECTED = ['write: 99d352286d96c4d9 99d352286d96c4d9', 'deck: 6c3afc6cf2eadac7 2b93a1c61971ee4d', 'draw: 2d08ac410fa23349 2d08ac410fa23349'];

@@ -97,7 +97,7 @@ test('a sealed link opens with the unlock dialog: nothing of the document shown,
   shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
   await until(() => !d.dialog.open && !!shell.querySelector('to-write-editor to-text .tx p'));
   expect(shell.querySelector('to-text .tx p')!.textContent).toBe('The secret words.');
-  expect(document.title).toBe('Salaries · Tiny Little Office');
+  expect(document.title).toBe('Locked document · Tiny Little Office');
   expect(pill(shell).querySelector('.to-trust-lock')).not.toBeNull();
   // The address still holds the ciphertext alone.
   expect(isSealed(payload())).toBe(true);

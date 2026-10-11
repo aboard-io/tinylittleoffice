@@ -1079,7 +1079,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': '一座自助采摘农场：什么时候长什么、怎么玩、价格、谷仓和怎么找到。',
   'A pitch': '一次推介',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': '一句话讲产品、它能做什么、表格里的价格、发布日期和媒体联系人。',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': '分四轮的酒吧问答，答案放在演讲者备注里，现场看不到，还有一张得分表。',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': '分四轮的酒吧问答，还有一张得分表，答案在最后一张幻灯片上。',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': '关于新游乐场的居民会议：为什么、提议什么、饼图里的预算、何时、怎样发表意见。',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': '黑板上的一堂科学课：目标、已知内容、模型、检查、作业；每一页下面有教师备注。',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': '八张幻灯片的种子轮推介：问题、产品、图表里的增长、商业模式、团队、诉求。',

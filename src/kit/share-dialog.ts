@@ -7,7 +7,7 @@
  * Forget); posting the link to a service's compose box (through the link guard), a deck's show link; the QR code;
  * the embed code; the short links kept here.
  *
- * It gets the document through properties (`app`, `doc`, `heading`, `owned`, `expires`, `changed`, `payloadLength`,
+ * It gets the document through properties (`app`, `doc`, `heading`, `locked`, `owned`, `expires`, `changed`, `payloadLength`,
  * `signature`, and `linkTo`, the link the shell projects, made current first) and says back what changes the
  * document's link: `to-owned` (detail: the short link this document now owns, or null, and when it expires), and
  * `to-link-copied` when the link (or the Display Link) is on the clipboard, so the document lives somewhere now. It is
@@ -75,6 +75,7 @@ export class ToShare extends LitElement {
     app: { attribute: false },
     doc: { attribute: false },
     heading: { attribute: false },
+    locked: { attribute: false },
     owned: { attribute: false },
     expires: { attribute: false },
     changed: { attribute: false },
@@ -94,6 +95,8 @@ export class ToShare extends LitElement {
   declare doc: string;
   /** What the document is called. */
   declare heading: string;
+  /** It has a password: nothing of it goes out but its ciphertext link, no picture, no title. */
+  declare locked: boolean;
   /** The short link this document may update: arrived from its owner link, or made here. */
   declare owned: Owned | null;
   /** When the short link this document is tied to expires, ms since the epoch; 0 when none is known. */
@@ -124,6 +127,7 @@ export class ToShare extends LitElement {
     this.app = '';
     this.doc = '';
     this.heading = '';
+    this.locked = false;
     this.owned = null;
     this.expires = 0;
     this.changed = false;
@@ -150,6 +154,10 @@ export class ToShare extends LitElement {
   }
   get link(): string {
     return this.linkTo(false);
+  }
+  /** What the document is called where the link goes (a post, the embed's frame): "Locked document" for a locked one. */
+  private get named(): string {
+    return this.locked ? t('Locked document') : this.heading;
   }
   /** The link (or the Display Link) copied: said to the shell, which then no longer warns before the tab closes. */
   private copyLink = async (link: string) => void ((await copyText(link)) && this.say('to-link-copied', null));
@@ -204,7 +212,7 @@ export class ToShare extends LitElement {
       const { ver, expires } = await update(owned, this.shortTarget, seconds);
       this.say('to-owned', { owned, expires });
       toast(seconds ? expiresLine(expires, Date.now(), document.documentElement.lang) : t('Updated · version {n}', { n: ver }));
-      if (isKept(ownerLink(owned))) keepLink({ owner: ownerLink(owned), title: this.heading, made: Date.now(), expires });
+      if (isKept(ownerLink(owned))) keepLink({ owner: ownerLink(owned), title: this.locked ? '' : this.heading, made: Date.now(), expires });
     });
   private forgetShort = () => {
     if (!confirm(t('Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.'))) return;
@@ -218,11 +226,11 @@ export class ToShare extends LitElement {
     });
   };
   private keepShort(short: Shortened) {
-    keepLink({ owner: short.owner, title: this.heading, made: Date.now(), expires: short.expires });
+    keepLink({ owner: short.owner, title: this.locked ? '' : this.heading, made: Date.now(), expires: short.expires });
     this.requestUpdate();
   }
   private async saveQr(svg: string, ext: 'png' | 'svg') {
-    const file = `${slug(this.heading) || 'document'}-qr.${ext}`;
+    const file = `${(!this.locked && slug(this.heading)) || 'document'}-qr.${ext}`;
     if (ext === 'svg') return saveFile(file, 'image/svg+xml', utf8(svg));
     const side = 1024;
     const png = await raster(svg.replace(/width="\d+" height="\d+"/, `width="${side}" height="${side}"`), side, side);
@@ -246,6 +254,7 @@ export class ToShare extends LitElement {
     const def = appOf(this.app)!;
     const share = async () => {
       await ensureIcons(iconNames(this.doc));
+      if (this.locked) return shareNative(this.named, this.link);
       return shareNative(this.heading, this.link, await picture(await withPictures(def.view(this.doc, { still: true }))));
     };
     const made = this.madeLine();
@@ -279,7 +288,7 @@ export class ToShare extends LitElement {
       void this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.to-mastodon-server')?.focus());
       return;
     }
-    openLink(shareUrl(service, this.heading, this.link, server));
+    openLink(shareUrl(service, this.named, this.link, server));
   }
   private setMastodon(e: Event) {
     e.preventDefault();
@@ -321,7 +330,7 @@ export class ToShare extends LitElement {
     return html`<section class="to-share-section to-share-embed" aria-labelledby="to-share-embed-h">
       <h3 id="to-share-embed-h">${t('Embed')}</h3>
       <p class="to-hint">${t('The pages, in a frame on another site, with a link to open them here.')}</p>
-      <button type="button" class="to-btn to-copy-embed" @click=${() => void copyText(embedCode(this.embedLink, this.heading), t('Embed code copied'))}>${icon(UI.code, 16)}<span>${t('Copy embed code')}</span></button>
+      <button type="button" class="to-btn to-copy-embed" @click=${() => void copyText(embedCode(this.embedLink, this.named), t('Embed code copied'))}>${icon(UI.code, 16)}<span>${t('Copy embed code')}</span></button>
     </section>`;
   }
 

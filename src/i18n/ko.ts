@@ -1073,7 +1073,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': '직접 따는 농장이에요. 철마다 나는 작물, 이용 방법, 가격, 헛간, 찾아오는 길.',
   'A pitch': '피치',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': '제품을 한 문장으로, 하는 일, 표로 정리한 가격, 출시일, 언론 연락처.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': '4라운드 퀴즈 대회예요. 정답은 사람들이 볼 수 없는 발표자 노트에 있고 점수표도 있어요.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': '4라운드 퀴즈 대회예요. 점수표가 있고 정답은 마지막 슬라이드에 있어요.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': '새 놀이터에 대한 주민 회의예요. 이유, 제안 내용, 원형 차트 예산, 일정, 의견을 내는 방법.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': '칠판에 쓴 과학 수업이에요. 목표, 아는 것, 모형, 확인, 숙제. 각각 아래에 교사 노트가 있어요.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': '슬라이드 여덟 장의 시드 투자 피치예요. 문제, 제품, 차트로 보는 성과, 사업, 팀, 요청.',

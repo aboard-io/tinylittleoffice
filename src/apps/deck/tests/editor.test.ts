@@ -691,3 +691,13 @@ test("a paste from Google Docs into a slide's words keeps the items and their de
   expect(last()).toBe('## One\n\nPlan\n\n- **Bold** start\n  - nested\n');
   expect([...box(el, 'words').querySelectorAll('li')].map((li) => li.style.getPropertyValue('--d'))).toEqual(['0', '1']);
 });
+
+test('a deck too long for its closing code: the end card says so, rather than nothing', async () => {
+  const words = Array.from({ length: 900 }, (_, i) => `word${(i * 7919) % 100003}`).join(' ');
+  const { el } = await editor(`## Long\n\n${words}\n`);
+  const end = el.querySelector('.deck-end')!;
+  expect(end.textContent).toContain('Too long for a QR code');
+  expect(end.getAttribute('aria-label')).toBeNull();
+  const { el: short } = await editor('## Short\n\n- a\n');
+  expect(short.querySelector('.deck-end')!.textContent).toContain('QR code of this deck');
+});

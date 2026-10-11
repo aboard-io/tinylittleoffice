@@ -28,9 +28,11 @@ import {
   webBlock,
 } from '../model.ts';
 import { deckToPptx } from '../pptx.ts';
+import { decodeDoc } from '../../../kit/codec.ts';
+import { parseHash } from '../../../kit/route.ts';
 import { templates } from '../templates.ts';
 import { contrast, THEMES } from '../theme.ts';
-import { closingPage, deckFrames, deckPages, deckToHtml, layoutSlide, lookOf, pageCount, pagesOf, sheetsOf, slidePage, slideSteps, wrap } from '../view.ts';
+import { closingPage, deckFrames, takeHomeLink, wantsClosing, deckPages, deckToHtml, layoutSlide, lookOf, pageCount, pagesOf, sheetsOf, slidePage, slideSteps, wrap } from '../view.ts';
 
 const TALK = templates().find((x) => x.id === 'talk')!.doc;
 const tpl = (id: string) => templates().find((x) => x.id === id)!.doc;
@@ -242,6 +244,31 @@ test('formats: page counts, geometry and impositions; a comic draws panels; a po
   expect(sheetsOf(badges, settingsOf(badges))[0].svg).toContain('Mara Quill');
   // Drawn small, the first page alone.
   expect(deck.view(tpl('zine'), { small: true })).toHaveLength(1);
+});
+
+test("the take-home QR is the slides: the Display Link, every speaker note cut; the lesson's answers on a slide of their own", () => {
+  const doc = parse(TALK);
+  expect(slidesOf(doc).some((s) => s.noteLines.length)).toBe(true);
+  const link = takeHomeLink(doc, 'https://tinylittleoffice.com/');
+  const route = parseHash(new URL(link).hash);
+  expect([route.app, route.display]).toEqual(['deck', true]);
+  const home = parse(decodeDoc(route.payload));
+  expect(home.blocks.some((b) => b.k === 'quote')).toBe(false);
+  expect(slidesOf(home).map((s) => plainText(s.title))).toEqual(slidesOf(doc).map((s) => plainText(s.title)));
+  expect(decodeDoc(route.payload)).not.toContain('Twenty minutes, then questions');
+  // Too long for a code: wanted still, so the editor's end card can say why there is none.
+  const long = `## Words\n\n${Array.from({ length: 900 }, (_, i) => `word${(i * 7919) % 100003}`).join(' ')}\n`;
+  expect([closingPage(long), wantsClosing(parse(long), settingsOf(parse(long)))]).toEqual([null, true]);
+  // The teacher's answers are not in her notes, which the room never sees, but on the last slide.
+  for (const id of ['lesson', 'trivia']) {
+    const d = parse(tpl(id));
+    expect(
+      slidesOf(d)
+        .flatMap((s) => s.noteLines)
+        .join(' '),
+    ).not.toContain('Answers');
+    expect(plainText(slidesOf(d).at(-1)!.title)).toContain('Answers');
+  }
 });
 
 test('the deck ends with a QR code of itself, unless told not to, unless printed, unless empty', () => {

@@ -1081,7 +1081,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'Une ferme de cueillette : ce qui pousse quand, comment ça marche, les prix, la grange et comment la trouver.',
   'A pitch': 'Un pitch',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'Un produit en une phrase, ce qu’il fait, les prix dans un tableau, les dates de lancement et le contact presse.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'Un quiz de bar en quatre manches, les réponses dans les notes de l’orateur où la salle ne peut pas les voir, et un tableau des scores.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'Un quiz de bar en quatre manches, un tableau des scores, et les réponses sur la dernière diapositive.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'Une réunion d’habitants sur un nouveau terrain de jeux : pourquoi, ce qui est proposé, le budget en camembert, quand, comment donner son avis.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'Un cours de sciences au tableau noir : objectifs, ce qu’ils savent, le modèle, une vérification, des devoirs ; les notes de l’enseignant sous chacun.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'Un pitch d’amorçage en huit diapositives : le problème, le produit, la traction sur un graphique, le modèle économique, l’équipe, la demande.',

@@ -1028,7 +1028,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'নিজে তুলে নেওয়ার খামার: কখন কী ফলে, কীভাবে চলে, দাম, গোলাঘর আর কীভাবে পৌঁছাবেন।',
   'A pitch': 'একটি পিচ',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'এক বাক্যে পণ্য, কী করে, টেবিলে দাম, চালুর তারিখ আর প্রেসের যোগাযোগ।',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'চার রাউন্ডের কুইজ, উত্তর বক্তার নোটে যেখানে হলের লোকজন দেখতে পায় না, আর স্কোরের টেবিল।',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'চার রাউন্ডের কুইজ, স্কোরের টেবিল, আর উত্তর শেষ স্লাইডে।',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'নতুন খেলার মাঠ নিয়ে বাসিন্দাদের সভা: কেন, কী প্রস্তাব, পাই চার্টে বাজেট, কবে, মতামত দেবেন কীভাবে।',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'চকবোর্ডে বিজ্ঞানের পাঠ: লক্ষ্য, তারা কী জানে, মডেল, যাচাই, বাড়ির কাজ; প্রতিটির নিচে শিক্ষকের নোট।',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'আট স্লাইডে সিড পিচ: সমস্যা, পণ্য, চার্টে অগ্রগতি, ব্যবসা, দল, আর কী চাইছেন।',

@@ -1080,7 +1080,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'Een zelfpluk-boerderij: wat wanneer groeit, hoe het werkt, de prijzen, de schuur en hoe je ons vindt.',
   'A pitch': 'Een pitch',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'Een product in één zin, wat het doet, prijzen in een tabel, de lanceerdata en het perscontact.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'Een pubquiz in vier rondes, de antwoorden in de sprekersnotities waar de zaal ze niet ziet, en een scoretabel.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'Een pubquiz in vier rondes, een scoretabel en de antwoorden op de laatste dia.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'Een bewonersavond over een nieuwe speeltuin: waarom, wat er voorgesteld wordt, de begroting als taart, wanneer, hoe je kunt meepraten.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'Een natuurkundeles op het schoolbord: doelen, wat ze weten, het model, een controle, huiswerk; de notities van de leraar onder elk.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'Een seed-pitch in acht dia’s: het probleem, het product, tractie op een grafiek, het bedrijf, het team, de vraag.',

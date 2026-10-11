@@ -1075,7 +1075,7 @@ export default {
   'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'Ферма самозбору: що коли росте, як це працює, ціни, комора й як знайти.',
   'A pitch': 'Пітч',
   'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'Продукт одним реченням, що він робить, ціни в таблиці, дати запуску й контакт для преси.',
-  'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'Паб-квіз у чотири раунди, відповіді в нотатках доповідача, де їх не видно залі, і таблиця балів.',
+  'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'Паб-квіз у чотири раунди, таблиця балів і відповіді на останньому слайді.',
   'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'Збори мешканців про новий дитячий майданчик: чому, що пропонують, бюджет колом, коли, як висловитися.',
   'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'Урок природознавства на крейдовій дошці: цілі, що вони знають, модель, перевірка, домашнє завдання; нотатки вчителя під кожним.',
   'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'Seed-пітч у вісім слайдів: проблема, продукт, динаміка на діаграмі, бізнес, команда, прохання.',

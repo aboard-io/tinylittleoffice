@@ -1074,7 +1074,7 @@ export default {
     'A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.': 'خود توڑنے والا فارم: کب کیا اگتا ہے، یہ کیسے چلتا ہے، قیمتیں، گودام اور اسے کیسے ڈھونڈیں۔',
     'A pitch': 'ایک پچ',
     'A product in a sentence, what it does, prices in a table, the launch dates and the press contact.': 'ایک جملے میں پروڈکٹ، وہ کیا کرتی ہے، جدول میں قیمتیں، لانچ کی تاریخیں اور پریس کا رابطہ۔',
-    'A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.': 'چار راؤنڈ کا پب کوئز، جوابات اسپیکر نوٹس میں جہاں کمرہ دیکھ نہیں سکتا، اور اسکور کا جدول۔',
+    'A pub quiz in four rounds, a score table, and the answers on the last slide.': 'چار راؤنڈ کا پب کوئز، اسکور کا جدول، اور جوابات آخری سلائیڈ پر۔',
     'A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.': 'نئے کھیل کے میدان پر رہائشیوں کی میٹنگ: کیوں، کیا تجویز ہے، بجٹ پائی کی صورت میں، کب، اپنی رائے کیسے دیں۔',
     'A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.': 'بلیک بورڈ پر سائنس کا سبق: مقاصد، وہ کیا جانتے ہیں، ماڈل، جانچ، ہوم ورک؛ ہر ایک کے نیچے استاد کے نوٹس۔',
     'A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.': 'آٹھ سلائیڈوں میں سیڈ پچ: مسئلہ، پروڈکٹ، چارٹ پر رفتار، کاروبار، ٹیم، مانگ۔',
