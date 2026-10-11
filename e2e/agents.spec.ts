@@ -18,21 +18,21 @@ test('/llms.txt and /api.js are served; the API makes a link that opens', async 
   await page.goto('/');
   const made = await page.evaluate(async () => {
     const api = await import(`${location.origin}/api.js`);
-    const url: string = api.link('todo', '- [ ] Milk\n', { title: 'Shop', site: location.origin });
+    const url: string = api.link('outline', '- [ ] Milk\n', { title: 'Shop', site: location.origin });
     return { url, back: api.read(url).text, apps: (await api.apps()).length };
   });
   expect(made.back).toBe('---\ntitle: Shop\n---\n- [ ] Milk\n');
-  expect(made.apps).toBe(12);
+  expect(made.apps).toBe(10);
   await page.goto(made.url);
   await expect(page.locator('.to-title')).toHaveValue('Shop');
 });
 
 test('a plain link becomes the packed link; the embed page shows the pages alone; an app’s page names its card', async ({ page, request }) => {
-  await page.goto('/todo/#title=Packing&doc=-+%5B+%5D+Socks');
-  await expect(page).toHaveURL(/#\/v1\/todo\/[yzr][A-Za-z0-9_~]+$/);
+  await page.goto('/outline/#title=Packing&doc=-+%5B+%5D+Socks');
+  await expect(page).toHaveURL(/#\/v1\/outline\/[yzr][A-Za-z0-9_~]+$/);
   await expect(page.locator('.to-title')).toHaveValue('Packing');
-  const packed = new URL(page.url()).hash.replace('#/v1/todo/', '');
-  await page.goto(`/embed/#/v1/todo.embed/${packed}`);
+  const packed = new URL(page.url()).hash.replace('#/v1/outline/', '');
+  await page.goto(`/embed/#/v1/outline.embed/${packed}`);
   await expect(page.locator('.to-embed .to-display-page svg')).toBeVisible();
   await expect(page.locator('.to-header')).toHaveCount(0);
   await expect(page.locator('.to-embed-title')).toHaveText('Packing');
@@ -43,8 +43,8 @@ test('a plain link becomes the packed link; the embed page shows the pages alone
 });
 
 test('Share’s Post the link and Embed fit the screen, Mastodon’s field too; Compare stacks on a phone', async ({ page }) => {
-  await page.goto('/todo/#title=Packing&doc=-+%5B+%5D+Socks');
-  await expect(page).toHaveURL(/#\/v1\/todo\//);
+  await page.goto('/outline/#title=Packing&doc=-+%5B+%5D+Socks');
+  await expect(page).toHaveURL(/#\/v1\/outline\//);
   const first = page.url();
   await page.locator('.to-burger').click();
   await page.locator('.to-drawer-share').click();
@@ -60,8 +60,8 @@ test('Share’s Post the link and Embed fit the screen, Mastodon’s field too; 
   expect(await dialog.evaluate((d) => d.scrollWidth - d.clientWidth)).toBeLessThanOrEqual(0);
   expect((await axe(page)).violations).toEqual([]);
   await page.keyboard.press('Escape');
-  const a = new URL(first).hash.replace('#/v1/todo/', '');
-  await page.goto('/#/compare/todo/' + a);
+  const a = new URL(first).hash.replace('#/v1/outline/', '');
+  await page.goto('/#/compare/outline/' + a);
   await page.locator('.cmp-b').fill(first);
   await page.locator('.cmp-b').press('Enter');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);

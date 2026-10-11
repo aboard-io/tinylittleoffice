@@ -35,7 +35,7 @@ const NOTES = encodeDoc('---\ntitle: Harbour notes\n---\n# The quay\n\nThe café
 test('the home page searches the library: every word somewhere, the title and the lines that hold them, the words marked', () =>
   saved(async () => {
     keep({ id: 'a', app: 'write', title: 'Harbour notes', hash: `#/v1/write/${NOTES}`, at: Date.now() - 1000 });
-    keep({ id: 'b', app: 'todo', title: 'Errands', hash: `#/v1/todo/${encodeDoc('- [ ] Post the letter\n- [ ] Buy coffee for the café\n')}`, at: Date.now() });
+    keep({ id: 'b', app: 'outline', title: 'Errands', hash: `#/v1/outline/${encodeDoc('- [ ] Post the letter\n- [ ] Buy coffee for the café\n')}`, at: Date.now() });
     const shell = await mount('');
     const box = shell.querySelector<HTMLInputElement>('to-home .to-search')!;
     expect(box.getAttribute('aria-label')).toBe('Search your documents');

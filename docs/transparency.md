@@ -148,7 +148,7 @@ in the idea's place, the pull request template three lines, CI running every che
 One sentence: **Tiny Little Office is a free office suite where your document is the link. There's no
 account, nothing is stored anywhere, and whoever has the link has the document.**
 
-A paragraph: *Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list.
+A paragraph: *Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a calendar.
 When you want to share it, copy the link. The whole document lives inside that link, so sending it
 is like handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you
 write. If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It

@@ -53,9 +53,9 @@ async function choose(shell: HTMLElement, words: string, action = 'Download') {
 }
 
 test('a plain link becomes the packed link on arrival, the document and its name as written', async () => {
-  const shell = await mount('#title=Shopping&app=todo&doc=-+%5B+%5D+Milk%0A-+%5Bx%5D+Eggs&by=chores-agent');
-  await until(() => !!shell.querySelector('to-todo-editor'));
-  expect(location.hash).toMatch(/^#\/v1\/todo\/[yzr][A-Za-z0-9_~]+$/);
+  const shell = await mount('#title=Shopping&app=outline&doc=-+%5B+%5D+Milk%0A-+%5Bx%5D+Eggs&by=chores-agent');
+  await until(() => !!shell.querySelector('to-outline-editor'));
+  expect(location.hash).toMatch(/^#\/v1\/outline\/[yzr][A-Za-z0-9_~]+$/);
   expect(docNow()).toBe('---\nby: chores-agent\ntitle: Shopping\n---\n- [ ] Milk\n- [x] Eggs\n');
   expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe('Shopping');
   // md= with no app anywhere is a text.
@@ -65,12 +65,12 @@ test('a plain link becomes the packed link on arrival, the document and its name
 });
 
 test('Download gives every app a .tlo that names its app, Markdown, and the .pdf file; the links that download are copied', async () => {
-  const shell = await mount(`#/v1/todo/${encodeDoc('---\ntitle: Groceries\n---\n- [ ] Milk^[oat]\n')}`);
-  await until(() => !!shell.querySelector('to-todo-editor'));
+  const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Groceries\n---\n- [ ] Milk^[oat]\n')}`);
+  await until(() => !!shell.querySelector('to-write-editor'));
   const got = downloads();
   await choose(shell, 'Text (TLO)');
   await until(() => got.has('groceries.tlo'));
-  expect(await got.get('groceries.tlo')!.text()).toBe('---\ntitle: Groceries\napp: todo\n---\n- [ ] Milk^[oat]\n');
+  expect(await got.get('groceries.tlo')!.text()).toBe('---\ntitle: Groceries\napp: write\n---\n- [ ] Milk^[oat]\n');
   await choose(shell, 'PDF file');
   await until(() => got.has('groceries.pdf'), 8000);
   const pdf = new Uint8Array(await got.get('groceries.pdf')!.arrayBuffer());
@@ -97,12 +97,12 @@ test('a .tlo dropped on the page opens as its own app and title; a .md from the 
   const shell = await mount(`#/v1/write/${encodeDoc('Hello\n')}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   const drop = new DataTransfer();
-  drop.items.add(new File(['---\ntitle: Packing\napp: todo\n---\n- [ ] Socks\n'], 'packing.tlo', { type: 'text/plain' }));
+  drop.items.add(new File(['---\ntitle: Packing\napp: outline\n---\n- [ ] Socks\n'], 'packing.tlo', { type: 'text/plain' }));
   const over = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: drop });
   shell.dispatchEvent(over);
   expect(over.defaultPrevented).toBe(true);
   shell.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: drop }));
-  await until(() => parseHash(location.hash).app === 'todo' && !!shell.querySelector('to-todo-editor'));
+  await until(() => parseHash(location.hash).app === 'outline' && !!shell.querySelector('to-outline-editor'));
   expect(docNow()).toBe('---\ntitle: Packing\n---\n- [ ] Socks\n');
 
   // The menu: Open a file… is a file picker; a Markdown file with no title is called by its name.
@@ -115,7 +115,7 @@ test('a .tlo dropped on the page opens as its own app and title; a .md from the 
   input.files = pick.files;
   input.dispatchEvent(new Event('change'));
   await until(() => docNow().includes('Tent'));
-  expect(parseHash(location.hash).app).toBe('todo');
+  expect(parseHash(location.hash).app).toBe('outline');
   expect(docNow()).toBe('---\ntitle: camping\n---\n- [ ] Tent\n');
   // Something that is not words does not open.
   const before = location.hash;
@@ -253,9 +253,9 @@ test('Copy embed code: a lazy, no-referrer frame of the embed page; the embed vi
   expect(new URL(openIt.href).hash).toBe(`#/v1/write/${encodeDoc('---\ntitle: Notes\n---\nHello\n')}`);
   void shell;
   // A plain link may ask for the embed view too (what /tinyoffice.js's embed() writes).
-  const plain = await mount('#app=todo&view=embed&title=Packing&doc=-+%5B+%5D+Socks');
+  const plain = await mount('#app=outline&view=embed&title=Packing&doc=-+%5B+%5D+Socks');
   await until(() => !!plain.querySelector('.to-embed .to-display-page svg'));
-  expect(location.hash).toMatch(/^#\/v1\/todo\.embed\//);
+  expect(location.hash).toMatch(/^#\/v1\/outline\.embed\//);
   expect(plain.querySelector('.to-embed-title')!.textContent).toBe('Packing');
 });
 

@@ -4,7 +4,7 @@ import { test, expect } from 'vitest';
 import { unzip, zip } from '../src/kit/zip.ts';
 import { readZip } from '../src/kit/plain.ts';
 
-const known = (id: string) => ['write', 'sheet', 'todo', 'deck'].includes(id);
+const known = (id: string) => ['write', 'sheet', 'outline', 'deck'].includes(id);
 const words = (files: Record<string, Uint8Array>) => Object.fromEntries(Object.entries(files).map(([k, v]) => [k, new TextDecoder().decode(v)]));
 
 test('unzip gives back what zip was given, in its order, words and bytes alike', () => {
@@ -27,7 +27,7 @@ test('a zip of documents is read as documents: the app from the head, else the f
       'write/launch-notes.tlo': '---\ntitle: Launch notes\n---\nGo.\n',
       'sheet/untitled.tlo': 'a | b\n--- | ---\n1 | 2\n',
       'write/locked.txt': 'https://tinylittleoffice.com/#/v1/write/Eabc~def\n',
-      'notes/shopping.md': '---\napp: todo\n---\n- [ ] Milk\n',
+      'notes/shopping.md': '---\napp: outline\n---\n- [ ] Milk\n',
       'loose.md': '# Loose\n',
       'signing-key.json': '{"kty":"OKP"}',
       'README.txt': 'What this is.\n',
@@ -42,7 +42,7 @@ test('a zip of documents is read as documents: the app from the head, else the f
     { app: 'sheet', text: 'a | b\n--- | ---\n1 | 2\n', title: '', payload: '' },
     // A locked document is its link: kept as the link's payload, with no name, as the shell keeps one.
     { app: 'write', text: '', title: '', payload: 'Eabc~def' },
-    { app: 'todo', text: '- [ ] Milk\n', title: 'shopping', payload: '' },
+    { app: 'outline', text: '- [ ] Milk\n', title: 'shopping', payload: '' },
     { app: 'deck', text: '# Loose\n', title: 'loose', payload: '' },
   ]);
 });

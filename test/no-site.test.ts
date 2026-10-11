@@ -7,8 +7,8 @@ import { apps, appOf } from '../src/kit/apps.ts';
 
 const file = (path: string) => new URL(`../${path}`, import.meta.url);
 
-test('twelve apps, and no website among them', () => {
-  expect(apps().map((a) => a.id)).toHaveLength(12);
+test('ten apps, and no website among them', () => {
+  expect(apps().map((a) => a.id)).toHaveLength(10);
   expect(appOf('site')).toBeUndefined();
   expect(apps().some((a) => 'page' in a)).toBe(false);
   expect(existsSync(file('src/apps/site'))).toBe(false);

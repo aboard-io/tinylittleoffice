@@ -8,8 +8,6 @@ import sheet from '../apps/sheet/def.ts';
 import draw from '../apps/draw/def.ts';
 import outline from '../apps/outline/def.ts';
 import deck from '../apps/deck/def.ts';
-import todo from '../apps/todo/def.ts';
-import board from '../apps/board/def.ts';
 import cal from '../apps/cal/def.ts';
 import diagram from '../apps/diagram/def.ts';
 import anim from '../apps/anim/def.ts';
@@ -18,7 +16,7 @@ import calc from '../apps/calc/def.ts';
 import { QR_LANG, qrPicture } from './qr-picture.ts';
 import { LOCKED_LANG, lockedDoc } from './locked.ts';
 
-const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal, trip];
+const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, cal, trip];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);

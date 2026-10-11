@@ -14,7 +14,8 @@
 //   bar        the app's bar, where it is shown, is one row inside the visible window
 //   undo       on a phone, wherever the bar is shown, its Undo is inside the visible window, beside the palette's button
 //   hidden     nothing faded away (opacity 0, no pointer) or slid out of the visible window can be tabbed or swiped to:
-//              what is away is inert (the phone's bar while reading, kit/chrome.ts)
+//              what is away is inert (the phone's bar while reading, kit/chrome.ts); a thing the column has scrolled
+//              away (a map's pin above the fold) is not away
 //   overflow   no words run off the screen sideways; the page is no wider than the window
 //   names      everything open has an accessible name
 //   keystroke  a word typed costs under the keystroke budget (perf.test.ts: 12 ms of synchronous work)
@@ -464,6 +465,23 @@ function undoOnScreen(r: Real, bar: HTMLElement, h: number) {
 /** What a Tab or a swipe reaches. */
 const REACHABLE = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 /**
+ * A box placed by a transform that is inside every box clipping it and inside what the nearest scroller scrolls: out of
+ * the window only as far as the scroll has taken it (a map's pin above the fold), which a scroll brings back.
+ */
+function scrolledAway(at: HTMLElement, b: DOMRect): boolean {
+  for (let p = at.parentElement; p && p !== document.body; p = p.parentElement) {
+    const s = getComputedStyle(p);
+    if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+    const r = p.getBoundingClientRect();
+    if (/auto|scroll/.test(s.overflowY) && p.scrollHeight > p.clientHeight) {
+      const top = r.top - p.scrollTop;
+      return b.bottom > top && b.top < top + p.scrollHeight && b.right > r.left && b.left < r.right;
+    }
+    if (b.bottom <= r.top || b.top >= r.bottom || b.right <= r.left || b.left >= r.right) return false;
+  }
+  return false;
+}
+/**
  * The first thing a Tab or a swipe reaches that a person cannot see: under a box faded away (opacity 0 and no pointer:
  * not a fade on hover) or slid by a transform out of the visible window `h` tall (not the skip link, which comes in
  * with the focus); '' when there is none.
@@ -479,7 +497,7 @@ function hiddenReachable(h: number): string {
       if (s.opacity === '0' && s.pointerEvents === 'none') return `${describeEl(el)} can be reached though ${describeEl(at)} is faded away: it is not inert`;
       if (s.transform.startsWith('matrix')) {
         const b = at.getBoundingClientRect();
-        if (b.width && b.height && (b.top >= h - 1 || b.bottom <= 1 || b.left >= innerWidth - 1 || b.right <= 1))
+        if (b.width && b.height && (b.top >= h - 1 || b.bottom <= 1 || b.left >= innerWidth - 1 || b.right <= 1) && !scrolledAway(at, b))
           return `${describeEl(el)} can be reached though ${describeEl(at)} is slid out of the window: it is not inert`;
       }
     }
@@ -776,7 +794,7 @@ test('on a phone, every app’s Undo is on screen wherever its bar is scrolled',
   await page.viewport(...SIZES.phone);
   await coarse(true);
   const all = Object.entries(FAMILIES).flatMap(([family, ids]) => ids.map((app) => [app, family] as const));
-  expect(all.length).toBe(12);
+  expect(all.length).toBe(10);
   for (const [app, family] of all) {
     const { real } = await start(app, family, 'phone');
     current = real;
@@ -921,6 +939,27 @@ test('each rule of the walks breaks on the fault it is for, naming it', async ()
       return () => (bar.style.cssText = was);
     }),
   ).toMatch(/^walk broke "hidden": .* is slid out of the window/);
+  // A thing placed by a transform inside what the column scrolls (a map's pin, Leaflet's) and scrolled away with it is
+  // where a scroll brings it back, not slid away; slid out of its own clipping box (a pin panned off its map), it is.
+  const pinned = (pan: number) =>
+    breaks(() => {
+      const column = real.shell.querySelector<HTMLElement>('.to-main')!;
+      const map = document.createElement('div');
+      map.style.cssText = 'position:relative;height:300px;overflow:hidden';
+      const pin = document.createElement('div');
+      pin.tabIndex = 0;
+      pin.textContent = 'A pin';
+      pin.style.cssText = `position:absolute;left:0;top:0;transform:translate(20px, ${pan}px)`;
+      map.append(pin);
+      const pad = document.createElement('div');
+      pad.style.cssText = 'height:3000px';
+      column.prepend(map);
+      column.append(pad);
+      column.scrollTop = 1000;
+      return () => (map.remove(), pad.remove(), (column.scrollTop = 0));
+    });
+  expect(pinned(100)).toBe('');
+  expect(pinned(-400)).toMatch(/^walk broke "hidden": <div> "A pin" .* is slid out of the window/);
   expect(
     breaks(() => {
       const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;

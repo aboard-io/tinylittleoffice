@@ -22,8 +22,6 @@ import '../src/apps/calc/commands.ts';
 import '../src/apps/draw/commands.ts';
 import '../src/apps/diagram/commands.ts';
 import '../src/apps/anim/commands.ts';
-import '../src/apps/board/commands.ts';
-import '../src/apps/todo/commands.ts';
 import '../src/apps/cal/commands.ts';
 import '../src/apps/trip/commands.ts';
 import { generate } from './generated.ts';

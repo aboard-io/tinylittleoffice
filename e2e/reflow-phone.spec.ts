@@ -2,7 +2,7 @@
  * At the largest size of everything (SIZE_MAX, 200%) on a phone (WebKit, 390 by 844), the low-vision reader's check:
  * no word is split across lines. The home page, then each app of the registry opened on its first template; for every
  * text node in the page's main, each word (Intl.Segmenter's) gives a single client rect, so a row wraps before a word
- * breaks (a to-do's task, a board's column name, the home page's app names). One test with soft assertions, so a run
+ * breaks (a schedule's task, a trip's stop, the home page's app names). One test with soft assertions, so a run
  * names every app whose words split rather than the first. Run on its own:
  *
  *   PW_PORT=4424 npx playwright test e2e/reflow-phone.spec.ts --project=phone
@@ -23,8 +23,8 @@ async function drawn(page: Page) {
 
 /**
  * The words in main drawn over more than one line, where a row could have wrapped instead: a word that would fit in its
- * box whole, or one in a box squeezed narrower than 3em (a to-do's task beside four 114px targets was 25px). A word
- * wider than the most its box can be given (a long one, deep in an outline) still breaks, as it must.
+ * box whole, or one in a box squeezed narrower than 3em. A word wider than the most its box can be given (a long one,
+ * deep in an outline) still breaks, as it must.
  */
 const split = (page: Page) =>
   page.evaluate(() => {

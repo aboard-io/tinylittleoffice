@@ -176,16 +176,6 @@ const PLAN: Record<string, State[]> = {
     { name: 'drawing', tpl: 'bounce', set: (ed) => ed.setMode('draw') },
     { name: 'four times', tpl: 'bounce', set: (ed) => ed.act(setLoop(ed.doc, 4)) },
   ],
-  board: [
-    { name: 'a card', tpl: 'project', set: (ed) => (ed.here = { at: ed.view.stages[0].cards[0].at, tx: ed.querySelector('.board-card to-text') }) },
-    { name: 'a stage name', tpl: 'project', set: (ed) => ((ed.here = { at: ed.view.stages[1].at, tx: ed.querySelector('.board-head to-text') }), (ed.menu = ed.view.stages[1].at)) },
-    { name: 'cards chosen', tpl: 'project', set: (ed) => ed.rows.choose(ed.view.stages[1].cards[0].at) },
-    { name: 'as rows', tpl: 'project', set: (ed) => ((ed.menu = ed.view.stages[1].at), ed.edit([{ op: 'head', key: 'look', value: 'rows' }])) },
-  ],
-  todo: [
-    { name: 'a task', tpl: 'week', set: (ed) => ((ed.here = ed.view.tasks[1]), (ed.hereTx = ed.querySelectorAll('.todo-row to-text')[1]), (ed.menuAt = ed.view.tasks[1].at)) },
-    { name: 'a due date', tpl: 'week', set: (ed) => ((ed.menuAt = ed.view.tasks.find((x: { due?: string }) => x.due)?.at ?? ed.view.tasks[0].at), ed.rows.choose(ed.view.tasks[0].at)) },
-  ],
   cal: [
     { name: 'a month', tpl: 'family', set: (ed) => ((ed.sweep = { from: ed.todayDay(), to: ed.todayDay() + 1 }), (ed.here = { day: ed.todayDay() })) },
     { name: 'an entry', tpl: 'family', set: (ed) => (ed.here = { el: ed.querySelector('.cal-chip, .cal-agenda-item') }) },

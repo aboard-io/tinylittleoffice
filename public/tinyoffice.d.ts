@@ -1,6 +1,6 @@
 // Types for /tinyoffice.js: Tiny Little Office links from a page's own JavaScript.
 export interface LinkOptions {
-  /** write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal or trip. */
+  /** write, outline, deck, sheet, calc, draw, diagram, anim, cal or trip. */
   app: string;
   /** The document in the app's own text (TLO; see /llms.txt). */
   doc?: string;

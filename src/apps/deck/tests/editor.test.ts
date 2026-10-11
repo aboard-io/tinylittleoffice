@@ -601,25 +601,25 @@ test('a lone web address pasted into empty words is the thing from the web on th
 
 const docDialog = () => document.querySelector('to-doc-dialog');
 
-test('Insert ▾ puts other local documents on the slide: a Kanban board is made in its own editor, and Done puts it on the slide', async () => {
+test('Insert ▾ puts other local documents on the slide: an outline is made in its own editor, and Done puts it on the slide', async () => {
   const { el, last } = await editor('## Plan\n');
   const opener = el.querySelector<HTMLElement>('to-insert button')!;
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
   const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(labels).toEqual(expect.arrayContaining(['Web Picture…', 'Table', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board']));
+  expect(labels).toEqual(expect.arrayContaining(['Web Picture…', 'Table', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Outliner']));
   expect(labels).not.toContain('Presentation Builder');
   opener.click();
   await tick();
-  await pick(el, opener, 'Kanban Board');
-  await until(() => !!docDialog()?.querySelector('dialog[open] to-board-editor'));
+  await pick(el, opener, 'Outliner');
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-outline-editor'));
   docDialog()!
-    .querySelector('to-board-editor')!
-    .dispatchEvent(new CustomEvent('docchange', { detail: '## To do\n\n- Write it\n', bubbles: true }));
+    .querySelector('to-outline-editor')!
+    .dispatchEvent(new CustomEvent('docchange', { detail: '- Write it\n', bubbles: true }));
   docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
-  await until(() => (last() ?? '').includes('```board'));
-  // The slide has its headline, so the board goes on a new slide after it.
-  expect(last()).toBe('## Plan\n\n---\n\n```board\n## To do\n\n- Write it\n```\n');
+  await until(() => (last() ?? '').includes('```outline'));
+  // The slide has its headline, so the outline goes on a new slide after it.
+  expect(last()).toBe('## Plan\n\n---\n\n```outline\n- Write it\n```\n');
   await until(() => !!el.querySelector('figure.deck-sub svg'));
 });
 

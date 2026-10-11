@@ -580,7 +580,7 @@ export class ToCalEditor extends DocElement<CalView> {
     this.edit(ops);
     this.focusWords(mapAt(ops, at));
   }
-  /** Chosen tasks a day earlier or later (the schedule's columns are days: Mod+Alt+Left/Right, as across a board's stages), or their dates (commands.ts). */
+  /** Chosen tasks a day earlier or later (the schedule's columns are days: Mod+Alt+Left/Right), or their dates (commands.ts). */
   private dayItems(_s: RowSpan): ContextEntry[] {
     return drawnIn(AT('rows'), 'context', this);
   }

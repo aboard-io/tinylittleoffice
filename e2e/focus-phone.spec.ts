@@ -13,8 +13,6 @@ const START: [string, string][] = [
   ['sheet', 'to-sheet-editor input[aria-label="A1"]'],
   ['deck', 'to-deck-editor to-text.deck-title .tx'],
   ['outline', 'to-outline-editor .ol-row to-text .tx'],
-  ['todo', 'to-todo-editor to-text .tx'],
-  ['board', 'to-board-editor .board-col to-text .tx'],
   ['calc', 'to-calc-editor .calc-display'],
   ['draw', 'to-draw-editor .draw-wrap'],
   ['anim', 'to-anim-editor .draw-wrap'],

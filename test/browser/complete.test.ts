@@ -226,8 +226,6 @@ test('the Word Processor: ":ca" then Enter puts the icon in the document', async
 const HOSTS: [string, string][] = [
   ['deck', '## Drive\n\n- Slowly\n'],
   ['outline', '- Drive\n- Slowly\n'],
-  ['todo', '- [ ] Drive\n- [ ] Slowly\n'],
-  ['board', '## Doing\n\n- Drive\n- Slowly\n'],
 ];
 for (const [app, tlo] of HOSTS) {
   test(`${app}: ":ca" then Enter puts an icon in the words and nothing else happens`, async () => {

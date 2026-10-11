@@ -65,8 +65,8 @@ Status key: **present**; **partial** (some of it is there); **missing**; **dropp
 | Unreadable-link page | app.ts `renderUnreadable` | — | **present** | — |
 | URL meter / limits | widgets/meter.ts, lib/limits.ts | Ring, count, copy button, rooms on hover, doc dialog table. | **partial**: ring, warn/over colours and dialog rooms table are present. The meter's copy button and hover rooms are gone, and there is no "over limit" pill. | In the kit: small additions to the shell header. |
 | Document dialog | app.ts `renderDialog` | Made, By, Link size and version, Download links, rooms, privacy. | **partial**: Title, link length, short link length and rooms only | See the created, by, download-link and privacy rows. |
-| "Open as another app…" | app.ts `renderOpenAs`, `convert()` | Any app's reading of this document, opened in a new tab (a list as a board, an outline as slides…). | **partial**: hand-offs only for outline → deck/diagram (mind, org, net), draw → anim, diagram → draw | In the kit: `Handoff`s per app (todo ↔ board, board → todo, cal ↔ todo, outline → todo/board…). The converters are pure functions over the kernel. |
-| Insert: a new blank document of any app inline | kit/browser.ts `insertOptions`/`insertedRef`, `editRef` | Insert a new Drawing, Table, Chart, Map, Calendar, Board… into a text, slide or outline item, then edit it in a dialog. | **partial**: Insert has Table (Write and Deck), Web Picture, Web Embed, and "Tiny Little Office Doc…", which takes an existing link only. There is no blank Drawing, Chart, Map etc. | In the kit: Insert items that splice a fence with `appOf(id).blank()` and open `editDoc()` (kit/doc-dialog.ts exists). Shared by Write, Deck, Outline and Site. |
+| "Open as another app…" | app.ts `renderOpenAs`, `convert()` | Any app's reading of this document, opened in a new tab (an outline as slides…). | **partial**: hand-offs only for outline → deck/diagram (mind, org, net), draw → anim, diagram → draw | In the kit: `Handoff`s per app (outline → deck/diagram, draw → anim…). The converters are pure functions over the kernel. |
+| Insert: a new blank document of any app inline | kit/browser.ts `insertOptions`/`insertedRef`, `editRef` | Insert a new Drawing, Table, Chart, Map, Calendar… into a text, slide or outline item, then edit it in a dialog. | **partial**: Insert has Table (Write and Deck), Web Picture, Web Embed, and "Tiny Little Office Doc…", which takes an existing link only. There is no blank Drawing, Chart, Map etc. | In the kit: Insert items that splice a fence with `appOf(id).blank()` and open `editDoc()` (kit/doc-dialog.ts exists). Shared by Write, Deck, Outline and Site. |
 | "From a template" in Insert / in an open document | widgets/template-picker.ts ("Start from a template…" button, gallery on empty docs) | Templates offered inside an empty document. | **dropped** (rebuild.md "Home and templates": "No template dialog anywhere"). Templates are on home only. Insert never offered "from a template" in the old tree either. | If wanted: Insert items "<App> from a template ▸" reusing `<to-templates>` from kit/home.ts to make the fence. |
 | Insert: QR code of this document | kit/browser.ts `qr-self`, apps/qr.def.ts | A QR of the document's own link, inside a text or an outline. | **partial**: only the deck's closing slide (`qr:` head) and Share → QR code | In Write/Outline Insert: a `qr` fence drawn by kit/qr.ts from the shell's link (`setLink`-style context). |
 | QR code dialog (PNG/SVG) | widgets/qr-dialog.ts | — | **present** (shell `to-qr` dialog) | — |
@@ -88,7 +88,7 @@ Status key: **present**; **partial** (some of it is there); **missing**; **dropp
 | Feature | Old file(s) | What it did | Status | What porting it means |
 |---|---|---|---|---|
 | Presenting: slides build one reveal per click | apps/deck.ts, lib/slide.ts | — | **present** (deck/editor.ts, `slideSteps`, double click shows all) | — |
-| Presenting: an embedded document builds piece by piece | AppDef.steps in cal, board, draw, gantt, todo, trip, outline, sheet, site, links, invoice, diagram, fold | A slide holding a drawing reveals a shape a click, a table a row, a map a stop… | **missing** (`slideSteps` returns 0 when the slide shows a sub-document) | In the kit: `AppDef.steps?(doc)` and `view(doc, { upTo })`. Per app: count and draw `upTo` items. Deck: use them in `slideSteps`/`slidePage`. |
+| Presenting: an embedded document builds piece by piece | AppDef.steps in cal, draw, gantt, trip, outline, sheet, site, links, invoice, diagram, fold | A slide holding a drawing reveals a shape a click, a table a row, a map a stop… | **missing** (`slideSteps` returns 0 when the slide shows a sub-document) | In the kit: `AppDef.steps?(doc)` and `view(doc, { upTo })`. Per app: count and draw `upTo` items. Deck: use them in `slideSteps`/`slidePage`. |
 | Trip presenting (fly to each stop) | apps/trip.ts `present`, `goTo(step)` | On a slide, the map flies to each stop in turn and names it. | **missing** | Trip app: a `present`/`step` mode in trip/editor.ts. It depends on the embedded-steps row. |
 | Seating place cards | apps/seating.def.ts `placeCards`, lib/print.ts `tile` | `.cards.pdf`: a 4×2.5 in card per guest, name large, table small, eight to a letter sheet with cut lines. | **missing** | Port the pure code: `placeCards` plus print.ts `tile` into diagram/view.ts. Diagram app: an export `cards` (print of the pages) shown when `kind: seating`. |
 | Invoice | apps/invoice.def.ts, invoice.ts | A form like paper, sums as typed, PDF. | **present** (Write template with head fields as inputs and a formula table; rebuild.md on main) | — |
@@ -119,8 +119,6 @@ Kit-wide (old `COMMON`: pdf, png, html, md, tlo, plus gif for moving things). Ne
 | Diagrams (all kinds) | svg; seating **cards.pdf** | svg | **partial**: seating place cards missing |
 | Calendar | ics | ics, csv | present (+) |
 | Gantt | csv, ics | (cal with `view: gantt`) ics, csv | present (merged); check the csv has level and done % columns |
-| Todo | md, ics | md, ics | present |
-| Board | csv | csv | present |
 | Trip | gpx, geojson | gpx, geojson | present |
 | Motion | svg, gif | gif, svg | present |
 | Calculator | (common only) | txt (tape) | present (+) |
@@ -135,7 +133,7 @@ Kit-wide (old `COMMON`: pdf, png, html, md, tlo, plus gif for moving things). Ne
 | Write | 9 (+ the Invoice and Contract apps) | 5 (letter, meeting notes, résumé, contract, invoice) | **One-page memo, A short bio, Weekly plan, Business plan, Marketing plan, Go-to-market plan** (the three plans were a headline feature in the README) |
 | Sheet | 12 | 10 | **Comparison, with a chart**. Invoice table moved to Write. Money-mode templates are needed (see calculator). |
 | Deck | 12 | 9 (talk, status update, proposal, plus 6 fold formats) | **A pitch (now "A proposal"?), A lesson, Project kickoff, Quarterly review, Product launch, Party invitation, Team offsite, Workshop, Research findings, Trip recap** |
-| Outline, Draw, Diagram, Cal, Todo, Board, Trip, Calc, Motion | 0 templates (one `example` each, for the skill and tests) | 4, 6, 12, 3, 3, 3, 4, 5, 4 | — (gains) |
+| Outline, Draw, Diagram, Cal, Trip, Calc, Motion | 0 templates (one `example` each, for the skill and tests) | 4, 6, 12, 3, 4, 5, 4 | — (gains) |
 
 ## 7. Docs, scripts, tests
 

@@ -16,7 +16,7 @@ export const TERMS: Term[] = [
   { term: 'short link' },
   { term: 'Display Link' },
   { term: 'template' },
-  // A rate card, a birthday card, a title card, a flash card and a place card are things in a template, not the board's cards.
+  // A rate card, a birthday card, a title card, a flash card and a place card are things in a template, not the card that stands for a document in another.
   { term: 'card', not: [/rate card|birthday card|title card|flash card|place card/i] },
   // "Slide" alone is a transition (the deck's "Slide in"); "Slides" alone is the Presentation Builder's short name.
   { term: 'slide', not: ['Slide', 'Slides'] },
@@ -57,8 +57,6 @@ export const TERMS: Term[] = [
   { term: 'footnote' },
   // An org chart and a seating chart are diagrams of their own; "to chart" is to draw.
   { term: 'chart', not: [/org chart|seating chart|nothing to chart/i] },
-  // A Kanban stage; the animation's stage is a theatre's.
-  { term: 'stage', not: [/an empty stage/i] },
 ];
 
 /** Drift a language has on purpose: the term, the key (none: the term's two words), and why. */
@@ -70,11 +68,8 @@ const ALLOW: { lang: string; term: string; key?: string; why: string }[] = [
   { lang: 'it', term: 'Download', key: 'Download failed', why: 'the noun: Italian says "il download", Scarica is the verb on the button' },
   { lang: 'pt-br', term: 'Download', key: 'Download failed', why: 'the noun: Portuguese says "o download", Baixar is the verb on the button' },
   // A verb that splits or bends round its object.
-  { lang: 'de', term: 'Insert', key: 'No stages. Insert a stage.', why: 'einfügen is a separable verb: "Füge … ein"' },
   { lang: 'de', term: 'Insert', key: 'Insert a place by name.', why: 'einfügen is a separable verb: "Füge … ein"' },
-  { lang: 'nl', term: 'Insert', key: 'No stages. Insert a stage.', why: 'invoegen is a separable verb: "Voeg … in"' },
   { lang: 'nl', term: 'Insert', key: 'Insert a place by name.', why: 'invoegen is a separable verb: "Voeg … in"' },
-  { lang: 'pt-br', term: 'Insert', key: 'No stages. Insert a stage.', why: 'the imperative of inserir is insira' },
   { lang: 'pt-br', term: 'Insert', key: 'Insert a place by name.', why: 'the imperative of inserir is insira' },
   { lang: 'nl', term: 'Print', key: 'See the sheets to print', why: 'afdrukken is a separable verb: "af te drukken"' },
   { lang: 'fr', term: 'chart', key: 'Chart, scrolls sideways', why: 'a Gantt chart: in French a diagramme de Gantt' },
@@ -82,8 +77,6 @@ const ALLOW: { lang: string; term: string; key?: string; why: string }[] = [
   { lang: 'zh-hans', term: 'sign', key: 'Sign this contract', why: 'a contract is 签署, signed as a party; 签名 is a signature' },
   { lang: 'bn', term: 'sign', key: 'Could not sign', why: 'the verb is করুন in the button (সই করুন) and করা in a sentence: সই করা যায়নি' },
   // Counted things: Japanese counts cards with 枚 and does not say the word.
-  { lang: 'ja', term: 'card', key: '{n} cards, limit {limit}', why: 'counted with the counter 枚, the word left out' },
-  { lang: 'ja', term: 'card', key: '{n} cards, over the limit of {limit}', why: 'counted with the counter 枚, the word left out' },
   { lang: 'zh-hans', term: 'slide', key: 'Slide {n} of {total}', why: 'counted with the counter 张 (第 {n} 张，共 {total} 张), the word left out' },
 ];
 

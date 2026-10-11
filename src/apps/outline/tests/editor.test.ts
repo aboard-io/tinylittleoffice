@@ -968,7 +968,7 @@ test('Insert ▾ lists Web Embed, Tiny Little Office Doc and every other app; a 
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
   const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(labels).toEqual(expect.arrayContaining(['Item', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board']));
+  expect(labels).toEqual(expect.arrayContaining(['Item', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Calendar']));
   expect(labels).not.toContain('Outliner');
   opener.click();
   await tick();

@@ -26,26 +26,26 @@ test('link makes the packed link, with a title and by in the head; read takes it
 });
 
 test('a plain link is read as the document it stands for', () => {
-  const url = plain('todo', '- [ ] Milk\n', { title: 'Shop', by: 'agent' });
-  expect(url).toBe('https://tinylittleoffice.com/todo/#title=Shop&by=agent&doc=-+%5B+%5D+Milk');
-  expect(read(url)).toEqual({ app: 'todo', view: '', text: '---\nby: agent\ntitle: Shop\n---\n- [ ] Milk\n', title: 'Shop', by: 'agent', display: false });
+  const url = plain('outline', '- [ ] Milk\n', { title: 'Shop', by: 'agent' });
+  expect(url).toBe('https://tinylittleoffice.com/outline/#title=Shop&by=agent&doc=-+%5B+%5D+Milk');
+  expect(read(url)).toEqual({ app: 'outline', view: '', text: '---\nby: agent\ntitle: Shop\n---\n- [ ] Milk\n', title: 'Shop', by: 'agent', display: false });
 });
 
 test('a .tlo file is the text with its app in the head, both ways', () => {
-  expect(tlo('todo', '- [ ] Milk\n')).toBe('---\napp: todo\n---\n- [ ] Milk\n');
-  expect(fromTlo('---\napp: todo\n---\n- [ ] Milk\n')).toEqual({ app: 'todo', text: '- [ ] Milk\n' });
+  expect(tlo('outline', '- [ ] Milk\n')).toBe('---\napp: outline\n---\n- [ ] Milk\n');
+  expect(fromTlo('---\napp: outline\n---\n- [ ] Milk\n')).toEqual({ app: 'outline', text: '- [ ] Milk\n' });
 });
 
 test('compare: what the second link changed', () => {
-  const a = link('todo', '- [ ] Milk\n- [ ] Eggs\n');
-  const b = link('todo', '- [ ] Milk\n- [x] Eggs\n');
+  const a = link('outline', '- [ ] Milk\n- [ ] Eggs\n');
+  const b = link('outline', '- [ ] Milk\n- [x] Eggs\n');
   expect(compare(a, a)).toMatchObject({ same: true, removed: 0, added: 0 });
   expect(compare(a, b)).toMatchObject({ same: false, removed: 1, added: 1 });
 });
 
 test('the apps, their templates and the files they make without a browser', async () => {
   const all = await apps();
-  expect(all.map((a) => a.id)).toContain('sheet');
+  expect(all.map((a) => a.id)).toEqual(['write', 'outline', 'deck', 'sheet', 'calc', 'draw', 'diagram', 'anim', 'cal', 'trip']);
   expect(all.find((a) => a.id === 'sheet')).toMatchObject({ name: 'Spreadsheet', noun: 'spreadsheet' });
   const tpl = await templates('sheet');
   expect(tpl[0]).toMatchObject({ id: 'budget', name: 'Budget' });
@@ -53,7 +53,7 @@ test('the apps, their templates and the files they make without a browser', asyn
   await expect(templates('nope')).rejects.toThrow();
   expect(await formats('sheet')).toEqual(expect.arrayContaining(['md', 'tlo', 'csv', 'xlsx']));
   expect(await file('sheet', 'A | B\n--- | ---\n1 | 2\n', 'csv')).toBeInstanceOf(Uint8Array);
-  expect(await file('todo', '- [ ] Milk\n', 'tlo')).toBe('---\napp: todo\n---\n- [ ] Milk\n');
+  expect(await file('outline', '- [ ] Milk\n', 'tlo')).toBe('---\napp: outline\n---\n- [ ] Milk\n');
   expect(await file('sheet', 'A^[a note]\n', 'md')).toBe('A[^1]\n\n[^1]: a note\n');
   await expect(file('sheet', 'x', 'pptx')).rejects.toThrow(/makes no \.pptx/);
 });

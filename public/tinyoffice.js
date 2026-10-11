@@ -4,7 +4,7 @@
 //   link({ app: 'sheet', title: 'Sales', doc: 'Quarter | Sales:money\n--- | ---\nQ1 | 120\n' });
 //   embed({ app: 'deck', doc: '## Hello {.title}\n' });   // an <iframe> to put in a page
 //
-// app    which app: write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal, trip
+// app    which app: write, outline, deck, sheet, calc, draw, diagram, anim, cal, trip
 // doc    the document, in the app's own text (TLO: Markdown with a few additions; see /llms.txt)
 // title  its name (optional); by: who made it (optional)
 // view   'pdf', 'png', 'md', 'tlo' or an app's own format to download it as it opens; 'show' a deck presenting (optional)

@@ -32,11 +32,6 @@
       "commands": 1691,
       "open": 55050
     },
-    "board": {
-      "editor": 7806,
-      "commands": 1579,
-      "open": 40491
-    },
     "cal": {
       "editor": 11565,
       "commands": 1595,
@@ -71,11 +66,6 @@
       "editor": 10260,
       "commands": 2028,
       "open": 40916
-    },
-    "todo": {
-      "editor": 4256,
-      "commands": 1026,
-      "open": 35676
     },
     "trip": {
       "editor": 7531,

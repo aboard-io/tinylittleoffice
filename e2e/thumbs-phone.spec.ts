@@ -15,7 +15,7 @@ const overflow = (page: Page) => page.evaluate(() => document.documentElement.sc
 
 const WIDE: [string, string][] = [
   ['Spreadsheet', 'Mortgages compared'],
-  ['Kanban Board', 'A project'],
+  ['Calendar', 'Project plan'],
   ['Diagram Maker', 'The Brontës'],
   ['Presentation Builder', 'A talk'],
 ];
@@ -54,7 +54,7 @@ test('the templates list and the kept documents draw a wide document in the one 
   }
   // Kept under their apps (seeded, so the check does not hang on when a template counts as kept).
   await page.evaluate((all) => {
-    const ids: Record<string, string> = { Spreadsheet: 'sheet', 'Kanban Board': 'board', 'Diagram Maker': 'diagram', 'Presentation Builder': 'deck' };
+    const ids: Record<string, string> = { Spreadsheet: 'sheet', Calendar: 'cal', 'Diagram Maker': 'diagram', 'Presentation Builder': 'deck' };
     localStorage.setItem('tinyoffice.library', JSON.stringify(all.map((k, i) => ({ id: 'k' + i, app: ids[k.app], title: k.app, hash: k.hash, at: Date.now() - i }))));
   }, kept);
   await page.reload();

@@ -3,8 +3,8 @@
  * as the screen with no border; the page never scrolls, the words scroll in a column (round eight, kit/chrome.ts) with
  * the header and the bar holding still, the bar at the column's bottom; a tap in the words hides the header, the menu
  * button floating at the top right; a tap on the title opens it wide, its automatic name chosen whole. On a desktop the
- * words keep the page's measure, and the editor has the window's width, not a column: a five-stage board is never cut
- * off. Run on its own:
+ * words keep the page's measure, and the editor has the window's width, not a column: a wide sheet is never cut off. Run
+ * on its own:
  *
  *   PW_PORT=4436 npx playwright test e2e/shell-frame.spec.ts --workers=1
  */
@@ -102,40 +102,18 @@ test('desktop: no frame round the paper, and the words no wider than the page’
   expect(words.width / unit).toBeGreaterThan(600);
 });
 
-const FIVE = `---\ntitle: Five stages\n---\n${['Ideas', 'To do', 'Doing', 'Waiting on', 'Done'].map((s, i) => `## ${s}\n\n- A card in ${s.toLowerCase()}\n- Another card, number ${i + 1}\n`).join('\n')}`;
+const WIDE = `---\ntitle: Wide\n---\n${['Month', 'Rent', 'Food', 'Travel', 'Phone', 'Gym', 'Books', 'Gifts', 'Savings', 'Total'].join(' | ')}\n${Array(10).fill('---').join(' | ')}\n${Array.from({ length: 10 }, (_, i) => String(i + 1)).join(' | ')}\n`;
 
-test('desktop: a five-stage board at 1280 is never clipped by the main; its last stage shows or scrolls in its own scroller', async ({ page }, info) => {
+test("desktop: a wide sheet at 1280 has the window's width, never a column, and the page does not scroll sideways", async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'desktop only');
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto(`/#/v1/board/${encodeDoc(FIVE)}`);
-  const cols = page.locator('.board-col');
-  await expect(cols).toHaveCount(5);
+  await page.goto(`/#/v1/sheet/${encodeDoc(WIDE)}`);
+  await expect(page.locator('to-sheet-editor')).toBeVisible();
   const m = await page.evaluate(() => {
     const main = document.querySelector('.to-main')!.getBoundingClientRect();
-    const board = document.querySelector<HTMLElement>('.board')!;
-    const last = [...document.querySelectorAll('.board-col')].at(-1)!.getBoundingClientRect();
-    return {
-      main: [main.left, main.width],
-      board: [board.getBoundingClientRect().left, board.getBoundingClientRect().right],
-      scrolls: board.scrollWidth > board.clientWidth,
-      overflow: getComputedStyle(board).overflowX,
-      last: [last.left, last.right],
-      page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    };
+    return { main: [main.left, main.width], page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
   });
   // The editor's main is the window's width.
   expect(m.main).toEqual([0, 1280]);
   expect(m.page).toBeLessThanOrEqual(0);
-  // The stages' scroller is the window's width less the gutters (16 of the stylesheet's pixels each, a rem being the size of everything × 16px).
-  const gutter = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize));
-  expect(m.board[0]).toBeLessThanOrEqual(gutter + 0.5);
-  expect(m.board[1]).toBeGreaterThanOrEqual(1280 - gutter - 0.5);
-  if (m.last[1] > m.board[1]) {
-    expect(m.scrolls).toBe(true);
-    expect(m.overflow).toBe('auto');
-    await page.locator('.board').evaluate((el) => (el.scrollLeft = el.scrollWidth));
-    const last = (await cols.last().boundingBox())!;
-    expect(last.x + last.width).toBeLessThanOrEqual(m.board[1] + 0.5);
-    expect(last.x).toBeGreaterThanOrEqual(m.board[0]);
-  } else expect(m.last[1]).toBeLessThanOrEqual(1280);
 });
