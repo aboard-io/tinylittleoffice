@@ -49,15 +49,20 @@ test('tinier: a link is kept for its time, handed back as it came, and then gone
   expect(await latePage.text()).toBe('<p></p>');
 });
 
-test('tinier: a short link cannot be changed or recalled: PUT and DELETE answer 405, and the row is as it was', async () => {
+test('tinier: a short link cannot be changed or recalled: anything but making and reading a link answers 404, the same as an unknown link, and the row is as it was', async () => {
   const store = new MemStore();
   const { id } = (await (await handle(post(LINK), store, KEY, PAGE, NOW)).json()) as { id: string };
-  for (const method of ['PUT', 'DELETE', 'PATCH']) {
-    const res = await handle(req(method, `/api/${id}`, { c: 'two', iv: 'iv2', o: 'O'.repeat(43) }), store, KEY, PAGE, NOW);
-    expect(res.status, method).toBe(405);
-    expect(res.headers.get('allow')).toBe('GET');
+  const unknown = await handle(req('GET', '/api/zzzzzzz'), store, KEY, PAGE, NOW);
+  const nothing = await unknown.json();
+  expect(nothing).toEqual({ error: 'No such link, or it has expired.' });
+  const asked: [string, string][] = [...['PUT', 'DELETE', 'PATCH', 'POST'].map((m): [string, string] => [m, `/api/${id}`]), ['PUT', '/api'], ['DELETE', '/api'], ['GET', '/api']];
+  for (const [method, path] of asked) {
+    const res = await handle(req(method, path, method === 'GET' ? undefined : { c: 'two', iv: 'iv2', o: 'O'.repeat(43) }), store, KEY, PAGE, NOW);
+    expect(res.status, `${method} ${path}`).toBe(404);
+    expect(res.headers.get('allow'), `${method} ${path}`).toBeNull();
+    expect(await res.json(), `${method} ${path}`).toEqual(nothing);
   }
-  expect((await handle(req('PUT', '/api', LINK), store, KEY, PAGE, NOW)).status).toBe(405);
+  expect((await handle(req('POST', '/elsewhere', LINK), store, KEY, PAGE, NOW)).status).toBe(404);
   expect(store.rows.get(id)).toEqual({ c: LINK.c, iv: LINK.iv, exp: NOW + 3_600_000 });
   const pre = await handle(req('OPTIONS', '/api'), store, KEY, PAGE);
   expect(pre.status).toBe(204);

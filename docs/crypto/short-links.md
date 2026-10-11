@@ -44,7 +44,7 @@ POST /api        {c, iv, ttl}   → 201 {id, exp}
 GET  /api/<id>                  → {c, iv, exp}      (404 once gone)
 ```
 
-Anything else under `/api` answers 405. `ttl` is 3600, 86400, 604800 or 2592000 seconds; any other is refused.
+Anything else under `/api` answers 404 with the body an unknown link gets, as if there were nothing there; the API's only answers are 201, 200, 400, 404, 429 and 503. `ttl` is 3600, 86400, 604800 or 2592000 seconds; any other is refused.
 
 ## What tinier stores
 

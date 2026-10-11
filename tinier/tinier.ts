@@ -12,6 +12,9 @@
  *   GET    /<id>       the page that decrypts and redirects
  *   GET    /           what this is
  *
+ * Every other method or path answers 404, as an unknown link does. The API's only answers are 201, 200, 400,
+ * 404, 429 and 503.
+ *
  * What the server knows: ciphertext, an IV, an expiry, and that a request came. It cannot read a link. One
  * address may make a hundred links a UTC day (DAILY): the count is kept under base64url(sha256(key ‖ day ‖
  * address)), where the key is a secret of the deployment (BRAKE_KEY), so the row says nothing of the address
@@ -146,14 +149,11 @@ export async function handle(req: Request, store: Store, key: string, page: stri
     return json({ error: 'Could not make a link; try again.' }, site, 503);
   }
 
+  // Anything else under /api is a link that is not there (Paul, 2026-10-11: "There should be a 404"): a 405
+  // would advertise an API that does not exist.
   if (url.pathname.startsWith('/api')) {
     const id = url.pathname.slice(5);
-    if (req.method !== 'GET' || url.pathname === '/api') {
-      const res = json({ error: 'A short link cannot be changed or recalled once made; it expires on its own.' }, site, 405);
-      res.headers.set('allow', url.pathname === '/api' ? 'POST' : 'GET');
-      return res;
-    }
-    const link = valid(id) ? await read(store, id, now) : null;
+    const link = req.method === 'GET' && valid(id) ? await read(store, id, now) : null;
     return link ? json({ c: link.c, iv: link.iv, exp: link.exp }, site) : gone(site);
   }
 
