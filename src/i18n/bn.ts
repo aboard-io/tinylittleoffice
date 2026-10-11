@@ -675,7 +675,7 @@ export default {
   'Bring to front': 'সামনে আনুন',
   'Send to back': 'পেছনে পাঠান',
   'Duplicate': 'নকল করুন',
-  'Edit': 'বদলান',
+  'Edit': 'বদল',
   'Delete': 'মুছুন',
   'Label': 'লেবেল',
   'Put an icon on this shape': 'এই আকারে একটি আইকন বসান',
