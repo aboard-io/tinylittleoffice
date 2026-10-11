@@ -80,6 +80,7 @@ const ALLOW: { lang: string; term: string; key?: string; why: string }[] = [
   { lang: 'fr', term: 'chart', key: 'Chart, scrolls sideways', why: 'a Gantt chart: in French a diagramme de Gantt' },
   { lang: 'ar', term: 'sign', key: 'Sign this contract', why: 'وقّع is the imperative of the verb whose noun is توقيع' },
   { lang: 'zh-hans', term: 'sign', key: 'Sign this contract', why: 'a contract is 签署, signed as a party; 签名 is a signature' },
+  { lang: 'bn', term: 'sign', key: 'Could not sign', why: 'the verb is করুন in the button (সই করুন) and করা in a sentence: সই করা যায়নি' },
   // Counted things: Japanese counts cards with 枚 and does not say the word.
   { lang: 'ja', term: 'card', key: '{n} cards, limit {limit}', why: 'counted with the counter 枚, the word left out' },
   { lang: 'ja', term: 'card', key: '{n} cards, over the limit of {limit}', why: 'counted with the counter 枚, the word left out' },
