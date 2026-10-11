@@ -96,4 +96,4 @@ const languages = await Promise.all(LANGS.map(async (l) => {
   const m = await merge(l.code, r)
   return { code: l.code, build: r, merge: m }
 }))
-return { tools, review, toolsMerge, languages }
+return { tools, review, toolsMerge, zip: zipBuilt, zipMerge, languages }
