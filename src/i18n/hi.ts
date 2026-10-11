@@ -315,6 +315,8 @@ export default {
   'Remove link': 'लिंक हटाएँ',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'फ़ॉर्मैट',
+  'done': 'पूरा',
+  'not done': 'अधूरा',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|एक स्लाइड|# स्लाइड}',

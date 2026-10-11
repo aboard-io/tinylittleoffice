@@ -316,6 +316,8 @@ export default {
   'Remove link': 'Quitar enlace',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Formato',
+  'done': 'hecho',
+  'not done': 'sin hacer',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|una diapositiva|# de diapositivas|# diapositivas}',

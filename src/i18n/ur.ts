@@ -316,6 +316,8 @@ export default {
     'Remove link': 'لنک ہٹائیں',
   // The selection bubble's name: what can be done to the words selected.
     'Format': 'فارمیٹ',
+  'done': 'مکمل',
+  'not done': 'نامکمل',
 
   // ---- the example in the kit's own documentation ----
     '{n|one slide|# slides}': '{n|ایک سلائیڈ|# سلائیڈیں}',

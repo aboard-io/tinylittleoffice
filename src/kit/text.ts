@@ -43,6 +43,11 @@
  * (inputs, buttons) keeps its own events. A picture from the web waits to be asked for (kit/pictures.ts).
  * A task item's box is tapped to tick.
  *
+ * What a screen reader is given: a run of items is one element, role=list (the model stays flat: each item is a block
+ * as every other is, blockEls()), each item a listitem with its level, its place and how many; a task's state is
+ * words said before its words (data-said: the caret, the IME and the copy pass over them); the drawn marks and the
+ * placeholder are drawn only (an empty alt in the stylesheet), the placeholder being the box's aria-placeholder.
+ *
  * Words selected bring up the selection bubble (a <to-context> centred
  * under them): the marks, Link, Footnote (where the host lists the notes:
  * `notes`) and, over whole blocks of words in a doc or lines editor, the two
@@ -216,6 +221,11 @@ const FORMATS: Record<string, Command> = {
   formatJustifyFull: 'justify',
 };
 
+/** A run of items, drawn as one element: a list to a screen reader. Its items are blocks as the box's children are. */
+const LIST = 'tx-list';
+/** What is said and not written: a task's state, read before its words, which the caret, the copy and the IME pass over. */
+const SAID = 'data-said';
+
 /**
  * A block's element read back as runs: text nodes with the marks of the
  * elements around them, the two atomic chips, a marked <br> as a line
@@ -231,6 +241,7 @@ export function domToRuns(el: HTMLElement): Run[] {
     }
     if (n.nodeType !== Node.ELEMENT_NODE) return;
     const e = n as HTMLElement;
+    if (e.hasAttribute(SAID)) return;
     if (e.dataset.icon !== undefined) return void out.push({ t: '', ic: e.dataset.icon });
     if (e.dataset.fn !== undefined) return void out.push({ t: '', fn: e.dataset.fn });
     if (e.tagName === 'BR') return void (e.dataset.nl !== undefined && out.push({ t: '\n' }));
@@ -245,6 +256,26 @@ export function domToRuns(el: HTMLElement): Run[] {
   };
   for (const c of el.childNodes) walk(c, {});
   return normalRuns(out);
+}
+
+/**
+ * Each item's place in its list, as a screen reader says it: its position among the items of its level under the same
+ * parent, and how many there are. A run of items is a list; a block that is not an item ends it, an item less deep
+ * ends the deeper ones under it.
+ */
+export function listPlaces(model: Block[]): ({ pos: number; size: number } | undefined)[] {
+  const out: ({ pos: number; size: number } | undefined)[] = [];
+  let open: { pos: number; size: number }[][] = [];
+  model.forEach((b, i) => {
+    if (b.k !== 'li') return void (open = []);
+    open.length = Math.min(open.length, b.depth + 1);
+    const group = (open[b.depth] ??= []);
+    const place = { pos: group.length + 1, size: 0 };
+    group.push(place);
+    for (const p of group) p.size = group.length;
+    out[i] = place;
+  });
+  return out;
 }
 
 export class ToText extends LitElement {
@@ -380,21 +411,31 @@ export class ToText extends LitElement {
     return !!a && (a === this.tx || this.tx.contains(a));
   }
 
-  private blockEls(): HTMLElement[] {
-    return [...this.tx.children] as HTMLElement[];
+  /** Each block's element, in order: the box's children, a list's items in its place (render). */
+  blockEls(): HTMLElement[] {
+    return [...this.tx.children].flatMap((c) => (c.classList.contains(LIST) ? [...c.children] : [c])) as HTMLElement[];
   }
   private blockElOf(node: Node | null): HTMLElement | null {
     const tx = this.tx;
-    while (node && node.parentNode !== tx) node = node.parentNode;
-    return node instanceof HTMLElement ? node : null;
+    const inBox = (n: Node) => n.parentNode === tx || (n.parentNode as Element | null)?.classList?.contains(LIST) === true;
+    while (node && !inBox(node)) node = node.parentNode;
+    return node instanceof HTMLElement && !node.classList.contains(LIST) ? node : null;
+  }
+  /** The block a point between blocks (in the box, or in a list) comes before; the model's length at the very end. */
+  private blockAfter(node: Node, offset: number): number {
+    const at = document.createRange();
+    at.setStart(node, offset);
+    const i = this.blockEls().findIndex((el) => at.comparePoint(el, 0) >= 0);
+    return i < 0 ? this.model.length : i;
   }
 
   /** A DOM point as a position: characters counted through the block's text nodes, chips and line breaks as one each. */
   readPos(node: Node, offset: number): Pos | null {
     const model = this.model;
     const tx = this.tx;
-    if (node === tx) {
+    if (node === tx || (node as Element).classList?.contains(LIST)) {
       const n = model.length;
+      offset = this.blockAfter(node, offset);
       return offset >= n ? skipEmbed(model, { block: n - 1, offset: blockLength(model[n - 1]) }, -1) : skipEmbed(model, { block: offset, offset: 0 }, 1);
     }
     const el = this.blockElOf(node);
@@ -418,6 +459,7 @@ export class ToText extends LitElement {
       }
       if (n.nodeType !== Node.ELEMENT_NODE) return false;
       const e = n as HTMLElement;
+      if (e.hasAttribute(SAID)) return false;
       if (e.dataset.atomic !== undefined) {
         count += 1;
         return false;
@@ -436,10 +478,10 @@ export class ToText extends LitElement {
   domPoint(pos: Pos): [Node, number] | null {
     const el = this.blockEls()[pos.block];
     if (!el) return null;
-    if (!isWords(this.model[pos.block])) return [this.tx, pos.block];
+    const index = (e: Node) => Array.prototype.indexOf.call(e.parentNode!.childNodes, e);
+    if (!isWords(this.model[pos.block])) return [el.parentNode!, index(el)];
     let left = pos.offset;
     let last: [Node, number] = [el, 0];
-    const index = (e: Node) => Array.prototype.indexOf.call(e.parentNode!.childNodes, e);
     const walk = (n: Node): [Node, number] | null => {
       if (n.nodeType === Node.TEXT_NODE) {
         const len = (n as Text).length;
@@ -450,6 +492,7 @@ export class ToText extends LitElement {
       }
       if (n.nodeType !== Node.ELEMENT_NODE) return null;
       const e = n as HTMLElement;
+      if (e.hasAttribute(SAID)) return null;
       if (e.dataset.atomic !== undefined || e.tagName === 'BR') {
         const w = e.tagName === 'BR' ? (e.dataset.nl !== undefined ? 1 : 0) : 1;
         if (left === 0 && w) return [e.parentNode!, index(e)];
@@ -1251,7 +1294,7 @@ export class ToText extends LitElement {
         return html`<div class="tx-card" contenteditable="false"></div>`;
     }
   }
-  private renderBlock(b: Block, at: number, n: number | undefined, notes: () => number): TemplateResult {
+  private renderBlock(b: Block, at: number, n: number | undefined, notes: () => number, place?: { pos: number; size: number }): TemplateResult {
     if (!isWords(b)) return this.renderCard(b, at);
     const cls = (b.a?.cls ?? []).filter((c) => c === 'center' || c === 'right' || c === 'justify' || c === 'title').join(' ');
     const inner = this.renderRuns(b.runs, notes);
@@ -1262,7 +1305,16 @@ export class ToText extends LitElement {
         if (b.level === 3) return html`<h3 class=${cls}>${inner}</h3>`;
         return html`<h4 class=${cls} data-level=${b.level}>${inner}</h4>`;
       case 'li':
-        return html`<li role="none" class=${cls} style=${`--d:${b.depth}`} data-n=${n ?? nothing} data-done=${b.done === undefined ? nothing : String(b.done)}>${inner}</li>`;
+        return html`<li
+          role=${place ? 'listitem' : 'none'}
+          aria-level=${place ? b.depth + 1 : nothing}
+          aria-posinset=${place?.pos ?? nothing}
+          aria-setsize=${place?.size ?? nothing}
+          class=${cls}
+          style=${`--d:${b.depth}`}
+          data-n=${n ?? nothing}
+          data-done=${b.done === undefined ? nothing : String(b.done)}
+        >${b.done === undefined || !place ? nothing : html`<span class="sr-only" data-said contenteditable="false">${b.done ? t('done') : t('not done')} </span>`}${inner}</li>`;
       case 'quote':
         return html`<blockquote class=${cls}>${inner}</blockquote>`;
       default:
@@ -1275,6 +1327,20 @@ export class ToText extends LitElement {
     let notes = this.noteStart;
     const next = () => ++notes;
     const blank = model.length === 1 && isWords(model[0]) && !model[0].runs.length;
+    // A line is one block whose host says what is round it (a task's row has its own box): no list there.
+    const places = this.shape === 'line' ? [] : listPlaces(model);
+    // Each block drawn in order (the numbers and the notes count as they go), then placed: a run of items is one list.
+    const drawn = model.map((b, i) => this.renderBlock(b, i, numbers(b), next, places[i]));
+    const parts: number[][] = [];
+    model.forEach((_, i) => (places[i] && places[i - 1] ? parts[parts.length - 1].push(i) : parts.push([i])));
+    const part = (p: number[]) =>
+      places[p[0]]
+        ? html`<div class=${LIST} role="list">${repeat(
+            p,
+            (i) => keyAt(model[i], i),
+            (i) => drawn[i],
+          )}</div>`
+        : drawn[p[0]];
     // Nothing but the blocks inside the box: it keeps white space as typed, so a newline of this template would be a line.
     return html`<div
         class="tx ${blank ? 'blank' : ''}"
@@ -1283,6 +1349,7 @@ export class ToText extends LitElement {
         aria-multiline=${this.shape === 'line' ? 'false' : 'true'}
         aria-label=${this.label || nothing}
         data-placeholder=${this.placeholder || nothing}
+        aria-placeholder=${this.placeholder || nothing}
         spellcheck="true"
         autocapitalize="sentences"
         enterkeyhint=${this.shape === 'line' ? 'done' : 'enter'}
@@ -1295,7 +1362,7 @@ export class ToText extends LitElement {
         @copy=${this.onCopy}
         @cut=${this.onCopy}
         @paste=${this.onPaste}
-      >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
+      >${repeat(parts, (p) => (places[p[0]] ? `list${keyAt(model[p[0]], p[0])}` : keyAt(model[p[0]], p[0])), part)}</div>
       <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove} @link-cancel=${this.onLinkCancel}></to-link-pop>
       <to-complete @complete-pick=${this.onCompletePick} @complete-cancel=${this.onCompleteCancel}></to-complete>
       <to-context class="tx-bubble" .label=${t('Format')}></to-context>`;

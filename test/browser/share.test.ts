@@ -3,7 +3,7 @@
 // Make this big and colorful at the top. Give people a copy button to copy into a new document.")
 import { test, expect, afterEach, onTestFinished, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until, openShare } from './helpers.ts';
+import { mount, tick, until, openShare, said } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
 import { keepLink, keptLinks, dropKept } from '../../src/kit/links.ts';
@@ -78,7 +78,7 @@ test('Copy link and Copy display link copy the two links; each says where it ope
     link.click();
     await until(() => copied() === shell.link);
   });
-  await until(() => document.querySelector('[role=status]')!.textContent === 'Link copied');
+  await until(() => said() === 'Link copied');
 });
 
 test('the lifetimes: one row of segments, a week by default, the choice written to shortTtl and remembered', async () => {
@@ -299,7 +299,7 @@ test('Copy into a new document opens the same document as a fresh plain link, "C
   const doc = decodeDoc(u.hash.replace('#/v1/write/', ''));
   expect(doc).toContain('title: Copy of Plans');
   expect(doc).toContain('Words.');
-  await until(() => document.querySelector('[role=status]')!.textContent === 'A copy opened in a new tab');
+  await until(() => said() === 'A copy opened in a new tab');
   // The owner's banner has Extend, which opens the Share dialog at the short link's section.
   shell.querySelector<HTMLButtonElement>('.to-arrival-extend')!.click();
   await until(() => dialogOf(shell).dialog.open && !!dialogOf(shell).querySelector('.to-share-extend'));

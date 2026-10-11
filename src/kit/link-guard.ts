@@ -86,10 +86,14 @@ export async function ask(url: URL): Promise<void> {
     d.close();
     window.open(url.href, '_blank', 'noopener,noreferrer');
   };
+  // Said as it opens, after the question: what the link does and where (Cancel, which has the focus, says nothing of it).
+  const id = (part: string) => `${d.uid}-${part}`;
+  const plain = url.protocol === 'http:';
   d.heading = t('Do you trust this link?');
-  d.body = html`<p class="lg-what">${what}</p>
-    <p class="lg-host" dir="ltr">${name}</p>
-    ${url.protocol === 'http:' ? html`<p class="lg-warn">${icon(UI.shield, 16)} ${t('Not a secure address: what you send there can be read on the way.')}</p>` : nothing}
+  d.describedby = [id('what'), id('host'), ...(plain ? [id('warn')] : [])].join(' ');
+  d.body = html`<p class="lg-what" id=${id('what')}>${what}</p>
+    <p class="lg-host" id=${id('host')} dir="ltr">${name}</p>
+    ${plain ? html`<p class="lg-warn" id=${id('warn')}>${icon(UI.shield, 16)} ${t('Not a secure address: what you send there can be read on the way.')}</p>` : nothing}
     <p class="lg-label">${t('The whole address:')}</p>
     <code class="lg-url" dir="ltr">${url.href}</code>
     <p class="lg-note">${t('Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.')}</p>

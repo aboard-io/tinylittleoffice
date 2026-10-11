@@ -25,7 +25,8 @@ to-text[hidden] {
   color: inherit;
   caret-color: var(--a, currentColor);
 }
-[data-w] > to-text .tx > * {
+[data-w] > to-text .tx > *,
+[data-w] > to-text .tx-list > * {
   margin: 0;
   max-width: none;
   font: inherit;

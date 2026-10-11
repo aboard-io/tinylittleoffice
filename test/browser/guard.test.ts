@@ -15,6 +15,7 @@ import { remScale } from '../../src/kit/zoom.ts';
 import { setLanguage, t } from '../../src/kit/i18n.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToDrawer } from '../../src/kit/drawer.ts';
+import type { ToDialog } from '../../src/kit/dialog.ts';
 import indexHtml from '../../index.html?raw';
 
 const CAT = 'https://pictures.example/cat.png';
@@ -272,4 +273,23 @@ test('the menu is a hamburger without a border, 44px, at the right; the Office m
   expect(drawer.querySelector('.to-drawer .to-brand')).toBeNull();
   expect(drawer.querySelector('.to-drawer svg.to-mark')).toBeNull();
   expect(indexHtml).toMatch(/<link rel="icon" href="\.\/favicon\.svg" type="image\/svg\+xml" \/>/);
+});
+
+test('the guard describes itself: its dialog’s description is what the link does and the host, said as it opens', async () => {
+  await mount('');
+  openLink('http://plain.example/page');
+  const g = await guardOpen();
+  const dialog = g.querySelector('dialog')!;
+  const ids = (dialog.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+  expect(ids.length).toBeGreaterThan(0);
+  const said = ids.map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
+  expect(said).toContain('You are leaving Tiny Little Office for');
+  expect(said).toContain('plain.example');
+  expect(said).toContain('Not a secure address');
+  // A dialog that names no description has none.
+  const other = document.createElement('to-dialog') as ToDialog;
+  document.body.append(other);
+  await other.updateComplete;
+  expect(other.querySelector('dialog')!.hasAttribute('aria-describedby')).toBe(false);
+  other.remove();
 });

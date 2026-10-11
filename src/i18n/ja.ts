@@ -314,6 +314,8 @@ export default {
   'Remove link': 'リンクを外す',
   // The selection bubble's name: what can be done to the words selected.
   'Format': '書式',
+  'done': '完了',
+  'not done': '未完了',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|#枚のスライド}',

@@ -3,7 +3,7 @@
 // service through the link guard; the embed code and the embed view; a deck's show link.
 import { test, expect, afterEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until, openShare, openDrawerDoc } from './helpers.ts';
+import { mount, tick, until, openShare, openDrawerDoc, said } from './helpers.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { store } from '../../src/kit/store.ts';
@@ -122,7 +122,7 @@ test('a .tlo dropped on the page opens as its own app and title; a .md from the 
   const bad = new DataTransfer();
   bad.items.add(new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 1, 2])], 'cat.png', { type: 'image/png' }));
   shell.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: bad }));
-  await until(() => document.querySelector('[role=status]')!.textContent === 'That file is not words Tiny Little Office can read.');
+  await until(() => said() === 'That file is not words Tiny Little Office can read.');
   expect(location.hash).toBe(before);
 });
 
@@ -241,7 +241,7 @@ test('Copy embed code: a lazy, no-referrer frame of the embed page; the embed vi
     expect(new URL(src).pathname.endsWith('/embed/')).toBe(true);
     expect(new URL(src).hash).toBe(`#/v1/write.embed/${parseHash(location.hash).payload}`);
   });
-  await until(() => document.querySelector('[role=status]')!.textContent === 'Embed code copied');
+  await until(() => said() === 'Embed code copied');
   d.close();
   // The embed view itself.
   const embedded = await mount(`#/v1/write.embed/${encodeDoc('---\ntitle: Notes\n---\nHello\n')}`);

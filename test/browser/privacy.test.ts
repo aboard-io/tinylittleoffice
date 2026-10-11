@@ -4,7 +4,7 @@
 // stale after an edit, the state beside the title, the key, what the device holds, and the zip.
 import { test, expect, afterEach, beforeAll, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
-import { mount, tick, until, openShare as openShareFromDrawer } from './helpers.ts';
+import { mount, tick, until, openShare as openShareFromDrawer, said } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { PREFS, exportKey, forgetKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
@@ -330,7 +330,7 @@ test('the key: Export (a file, and the text), Import on another device signs as 
   fill(privacy.querySelector<HTMLTextAreaElement>('.to-key-text')!, '{"alg":"rsa"}');
   await privacy.updateComplete;
   privacy.querySelector<HTMLButtonElement>('.to-key-use')!.click();
-  await until(() => document.querySelector('[role=status]')?.textContent === 'That is not a signing key.');
+  await until(() => said() === 'That is not a signing key.');
   expect(await myFingerprint()).toBe(fp);
 });
 

@@ -60,7 +60,7 @@ import { t } from './i18n.ts';
 import { ago, type Kept } from './library.ts';
 import { expiresSentence, timeLeft } from './short.ts';
 import { pinWindow, reveal } from './scroll.ts';
-import { cmdTool } from './bar.ts';
+import { BAR_HERE, cmdTool } from './bar.ts';
 import { PALETTE } from './keys.ts';
 
 /** The document the header names. */
@@ -94,6 +94,19 @@ const GLIDE_MS = 260;
 
 /** What a box hands the focus to and back from without the person having left it: the bar, a menu, a popover, a dialog. */
 const ASIDE = 'to-bar, to-context, [popover], dialog, to-dialog, to-link-pop, to-complete';
+
+/**
+ * What responsive.css slides away under a finger, by its own selectors: the app's bar and the palette's button while the
+ * person reads (no `indoc`), and under a docked context row. What is away is inert as well, out of Tab's order and a
+ * screen reader's swipes, set wherever those flags change (stow), so the look and the flag change together.
+ */
+const AWAY = [
+  "to-chrome:not([indoc]) .to-column.barred > main > .to-editor:not([data-bar='always']) to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *)",
+  "to-chrome:not([indoc]) .to-column.barred:not(:has(> main > .to-editor[data-bar='always'])) > .to-palette-btn",
+  ':root[data-context-row] .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *)',
+  ':root[data-context-row] .to-column.barred > .to-palette-btn',
+].join(', ');
+const COARSE = '(pointer: coarse)';
 
 /** When a tap last made a new document (the home page's rows and templates, the drawer's New): its editor, once drawn, is the person's to type in. */
 let madeAt = -Infinity;
@@ -198,6 +211,10 @@ export class ToChrome extends LitElement {
     window.addEventListener('hashchange', this.opened);
     this.addEventListener('transitionend', this.onGlided);
     this.addEventListener('scroll', this.pinSelf, true);
+    // A bar drawn (a document opened, a bar lent to a dialog and back), a context row docked, a finger arriving: stowed again.
+    document.addEventListener(BAR_HERE, this.stow);
+    this.rowWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-context-row'] });
+    matchMedia(COARSE).addEventListener('change', this.stow);
     this.fit();
   }
   disconnectedCallback() {
@@ -210,6 +227,9 @@ export class ToChrome extends LitElement {
     window.removeEventListener('hashchange', this.opened);
     this.removeEventListener('transitionend', this.onGlided);
     this.removeEventListener('scroll', this.pinSelf, true);
+    document.removeEventListener(BAR_HERE, this.stow);
+    this.rowWatch.disconnect();
+    matchMedia(COARSE).removeEventListener('change', this.stow);
     clearTimeout(this.settleTimer);
     this.sized?.disconnect();
   }
@@ -298,7 +318,18 @@ export class ToChrome extends LitElement {
     });
   };
 
+  /** What is slid away (AWAY) is inert; what is back is not. */
+  private stow = () => {
+    const finger = matchMedia(COARSE).matches;
+    for (const el of document.querySelectorAll<HTMLElement>('to-bar, .to-palette-btn')) {
+      const away = finger && el.matches(AWAY);
+      if (el.inert !== away) el.inert = away;
+    }
+  };
+  private rowWatch = new MutationObserver(this.stow);
+
   protected updated() {
+    this.stow();
     // The column's height, for what fills it (a canvas, a map, a site's frame): --to-col-h.
     const col = this.column;
     if (!col || this.sized) return;

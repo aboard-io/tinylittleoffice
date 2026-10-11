@@ -110,7 +110,7 @@ export function htmlOf(pages: Page[], title: string, link = ''): string {
 <body>
 <main>
 <h1>${xml(title)}</h1>
-${pages.map((p) => `<figure>${pageSvg(p, `role="img" aria-label="${xml(title)}"`)}</figure>`).join('\n')}
+${pages.map((p) => `<figure>${pageSvg(p.alt ? p : { ...p, alt: title })}</figure>`).join('\n')}
 </main>${link ? `\n<footer><p><a href="${xml(link)}">${xml(t('Open in Tiny Little Office'))}</a></p></footer>` : ''}
 </body>
 </html>
@@ -131,7 +131,7 @@ export function printHtml(pages: Page[], title: string): string {
 <style>@page{size:${paper};margin:0}body{margin:0}figure{margin:0;break-after:page}figure:last-child{break-after:auto}figure svg{display:block;width:100%;height:auto}</style>
 </head>
 <body>
-${pages.map((p) => `<figure>${pageSvg(p, `role="img" aria-label="${xml(title)}"`)}</figure>`).join('\n')}
+${pages.map((p) => `<figure>${pageSvg(p.alt ? p : { ...p, alt: title })}</figure>`).join('\n')}
 </body>
 </html>
 `;

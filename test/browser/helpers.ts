@@ -60,3 +60,6 @@ export async function pinch(at: Element, a: [number, number], b: [number, number
   fire('pointerup', 12, b2);
   return () => {};
 }
+
+/** What the last toast said to a screen reader: the one region holding words, in the open dialog or the page (kit/toast.ts). */
+export const said = () => [...document.querySelectorAll('.to-said')].map((r) => r.textContent ?? '').find(Boolean) ?? '';

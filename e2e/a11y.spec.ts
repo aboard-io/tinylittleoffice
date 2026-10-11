@@ -53,3 +53,48 @@ test('axe finds nothing in any app, at phone size, light and dark', async ({ pag
   }
   expect(errors).toEqual([]);
 });
+
+// What VoiceOver is given for the Word Processor's words (WebKit, phone size): the first template's paragraphs as
+// they are written, and a template's lists as lists, each item with its level, a task with its state before its words.
+test('the Word Processor’s words, as a screen reader is given them', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'WebKit at phone size');
+  const write = apps().find((a) => a.id === 'write')!;
+  const open = async (doc: string) => {
+    await page.goto('about:blank');
+    await page.goto(`/${routeHash('write', encodeDoc(doc))}`);
+    await drawn(page);
+    return page.locator('to-write-editor to-text .tx').first();
+  };
+  await expect(await open(write.templates[0].doc)).toMatchAriaSnapshot(`
+    - textbox "Document":
+      - paragraph: Your name Street and number Town and postcode you@example.com
+      - paragraph: The date
+      - paragraph: Dear …,
+      - paragraph: Why you are writing, in a sentence.
+      - paragraph: What you have to say, in order.
+      - paragraph: What happens next, and by when.
+      - paragraph: Yours sincerely,
+      - paragraph
+      - paragraph: Your name
+  `);
+  await expect(await open(write.templates.find((tp) => tp.id === 'meeting')!.doc)).toMatchAriaSnapshot(`
+    - textbox "Document":
+      - heading "Meeting" [level=1]
+      - paragraph: The date · where · who came
+      - heading "Agenda" [level=2]
+      - list:
+        - listitem [level=1]: First item
+        - listitem [level=1]: Second item
+      - heading "Notes" [level=2]
+      - paragraph: What was said, briefly.
+      - heading "Decisions" [level=2]
+      - list:
+        - listitem [level=1]: What was decided.
+      - heading "Actions" [level=2]
+      - list:
+        - listitem [level=1]: not done Who does what, by when
+  `);
+  // The places Playwright's snapshot leaves out: each item's position and how many.
+  const items = page.locator('to-write-editor to-text .tx li');
+  expect(await items.evaluateAll((li) => li.map((l) => `${l.getAttribute('aria-posinset')}/${l.getAttribute('aria-setsize')}`))).toEqual(['1/2', '2/2', '1/1', '1/1']);
+});

@@ -929,3 +929,52 @@ test('two spaces at the end of a link end it: typing after a link stays in it, a
   expect(h.tlo).toBe('my [site](https://x.y/) now\n');
   expect(h.el.tx.querySelector('a')!.textContent).toBe('site');
 });
+
+test('a list is a list to a screen reader: each item its level, its place and how many; a task says its state; the marks are not read', async () => {
+  const h = await mount('- one\n  - one a\n  - one b\n- two\n- [x] bought\n- [ ] to buy\n\nAfter.\n\n1. first\n');
+  const items = [...h.el.tx.querySelectorAll('li')];
+  expect(items.map((li) => [li.getAttribute('role'), li.getAttribute('aria-level'), li.getAttribute('aria-posinset'), li.getAttribute('aria-setsize')])).toEqual([
+    ['listitem', '1', '1', '4'],
+    ['listitem', '2', '1', '2'],
+    ['listitem', '2', '2', '2'],
+    ['listitem', '1', '2', '4'],
+    ['listitem', '1', '3', '4'],
+    ['listitem', '1', '4', '4'],
+    ['listitem', '1', '1', '1'],
+  ]);
+  // Each run of items is one list: the paragraph between ends the first.
+  const lists = [...h.el.tx.querySelectorAll(':scope > [role=list]')];
+  expect(lists.map((l) => l.children.length)).toEqual([6, 1]);
+  expect(items.every((li) => li.parentElement!.getAttribute('role') === 'list')).toBe(true);
+  // A task's state is words before its words, out of the caret's way; the box drawn is not read.
+  const state = (li: Element) => li.querySelector('.sr-only')!;
+  const said = (li: Element) => state(li).textContent!.trim();
+  expect(said(items[4])).toBe('done');
+  expect(said(items[5])).toBe('not done');
+  expect(state(items[4]).getAttribute('contenteditable')).toBe('false');
+  expect(items[0].querySelector('.sr-only')).toBeNull();
+  for (const li of [items[0], items[4], items[6]]) expect(getComputedStyle(li, '::before').content).toMatch(/\/ ""$/);
+  // The state is not words of the item: the caret counts past it, and the item's words are as they were.
+  h.el.sel = caret(5, 2);
+  await h.el.updateComplete;
+  await tick(30);
+  expect(h.el.readSel()).toEqual(caret(5, 2));
+  await typeIn(h, 'X');
+  expect(h.tlo).toContain('- [ ] toX buy\n');
+  // A task split by Enter: the new one says its state too, and the places are counted again.
+  await key(h, 'Enter');
+  const now = [...h.el.tx.querySelectorAll('li')];
+  expect(said(now[6])).toBe('not done');
+  expect(now.slice(0, 7).map((li) => li.getAttribute('aria-setsize'))).toEqual(['5', '2', '2', '5', '5', '5', '5']);
+});
+
+test('an empty box with a placeholder: the placeholder is aria-placeholder, and what is drawn of it is not read as the words', async () => {
+  document.body.innerHTML = '';
+  const el = document.createElement('to-text');
+  el.placeholder = 'Say something';
+  document.body.append(el);
+  await el.updateComplete;
+  expect(el.tx.getAttribute('aria-placeholder')).toBe('Say something');
+  expect(el.tx.textContent).toBe('');
+  expect(getComputedStyle(el.tx, '::before').content).toBe('"Say something" / ""');
+});

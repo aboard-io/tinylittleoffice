@@ -17,10 +17,10 @@ export const INK = '#18181b';
 export const MUTED = '#52525b';
 export const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
-/** A page as a complete SVG document. */
+/** A page as a complete SVG document: a picture named by its alt, unless `attrs` gives it a role and name of its own. */
 export function pageSvg(p: Page, attrs = ''): string {
   const alt = p.alt ? xml(p.alt) : '';
-  const a = alt ? `${attrs ? attrs + ' ' : ''}role="img" aria-label="${alt}"` : attrs;
+  const a = alt && !/(^|\s)role=/.test(attrs) ? `${attrs ? attrs + ' ' : ''}role="img" aria-label="${alt}"` : attrs;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.w} ${p.h}" width="${p.w}" height="${p.h}" font-family="${FONT}"${a ? ' ' + a : ''}>${alt ? `<title>${alt}</title>` : ''}<rect width="${p.w}" height="${p.h}" fill="${PAPER}"/>${p.svg}</svg>`;
 }
 

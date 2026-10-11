@@ -378,7 +378,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     return null;
   };
   private tableEl(at: number): ToWriteTable | null {
-    return (this.text?.tx.children[at] as HTMLElement | undefined)?.querySelector<ToWriteTable>('to-write-table') ?? null;
+    return this.text?.blockEls()[at]?.querySelector<ToWriteTable>('to-write-table') ?? null;
   }
   /** The caret into a cell of the table at `at` (and a range from it), once drawn. */
   private async focusCell(at: number, r: number, c: number, end: [number, number] | null = null) {
@@ -411,7 +411,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   /* ---------- a card in hand ---------- */
 
   private cardEl(at: number): HTMLElement | null {
-    const el = this.text?.tx.children[at] as HTMLElement | undefined;
+    const el = this.text?.blockEls()[at];
     return el?.classList.contains('tx-card') ? el : null;
   }
   isCard(at: number): boolean {
@@ -450,7 +450,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   private heldIn(target: EventTarget | null): number {
     const el = target as HTMLElement | null;
     if (!el?.classList?.contains('tx-card') || el.parentElement !== this.text?.tx) return -1;
-    return [...this.text.tx.children].indexOf(el);
+    return this.text.blockEls().indexOf(el);
   }
   private onFocusIn = (e: FocusEvent) => {
     const at = this.heldIn(e.target);

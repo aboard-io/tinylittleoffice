@@ -314,6 +314,8 @@ export default {
   'Remove link': 'Link entfernen',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Format', // same
+  'done': 'erledigt',
+  'not done': 'nicht erledigt',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|eine Folie|# Folien}',

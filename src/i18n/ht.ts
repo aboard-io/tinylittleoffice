@@ -317,6 +317,8 @@ export default {
   'Remove link': 'Retire lyen',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Fòma',
+  'done': 'fini',
+  'not done': 'pa fini',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|yon dyapozitiv|# dyapozitiv}',

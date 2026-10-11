@@ -331,6 +331,9 @@ export default {
   'Remove link': 'Remove link',
   // The selection bubble's name: what can be done to the words selected.
   'Format': 'Format',
+  // A task item's state, said before its words by a screen reader: "done, Buy milk"; "not done, Call the plumber".
+  'done': 'done',
+  'not done': 'not done',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|one slide|# slides}',

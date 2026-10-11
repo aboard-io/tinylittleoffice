@@ -13,6 +13,8 @@
 //   link       the address, flushed, is the document the shell holds, which the kernel writes back as it reads it
 //   bar        the app's bar, where it is shown, is one row inside the visible window
 //   undo       on a phone, wherever the bar is shown, its Undo is inside the visible window, beside the palette's button
+//   hidden     nothing faded away (opacity 0, no pointer) or slid out of the visible window can be tabbed or swiped to:
+//              what is away is inert (the phone's bar while reading, kit/chrome.ts)
 //   overflow   no words run off the screen sideways; the page is no wider than the window
 //   names      everything open has an accessible name
 //   keystroke  a word typed costs under the keystroke budget (perf.test.ts: 12 ms of synchronous work)
@@ -459,6 +461,32 @@ function undoOnScreen(r: Real, bar: HTMLElement, h: number) {
     );
 }
 
+/** What a Tab or a swipe reaches. */
+const REACHABLE = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+/**
+ * The first thing a Tab or a swipe reaches that a person cannot see: under a box faded away (opacity 0 and no pointer:
+ * not a fade on hover) or slid by a transform out of the visible window `h` tall (not the skip link, which comes in
+ * with the focus); '' when there is none.
+ */
+function hiddenReachable(h: number): string {
+  const looks = new Map<Element, CSSStyleDeclaration>();
+  const look = (el: Element) => looks.get(el) ?? looks.set(el, getComputedStyle(el)).get(el)!;
+  for (const el of document.querySelectorAll<HTMLElement>(REACHABLE)) {
+    // The skip link is off the screen until it has the focus, and then on it: that is what it is for.
+    if (el.closest('[inert], [aria-hidden="true"], .to-skip') || !el.checkVisibility({ visibilityProperty: true })) continue;
+    for (let at: HTMLElement | null = el; at && at !== document.body; at = at.parentElement) {
+      const s = look(at);
+      if (s.opacity === '0' && s.pointerEvents === 'none') return `${describeEl(el)} can be reached though ${describeEl(at)} is faded away: it is not inert`;
+      if (s.transform.startsWith('matrix')) {
+        const b = at.getBoundingClientRect();
+        if (b.width && b.height && (b.top >= h - 1 || b.bottom <= 1 || b.left >= innerWidth - 1 || b.right <= 1))
+          return `${describeEl(el)} can be reached though ${describeEl(at)} is slid out of the window: it is not inert`;
+      }
+    }
+  }
+  return '';
+}
+
 function check(r: Real, s: Step, before: Layer[]) {
   const at = document.activeElement;
   const ed = editorOf(r);
@@ -557,6 +585,10 @@ function check(r: Real, s: Step, before: Layer[]) {
       if (r.size === 'phone') undoOnScreen(r, bar, h);
     }
   }
+
+  // hidden
+  const unseen = hiddenReachable(r.vv?.height ?? innerHeight);
+  if (unseen) broke(r, 'hidden', unseen);
 
   // overflow
   if (document.documentElement.scrollWidth > innerWidth) broke(r, 'overflow', `the page is ${document.documentElement.scrollWidth}px wide in a ${innerWidth}px window`);
@@ -752,9 +784,15 @@ test('on a phone, every app’s Undo is on screen wherever its bar is scrolled',
     const bar = [...editorOf(real).querySelectorAll('to-bar')].find((b) => visible(b as Element) && !(b as Element).closest('dialog, [popover]')) as HTMLElement;
     expect(bar, app).toBeTruthy();
     // The focus in the bar (the document's, so the bar is shown): words a page opens with chosen (the Website Builder's) would make the context bar the row.
-    bar.querySelector<HTMLElement>('button:not([disabled])')!.focus();
+    // The bar is shown first: while it is away (reading, or under a docked context row) it is inert (kit/chrome.ts), and an
+    // inert button takes no focus; so the thing a page holds (the Website Builder's) is let go, its context row with it.
+    (editorOf(real) as HTMLElement & { release?: () => void }).release?.();
+    for (const c of document.querySelectorAll<HTMLElement & { hide(): void }>('to-context')) c.hide();
     chrome.indoc = true;
     await settle(real);
+    bar.querySelector<HTMLElement>('button:not([disabled])')!.focus();
+    await settle(real);
+    expect(bar.contains(document.activeElement), app).toBe(true);
     expect(document.documentElement.hasAttribute('data-context-row'), app).toBe(false);
     // Shown, so the rule looks (it passes over a bar slid away).
     await until(() => getComputedStyle(bar).opacity === '1' && getComputedStyle(bar).transform === 'none').catch(() => undefined);
@@ -869,6 +907,30 @@ test('each rule of the walks breaks on the fault it is for, naming it', async ()
       return () => (pad.remove(), (chrome.style.overflow = was), (chrome.scrollTop = 0));
     }),
   ).toMatch(/^walk broke "window": <to-chrome>.* scrolled to 0, 40: only the column scrolls/);
+  expect(
+    breaks(() => {
+      const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
+      const was = bar.style.cssText;
+      bar.style.cssText = 'opacity:0;pointer-events:none';
+      return () => (bar.style.cssText = was);
+    }),
+  ).toMatch(/^walk broke "hidden": <button.* can be reached though <to-bar.write-bar> .*is faded away/);
+  expect(
+    breaks(() => {
+      const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
+      const was = bar.style.cssText;
+      bar.style.cssText = 'transform:translateY(200vh)';
+      return () => (bar.style.cssText = was);
+    }),
+  ).toMatch(/^walk broke "hidden": .* is slid out of the window/);
+  expect(
+    breaks(() => {
+      const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
+      bar.style.cssText = 'opacity:0;pointer-events:none';
+      bar.inert = true;
+      return () => ((bar.style.cssText = ''), (bar.inert = false));
+    }),
+  ).toBe('');
   expect(
     breaks(() => {
       slowWord = '"tiny" took 20 ms a letter';

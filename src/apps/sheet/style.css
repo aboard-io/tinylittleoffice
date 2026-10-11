@@ -349,7 +349,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  table.sheet td to-text.rich .tx > * {
+  table.sheet td to-text.rich .tx > *,
+  table.sheet td to-text.rich .tx-list > * {
     white-space: pre;
     overflow: hidden;
     text-overflow: ellipsis;
