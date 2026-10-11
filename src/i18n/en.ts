@@ -55,7 +55,7 @@ export default {
   // The home page's foot: {aboard} is the name Aboard, a link to aboard.com, said as it is in every language
   'Made with respect by {aboard}': 'Made with respect by {aboard}',
   // The foot's link to the repository on GitHub
-  'Open source': 'Open source',
+  'Email us': 'Email us',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Apps',

@@ -39,7 +39,7 @@ export default {
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '還有 {n} 個',
   'Made with respect by {aboard}': '由 {aboard} 懷著敬意打造',
-  'Open source': '開放原始碼',
+  'Email us': '寄信給我們',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': '應用程式',

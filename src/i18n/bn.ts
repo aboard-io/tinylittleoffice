@@ -31,7 +31,7 @@ export default {
   'Forget {title}': '“{title}” বাদ দিন',
   '{n} more': 'আরও {n}টি',
   'Made with respect by {aboard}': '{aboard} সম্মানের সঙ্গে তৈরি করেছে',
-  'Open source': 'ওপেন সোর্স',
+  'Email us': 'আমাদের ইমেল করুন',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'অ্যাপ',

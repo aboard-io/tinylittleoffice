@@ -37,7 +37,7 @@ export default {
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n} और',
   'Made with respect by {aboard}': '{aboard} ने सम्मान के साथ बनाया',
-  'Open source': 'ओपन सोर्स',
+  'Email us': 'हमें ईमेल करें',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'ऐप्स',

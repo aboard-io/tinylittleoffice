@@ -39,7 +39,7 @@ export default {
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n} أخرى',
   'Made with respect by {aboard}': 'صُنع باحترام بواسطة {aboard}',
-  'Open source': 'مفتوح المصدر',
+  'Email us': 'راسلنا',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'التطبيقات',

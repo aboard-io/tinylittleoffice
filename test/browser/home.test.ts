@@ -1,5 +1,5 @@
-// The home page's foot (Paul, 2026-10-11): "Made with respect by Aboard", Aboard a link to aboard.com, and "Open source",
-// a link to the repository; each opens in a new tab, in the page's language.
+// The home page's foot (Paul, 2026-10-11): "Made with respect by Aboard · GitHub · Email us", Aboard a link to aboard.com,
+// GitHub the repository, Email us a mail link; the sites open in a new tab, in the page's language.
 import { afterEach, expect, test } from 'vitest';
 import { page } from 'vitest/browser';
 import { setLanguage } from '../../src/kit/i18n.ts';
@@ -14,23 +14,24 @@ afterEach(async () => {
   await page.viewport(1100, 800);
 });
 
-/** The foot's two lines, and the links in them. */
+/** The foot's line, and the links in it. */
 const foot = (shell: HTMLElement) => {
   const f = shell.querySelector<HTMLElement>('to-home footer.to-home-foot')!;
   return { f, lines: [...f.querySelectorAll('p')].map((p) => p.textContent!.trim()), links: [...f.querySelectorAll('a')] };
 };
 
-test('the home page ends with who made it and where its source is, each a link opening in a new tab', async () => {
+test('the home page ends with who made it, where its source is and how to write, one line of links', async () => {
   const shell = await mount('');
   await until(() => !!shell.querySelector('to-home footer.to-home-foot'));
   const { f, lines, links } = foot(shell);
   // Below the apps, last in the page.
   expect(f.previousElementSibling!.classList.contains('to-apps')).toBe(true);
   expect(f.nextElementSibling).toBeNull();
-  expect(lines).toEqual(['Made with respect by Aboard', 'Open source']);
+  expect(lines).toEqual(['Made with respect by Aboard · GitHub · Email us']);
   expect(links.map((a) => [a.textContent, a.href, a.target, a.rel])).toEqual([
     ['Aboard', 'https://aboard.com/', '_blank', 'noopener'],
-    ['Open source', 'https://github.com/aboard-io/tinylittleoffice', '_blank', 'noopener'],
+    ['GitHub', 'https://github.com/aboard-io/tinylittleoffice', '_blank', 'noopener'],
+    ['Email us', 'mailto:hello+tlo@aboard.com', '', ''],
   ]);
   // Quiet: the kit's muted ink, smaller than an app's name, its words aligned with the apps' names.
   const style = getComputedStyle(f);
@@ -45,16 +46,17 @@ test('the home page ends with who made it and where its source is, each a link o
   expect(Math.abs(f.querySelector('p')!.getBoundingClientRect().left - (open.getBoundingClientRect().left + parseFloat(getComputedStyle(open).paddingLeft)))).toBeLessThan(1);
 });
 
-test('the foot is said in the page’s language, the name Aboard kept and still the link', async () => {
+test('the foot is said in the page’s language, the names Aboard and GitHub kept and still the links', async () => {
   const shell = await mount('');
   await setLanguage('fr');
   await until(() => document.documentElement.lang === 'fr');
   await until(() => foot(shell).lines[0] !== 'Made with respect by Aboard');
   const { lines, links } = foot(shell);
-  expect(lines).toEqual(['Fait avec respect par Aboard', 'Code source ouvert']);
-  expect(links.map((a) => [a.textContent, a.href, a.rel])).toEqual([
-    ['Aboard', 'https://aboard.com/', 'noopener'],
-    ['Code source ouvert', 'https://github.com/aboard-io/tinylittleoffice', 'noopener'],
+  expect(lines).toEqual(['Fait avec respect par Aboard · GitHub · Nous écrire']);
+  expect(links.map((a) => [a.textContent, a.href])).toEqual([
+    ['Aboard', 'https://aboard.com/'],
+    ['GitHub', 'https://github.com/aboard-io/tinylittleoffice'],
+    ['Nous écrire', 'mailto:hello+tlo@aboard.com'],
   ]);
 });
 

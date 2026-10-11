@@ -38,7 +38,7 @@ export default {
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '还有 {n} 个',
   'Made with respect by {aboard}': '由 {aboard} 怀着敬意打造',
-  'Open source': '开源',
+  'Email us': '给我们发邮件',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': '应用',

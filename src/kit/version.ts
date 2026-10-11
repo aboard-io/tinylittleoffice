@@ -21,7 +21,7 @@ export interface Version {
 /** The repository the source is published in, on the host kit/network.ts names. */
 export const REPO = 'aboard-io/tinylittleoffice';
 
-/** The repository's own page: the home page's "Open source". */
+/** The repository's own page: the home page's "GitHub". */
 export const repoUrl = () => `${origin('source')}/${REPO}`;
 
 /** The page for a commit (or a tag) in the published source. */

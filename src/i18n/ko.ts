@@ -37,7 +37,7 @@ export default {
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n}개 더',
   'Made with respect by {aboard}': '{aboard}가 존중을 담아 만들었습니다',
-  'Open source': '오픈 소스',
+  'Email us': '이메일 보내기',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': '앱',
