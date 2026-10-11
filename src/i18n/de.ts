@@ -81,6 +81,7 @@ export default {
   'What this protects against, and what it does not': 'Wovor das schützt und wovor nicht',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Läuft mit Commit {commit}',
+  'This link hides characters in its address.': 'Dieser Link versteckt Zeichen in seiner Adresse.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

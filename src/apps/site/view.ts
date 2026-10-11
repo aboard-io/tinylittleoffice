@@ -88,13 +88,16 @@ else if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){
 draw();})();`);
 
 /**
- * The editor's Preview: the page as a visitor has it, with one thing more. Escape in the page tells the editor
- * (which goes back to editing), and a link out of the site opens beside the editor, not in its frame.
+ * The page shown inside Tiny Little Office (the editor's Preview, the Display Link): the page as a visitor has it,
+ * with two things more. Escape in the page tells the parent (the editor goes back to editing), and a link out of the
+ * site is not followed from the frame, which cannot leave its sandbox: the parent is told, and asks first through the
+ * link guard (kit/link-guard.ts), as every link that leaves the site does. A downloaded website has neither.
  */
 export const PEEK = pageScript(`(function(){
 var D=JSON.parse(document.getElementById('site-peek').textContent);
 document.addEventListener('keydown',function(ev){if(ev.key==='Escape')parent.postMessage({site:D.stamp,do:'leave'},'*');});
-document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest?ev.target.closest('a[href]'):null;if(a&&a.getAttribute('href').charAt(0)!=='#'){a.target='_blank';a.rel='noopener noreferrer';}},true);
+function out(ev){if(ev.type==='auxclick'&&ev.button!==1)return;var a=ev.target&&ev.target.closest?ev.target.closest('a[href]'):null;if(!a||a.getAttribute('href').charAt(0)==='#')return;ev.preventDefault();ev.stopImmediatePropagation();parent.postMessage({site:D.stamp,do:'link',href:a.href},'*');}
+document.addEventListener('click',out,true);document.addEventListener('auxclick',out,true);
 })();`);
 
 /** Where the frame's editor is on the site (scripts/site-frame.ts builds it). */
@@ -196,7 +199,7 @@ export interface SitePageOpts {
    * carry back, where the frame's script is (`src`, /site-frame.js by default) and whether the editor is dark.
    */
   edit?: { stamp: number; held?: string | null; y?: number; show?: boolean; src?: string; dark?: boolean };
-  /** The editor's Preview: the page as a visitor has it, which tells the editor of Escape. */
+  /** Shown inside Tiny Little Office (the editor's Preview, the Display Link), with this stamp on its messages: Escape and a link out go to the parent (PEEK). */
   peek?: number;
 }
 

@@ -71,6 +71,7 @@ export default {
   'What leaves your browser': 'ব্রাউজার থেকে কী বের হয়',
   'What this protects against, and what it does not': 'এটি কীসের বিরুদ্ধে সুরক্ষা দেয়, আর কীসের বিরুদ্ধে দেয় না',
   'Running commit {commit}': 'চলছে কমিট {commit}',
+  'This link hides characters in its address.': 'এই লিংকের ঠিকানায় লুকানো অক্ষর আছে।',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

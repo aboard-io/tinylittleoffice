@@ -12,6 +12,7 @@ import { askPicture } from '../../src/kit/insert-dialogs.ts';
 import { pictureSrc } from '../../src/kit/media.ts';
 import { openLink } from '../../src/kit/link-guard.ts';
 import { remScale } from '../../src/kit/zoom.ts';
+import { setLanguage, t } from '../../src/kit/i18n.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToDrawer } from '../../src/kit/drawer.ts';
 import indexHtml from '../../index.html?raw';
@@ -114,6 +115,39 @@ test('the link bubble’s Open, and any link followed from code, ask first', asy
   const g = await guardOpen();
   expect(g.querySelector('.lg-what')!.textContent).toBe('This link writes an email to');
   expect(g.querySelector('.lg-host')!.textContent).toBe('hello@example.com');
+});
+
+test('in Arabic the address is drawn left to right, set apart; a mailbox that hides a reversal is refused, never drawn', async () => {
+  // Arabic in this page alone: the choice never touches the origin's storage, which other test files share as they run.
+  const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
+  const remove = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {});
+  await setLanguage('ar');
+  try {
+    const shell = await mount('');
+    expect(document.documentElement.dir).toBe('rtl');
+    openLink('https://reports.example/2026/q3?ref=a');
+    const g = await guardOpen();
+    const host = g.querySelector<HTMLElement>('.lg-host')!;
+    const url = g.querySelector<HTMLElement>('.lg-url')!;
+    expect(host.textContent).toBe('reports.example');
+    expect(url.textContent).toBe('https://reports.example/2026/q3?ref=a');
+    for (const el of [host, url]) {
+      expect(getComputedStyle(el).direction).toBe('ltr');
+      expect(getComputedStyle(el).unicodeBidi).toBe('isolate');
+    }
+    g.querySelector<HTMLButtonElement>('.lg-cancel')!.click();
+    await until(guardShut);
+    // Drawn, this read 'nhcr.info@speak-mail.ru' (the review of 2026-10-11).
+    openLink('mailto:%E2%80%AEur.liam-kaeps@ofni.rchnu');
+    await until(() => !!shell.querySelector('.to-toast.shown'));
+    expect(shell.querySelector('.to-toast')!.textContent).toBe(t('This link hides characters in its address.'));
+    await tick(50);
+    expect(guardShut()).toBe(true);
+  } finally {
+    await setLanguage(null);
+    set.mockRestore();
+    remove.mockRestore();
+  }
 });
 
 test('a web picture is a quiet card until asked for; Show shows every one of this document, and it holds for the visit', async () => {

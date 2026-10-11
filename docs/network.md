@@ -69,10 +69,12 @@ keeps it at the edge for a week, and hands it back. The picture's site sees Clou
 
 ### The hosts whose pictures show at once
 
-`src/kit/media.ts` `TRUSTED`, the entries of `src/kit/network.ts` with a reason. Each is a place that
+`TRUSTED` in `src/kit/network.ts`, the entries with a reason. Each is a place that
 serves public, static pictures under an open or stated licence, at addresses that do not change per reader.
 Since the proxy fetches them, even such a host learns nothing of who reads the document; the list only
-spares the reader a question for pictures that are this safe and this common.
+spares the reader a question for pictures that are this safe and this common. The proxy holds the same
+list: a picture shown without asking is followed through its redirects only to hosts on it, so an open
+redirect on one of them leads nowhere else.
 
 | Host | Why |
 | --- | --- |
@@ -80,7 +82,7 @@ spares the reader a question for pictures that are this safe and this common.
 | `upload.wikimedia.org` | Wikimedia Commons’ files: freely licensed, static, the most-used source of public pictures |
 | `commons.wikimedia.org` | Commons’ own pages’ pictures (the same files, by another address) |
 | `archive.org` | The Internet Archive’s files: public-domain and archived pictures |
-| `*.archive.org` | The Internet Archive’s storage hosts (ia800…us.archive.org) |
+| `ia*.us.archive.org` | The Internet Archive’s storage hosts (ia800….us.archive.org), where its download addresses lead |
 | `images.unsplash.com` | Unsplash’s image CDN: pictures under the Unsplash licence; the Website Builder’s templates use it |
 | `images.pexels.com` | Pexels’ image CDN: pictures under the Pexels licence |
 | `live.staticflickr.com` | Flickr’s static files: pictures with their licence stated, many Creative Commons |

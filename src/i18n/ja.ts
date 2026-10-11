@@ -81,6 +81,7 @@ export default {
   'What this protects against, and what it does not': '守れること、守れないこと',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'コミット {commit} で実行中',
+  'This link hides characters in its address.': 'このリンクは、アドレスの中に文字を隠しています。',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

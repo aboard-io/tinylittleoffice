@@ -82,6 +82,7 @@ export default {
   'What this protects against, and what it does not': 'यह किससे बचाता है, और किससे नहीं',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'चल रहा कमिट {commit}',
+  'This link hides characters in its address.': 'यह लिंक अपने पते में अक्षर छिपाता है।',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

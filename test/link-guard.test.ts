@@ -1,7 +1,7 @@
 // Where a link goes: here (it opens), elsewhere (asked first), or nowhere (refused). And the pictures a page
 // draws from another site: a card until asked for, a grey box in a preview.
 import { describe, expect, test, beforeEach } from 'vitest';
-import { leaving } from '../src/kit/link-guard.ts';
+import { leaving, where } from '../src/kit/link-guard.ts';
 import { authored, BLANK, forgetPictures, gateHtml, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
 import { pictureSrc } from '../src/kit/media.ts';
 
@@ -32,6 +32,24 @@ describe('leaving()', () => {
     expect(leaving('data:text/html,<b>hi</b>', BASE)).toBe('refused');
     expect(leaving('file:///etc/passwd', BASE)).toBe('refused');
     expect(leaving('http://[bad', BASE)).toBe('refused');
+  });
+});
+
+describe('where()', () => {
+  test('a mailto: or tel: that hides bidi or invisible characters in its name is refused, never drawn', () => {
+    // Drawn, this read 'nhcr.info@speak-mail.ru' in WebKit, in Arabic (the review of 2026-10-11).
+    expect(where(new URL('mailto:%E2%80%AEur.liam-kaeps@ofni.rchnu'))).toBeNull();
+    const tel = leaving('tel:\u2066+15551234567\u2069', BASE) as URL;
+    expect(tel.protocol).toBe('tel:');
+    expect(where(tel)).toBeNull();
+    for (const c of ['\u200b', '\u200f', '\u202a', '\u2068', '\ufeff']) expect(where(new URL(`mailto:a${encodeURIComponent(c)}b@example.com`)), c.codePointAt(0)!.toString(16)).toBeNull();
+  });
+  test('a plain one is named by its mailbox or number; a web address by its host, its hidden characters spelled out', () => {
+    expect(where(new URL('mailto:hello@example.com'))?.name).toBe('hello@example.com');
+    expect(where(new URL('tel:+15551234567'))?.name).toBe('+15551234567');
+    const web = new URL('https://example.com/a\u202eb');
+    expect(where(web)?.name).toBe('example.com');
+    expect(web.href).toBe('https://example.com/a%E2%80%AEb');
   });
 });
 

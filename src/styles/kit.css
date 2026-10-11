@@ -2260,6 +2260,8 @@
     font-weight: 800;
     line-height: 1.15;
     overflow-wrap: anywhere;
+    /* An address reads left to right in every language, set apart from the words round it. */
+    unicode-bidi: isolate;
   }
   .to-link-guard .lg-warn {
     display: flex;
@@ -2281,6 +2283,7 @@
     overflow-wrap: anywhere;
     white-space: pre-wrap;
     user-select: text;
+    unicode-bidi: isolate;
     background: var(--to-surface-2);
     border-radius: var(--to-radius-sm);
   }

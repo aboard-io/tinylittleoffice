@@ -67,10 +67,12 @@ keeps it at the edge for a week, and hands it back. The picture's site sees Clou
 
 ### The hosts whose pictures show at once
 
-\`src/kit/media.ts\` \`TRUSTED\`, the entries of \`src/kit/network.ts\` with a reason. Each is a place that
+\`TRUSTED\` in \`src/kit/network.ts\`, the entries with a reason. Each is a place that
 serves public, static pictures under an open or stated licence, at addresses that do not change per reader.
 Since the proxy fetches them, even such a host learns nothing of who reads the document; the list only
-spares the reader a question for pictures that are this safe and this common.
+spares the reader a question for pictures that are this safe and this common. The proxy holds the same
+list: a picture shown without asking is followed through its redirects only to hosts on it, so an open
+redirect on one of them leads nowhere else.
 
 {{pictures}}
 

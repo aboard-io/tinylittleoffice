@@ -49,28 +49,45 @@ function theGuard(): ToDialog {
   return guard;
 }
 
-/** What the dialog says of an address: what the link does, and the one name to read (the host, the mailbox, the number). */
-function where(u: URL): { what: string; name: string } {
-  if (u.protocol === 'mailto:') return { what: t('This link writes an email to'), name: decodeURIComponent(u.pathname) };
-  if (u.protocol === 'tel:') return { what: t('This link calls'), name: decodeURIComponent(u.pathname) };
+/** The characters that turn or hide what is drawn: the bidi controls and marks, the zero-width ones, the byte-order mark. */
+const HIDDEN = /[\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/;
+
+/**
+ * What the dialog says of an address: what the link does, and the one name to read (the host, the mailbox, the
+ * number). Null for a mailbox or a number whose name hides characters (a reversal drawn would show a false address in
+ * large type); a web address's host is the browser's own spelling, and its whole address spells such characters out.
+ */
+export function where(u: URL): { what: string; name: string } | null {
+  if (u.protocol === 'mailto:' || u.protocol === 'tel:') {
+    let name = u.pathname;
+    try {
+      name = decodeURIComponent(name);
+    } catch {
+      // Not a whole encoding: drawn as written.
+    }
+    if (HIDDEN.test(name)) return null;
+    return { what: u.protocol === 'mailto:' ? t('This link writes an email to') : t('This link calls'), name };
+  }
   // The host as the browser will reach it: a look-alike letter shows as its xn-- spelling.
   return { what: t('You are leaving Tiny Little Office for'), name: u.hostname };
 }
 
 /** Ask before going to this address. */
 export async function ask(url: URL): Promise<void> {
+  const said = where(url);
+  if (!said) return toast(t('This link hides characters in its address.'));
+  const { what, name } = said;
   const d = theGuard();
-  const { what, name } = where(url);
   const go = () => {
     d.close();
     window.open(url.href, '_blank', 'noopener,noreferrer');
   };
   d.heading = t('Do you trust this link?');
   d.body = html`<p class="lg-what">${what}</p>
-    <p class="lg-host">${name}</p>
+    <p class="lg-host" dir="ltr">${name}</p>
     ${url.protocol === 'http:' ? html`<p class="lg-warn">${icon(UI.shield, 16)} ${t('Not a secure address: what you send there can be read on the way.')}</p>` : nothing}
     <p class="lg-label">${t('The whole address:')}</p>
-    <code class="lg-url">${url.href}</code>
+    <code class="lg-url" dir="ltr">${url.href}</code>
     <p class="lg-note">${t('Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.')}</p>
     <div class="lg-buttons">
       <button type="button" class="to-btn lg-cancel" autofocus @click=${() => d.close()}>${icon(UI.close, 18)}<span>${t('Cancel')}</span></button>

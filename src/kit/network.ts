@@ -6,8 +6,10 @@
  * docs/network.md and /network (public/network.html) are written from the whole list by
  * scripts/network-doc.ts. The picture whitelist (kit/media.ts TRUSTED) is the entries with a `picture`.
  *
- * A host is a name, a "*." name (every host under it), or "*": any https address, for a thing the person
- * chose by its address (a post on their own Mastodon server, a sound file). Pure data: no DOM.
+ * A host is a name, a "*." name (every host under it), a name whose first part ends in "*" ("ia*.us.archive.org":
+ * that part begins so, letters, digits and hyphens after), or "*": any https address, for a thing the person chose
+ * by its address (a post on their own Mastodon server, a sound file). Pure data: no DOM; the picture proxy (media/)
+ * reads the whitelist from here too.
  */
 
 /** When the request is made: only after the person taps something, while a thing is on the screen, not until they turn a switch on, or when they share. */
@@ -91,7 +93,7 @@ export const NETWORK = {
   wikimedia: trusted('upload.wikimedia.org', 'Wikimedia Commons’ files: freely licensed, static, the most-used source of public pictures'),
   commons: trusted('commons.wikimedia.org', 'Commons’ own pages’ pictures (the same files, by another address)'),
   archivePictures: trusted('archive.org', 'The Internet Archive’s files: public-domain and archived pictures'),
-  archiveStorage: trusted('*.archive.org', 'The Internet Archive’s storage hosts (ia800…us.archive.org)'),
+  archiveStorage: trusted('ia*.us.archive.org', 'The Internet Archive’s storage hosts (ia800….us.archive.org), where its download addresses lead'),
   unsplash: trusted('images.unsplash.com', 'Unsplash’s image CDN: pictures under the Unsplash licence; the Website Builder’s templates use it'),
   pexels: trusted('images.pexels.com', 'Pexels’ image CDN: pictures under the Pexels licence'),
   flickr: trusted('live.staticflickr.com', 'Flickr’s static files: pictures with their licence stated, many Creative Commons'),
@@ -188,8 +190,29 @@ export function origin(place: Place, sub = ''): string {
   return `https://${host.startsWith('*.') ? sub + host.slice(1) : host}`;
 }
 
-/** Whether a host is one the list names (by name or under a "*." name; "*" names no host). */
-export function listed(host: string): boolean {
+/** Whether `host` is one `pattern` names: the name itself; under a "*." name; a first part's "*" any letters, digits or hyphens. "*" names no host. */
+export function hostMatches(pattern: string, host: string): boolean {
   host = host.toLowerCase();
-  return reaches().some((r) => (r.host.startsWith('*.') ? host.endsWith(r.host.slice(1)) : r.host === host));
+  if (pattern === '*') return false;
+  if (pattern.startsWith('*.')) return host.endsWith(pattern.slice(1));
+  if (!pattern.includes('*')) return host === pattern;
+  const [first, ...rest] = pattern.split('.');
+  const parts = host.split('.');
+  const [head, tail] = first.split('*');
+  return parts.length === rest.length + 1 && parts.slice(1).join('.') === rest.join('.') && /^[a-z0-9-]*$/.test(parts[0]) && parts[0].startsWith(head) && parts[0].endsWith(tail ?? '');
 }
+
+/** Whether a host is one the list names. */
+export function listed(host: string): boolean {
+  return reaches().some((r) => hostMatches(r.host, host));
+}
+
+/**
+ * Hosts whose pictures show at once: the entries with a `picture` (the reason for each). Public, static, licensed
+ * pictures, and nothing a host could tell readers apart by, since the proxy fetches. The proxy follows a redirect
+ * of such a picture only to another of them (media/media.ts), so an open redirect on one is no way round the gate.
+ */
+export const TRUSTED: readonly string[] = reaches().flatMap((r) => (r.picture ? [r.host] : []));
+
+/** Whether a host is on TRUSTED. */
+export const trustedHost = (host: string): boolean => TRUSTED.some((h) => hostMatches(h, host));

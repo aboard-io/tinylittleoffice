@@ -84,6 +84,7 @@ export default {
   'What this protects against, and what it does not': 'Sa sa pwoteje w kont li, ak sa li pa pwoteje w kont li',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Kòmit k ap mache: {commit}',
+  'This link hides characters in its address.': 'Lyen sa a kache karaktè nan adrès li.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

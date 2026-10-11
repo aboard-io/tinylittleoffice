@@ -123,7 +123,8 @@ const typeKeys = async (keys: string) => {
 
 test('the page in its frame the whole width, its script running; no panel beside it; the bar: Insert first, the look, Preview, Undo, Redo', async () => {
   const { el } = await editor();
-  expect(frame(el).getAttribute('sandbox')).toBe('allow-scripts allow-popups allow-popups-to-escape-sandbox');
+  // No escape from the sandbox: a link out of the page comes to the editor, which asks first (r16).
+  expect(frame(el).getAttribute('sandbox')).toBe('allow-scripts allow-popups');
   expect(frame(el).srcdoc).toContain('<h1 data-o="0" data-w="0:0">Harbor Coffee</h1>');
   // The frame's script is the site's own file, named by the page: never inline.
   expect(frame(el).srcdoc).toContain(`<script src="${location.origin}/site-frame.js"></script>`);
@@ -587,6 +588,25 @@ test('Preview: the page as a visitor has it, the bar one Edit button; Edit, Esca
   say(el, { do: 'leave' });
   await settle(el);
   expect(el.preview).toBe(false);
+});
+
+test('Preview: a link out of the site goes through the link guard, naming where it goes; a link to another page of it stays', async () => {
+  const { el } = await editor('# Harbor Coffee\n\nOn the quay.\n\n> Pay now | http://pay.example/now\n');
+  el.startPreview();
+  await settle(el);
+  await inFrame(el).getByRole('link', { name: 'Pay now' }).click();
+  await until(() => !!document.querySelector('to-dialog.to-link-guard dialog[open] .lg-host'));
+  const g = document.querySelector('to-dialog.to-link-guard')!;
+  expect(g.querySelector('.lg-host')!.textContent).toBe('pay.example');
+  expect(g.querySelector('.lg-url')!.textContent).toBe('http://pay.example/now');
+  expect(g.querySelector('.lg-warn')).not.toBeNull();
+  g.querySelector<HTMLButtonElement>('.lg-cancel')!.click();
+  await until(() => !document.querySelector('to-dialog.to-link-guard dialog[open]'));
+  // A message from elsewhere, or from a page drawn before, opens nothing.
+  say(el, { do: 'link', href: 'https://elsewhere.example/' }, window);
+  window.dispatchEvent(new MessageEvent('message', { data: { site: stamp(el) - 1, do: 'link', href: 'https://elsewhere.example/' }, source: frame(el).contentWindow }));
+  await tick(50);
+  expect(document.querySelector('to-dialog.to-link-guard dialog[open]')).toBeNull();
 });
 
 test("on a wide screen at the normal size the form sits beside the thing in hand: its left at the thing's, its top just under it", async () => {

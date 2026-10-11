@@ -82,6 +82,7 @@ export default {
   'What this protects against, and what it does not': '무엇을 막아 주고 무엇은 못 막는지',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': '실행 중인 커밋 {commit}',
+  'This link hides characters in its address.': '이 링크는 주소 안에 문자를 숨기고 있어요.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 
