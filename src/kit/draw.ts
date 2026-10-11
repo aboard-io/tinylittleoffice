@@ -76,8 +76,32 @@ export const r = (n: number) => String(Math.round(n * 100) / 100);
 export const rect = (x: number, y: number, w: number, h: number, fill: string, extra = '') =>
   `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${fill}"${extra ? ' ' + extra : ''}/>`;
 
+/**
+ * A character's width as a share of the type's size, by script, plain and bold: measured in the Noto of each script
+ * (test/browser/metrics.test.ts holds the sums within a tenth). A vowel sign, a virama or a harakah sits on its letter
+ * and adds nothing; anything else, emoji included, is counted as before, by its UTF-16 length at the Latin width.
+ */
+const SCRIPTS: [RegExp, number, number][] = [
+  [/[\p{M}\p{Cf}]/u, 0, 0],
+  [/\p{Script=Hangul}/u, 0.9, 0.9],
+  [/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\uff01-\uff60]/u, 0.98, 0.98],
+  [/\p{Script=Cyrillic}/u, 0.6, 0.66],
+  [/\p{Script=Arabic}/u, 0.4, 0.42],
+  [/\p{Script=Devanagari}/u, 0.64, 0.67],
+  [/\p{Script=Bengali}/u, 0.72, 0.75],
+];
+
 /** Width of text in px, estimated: a page is drawn the same under node and in a browser. */
-export const textWidth = (text: string, px: number, bold = false) => text.length * px * (bold ? 0.56 : 0.52);
+export const textWidth = (text: string, px: number, bold = false) => {
+  const latin = bold ? 0.56 : 0.52;
+  if (!/[\u0400-\uffff]/.test(text)) return text.length * px * latin;
+  let em = 0;
+  for (const c of text) {
+    const s = c.charCodeAt(0) < 0x400 ? undefined : SCRIPTS.find(([re]) => re.test(c));
+    em += s ? s[bold ? 2 : 1] : c.length * latin;
+  }
+  return em * px;
+};
 
 /** Cut text to fit a width, with an ellipsis. */
 export function clip(text: string, max: number, px: number, bold = false): string {

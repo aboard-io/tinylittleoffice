@@ -47,15 +47,30 @@ const dicts = new Map<string, Strings>();
 let current = 'en';
 const listeners = new Set<() => void>();
 
-/** The codes of the languages present, English first. */
-export const languages = (): string[] => ['en', ...[...loaders.keys(), ...dicts.keys()].filter((c, i, all) => c !== 'en' && all.indexOf(c) === i).sort()];
-/** A language's name, in itself: "Español". */
+/**
+ * Names a language's own data in Intl does not have yet: Haitian Creole is named in English by every engine today, and
+ * NYC's Haitian community reads Kreyòl ayisyen (the 1979 orthography).
+ */
+const NATIVE: Record<string, string> = { ht: 'Kreyòl ayisyen' };
+/** A language's name, in itself, as a menu begins it: "Español", "Русский", "Kreyòl ayisyen". */
 export const languageName = (code: string): string => {
+  if (NATIVE[code]) return NATIVE[code];
   try {
-    return new Intl.DisplayNames([code], { type: 'language' }).of(code) ?? code;
+    const name = new Intl.DisplayNames([code], { type: 'language' }).of(code) ?? code;
+    return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
   } catch {
     return code;
   }
+};
+/**
+ * The codes of the languages present, English first, then by their names in themselves under the root collation:
+ * the Latin names A to Z, then Cyrillic, Arabic, Devanagari, Bengali, Hangul and Han, as a reader of each finds theirs.
+ */
+export const languages = (): string[] => {
+  const others = [...loaders.keys(), ...dicts.keys()].filter((c, i, all) => c !== 'en' && all.indexOf(c) === i);
+  const name = new Map(others.map((c) => [c, languageName(c)]));
+  const order = new Intl.Collator('und');
+  return ['en', ...others.sort((a, b) => order.compare(name.get(a)!, name.get(b)!) || (a < b ? -1 : 1))];
 };
 /** The language in use. */
 export const language = () => current;
@@ -157,12 +172,23 @@ export async function setLanguage(code: string | null) {
   await use(code ?? browserLanguage());
 }
 
-/** The language of the browser's nearest to one present: "pt-BR" finds pt-br, then pt; else English. */
+/**
+ * The language of the browser's nearest to one present: "pt-BR" finds pt-br, then pt; a Chinese tag finds its script
+ * (zh-TW, zh-HK and zh-Hant-* are zh-hant; zh-CN, zh-SG, zh-Hans-* and zh alone are zh-hans), as Intl.Locale's
+ * maximize() says it is written; else English.
+ */
 export function browserLanguage(wanted: readonly string[] = typeof navigator !== 'undefined' ? navigator.languages : []): string {
   const have = languages();
+  const find = (c: string) => have.find((h) => h.toLowerCase() === c.toLowerCase());
   for (const tag of wanted) {
-    const lower = tag.toLowerCase();
-    const hit = have.find((c) => c.toLowerCase() === lower) ?? have.find((c) => c.toLowerCase() === lower.split('-')[0]);
+    let script = '';
+    try {
+      const loc = new Intl.Locale(tag).maximize();
+      script = loc.script ? `${loc.language}-${loc.script}` : '';
+    } catch {
+      // Not a tag: matched as written.
+    }
+    const hit = find(tag) ?? (script ? find(script) : undefined) ?? find(tag.split('-')[0]);
     if (hit) return hit;
   }
   return 'en';

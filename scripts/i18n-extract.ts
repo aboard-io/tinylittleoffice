@@ -13,7 +13,8 @@
  *   node scripts/i18n-extract.ts --check     write nothing; fail if a key is missing or a language file is wrong
  *   node scripts/i18n-extract.ts --gaps fr   print the en.ts lines fr.ts lacks, ready to translate and paste in; where
  *                                            a key fr.ts still has (one en.ts has dropped) is the new one less a few
- *                                            words, its translation is offered as a draft (the translation memory)
+ *                                            words, its translation is offered as a draft (the translation memory);
+ *                                            a plural has fr's forms, named in a comment; with no fr.ts, every key
  */
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -70,6 +71,21 @@ export function sameKeys(source: string): Set<string> {
 /** The plural categories a language has, in Intl's order: fr has one, many, other; ja other; ar six. */
 export const pluralCount = (code: string): number => new Intl.PluralRules(code).resolvedOptions().pluralCategories.length;
 
+/** A language's plural categories in the order its forms are written (kit/i18n.ts ORDER): ru one, few, many, other. */
+export const pluralCategories = (code: string): string[] => {
+  const cats: string[] = new Intl.PluralRules(code).resolvedOptions().pluralCategories;
+  return ['zero', 'one', 'two', 'few', 'many', 'other'].filter((c) => cats.includes(c));
+};
+
+/** English with each plural given the forms a language needs, to translate: its "one" the English one, the rest the English other. */
+export const withForms = (code: string, s: string): string =>
+  s.replace(/\{(\w+)\|([^}]*)\}/g, (_, name: string, forms: string) => {
+    const f = forms.split('|');
+    return `{${name}|${pluralCategories(code)
+      .map((c) => (c === 'one' ? f[0] : f[f.length - 1]))
+      .join('|')}}`;
+  });
+
 const count = (s: string, name: string) => [...s.matchAll(/\{(\w+)(?:\|[^}]*)?\}/g)].filter((m) => m[1] === name).length;
 
 /**
@@ -109,8 +125,10 @@ export function checkLanguage(code: string, en: Strings, strings: Strings, sourc
       if (!f.some((x) => x.includes('#'))) errors.push(`{${m[1]}|…} has no "#" in any form: ${key} → ${value}`);
     }
     if (code === 'en') continue;
-    if (value === key && /\p{L}/u.test(key.replace(/\{[^}]*\}/g, '')) && !decided.has(key)) same.push(key);
-    if (value !== key && decided.has(key)) stale.push(`${key} → ${value}`);
+    // The English is the English with the language's plural forms too (as i18n:gaps writes it).
+    const english = value === key || value === withForms(code, key);
+    if (english && /\p{L}/u.test(key.replace(/\{[^}]*\}/g, '')) && !decided.has(key)) same.push(key);
+    if (!english && decided.has(key)) stale.push(`${key} → ${value}`);
   }
   if (same.length) errors.push(`${same.length} the same as the English, not decided (translate it, or end its line with "${SAME_MARK}" where the English is the word):\n    ${same.join('\n    ')}`);
   if (stale.length) errors.push(`${stale.length} marked "${SAME_MARK}" but translated (take the mark off):\n    ${stale.join('\n    ')}`);
@@ -152,17 +170,21 @@ export function nearest(key: string, olds: string[], at = LIKE): string | undefi
 }
 
 /**
- * The keys a language lacks, as lines to paste in: the English on both sides, for a translator to fill in; or, where
+ * The keys a language lacks, as lines to paste in: the English on both sides, each plural with the forms the language
+ * needs and a comment naming them (`// one, few, many, other`), for a translator to fill in; or, where
  * the language still has a key en.ts has dropped that is this one less a few words, that key's translation, marked
  * `// draft from "<old key>"` for a reader (i18n:check fails while the mark is in). Never written into a file.
  */
-export function gaps(en: Strings, strings: Strings): string[] {
+export function gaps(en: Strings, strings: Strings, code = 'en'): string[] {
   const olds = Object.keys(strings).filter((k) => !(k in en));
+  const forms = code === 'en' ? '' : ` // ${pluralCategories(code).join(', ')}`;
   return Object.keys(en)
     .filter((k) => !(k in strings))
     .map((k) => {
       const old = nearest(k, olds);
-      return old === undefined ? `  ${quote(k)}: ${quote(en[k])},` : `  ${quote(k)}: ${quote(strings[old])}, ${DRAFT_MARK} "${old.replace(/"/g, '\\"')}"`;
+      if (old !== undefined) return `  ${quote(k)}: ${quote(strings[old])}, ${DRAFT_MARK} "${old.replace(/"/g, '\\"')}"`;
+      const value = withForms(code, en[k]);
+      return `  ${quote(k)}: ${quote(value)},${/\{\w+\|/.test(value) ? forms : ''}`;
     });
 }
 
@@ -237,11 +259,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (at >= 0) {
     const lang = process.argv[at + 1];
     const file = languageFiles(root).find(([c]) => c === lang);
-    if (!file) {
-      console.error(`No language file src/i18n/${lang ?? '<code>'}.ts. Usage: npm run i18n:gaps -- <code>`);
+    // A language with no file yet is every key, the start of its file.
+    const errors = lang ? checkLanguage(lang, {}, {}).errors : [];
+    if (!lang || errors.length) {
+      console.error(`${errors[0] ?? 'No language given'}. Usage: npm run i18n:gaps -- <code>`);
       process.exit(1);
     }
-    const lines = gaps(await load(join(root, 'src', 'i18n', 'en.ts')), await load(file[1]));
+    const lines = gaps(await load(join(root, 'src', 'i18n', 'en.ts')), file ? await load(file[1]) : {}, lang);
     if (lines.length) console.log(lines.join('\n'));
     process.exit(0);
   }

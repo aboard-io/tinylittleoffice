@@ -107,6 +107,40 @@ test('the matcher: a term alone, a term held, a word found by its stem, by a cha
   expect(says('الأعمدة', 'العمود')).toBe(true);
 });
 
+test('the matcher in the scripts of the second nine: two words that match and one that does not, per script', () => {
+  // Devanagari (Hindi): by stem, a vowel sign and a virama kept with their consonant.
+  expect(stem('टेम्पलेट')).toBe('टेम्पले');
+  expect(says('दस्तावेज़ों की सूची', 'दस्तावेज़')).toBe(true);
+  expect(says('पंक्तियाँ जोड़ें', 'पंक्ति')).toBe(true);
+  expect(says('लिंक कॉपी करें', 'दस्तावेज़')).toBe(false);
+  // Bengali: the same.
+  expect(says('ডকুমেন্টগুলো খুলুন', 'ডকুমেন্ট')).toBe(true);
+  expect(says('নতুন সারি', 'সারি')).toBe(true);
+  expect(says('লিংক কপি করুন', 'সারি')).toBe(false);
+  // Korean: the first syllable block or two, the particle off the end.
+  expect(stem('슬라이드를')).toBe('슬라');
+  expect(says('링크를 복사', '링크')).toBe(true);
+  expect(says('슬라이드 추가', '슬라이드')).toBe(true);
+  expect(says('문서 열기', '템플릿')).toBe(false);
+  // Urdu: an Arabic-derived word by its root (صفحہ, صفحات: صفح), and so an English one with no long vowel (لنک in لنکس).
+  expect(says('صفحات', 'صفحہ')).toBe(true);
+  expect(says('لنکس کاپی کریں', 'لنک')).toBe(true);
+  // A Hindustani word by its stem alone: کھولیں's root کھلں is not in کھولنا's کھلن, but its stem کھو is in کھولنا.
+  expect(stem('کھولیں')).toBe('کھو');
+  expect(says('کھولنا', 'کھولیں')).toBe(true);
+  // Neither: no root and no stem, with Urdu's letters and without.
+  expect(says('لنکس کاپی کریں', 'کھولیں')).toBe(false);
+  expect(says('صفحات', 'فائل')).toBe(false);
+  // Traditional Chinese: by a character pair.
+  expect(says('顯示為投影片', '第 {n} 張投影片')).toBe(true);
+  expect(says('複製連結', '連結')).toBe(true);
+  expect(says('複製連結', '範本')).toBe(false);
+  // Cyrillic (Russian, Ukrainian) and Polish, Haitian Creole: by stem.
+  expect(says('Скопировать ссылку', 'Ссылка')).toBe(true);
+  expect(says('Копіювати посилання', 'Посилання')).toBe(true);
+  expect(says('Kopiuj link', 'Szablon')).toBe(false);
+});
+
 test('the lint finds a term said two ways, and a label that says it otherwise', () => {
   const base = { Share: 'Share', 'Share this': 'Share this', 'Share the link': 'Share the link', 'Share it with everyone you know today': '' };
   const es = { Share: 'Compartir', 'Share this': 'Comparte esto', 'Share the link': 'Enviar el enlace', 'Share it with everyone you know today': 'Mándalo a todos' };
