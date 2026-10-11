@@ -57,6 +57,7 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office 정보',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'URL 안에 통째로 들어 있는 작은 오피스 모음이에요. 서버도, 계정도, 저장도 없어요. 링크가 곧 문서예요.',
+  'There is no shared document: every link is a copy, and what is changed in one never reaches another.': '함께 고치는 문서는 없어요. 링크마다 따로 된 사본이라, 한 사본에서 바꾼 내용은 다른 사본에 절대 닿지 않아요.',
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 스스로 웹에 요청하는 건 두 가지예요. 여행 지도는 보이는 동안 OpenStreetMap에서 사진을 가져오고, 신뢰 목록에 있는 사이트의 사진은 문서가 열릴 때 이 사이트의 사진 서비스를 거쳐 가져와요.',
   'Private, the default:': '비공개, 기본값:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '이 메뉴의 스위치인 저장을 켜면 설정과 연 문서가 이 기기에 남아요.',
@@ -111,6 +112,7 @@ export default {
   'Keep the owner link, to update it later': '나중에 고칠 수 있게 소유자 링크 보관',
   'Opens as pages to read': '읽는 페이지로 열려요',
   'Opens in the editor': '편집기로 열려요',
+  'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': '이 링크를 여는 사람은 저마다 자기 사본을 받아요. 그 사람이 고친 내용은 내 링크가 아니라 그 사람 링크에 남아요. 고친 걸 보려면 링크를 다시 보내 달라고 하세요.',
   'Owner link': '소유자 링크',
   'Short link that expires': '만료되는 짧은 링크',
   'This link expires in {n|# day|# days}': '이 링크는 {n}일 후 만료돼요',

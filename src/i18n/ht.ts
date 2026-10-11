@@ -59,6 +59,7 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Apwopo Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Yon ti ansanm zouti biwo ki viv nèt nan URL la. Pa gen sèvè, pa gen kont, pa gen anrejistreman: lyen an se dokiman an.',
+  'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Pa gen yon sèl dokiman tout moun pataje: chak lyen se yon kopi, e sa yo chanje nan youn pa janm rive nan yon lòt.',
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. De bagay mande entènèt pou kont yo: kat yon vwayaj, foto li yo soti nan OpenStreetMap pandan l ap parèt, ak yon foto ki soti nan yon sit ki sou lis konfyans lan, sèvis foto sit sa a al chèche l lè dokiman li a louvri.',
   'Private, the default:': 'Prive, nòmalman:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Anrejistre, ba nan meni sa a, kenbe paramèt ou yo ak dokiman ou louvri yo sou aparèy sa a.',
@@ -113,6 +114,7 @@ export default {
   'Keep the owner link, to update it later': 'Kenbe lyen mèt la, pou mete l ajou pita',
   'Opens as pages to read': 'Louvri kòm paj pou li',
   'Opens in the editor': 'Louvri nan editè a',
+  'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': 'Nenpòt moun ki louvri lyen sa a jwenn pwòp kopi pa l. Sa yo chanje rete nan lyen pa yo, pa nan pa w: mande yo voye pa yo ba ou.',
   'Owner link': 'Lyen mèt',
   'Short link that expires': 'Lyen kout ki ekspire',
   'This link expires in {n|# day|# days}': 'Lyen sa a ekspire nan {n|# jou|# jou}',

@@ -19,7 +19,8 @@ test('a Display Link’s web pictures: the first page’s has its address, a far
   expect(last.getAttribute('data-src')).toContain('picture-5');
   expect(last.getAttribute('href')).not.toContain('picture-5');
   const main = shell.querySelector<HTMLElement>('main.to-display')!;
-  main.scrollTop = main.scrollHeight;
+  // The column scrolled to the last picture itself (to its foot, the picture at the page's top can pass out of the margin).
+  main.scrollTop += last.getBoundingClientRect().top - main.getBoundingClientRect().top;
   await until(() => last.getAttribute('href')?.includes('picture-5') === true);
   expect(last.hasAttribute('data-src')).toBe(false);
 });

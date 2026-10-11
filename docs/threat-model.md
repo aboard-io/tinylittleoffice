@@ -24,6 +24,9 @@ Two consequences follow, and the rest of this page is mostly their detail:
   is being able to check that the live site is this repository's build (docs/transparency.md §1 item 3,
   reproducible and attested builds), which is not built yet. Until it is, this is trust in the operator.
 
+There is no shared document: every link is a copy. Whoever opens one has their own, and what they change is in
+their link, never in the sender's; Share says so under the link, in every language.
+
 ## What it protects against
 
 **The host learning a document.** The document is in the fragment, which the browser keeps to itself; the

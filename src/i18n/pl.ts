@@ -58,6 +58,7 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'O Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Malutkie biuro, które mieszka w całości w adresie URL. Bez serwera, bez kont, bez zapisywania: link jest dokumentem.',
+  'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Nie ma wspólnego dokumentu: każdy link to kopia, a to, co zmieni się w jednej, nigdy nie trafia do innej.',
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nic, co piszesz, nie opuszcza Twojej przeglądarki, dopóki nie udostępnisz linku. Dwie rzeczy same pytają sieć: mapa podróży, której kafelki pochodzą z OpenStreetMap, gdy mapa jest widoczna, oraz obraz ze strony z listy zaufanych, pobierany przez usługę obrazów tej strony, gdy otwiera się jego dokument.',
   'Private, the default:': 'Prywatnie, domyślnie:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Przełącznik „Zapisywane” w tym menu zachowuje na tym urządzeniu Twoje ustawienia i otwierane dokumenty.',
@@ -112,6 +113,7 @@ export default {
   'Keep the owner link, to update it later': 'Zachowaj link właściciela, żeby później zaktualizować',
   'Opens as pages to read': 'Otwiera się jako strony do czytania',
   'Opens in the editor': 'Otwiera się w edytorze',
+  'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': 'Każdy, kto otworzy ten link, dostaje własną kopię. Zmiany, które wprowadzi, są w jego linku, nie w Twoim: poproś, żeby odesłał Ci swój.',
   'Owner link': 'Link właściciela',
   'Short link that expires': 'Krótki link, który wygasa',
   'This link expires in {n|# day|# days}': 'Ten link wygasa za {n|# dzień|# dni|# dni|# dnia}',

@@ -8,7 +8,7 @@ import { apps } from '../../src/kit/apps.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
 import { keep, library, localDay } from '../../src/kit/library.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
-import { keeping, setKeeping } from '../../src/kit/store.ts';
+import { keeping, setKeeping, store } from '../../src/kit/store.ts';
 import { lockWith, pack } from '../../src/kit/privacy.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
@@ -36,7 +36,9 @@ async function saved(body: () => Promise<void>) {
   }
 }
 
-afterEach(() => history.replaceState(null, '', location.pathname));
+afterEach(() => (history.replaceState(null, '', location.pathname), afterEachRemove()));
+/** The documents told they are copies, forgotten: a test that opens a link sees the line afresh. */
+const afterEachRemove = () => store.remove('tinyoffice.copiesSaid');
 
 /** A document's text without the time the shell stamps it with at its first change (kit/envelope.ts), which it must carry. */
 function unstamped(text: string): string {
@@ -453,4 +455,31 @@ test('a deck’s Display Link has Present beside Edit, the same link with ?show;
   const text = await mount(`#/v1/write/${encodeDoc('Words\n')}?d`);
   await until(() => !!text.querySelector('.to-display-edit'));
   expect(text.querySelector('.to-display-present')).toBeNull();
+});
+
+// A link is a copy, said once to someone who arrived by one (r17-copies): a quiet line under the Display Link's header,
+// once a document, closed by its ×; a document made here, opened as its pages, has none.
+test('a Display Link that arrived says once that it is a copy; one made here does not', async () => {
+  afterEachRemove();
+  const words = 'Arrived words.\n';
+  const line = (s: ToShell) => s.querySelector<HTMLElement>('.to-copies');
+  let display = await mount(`#/v1/write/${encodeDoc(words)}?d`);
+  await until(() => !!display.querySelector('.to-display-page svg'));
+  expect(line(display)!.textContent).toContain('Whoever opens this link gets their own copy.');
+  // Under the header, above the pages; a line, not a dialog.
+  expect(line(display)!.previousElementSibling!.matches('.to-display-head')).toBe(true);
+  expect(line(display)!.closest('dialog')).toBeNull();
+  line(display)!.querySelector<HTMLButtonElement>('.to-copies-close')!.click();
+  await display.updateComplete;
+  expect(line(display)).toBeNull();
+  // Once a document: the same link again says nothing.
+  display = await mount(`#/v1/write/${encodeDoc(words)}?d`);
+  await until(() => !!display.querySelector('.to-display-page svg'));
+  expect(line(display)).toBeNull();
+  // Made here and then shown as its pages: nothing to say.
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Made here.');
+  location.hash = new URL(shell.displayLink).hash;
+  await until(() => !!shell.querySelector('.to-display-page svg'));
+  expect(line(shell)).toBeNull();
 });

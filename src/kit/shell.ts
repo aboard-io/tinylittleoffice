@@ -31,6 +31,12 @@
  * (beforeunload), and only then. A link copied through Share lives somewhere now: neither the dialog nor the warning
  * comes again until the document changes. Under Saved the library has it, and an unchanged document is in the link
  * that brought it.
+ *
+ * A link is a copy, never a shared document (Paul, 2026-10-11: "docs are not collaborative like Google Docs: that's
+ * fine. Communicate it in all the languages"). Share says so under the link; and someone who arrives at the Display
+ * Link of a document that is not their own (not in the library, not made or changed in this page) is told it once a
+ * document, in a quiet line under the header that its × closes (`copies`). Which documents have been told is kept
+ * as short digests under `tinyoffice.copiesSaid` (in memory under Private), never the document.
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -73,6 +79,7 @@ import './palette.ts';
 import { installPlainCopy } from './clipboard.ts';
 import { pinchSizes, pinchZoom } from './pinch.ts';
 import { applySize } from './zoom.ts';
+import { store } from './store.ts';
 import './chrome.ts';
 import './share-dialog.ts';
 import './privacy-dialog.ts';
@@ -85,6 +92,31 @@ import './compare.ts';
 
 /** How long typing pauses before the document is projected into the link (flushLink). */
 const PAUSE = 150;
+
+/** The links this page has written (a document made or changed here): its own, so its Display Link is not someone else's copy. */
+const madeHere = new Set<string>();
+/** The documents told they are copies, as digests, the newest last: a few hundred at most. */
+const COPIES_SAID = 'tinyoffice.copiesSaid';
+/** A short digest (FNV-1a, 32 bits) of what names a document: its app and when it was first written, else its link. */
+function docDigest(app: string, head: Head, hash: string): string {
+  const name = head.created ? `${app}\n${head.created}\n${head.by ?? ''}` : hash;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193);
+  return (h >>> 0).toString(36);
+}
+/** True the first time a document is asked about, and never again (the digest is remembered). */
+function firstTold(digest: string): boolean {
+  let said: string[] = [];
+  try {
+    const kept: unknown = JSON.parse(store.get(COPIES_SAID) ?? '[]');
+    if (Array.isArray(kept)) said = kept.filter((x): x is string => typeof x === 'string');
+  } catch {
+    said = [];
+  }
+  if (said.includes(digest)) return false;
+  store.set(COPIES_SAID, JSON.stringify([...said, digest].slice(-300)));
+  return true;
+}
 
 export class ToShell extends LitElement {
   static properties = {
@@ -105,6 +137,7 @@ export class ToShell extends LitElement {
     embed: { state: true },
     other: { state: true },
     newer: { state: true },
+    copies: { state: true },
   };
   declare app: string | null;
   declare doc: Doc;
@@ -123,6 +156,7 @@ export class ToShell extends LitElement {
   declare embed: boolean; // the pages alone, for another site's frame
   declare other: Kept | null; // another version of this document kept here (the same app and name, another link)
   declare newer: boolean; // the link was made by a newer Tiny Little Office
+  declare copies: boolean; // the Display Link of someone else's document, told it is a copy (once a document), its line not closed
   private envelope: Head = {}; // the envelope's keys (an empty value: taken out), put into every change
   private sealRun = 0; // the newest seal and check under way: an older one finishing late is dropped
   private checkRun = 0;
@@ -164,6 +198,7 @@ export class ToShell extends LitElement {
       embed: false,
       other: null,
       newer: false,
+      copies: false,
     });
   }
   createRenderRoot() {
@@ -298,6 +333,7 @@ export class ToShell extends LitElement {
     this.fresh = def && !payload ? newName(def) : '';
     const hash = def && payload ? routeHash(def.id, payload) : '';
     this.kept.adopt(hash);
+    this.copies = this.display && !this.kept.id && !madeHere.has(hash) && firstTold(docDigest(def!.id, this.envelope, hash));
     this.newer = !!def && version > LINK_VERSION;
     // Another version of this document the library holds: the newest of the same app and the same name, at another link.
     const title = def && hash && !this.kept.id && !this.unreadable ? def.title(this.doc) : '';
@@ -410,6 +446,7 @@ export class ToShell extends LitElement {
     void pack(this.doc, this.locker).then((payload) => run === this.sealRun && app === this.app && this.writeLink(app, payload));
   }
   private writeLink(app: string, payload: string) {
+    madeHere.add(routeHash(app, payload));
     this.payloadLength = payload.length;
     this.keepSoon(payload);
     history.replaceState(this.state(), '', routeHash(app, payload, '', this.owned, false, this.tie));
@@ -695,7 +732,7 @@ export class ToShell extends LitElement {
     const main = this.pages(def);
     // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
     const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;
-    return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, present, trust: this.trust() }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;
+    return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, present, trust: this.trust(), copies: this.copies }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-copies-close=${() => (this.copies = false)}></to-chrome>`;
   }
 
   /** The editor in the column, or the home page, the compare view, a locked or unreadable link, or Loading. */

@@ -21,6 +21,10 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 
 Put the parameters after `#`, exactly as shown, never after `?`. On opening, the link is rewritten into its packed form, `#/v1/<app>/<payload>`, which is what the person shares onward. Give them the link you wrote; they need not know its format.
 
+## Sharing: a link is a copy
+
+There is no shared document. Whoever opens a link gets their own copy: what they change is in their link, not in the one they were sent, and nobody else sees it unless they send their new link back. Never promise collaboration, live editing or one copy that everyone fills in. For a sign-up sheet, a form to fill in or work to hand in, tell the person that each one who opens it makes their own copy and should send their link back. A short link (below) can be updated by its owner, so later visitors get the owner's new version; it never gathers anyone else's changes.
+
 Length: a QR code holds at most 2,953 characters and some chat apps cut a link past about 2,000. Keep the whole URL under 2,000 where you can; a short link (below) holds more.
 
 The packed form: after `#/v1/<app>/` comes one letter and then base64url bytes (with `~` for 62 where RFC 4648 has `-`, so a pasted link never breaks at a hyphen; `-` is read too): the document's TLO text deflated against a dictionary of TLO's own words (`y`), deflated (`z`), or raw (`r`). `?d` after it opens the pages to read rather than the editor; `?show` opens a deck presenting; `#/v1/<app>.<ext>/…` downloads the file as it opens. You never need to make these by hand: the plain form becomes the shortest of them when opened, and the API below makes them directly.

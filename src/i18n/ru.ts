@@ -57,6 +57,7 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'О Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крошечный офисный набор, который целиком живёт в адресе страницы. Без сервера, без аккаунтов, без сохранения: документ — это ссылка.',
+  'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Общего документа нет: каждая ссылка — это копия, и то, что изменено в одной, никогда не попадёт в другую.',
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Сами обращаются к интернету только две вещи: карта поездки, чьи картинки приходят из OpenStreetMap, пока карта на экране, и картинка с сайта из списка доверенных, которую сервис картинок этого сайта загружает, когда открывается её документ.',
   'Private, the default:': 'Приватно, по умолчанию:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Режим «Сохранено» (переключатель в этом меню) хранит ваши настройки и открытые документы на этом устройстве.',
@@ -111,6 +112,7 @@ export default {
   'Keep the owner link, to update it later': 'Сохранить ссылку владельца, чтобы потом обновить',
   'Opens as pages to read': 'Открывается страницами для чтения',
   'Opens in the editor': 'Открывается в редакторе',
+  'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': 'Каждый, кто откроет эту ссылку, получит свою копию. Его правки останутся в его ссылке, а не в вашей: попросите прислать вам свою.',
   'Owner link': 'Ссылка владельца',
   'Short link that expires': 'Короткая ссылка со сроком',
   'This link expires in {n|# day|# days}': 'Эта ссылка истекает через {n|# день|# дня|# дней|# дня}',

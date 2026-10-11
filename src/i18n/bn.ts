@@ -50,6 +50,7 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office সম্পর্কে',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'একটি ছোট্ট অফিস স্যুট, যা পুরোপুরি URL-এর মধ্যে থাকে। সার্ভার নেই, অ্যাকাউন্ট নেই, সংরক্ষণ নেই: লিংকই নথি।',
+  'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'সবাই মিলে বদলায় এমন কোনো নথি নেই: প্রতিটি লিংক একটা আলাদা কপি, একটিতে যা বদলায় তা অন্যটিতে কখনো পৌঁছায় না।',
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'আপনি লিংক শেয়ার না করলে আপনার লেখা কিছুই ব্রাউজারের বাইরে যায় না। দুটি জিনিস নিজে থেকে ওয়েবে অনুরোধ পাঠায়: ভ্রমণের ম্যাপ, যার ছবি দেখানোর সময় OpenStreetMap থেকে আসে, আর বিশ্বস্ত তালিকার কোনো সাইটের ছবি, যা নথি খোলার সময় এই সাইটের ছবি পরিষেবা নিয়ে আসে।',
   'Private, the default:': 'ব্যক্তিগত, ডিফল্টে:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'এই মেনুর “সংরক্ষিত” সুইচটি আপনার সেটিংস ও খোলা নথিগুলো এই ডিভাইসে রাখে।',
@@ -100,6 +101,7 @@ export default {
   'Keep the owner link, to update it later': 'পরে হালনাগাদ করতে মালিকের লিংক রাখুন',
   'Opens as pages to read': 'পড়ার পাতা হিসেবে খোলে',
   'Opens in the editor': 'এডিটরে খোলে',
+  'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': 'এই লিংক যিনিই খুলুন, তিনি নিজের একটা কপি পাবেন। তিনি যা বদলাবেন তা থাকবে তাঁর লিংকে, আপনার লিংকে নয়: তাঁকে বলুন তাঁর লিংকটা আপনাকে পাঠিয়ে দিতে।',
   'Owner link': 'মালিকের লিংক',
   'Short link that expires': 'মেয়াদি ছোট লিংক',
   'This link expires in {n|# day|# days}': 'এই লিংকের মেয়াদ {n|#|#} দিনে শেষ হবে',

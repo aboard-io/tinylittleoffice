@@ -59,6 +59,7 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Про Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крихітний офісний пакет, що повністю живе в URL. Без сервера, без облікових записів, без збереження: посилання і є документом.',
+  'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'Спільного документа немає: кожне посилання — це копія, і те, що змінено в одній, ніколи не потрапить до іншої.',
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Усе, що ви пишете, залишається у вашому браузері, доки ви не поділитеся посиланням. Самі звертаються до інтернету лише дві речі: карта подорожі, чиї картинки беруться з OpenStreetMap, поки карту показано, і картинка із сайту з довіреного списку, яку сервіс картинок цього сайту завантажує, коли відкривається її документ.',
   'Private, the default:': 'Приватно, за замовчуванням:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '«Збереження», перемикач у цьому меню, залишає ваші налаштування й документи, які ви відкриваєте, на цьому пристрої.',
@@ -113,6 +114,7 @@ export default {
   'Keep the owner link, to update it later': 'Залишити посилання власника, щоб оновити пізніше',
   'Opens as pages to read': 'Відкривається як сторінки для читання',
   'Opens in the editor': 'Відкривається в редакторі',
+  'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': 'Кожен, хто відкриє це посилання, отримає власну копію. Його зміни залишаться в його посиланні, а не у вашому: попросіть надіслати вам своє.',
   'Owner link': 'Посилання власника',
   'Short link that expires': 'Коротке посилання з терміном дії',
   'This link expires in {n|# day|# days}': 'Це посилання спливе через {n|# день|# дні|# днів|# дня}',
