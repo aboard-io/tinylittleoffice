@@ -1,0 +1,38 @@
+# R17-docs: the README rewritten, the docs cleaned up, and the truth about saving
+
+**Paul, 2026-10-11:** *"The README needs a full rewrite. We should probably clean up docs. Saying we never save anything is wrong; we should say that's the default."* This task runs last in the round, once the removals and the shortener have merged, so it describes the tree that ships: ten apps, no pictures from the web, no embeds, no signing, an immutable short link that lives a month at most, the language in the link, American English.
+
+## The truth about saving, everywhere it is said
+
+- **The sentence.** Private is the default: nothing is kept on this device and nothing on any server; the link is the document. Saved is a choice: documents and short links kept on this device, in the browser's own storage, never on a server. A short link is the one thing a server holds: the document encrypted with a key the server never sees, until it expires. That is what every text says, in those words or that language's. Never "no saving", "nothing is stored anywhere", "we never see what you write" as absolutes: the first two are the default, the third is true of documents and is said as "no document ever reaches us".
+- **In the product:** `src/i18n/en.ts:73` ('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.') becomes 'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.', in all 19 language files; `index.html`'s description and og:description (through `scripts/site-frame.ts` or wherever they are written) the same; About in the drawer; `public/llms.txt` and the skill via `npm run skill`.
+- **In the docs:** README, docs/threat-model.md (the rows that say "no server storage" are right as written, since Saved is the device; reread each), docs/transparency.md (its README draft is superseded: strike it and point at the README).
+
+## The README, rewritten whole
+
+For a stranger on GitHub, in the house voice, American English, no internal paths, no dev-box addresses, no session links, no badges, no screenshots, no marketing. In this order, each a short section:
+
+1. **What it is**, two paragraphs: an office suite in which the document is the link; what that means for a person (copy the link, that is the document; open it anywhere; whoever has it has it) and the truth about saving, as above.
+2. **What is in it**: the ten apps in one line each (Word Processor, Outliner, Presentation Builder, Spreadsheet, Calculator, Drawing Tool, Diagram Maker, Animator, Calendar, Trip Planner), the templates, nineteen languages, the Display Link, passwords, short links that expire, Download everything.
+3. **What it is not**: not collaborative (every link is a copy; say it plainly), not a cloud, not a place where anything of yours is kept unless you choose Saved on your own device.
+4. **Privacy and security**, one paragraph with links to docs/threat-model.md and docs/crypto/: what a link reveals (the document, to whoever holds it, and to the browser's history), what a password does, what the short-link server holds, what the site asks the web for (nothing, from a document).
+5. **For agents**: the skill and the API in a paragraph, with the link to skill/tinyoffice/SKILL.md and public/llms.txt.
+6. **For developers**: run (`npm install`, `npm run dev`), test (`npm test`, `npm run lint`, the browser and e2e layers in a sentence each), build and deploy (`npm run deploy`, docs/self-host.md), where the design lives (docs/kernel.md, docs/editing.md, docs/tlo.md, docs/translation.md), how to contribute (CONTRIBUTING.md) and how to report a security problem (SECURITY.md).
+7. **Who and license**: made by Aboard, MIT, the repository.
+
+## The docs, cleaned up
+
+- `docs/README.md` is the index: each current document in one line, grouped as design (kernel, editing, tlo, exports, translation, templates), trust (threat-model, crypto/, network, dependencies, transparency), running it (self-host, github-setup), and history.
+- **History moves to `docs/history/`**: docs/rebuild.md, docs/gap-analysis.md, docs/directives/, docs/reviews/, and any plan or note that describes a past state; a one-line README there says these are the record of how the tree was built and are not maintained. Links to them from current docs are updated; nothing is deleted.
+- **Every current doc is reread against the tree** and corrected where it names what is gone (the Website Builder, pictures from the web, the picture proxy, embeds, signing and keys, the Kanban Board, the To-do List, living short links and the owner key, the stored language), where it is British, where it names an internal path or the dev box, and where it says "never" of saving. docs/transparency.md's gates are reread as done or struck. docs/github-setup.md names the organization. The generated docs (network, dependencies, templates, exports) are regenerated by their scripts, not edited.
+- `AGENTS.md` / `CLAUDE.md` in the repo, if any: current and short.
+
+## Proof
+
+- A node test that greps README.md, docs/*.md (not history), src/i18n/en.ts, public/llms.txt and index.html for the struck phrases ('no saving', 'nothing is stored anywhere', 'never see what you write', 'never saved') and the gone features' names, and finds none.
+- `npm run i18n:check` green; `npm run skill` and the doc generators produce no diff beyond the intended one.
+- Every link in README.md and docs/README.md resolves to a file in the tree (a node test).
+
+## Not this
+
+- No new feature described that is not in the tree; no roadmap.

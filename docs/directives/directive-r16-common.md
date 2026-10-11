@@ -1,6 +1,6 @@
 # Round sixteen — the common contract
 
-Everything in directive-r4-common.md holds (read it first), with directive-r13-common.md: one style (`npm run format` before each commit; `npm run lint` checks it), delete outright, a finding is a failing test, growth is fine where it buys simplicity, a document is checked by the API and never by eye (`node packages/doc/tinyoffice.ts lint <file>`). **The branch is `main`**: worktrees branch from main and merge into main; the checkout is `/home/exedev/workspace/tinyoffice-next` on branch main.
+Everything in directive-r4-common.md holds (read it first), with directive-r13-common.md: one style (`npm run format` before each commit; `npm run lint` checks it), delete outright, a finding is a failing test, growth is fine where it buys simplicity, a document is checked by the API and never by eye (`node packages/doc/tinyoffice.ts lint <file>`). **The branch is `main`**: worktrees branch from main and merge into main; the checkout is `/home/exedev/workspace/tinylittleoffice` on branch main.
 
 This round comes from the review of 2026-10-11 (`docs/reviews/2026-10-11.md`: eight reviewers, one synthesis). Each directive quotes the reviewer it answers; the quoted evidence was measured against this tree, so trust it, and reproduce it with a failing test before fixing it.
 
