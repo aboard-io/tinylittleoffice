@@ -16,6 +16,8 @@ export default {
     'This link holds something that cannot be read. It may have been cut short when it was copied.': 'اس لنک میں کچھ ایسا ہے جو پڑھا نہیں جا سکتا۔ ہو سکتا ہے کاپی کرتے وقت یہ کٹ گیا ہو۔',
     '{n} of {max} link characters left': 'لنک میں {max} میں سے {n} حروف باقی ہیں',
     '{n} characters over the link limit': 'لنک کی حد سے {n} حروف زیادہ ہیں',
+    '{n} characters over the link limit; a short link holds {max}': 'لنک کی حد سے {n} حروف زیادہ ہیں؛ مختصر لنک {max} رکھ سکتا ہے',
+    '{n} characters over what a short link holds': 'مختصر لنک کی گنجائش سے {n} حروف زیادہ',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
     'This document lives in its link': 'یہ دستاویز اپنے لنک میں رہتی ہے',
     'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'اس ڈیوائس پر کچھ محفوظ نہیں ہے۔ لنک کاپی کر لیں تاکہ دستاویز رہے، یا اسے اس ڈیوائس پر رکھ لیں؛ واپس جانے سے بھی یہ مل جاتی ہے۔',
@@ -130,6 +132,7 @@ export default {
     'QR code': 'QR کوڈ',
     'QR code of this document': 'اس دستاویز کا QR کوڈ',
     'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'یہ دستاویز {n} بائٹس کی ہے؛ سب سے بڑا QR کوڈ {max} رکھ سکتا ہے۔ اسے {over} بائٹس چھوٹا کریں تو سما جائے گی۔',
+    'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': 'یہ دستاویز {n} حروف کی ہے؛ مختصر لنک {max} رکھ سکتا ہے۔ اسے {over} چھوٹا کریں تو سما جائے گی۔',
     'Expires after': 'میعاد',
     'An hour': 'ایک گھنٹہ',
     'A day': 'ایک دن',

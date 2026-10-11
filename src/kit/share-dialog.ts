@@ -25,7 +25,7 @@ import { chosenLanguage, t } from './i18n.ts';
 import { picture, raster, saveFile, slug, utf8 } from './exports.ts';
 import { parseHash, routeHash } from './route.ts';
 import { fitLine, roomFor } from './limits.ts';
-import { DEFAULT_TTL, EXPIRIES, expiresLine, shorten, type Shortened } from './short.ts';
+import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from './short.ts';
 import { dropKept, keepLink, keptLinks } from './links.ts';
 import { pack } from './privacy.ts';
 import { store } from './store.ts';
@@ -342,12 +342,19 @@ export class ToShare extends LitElement {
       <button type="button" class="to-btn primary" @click=${() => void copyText(link)}>${icon(UI.copy, 16)}<span>${t('Copy')}</span></button>
     </div>`;
   }
+  /**
+   * The lifetimes, which link, Make. Past what a short link holds (SHORT_LINK_MAX), Make is disabled and a line under it
+   * says the numbers before anyone presses it (Paul, 2026-10-11); the toast stays for a document grown since.
+   */
   private renderMaker() {
+    const n = utf8(this.shortTarget).length;
+    const over = n - SHORT_LINK_MAX;
     return html`${this.renderTtl()}
       ${this.renderWhich(this.shortDisplay, (d) => (this.shortDisplay = d))}
       <p class="to-hint to-short-fixed">${t('A short link cannot be changed or recalled once made; it expires on its own.')}</p>
       <p class="to-hint">${t('Encrypted here: the service holds only ciphertext, and only until then.')} ${t('Up to a hundred links a day from one address.')}</p>
-      <button type="button" class="to-btn primary to-make" ?disabled=${this.busy} @click=${() => void this.makeShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Making…') : t('Make a short link')}</span></button>`;
+      <button type="button" class="to-btn primary to-make" ?disabled=${this.busy || over > 0} @click=${() => void this.makeShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Making…') : t('Make a short link')}</span></button>
+      ${over > 0 ? html`<p class="to-hint to-short-why">${t('This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.', { n, max: SHORT_LINK_MAX, over })}</p>` : nothing}`;
   }
   /** Just made: the link to share, big, with Copy, and when it expires. */
   private renderMade(short: Shortened) {

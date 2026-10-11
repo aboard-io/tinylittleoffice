@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { lint as apiLint, measure as apiMeasure, link } from '../src/api.ts';
 import { lint, measure, findingLine, LINK_MAX } from '../src/lint.ts';
+import { SHORT_LINK_MAX } from '../src/kit/short.ts';
 import { appInHead } from '../src/kit/plain.ts';
 import { apps } from '../src/kit/apps.ts';
 import { parse, withHead } from '../src/doc/index.ts';
@@ -231,4 +232,11 @@ test('the API: lint and measure from a document, its link made to check its leng
   const m = await apiMeasure('diagram', fixture('edge-end').text);
   expect(m.length).toBe(link('diagram', fixture('edge-end').text).length);
   expect(m.diagram?.edges.dropped).toBe(1);
+  expect(m.short).toStrictEqual({ fits: true, over: 0 });
+  // A document whose link is past what a short link holds says so, by how much, before anyone asks the shortener.
+  const words = Array.from({ length: 4000 }, (_, i) => ((i * 2654435761) % 4294967296).toString(36)).join(' ');
+  const big = await apiMeasure('write', words);
+  expect(big.length).toBe(link('write', words).length);
+  expect(big.short).toStrictEqual({ fits: false, over: big.length - SHORT_LINK_MAX });
+  expect(big.short.over).toBeGreaterThan(0);
 });

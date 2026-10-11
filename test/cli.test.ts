@@ -64,7 +64,7 @@ test('lint says what the eye would have seen, a line a finding, and exits 1; a c
 test('measure gives the sizes the layouts chose, as JSON', () => {
   const FIX = fileURLToPath(new URL('./fixtures/lint/', import.meta.url));
   const m = JSON.parse(run(['measure', join(FIX, 'body.tlo')]));
-  expect(m).toMatchObject({ app: 'deck', slides: [{ slide: 1, body: { px: 14, smallest: true } }] });
+  expect(m).toMatchObject({ app: 'deck', short: { fits: true, over: 0 }, slides: [{ slide: 1, body: { px: 14, smallest: true } }] });
   expect(m.slides[0].body.over).toBeGreaterThan(0);
   expect(JSON.parse(run(['measure', join(FIX, 'edge-end.tlo')])).diagram.edges).toStrictEqual({ written: 1, drawn: 0, dropped: 1 });
   expect(JSON.parse(run(['measure', join(FIX, 'sheet-circ.tlo')])).tables).toStrictEqual([{ block: 0, formulas: 1, errors: [{ cell: 'B8', formula: '=SUM(B2:B8)', error: '#CIRC' }] }]);

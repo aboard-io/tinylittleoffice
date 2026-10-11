@@ -2,7 +2,7 @@
  * A document checked by the API, never by eye: what a screenshot would have shown, said in words and numbers.
  * `lint` finds what the eye would have seen (a connection naming no thing, a comma splitting a number, a label
  * too long for its box, bullets under a chart, a headline shrunk or cut, a link too long to paste); `measure`
- * gives the numbers the layouts chose, page by page, so an agent can set its words from them, and how many words and
+ * gives the numbers the layouts chose, page by page (and whether the link fits in a short link), so an agent can set its words from them, and how many words and
  * headings a reader meets (the text layer's). Both read the
  * layouts' own results (each app's lint.ts), with the fallback metrics the exports use, and never a browser.
  *
@@ -17,6 +17,7 @@ import { lintDiagram, measureDiagram } from './apps/diagram/lint.ts';
 import { lintDeck, measureDeck } from './apps/deck/lint.ts';
 import { lintSheet, measureSheet } from './apps/sheet/lint.ts';
 import { slidesOf } from './apps/deck/model.ts';
+import { SHORT_LINK_MAX } from './kit/short.ts';
 
 /** One thing the eye would have seen: the block it is about, what kind of finding, the words that say it, what to do. */
 export interface Found {
@@ -76,6 +77,8 @@ export const findingLine = (f: Finding): string => `${f.app} · ${f.at} · ${f.w
 export interface Measure {
   app: string;
   length: number;
+  /** Whether the link fits in a short link (kit/short.ts SHORT_LINK_MAX), and by how many characters it does not. */
+  short: { fits: boolean; over: number };
   slides?: ReturnType<typeof measureDeck>;
   diagram?: ReturnType<typeof measureDiagram>;
   /** Each table, by its block: its formulas, and the ones whose value is an error. */
@@ -84,7 +87,7 @@ export interface Measure {
   words: number;
   headings: number;
   /** The documents fenced in it, each where it is and as its app measures it. */
-  fences?: ({ at: string; block: number; app: string } & Omit<Measure, 'app' | 'length' | 'fences' | 'words' | 'headings'>)[];
+  fences?: ({ at: string; block: number; app: string } & Omit<Measure, 'app' | 'length' | 'short' | 'fences' | 'words' | 'headings'>)[];
 }
 
 const MEASURES: Record<string, (text: string) => Partial<Measure>> = {
@@ -103,5 +106,6 @@ export function measure(app: string, text: string, url = ''): Measure {
   const where = placeOf(app, doc);
   const fences = doc.blocks.flatMap((b, i) => (b.k === 'fence' && (b.lang in MEASURES || b.lang === 'sheet') ? [{ at: where(i), block: i, app: b.lang, ...measureOf(b.lang, b.body) }] : []));
   const def = appOf(app);
-  return { app, length: url.length, ...textCounts(def ? textLayer(def, text) : textOf(doc)), ...measureOf(app, text), ...(fences.length ? { fences } : {}) };
+  const over = Math.max(0, new TextEncoder().encode(url).length - SHORT_LINK_MAX);
+  return { app, length: url.length, short: { fits: !over, over }, ...textCounts(def ? textLayer(def, text) : textOf(doc)), ...measureOf(app, text), ...(fences.length ? { fences } : {}) };
 }

@@ -26,7 +26,7 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 
 Put the parameters after `#`, exactly as shown, never after `?`. On opening, the link is rewritten into its packed form, `#/v1/<app>/<payload>`, which is what the person shares onward. Give them the link you wrote; they need not know its format.
 
-Length: a QR code holds at most 2,953 characters and some chat apps cut a link past about 2,000. Keep the whole URL under 2,000 where you can; a short link (below) holds more.
+Length: a QR code holds at most 2,953 characters and some chat apps cut a link past about 2,000. Keep the whole URL under 2,000 where you can; a short link (below) holds up to 12,272.
 
 The packed form: after `#/v1/<app>/` comes one letter and then base64url bytes (with `~` for 62 where RFC 4648 has `-`, so a pasted link never breaks at a hyphen; `-` is read too): the document's TLO text deflated against a dictionary of TLO's own words (`y`), deflated (`z`), or raw (`r`). `?d` after it opens the pages to read rather than the editor; `?show` opens a deck presenting; `#/v1/<app>.<ext>/…` downloads the file as it opens. You never need to make these by hand: the plain form becomes the shortest of them when opened, and the API below makes them directly.
 
@@ -502,7 +502,7 @@ A long link can be shortened at tinier.tinylittleoffice.com for an hour, a day, 
 POST https://tinier.tinylittleoffice.com/api   {c, iv, ttl}   → 201 {id, exp}
 ```
 
-`c` and `iv` are the AES-GCM ciphertext of the long link and its 12-byte IV, base64url; `ttl` is 3600, 86400, 604800 or 2592000 seconds (a month at most). The short link is `https://tinier.tinylittleoffice.com/<id>#<key>` (the key as base64url). A short link cannot be changed or recalled once made; it expires on its own, so make a new one for a new version. The ciphertext may be 16 KiB at most, and one address may make a hundred links a day (the 101st is 429, with `Retry-After`).
+`c` and `iv` are the AES-GCM ciphertext of the long link and its 12-byte IV, base64url; `ttl` is 3600, 86400, 604800 or 2592000 seconds (a month at most). The short link is `https://tinier.tinylittleoffice.com/<id>#<key>` (the key as base64url). A short link cannot be changed or recalled once made; it expires on its own, so make a new one for a new version. The ciphertext may be 16 KiB at most (a link of at most 12,272 characters; `measure` says whether yours fits, `short: {fits, over}`, `over` the characters to cut), and one address may make a hundred links a day (the 101st is 429, with `Retry-After`).
 
 ## Who made it
 
@@ -541,7 +541,7 @@ Before you share a link, lint it: `tinyoffice lint <link or file.tlo>` (or `awai
 - `formula-error`: a table's formula that works out to an error (`#CIRC`, `#REF`, `#DIV/0`, `#NAME`, `#VALUE`, `#NUM`, `#ERR`), in any table, a fenced one too: the cell, the formula, the error and the fix. A total over its own column takes in its own cell when the rows are counted from the header: rows count from the first data row, so the eighth row's total of the seven above is `=SUM(B1:B7)`.
 - `length`: a link past 2,000 characters, which some chat apps cut.
 
-A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides, what it shows (`shows`); per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail; and for every document `words` and `headings`, what a reader meets. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds; `read --text` (`text(url)`) gives what it says, as a screen reader is given it on the Display Link (a diagram's things and connections, a calendar's days), to check that it reads. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages. If you do open a development copy of the site, short links need its shortener (`npm run tinier:dev`).
+A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides, what it shows (`shows`); per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail; `short`, whether the link fits in a short link; and for every document `words` and `headings`, what a reader meets. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds; `read --text` (`text(url)`) gives what it says, as a screen reader is given it on the Display Link (a diagram's things and connections, a calendar's days), to check that it reads. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages. If you do open a development copy of the site, short links need its shortener (`npm run tinier:dev`).
 
 ## Driving the editors
 

@@ -17,7 +17,8 @@
  *   tinyoffice lint <link|file.tlo> [--json]          what the eye would have seen, a line a finding:
  *                                                     app · slide or block · the finding · what to do (exit 1 on one)
  *   tinyoffice measure <link|file.tlo>                the sizes the layouts chose, page by page, and each table's
- *                                                     failing formulas, as JSON
+ *                                                     failing formulas, and whether the link fits in a short
+ *                                                     link (short: {fits, over}), as JSON
  *        (read --text, lint and measure also take <app> <file>, or <app> and stdin)
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

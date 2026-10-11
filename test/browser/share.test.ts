@@ -5,6 +5,7 @@ import { test, expect, afterEach, onTestFinished, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { mount, tick, until, openShare, said } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
+import { SHORT_LINK_MAX } from '../../src/kit/short.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
 import { keepLink, keptLinks, dropKept } from '../../src/kit/links.ts';
 import { lockCost, lockWith, pack } from '../../src/kit/privacy.ts';
@@ -138,6 +139,38 @@ test('Make calls the short service and shows the link in a read-only field with 
   // Copy sits at the field's right, on its line.
   expect(copy.getBoundingClientRect().left).toBeGreaterThanOrEqual(field.getBoundingClientRect().right);
   expect(d.querySelector('.to-short-expires')!.textContent).toMatch(/^Expires in 7 days \(/);
+});
+
+test('a short link says its limit before the press: over it, Make is disabled with the numbers, and the header says it too (Paul, 2026-10-11)', async () => {
+  // Under it: Make is pressable and there is no hint.
+  let shell = await written(null!);
+  let d = await open(shell);
+  expect(d.querySelector<HTMLButtonElement>('.to-make')!.disabled).toBe(false);
+  expect(d.querySelector('.to-short-why')).toBeNull();
+  expect(shell.querySelector('.to-meter')!.getAttribute('aria-label')).toMatch(/^[\d,]+ of [\d,]+ link characters left$/);
+  // Past some browsers' limit but not a short link's: the header says how much a short link holds.
+  shell = await written(null!, `${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`);
+  expect(shell.querySelector('.to-meter')!.getAttribute('aria-label')).toMatch(/^[\d,]+ characters over the link limit; a short link holds 12,272$/);
+  d = await open(shell);
+  expect(d.querySelector<HTMLButtonElement>('.to-make')!.disabled).toBe(false);
+  expect(d.querySelector('.to-short-why')).toBeNull();
+  // Over it: random words, which do not compress, past what a short link holds.
+  const words = Array.from({ length: 4000 }, () => Math.random().toString(36).slice(2, 8)).join(' ');
+  shell = await written(null!, `${words}\n`);
+  d = await open(shell);
+  const n = new TextEncoder().encode(shell.link).length;
+  expect(n).toBeGreaterThan(SHORT_LINK_MAX);
+  const fmt = (x: number) => x.toLocaleString('en');
+  expect(d.querySelector<HTMLButtonElement>('.to-make')!.disabled).toBe(true);
+  expect(d.querySelector('.to-short-why')!.textContent).toBe(
+    `This document is ${fmt(n)} characters; a short link holds ${fmt(SHORT_LINK_MAX)}. Shorten it by ${fmt(n - SHORT_LINK_MAX)} and it will fit.`,
+  );
+  // The table of rooms has the short link, over.
+  const row = [...d.querySelectorAll('.to-rooms tr')].find((r) => r.querySelector('th')?.textContent === 'a short link')!;
+  expect(row.classList.contains('over')).toBe(true);
+  expect(row.textContent).toContain(`${fmt(n - SHORT_LINK_MAX)} over`);
+  // The header's meter names the short link, the first place the link no longer fits from the roomiest down.
+  expect(shell.querySelector('.to-meter')!.getAttribute('aria-label')).toMatch(/^[\d,]+ characters over what a short link holds$/);
 });
 
 test('every short link made is kept in the list folded under "n short links kept here", with Remove', async () => {

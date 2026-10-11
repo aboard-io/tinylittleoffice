@@ -16,6 +16,8 @@ export default {
   'This link holds something that cannot be read. It may have been cut short when it was copied.': '此链接的内容无法读取，可能是复制时被截断了。',
   '{n} of {max} link characters left': '链接还剩 {n} / {max} 个字符',
   '{n} characters over the link limit': '超出链接上限 {n} 个字符',
+  '{n} characters over the link limit; a short link holds {max}': '超出链接上限 {n} 个字符；短链接最多容纳 {max}',
+  '{n} characters over what a short link holds': '超出短链接容量 {n} 个字符',
   // Before a document that lives nowhere but its link (Private, changed) is left for another place: the question and its three answers.
   'This document lives in its link': '这份文档只存在于它的链接中',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': '此设备上没有保存任何内容。复制链接即可留住它，或把它保存在此设备上；按“返回”也能回到它。',
@@ -129,6 +131,7 @@ export default {
   'QR code': '二维码',
   'QR code of this document': '此文档的二维码',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': '此文档有 {n} 字节，最大的二维码只能容纳 {max}。缩短 {over} 字节就能放下。',
+  'This document is {n} characters; a short link holds {max}. Shorten it by {over} and it will fit.': '此文档有 {n} 个字符，短链接最多容纳 {max}。缩短 {over} 个字符就能放下。',
   'Expires after': '到期时间',
   'An hour': '一小时',
   'A day': '一天',

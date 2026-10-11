@@ -77,6 +77,8 @@ const utf8 = (s: string) => new TextEncoder().encode(s);
 export const shortCost = (link: string): number => Math.ceil(((utf8(link).length + 16) * 4) / 3);
 /** A short link: the service, its id, and the key after "#". */
 export const shortLink = (id: string, key: string, at = TINIER) => `${at}${id}#${key}`;
+/** The longest link a short link holds, in characters (bytes, past ASCII): the inverse of shortCost at SHORT_MAX. */
+export const SHORT_LINK_MAX = Math.floor((SHORT_MAX * 3) / 4) - 16;
 
 const seal = (link: string, rawKey: Uint8Array<ArrayBuffer>) => sealShortAt(link, rawKey, crypto.getRandomValues(new Uint8Array(12)));
 

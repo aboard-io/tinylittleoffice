@@ -6,7 +6,7 @@
  * (Ported from the old tree's src/lib/limits.ts.)
  */
 import { t } from './i18n.ts';
-import { SHORT_MAX, shortCost } from './short.ts';
+import { SHORT_LINK_MAX } from './short.ts';
 
 export interface Target {
   id: string;
@@ -46,8 +46,8 @@ export const TARGETS: Target[] = [
   // NFC tags hold a link as an NDEF record: 7 bytes of framing, and "https://" packed into one.
   { id: 'ntag215', max: 504, cost: (u) => bytes(u) - 7 + 7, where: () => t('a small NFC sticker') },
   { id: 'ntag216', max: 888, cost: (u) => bytes(u) - 7 + 7, where: () => t('an NFC sticker') },
-  // The shortener keeps the link encrypted; what it holds is the ciphertext, and it holds 16 KiB of it.
-  { id: 'short', max: SHORT_MAX, cost: shortCost, where: () => t('a short link') },
+  // The shortener keeps the link encrypted and holds 16 KiB of ciphertext: said as the longest link that encrypts to that.
+  { id: 'short', max: SHORT_LINK_MAX, cost: bytes, where: () => t('a short link') },
 ];
 
 export interface Room {
