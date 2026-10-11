@@ -912,19 +912,20 @@ test("editing surfaces: touch-action manipulation on the box; under a finger the
 });
 
 test('two spaces at the end of a link end it: typing after a link stays in it, a second space steps out to plain words (Paul, 2026-10-11)', async () => {
-  const h = await mount('site\n', 'doc', { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 4 } });
+  // (A link with words beside it: a link alone on its line is a thing from the web, a card, model.ts webOf.)
+  const h = await mount('my site\n', 'doc', { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 7 } });
   h.el.exec('link', 'https://x.y/');
   await h.el.updateComplete;
-  expect(h.tlo).toBe('[site](https://x.y/)\n');
-  h.el.sel = caret(0, 4);
+  expect(h.tlo).toBe('my [site](https://x.y/)\n');
+  h.el.sel = caret(0, 7);
   await tick();
   await typeIn(h, ' ');
   // One space: still the link's (the writer closes a link before a trailing space, so the text reads the same).
-  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'site ', href: 'https://x.y/' }] });
+  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'my ' }, { t: 'site ', href: 'https://x.y/' }] });
   await typeIn(h, ' ');
   // The second: the space is plain and the second is not written; what follows is normal text.
-  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'site', href: 'https://x.y/' }, { t: ' ' }] });
+  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'my ' }, { t: 'site', href: 'https://x.y/' }, { t: ' ' }] });
   await typeIn(h, 'now');
-  expect(h.tlo).toBe('[site](https://x.y/) now\n');
+  expect(h.tlo).toBe('my [site](https://x.y/) now\n');
   expect(h.el.tx.querySelector('a')!.textContent).toBe('site');
 });
