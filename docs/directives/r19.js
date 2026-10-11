@@ -1,6 +1,6 @@
 export const meta = {
   name: 'round-nineteen',
-  description: "Round nineteen: housekeeping after the removals. Sonnet classifiers list dead code and stale words by area, one Opus remover acts on the lists and leaves a lint behind, then one Opus builder moves the kit into six folders. Sonnet reviews, Opus fixes, Sonnet squash-merges, one task at a time on main",
+  description: "Round nineteen: housekeeping after the removals. Sonnet classifiers list dead code and stale words by area, one Opus remover acts on the lists and leaves a lint behind, then one Opus builder moves the kit into six folders, then one builds the social cards. Sonnet reviews, Opus fixes, Sonnet squash-merges, one task at a time on main",
   phases: [
     { title: 'Classify', detail: 'Sonnet, five areas in parallel, read-only', model: 'sonnet' },
     { title: 'Build', detail: 'Opus: the remover, then the move', model: 'opus' },
@@ -74,4 +74,7 @@ const sweep = await run(
 if (!(sweep.merge && sweep.merge.merged)) { log('the sweep did not merge; the kit move waits'); return { sweep, folders: null } }
 
 const folders = await run({ id: 'r19-kit-folders', directive: `${S}/directive-r19-kit-folders.md`, what: 'the kit moved into six folders (core, ui, text, draw, file, share) with git mv, every import and every path in docs and scripts updated, no barrel and no alias, a lint that no file sits at the kit root, docs/kit.md saying what goes where (Paul: the kit/ folder needs to be organized into subfolders, it is just too big)' })
-return { sweep, folders }
+if (!(folders.merge && folders.merge.merged)) { log('the kit move did not merge; the social cards wait'); return { sweep, folders, cards: null } }
+
+const cards = await run({ id: 'r19-social-cards', directive: `${S}/directive-r19-social-cards.md`, what: "a document shared with a network previews as itself: pressing Bluesky, Mastodon, X, LinkedIn or the share sheet uploads a 1200 by 630 picture of the first page with the title and text to the site's own card endpoint and shares the link with ?c=<id> before the hash; the site Worker and the shortener's landing page serve that card's Open Graph and Twitter tags; the generic app cards are redrawn greeked, every word a gray bar; a switch in the dialog, on by default, with the sentence about what is kept (Paul: when we explicitly share with a social network from in the app, that's when we do this; otherwise generic per app with gray shapes)" })
+return { sweep, folders, cards }
