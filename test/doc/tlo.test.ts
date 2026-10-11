@@ -2,7 +2,7 @@
 // tlo.test, its literals as runs and columns).
 import { expect, test } from 'vitest';
 import { rng } from './helpers.ts';
-import { column, noteRuns, pages, parse, parseInline, parseLines, plainText, sections, splitAttrs, write, writeInline, type Block, type Doc, type Run } from '../../src/doc/index.ts';
+import { column, isEmbed, noteRuns, webOf, pages, parse, parseInline, parseLines, plainText, sections, splitAttrs, write, writeInline, type Block, type Doc, type Run } from '../../src/doc/index.ts';
 
 const t = (s: string): Run[] => [{ t: s }];
 
@@ -367,4 +367,36 @@ test('tlo: a link of ours in plain words, its payload holding "~~" or "__", is k
   const href = 'https://tinylittleoffice.com/text/#/v1/text/yA~~bC__d';
   expect(writeInline([{ t: 'the plan', href }])).toBe(`[the plan](${href})`);
   expect(parseInline(`[the plan](${href})`)).toStrictEqual([{ t: 'the plan', href }]);
+});
+
+test('tlo: a link alone on a line is a thing from the web with its title; a bare address stays as it is (Paul, 2026-10-11)', () => {
+  const text =
+    '[The neighbourhood the road replaced](https://www.youtube.com/watch?v=eRVYwDtI2E8)\n\nhttps://en.wikipedia.org/wiki/History_of_the_Bronx\n\nSee [the road](https://x.y/) here.\n\n[Write to us](mailto:a@b.c)\n';
+  const d = parse(text);
+  expect(write(d)).toBe(text);
+  expect(d.blocks.map(isEmbed)).toEqual([true, true, false, false]);
+  expect(webOf(d.blocks[0])).toEqual({ url: 'https://www.youtube.com/watch?v=eRVYwDtI2E8', title: 'The neighbourhood the road replaced' });
+  expect(webOf(d.blocks[1])).toEqual({ url: 'https://en.wikipedia.org/wiki/History_of_the_Bronx', title: '' });
+  expect(webOf(d.blocks[2])).toBeNull();
+  expect(webOf({ k: 'li', depth: 0, runs: [{ t: 'A', href: 'https://x.y/' }] })).toBeNull();
+});
+
+test("tlo: an address with a pair of brackets in it (Wikipedia's, Commons') is read whole, in a link and in a picture", () => {
+  // Paul's Bronx deck on a phone: the picture and the link were drawn as their Markdown, broken across lines.
+  const d = parse('- the [Art Deco](https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)) houses\n\n![Opening day](https://upload.wikimedia.org/x/Opening_Day_(baseball)_1.jpg)\n');
+  expect(d.blocks[0]).toMatchObject({ k: 'li', runs: [{ t: 'the ' }, { t: 'Art Deco', href: 'https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)' }, { t: ' houses' }] });
+  expect(d.blocks[1]).toEqual({ k: 'img', alt: 'Opening day', url: 'https://upload.wikimedia.org/x/Opening_Day_(baseball)_1.jpg' });
+  // Written as they were read; a lone bracket is escaped, so as not to end the address early.
+  expect(write(d)).toBe('- the [Art Deco](https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)) houses\n\n![Opening day](https://upload.wikimedia.org/x/Opening_Day_(baseball)_1.jpg)\n');
+  expect(
+    write({
+      head: {},
+      blocks: [
+        { k: 'img', alt: 'a', url: 'https://x.y/a)b c.jpg' },
+        { k: 'p', runs: [{ t: 'b', href: 'https://x.y/(a' }] },
+      ],
+    }),
+  ).toBe('![a](https://x.y/a%29b%20c.jpg)\n\n[b](https://x.y/%28a)\n');
+  // An unmatched bracket still ends it, as before.
+  expect(parse('![a](https://x.y/a)b)\n').blocks[0].k).toBe('p');
 });

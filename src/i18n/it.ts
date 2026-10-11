@@ -421,6 +421,12 @@ export default {
   // ---- a thing from the web (kit/embeds.ts) ----
   'From the web': 'Dal web',
   'Read on {provider}': 'Leggi su {provider}',
+  'Spotify album': 'Album Spotify',
+  'Spotify episode': 'Episodio Spotify',
+  'Spotify playlist': 'Playlist Spotify',
+  'Spotify show': 'Programma Spotify',
+  'Spotify track': 'Brano Spotify',
+  '{provider} video': 'Video {provider}',
   'Open on {provider}': 'Apri su {provider}',
   'Play (loads it from {provider})': 'Riproduci (lo carica da {provider})',
   'Show (loads it from {provider})': 'Mostra (lo carica da {provider})',

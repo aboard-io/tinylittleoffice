@@ -1,7 +1,7 @@
 // A web address as a thing from the web (kit/embeds.ts): which provider, what to load, what the card says; an
 // ordinary link and a Tiny Little Office link are nothing of the kind.
 import { expect, test } from 'vitest';
-import { embedCaption, embedOf, withAccount } from '../src/kit/embeds.ts';
+import { embedCaption, embedOf, kindGlyph, withAccount } from '../src/kit/embeds.ts';
 
 test('the providers, by their addresses', () => {
   expect(embedOf('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toMatchObject({ kind: 'video', provider: 'YouTube', src: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ' });
@@ -37,6 +37,23 @@ test('what is not a thing from the web', () => {
 test('the account id goes into a Bluesky embed; the caption names the provider or the host', () => {
   const e = embedOf('https://bsky.app/profile/alice.example/post/3k2a')!;
   expect(withAccount(e, 'did:plc:xyz').src).toBe('https://embed.bsky.app/embed/did:plc:xyz/app.bsky.feed.post/3k2a');
-  expect(embedCaption('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toEqual({ provider: 'YouTube', title: 'Video dQw4w9WgXcQ' });
-  expect(embedCaption('https://example.com/a-page')).toEqual({ provider: 'example.com', title: 'https://example.com/a-page' });
+  expect(embedCaption('https://example.com/a-page')).toEqual({ provider: 'example.com', title: 'a page' });
+  expect(embedCaption('https://example.com/')).toEqual({ provider: 'example.com', title: 'example.com' });
+});
+
+test("the caption's title is the author's, else the provider's best: no id in a title (Paul, 2026-10-11)", () => {
+  expect(embedCaption('https://www.youtube.com/watch?v=eRVYwDtI2E8')).toEqual({ provider: 'YouTube', title: 'YouTube video' });
+  expect(embedCaption('https://www.youtube.com/watch?v=eRVYwDtI2E8', 'The neighbourhood the road replaced')).toEqual({ provider: 'YouTube', title: 'The neighbourhood the road replaced' });
+  expect(embedCaption('https://vimeo.com/123456').title).toBe('Vimeo video');
+  expect(embedCaption('https://open.spotify.com/track/abc123').title).toBe('Spotify track');
+  expect(embedCaption('https://en.wikipedia.org/wiki/History_of_the_Bronx').title).toBe('History of the Bronx');
+  expect(embedCaption('https://example.com/a', '  ').title).toBe('a');
+});
+
+test("a kind's glyph: the play mark for what plays, the article's for an article, the picture's for a picture, the globe for the rest", () => {
+  expect(kindGlyph('video')).toBe(kindGlyph('music'));
+  expect(kindGlyph('audio')).toBe(kindGlyph('video'));
+  expect(kindGlyph('article')).not.toBe(kindGlyph('video'));
+  expect(kindGlyph('image')).not.toBe(kindGlyph('article'));
+  expect(kindGlyph(null)).toBe(kindGlyph('link'));
 });

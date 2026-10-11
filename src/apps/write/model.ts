@@ -175,5 +175,5 @@ export function fenceTitle(body: string): string {
   return h && isText(h) ? plainText(h.runs).trim() : '';
 }
 
-/** A paragraph that is one web address: a thing from the web. */
-export const webBlock = (url: string): Block => ({ k: 'p', runs: [{ t: url.trim() }] });
+/** A paragraph that is a thing from the web (the kernel's). */
+export { webBlock } from '../../doc/index.ts';

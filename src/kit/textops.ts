@@ -6,7 +6,7 @@
  * (docs/kernel.md §3) and the selection after. text.ts maps events onto
  * these; the node tests work them without a browser.
  */
-import { hasClass, isAtomic, isEmbed, isText as holdsRuns, normalRuns, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
+import { hasClass, isAtomic, isEmbed, isText as holdsRuns, normalRuns, runLength, sliceRuns, splitBlock, webOf, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
 
 /**
  * Whether a block is words the caret can sit in. A paragraph that is one web
@@ -15,6 +15,11 @@ import { hasClass, isAtomic, isEmbed, isText as holdsRuns, normalRuns, runLength
  */
 export const isWords = (b: Block): b is TextBlock => holdsRuns(b) && !isEmbed(b);
 const isText = isWords;
+/**
+ * A pasted block that goes in as words: any block of words but a bare web address alone (a card). A link alone
+ * (a titled thing from the web, model.ts webOf) pasted into words is the words of a link, as copied.
+ */
+const pastedWords = (b: Block): b is TextBlock => holdsRuns(b) && webOf(b)?.title !== '';
 
 export interface Pos {
   block: number;
@@ -127,8 +132,9 @@ export function marksOf(blocks: Block[], sel: Sel): Fmt {
   const b = blocks[a.block];
   if (!b || !isText(b)) return {};
   if (collapsed(sel)) return marksAt(b.runs, a.offset);
+  // (A piece cut from words is words, whatever it would be alone: a linked word is not a card.)
   const picked = sliceBlocks(blocks, sel)
-    .flatMap((x) => (isText(x) ? x.runs : []))
+    .flatMap((x) => (holdsRuns(x) ? x.runs : []))
     .filter((r) => !isAtomic(r) && r.t);
   if (!picked.length) return {};
   const out: Fmt = {};
@@ -210,7 +216,7 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const first = put[0];
   const last = put[put.length - 1];
   // One block of words goes in as words; a paragraph that is one web address (a card) stands on its own.
-  if (put.length === 1 && isText(first) && !isEmbed(first)) return insertRuns(blocks, sel, first.runs);
+  if (put.length === 1 && pastedWords(first)) return insertRuns(blocks, sel, first.runs);
   const cur = baseOf(blocks, a, b);
   const end = blocks[b.block];
   const left = sliceRuns(cur.runs, 0, a.offset);
@@ -218,13 +224,13 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const out: Block[] = [];
   let from = 0;
   let to = put.length;
-  if (isText(first) && !isEmbed(first)) {
+  if (pastedWords(first)) {
     // Into a block with no words, the pasted block comes as it is (its own kind); else its words join the block.
     out.push(cur.runs.length ? { ...cur, runs: normalRuns([...left, ...first.runs]) } : first);
     from = 1;
   } else if (left.length) out.push({ ...cur, runs: left });
   let tail: TextBlock;
-  if (isText(last) && !isEmbed(last) && put.length > 1) {
+  if (pastedWords(last) && put.length > 1) {
     to = put.length - 1;
     tail = { ...last, runs: normalRuns([...last.runs, ...right]) };
   } else tail = { k: 'p', runs: right };

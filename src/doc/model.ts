@@ -102,14 +102,31 @@ export const hasClass = (b: { a?: Attrs }, c: string): boolean => !!b.a?.cls?.in
 /** A key's value among a block's attributes, or undefined. */
 export const attr = (b: { a?: Attrs }, k: string): string | undefined => b.a?.kv?.[k];
 
+/** A web address and nothing else. */
+const WEB = /^https?:\/\/\S+$/;
+
+/**
+ * The thing from the web a paragraph is, if it is one: one web address and
+ * nothing else, or one link alone on its line, "[the title](address)", whose
+ * words are the title its author gave it ('' for a bare address).
+ */
+export function webOf(b: Block): { url: string; title: string } | null {
+  if (b.k !== 'p' || b.runs.length !== 1 || isAtomic(b.runs[0])) return null;
+  const r = b.runs[0];
+  if (r.href) return WEB.test(r.href) && r.t.trim() ? { url: r.href, title: r.t.trim() } : null;
+  return WEB.test(r.t.trim()) ? { url: r.t.trim(), title: '' } : null;
+}
+
+/** A paragraph that is a thing from the web: the address alone, or, given a title, the link alone on its line. */
+export const webBlock = (url: string, title = ''): Block => ({ k: 'p', runs: [title.trim() ? { t: title.trim(), href: url.trim() } : { t: url.trim() }] });
+
 /**
  * Whether a block is a thing held in this document from elsewhere: another
- * document in a fence named for its app, a picture, or a paragraph that is
- * one web address and nothing else (a video, a post, a place; which one is
- * the view's to say).
+ * document in a fence named for its app, a picture, or a paragraph that is a
+ * thing from the web (webOf: a video, a post, a place; which one is the
+ * view's to say).
  */
-export const isEmbed = (b: Block): boolean =>
-  (b.k === 'fence' && !!b.lang) || b.k === 'img' || (b.k === 'p' && b.runs.length === 1 && !isAtomic(b.runs[0]) && /^https?:\/\/\S+$/.test(b.runs[0].t.trim()));
+export const isEmbed = (b: Block): boolean => (b.k === 'fence' && !!b.lang) || b.k === 'img' || !!webOf(b);
 
 /** The blocks between rules: a deck's slides, a booklet's pages. */
 export function pages(blocks: Block[]): Block[][] {

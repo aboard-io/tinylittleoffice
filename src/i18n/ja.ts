@@ -419,6 +419,12 @@ export default {
   // ---- a thing from the web (kit/embeds.ts) ----
   'From the web': 'ウェブから',
   'Read on {provider}': '{provider}で読む',
+  'Spotify album': 'Spotifyのアルバム',
+  'Spotify episode': 'Spotifyのエピソード',
+  'Spotify playlist': 'Spotifyのプレイリスト',
+  'Spotify show': 'Spotifyの番組',
+  'Spotify track': 'Spotifyの曲',
+  '{provider} video': '{provider}の動画',
   'Open on {provider}': '{provider}で開く',
   'Play (loads it from {provider})': '再生（{provider}から読み込みます）',
   'Show (loads it from {provider})': '表示（{provider}から読み込みます）',

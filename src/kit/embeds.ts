@@ -11,6 +11,7 @@
  * (Ported from the old tree's src/lib/embeds.ts and the card in src/kit/browser.ts.)
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import { Newspaper, type IconNode } from 'lucide';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { pictureSrc } from './media.ts';
@@ -38,7 +39,7 @@ export interface Embed {
   provider: string;
   /** What to load when asked: a frame's address, or the file's own; nothing for a link card. */
   src: string;
-  /** A word or two for the card: the video's id, the post's author, the file's name. */
+  /** A word or two for the card when its author gave it none: "YouTube video", the post's author, the file's name (never an id). */
   title: string;
   url: string;
   /** The address is the thing itself (a sound, a film, a PDF, a picture), for the browser's own element. */
@@ -62,6 +63,14 @@ const LINK_ONLY: [RegExp, string][] = [
   [/^gist\.github\.com$/, 'GitHub'],
   [/\.bandcamp\.com$/, 'Bandcamp'],
 ];
+/** What a Spotify address holds, in words: the card's title, with no id in it. */
+const SPOTIFY: Record<string, () => string> = {
+  track: () => t('Spotify track'),
+  album: () => t('Spotify album'),
+  playlist: () => t('Spotify playlist'),
+  episode: () => t('Spotify episode'),
+  show: () => t('Spotify show'),
+};
 const AUDIO = /\.(?:mp3|ogg|oga|wav|m4a|flac|aac|opus)$/i;
 const VIDEO = /\.(?:mp4|webm|mov|m4v|ogv)$/i;
 const IMAGE = /\.(?:png|jpe?g|gif|webp|avif|svg)$/i;
@@ -86,9 +95,9 @@ export function embedOf(url: string): Embed | null {
   let m: RegExpExecArray | null;
   if (/^(?:youtube(?:-nocookie)?\.com|youtu\.be)$/.test(host)) {
     const id = host === 'youtu.be' ? /^\/([A-Za-z0-9_-]+)/.exec(path)?.[1] : (q.get('v') ?? new RegExp(`^/(?:shorts|embed|live)/(${ID})`).exec(path)?.[1]);
-    return id && new RegExp(`^${ID}$`).test(id) ? frame('video', 'YouTube', `${origin('youtube')}/embed/${id}`, `Video ${id}`) : null;
+    return id && new RegExp(`^${ID}$`).test(id) ? frame('video', 'YouTube', `${origin('youtube')}/embed/${id}`, t('{provider} video', { provider: 'YouTube' })) : null;
   }
-  if (host === 'vimeo.com' && (m = /^\/(?:video\/)?(\d+)/.exec(path))) return frame('video', 'Vimeo', `${origin('vimeo')}/video/${m[1]}?dnt=1`, `Video ${m[1]}`);
+  if (host === 'vimeo.com' && (m = /^\/(?:video\/)?(\d+)/.exec(path))) return frame('video', 'Vimeo', `${origin('vimeo')}/video/${m[1]}?dnt=1`, t('{provider} video', { provider: 'Vimeo' }));
   if (host === 'bsky.app' && (m = new RegExp(`^/profile/([^/]+)/post/(${ID})`).exec(path))) {
     const did = m[1].startsWith('did:');
     return {
@@ -102,7 +111,7 @@ export function embedOf(url: string): Embed | null {
   if (host === 'archive.org' && (m = /^\/details\/([A-Za-z0-9_.-]+)/.exec(path))) return frame('video', 'Internet Archive', `${origin('archive')}/embed/${m[1]}`, m[1]);
   if (host === 'web.archive.org' && (m = /^\/web\/\d+[a-z_]*\/(.+)/.exec(path))) return frame('page', 'Wayback Machine', u, m[1].replace(/^https?:\/\//, '') + at.search);
   if (host === 'open.spotify.com' && (m = /^(?:\/intl-[a-z]+)?\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/.exec(path)))
-    return frame('music', 'Spotify', `${origin('spotify')}/embed/${m[1]}/${m[2]}`, `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}`, m[1] === 'track' ? 152 : m[1] === 'episode' ? 232 : 352);
+    return frame('music', 'Spotify', `${origin('spotify')}/embed/${m[1]}/${m[2]}`, SPOTIFY[m[1]](), m[1] === 'track' ? 152 : m[1] === 'episode' ? 232 : 352);
   if (host === 'soundcloud.com' && (m = /^\/([^/]+)\/([^/]+)/.exec(path)) && m[1] !== 'discover')
     return frame('music', 'SoundCloud', `${origin('soundcloud')}/player/?url=${encodeURIComponent(u)}&visual=false`, decodeURIComponent(path.replace(/^\/|\/$/g, '')), 166);
   if (/^(?:openstreetmap|osm)\.org$/.test(host)) {
@@ -132,7 +141,7 @@ export function embedOf(url: string): Embed | null {
   // The fediverse: any host, known by the path's shape. Mastodon's embed page is the post's address and "/embed"; PeerTube's player is under /videos/embed.
   if ((m = /^\/@([\w.-]+(?:@[\w.-]+)?)\/(\d+)\/?$/.exec(path)) || (m = /^\/users\/([\w.-]+)\/statuses\/(\d+)\/?$/.exec(path)))
     return frame('post', 'Mastodon', `https://${at.host}/@${m[1]}/${m[2]}/embed`, `@${m[1].split('@')[0]}@${host}`);
-  if ((m = /^\/(?:w|videos\/watch)\/([A-Za-z0-9-]{8,})\/?$/.exec(path))) return frame('video', 'PeerTube', `https://${at.host}/videos/embed/${m[1]}`, `Video ${m[1]}`);
+  if ((m = /^\/(?:w|videos\/watch)\/([A-Za-z0-9-]{8,})\/?$/.exec(path))) return frame('video', 'PeerTube', `https://${at.host}/videos/embed/${m[1]}`, t('{provider} video', { provider: 'PeerTube' }));
   for (const [re, provider] of LINK_ONLY) if (re.test(host) && path.length > 1) return { kind: 'link', provider, src: '', title: decodeURIComponent(path.replace(/^\/|\/$/g, '')), url: u };
   // Files, by their names: the browser plays, shows or reads them itself.
   if (AUDIO.test(path)) return file('audio');
@@ -165,16 +174,33 @@ export const EMBED_SOURCES: { name: string; kind: EmbedKind }[] = [
 /** The embed with the account's id in place of its handle, once the lookup has answered. */
 export const withAccount = (e: Embed, did: string): Embed => ({ ...e, src: e.src.replace(/\/embed\/[^/]+\//, `/embed/${did}/`), lookup: undefined });
 
-/** The provider's name and the thing's title, for a card drawn anywhere (a page, a print): "YouTube · Video abc", or the host for a plain link. */
-export function embedCaption(url: string): { provider: string; title: string } {
+/**
+ * The provider's name and the thing's title, for a card drawn anywhere (a page, a print, the live card): the
+ * title its author gave it ("[The title](address)"), else the provider's best ("YouTube video", an article's
+ * name: never an id), else, for a page nothing embeds, the last part of its address in words, or its host.
+ */
+export function embedCaption(url: string, title = ''): { provider: string; title: string } {
+  const given = title.trim();
   const e = embedOf(url);
-  if (e) return { provider: e.provider, title: e.title };
+  if (e) return { provider: e.provider, title: given || e.title };
   try {
-    return { provider: new URL(url).hostname.replace(/^www\./, ''), title: url };
+    const at = new URL(url);
+    const host = at.hostname.replace(/^www\./, '');
+    const last = decodeURIComponent(at.pathname.split('/').filter(Boolean).pop() ?? '')
+      .replace(/\.[a-z0-9]{1,5}$/i, '')
+      .replace(/[-_+]+/g, ' ')
+      .trim();
+    return { provider: host, title: given || last || host };
   } catch {
-    return { provider: '', title: url };
+    return { provider: '', title: given || url };
   }
 }
+
+/** Whether a kind plays (a film, a sound, a song): its card wears the play mark. */
+export const playsKind = (kind: EmbedKind | null | undefined): boolean => kind === 'video' || kind === 'audio' || kind === 'music';
+
+/** A kind's glyph, for a card drawn where nothing loads (a page, a print): the play mark for what plays, the article's for an article, the picture's for a picture, the globe for the rest. */
+export const kindGlyph = (kind: EmbedKind | null | undefined): IconNode => (playsKind(kind) ? UI.play : kind === 'article' ? Newspaper : kind === 'image' ? UI.image : UI.globe);
 
 interface Summary {
   title: string;
@@ -191,7 +217,7 @@ interface Summary {
 export class ToEmbed extends LitElement {
   static properties = { url: {}, alt: {}, loaded: { state: true }, answer: { state: true } };
   declare url: string;
-  /** What it shows, in words, for anyone who cannot see it. */
+  /** What it is, in words: the title its author gave it, shown on the card and said to anyone who cannot see it. */
   declare alt: string;
   declare loaded: boolean;
   /** The lookup's answer, once asked: who a Bluesky handle is, or Wikipedia's summary; '' when it did not say. */
@@ -245,8 +271,7 @@ export class ToEmbed extends LitElement {
     const plays = !!web && (web.kind === 'video' || web.kind === 'audio' || web.kind === 'music');
     // Nothing to load: the card is the way there (the provider embeds nothing without its script, or did not answer).
     const out = !web || web.kind === 'link' || this.answer === '';
-    const { provider, title } = embedCaption(this.url);
-    const shown = this.alt || title;
+    const { provider, title: shown } = embedCaption(this.url, this.alt);
     return html`<figure class="to-embed">
       <div class="to-embed-pic ${live ? 'live' : ''}">
         ${

@@ -1886,4 +1886,10 @@ export default {
   'Download the .{ext}': 'Download the .{ext}',
   'Share the .{ext}…': 'Share the .{ext}…',
   'View the .{ext}': 'View the .{ext}',
+  'Spotify album': 'Spotify album',
+  'Spotify episode': 'Spotify episode',
+  'Spotify playlist': 'Spotify playlist',
+  'Spotify show': 'Spotify show',
+  'Spotify track': 'Spotify track',
+  '{provider} video': '{provider} video',
 } satisfies Strings;
