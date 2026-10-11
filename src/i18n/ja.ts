@@ -1874,4 +1874,10 @@ export default {
   'Download the .{ext}': '.{ext}をダウンロード',
   'Share the .{ext}…': '.{ext}を共有…',
   'View the .{ext}': '.{ext}を表示',
+  'Keep them on this device': 'この端末に保存',
+  'Nothing is saved on this device now. Keep them here, or open one.': '今はこの端末に何も保存されません。ここに保存するか、1つ開いてください。',
+  'Open the first': '最初のものを開く',
+  'Saved on this device from now on: {n|# document kept|# documents kept}': '今後はこの端末に保存:{n|#件}のドキュメントを保管済み',
+  'That zip holds no documents Tiny Little Office can read.': 'このZIPにはちいさなちいさなオフィスが読めるドキュメントがありません。',
+  '{n|# document kept|# documents kept}': '{n|#件}のドキュメントを保管済み',
 } satisfies Strings;

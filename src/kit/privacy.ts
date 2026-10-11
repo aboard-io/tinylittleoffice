@@ -20,7 +20,7 @@ import { newLocker, PBKDF2_ITERATIONS, seal, unseal, unsealWith, type Locker } f
 import { canCheck, createSigner, fingerprintOf, verify } from './sign.ts';
 import { isoMinute, messageOf, readEnvelope } from './envelope.ts';
 import { withHead } from '../doc/tlo.ts';
-import { forgetAll, library } from './library.ts';
+import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './links.ts';
 import { parseHash } from './route.ts';
 import { slug } from './draw.ts';
@@ -192,6 +192,12 @@ export function forgetPrefs() {
 export function forgetDocuments() {
   forgetAll();
   changed();
+}
+/** Documents kept at once (a zip of them opened, kit/open.ts), what shows them told: how many were new. */
+export function keepDocuments(entries: Omit<Kept, 'id' | 'at'>[]): number {
+  const n = keepAll(entries);
+  changed();
+  return n;
 }
 export function forgetLinks() {
   store.remove(LINKS);

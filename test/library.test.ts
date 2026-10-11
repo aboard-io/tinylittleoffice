@@ -120,3 +120,29 @@ test('a new document is numbered by the first number its name for the day leaves
   // The number may sit anywhere in a language's own order.
   expect(firstFree(['Nº 1 · Hoja nueva', 'Nº 2 · Hoja nueva'], 'Nº {n} · Hoja nueva')).toBe(3);
 });
+
+test('a zip of documents kept at once: in its order, the first newest; one already kept with the same link left as it is', async () => {
+  const { keepAll } = await import('../src/kit/library.ts');
+  keep(entry('old', 1, '#/v1/write/ysame'));
+  const n = keepAll(
+    [
+      { app: 'write', title: 'One', hash: '#/v1/write/yone' },
+      { app: 'write', title: 'Same, renamed', hash: '#/v1/write/ysame' },
+      { app: 'sheet', title: 'Two', hash: '#/v1/sheet/ytwo' },
+      { app: 'sheet', title: 'Two again', hash: '#/v1/sheet/ytwo' },
+    ],
+    1000,
+  );
+  expect(n).toBe(2);
+  expect(library().map((k) => [k.title, k.at])).toEqual([
+    ['One', 1000],
+    ['Two', 999],
+    ['old', 1],
+  ]);
+  expect(new Set(library().map((k) => k.id)).size).toBe(3);
+  // Under Private nothing is kept.
+  setKeeping(false);
+  expect(keepAll([{ app: 'write', title: 'X', hash: '#/v1/write/yx' }])).toBe(0);
+  setKeeping(true);
+  expect(library().map((k) => k.title)).toEqual(['One', 'Two', 'old']);
+});

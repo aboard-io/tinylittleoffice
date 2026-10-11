@@ -1876,4 +1876,10 @@ export default {
   'Download the .{ext}': 'Descargar el .{ext}',
   'Share the .{ext}…': 'Compartir el .{ext}…',
   'View the .{ext}': 'Ver el .{ext}',
+  'Keep them on this device': 'Guardarlos en este dispositivo',
+  'Nothing is saved on this device now. Keep them here, or open one.': 'Ahora no se guarda nada en este dispositivo. Guárdalos aquí o abre uno.',
+  'Open the first': 'Abrir el primero',
+  'Saved on this device from now on: {n|# document kept|# documents kept}': 'A partir de ahora, se guarda en este dispositivo: {n|# documento conservado|# de documentos conservados|# documentos conservados}',
+  'That zip holds no documents Tiny Little Office can read.': 'Ese zip no contiene documentos que Oficinita Diminuta pueda leer.',
+  '{n|# document kept|# documents kept}': '{n|# documento conservado|# de documentos conservados|# documentos conservados}',
 } satisfies Strings;

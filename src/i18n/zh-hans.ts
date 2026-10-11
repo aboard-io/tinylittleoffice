@@ -1875,5 +1875,11 @@ export default {
   'Download the .{ext}': '下载 .{ext}',
   'Share the .{ext}…': '分享 .{ext}…',
   'View the .{ext}': '查看 .{ext}',
+  'Keep them on this device': '保存在此设备上',
+  'Nothing is saved on this device now. Keep them here, or open one.': '此设备现在不保存任何内容。将它们保存在这里，或打开其中一份。',
+  'Open the first': '打开第一份',
+  'Saved on this device from now on: {n|# document kept|# documents kept}': '从现在起保存在此设备上：已保存 {n|# 份文档}',
+  'That zip holds no documents Tiny Little Office can read.': '这个 zip 里没有 小小办公室 能读的文档。',
+  '{n|# document kept|# documents kept}': '已保存 {n|# 份文档}',
 } satisfies Strings;
 

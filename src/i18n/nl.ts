@@ -1876,4 +1876,10 @@ export default {
   'Download the .{ext}': 'De .{ext} downloaden',
   'Share the .{ext}…': 'De .{ext} delen…',
   'View the .{ext}': 'De .{ext} bekijken',
+  'Keep them on this device': 'Op dit apparaat bewaren',
+  'Nothing is saved on this device now. Keep them here, or open one.': 'Er wordt nu niets op dit apparaat opgeslagen. Bewaar ze hier, of open er een.',
+  'Open the first': 'Het eerste openen',
+  'Saved on this device from now on: {n|# document kept|# documents kept}': 'Voortaan op dit apparaat opgeslagen: {n|# document bewaard|# documenten bewaard}',
+  'That zip holds no documents Tiny Little Office can read.': 'Die zip bevat geen documenten die Piepklein Kantoortje kan lezen.',
+  '{n|# document kept|# documents kept}': '{n|# document bewaard|# documenten bewaard}',
 } satisfies Strings;

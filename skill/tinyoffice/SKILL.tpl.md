@@ -202,7 +202,7 @@ A table `Place | Lat:number | Lon:number | Note`, in decimal degrees. `units: km
 
 ## Every app's files
 
-Every document downloads as a `.pdf` (its pages as pictures; Print in the browser saves one with the words still words), a picture (`.png`), a web page (`.html`), Markdown (`.md`, footnotes in Markdown's reference form) and its own text (`.tlo`: the TLO with `app: <id>` in its head, which opens as its own app when dropped on the site or opened from its menu). A link that downloads a file as it opens is `#/v1/<app>.<ext>/<payload>`, or `view=<ext>` in the plain form.
+Every document downloads as a `.pdf` (its pages as pictures; Print in the browser saves one with the words still words), a picture (`.png`), a web page (`.html`), Markdown (`.md`, footnotes in Markdown's reference form) and its own text (`.tlo`: the TLO with `app: <id>` in its head, which opens as its own app when dropped on the site or opened from its menu). A `.zip` of `.tlo` and `.md` files, a folder per app as the site's Download everything writes it, opens the same way: every document in it is kept on the device (under Private, listed to keep or to open). A link that downloads a file as it opens is `#/v1/<app>.<ext>/<payload>`, or `view=<ext>` in the plain form.
 
 ## Short links
 

@@ -14,7 +14,7 @@
  * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it (install.ts)
  * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
- * Open a file… (a .tlo, a .md, a .txt: kit/open.ts) and Compare… (this document beside another link:
+ * Open a file… (a .tlo, a .md, a .txt, a zip of them: kit/open.ts) and Compare… (this document beside another link:
  * kit/compare.ts) sit above the switches.
  *
  * The drawer is a menu: a row that opens a dialog (Share…, an app's templates, Privacy and keys, Keyboard shortcuts,

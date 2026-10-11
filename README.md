@@ -300,7 +300,8 @@ from links. A page of anyone's can import `/tinyoffice.js` (`link()` for a plain
 no build and no other code.
 
 A `.tlo` file is a document's text with `app:` in its head: Download → Text (TLO) makes one, and dropping one on the
-page, or Open a file… in the menu, opens it as its own app (a `.md` or `.txt` opens in the app at hand). Every app
+page, or Open a file… in the menu, opens it as its own app (a `.md` or `.txt` opens in the app at hand); a zip of them (Download everything's) puts every
+document in it back on the device, or, under Private, lists them to keep or open. Every app
 also downloads Markdown and a `.pdf` file (its pages as JPEGs, `src/kit/pdf.ts`; Print saves a PDF whose words stay
 words); the Outliner's `.pdf` is its words, as sections and bullets (`src/kit/textpdf.ts`). Download is a row per
 format, each with View (a new tab, where the browser shows the file), Share (the share sheet, where the device takes
