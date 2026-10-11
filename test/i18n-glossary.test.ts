@@ -122,9 +122,14 @@ test('the matcher in the scripts of the second nine: two words that match and on
   expect(says('링크를 복사', '링크')).toBe(true);
   expect(says('슬라이드 추가', '슬라이드')).toBe(true);
   expect(says('문서 열기', '템플릿')).toBe(false);
-  // Urdu: an Arabic-derived word by its root (صفحہ, صفحات), a Hindustani or English one by its stem (لنک, لنکس).
+  // Urdu: an Arabic-derived word by its root (صفحہ, صفحات: صفح), and so an English one with no long vowel (لنک in لنکس).
   expect(says('صفحات', 'صفحہ')).toBe(true);
   expect(says('لنکس کاپی کریں', 'لنک')).toBe(true);
+  // A Hindustani word by its stem alone: کھولیں's root کھلں is not in کھولنا's کھلن, but its stem کھو is in کھولنا.
+  expect(stem('کھولیں')).toBe('کھو');
+  expect(says('کھولنا', 'کھولیں')).toBe(true);
+  // Neither: no root and no stem, with Urdu's letters and without.
+  expect(says('لنکس کاپی کریں', 'کھولیں')).toBe(false);
   expect(says('صفحات', 'فائل')).toBe(false);
   // Traditional Chinese: by a character pair.
   expect(says('顯示為投影片', '第 {n} 張投影片')).toBe(true);
