@@ -92,6 +92,7 @@ export default {
   'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': '코드를 보내 주는 쪽과 코드가 도는 브라우저. 사이트, 확장 프로그램, 기기의 악성 코드는 보이는 내용과 입력하는 내용을 읽을 수 있어요.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': '실행 중인 커밋 {commit}',
+  'This link hides characters in its address.': '이 링크는 주소 안에 문자를 숨기고 있어요.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

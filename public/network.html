@@ -323,13 +323,13 @@ dd{margin:0}
 <li><strong>Self-hosting:</strong> <code>VITE_MEDIA_URL</code> at build time names your own copy of the proxy (<code>npm run deploy</code> deploys <code>media/</code> beside the site). Set it empty and there is no proxy: pictures load from their own sites, every host waits to be asked for, and the policy's <code>img-src</code> becomes <code>https:</code>.</li>
 </ul>
 <h3>The hosts whose pictures show at once</h3>
-<p><code>src/kit/media.ts</code> <code>TRUSTED</code>, the entries of <code>src/kit/network.ts</code> with a reason. Each is a place that serves public, static pictures under an open or stated licence, at addresses that do not change per reader. Since the proxy fetches them, even such a host learns nothing of who reads the document; the list only spares the reader a question for pictures that are this safe and this common.</p>
+<p><code>TRUSTED</code> in <code>src/kit/network.ts</code>, the entries with a reason. Each is a place that serves public, static pictures under an open or stated licence, at addresses that do not change per reader. Since the proxy fetches them, even such a host learns nothing of who reads the document; the list only spares the reader a question for pictures that are this safe and this common. The proxy holds the same list: a picture shown without asking is followed through its redirects only to hosts on it, so an open redirect on one of them leads nowhere else.</p>
 <ul class="hosts">
 <li><code>media.tinylittleoffice.com</code> The proxy itself: an address already its own</li>
 <li><code>upload.wikimedia.org</code> Wikimedia Commons’ files: freely licensed, static, the most-used source of public pictures</li>
 <li><code>commons.wikimedia.org</code> Commons’ own pages’ pictures (the same files, by another address)</li>
 <li><code>archive.org</code> The Internet Archive’s files: public-domain and archived pictures</li>
-<li><code>*.archive.org</code> The Internet Archive’s storage hosts (ia800…us.archive.org)</li>
+<li><code>ia*.us.archive.org</code> The Internet Archive’s storage hosts (ia800….us.archive.org), where its download addresses lead</li>
 <li><code>images.unsplash.com</code> Unsplash’s image CDN: pictures under the Unsplash licence; the Website Builder’s templates use it</li>
 <li><code>images.pexels.com</code> Pexels’ image CDN: pictures under the Pexels licence</li>
 <li><code>live.staticflickr.com</code> Flickr’s static files: pictures with their licence stated, many Creative Commons</li>

@@ -94,6 +94,7 @@ export default {
   'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Moun ki bay kòd la, ak navigatè kote l ap mache a: sit la, yon ekstansyon oswa yon pwogram malveyan sou aparèy la ka li sa ki parèt ak sa w tape.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Kòmit k ap mache: {commit}',
+  'This link hides characters in its address.': 'Lyen sa a kache karaktè nan adrès li.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

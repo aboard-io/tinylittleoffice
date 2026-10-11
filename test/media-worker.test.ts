@@ -1,6 +1,7 @@
 // media, the picture proxy: what it fetches, what it refuses, what it hands back, what it keeps.
 import { test, expect } from 'vitest';
 import { fetchable, handle, MAX_BYTES, UA, type CacheLike, type Deps } from '../media/media.ts';
+import { trustedHost } from '../src/kit/network.ts';
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
 const CAT = 'https://images.unsplash.com/cat.png';
@@ -99,6 +100,35 @@ test('media: redirects are followed by hand, three at most, each under the same 
   const inward = deps({ [CAT]: hop('http://127.0.0.1/admin.png') });
   expect((await handle(ask(CAT), inward.d)).status).toBe(502);
   expect(inward.w.asked).toHaveLength(1);
+});
+
+test('media: a picture shown as trusted (t=1) is followed only to a trusted host; an open redirect elsewhere is 502', async () => {
+  const hop = (to: string) => () => new Response(null, { status: 302, headers: { location: to } });
+  const trustedAsk = (u: string) => new Request(`https://media.tinylittleoffice.com/img?u=${encodeURIComponent(u)}&t=1`, { headers: { 'cf-connecting-ip': '1.2.3.4' } });
+  const OPEN = 'https://upload.wikimedia.org/go?to=tracker';
+  const away = deps({ [OPEN]: hop('https://tracker.example.net/pixel.png'), 'https://tracker.example.net/pixel.png': png() });
+  expect((await handle(trustedAsk(OPEN), away.d)).status).toBe(502);
+  expect(away.w.asked.map((a) => a.url)).toEqual([OPEN]);
+  // Asked for (not shown as trusted), the same redirect is followed, as any picture's is.
+  expect((await handle(ask(OPEN), away.d)).status).toBe(200);
+  // The Internet Archive's download address goes on to its storage host, which is on the list.
+  const DL = 'https://archive.org/download/item/cat.jpg';
+  const archive = deps({ [DL]: hop('https://ia800204.us.archive.org/12/items/item/cat.jpg'), 'https://ia800204.us.archive.org/12/items/item/cat.jpg': png() });
+  expect((await handle(trustedAsk(DL), archive.d)).status).toBe(200);
+  // A start that is not on the list is no trusted picture either.
+  expect((await handle(trustedAsk('https://tracker.example.net/pixel.png'), away.d)).status).toBe(502);
+  // Kept apart: what was fetched for a picture asked for is not handed to one shown as trusted.
+  const kept = new Map<string, Response>();
+  const cache: CacheLike = { match: async (r) => kept.get(r.url)?.clone(), put: async (r, res) => void kept.set(r.url, res) };
+  const both = deps({ [OPEN]: hop('https://tracker.example.net/pixel.png'), 'https://tracker.example.net/pixel.png': png() }, { cache });
+  expect((await handle(ask(OPEN), both.d)).status).toBe(200);
+  expect((await handle(trustedAsk(OPEN), both.d)).status).toBe(502);
+});
+
+test('the trusted hosts: the Archive by its storage hosts’ pattern, never by a look-alike', () => {
+  for (const h of ['archive.org', 'ia800204.us.archive.org', 'ia601.us.archive.org', 'upload.wikimedia.org']) expect(trustedHost(h), h).toBe(true);
+  for (const h of ['evil.archive.org.example', 'evil.archive.org', 'ia800.us.archive.org.evil.com', 'xia800.us.archive.org', 'ia800.eu.archive.org', 'a.ia800.us.archive.org'])
+    expect(trustedHost(h), h).toBe(false);
 });
 
 test('media: only pictures; SVG only as image/svg+xml, under a policy that runs nothing', async () => {

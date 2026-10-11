@@ -38,7 +38,7 @@ export default defineApp({
   retitle,
   view: (doc, opts) => sitePictures(doc, opts?.small),
   // The Display Link lands on the site as a visitor has it, the editor's Preview.
-  page: (doc, base) => sitePage(parse(doc), { base }),
+  page: (doc, base, stamp) => sitePage(parse(doc), { base, peek: stamp }),
   exports: [
     // In place of the kit's pictures of the pages: the site itself, every page in one file, ready to put on the web.
     { ext: 'html', label: () => t('The website (HTML)'), mime: 'text/html', shows: 'own', build: (doc, ctx) => sitePage(parse(doc), { base: siteOf(ctx.link) }) },

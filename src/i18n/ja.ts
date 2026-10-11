@@ -91,6 +91,7 @@ export default {
   'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'コードを配信する者と、それが動くブラウザ。サイト、拡張機能、端末のマルウェアは、表示された内容も入力した内容も読めます。',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'コミット {commit} で実行中',
+  'This link hides characters in its address.': 'このリンクは、アドレスの中に文字を隠しています。',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

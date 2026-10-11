@@ -350,11 +350,27 @@ test('a website’s Display Link lands on the site as a visitor has it: the page
   const shell = await mount(`#/v1/site/${payload}?d`);
   await until(() => !!shell.querySelector('iframe.to-display-site'));
   const f = shell.querySelector<HTMLIFrameElement>('iframe.to-display-site')!;
-  expect(f.getAttribute('sandbox')).toBe('allow-scripts allow-popups allow-popups-to-escape-sandbox');
+  // No escape from the sandbox: a link out of the site comes to the shell, which asks first (r16).
+  expect(f.getAttribute('sandbox')).toBe('allow-scripts allow-popups');
   expect(f.srcdoc).toContain('<h1>Harbor Coffee</h1>');
   expect(f.srcdoc).not.toContain('data-o=');
   expect(shell.querySelector('.to-display-page, to-site-editor')).toBeNull();
   expect(shell.querySelector<HTMLAnchorElement>('.to-display-edit')!.getAttribute('href')).toBe(`#/v1/site/${payload}`);
+});
+
+test('a website’s Display Link: a link out of the site asks first, naming where it goes', async () => {
+  const shell = await mount(`#/v1/site/${encodeDoc('# Harbor Coffee\n\nOn the quay.\n\n> Pay now | https://pay.example/now\n')}?d`);
+  await until(() => !!shell.querySelector('iframe.to-display-site'));
+  const f = shell.querySelector<HTMLIFrameElement>('iframe.to-display-site')!;
+  await page.frameLocator(page.elementLocator(f)).getByRole('link', { name: 'Pay now' }).click();
+  await until(() => !!document.querySelector('to-dialog.to-link-guard dialog[open] .lg-host'));
+  expect(document.querySelector('to-dialog.to-link-guard .lg-host')!.textContent).toBe('pay.example');
+  document.querySelector<HTMLButtonElement>('to-dialog.to-link-guard .lg-cancel')!.click();
+  await until(() => !document.querySelector('to-dialog.to-link-guard dialog[open]'));
+  // Said by another window, the same words open nothing.
+  window.dispatchEvent(new MessageEvent('message', { data: { site: Number(/"stamp":(\d+)/.exec(f.srcdoc)![1]), do: 'link', href: 'https://elsewhere.example/' }, source: window }));
+  await tick(50);
+  expect(document.querySelector('to-dialog.to-link-guard dialog[open]')).toBeNull();
 });
 
 test('a Display Link at 390px: the pages fit the screen', async () => {

@@ -81,6 +81,7 @@ export default {
   'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'দুর্বল পাসওয়ার্ড: লিংকে সব আছে যা দিয়ে যে কেউ যত দ্রুত খুশি অনুমান করে চেষ্টা করতে পারে। লম্বা পাসওয়ার্ড, বা এখানে বানানো পাসওয়ার্ড, টিকে থাকে।',
   'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'যে কোডটি পরিবেশন করে, আর যে ব্রাউজারে তা চলে: সাইট, কোনো এক্সটেনশন বা ডিভাইসের ম্যালওয়্যার যা দেখানো হয় আর যা টাইপ করা হয় তা পড়তে পারে।',
   'Running commit {commit}': 'চলছে কমিট {commit}',
+  'This link hides characters in its address.': 'এই লিংকের ঠিকানায় লুকানো অক্ষর আছে।',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

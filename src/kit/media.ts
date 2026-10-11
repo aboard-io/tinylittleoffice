@@ -3,14 +3,14 @@
  * draws from an https address is asked of media.tinylittleoffice.com (media/ in this repository), never of
  * the picture's own site, so that site never learns who read the document: pictureSrc() is that address.
  * Whether a picture shows at once or waits for "Show pictures from the web" is kit/pictures.ts; a picture
- * from a host on TRUSTED shows at once, because the proxy fetches it and the host holds public, static,
+ * from a host on TRUSTED (kit/network.ts) shows at once, because the proxy fetches it and the host holds public, static,
  * licensed pictures (docs/network.md gives the reason for each).
  *
  * VITE_MEDIA_URL sets the proxy (a self-hoster's own copy of media/); set empty, pictures load directly
  * from their sites and every host waits to be asked for. Pure: no DOM, tested under node.
  */
 
-import { origin, reaches } from './network.ts';
+import { origin, trustedHost } from './network.ts';
 
 const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 /** The proxy this site uses unless VITE_MEDIA_URL says otherwise. */
@@ -24,13 +24,6 @@ export const mediaBase = () => base;
 export function useMedia(next: string) {
   base = next.replace(/\/+$/, '');
 }
-
-/**
- * Hosts whose pictures show at once: a host by name, or every host under a name with "*.". Public,
- * static, licensed pictures, and nothing a host could tell readers apart by, since the proxy fetches.
- * They are the entries of kit/network.ts with a `picture` (the reason for each).
- */
-export const TRUSTED: readonly string[] = reaches().flatMap((r) => (r.picture ? [r.host] : []));
 
 const here = () => (typeof location === 'undefined' ? 'http://localhost/' : location.href);
 
@@ -53,16 +46,10 @@ export function hostOf(url: string): string {
   }
 }
 
-/** Whether a host is on TRUSTED. */
-export function trustedHost(host: string): boolean {
-  host = host.toLowerCase();
-  return TRUSTED.some((h) => (h.startsWith('*.') ? host.endsWith(h.slice(1)) : host === h));
-}
-
 /** Whether an address is already the proxy's. */
 const proxied = (url: string) => !!base && url.startsWith(base + '/');
 
-/** Whether this picture shows without asking: https, from a host on TRUSTED, and a proxy to fetch it. */
+/** Whether this picture shows without asking: https, from a host on TRUSTED (kit/network.ts), and a proxy to fetch it. */
 export function trusted(url: string): boolean {
   if (!base) return false;
   if (proxied(url)) return true;
@@ -77,12 +64,13 @@ export function trusted(url: string): boolean {
 /**
  * The address to draw a picture from: an https picture from another site through the proxy; data:, blob:,
  * this site's own, and an address already the proxy's as they are. (An http picture is left as it is: the
- * proxy fetches https only, and the site's policy loads no http.)
+ * proxy fetches https only, and the site's policy loads no http.) A picture shown as trusted carries "&t=1",
+ * and the proxy then follows its redirects only to a trusted host: trusted means the same on both sides.
  */
 export function pictureSrc(url: string, at = here()): string {
   if (!base || proxied(url) || !webPicture(url, at)) return url;
   if (!url.startsWith('https:')) return url;
-  return `${base}/img?u=${encodeURIComponent(url)}`;
+  return `${base}/img?u=${encodeURIComponent(url)}${trusted(url) ? '&t=1' : ''}`;
 }
 
 /** The picture an address of the proxy's stands for (what pictureSrc was given); the address itself otherwise. */

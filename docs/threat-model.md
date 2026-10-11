@@ -57,13 +57,18 @@ random bytes that exist only in the owner's link (`#<key>.<o>`); the service kee
 **A scam link inside a document.** Words in a document can say one address and link to another. No link that
 leaves the site opens without first showing, large, the site it goes to and the whole address, with Cancel
 as the default (`src/kit/link-guard.ts`); a link to anything but a web page, an email address or a phone
-number never opens. This shows where a link goes; it does not judge whether the place is honest.
+number never opens. That holds inside a website shown here (the Display Link, the editor's Preview): its page
+cannot leave its sandboxed frame, and a link out of it is handed to the guard. The address is drawn left to
+right, set apart from the words round it, in every language, and an email address or a phone number that hides
+reversing or invisible characters is refused rather than drawn. This shows where a link goes; it does not judge
+whether the place is honest. (A website downloaded as a file is a page of its own, outside Tiny Little Office.)
 
 **A tracking picture inside a document.** A picture held by its address on another site would tell that site
 who read the document, when and from where. Such a picture is drawn as a card until the reader asks
 (`src/kit/pictures.ts`), except from a short list of hosts of public, licensed pictures (`docs/network.md`
 lists them with a reason each), and every web picture shown is fetched through the picture proxy, never from
-its own site.
+its own site. A picture shown without asking is followed through its redirects only to hosts on that list
+(`media/media.ts`), so an open redirect on a listed host is no way round the question.
 
 **A reader fetching a picture and revealing their address.** The proxy fetches the picture and hands it back,
 so the picture's site sees Cloudflare, not the reader. The proxy itself does see the reader's address and the

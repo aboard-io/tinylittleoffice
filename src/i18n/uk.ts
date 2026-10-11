@@ -94,6 +94,7 @@ export default {
   'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Той, хто віддає код, і браузер, у якому він працює: сайт, розширення чи шкідлива програма на пристрої можуть прочитати те, що показано і що набрано.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Працює коміт {commit}',
+  'This link hides characters in its address.': 'Це посилання приховує символи у своїй адресі.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

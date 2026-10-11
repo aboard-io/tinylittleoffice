@@ -132,8 +132,12 @@ export interface AppDef {
   retitle(doc: Doc, title: string): Doc;
   /** The document, drawn: always at least one page. For the Display Link, an embed, print, PDF, PNG, previews and thumbnails (`still` where nothing can move). */
   view(doc: Doc, opts?: ViewOpts): Page[];
-  /** The document as a web page of its own (a website): the Display Link shows it, in a sandboxed frame, in place of its pages. `base` is where another document's link begins. */
-  page?(doc: Doc, base: string): string;
+  /**
+   * The document as a web page of its own (a website): the Display Link shows it, in a sandboxed frame, in place of its
+   * pages. `base` is where another document's link begins; with `stamp`, the page tells its parent of a link out, with
+   * that stamp, rather than following it (the parent asks first).
+   */
+  page?(doc: Doc, base: string, stamp?: number): string;
   exports?: Export[];
   handoffs?: Handoff[];
   /**

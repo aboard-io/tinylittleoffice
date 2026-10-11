@@ -7,7 +7,7 @@
  * document the shell has open: setPictureDoc). A picture inserted in this visit is the author's own choice
  * and shows at once (authored). Saved on this device, a switch in the menu shows them always. data: and
  * blob: pictures, and this site's own, are not from the web and always show. A picture from a host on the
- * whitelist (kit/media.ts TRUSTED) shows at once. Every web picture shown is asked of the proxy
+ * whitelist (kit/network.ts TRUSTED) shows at once. Every web picture shown is asked of the proxy
  * (kit/media.ts pictureSrc), never of its own site. Exports (PDF, PNG, HTML) draw the document as it is,
  * the person exporting chose to, with each picture's bytes inside the file (kit/media.ts embedPictures).
  *

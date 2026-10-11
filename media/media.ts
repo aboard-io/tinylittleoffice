@@ -8,6 +8,8 @@
  *   GET     /img?u=<url>   -> the picture (200), or a line of text: 400 not an address it fetches, 404 not
  *                             there, 413 more than 5 MB, 415 not a picture, 429 too many just now, 502 the
  *                             site did not answer well or in time
+ *   GET     /img?u=<url>&t=1  the same for a picture the site shows as trusted (without asking): every address
+ *                             of it, its redirects too, on the trusted list, or 502
  *   OPTIONS /img           -> CORS, for the site's own origin only (an export fetches the bytes)
  *
  * The rules: the address is https on the default port, a name and not a number or a name of this network;
@@ -22,9 +24,13 @@
  * wrangler.jsonc, and there is no console call in this folder). The rate limiter counts per client in memory.
  *
  * This file is the whole of it apart from the platform: worker.ts gives it fetch, caches.default and the
- * limiter; the tests give it stubs. (A whitelist of hosts is the site's business, in src/kit/media.ts: every
- * https picture is proxied, the whitelist only decides which show without asking.)
+ * limiter; the tests give it stubs. (The whitelist of hosts is the site's, in src/kit/network.ts: every https
+ * picture is proxied, and the whitelist decides which show without asking. Such a picture is asked with t=1, and
+ * then this follows it only to hosts on the same list, so an open redirect on a trusted host cannot lead the
+ * reader's browser, unasked, to a picture from anywhere.)
  */
+
+import { trustedHost } from '../src/kit/network.ts';
 
 /** The site that may fetch a picture's bytes (an export does). */
 export const SITE = 'https://tinylittleoffice.com';
@@ -95,13 +101,14 @@ const typeOf = (res: Response) => (res.headers.get('content-type') ?? '').split(
 /** A picture's type this proxy hands on: image/*, and SVG only by its own name. */
 const picture = (type: string) => /^image\/[a-z0-9.+-]+$/.test(type) && (type === SVG || !type.includes('svg'));
 
-/** Fetch an address, following at most HOPS redirects by hand, each under the same rules. */
 /** Who is asking: the proxy names itself and the page that says what it does. */
 export const UA = 'TinyLittleOffice/1 (+https://tinylittleoffice.com/network; the picture proxy)';
 
-async function follow(deps: Deps, start: URL, signal: AbortSignal): Promise<Response | number> {
+/** Fetch an address, following at most HOPS redirects by hand, each under the same rules (`trusted`: each on the trusted list). */
+async function follow(deps: Deps, start: URL, signal: AbortSignal, trusted: boolean): Promise<Response | number> {
   let at = start;
   for (let hop = 0; ; hop++) {
+    if (trusted && !trustedHost(at.hostname)) return 502;
     // Named, as Wikimedia and others require of a fetcher (an unnamed one gets 403, and the picture a broken glyph: 2026-10-11).
     const res = await deps.fetch(at.href, { method: 'GET', redirect: 'manual', signal, headers: { accept: 'image/avif,image/webp,image/*;q=0.9', 'user-agent': UA } });
     if (res.status < 300 || res.status >= 400 || res.status === 304) return res;
@@ -150,8 +157,10 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   const target = fetchable(url.searchParams.get('u'));
   if (!target) return say(400, 'Not an address this fetches: https, a public name, the default port.', site);
 
+  // Shown as trusted: followed only to trusted hosts, and kept apart from the same address asked for.
+  const trusted = url.searchParams.get('t') === '1';
   // Keyed by the picture's address alone; nothing of the reader's request.
-  const key = new Request(`${url.origin}/img?u=${encodeURIComponent(target.href)}`);
+  const key = new Request(`${url.origin}/img?u=${encodeURIComponent(target.href)}${trusted ? '&t=1' : ''}`);
   const kept = await deps.cache?.match(key);
   if (kept) return kept;
 
@@ -161,8 +170,8 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   let got: Response | number;
   let bytes: Uint8Array | null;
   try {
-    got = await follow(deps, target, signal);
-    if (typeof got === 'number') return say(got, 'Too many redirects, or one to an address this does not fetch.', site);
+    got = await follow(deps, target, signal, trusted);
+    if (typeof got === 'number') return say(got, 'Too many redirects, or one to an address this does not fetch for this picture.', site);
     if (got.status === 404 || got.status === 410) {
       await got.body?.cancel();
       return say(404, 'The picture is not there.', site);

@@ -93,6 +93,7 @@ export default {
     'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'جو کوڈ دیتا ہے، اور وہ براؤزر جس میں وہ چلتا ہے: سائٹ، کوئی ایکسٹینشن یا ڈیوائس پر میلویئر، جو دکھایا جاتا ہے اور جو ٹائپ ہوتا ہے، پڑھ سکتے ہیں۔',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
     'Running commit {commit}': 'چل رہا کمٹ {commit}',
+    'This link hides characters in its address.': 'یہ لنک اپنے پتے میں حروف چھپاتا ہے۔',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

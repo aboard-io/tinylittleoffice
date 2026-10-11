@@ -94,6 +94,7 @@ export default {
   'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': '提供程式碼的一方，以及執行程式碼的瀏覽器：網站、擴充功能或裝置上的惡意軟體，都能讀到顯示的內容和輸入的內容。',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': '執行版本 {commit}',
+  'This link hides characters in its address.': '這個連結在網址裡藏了字元。',
 
   // ---- the copy kept on the device (status lines under the switch) ----
 

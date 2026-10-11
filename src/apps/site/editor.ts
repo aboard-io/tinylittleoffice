@@ -36,6 +36,7 @@ import { icon, UI } from '../../kit/icons.ts';
 import { gateHtml, showPictures } from '../../kit/pictures.ts';
 import { t } from '../../kit/i18n.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
+import { openLink } from '../../kit/link-guard.ts';
 import { webBlock } from '../write/model.ts';
 import { askPlace, askShop, same, type Anchor } from './forms.ts';
 import {
@@ -81,7 +82,7 @@ export const tag = 'to-site-editor';
 /** A message from the frame: what was done, to which thing. */
 interface FrameMessage {
   site: number;
-  do: 'pick' | 'at' | 'page' | 'undo' | 'redo' | 'ready' | 'leave' | 'words' | 'split' | 'end';
+  do: 'pick' | 'at' | 'page' | 'undo' | 'redo' | 'ready' | 'leave' | 'words' | 'split' | 'end' | 'link';
   /** The thing's id (null: a tap on the page's empty room). */
   o?: string | null;
   /** A pick on the thing's words: they are open in the page, typed there. */
@@ -96,6 +97,8 @@ interface FrameMessage {
   r?: number[] | null;
   /** How far the page in the frame is scrolled. */
   y?: number;
+  /** A link out of the page (the Preview's): where it goes. */
+  href?: string;
 }
 
 /** What an undo entry remembers: the thing in hand before the change, and after it. */
@@ -287,6 +290,8 @@ export class ToSiteEditor extends DocElement<Site> {
       if (o && this.view.sections[o.n].page !== this.view.pages.indexOf(p)) this.release();
     } else if (m.do === 'undo' || m.do === 'redo') this.dispatchEvent(new CustomEvent(m.do === 'undo' ? 'docundo' : 'docredo', { cancelable: true }));
     else if (m.do === 'leave') this.endPreview();
+    // A link out of the page, asked about as every link that leaves is (kit/link-guard.ts).
+    else if (m.do === 'link' && typeof m.href === 'string') openLink(m.href);
   };
 
   /* ---------- the thing in hand ---------- */
@@ -626,7 +631,7 @@ export class ToSiteEditor extends DocElement<Site> {
             ? html`<p class="to-webpics-bar">${icon(UI.image, 18)}<span>${t('{n|A picture from the web waits|# pictures from the web wait} to be asked for.', { n: framed.hidden })}</span><button type="button" class="to-btn" @click=${() => showPictures()}>${t('Show pictures from the web')}</button></p>`
             : nothing
         }
-        <iframe class="site-frame" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.preview ? t('The website, as a visitor sees it') : label} .srcdoc=${framed.html}></iframe>
+        <iframe class="site-frame" sandbox="allow-scripts allow-popups" title=${this.preview ? t('The website, as a visitor sees it') : label} .srcdoc=${framed.html}></iframe>
       </div>
       <to-context class="site-context" .label=${o ? objName(o.kind) : ''} .items=${this.heldItems()}></to-context>`;
   }
