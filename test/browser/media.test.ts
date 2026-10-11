@@ -5,7 +5,7 @@ import { test, expect, afterEach, vi } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { appOf } from '../../src/kit/apps.ts';
-import { forgetPictures, gateHtml } from '../../src/kit/pictures.ts';
+import { forgetPictures } from '../../src/kit/pictures.ts';
 import { pictureSrc } from '../../src/kit/media.ts';
 import { withPictures } from '../../src/kit/exports.ts';
 import '../../src/kit/embeds.ts';
@@ -52,16 +52,6 @@ test('the Display Link: the whitelisted picture drawn from the proxy at once; th
   await until(() => !!shell.querySelector(`.to-display image[href="${pictureSrc(CAT)}"]`));
   expect(direct(shell, CAT)).toBeNull();
   expect(direct(shell, WIKI)).toBeNull();
-});
-
-test('a generated page (the Website Builder’s frame): pictures and the pictures its cards load come from the proxy', () => {
-  const page = `<img class="pic" src="${WIKI}" alt=""><img src="${CAT}" alt=""><div class="web-pic" data-as="img" data-kind="image" data-src="${CAT}" data-title="Cat"><button class="web-load">Show</button></div><div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/x" data-title="V"></div>`;
-  const { html, hidden } = gateHtml(page);
-  expect(hidden).toBe(1);
-  expect(html).toContain(`src="${pictureSrc(WIKI).replace(/&/g, '&amp;')}"`);
-  expect(html).toContain(`data-src="${pictureSrc(CAT)}"`);
-  expect(html).toContain('data-src="https://www.youtube-nocookie.com/embed/x"');
-  expect(html).not.toContain(`src="${CAT}"`);
 });
 
 test('a picture embedded by its address loads from the proxy when tapped', async () => {

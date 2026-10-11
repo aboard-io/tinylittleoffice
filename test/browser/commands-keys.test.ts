@@ -10,7 +10,6 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { appOf, apps } from '../../src/kit/apps.ts';
 import { keyList, labelOf, register, registered, trace, type Command } from '../../src/kit/commands.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
-import { objectsOf, objId } from '../../src/apps/site/model.ts';
 import '../../src/kit/rows-commands.ts';
 
 beforeEach(() => {
@@ -186,22 +185,6 @@ const PLACES: Record<string, Record<string, Place[]>> = {
     show: [{ tpl: 'trip:weekend', set: async (ed) => ((ed.presenting = 0), await ed.updateComplete), at: (ed) => ed.querySelector('.trip-present') }],
     pin: [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.leaflet-marker-icon') }],
     '': [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.trip-stops') ?? ed }],
-  },
-  site: {
-    box: appOf('site')!.templates.flatMap((tpl) =>
-      [-1, 0].map((n) => ({
-        tpl: `site:${tpl.id}`,
-        // The thing in hand: one in a row (a button, a big link, a small link) with a neighbour, else the last paragraph.
-        set: (ed: Ed) => {
-          const all = objectsOf(ed.view);
-          const row = all.filter((o: { kind: string }) => ['button', 'card', 'link'].includes(o.kind));
-          const pick = row.at(n) ?? all.filter((o: { kind: string }) => o.kind === 'p').at(n);
-          if (pick) ed.hold(objId(pick));
-        },
-        at: (ed: Ed) => ed.querySelector('.site-page'),
-      })),
-    ),
-    preview: [{ tpl: 'site:cafe', set: (ed) => ed.startPreview(), at: (ed) => ed.querySelector('.site-edit') ?? ed }],
   },
 };
 

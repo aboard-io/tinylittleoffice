@@ -51,8 +51,6 @@ export const SHARED: Record<string, string> = {
   'src/apps/cal/model.ts': 'a calendar’s item block, made by the Spreadsheet’s, the To-Do List’s and the Trip Planner’s “Open as calendar”',
   'src/apps/sheet/model.ts': 'the table block’s columns and cells, which the Word Processor’s tables edit',
   'src/apps/sheet/view.ts': 'a table drawn as a page, which the Word Processor draws its tables with',
-  'src/apps/write/model.ts': 'the web block of a text, which the Website Builder’s pages are written in',
-  'src/apps/write/view.ts': 'a text drawn as a web page, which the Website Builder publishes its pages with',
   'src/apps/outline/model.ts': 'a list made from lines, which the Word Processor’s “Open as outline” makes',
 };
 

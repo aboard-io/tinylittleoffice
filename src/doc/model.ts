@@ -30,7 +30,7 @@ export type Block =
   | { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Run[]; a?: Attrs }
   | { k: 'p'; runs: Run[]; a?: Attrs } // its lines stay lines: '\n' inside a run's t
   | { k: 'li'; depth: number; ord?: true; done?: boolean; runs: Run[]; a?: Attrs }
-  | { k: 'quote'; runs: Run[]; a?: Attrs } // a note: a speaker's note, a page's aside, a site's button
+  | { k: 'quote'; runs: Run[]; a?: Attrs } // a note: a speaker's note, a page's aside
   | { k: 'hr'; a?: Attrs } // a break: the next slide, page or card
   | { k: 'table'; cols: Column[]; rows: string[][]; a?: Attrs } // cells are raw strings: formulas, numbers, words
   | { k: 'fence'; lang: string; body: string; a?: Attrs } // lang names an app: another document; else text kept as written

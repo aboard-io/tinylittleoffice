@@ -7,7 +7,7 @@ import { boardToTodo } from '../src/apps/board/convert.ts';
 import { calToTodo } from '../src/apps/cal/convert.ts';
 import { tripToCal } from '../src/apps/trip/convert.ts';
 import { sheetToCal } from '../src/apps/sheet/convert.ts';
-import { writeToDeck, writeToOutline, writeToSite } from '../src/apps/write/convert.ts';
+import { writeToDeck, writeToOutline } from '../src/apps/write/convert.ts';
 import { readBoard } from '../src/apps/board/model.ts';
 import { readTodo } from '../src/apps/todo/model.ts';
 import { readCal } from '../src/apps/cal/model.ts';
@@ -107,18 +107,12 @@ test('a text as an outline: the headings a tree, what follows each under it', ()
   expect(parse(out).head.title).toBe('Launch plan');
 });
 
-test('a text as a website: the title the site’s name, the sections, an aside a paragraph', () => {
-  const out = writeToSite(TEXT);
-  expect(out).toBe('# Launch plan\n\nWhy we are doing this.\n\n## Product\n\n- Pricing\n- Packaging\n\nSay the numbers slowly\n\n### Details\n\nMore words.\n\nAfter the break.\n');
-  stable(out);
-});
-
 test('every app’s hand-offs go to apps that exist, each with a name', () => {
   const ids = new Set(apps().map((a) => a.id));
   const offered = apps().flatMap((a) => (a.handoffs ?? []).map((h) => `${a.id}→${h.to}`));
   for (const pair of offered) expect(ids.has(pair.split('→')[1])).toBe(true);
   expect(offered).toEqual(
-    expect.arrayContaining(['write→deck', 'write→outline', 'write→site', 'todo→board', 'todo→cal', 'board→todo', 'cal→todo', 'trip→cal', 'sheet→cal', 'outline→deck', 'draw→anim', 'diagram→draw']),
+    expect.arrayContaining(['write→deck', 'write→outline', 'todo→board', 'todo→cal', 'board→todo', 'cal→todo', 'trip→cal', 'sheet→cal', 'outline→deck', 'draw→anim', 'diagram→draw']),
   );
   for (const a of apps()) for (const h of a.handoffs ?? []) expect(h.label().length).toBeGreaterThan(3);
 });

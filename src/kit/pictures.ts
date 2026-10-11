@@ -11,8 +11,8 @@
  * (kit/media.ts pictureSrc), never of its own site. Exports (PDF, PNG, HTML) draw the document as it is,
  * the person exporting chose to, with each picture's bytes inside the file (kit/media.ts embedPictures).
  *
- * picture() is an <img> or the card, for an editor; gateSvg() and gateHtml() do the same to drawn pages
- * (an SVG <image>) and to a generated web page (an <img>); with `quiet` (a preview, a thumbnail) a web
+ * picture() is an <img> or the card, for an editor; gateSvg() does the same to drawn pages
+ * (an SVG <image>); with `quiet` (a preview, a thumbnail) a web
  * picture is a grey box and never fetched. A card drawn inside an SVG carries data-webpic, and the one
  * catcher installPictures() puts on the document answers its tap (and Enter) for every page at once, and
  * hides a picture's card once the picture has come (or the picture, when it cannot be fetched).
@@ -115,30 +115,6 @@ export function gateSvg(svg: string, quiet = false): string {
     if (!quiet && mayShow(url)) return tag.replace(/(\s(?:xlink:)?href=")[^"]*"/, () => ` data-src="${xml(pictureSrc(url))}" href="${BLANK}"`);
     return svgCard(tag, url, quiet);
   });
-}
-
-/** A grey picture with the site's name, as a data: address: what an <img> of a generated page shows instead. */
-const placeholder = (url: string) =>
-  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200"><rect width="320" height="200" fill="#e4e4e7"/><text x="160" y="106" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#3f3f46">${xml(hostOf(url))}</text></svg>`)}`;
-
-/** A generated web page with every web picture not yet asked for drawn grey, and every <img> sending no referrer. */
-export function gateHtml(page: string): { html: string; hidden: number } {
-  let hidden = 0;
-  const out = page.replace(/<img\b[^>]*>/g, (tag) => {
-    const url = unxml(attr(tag, 'src') ?? '');
-    let next = /\sreferrerpolicy=/.test(tag) ? tag : tag.replace(/^<img\b/, '<img referrerpolicy="no-referrer"');
-    if (webPicture(url) && !mayShow(url)) {
-      hidden++;
-      next = next.replace(/\ssrc="[^"]*"/, ` src="${placeholder(url)}"`);
-    } else if (webPicture(url)) next = next.replace(/\ssrc="[^"]*"/, ` src="${xml(pictureSrc(url))}"`);
-    return next;
-  });
-  // A picture in a card the page loads on a tap (an embed) is asked of the proxy too.
-  const boxed = out.replace(/<div class="web-pic" data-as="img"[^>]*>/g, (tag) => {
-    const url = unxml(attr(tag, 'data-src') ?? '');
-    return webPicture(url) ? tag.replace(/\sdata-src="[^"]*"/, ` data-src="${xml(pictureSrc(url))}"`) : tag;
-  });
-  return { html: boxed, hidden };
 }
 
 /** Whether drawn pages hold a web picture not yet asked for. */

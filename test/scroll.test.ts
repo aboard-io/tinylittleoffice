@@ -1,15 +1,11 @@
 // The page never scrolls (round eight, kit/scroll.ts): the document is in a column that scrolls by itself, and every
 // scroll-to goes through kit/scroll.ts. A module that reads the window's scroll or scrolls the window (or reveals an
 // element with the browser's scrollIntoView, which scrolls every box round it, the window too) brings back the page
-// that slid under a phone's keyboard; this fails on one. The Website Builder's frame script and a site's own page
-// script run in windows of their own (a sandboxed frame, a visitor's tab) and scroll those.
+// that slid under a phone's keyboard; this fails on one.
 import { test, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url);
-/** Windows of their own: the frame's script, and the script of a site as published. */
-const OWN_WINDOW = ['src/apps/site/frame.ts', 'src/apps/site/view.ts'];
-
 function sources(dir: string): string[] {
   return readdirSync(new URL(dir, root)).flatMap((f) => {
     const path = `${dir}${f}`;
@@ -35,7 +31,7 @@ test('the kit and the apps are found', () => {
 
 test('no module but kit/scroll.ts reads the window’s scroll or scrolls the window', () => {
   const found = sources('src/')
-    .filter((p) => p !== 'src/kit/scroll.ts' && !OWN_WINDOW.includes(p))
+    .filter((p) => p !== 'src/kit/scroll.ts')
     .flatMap((p) =>
       code(p)
         .split('\n')

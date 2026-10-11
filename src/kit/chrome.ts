@@ -333,7 +333,7 @@ export class ToChrome extends LitElement {
 
   protected updated() {
     this.stow();
-    // The column's height, for what fills it (a canvas, a map, a site's frame): --to-col-h.
+    // The column's height, for what fills it (a canvas, a map): --to-col-h.
     const col = this.column;
     if (!col || this.sized) return;
     // Set a frame later: what it sizes is in the column, and a change it makes is never this observer's to hear again at once.

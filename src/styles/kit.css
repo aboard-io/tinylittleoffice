@@ -1967,15 +1967,6 @@
     padding-left: max(var(--to-gutter), env(safe-area-inset-left));
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
   }
-  /* A website's Display Link: the site itself, the screen's height under the line with Edit. */
-  .to-display-site {
-    display: block;
-    width: 100%;
-    height: calc(100dvh - 4.5rem);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
-    background: #fff;
-  }
   /* A page at its paper's width (a letter page about 816px), smaller only to fit a narrower screen, centred; never stretched. */
   /* The pages in a box two fingers zoom (kit/shell.ts pinchZoom): --to-view-zoom is their width over the column's, 1 to 4,
      and the column scrolls sideways to the rest (Paul, 2026-10-11: pinch zoom in view modes too). */

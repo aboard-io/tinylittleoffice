@@ -26,7 +26,6 @@ import '../src/apps/board/commands.ts';
 import '../src/apps/todo/commands.ts';
 import '../src/apps/cal/commands.ts';
 import '../src/apps/trip/commands.ts';
-import '../src/apps/site/commands.ts';
 import { generate } from './generated.ts';
 import { makeLlms, makeSkill } from './make-skill.ts';
 

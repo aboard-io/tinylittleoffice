@@ -79,7 +79,6 @@ export default {
   'A picture from {host}': 'Une image de {host}',
   'Show pictures from the web': 'Afficher les images du web',
   'Showing them tells their site this document was opened, and when.': 'Les afficher indique à leur site que ce document a été ouvert, et quand.',
-  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|# image du web attend d’être demandée|# d’images du web attendent d’être demandées|# images du web attendent d’être demandées}.',
   'Always show pictures from the web': 'Toujours afficher les images du web',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Désactivé, une image que détient un autre site attend que vous la demandiez : la récupérer dit à ce site qui lit.',
   'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Une image qu’un document tient de son adresse sur un autre site n’est pas récupérée avant que vous la demandiez : la récupérer dirait à ce site qui lit, et quand. Un lien qui quitte Tout Petit Bureau montre où il mène, et demande, avant de s’ouvrir.',
@@ -746,7 +745,6 @@ export default {
   'Duplicate': 'Dupliquer',
   'Edit': 'Modifier',
   'Delete': 'Supprimer',
-  'Label': 'Étiquette',
   'Put an icon on this shape': 'Mettre une icône sur cette forme',
   'Place an icon': 'Placer une icône',
   'Zoom in': 'Zoom avant',
@@ -947,7 +945,6 @@ export default {
   'Unfold, {n|one inside|# inside}': 'Déplier, {n|# élément|# d’éléments|# éléments}',
   'Untitled': 'Sans titre',
   'View as': 'Voir en',
-  'Website Builder': 'Créateur de sites',
   'Zoomed in on': 'Zoom sur',
   'a plain line': 'une ligne simple',
   'an arrow from the parent': 'une flèche depuis le parent',
@@ -1516,107 +1513,12 @@ export default {
   'A wedding on Lake Como': 'Un mariage au lac de Côme',
   'For the guests: where the wedding is, where to sleep, how to get there.': 'Pour les invités : où a lieu le mariage, où dormir, comment s’y rendre.',
 
-  // ---- the Website Builder ----
-  'site': 'site', // same
-  // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
-  'Web': 'Web', // same
-  'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'Un site web de petites pages, ou une page de liens rapides, téléchargé en un seul fichier HTML ; une boutique avec un panier si vous listez ce que vous vendez.',
-  'The website (HTML)': 'Le site web (HTML)',
-
-  // What Insert can put in, each thing's form (its fields and Done), and Preview
-  'A line under them': 'Une ligne dessous',
-  'Big link': 'Grand lien',
-  'Edit the products…': 'Modifier les produits…',
-  'Goes to': 'Mène à',
-  // The URL chip on the bar of a button or a link, said: where it goes ("Goes to #menu"), or, with nowhere yet, what it sets.
-  'Goes to {place}': 'Mène à {place}',
-  'Where it goes': 'Où il mène',
-  // The words a paragraph put in from Insert is given, chosen, so the first letter typed replaces them.
-  'New paragraph': 'Nouveau paragraphe',
-  'Icon: none': 'Icône : aucune',
-  'Icon: {name}': 'Icône : {name}',
-  'Preview': 'Aperçu',
-  'The site’s name': 'Le nom du site',
-  'The website, as a visitor sees it': 'Le site web, tel que le voit un visiteur',
-  'Words for the page': 'Texte de la page',
-  'https://…, or a page of the site': 'https://…, ou une page du site',
-  '{n|one thing|# things} for sale': '{n|# article|# d’articles|# articles} à vendre',
-
-  // The words a new thing starts with
-  'Button': 'Bouton',
-  'Small link': 'Petit lien',
-  'Section': 'Section', // same
-  'A line about it': 'Une ligne à son sujet',
-  'New section': 'Nouvelle section',
-  'New page': 'Nouvelle page',
-  'New thing': 'Nouvel élément',
-
-  // The editor: the page in its frame
-  'The website, as it will look': 'Le site web, tel qu’il sera',
-
-  // The look: the themes, light or dark, the type, the shape
-  'Teal': 'Sarcelle',
-  'Rose': 'Rose', // same
-  'Amber': 'Ambre',
-  'Ink': 'Encre',
-  'Forest': 'Forêt',
-  'Plum': 'Prune',
-  'Candy': 'Bonbon',
-  'Olive': 'Olive', // same
-  'Slate': 'Ardoise',
-  'Paper': 'Papier',
+  // ---- shared: the Word Processor's looks, the header's Home, a money column's currency ----
   'Typewriter': 'Machine à écrire',
-  'Coal': 'Charbon',
-  'Light or dark': 'Clair ou sombre',
-  'As the theme is': 'Comme le thème',
-  'Type': 'Police',
-  'Sans serif': 'Sans serif', // same
   'Serif': 'Serif', // same
-  'Rounded': 'Arrondie',
-  'Monospace': 'Chasse fixe',
-  'Shape': 'Forme',
-  'A website of pages': 'Un site de pages',
-  'Quick links: one column': 'Liens rapides : une colonne',
-
-  // The page itself: its nav, its foot, the shop and its cart ("Order from Harbor Coffee"; "Mug added to the cart")
-  'My site': 'Mon site',
-  'Quick Links': 'Liens rapides',
   'Home': 'Accueil',
-  'Sections': 'Sections', // same
-  'Elsewhere': 'Ailleurs',
-  'Products': 'Produits',
-  'Add to cart': 'Ajouter au panier',
-  'Add {thing} to the cart': 'Ajouter {thing} au panier',
-  'Cart': 'Panier',
-  'Nothing in it yet.': 'Rien dedans pour l’instant.',
-  'Total': 'Total', // same
-  'Send order by email': 'Envoyer la commande par e-mail',
-  'Copy order': 'Copier la commande',
-  'One fewer': 'Un de moins',
-  'One more': 'Un de plus',
-  'added to the cart': 'ajouté au panier',
-  'Order copied': 'Commande copiée',
-  'Order from {site}': 'Commande chez {site}',
-  'Orders go to': 'Les commandes vont à',
-  'you@example.com, or orders are copied': 'vous@exemple.fr, sinon les commandes sont copiées',
   'Currency': 'Devise',
 
-  // The templates
-  'A small shop': 'Une petite boutique',
-  'Things for sale with a cart; orders come to you by email.': 'Des articles à vendre avec un panier ; les commandes vous arrivent par e-mail.',
-  'An event': 'Un événement',
-  'A fair, a festival, a reunion: the dates, the programme, the way there.': 'Une foire, un festival, des retrouvailles : les dates, le programme, le chemin.',
-  'Three pages: the front with what is special, the menu, how to find you.': 'Trois pages : l’accueil avec ce qui est spécial, la carte, comment vous trouver.',
-  'Quick Links: a maker': 'Liens rapides : un créateur',
-  'A picture, a line, the shop, the classes, the inbox; the places you post at the foot.': 'Une image, une ligne, la boutique, les cours, la boîte de réception ; les endroits où vous publiez en bas.',
-  'Quick Links: a group': 'Liens rapides : un groupe',
-  'A mutual-aid group or a club: how to join, how to help, the next meeting.': 'Un groupe d’entraide ou un club : comment adhérer, comment aider, la prochaine réunion.',
-  'Quick Links: a band': 'Liens rapides : un groupe de musique',
-  'The new record, the dates, the merch, every place the music is.': 'Le nouvel album, les dates, le merch, tous les endroits où se trouve la musique.',
-  'Quick Links: a small business': 'Liens rapides : un petit commerce',
-  'Hours, the menu, a table booked, the way there, the phone.': 'Horaires, la carte, une table réservée, le chemin, le téléphone.',
-  'Quick Links: a writer': 'Liens rapides : un écrivain',
-  'The newsletter, the book, the latest piece, and a way to say hello.': 'La lettre d’information, le livre, le dernier texte, et un moyen de dire bonjour.',
   // ---- the Calculator app ----
   'calculation': 'calcul',
   // The tape is the list of lines worked out, as on a printing calculator. 'Calculator' and 'Numbers' are above.
@@ -1780,7 +1682,6 @@ export default {
   'Left': 'Reste',
   'Make a to-do list of it': 'En faire une liste de tâches',
   'Make a to-do list of the cards': 'Faire une liste de tâches des cartes',
-  'Make it a website': 'En faire un site web',
   'Move the cards to the stage before or after': 'Déplacer les cartes vers l’étape d’avant ou d’après',
   'Move the selected items up or down': 'Monter ou descendre les éléments sélectionnés',
   'No document here has those words': 'Aucun document ici ne contient ces mots',
@@ -1866,30 +1767,6 @@ export default {
   'Tap empty space for an event: type when, Shift+Enter, then what happened; years and dates are spaced as they fell; a span is a band.': 'Touchez un espace vide pour un événement : saisissez quand, Shift+Enter, puis ce qui s’est passé ; les années et les dates sont espacées comme elles sont tombées ; une durée est une bande.',
   'The lane\'s name': 'Le nom du couloir',
   'When': 'Quand',
-  'A band': 'Un groupe de musique',
-  'A campaign': 'Une campagne',
-  'A clinic': 'Une clinique',
-  'A holiday cottage': 'Un gîte',
-  'A mutual-aid group': 'Un groupe d’entraide',
-  'A newsletter sign-up': 'Une inscription à une lettre d’information',
-  'A photographer’s work page by page, prints for sale, and a way to commission her.': 'Le travail d’une photographe page par page, des tirages à vendre, et un moyen de lui passer commande.',
-  'A plumber': 'Un plombier',
-  'A portfolio': 'Un portfolio',
-  'A school club': 'Un club scolaire',
-  'A tradesperson’s page: what they do, what it costs, the number to ring in an emergency.': 'La page d’un artisan : ce qu’il fait, ce que ça coûte, le numéro à appeler en cas d’urgence.',
-  'A wedding': 'Un mariage',
-  'A yoga studio': 'Un studio de yoga',
-  'How to ask, how to offer, and what the group needs this month as a list.': 'Comment demander, comment offrir, et ce dont le groupe a besoin ce mois-ci en liste.',
-  'One thing to say and one button: a party, a petition, a sign-up.': 'Une chose à dire et un bouton : une fête, une pétition, une inscription.',
-  'Opening hours, what to do out of hours, the services, and the way in.': 'Les horaires d’ouverture, quoi faire en dehors, les services, et comment venir.',
-  'Quick Links: one link': 'Liens rapides : un lien',
-  'The day hour by hour, the way there with a map, where to stay, and how to reply.': 'La journée heure par heure, le chemin avec une carte, où dormir, et comment répondre.',
-  'The new record, the tour with a ticket link for each night, the merch with a cart.': 'Le nouvel album, la tournée avec un lien de billetterie pour chaque soir, le merch avec un panier.',
-  'The rooms, the prices by season worked out per night, how to book, a map.': 'Les chambres, les prix par saison calculés par nuit, comment réserver, une carte.',
-  'The week’s classes, passes to buy with a cart, and the teachers.': 'Les cours de la semaine, des forfaits à acheter avec un panier, et les professeurs.',
-  'What the letter is, one button to subscribe, and the last three letters.': 'Ce qu’est la lettre, un bouton pour s’abonner, et les trois dernières lettres.',
-  'When it meets, the big day, T-shirts for the coach fund, and what to bring.': 'Quand il se réunit, le grand jour, des T-shirts pour la caisse du car, et quoi apporter.',
-  'Why it matters in three numbers, what it costs added up, the hearing, and a QR code for the petition.': 'Pourquoi cela compte en trois chiffres, ce que cela coûte en tout, l’audience, et un QR code pour la pétition.',
   'Align: centre': 'Alignement : centré',
   'Align: left': 'Alignement : à gauche',
   'Align: right': 'Alignement : à droite',

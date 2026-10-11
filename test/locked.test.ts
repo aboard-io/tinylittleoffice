@@ -49,13 +49,13 @@ test('the locked card: the lock, the words, the app, at the app’s own small si
   expect(lockedPage(`#/v1/nope/${sealed}`).svg).toContain('This document cannot be read.');
 });
 
-test('opened this visit: drawn open in an editor alone; the pages, the site and the files keep the locked card', () => {
+test('opened this visit: drawn open in an editor alone; the pages and the files keep the locked card', () => {
   setOpened(sealed, inner);
   try {
     const body = `#/v1/write/${sealed}`;
     expect(lockedPage(body, { small: true, open: true }).svg).toContain('The secret words');
     expect(lockedPage(body, { small: true }).svg).toContain('Locked with a password');
-    // The Word Processor's pages, its web page, a slide and a site page.
+    // The Word Processor's pages, its web page and a slide.
     const text = outer();
     const pages = appOf('write')!
       .view(text)
@@ -71,10 +71,6 @@ test('opened this visit: drawn open in an editor alone; the pages, the site and 
       .join('');
     expect(slides).toContain('Locked with a password');
     expect(slides).not.toContain('secret');
-    const site = appOf('site')!.page!(write({ head: {}, blocks: [{ k: 'h', level: 1, runs: [{ t: 'Home' }] }, lockedFence('write', sealed)] }), 'https://tinylittleoffice.com/');
-    expect(site).toContain('Locked with a password');
-    expect(site).toContain(`#/v1/write/${sealed}`);
-    expect(site).not.toContain('secret');
   } finally {
     forgetOpened();
   }

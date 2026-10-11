@@ -55,8 +55,8 @@ import { pageSvg } from './draw.ts';
 import { opensDropped, unplain } from './open.ts';
 import { parseCompare, type Side } from './compare.ts';
 import { toast } from './toast.ts';
-import { installLinkGuard, openLink } from './link-guard.ts';
-import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
+import { installLinkGuard } from './link-guard.ts';
+import { gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { motion, reducedMotion } from './motion.ts';
 import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
@@ -85,8 +85,6 @@ import './compare.ts';
 
 /** How long typing pauses before the document is projected into the link (flushLink). */
 const PAUSE = 150;
-/** The stamp the Display Link's website puts on its messages (a link out): this page's, made once. */
-const SITE_STAMP = crypto.getRandomValues(new Uint32Array(1))[0];
 
 export class ToShell extends LitElement {
   static properties = {
@@ -194,7 +192,6 @@ export class ToShell extends LitElement {
     on(this, 'to-link-copied', () => ((this.copied = true), this.guard()));
     on(this, 'click', this.onFollow as EventListener);
     on(window, 'to-leave', this.onGo);
-    on(window, 'message', this.onSiteLink as EventListener);
     onFlush(this.flushLink);
     this.offs.push(
       () => onFlush(() => {}),
@@ -673,17 +670,6 @@ export class ToShell extends LitElement {
 
   private trust = () => trustButton(this.signature, !!this.sealed, !!this.locker, () => (this.sealed ? void this.askPassword() : void this.privacy?.show()));
 
-  /**
-   * A link out of the website the Display Link shows: its page cannot leave the sandbox, so it says where the link
-   * goes, and that is asked about as every link that leaves the site is. Only from that frame, with its stamp.
-   */
-  private onSiteLink = (e: MessageEvent) => {
-    const m = e.data as { site?: unknown; do?: unknown; href?: unknown } | null;
-    const frame = this.querySelector<HTMLIFrameElement>('iframe.to-display-site');
-    if (!frame || e.source !== frame.contentWindow || !m || m.site !== SITE_STAMP || m.do !== 'link' || typeof m.href !== 'string') return;
-    openLink(m.href);
-  };
-
   /** The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for first. */
   private pages = (def: AppDef) =>
     html`<div class="to-display-pages">${def
@@ -691,7 +677,7 @@ export class ToShell extends LitElement {
       .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</div>`;
 
   /**
-   * The Display Link: the pages, to read or print (a website: the site itself, as a visitor has it), with Edit. The
+   * The Display Link: the pages, to read or print, with Edit. The
    * embed: the pages alone, for another site's frame, with Open in Tiny Little Office; locked, the locked card with Unlock.
    */
   private renderPlain(def: AppDef) {
@@ -706,9 +692,7 @@ export class ToShell extends LitElement {
       return html`<to-chrome .plain=${{ kind: 'embed', title: this.docTitle, href: u.href, locked: !!this.sealed }} .main=${main}></to-chrome>`;
     }
     const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null);
-    const main = def.page
-      ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`, SITE_STAMP)).html}></iframe>`
-      : this.pages(def);
+    const main = this.pages(def);
     // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
     const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;
     return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, present, trust: this.trust() }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;

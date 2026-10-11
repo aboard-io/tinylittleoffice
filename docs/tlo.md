@@ -45,7 +45,7 @@ A document is a head and a list of blocks. Nine kinds of block:
 | `h` | `# Words` … `###### Words` | Level 1 to 6. |
 | `p` | a paragraph | A line break inside it is a line of its own in the text. An empty paragraph is `<br>`. |
 | `li` | `- words`, `1. words`, `- [ ] words`, `- [x] words` | Nested by two spaces. |
-| `quote` | `> words` | A note: a speaker's note, a page's aside, a site's button. |
+| `quote` | `> words` | A note: a speaker's note, a page's aside. |
 | `hr` | `---` | A break: the next slide, page or card. |
 | `table` | `Name | Price:money` / `--- | ---` / rows | Cells are raw strings (formulas start with `=`). Written without outer pipes. |
 | `fence` | ```` ```<lang> ```` … ```` ``` ```` | `lang` names an app: another document, its whole TLO text. Else text kept as written. |
@@ -64,7 +64,7 @@ code), `long`, `icon`, `name` (each cell names the cell to its right, for formul
 the column holds).
 A money column may name its currency in parentheses, a symbol of up to three characters or an ISO 4217 code:
 `Price:money(£)`, `Price:money(GBP)` (a code is shown as the reader's browser writes it); one that names none
-is in the head's `currency:` where the app has one (the Word Processor, the Website Builder), else in dollars.
+is in the head's `currency:` where the app has one (the Word Processor), else in dollars.
 
 ### The head
 
@@ -170,13 +170,6 @@ the task items one level under it. `look: rows` in the head draws the stages as 
 
 **trip** (Trip Planner): a table `Place | Lat:number | Lon:number | Note`. Head: `units: km` or `miles` (hours of
 driving where absent), `route: dots` for places that are not a route.
-
-**site** (Website Builder): `# Name` and a line about it; each further `# Title` a page, `## Section` a part of
-one. `- :icon: Point | detail` a card, `> Label | https://…` a button, a picture's address alone a picture,
-`:icon:` alone a big icon, a table `Name | Price:money | About | Image` a shop with a cart (its prices, the
-cart's lines and total and the order mailed in the Price column's currency, `Price:money(GBP)`, else the
-head's). Head: `theme: teal serif dark`, `currency`, `orders` (where orders are mailed); `look: links` makes
-it a Quick Links page (one column, the buttons stacked, `- ` items small links at the foot).
 
 ## Opening another app's reading
 

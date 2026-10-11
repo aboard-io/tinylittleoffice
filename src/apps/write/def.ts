@@ -13,7 +13,7 @@ import { checkContract } from './contract.ts';
 import { retitle, titleOf } from './model.ts';
 import { templates } from './templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from './view.ts';
-import { writeToDeck, writeToOutline, writeToSite } from './convert.ts';
+import { writeToDeck, writeToOutline } from './convert.ts';
 
 /** The document read, its signatures verified first: a file says what was found when it was made. */
 const checked = async (text: string) => {
@@ -61,7 +61,6 @@ export default defineApp({
   handoffs: [
     { to: 'deck', label: () => t('Show as slides'), convert: writeToDeck },
     { to: 'outline', label: () => t('Open as an outline'), convert: writeToOutline },
-    { to: 'site', label: () => t('Make it a website'), convert: writeToSite },
   ],
   commands: () => import('./commands.ts'),
 });

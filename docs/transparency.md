@@ -31,8 +31,8 @@ leak. Everything here makes that checkable by a stranger.
    `frame-src` and `media-src` from the list (`test/csp.test.ts`: every host in its directive and nothing
    else; the map's tiles left `connect-src`, which nothing used). Builds are not run in tests, so
    `test/network.test.ts` reads the source (`src/`, `tinier/`, `media/`) instead of the built site: every
-   host must be on the list (or localhost, or an XML namespace; tests and the Website Builder's sample
-   templates exempt, said why), `src/` names hosts only through the list, and the committed page must be
+   host must be on the list (or localhost, or an XML namespace; tests exempt, said why), `src/` names hosts
+   only through the list, and the committed page must be
    what the list says.
 2. **A threat model** (gate). `docs/threat-model.md`: what we protect against (the host learning a document;
    a short link's service reading one; a shared link altered in transit; a scam link or a tracking picture
@@ -137,8 +137,8 @@ workflow, which is §1 item 3.
 One sentence: **Tiny Little Office is a free office suite where your document is the link. There's no
 account, nothing is stored anywhere, and whoever has the link has the document.**
 
-A paragraph: *Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list, a
-website. When you want to share it, copy the link. The whole document lives inside that link, so sending it
+A paragraph: *Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list.
+When you want to share it, copy the link. The whole document lives inside that link, so sending it
 is like handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you
 write. If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It
 works on a phone, and it's free, with the code open for anyone to read.*

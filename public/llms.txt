@@ -58,7 +58,6 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `todo` | To-Do List | Tasks to tick off, with stars and due dates. |
 | `cal` | Calendar | Days and times on a month, a year or a schedule, in any time zone. |
 | `trip` | Trip Planner | A route on a map: stops in order, each with a note, and how far between them. |
-| `site` | Website Builder | A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell. |
 
 ## Words
 
@@ -549,80 +548,6 @@ As a link: <https://tinylittleoffice.com/trip/#doc=---%0Aunits%3A+km%0A---%0APla
 
 Templates: A weekend in Copenhagen, Iceland’s Ring Road, A Dublin pub crawl, Yosemite’s Mist Trail loop, The Loire by bike, A college tour, A week in Portugal, Down the Pacific coast, The Scottish Highlands, Rome, the places to see, Japan by rail, The last 100 km of the Camino, New York in the movies, A wedding on Lake Como. Its own files: `.gpx`, `.geojson`.
 
-## The web
-
-### site: a website of little pages, or a page of quick links
-
-`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a picture's address alone on a line a picture, `:icon:` alone a big icon, a fence another document. `theme:` in the head sets the look: `indigo teal rose amber ink forest ocean sunset plum candy olive slate paper typewriter midnight coal`, with `serif`, `sans`, `rounded` or `mono` to change the type and `dark` or `light` the mode (`theme: teal serif dark`). A table `Name | Price:money | About | Image` in a section is a shop with a cart; the head holds `currency: $` and `orders: someone@example.com`. `look: links` makes it a Quick Links page (a link-in-bio): one column, the buttons stacked, the list items small links at the foot.
-
-A café:
-
-```
----
-theme: amber
----
-# Harbor Coffee
-
-Small-batch coffee, roasted on the quay every morning.
-
-> See the menu | #menu
-> Find us | #find-us
-
-- :coffee: Roasted daily | Never more than a week old
-- :leaf: Fair trade | From farms we have visited
-- :bike: Delivered | By bike, on the day
-
-# Menu
-
-What we pour, and what we bake.
-
-## Coffee
-
-- Espresso | 3.00
-- Flat white | 4.20
-- Filter, by the cup | 3.50
-
-## Pastry
-
-- Cardamom bun | 3.50
-- Sourdough toast, butter and jam | 4.00
-
-# Find us
-
-14 Quay Street, open 7 to 3, every day but Monday.
-
-https://www.openstreetmap.org/?mlat=43.6567&mlon=-70.2484#map=17/43.6567/-70.2484
-
-> Email us | mailto:hello@harborcoffee.example
-```
-
-As a link: <https://tinylittleoffice.com/site/#doc=---%0Atheme%3A+amber%0A---%0A%23+Harbor+Coffee%0A%0ASmall-batch+coffee%2C+roasted+on+the+quay+every+morning.%0A%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A%0A-+%3Acoffee%3A+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf%3A+Fair+trade+%7C+From+farms+we+have+visited%0A-+%3Abike%3A+Delivered+%7C+By+bike%2C+on+the+day%0A%0A%23+Menu%0A%0AWhat+we+pour%2C+and+what+we+bake.%0A%0A%23%23+Coffee%0A%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A-+Filter%2C+by+the+cup+%7C+3.50%0A%0A%23%23+Pastry%0A%0A-+Cardamom+bun+%7C+3.50%0A-+Sourdough+toast%2C+butter+and+jam+%7C+4.00%0A%0A%23+Find+us%0A%0A14+Quay+Street%2C+open+7+to+3%2C+every+day+but+Monday.%0A%0Ahttps%3A%2F%2Fwww.openstreetmap.org%2F%3Fmlat%3D43.6567%26mlon%3D-70.2484%23map%3D17%2F43.6567%2F-70.2484%0A%0A%3E+Email+us+%7C+mailto%3Ahello%40harborcoffee.example>
-
-Quick Links: a maker:
-
-```
----
-look: links
-theme: rose
----
-# Ada Diaz
-
-![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)
-
-Potter in Lisbon. Mugs, bowls, the odd lamp.
-
-> :cart: The shop | https://example.com/shop
-> :calendar: Book a class | https://example.com/classes
-> :mail: Email me | mailto:ada@example.com
-
-- :camera: Instagram | https://instagram.com/ada
-- :film: YouTube | https://youtube.com/@ada
-```
-
-As a link: <https://tinylittleoffice.com/site/#doc=---%0Alook%3A+links%0Atheme%3A+rose%0A---%0A%23+Ada+Diaz%0A%0A%21%5B%5D%28https%3A%2F%2Fimages.unsplash.com%2Fphoto-1544005313-94ddf0286df2%3Fw%3D400%29%0A%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0A%0A%3E+%3Acart%3A+The+shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Acalendar%3A+Book+a+class+%7C+https%3A%2F%2Fexample.com%2Fclasses%0A%3E+%3Amail%3A+Email+me+%7C+mailto%3Aada%40example.com%0A%0A-+%3Acamera%3A+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A-+%3Afilm%3A+YouTube+%7C+https%3A%2F%2Fyoutube.com%2F%40ada>
-
-Templates: A café, A small shop, An event, A portfolio, A wedding, A band, A clinic, A campaign, A mutual-aid group, A school club, A newsletter sign-up, A holiday cottage, A plumber, A yoga studio, Quick Links: a maker, Quick Links: a group, Quick Links: a band, Quick Links: a small business, Quick Links: a writer, Quick Links: one link. Its own files: `.html`.
-
 ## Every app's files
 
 Every document downloads as a `.pdf` (its pages as pictures; Print in the browser saves one with the words still words), a picture (`.png`), a web page (`.html`), Markdown (`.md`, footnotes in Markdown's reference form) and its own text (`.tlo`: the TLO with `app: <id>` in its head, which opens as its own app when dropped on the site or opened from its menu). A `.zip` of `.tlo` and `.md` files, a folder per app as the site's Download everything writes it, opens the same way: every document in it is kept on the device (under Private, listed to keep or to open). A link that downloads a file as it opens is `#/v1/<app>.<ext>/<payload>`, or `view=<ext>` in the plain form.
@@ -695,7 +620,6 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - **To-Do List**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before.
 - **Calendar**: `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Tab`/`Shift+Tab` Indent or bring out in a list; the next cell in a grid; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task; `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Enter` Event; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Home`/`End`/`PageUp`/`PageDown` The next or the one before; `Delete`/`Backspace` Delete; `Mod+D` Duplicate.
 - **Trip Planner**: `Mod+Alt+Enter` Present; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `Mod+D` Duplicate; `ArrowUp`/`ArrowDown` The next or the one before; `ArrowRight`/`Space`/`PageDown`/`Enter` Presenting: the next stop; `ArrowLeft`/`PageUp`/`Backspace` Presenting: the stop before; `Home`/`End` The first, the last; `Escape` Stop presenting; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown` Nudge the shapes in hand; `Delete`/`Backspace` Delete; `Escape` Step out: close, collapse, let go.
-- **Website Builder**: `Escape` Edit; `Enter` Edit; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Alt+ArrowLeft` Move left; `Mod+Alt+ArrowRight` Move right; `Mod+D` Duplicate; `Delete`/`Backspace` Delete; `Escape` Step out: close, collapse, let go; `ArrowUp`/`ArrowDown` The next or the one before.
 
 ## Choosing an app
 
@@ -703,7 +627,7 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
 - A wall of work in stages: `board`. Things to tick off: `todo`. Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`.
-- Something to publish: `site`. Anything else visual: `draw`; moving: `anim`.
+- Anything else visual: `draw`; moving: `anim`.
 
 ## Good practice
 

@@ -1,6 +1,5 @@
 # Headers for the site on Cloudflare (Workers static assets). The build fills {{scripts}} with the hash of every
 # script the apps' pages carry (pageScript in src/kit/page.ts), so no other inline script can run, even in a frame.
-# (The Website Builder's frame inherits this policy; its editing script is the site's own file, /site-frame.js, by 'self'.)
 # The site is its own only source of code and style; nothing may embed the editor (frame-ancestors 'none') but the
 # embed page, /embed/ (the embed view: the pages alone, for another site's frame), below. Where the site may reach is
 # filled in by scripts/headers.ts from src/kit/network.ts, the one list of every host (docs/network.md, /network):

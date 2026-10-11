@@ -94,7 +94,7 @@ export const NETWORK = {
   commons: trusted('commons.wikimedia.org', 'Commons’ own pages’ pictures (the same files, by another address)'),
   archivePictures: trusted('archive.org', 'The Internet Archive’s files: public-domain and archived pictures'),
   archiveStorage: trusted('ia*.us.archive.org', 'The Internet Archive’s storage hosts (ia800….us.archive.org), where its download addresses lead'),
-  unsplash: trusted('images.unsplash.com', 'Unsplash’s image CDN: pictures under the Unsplash licence; the Website Builder’s templates use it'),
+  unsplash: trusted('images.unsplash.com', 'Unsplash’s image CDN: pictures under the Unsplash licence'),
   pexels: trusted('images.pexels.com', 'Pexels’ image CDN: pictures under the Pexels licence'),
   flickr: trusted('live.staticflickr.com', 'Flickr’s static files: pictures with their licence stated, many Creative Commons'),
   githubRaw: trusted('raw.githubusercontent.com', 'Files in public GitHub repositories: static, the address names the file'),

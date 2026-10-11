@@ -21,7 +21,6 @@ const START: [string, string][] = [
   ['diagram', 'to-diagram-editor .dg-wrap'],
   ['cal', 'to-cal-editor .cal-cell.today .cal-n'],
   ['trip', 'to-trip-editor .trip-map'],
-  ['site', 'to-site-editor iframe.site-frame'],
 ];
 
 test('every app opens with the focus where a person starts, the page not scrolled', async ({ page }, info) => {

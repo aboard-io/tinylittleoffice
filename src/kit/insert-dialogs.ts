@@ -1,6 +1,6 @@
 /**
  * The three things Insert ▾ asks an address for, as one kind of dialog each app shares (Write, Deck, the
- * Outliner, the Website Builder): Web Picture, Web Embed and Tiny Little Office Doc. Each is a <to-dialog>
+ * Outliner): Web Picture, Web Embed and Tiny Little Office Doc. Each is a <to-dialog>
  * with one layout: one wide address field with OK at its right (one row; the field takes the room), and
  * under it what that address will be, drawn as soon as it is typed or pasted. The content sits at the top of
  * the dialog, so nothing moves as the preview arrives or the window grows. A person never types a marker:

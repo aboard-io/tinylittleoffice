@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
-import { siteFrame } from './scripts/site-frame.ts';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 /**
@@ -44,8 +43,6 @@ export default defineConfig({
       // An app's model and view tests are node tests too: src/apps/<id>/tests/*.unit.test.ts.
       { test: { name: 'unit', include: ['test/*.test.ts', 'test/doc/*.test.ts', 'src/**/tests/*.unit.test.ts'], environment: 'node' } },
       {
-        // The Website Builder's frame loads its script from the server (scripts/site-frame.ts).
-        plugins: [siteFrame(import.meta.dirname)],
         test: {
           name: 'browser',
           include: ['test/browser/**/*.test.ts', 'src/**/tests/*.test.ts'],
@@ -57,7 +54,6 @@ export default defineConfig({
       {
         // The files that count what the origin holds run after the rest, alone: browser files share one origin's
         // localStorage, so a file that turns Saved on or chooses a language while these count would be counted.
-        plugins: [siteFrame(import.meta.dirname)],
         test: {
           name: 'browser-alone',
           include: ALONE,

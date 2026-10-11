@@ -59,11 +59,11 @@ random bytes that exist only in the owner's link (`#<key>.<o>`); the service kee
 **A scam link inside a document.** Words in a document can say one address and link to another. No link that
 leaves the site opens without first showing, large, the site it goes to and the whole address, with Cancel
 as the default (`src/kit/link-guard.ts`); a link to anything but a web page, an email address or a phone
-number never opens. That holds inside a website shown here (the Display Link, the editor's Preview): its page
-cannot leave its sandboxed frame, and a link out of it is handed to the guard. The address is drawn left to
+number never opens. There is no website builder: a document never runs code, and nothing in one is drawn as a
+page of its own. The address is drawn left to
 right, set apart from the words round it, in every language, and an email address or a phone number that hides
 reversing or invisible characters is refused rather than drawn. This shows where a link goes; it does not judge
-whether the place is honest. (A website downloaded as a file is a page of its own, outside Tiny Little Office.)
+whether the place is honest.
 
 **A tracking picture inside a document.** A picture held by its address on another site would tell that site
 who read the document, when and from where. Such a picture is drawn as a card until the reader asks
@@ -157,6 +157,7 @@ taps it, and the map's tiles and place search go to OpenStreetMap directly while
 | Short links expire (an hour to a year), are swept hourly, extend only on purpose | Ciphertext kept indefinitely by a service |
 | No logs in the site, the shortener or the proxy (observability off, no console calls, tests hold both) | A record of who asked for what |
 | The link guard before every link that leaves | A scam link disguised by its words |
+| No website builder: a document never runs code | A phishing page served from our own domain |
 | Web pictures asked first, through the proxy, no referrer | Tracking pixels; a picture's site learning who reads |
 | Content-Security-Policy listing every host; no third-party scripts or fonts | Telemetry, and code injected through a document running at all |
 | WebCrypto, no crypto library | A dependency's bug or compromise in the part that matters most; and code a reader can check in an hour |

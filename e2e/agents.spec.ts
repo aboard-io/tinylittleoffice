@@ -22,7 +22,7 @@ test('/llms.txt and /api.js are served; the API makes a link that opens', async 
     return { url, back: api.read(url).text, apps: (await api.apps()).length };
   });
   expect(made.back).toBe('---\ntitle: Shop\n---\n- [ ] Milk\n');
-  expect(made.apps).toBe(13);
+  expect(made.apps).toBe(12);
   await page.goto(made.url);
   await expect(page.locator('.to-title')).toHaveValue('Shop');
 });

@@ -91,10 +91,6 @@ Status key: **present**; **partial** (some of it is there); **missing**; **dropp
 | Presenting: an embedded document builds piece by piece | AppDef.steps in cal, board, draw, gantt, todo, trip, outline, sheet, site, links, invoice, diagram, fold | A slide holding a drawing reveals a shape a click, a table a row, a map a stop… | **missing** (`slideSteps` returns 0 when the slide shows a sub-document) | In the kit: `AppDef.steps?(doc)` and `view(doc, { upTo })`. Per app: count and draw `upTo` items. Deck: use them in `slideSteps`/`slidePage`. |
 | Trip presenting (fly to each stop) | apps/trip.ts `present`, `goTo(step)` | On a slide, the map flies to each stop in turn and names it. | **missing** | Trip app: a `present`/`step` mode in trip/editor.ts. It depends on the embedded-steps row. |
 | Seating place cards | apps/seating.def.ts `placeCards`, lib/print.ts `tile` | `.cards.pdf`: a 4×2.5 in card per guest, name large, table small, eight to a letter sheet with cut lines. | **missing** | Port the pure code: `placeCards` plus print.ts `tile` into diagram/view.ts. Diagram app: an export `cards` (print of the pages) shown when `kind: seating`. |
-| Website: tap an icon to change it | lib/pageedit.ts `data-lf-icon`, apps/diagram-page.ts `pickIcon` | Tapping a big icon or button icon on the page opens the icon picker for it. | **missing** (the frame only picks sections; icons come from Insert) | Site app: mark icons in site/view.ts preview (`data-…`), send `{do:'icon'}` from the frame script, and handle it in site/editor.ts with `chooseIcon`. |
-| Website: type on the page where words stand | lib/pageedit.ts | In-place editing inside the frame. | **built** (2026-10-10: `<to-text>` inside the frame, src/apps/site/frame.ts; docs/kernel.md §8 decision 3) | — |
-| Website themes (16), shop/cart, orders | lib/sitemodel.ts | — | **present** (site/theme.ts 16 themes; model currency/orders) | — |
-| Quick Links | apps/links.def.ts | — | **present** (Site templates, `look: links`) | — |
 | Invoice | apps/invoice.def.ts, invoice.ts | A form like paper, sums as typed, PDF. | **present** (Write template with head fields as inputs and a formula table; rebuild.md on main) | — |
 | Calculator money modes (mortgage, investment, cash flow NPV/IRR/payback, interest) | lib/calc.ts, calc.def.ts | Boxes in, plus a headline card, table and chart. | **partial**: dropped from the calculator by decision (docs/kernel.md §5 and risk 6: "the money modes are Sheet templates now"), but only "Loans compared" exists among the sheet templates. There is no mortgage, investment, cash flow or interest template. | Sheet templates: mortgage (PMT plus an amortisation table and chart), investment (FV), cash flow (NPV/IRR/payback), interest (compound vs simple), using doc/formula.ts functions. |
 | Calculator: units, algebra, graph, named tape | calc.ts, calc-math.ts | — | **present** (calc/math.ts, `mode: graph`) | — |
@@ -128,7 +124,6 @@ Kit-wide (old `COMMON`: pdf, png, html, md, tlo, plus gif for moving things). Ne
 | Trip | gpx, geojson | gpx, geojson | present |
 | Motion | svg, gif | gif, svg | present |
 | Calculator | (common only) | txt (tape) | present (+) |
-| Website / Quick Links | html (site) | html (site) | present |
 | Folds (zine…badges) | html (tap-through), pdf (imposed sheets) | deck html, print of the sheets | present (the PDF goes through the print dialog) |
 | Invoice, Contract | html as paper | Write html/docx/print | present, with the contract's signature block (RS-2). |
 | Spinner, Santa, Split, Wordsearch | html pages, print | — | dropped |
@@ -140,8 +135,6 @@ Kit-wide (old `COMMON`: pdf, png, html, md, tlo, plus gif for moving things). Ne
 | Write | 9 (+ the Invoice and Contract apps) | 5 (letter, meeting notes, résumé, contract, invoice) | **One-page memo, A short bio, Weekly plan, Business plan, Marketing plan, Go-to-market plan** (the three plans were a headline feature in the README) |
 | Sheet | 12 | 10 | **Comparison, with a chart**. Invoice table moved to Write. Money-mode templates are needed (see calculator). |
 | Deck | 12 | 9 (talk, status update, proposal, plus 6 fold formats) | **A pitch (now "A proposal"?), A lesson, Project kickoff, Quarterly review, Product launch, Party invitation, Team offsite, Workshop, Research findings, Trip recap** |
-| Quick Links | 5 | 5 (as Site templates) | — |
-| Site | 0 templates (3 examples) | 3 | — (+) |
 | Outline, Draw, Diagram, Cal, Todo, Board, Trip, Calc, Motion | 0 templates (one `example` each, for the skill and tests) | 4, 6, 12, 3, 3, 3, 4, 5, 4 | — (gains) |
 
 ## 7. Docs, scripts, tests

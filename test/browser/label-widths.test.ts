@@ -72,17 +72,16 @@ function worded(): Set<string> {
 /** Labels too long for their slot in languages that have no shorter words with the meaning: the key, the slot, the languages, why. */
 const RAISED: { key: string; slot: Slot; langs: string[]; why: string }[] = [
   // The menus' rows: a second line where the words cannot be fewer.
-  ...['Tiny Little Office Doc…', 'Tiny Little Office Doc'].map((key) => ({
-    key,
-    slot: 'menu' as const,
+  {
+    key: 'Tiny Little Office Doc…',
+    slot: 'menu',
     langs: ['de', 'es', 'fr', 'it', 'ja', 'nl', 'pt-br'],
     why: 'the name said in the language’s own words (Paul, 2026-10-10) and the word for a document: no shorter words keep both',
-  })),
+  },
   { key: 'Page break', slot: 'menu', langs: ['de', 'es', 'it', 'pt-br'], why: 'the word processors’ own term in each language; the row’s keys (Ctrl+Enter) take a third of it' },
   { key: 'Align right', slot: 'menu', langs: ['nl'], why: 'Rechts uitlijnen is what a Dutch office suite says; the row’s keys take a third of it' },
   { key: 'Two-column slide', slot: 'menu', langs: ['es', 'fr'], why: 'diapositiva, diapositive: the glossary’s word for a slide, the longest of the deck’s; a few pixels over' },
   { key: 'Big icon slide', slot: 'menu', langs: ['es', 'it'], why: 'diapositiva: the glossary’s word for a slide, the longest of the deck’s; a few pixels over' },
-  { key: 'Quick links: one column', slot: 'menu', langs: ['es'], why: 'enlaces rápidos is the glossary’s name for Quick Links' },
   ...['Draw as a mind map', 'Draw as an org chart', 'Draw as a family tree'].map((key) => ({
     key,
     slot: 'menu' as const,
@@ -90,8 +89,6 @@ const RAISED: { key: string; slot: Slot; langs: string[]; why: string }[] = [
     why: 'the verb and the diagram’s name, both needed: the outline’s view menu offers the outline itself beside these',
   })),
   // The bar's buttons with words: the one-third rule is cruel to a word of four or five letters.
-  { key: 'Edit', slot: 'bar', langs: ['de', 'es', 'fr', 'it', 'nl', 'pt-br'], why: 'a third more than "Edit" is five letters; no word for editing is that short in these languages' },
-  { key: 'Preview', slot: 'bar', langs: ['es', 'it'], why: 'Vista previa, Anteprima: the word, and Anteprima a pixel over' },
   { key: 'Chart', slot: 'bar', langs: ['de', 'fr'], why: 'Diagramm, Graphique: the glossary’s word for a chart' },
   { key: 'Time zone', slot: 'bar', langs: ['fr'], why: 'fuseau horaire is the only term' },
   // Russian: its words run a third longer than English.
@@ -105,8 +102,6 @@ const RAISED: { key: string; slot: Slot; langs: string[]; why: string }[] = [
   { key: 'Draw as a family tree', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Chart', slot: 'bar', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Flows (Sankey)', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Quick links: one column', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Edit', slot: 'bar', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Page break', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Time zone', slot: 'bar', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Tiny Little Office Doc…', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
@@ -114,8 +109,6 @@ const RAISED: { key: string; slot: Slot; langs: string[]; why: string }[] = [
   { key: 'Draw as a mind map', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Draw as an org chart', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Chart', slot: 'bar', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Quick links: one column', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Edit', slot: 'bar', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Page break', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Align left', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Align right', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
@@ -247,11 +240,10 @@ afterAll(() => page.viewport(1100, 800));
 
 test('the slots are found: the bar commands that show their words, the menus’ rows, each with a font and a room', () => {
   // The scan of the apps' code finds the bar buttons with words; these are some it must find.
-  for (const id of ['site.preview', 'site.edit', 'outline.connect', 'draw.mode', 'draw.background', 'diagram.kind', 'sheet.chart', 'anim.draw', 'anim.move', 'anim.fx', 'cal.zone'])
-    expect(wordedIds, id).toContain(id);
+  for (const id of ['outline.connect', 'draw.mode', 'draw.background', 'diagram.kind', 'sheet.chart', 'anim.draw', 'anim.move', 'anim.fx', 'cal.zone']) expect(wordedIds, id).toContain(id);
   const bar = measures.filter((m) => m.slot === 'bar');
   const menu = measures.filter((m) => m.slot === 'menu');
-  expect(bar.length).toBeGreaterThanOrEqual(8);
+  expect(bar.length).toBeGreaterThanOrEqual(7);
   expect(menu.length).toBeGreaterThan(50);
   for (const m of menu) {
     // At 390px a menu is at most 374px, and its padding, an icon and keys leave the words less.
