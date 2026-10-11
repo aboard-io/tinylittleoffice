@@ -12,6 +12,7 @@
 //   window     the window never scrolls, nor the chrome round the column (the column does)
 //   link       the address, flushed, is the document the shell holds, which the kernel writes back as it reads it
 //   bar        the app's bar, where it is shown, is one row inside the visible window
+//   undo       on a phone, wherever the bar is shown, its Undo is inside the visible window, beside the palette's button
 //   overflow   no words run off the screen sideways; the page is no wider than the window
 //   names      everything open has an accessible name
 //   keystroke  a word typed costs under the keystroke budget (perf.test.ts: 12 ms of synchronous work)
@@ -442,6 +443,22 @@ function clipped(el: Element, rect: DOMRect, cache: Map<Element, string>): { lef
   return { left, right };
 }
 
+/** Undo, in a phone's bar that is shown: inside the visible window, whatever the bar is scrolled to, and not under the palette's button. */
+function undoOnScreen(r: Real, bar: HTMLElement, h: number) {
+  const undo = bar.querySelector<HTMLElement>('button.cmd-kit-undo');
+  if (!undo) return broke(r, 'undo', `the bar has no Undo`);
+  const u = undo.getBoundingClientRect();
+  const view = bar.getBoundingClientRect();
+  const palette = r.shell.querySelector<HTMLElement>('.to-column.barred > .to-palette-btn')?.getBoundingClientRect();
+  const end = Math.min(innerWidth, view.right, palette && palette.width ? palette.left : Infinity);
+  if (u.left < Math.max(0, view.left) - 1 || u.right > end + 1 || u.top < -1 || u.bottom > h + 1)
+    broke(
+      r,
+      'undo',
+      `Undo is at ${Math.round(u.left)},${Math.round(u.top)}–${Math.round(u.right)},${Math.round(u.bottom)}, outside the bar's visible ${Math.round(Math.max(0, view.left))}–${Math.round(end)} in a window ${innerWidth}×${h}`,
+    );
+}
+
 function check(r: Real, s: Step, before: Layer[]) {
   const at = document.activeElement;
   const ed = editorOf(r);
@@ -536,6 +553,8 @@ function check(r: Real, s: Step, before: Layer[]) {
         if (Math.max(...tops) - Math.min(...tops) >= least / 2)
           broke(r, 'bar', `the bar is more than one row: its buttons' tops run from ${Math.round(Math.min(...tops))} to ${Math.round(Math.max(...tops))}`);
       }
+      // undo: on a phone Undo is pinned at the bar's end, outside its scroll, so it is always on screen (round sixteen).
+      if (r.size === 'phone') undoOnScreen(r, bar, h);
     }
   }
 
@@ -718,6 +737,36 @@ for (const size of ['phone', 'desktop'] as Size[])
         if (met.size) console.log(`  known findings met: ${[...met].join(', ')}`);
       });
   });
+
+// The review of 2026-10-11: "Undo is never on screen in any app's bar". Every app at a phone's size, its bar shown (the
+// focus in the document), the bar scrolled to its start and to its end: Undo is inside the visible window each time.
+test('on a phone, every app’s Undo is on screen wherever its bar is scrolled', { timeout: 120_000 }, async () => {
+  await page.viewport(...SIZES.phone);
+  await coarse(true);
+  const all = Object.entries(FAMILIES).flatMap(([family, ids]) => ids.map((app) => [app, family] as const));
+  expect(all.length).toBe(13);
+  for (const [app, family] of all) {
+    const { real } = await start(app, family, 'phone');
+    current = real;
+    const chrome = real.shell.querySelector<HTMLElement & { indoc: boolean }>('to-chrome')!;
+    const bar = [...editorOf(real).querySelectorAll('to-bar')].find((b) => visible(b as Element) && !(b as Element).closest('dialog, [popover]')) as HTMLElement;
+    expect(bar, app).toBeTruthy();
+    // The focus in the bar (the document's, so the bar is shown): words a page opens with chosen (the Website Builder's) would make the context bar the row.
+    bar.querySelector<HTMLElement>('button:not([disabled])')!.focus();
+    chrome.indoc = true;
+    await settle(real);
+    expect(document.documentElement.hasAttribute('data-context-row'), app).toBe(false);
+    // Shown, so the rule looks (it passes over a bar slid away).
+    await until(() => getComputedStyle(bar).opacity === '1' && getComputedStyle(bar).transform === 'none').catch(() => undefined);
+    expect([getComputedStyle(bar).opacity, getComputedStyle(bar).transform], app).toEqual(['1', 'none']);
+    expect(bar.querySelector('button.cmd-kit-undo'), app).toBeTruthy();
+    for (const to of [0, 100_000]) {
+      bar.scrollLeft = to;
+      await frame();
+      check(real, { kind: 'key', key: 'ArrowDown' }, real.layers);
+    }
+  }
+});
 
 // The rules themselves: each catches what it is for, so a walk that passes has looked.
 test('each rule of the walks breaks on the fault it is for, naming it', async () => {

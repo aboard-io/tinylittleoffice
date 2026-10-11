@@ -3,7 +3,9 @@
  * (the inline end), flush with that edge, one hairline against the backdrop. With a document open it begins, under
  * the head (the language, Close), with This document: a small heading over full-width rows, New {noun} (a blank
  * document of the app, `def`: the header's icon goes home now, kit/chrome.ts), Share… and Download (the table of
- * formats, `downloads`, its menu), the last two with their keys at the right. They are here alone: the header is
+ * formats, `downloads`, its menu), and the page's other commands drawn in the drawer (Find in this document: a phone's
+ * way to it), each with its keys at the right where there is a keyboard (kit/bar.ts keysKbd; the review of 2026-10-11:
+ * never under a finger until a key with Ctrl, ⌘ or Alt is typed, and never part of the row's name). They are here alone: the header is
  * the title (Paul, 2026-10-10: "Let's get rid of share and download in the top nav and move that functionality to the
  * hamburger"), and on a phone, while a box has the focus, the header steps aside (kit/chrome.ts). On a touch screen the
  * dialog itself holds the focus (the search would raise the keyboard) and draws no ring for it: it is not a control,
@@ -46,8 +48,9 @@ import { handBack, type ToDialog } from './dialog.ts';
 import type { ToTemplates } from './home.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
-import { coarse, drawnIn, inScope, keysText, labelOf, run } from './commands.ts';
-import { DOWNLOAD, SHARE, type Page } from './keys.ts';
+import { coarse, drawnIn, inScope, labelOf, live, run } from './commands.ts';
+import { keysAria, keysKbd } from './bar.ts';
+import { DOWNLOAD, KIT_COMMANDS, SHARE, type Page } from './keys.ts';
 import type { Offer } from './palette.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
@@ -220,8 +223,9 @@ export class ToDrawer extends LitElement {
             ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
               ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => (startEditing(), this.close())}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
-              <button type="button" class="to-btn to-drawer-share" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
+              <button type="button" class="to-btn to-drawer-share" aria-keyshortcuts=${keysAria(SHARE.keys)} @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span>${keysKbd(SHARE.keys)}</button>
               <to-menu class="to-drawer-download" .label=${labelOf(DOWNLOAD)} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
+              ${this.renderPage()}
               ${coarse() ? this.renderCommands() : nothing}
             </section>`
             : nothing
@@ -311,8 +315,18 @@ export class ToDrawer extends LitElement {
       ${offers.map(({ cmd, c }) =>
         cmd.menu
           ? html`<to-menu class="to-drawer-cmd" .label=${labelOf(cmd, c)} .icon=${cmd.icon ?? null} .items=${drawnIn(inScope(scope), `menu:${cmd.menu}`, c).map((d) => ({ ...d, does: () => this.handOver(() => d.does()) }))}></to-menu>`
-          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} @click=${() => this.handOver(() => void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, c)}</span>${cmd.keys ? html`<kbd class="to-menu-keys">${keysText(cmd.keys)}</kbd>` : nothing}</button>`,
+          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} aria-keyshortcuts=${keysAria(cmd.keys)} @click=${() => this.handOver(() => void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, c)}</span>${keysKbd(cmd.keys)}</button>`,
       )}`;
+  }
+
+  /** The page's other rows of This document (the registry's 'drawer' beside Share and Download): Find in this document, a phone's way to it (the review of 2026-10-11). */
+  private renderPage(): TemplateResult[] | typeof nothing {
+    const page = this.page;
+    if (!page) return nothing;
+    return KIT_COMMANDS.filter((cmd) => cmd !== SHARE && cmd !== DOWNLOAD && cmd.where.includes('drawer') && live(cmd, page)).map(
+      (cmd) =>
+        html`<button type="button" class="to-btn to-drawer-cmd cmd-${cmd.id.replace(/\./g, '-')}" aria-keyshortcuts=${keysAria(cmd.keys)} @click=${() => this.handOver(() => void run(cmd, page))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, page)}</span>${keysKbd(cmd.keys)}</button>`,
+    );
   }
 
   /** About, and the build it runs, asked for the first time it opens. */

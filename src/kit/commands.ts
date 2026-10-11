@@ -83,6 +83,8 @@ export interface Command<C = any> {
   native?: boolean;
   /** Takes the focus when tapped (a button that opens a dialog); others keep it where it is, so a phone's keyboard stays up. */
   takesFocus?: boolean;
+  /** Under a finger, kept at the bar's inline end outside its scroll, always on screen (Undo, Redo: bar.ts, responsive.css). */
+  pinned?: boolean;
   /** Done. `false`: it did not apply here after all (Tab where no item can move), and the key goes on. */
   does: (c: C, e?: Event) => unknown;
 }
@@ -196,6 +198,26 @@ export function keysText(keys: string, mac = MAC): string {
     })
     .join(' / ');
 }
+
+/** Keys as aria-keyshortcuts says them ("Control+Shift+S Meta+Shift+S" is two): Mod is Meta on a Mac, Control elsewhere. */
+export function ariaKeys(keys: string, mac = MAC): string {
+  const ARIA: Record<string, string> = { Mod: mac ? 'Meta' : 'Control', Alt: 'Alt', Shift: 'Shift' };
+  return keyList(keys)
+    .map((one) => {
+      const parts = one.split('+');
+      const key = parts.pop()!;
+      return [...parts.map((m) => ARIA[m]), key].join('+');
+    })
+    .join(' ');
+}
+
+/**
+ * Whether the keys are written beside a command: always under a mouse; under a finger only once a keyboard has been
+ * seen (a key typed with Ctrl, ⌘ or Alt: a phone's own keyboard types none), since a phone has none to press them on
+ * (the review of 2026-10-11). Either way the keys are the control's aria-keyshortcuts, never part of its name.
+ */
+export const keyboard = { seen: false };
+export const chords = (): boolean => keyboard.seen || !coarse();
 
 /* ---------- drawing (plain objects: bar.ts, menu.ts and context.ts draw them) ---------- */
 

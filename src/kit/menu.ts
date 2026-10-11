@@ -20,7 +20,7 @@ import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
 import { fold } from './search.ts';
-import { keysText } from './bar.ts';
+import { keysAria, keysKbd } from './bar.ts';
 import { room } from './scroll.ts';
 
 export interface MenuItem {
@@ -343,8 +343,8 @@ export class ToMenu extends LitElement {
             html`<button type="button" class="to-menu-act" role="menuitem" tabindex="-1" aria-label=${a.label} title=${a.label} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(a)}>${icon(a.icon, 20)}</button>`,
         )}
       </div>`;
-    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
-      ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.keys ? html`<kbd class="to-menu-keys">${keysText(item.keys)}</kbd>` : nothing}${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
+    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} aria-keyshortcuts=${keysAria(item.keys)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
+      ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${keysKbd(item.keys)}${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;
   }
   render() {
@@ -371,8 +371,8 @@ export class ToMenu extends LitElement {
       run.push(item);
     }
     flush();
-    return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
-        ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${this.keys ? html`<kbd class="to-menu-keys">${keysText(this.keys)}</kbd>` : nothing}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
+    return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-keyshortcuts=${keysAria(this.keys || undefined)} aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
+        ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${keysKbd(this.keys)}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
       </button>
       <div id=${this.uid} popover="auto" class="to-menu" role="menu" tabindex="-1" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${this.query ? html`<div class="to-menu-filter" role="status">${parts.length ? t('Starting “{q}”', { q: this.query }) : t('Nothing starts “{q}”', { q: this.query })}</div>` : nothing}${parts}</div>`;
   }

@@ -164,7 +164,7 @@ export abstract class DocElement<V> extends LitElement {
   get canRedo(): boolean {
     return this.redo.length > 0;
   }
-  /** Undo and Redo, the last two tools of every app's bar (the page's commands, kit/keys.ts): they never take the focus, and are off with nothing to do. */
+  /** Undo and Redo, the last two tools of every app's bar (the page's commands, kit/keys.ts): they never take the focus, are off with nothing to do, and under a finger are pinned at the bar's end, always on screen (bar.ts, responsive.css). */
   protected undoTools(): unknown[] {
     const here = { editor: this };
     return [cmdTool(UNDO, here, { disabled: !this.canUndo }), cmdTool(REDO, here, { disabled: !this.canRedo })];

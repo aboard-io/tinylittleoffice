@@ -1,7 +1,9 @@
 // The bar: one row that scrolls sideways, saying at its edges where there is more.
 import { test, expect } from 'vitest';
 import { render, html } from 'lit';
-import { tool, btn } from '../../src/kit/bar.ts';
+import { cdp } from 'vitest/browser';
+import { tool, btn, cmdTool } from '../../src/kit/bar.ts';
+import { REDO, UNDO } from '../../src/kit/keys.ts';
 import { UI } from '../../src/kit/icons.ts';
 import { until } from './helpers.ts';
 import '../../src/styles.css';
@@ -53,4 +55,55 @@ test('a label in the bar is one line, however narrow the bar; a hint is the tool
   expect(buttons[0].title).toBe('Use as background');
   expect(buttons[0].textContent!.trim()).toBe('Background');
   expect(buttons[1].hasAttribute('title')).toBe(false);
+});
+
+// The review of 2026-10-11: "Undo is never on screen in any app's bar". Under a finger Undo and Redo (kit/keys.ts,
+// `pinned`) stay at the bar's inline end however far it is scrolled; on a bar under 360px Undo alone; under a mouse the
+// bar is as it was, Undo last in its scroll.
+test('under a finger Undo and Redo stay at the end of a bar however it is scrolled; under a mouse they scroll with it', async () => {
+  const pinnedIn = async (width: number) => {
+    document.body.innerHTML = `<div style="width:${width}px"><to-bar></to-bar></div>`;
+    const bar = document.querySelector<HTMLElement>('to-bar')!;
+    bar.style.margin = '0';
+    const here = { editor: document.createElement('div') };
+    render(html`${Array.from({ length: 14 }, (_, i) => tool({ label: `Tool ${i}`, icon: UI.bold }))}${cmdTool(UNDO, here)}${cmdTool(REDO, here)}`, bar);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    const shown = (sel: string) => {
+      const b = bar.getBoundingClientRect();
+      const r = bar.querySelector(sel)!.getBoundingClientRect();
+      return r.left >= b.left - 1 && r.right <= b.right + 1;
+    };
+    const out: Record<string, boolean>[] = [];
+    for (const to of [0, 120, 100_000]) {
+      bar.scrollLeft = to;
+      await new Promise(requestAnimationFrame);
+      out.push({ undo: shown('.cmd-kit-undo'), redo: shown('.cmd-kit-redo') });
+    }
+    return out;
+  };
+  await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  try {
+    expect(matchMedia('(pointer: coarse)').matches).toBe(true);
+    expect(await pinnedIn(390)).toEqual([
+      { undo: true, redo: true },
+      { undo: true, redo: true },
+      { undo: true, redo: true },
+    ]);
+    // Narrower than 360px: Undo alone is pinned, Redo scrolls with the rest (in view once the bar is at its end).
+    expect(await pinnedIn(340)).toEqual([
+      { undo: true, redo: false },
+      { undo: true, redo: false },
+      { undo: true, redo: true },
+    ]);
+  } finally {
+    await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  }
+  expect(matchMedia('(pointer: coarse)').matches).toBe(false);
+  expect(await pinnedIn(390)).toEqual([
+    { undo: false, redo: false },
+    { undo: false, redo: false },
+    { undo: true, redo: true },
+  ]);
+  expect(getComputedStyle(document.querySelector('.cmd-kit-undo')!).position).toBe('static');
 });
