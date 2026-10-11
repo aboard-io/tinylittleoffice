@@ -30,3 +30,27 @@ test('in Arabic and in English neither: the device’s own stack and the line of
     expect(s.label, lang).toBe('1.25');
   }
 });
+
+// A footnote's words (<to-text class="to-note-words">) are body text too, so they take the line token: Nastaliq's
+// descenders are not clipped in Urdu, and every other language keeps the body's line.
+const noteLine = (lang: string) => {
+  document.documentElement.lang = lang;
+  const words = document.createElement('to-text');
+  words.className = 'to-note-words';
+  const tx = document.createElement('div');
+  tx.className = 'tx';
+  words.append(tx);
+  const note = document.createElement('div');
+  note.className = 'to-note';
+  note.append(words);
+  document.body.append(note);
+  const s = getComputedStyle(tx);
+  const line = parseFloat(s.lineHeight) / parseFloat(s.fontSize);
+  note.remove();
+  return line;
+};
+
+test('a footnote’s words take the line token: 1.9 in Urdu, the body’s line in Arabic and English', () => {
+  expect(noteLine('ur')).toBeCloseTo(1.9, 2);
+  for (const lang of ['ar', 'en']) expect(noteLine(lang), lang).toBeCloseTo(1.5, 2);
+});

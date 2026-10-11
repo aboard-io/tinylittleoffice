@@ -339,8 +339,8 @@
     width: max(100% - 2.5em, min(8em, 100%));
   }
   .to-note-words .tx {
-    min-height: 1.4em;
-    line-height: 1.4;
+    min-height: calc(var(--to-line) * 1em);
+    line-height: var(--to-line);
     border-radius: 0.25rem;
   }
   .to-note-words .tx:focus {
