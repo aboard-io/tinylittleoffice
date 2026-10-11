@@ -70,6 +70,23 @@ test('Escape closes the menu and puts focus back on the button', async () => {
   expect(document.activeElement).toBe(el.button);
 });
 
+test('opened by a key while something else had the focus, Escape puts the focus on the button, not back where the browser kept it', async () => {
+  // The drawer's Download: Mod+Shift+D opens the drawer, whose search box takes the focus, then opens the menu. The
+  // browser's light dismiss hands the focus back to the search box; the person expects the button the key stood for.
+  const el = await insert();
+  const other = document.createElement('input');
+  document.body.append(other);
+  other.focus();
+  el.open();
+  await until(() => el.isOpen);
+  el.menu.querySelector<HTMLElement>('[role=menuitem]')!.focus();
+  el.menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await until(() => !el.isOpen);
+  await until(() => document.activeElement === el.button);
+  expect(document.activeElement).toBe(el.button);
+  other.remove();
+});
+
 test('a keep menu, opened and chosen from by a pointer, never takes the focus from the editor it acts on', async () => {
   document.body.innerHTML = '<div id="box"></div>';
   const chosen: string[] = [];

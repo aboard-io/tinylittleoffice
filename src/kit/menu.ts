@@ -199,6 +199,8 @@ export class ToMenu extends LitElement {
   declare query: string;
   /** This opening came from a pointer on a `keep` menu: the focus stays where it was. */
   private kept = false;
+  /** The menu is closing by a key (see closeByKey). */
+  private byKey = false;
   readonly uid = `to-menu-${++n}`;
 
   constructor() {
@@ -259,8 +261,11 @@ export class ToMenu extends LitElement {
       window.visualViewport?.removeEventListener('resize', this.replace);
       document.removeEventListener('keydown', this.onKeptKey, true);
       this.query = '';
-      // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere.
-      if (document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
+      // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere. Closed
+      // by a key (Escape, Tab), always: the browser gives the focus back to what had it before the menu opened, which in
+      // the drawer is its search box, not the button that the key opened the menu from.
+      if (this.byKey || document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
+      this.byKey = false;
       this.anchor = null;
       this.kept = false;
     }
@@ -283,7 +288,7 @@ export class ToMenu extends LitElement {
       }
     }
     // In a row, the row's first action stands for the focus: Up and Down go on from the row.
-    menuKey(e, this.menu, this.menuItems(), () => this.close(), row ? row.querySelector<HTMLElement>('[role=menuitem]') : now);
+    menuKey(e, this.menu, this.menuItems(), this.closeByKey, row ? row.querySelector<HTMLElement>('[role=menuitem]') : now);
   };
   /** A letter typed into a menu that filters: the list narrowed (or widened by Backspace, or whole again by Escape). True when the key was this. */
   private narrow(e: KeyboardEvent): boolean {
@@ -318,7 +323,12 @@ export class ToMenu extends LitElement {
     if (!this.isOpen || this.menu.contains(document.activeElement) || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     this.kept = false;
     document.removeEventListener('keydown', this.onKeptKey, true);
-    menuKey(e, this.menu, this.menuItems(), () => this.close());
+    menuKey(e, this.menu, this.menuItems(), this.closeByKey);
+  };
+  /** Closed by a key (Escape, Tab): the focus goes back to the button whatever the browser restores. */
+  private closeByKey = () => {
+    this.byKey = true;
+    this.close();
   };
   private choose(item: MenuItem | MenuAction) {
     if (!this.isOpen) return;

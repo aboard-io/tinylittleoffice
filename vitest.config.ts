@@ -26,6 +26,18 @@ const recordCommands = (_ctx: unknown, ids: string[]) => {
  * the bar, the menus, each app's editor (src/apps/<id>/tests/). e2e/ (Playwright itself) is the small smoke
  * run on the built site, desktop and phone.
  */
+/** A browser project's settings (each project gets its own instance, named for it: Vitest names an instance in place). */
+const browser = (name: string) => ({
+  enabled: true,
+  headless: true,
+  provider: playwright(),
+  instances: [{ browser: 'chromium' as const, name }],
+  screenshotFailures: false,
+  commands: { recordCommands },
+});
+/** The browser files that count what the device holds; they run after the others (see below). */
+const ALONE = ['test/browser/privacy.test.ts'];
+
 export default defineConfig({
   test: {
     projects: [
@@ -37,9 +49,21 @@ export default defineConfig({
         test: {
           name: 'browser',
           include: ['test/browser/**/*.test.ts', 'src/**/tests/*.test.ts'],
-          exclude: ['**/node_modules/**', 'src/**/tests/*.unit.test.ts'],
+          exclude: ['**/node_modules/**', 'src/**/tests/*.unit.test.ts', ...ALONE],
           setupFiles: ['test/browser/setup.ts'],
-          browser: { enabled: true, headless: true, provider: playwright(), instances: [{ browser: 'chromium' }], screenshotFailures: false, commands: { recordCommands } },
+          browser: browser('browser'),
+        },
+      },
+      {
+        // The files that count what the origin holds run after the rest, alone: browser files share one origin's
+        // localStorage, so a file that turns Saved on or chooses a language while these count would be counted.
+        plugins: [siteFrame(import.meta.dirname)],
+        test: {
+          name: 'browser-alone',
+          include: ALONE,
+          setupFiles: ['test/browser/setup.ts'],
+          sequence: { groupOrder: 1 },
+          browser: browser('browser-alone'),
         },
       },
     ],

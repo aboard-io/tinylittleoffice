@@ -45,7 +45,9 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   await shot(page, 'write');
   expect((await axe(page)).violations).toEqual([]);
 
-  // The Insert menu opens inside the screen and Escape closes it.
+  // The Insert menu opens inside the screen and Escape closes it. On a phone the bar comes with the focus
+  // (kit/chrome.ts indoc; responsive.css), so the words are tapped first.
+  await area.click();
   await page.getByRole('button', { name: 'Insert' }).click();
   await expect(page.locator('to-insert [role=menu]')).toBeVisible();
   await page.keyboard.press('Escape');
