@@ -106,7 +106,8 @@ test("a template from inside an app: each of the drawer's rows has its templates
   // The drawer hands over: closed, and the templates open alone (one modal at a time).
   await until(() => !!shell.querySelector('to-templates.to-drawer-templates dialog[open]'));
   const list = shell.querySelector('to-templates.to-drawer-templates')!;
-  await until(() => !dialog.open && !!list.querySelector('dialog[open] [role=option] svg'));
+  // Blank is there at once; the Word Processor's own templates as their chunk arrives.
+  await until(() => !dialog.open && list.querySelectorAll('dialog[open] [role=option] svg').length > 1);
   const options = [...list.querySelectorAll<HTMLElement>('[role=option]')];
   options[1].click();
   await until(() => location.hash.startsWith('#/v1/write/'));
