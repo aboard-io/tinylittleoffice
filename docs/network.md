@@ -11,7 +11,7 @@ not on this list is refused by the browser itself.
 
 | Host | What | When | What it carries | What stops it | Made by | Allowed by |
 | --- | --- | --- | --- | --- | --- | --- |
-| `tinylittleoffice.com` | The site’s own files: the apps, the fonts, the icon set’s chunk (loaded when the icon picker opens) | while shown | Which file; never the document, which is after the "#" and stays in the browser | Nothing to stop but not opening the site: these files are the app itself | the whole site | `'self'` |
+| `tinylittleoffice.com` | The site’s own files: the apps, the type (IBM Plex, a face when a page’s words need it), the icon set’s chunk (loaded when the icon picker opens) | while shown | Which file; never the document, which is after the "#" and stays in the browser | Nothing to stop but not opening the site: these files are the app itself | the whole site | `'self'` |
 | `tile.openstreetmap.org` | The map’s pictures (tiles) in the Trip Planner, asked directly as OpenStreetMap’s policy asks | while shown | Which squares of the map are on the screen; no referrer | Map, in the Trip Planner’s bar, turned off | apps/trip/editor.ts | `img-src` |
 | `nominatim.openstreetmap.org` | Place search in the Trip Planner | after a tap | The words searched for; no referrer | Not searching: typing a stop’s place by hand asks no one | apps/trip/editor.ts | `connect-src` |
 | `www.openstreetmap.org` | The Trip Planner’s credit to OpenStreetMap under its map, a link | after a tap | Nothing of the document: it opens OpenStreetMap’s copyright page in a new tab | Not following the link | apps/trip/editor.ts | none: it opens in a new tab |
@@ -38,8 +38,9 @@ follows them; nothing in a document is drawn from another site's address.
 - **Sharing to a service.** Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in
   a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so
   whoever reads the post can read it. "Any https address" there is the Mastodon server the person names.
-- **Fonts and icons.** Self-hosted, from the site itself; the full icon set is a chunk of the site's own,
-  loaded when the icon picker opens.
+- **Fonts and icons.** Self-hosted, from the site itself: the type is IBM Plex (`public/fonts/`), each face
+  fetched when a page's words need it, and the policy's `font-src` is `'self'` alone; the full icon set is a
+  chunk of the site's own, loaded when the icon picker opens.
 - **Links.** A link in a document that leaves the site opens only after the reader is shown where it goes
   and says Go (kit/link-guard.ts), in a new tab with no referrer.
 

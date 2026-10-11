@@ -451,7 +451,7 @@ test('a rich label: inline Markdown read as runs and written back the same; " | 
   const doc = `Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 4 | 6 | 30 | 8 | 0 | ${label.replace(/\|/g, '\\|')}\n`;
   expect(write(parse(doc))).toBe(doc);
   const svg = shapeSvg(readDrawing(parse(doc)).shapes[0]);
-  expect(svg).toContain('<tspan font-weight="700">Bold</tspan>');
+  expect(svg).toContain('<tspan font-weight="600">Bold</tspan>');
   expect(svg).toContain('<tspan font-style="italic">italic</tspan>');
   expect(svg).toContain('<tspan text-decoration="underline">under</tspan>');
   expect(svg).toContain('<tspan text-decoration="line-through">gone</tspan>');
@@ -547,8 +547,8 @@ test("a thumbnail of a drawing is the picture's own box, landscape when the pict
   expect(q.h).toBeGreaterThan(q.w);
   // Nothing drawn: the whole canvas.
   expect(def.view('', { small: true, thumb: true })[0]).toMatchObject({ w: W, h: H });
-  expect(sha1(def.view(REQUEST))).toBe('0c75baadd90f457d2d4741b94e51deb04dc401c2');
-  expect(sha1(def.view(REQUEST, { small: true }))).toBe('0c75baadd90f457d2d4741b94e51deb04dc401c2');
+  expect(sha1(def.view(REQUEST))).toBe('2a00cf5f987fb569f8e3578ea803609b362609b0');
+  expect(sha1(def.view(REQUEST, { small: true }))).toBe('2a00cf5f987fb569f8e3578ea803609b362609b0');
 });
 
 test("a label keeps the spaces a person typed at its lines' ends, through the document and back (round ten: no trim)", () => {

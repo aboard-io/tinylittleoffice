@@ -53,7 +53,7 @@
   to-text .tx h3,
   to-text .tx h4 {
     line-height: var(--to-line-label);
-    font-weight: 700;
+    font-weight: 600;
   }
   to-text .tx h1 {
     font-size: 1.6em;

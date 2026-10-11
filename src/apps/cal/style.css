@@ -94,7 +94,7 @@
   .cal-cell.today .cal-n {
     color: var(--to-on-accent);
     background: var(--to-accent);
-    font-weight: 700;
+    font-weight: 600;
   }
   .cal-chip {
     display: block;
@@ -206,7 +206,7 @@
     min-height: 2.25rem;
     padding: 0 0.25rem;
     font: inherit;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--to-ink);
     background: none;
     border: 0;
@@ -240,7 +240,7 @@
   }
   .cal-mini-days .d.today {
     box-shadow: inset 0 0 0 0.125rem var(--to-accent);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* ---- the schedule ---- */
@@ -326,7 +326,7 @@
     text-overflow: ellipsis;
   }
   .cal-trow.parent to-text .tx {
-    font-weight: 700;
+    font-weight: 600;
   }
   .cal-gantt-scroll {
     overflow-x: auto;
@@ -342,7 +342,7 @@
     fill: var(--to-ink-3);
   }
   .cal-chart text.month {
-    font-weight: 700;
+    font-weight: 600;
     fill: var(--to-ink-2);
   }
   .cal-chart .weekend {

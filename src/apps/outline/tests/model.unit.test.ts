@@ -450,7 +450,7 @@ test('OPML, plain text and Markdown, and the page', () => {
   const page = outlinePage(parse(DOC.replace('- Launch', '- **Launch**^[the plan]') + '\n```sheet {depth=1}\na | b\n--- | ---\n```\n'));
   for (const w of ['Launch', 'Product', 'Pricing', 'Marketing', 'Ops', 'Support', '→ sets', '↔', '— part of', 'the plan', 'Connections', 'Pricing  → feeds  Marketing', 'Spreadsheet', 'a | b'])
     expect(page.svg).toContain(w);
-  expect(page.svg).toContain('font-weight="700">Launch</tspan>');
+  expect(page.svg).toContain('font-weight="600">Launch</tspan>');
   expect(page.svg).toContain('baseline-shift="super"');
   expect(page.alt).toBe('Launch');
   expect(page.h).toBeGreaterThan(300);

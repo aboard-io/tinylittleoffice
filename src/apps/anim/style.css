@@ -109,7 +109,7 @@
     color: var(--to-ink-2);
   }
   .anim-slider b {
-    font-weight: 500;
+    font-weight: 400;
     color: var(--to-ink);
     font-variant-numeric: tabular-nums;
   }

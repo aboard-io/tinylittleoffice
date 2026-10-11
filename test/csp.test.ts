@@ -47,3 +47,7 @@ test('every directive that reaches the web is the site and the registry’s host
   }
   expect(directive(csp, 'connect-src')).toEqual(["'self'", 'data:', 'https://nominatim.openstreetmap.org', 'https://tinier.tinylittleoffice.com']);
 });
+
+test('font-src: the site and nothing else; the type is IBM Plex, served by the site (public/fonts/)', () => {
+  expect(directive(csp, 'font-src')).toEqual(["'self'"]);
+});

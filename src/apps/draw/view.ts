@@ -26,7 +26,7 @@ export function runsSvg(runs: Run[], px: number): string {
   return runs
     .map((run) => {
       const deco = [run.u ? 'underline' : '', run.s ? 'line-through' : ''].filter(Boolean).join(' ');
-      const attrs = `${run.b ? ' font-weight="700"' : ''}${run.i ? ' font-style="italic"' : ''}${deco ? ` text-decoration="${deco}"` : ''}${run.h ? ` stroke="${MARKER}" stroke-opacity="0.55" stroke-width="${r(px * 0.9)}" stroke-linejoin="round" paint-order="stroke"` : ''}`;
+      const attrs = `${run.b ? ' font-weight="600"' : ''}${run.i ? ' font-style="italic"' : ''}${deco ? ` text-decoration="${deco}"` : ''}${run.h ? ` stroke="${MARKER}" stroke-opacity="0.55" stroke-width="${r(px * 0.9)}" stroke-linejoin="round" paint-order="stroke"` : ''}`;
       return attrs ? `<tspan${attrs}>${xml(run.t)}</tspan>` : xml(run.t);
     })
     .join('');

@@ -67,7 +67,7 @@ export function richText(x: number, y: number, pieces: Piece[], px: number, bold
       continue;
     }
     const attrs = [
-      p.b || bold ? 'font-weight="700"' : '',
+      p.b || bold ? 'font-weight="600"' : '',
       p.i ? 'font-style="italic"' : '',
       p.u ? 'text-decoration="underline"' : p.s ? 'text-decoration="line-through"' : '',
       p.href ? `fill="${ACCENT}"` : '',
@@ -105,7 +105,7 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
       const { app, gist } = docGist(it.doc);
       const cw = Math.min(w - x - margin, 360);
       svg += rect(x, y + 4, cw, 44, SHADE, `stroke="${LINE}" rx="6"`);
-      svg += `<text x="${r(x + 12)}" y="${r(y + 24)}" font-size="${r(px * 0.75)}" font-weight="700" fill="${INK}">${xml(appName(app))}</text><text x="${r(x + 12)}" y="${r(y + 41)}" font-size="${r(px * 0.7)}" fill="${MUTED}">${xml(clip(gist, cw - 24, px * 0.7))}</text>`;
+      svg += `<text x="${r(x + 12)}" y="${r(y + 24)}" font-size="${r(px * 0.75)}" font-weight="600" fill="${INK}">${xml(appName(app))}</text><text x="${r(x + 12)}" y="${r(y + 41)}" font-size="${r(px * 0.7)}" fill="${MUTED}">${xml(clip(gist, cw - 24, px * 0.7))}</text>`;
       y += 60;
       return;
     }
@@ -115,7 +115,7 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
     const lines = wrapRuns(markNotes(it.runs, next), w - x - margin - indent, px, it.depth === 0);
     const n = plainText(it.runs).trim() ? count({ k: 'li', depth: it.depth, ...(it.ord ? { ord: true as const } : {}), runs: [] }) : undefined;
     // A numbered item's number stands where the dot would.
-    if (n) svg += `<text x="${r(x - 6)}" y="${r(y + px)}" font-size="${r(px * 0.85)}" text-anchor="end" fill="${ACCENT}"${it.depth ? '' : ' font-weight="700"'}>${n}.</text>`;
+    if (n) svg += `<text x="${r(x - 6)}" y="${r(y + px)}" font-size="${r(px * 0.85)}" text-anchor="end" fill="${ACCENT}"${it.depth ? '' : ' font-weight="600"'}>${n}.</text>`;
     else svg += `<circle cx="${r(x - 12)}" cy="${r(y + px * 0.65)}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
     if (kind) svg += `<text x="${r(x)}" y="${r(y + px)}" font-size="${r(px * 0.75)}" fill="${ACCENT}">${xml(kind)}</text>`;
     for (const line of lines) svg += richText(x + indent, (y += px * 1.45) - px * 0.45, line, px, it.depth === 0);

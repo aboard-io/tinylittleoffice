@@ -331,11 +331,11 @@ test("the pages wear the look: its faces, a book's justified lines and small cap
     pages(look ? `---\nlook: ${look}\n---\n${body}` : body)
       .map((p) => p.svg)
       .join('');
-  expect(svg('')).not.toContain('font-family="Charter');
-  expect(svg('serif')).toContain('font-family="Charter');
-  expect(svg('mono')).toContain('font-family="ui-monospace');
+  expect(svg('')).not.toContain('font-family="\'IBM Plex Serif');
+  expect(svg('serif')).toContain("font-family=\"'IBM Plex Serif', Charter");
+  expect(svg('mono')).toContain("font-family=\"'IBM Plex Mono', ui-monospace");
   const mixed = svg('mixed');
-  expect(mixed).toMatch(/font-size="40" font-family="Charter/);
+  expect(mixed).toMatch(/font-size="40" font-family="'IBM Plex Serif'/);
   expect(mixed).toMatch(/font-size="16"(?! font-family)/);
   const book = svg('book');
   expect(book).toContain('font-variant="small-caps"');
@@ -349,7 +349,7 @@ test("the pages wear the look: its faces, a book's justified lines and small cap
 
 test("the files wear the look: the web page's CSS, Word's and RTF's font names, a newspaper's columns", () => {
   const doc = (look: string) => parse(`---\nlook: ${look}\n---\n# Headline {.title}\n\nOne.\n\nTwo.\n`);
-  expect(docToHtml(doc('serif'), ctx)).toMatch(/body\{font-family:Charter/);
+  expect(docToHtml(doc('serif'), ctx)).toMatch(/body\{font-family:'IBM Plex Serif', Charter/);
   expect(docToHtml(doc('news'), ctx)).toContain('columns:2');
   expect(docToHtml(doc('book'), ctx)).toContain('main>p+p{text-indent:1.5em}');
   const styles = (look: string) => strFromU8(unzipSync(docToDocx(doc(look), ctx))['word/styles.xml']);

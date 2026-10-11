@@ -120,17 +120,17 @@ function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boo
       if (sp.ic && anchor === 'start') glyphs += glyphNamed(sp.ic, at + px * 0.05, y - px * 0.85, px * 0.9, fill);
       at += spanWidth(sp, px, bold);
       const a: string[] = [];
-      if (sp.b && !bold) a.push('font-weight="700"');
+      if (sp.b && !bold) a.push('font-weight="600"');
       if (sp.i) a.push('font-style="italic"');
       const deco = [sp.u || sp.link ? 'underline' : '', sp.s ? 'line-through' : ''].filter(Boolean).join(' ');
       if (deco) a.push(`text-decoration="${deco}"`);
       if (sp.link) a.push(`fill="${ACCENT}"`);
       if (sp.sup) a.push(`font-size="${r(px * 0.65)}"`, 'baseline-shift="super"');
-      if (sp.mono) a.push('font-family="ui-monospace, Menlo, Consolas, monospace"');
+      if (sp.mono) a.push(`font-family="${xml(STACKS.mono)}"`);
       return a.length ? `<tspan ${a.join(' ')}>${xml(sp.t)}</tspan>` : xml(sp.t);
     })
     .join('');
-  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${type}${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>${glyphs}`;
+  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${type}${bold ? ' font-weight="600"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>${glyphs}`;
 }
 
 /** A page placed inside another at x, y, within w by h, keeping its shape. */
@@ -532,7 +532,7 @@ export function lookCss(look: Look): string {
   if (look.head !== 'sans') css.push(`h1,h2,h3,h4,h5,h6{font-family:${STACKS[look.head]}}`);
   if (look.body === 'mono') css.push('body{font-size:15px}h1.title{letter-spacing:0}');
   if (look.justify) css.push('main>p,blockquote{text-align:justify;hyphens:auto}');
-  if (look.indent) css.push('main>p{margin:0}main>p+p{text-indent:1.5em}h1.title{text-align:center;font-weight:500;letter-spacing:0}');
+  if (look.indent) css.push('main>p{margin:0}main>p+p{text-indent:1.5em}h1.title{text-align:center;font-weight:400;letter-spacing:0}');
   if (look.caps) css.push('h1:not(.title),h2,h3{font-variant:small-caps;letter-spacing:.04em;text-align:center;font-weight:600}');
   if (look.columns)
     css.push(

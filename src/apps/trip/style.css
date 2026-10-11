@@ -38,7 +38,7 @@
     border-radius: 50%;
     background: var(--to-paper-accent);
     color: #fff;
-    font: 700 0.8125rem var(--to-font);
+    font: 600 0.8125rem var(--to-font);
     border: 0.125rem solid #fff;
     box-shadow: 0 1px 0.25rem rgb(0 0 0 / 0.4);
   }
@@ -99,7 +99,7 @@
     background: radial-gradient(circle closest-side, var(--to-accent) 0.8125rem, transparent 0.875rem);
     cursor: grab;
     color: var(--to-on-accent);
-    font: 700 0.875rem var(--to-font);
+    font: 600 0.875rem var(--to-font);
   }
   .trip-n[aria-pressed='true'] {
     background: radial-gradient(circle closest-side, var(--to-accent) 0.8125rem, var(--to-ink) 0.875rem, var(--to-ink) 1rem, transparent 1.0625rem);

@@ -12,6 +12,9 @@
  *   languages  each language's strings, loaded when chosen (English is the keys themselves and ships in the code)
  *   editors    each app's editor chunk and its commands chunk, loaded when it opens, and `open`: all that opening
  *              it adds to the home page's load (the chunks and stylesheets the two imports preload, less home's)
+ *   fonts      the type, IBM Plex (dist/fonts/, from public/fonts/): every woff2 file's bytes together, as served (a
+ *              woff2 is compressed already). Not a chunk and never all loaded at once: a page loads the faces its
+ *              words need. A tripwire against a face added without meaning it.
  *
  * The chunks are found by name: vite.config.ts names an app's editor `<app>-editor-<hash>.js`, its commands
  * `<app>-commands-<hash>.js`, its templates `templates-<app>-<hash>.js` and a language `lang-<code>-<hash>.js`, and what an import preloads is the list Vite
@@ -20,7 +23,7 @@
  *   node scripts/budgets.ts            dist/ against budgets.json: a line per chunk over, and exit 1 (`npm run build` runs it last)
  *   node scripts/budgets.ts --sizes    print what dist/ weighs, as budgets.json's numbers (to read, or to raise a budget by hand)
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -34,6 +37,7 @@ export interface Sizes {
   templates: Record<string, number>;
   languages: Record<string, number>;
   editors: Record<string, { editor: number; commands: number; open: number }>;
+  fonts: number;
 }
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -70,6 +74,14 @@ export function firstLoad(dist: string): Set<string> {
 /** The templates chunks among these files: none may be in the home page's first load. */
 export const eagerTemplates = (files: Iterable<string>): string[] => [...files].filter((f) => /^templates-[a-z]+-[\w-]{8}\.js$/.test(f));
 
+/** The bytes of every woff2 file in a folder (dist/fonts/, public/fonts/): the type, as served. */
+export const fontBytes = (dir: string): number =>
+  existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.woff2'))
+        .reduce((n, f) => n + statSync(join(dir, f)).size, 0)
+    : 0;
+
 /** What a build in `dist` weighs. */
 export function measure(dist: string): Sizes {
   const assets = join(dist, 'assets');
@@ -101,6 +113,7 @@ export function measure(dist: string): Sizes {
         return [id, { editor: weigh(editor), commands: weigh(commands), open: sum(opened) }];
       }),
     ),
+    fonts: fontBytes(join(dist, 'fonts')),
   };
 }
 
@@ -136,6 +149,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       console.error('A chunk grew past its budget (budgets.json). If the growth buys simplicity, raise the budget in a commit of its own that says why.');
       process.exit(1);
     }
-    console.log(`The chunks are within their budgets: main ${sizes.main}, apps ${sizes.apps}, home ${sizes.home} bytes gzipped.`);
+    console.log(`The chunks are within their budgets: main ${sizes.main}, apps ${sizes.apps}, home ${sizes.home} bytes gzipped; the fonts ${sizes.fonts} bytes.`);
   }
 }

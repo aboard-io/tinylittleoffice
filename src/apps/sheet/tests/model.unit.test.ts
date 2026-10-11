@@ -353,7 +353,7 @@ test("a rich column's words are drawn with their marks and written to CSV and th
   const v = readSheet(parse(text));
   expect(sheetToCsv(parse(text), ',')).toBe('Note,B\r\nbig news,1\r\n');
   const svg = tablePage(v).svg;
-  expect(svg).toContain('<tspan font-weight="700">big</tspan>');
+  expect(svg).toContain('<tspan font-weight="600">big</tspan>');
   expect(svg).toContain('<tspan font-style="italic">news</tspan>');
   expect(svg).not.toContain('**');
   expect(gridPage(v).svg).toContain('big news');
@@ -381,8 +381,8 @@ test('a thumbnail of a ten-column sheet is landscape: the first six columns at a
   // Every row number drawn sits inside the page.
   const ys = [...p.svg.matchAll(/<text[^>]*y="([\d.]+)"/g)].map((m) => +m[1]);
   expect(Math.max(...ys)).toBeLessThan(p.h);
-  expect(sha1(def.view(SHEET10))).toBe('1371797dd4e9ae106edf5419f41810cd15274c1f');
-  expect(sha1(def.view(SHEET10, { small: true }))).toBe('84803e2a92f4a909ae6a3d61b16e765032fb986d');
+  expect(sha1(def.view(SHEET10))).toBe('f985d40db8ba539c832dbb5f4cf1d0630e0e3e19');
+  expect(sha1(def.view(SHEET10, { small: true }))).toBe('4394e0424d61b55386d26070559ad7766e5a3865');
   // A charted sheet's thumbnail is its chart, landscape already.
   const chart = def.view('---\nchart: bar\n---\n' + SHEET10, { small: true, thumb: true })[0];
   expect(chart.w).toBeGreaterThan(chart.h);

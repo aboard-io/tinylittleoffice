@@ -93,7 +93,7 @@
   .deck-title .tx p,
   .deck-title .tx li {
     font-size: max(1rem, var(--deck-title));
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.15;
     margin: 0;
   }

@@ -55,7 +55,7 @@ function mapSvg(v: TripView, w: number, h: number, upTo = Infinity): string {
     // The name beside its pin, on a white edge so the lines do not swallow it.
     const name = clip(p.name, 150, 13, true);
     if (name)
-      out += `<text x="${r(x + 18)}" y="${r(y + 4.5)}" font-size="13" font-weight="700" fill="#18181b" stroke="#fff" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${xml(name)}</text>`;
+      out += `<text x="${r(x + 18)}" y="${r(y + 4.5)}" font-size="13" font-weight="600" fill="#18181b" stroke="#fff" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${xml(name)}</text>`;
   });
   return out;
 }

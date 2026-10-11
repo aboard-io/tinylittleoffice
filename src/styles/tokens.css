@@ -4,12 +4,13 @@
    that can be seen (3:1), the accent lighter with dark words on it. test/contrast.test.ts reads every pair. */
 @layer tokens {
   :root {
-    /* The device's own type: every script's words in the font the device draws that script in (Naskh for Arabic). */
+    /* The type is IBM Plex, the site's own (fonts.css), with the system's stack behind it while a face is on its way and
+       for the scripts Plex is not shipped for. Arabic and Hindi in Plex's own, Urdu in the device's Nastaliq (below). */
     --to-font-system: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --to-font: var(--to-font-system);
-    --to-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    /* The home page's wordmark (kit.css .to-header .to-brand): a light serif, the system's. */
-    --to-font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Times New Roman', serif;
+    --to-font: 'IBM Plex Sans', 'IBM Plex Sans Arabic', 'IBM Plex Sans Devanagari', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --to-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    /* The home page's wordmark (kit.css .to-header .to-brand) and the Serif look. */
+    --to-font-serif: 'IBM Plex Serif', Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif;
 
     --to-bg: hsl(0 0% 97.5%);
     --to-surface: hsl(0 0% 100%);
@@ -77,7 +78,7 @@
      device's own, which every iPhone, Android from 8 and Windows ship, and the Arabic stack (the device's Naskh) where
      none is there. No font is bundled. Nastaliq's letters climb and fall further than Naskh's, so its lines are taller. */
   :lang(ur) {
-    --to-font: 'Noto Nastaliq Urdu', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Awami Nastaliq', var(--to-font-system);
+    --to-font: 'Noto Nastaliq Urdu', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Awami Nastaliq', 'IBM Plex Sans', var(--to-font-system);
     --to-line: 1.9;
     --to-line-label: 1.6;
   }

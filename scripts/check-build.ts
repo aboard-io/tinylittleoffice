@@ -6,6 +6,8 @@
  *   - dist/_headers has the scripts' hashes in place of {{scripts}}: every script the apps' pages carry
  *     (src/kit/page.ts) and every inline script of a built page, or the browser would refuse to run it.
  *   - dist/version.json has the shape of src/kit/version.ts and the same script hashes as the policy.
+ *   - the type: every font a built stylesheet names, and every font a page preloads, is a file of the build, with
+ *     IBM's licence beside them (fonts/LICENSE.txt), so no page asks for a face that is not there.
  *
  *   node scripts/check-build.ts      the build in dist/, checked; a line per problem, and exit 1
  */
@@ -63,6 +65,14 @@ export function checkBuild(dist: string, scripts: string[] = []): string[] {
         if (m[1].trim() && !allowed(hash(m[1]))) problems.push(`${f} has an inline script the policy does not allow`);
     }
   }
+  // The type: what the stylesheets name and the pages preload is in the build, and its licence with it.
+  const fonts = new Set<string>();
+  /** A file a built file names, relative to the build: from the site's root ("/fonts/…") or from the file's own folder. */
+  const named = (from: string, url: string) => relative(dist, url.startsWith('/') ? resolve(dist, `.${url}`) : resolve(dist, from, '..', url)).replaceAll('\\', '/');
+  for (const f of built.filter((b) => b.endsWith('.css'))) for (const m of readFileSync(at(f), 'utf8').matchAll(/url\(\s*['"]?([^'")]+\.woff2)['"]?\s*\)/g)) fonts.add(named(f, m[1]));
+  for (const f of built.filter((b) => b.endsWith('.html'))) for (const m of readFileSync(at(f), 'utf8').matchAll(/<link rel="preload" href="([^"]+)" as="font"/g)) fonts.add(named(f, m[1]));
+  for (const f of [...fonts].sort()) if (!built.includes(f)) problems.push(`${f} is named by the build but is not in it`);
+  if (fonts.size && !built.includes('fonts/LICENSE.txt')) problems.push('fonts/LICENSE.txt is missing: the fonts’ licence goes with them');
   return problems;
 }
 

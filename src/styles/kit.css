@@ -82,6 +82,13 @@
     color: var(--to-ink);
     background: var(--to-bg);
   }
+  /* Code and keys in Plex Mono, the type's own monospace (tokens.css), not the browser's. */
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--to-font-mono);
+  }
   /* The page is the visible window and never scrolls: the document's column does (<to-chrome>, kit/chrome.ts). Paper
      is not the screen, so a page printed from here flows on as long as it is. */
   @media screen {
@@ -141,7 +148,7 @@
     padding: 0 0.8em;
     font: inherit;
     font-size: calc(0.9375 * var(--to-scale));
-    font-weight: 500;
+    font-weight: 400;
     color: var(--to-ink);
     background: var(--to-surface);
     border: 1px solid var(--to-border);
@@ -907,7 +914,7 @@
   }
   .to-rooms thead th {
     color: var(--to-ink-3);
-    font-weight: 500;
+    font-weight: 400;
   }
   .to-rooms tr.over td,
   .to-rooms tr.over th {
@@ -997,7 +1004,7 @@
     min-height: var(--to-touch);
     padding: 0 0.5714em;
     font-size: calc(0.875 * var(--to-scale));
-    font-weight: 500;
+    font-weight: 400;
     white-space: nowrap;
     color: var(--to-ink);
     background: var(--to-surface);
@@ -1115,7 +1122,7 @@
   .to-arrival-words {
     margin: 0;
     font-size: 1.375rem;
-    font-weight: 700;
+    font-weight: 600;
     line-height: var(--to-line-label);
   }
   .to-arrival-acts {
@@ -1198,17 +1205,17 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5em;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--to-ink);
     text-decoration: none;
   }
-  /* On the home page the name is a light serif on the header's bottom line, beside the mark (Paul, 2026-10-10: a lighter
+  /* On the home page the name is Plex Serif on the header's bottom line, beside the mark (Paul, 2026-10-10: a lighter
      serif, "don't make it so big", "Vertically center the logotype"). The drawer's brand keeps the small bold form above. */
   .to-header .to-brand {
     /* The words take the menu button's height and sit on its bottom edge. */
     height: var(--to-touch);
     align-items: center;
-    font: 300 min(calc(1.875 * var(--to-scale)), 7vw) / 1 var(--to-font-serif);
+    font: 400 min(calc(1.875 * var(--to-scale)), 7vw) / 1 var(--to-font-serif);
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
@@ -2089,7 +2096,7 @@
   .to-link-guard .lg-host {
     margin: 0.25em 0 0.75em;
     font-size: clamp(calc(1.625 * var(--to-scale)), 8vw, calc(2.25 * var(--to-scale)));
-    font-weight: 800;
+    font-weight: 600;
     line-height: 1.15;
     overflow-wrap: anywhere;
     /* An address reads left to right in every language, set apart from the words round it. */
@@ -2131,7 +2138,7 @@
     flex: 1;
     min-height: 2.7368em;
     font-size: calc(1.1875 * var(--to-scale));
-    font-weight: 700;
+    font-weight: 600;
     color: var(--to-on-accent);
   }
   .to-link-guard .lg-cancel {
