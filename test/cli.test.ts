@@ -78,3 +78,17 @@ test('lint works out a table’s formulas: a total that takes in its own cell is
   ]);
   expect(spawnSync(process.execPath, [CLI, 'lint', join(FIX, 'sheet-circ.ok.tlo')], { encoding: 'utf8' }).status).toBe(0);
 });
+
+test('read --text gives the document as what it says, in Markdown: a link, a .tlo file, or an app and stdin', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tlo-'));
+  writeFileSync(join(dir, 'net.tlo'), '---\ntitle: Supply\napp: diagram\nkind: net\n---\n- Shop\n- Warehouse\n~ Shop -> Warehouse: orders\n');
+  const md = '# Supply\n\n## Shop\n\n## Warehouse\n\n## Connections\n\n- Shop → Warehouse: orders\n';
+  expect(run(['read', '--text', join(dir, 'net.tlo')])).toBe(md);
+  expect(run(['read', '--text', run(['link', join(dir, 'net.tlo')]).trim()])).toBe(md);
+  expect(run(['read', '--text', 'sheet'], 'Item | Cost:money\n--- | ---\nRent | 1200\n')).toBe('Item | Cost\n--- | ---\nRent | $1,200.00\n');
+});
+
+test('measure counts the words a reader hears and the headings they move between', () => {
+  const m = JSON.parse(run(['measure', 'write'], '# One two\n\nThree four.\n'));
+  expect([m.words, m.headings]).toEqual([4, 1]);
+});

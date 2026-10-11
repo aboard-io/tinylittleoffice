@@ -2,7 +2,7 @@
  * Every document as a file, by one mechanism: a format is one object (app.ts Export) that says what it is (its
  * extension, type and words), whether the browser shows it, whether it is drawn still, and how it builds its bytes
  * from the document alone. formatsOf(def) is the one list: the kit's five (KIT_FORMATS: the pages as a PDF, a picture
- * and a web page through pdfOf, picture and htmlOf; Markdown; the text) less any the app makes its own way, then the
+ * and a web page through pdfOf, picture and htmlOf, the web page its text layer first; Markdown; the text) less any the app makes its own way, then the
  * app's own. The Download table, the ".<ext>" route, exportAs and the share sheet read that list and nothing else, so
  * nothing here asks which extension it holds. (It replaced special cases in exportAs beside placeholder builders that
  * returned empty bytes, with a second place deciding what the browser shows and a third what gets a link.)
@@ -26,6 +26,8 @@ import { ensureIcons, iconNames, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
 import { embedPictures } from './media.ts';
+import { textLayer } from './text-layer.ts';
+import { textHtml } from './text-view.ts';
 
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
 export { raster } from './raster.ts';
@@ -95,22 +97,33 @@ export async function pdfOf(pages: Page[], title: string): Promise<Uint8Array | 
   return drawn.length ? pdf(drawn, title) : null;
 }
 
-/** A document as a standalone web page: its pages as pictures, with the tags link previews read. */
-export function htmlOf(pages: Page[], title: string, link = ''): string {
+/** The page's language and direction, for a file made of it ('en' and left to right where there is no page). */
+const langOf = () => (typeof document === 'undefined' ? 'en' : document.documentElement.lang || 'en');
+const dirOf = () => (typeof document === 'undefined' ? '' : document.documentElement.dir);
+
+/**
+ * A document as a standalone web page, with the tags link previews read: its text layer first (kit/text-view.ts
+ * textHtml, `text`), for a screen reader, then its pages as pictures, hidden from one, as the Display Link has them.
+ */
+export function htmlOf(pages: Page[], title: string, link = '', text = ''): string {
+  const dir = dirOf();
   return `<!doctype html>
-<html lang="${document.documentElement.lang || 'en'}">
+<html lang="${langOf()}"${dir ? ` dir="${xml(dir)}"` : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${xml(title)}</title>
 <meta name="generator" content="TinyLittleOffice">
 <meta property="og:title" content="${xml(title)}">${link ? `\n<link rel="alternate" href="${xml(link)}" title="${xml(t('Open in Tiny Little Office'))}">` : ''}
-<style>body{font:17px/1.6 ${FONT};color:${INK};max-width:46em;margin:2em auto;padding:0 1em}figure{margin:1em 0}figure svg{display:block;max-width:100%;height:auto;border:1px solid #d4d4d8;border-radius:8px}footer{color:${MUTED};font-size:.85em}</style>
+<style>body{font:17px/1.6 ${FONT};color:${INK};max-width:46em;margin:2em auto;padding:0 1em}figure{margin:1em 0}figure svg{display:block;max-width:100%;height:auto;border:1px solid #d4d4d8;border-radius:8px}footer{color:${MUTED};font-size:.85em}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
 </head>
 <body>
 <main>
 <h1>${xml(title)}</h1>
+<article class="to-text sr-only">${text}</article>
+<div class="pages" aria-hidden="true">
 ${pages.map((p) => `<figure>${pageSvg(p.alt ? p : { ...p, alt: title })}</figure>`).join('\n')}
+</div>
 </main>${link ? `\n<footer><p><a href="${xml(link)}">${xml(t('Open in Tiny Little Office'))}</a></p></footer>` : ''}
 </body>
 </html>
@@ -124,7 +137,7 @@ ${pages.map((p) => `<figure>${pageSvg(p.alt ? p : { ...p, alt: title })}</figure
 export function printHtml(pages: Page[], title: string): string {
   const paper = `${r(pages[0].w / 96)}in ${r(pages[0].h / 96)}in`;
   return `<!doctype html>
-<html lang="${document.documentElement.lang || 'en'}">
+<html lang="${langOf()}">
 <head>
 <meta charset="utf-8">
 <title>${xml(title)}</title>
@@ -192,7 +205,13 @@ const pagesOf = (doc: Doc, ctx: ExportContext, still?: boolean) => withPictures(
 export const KIT_FORMATS: readonly Export[] = [
   { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', shows: 'own', still: true, build: async (doc, ctx) => drawn(await pdfOf(await pagesOf(doc, ctx, true), titleOf(doc, ctx))) },
   { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', shows: 'own', still: true, build: async (doc, ctx) => drawn(await picture(await pagesOf(doc, ctx, true))) },
-  { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: async (doc, ctx) => htmlOf(await pagesOf(doc, ctx), titleOf(doc, ctx), ctx.link) },
+  {
+    ext: 'html',
+    label: () => t('Web page (HTML)'),
+    mime: 'text/html',
+    shows: 'own',
+    build: async (doc, ctx) => htmlOf(await pagesOf(doc, ctx), titleOf(doc, ctx), ctx.link, textHtml(textLayer(ctx.def, doc), { file: true })),
+  },
   { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => write(referenceNotes(parse(doc))) },
   { ext: 'tlo', label: () => t('Text (TLO)'), mime: 'text/plain;charset=utf-8', shows: 'text', build: (doc, { def }) => tloText(def.id, doc) },
 ];

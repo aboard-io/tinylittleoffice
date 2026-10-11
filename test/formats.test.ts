@@ -4,7 +4,7 @@
 import { test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { apps } from '../src/kit/apps.ts';
-import { formatsOf } from '../src/kit/exports.ts';
+import { formatsOf, htmlOf } from '../src/kit/exports.ts';
 import { looksLike } from './formats-bytes.ts';
 
 test("nothing in the kit's exports switches on an extension, nor the shell on a kit format's", () => {
@@ -55,4 +55,19 @@ test("every format that needs no browser builds, for every app's blank document,
     }
   }
   expect(built).toBeGreaterThan(40);
+});
+
+test('a web page made of a document begins with its text layer, the pages after it hidden from a screen reader', async () => {
+  const sheet = apps().find((a) => a.id === 'sheet')!;
+  const html = (await formatsOf(sheet)
+    .find((f) => f.ext === 'html')!
+    .build(sheet.templates[0].doc, { def: sheet, title: 'Budget', link: 'https://tinylittleoffice.com/#/v1/sheet' })) as string;
+  const main = html.slice(html.indexOf('<main>'));
+  expect(main.indexOf('<article class="to-text')).toBeGreaterThan(0);
+  expect(main.indexOf('<article class="to-text')).toBeLessThan(main.indexOf('<figure'));
+  expect(main).toMatch(/<table><thead><tr><th scope="col">Item<\/th>/);
+  expect(main).toContain('<td>$1,200.00</td>');
+  expect(main).toMatch(/<div class="pages" aria-hidden="true">\s*<figure>/);
+  // Its own words, not a function of the pages.
+  expect(htmlOf([], 'T', '', '<p>Hello</p>')).toContain('<article class="to-text sr-only"><p>Hello</p></article>');
 });

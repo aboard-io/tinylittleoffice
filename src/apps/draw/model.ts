@@ -41,7 +41,7 @@
  * The clipboard carries shapes as a drawing of their own (shapesToTlo): a table of their rows, the joins among
  * them numbered within it, so a copy pastes into another drawing, into Motion, or into a sheet as a table.
  */
-import { apply, columnsOf, parse, parseInline, plainText, write, writeInline, type Block, type Column, type Doc, type Op, type Run, type TableBlock } from '../../doc/index.ts';
+import { apply, columnsOf, parse, parseInline, plainText, write, writeInline, type Block, type Column, type Doc, type Op, type Run, type TableBlock, type TextNode } from '../../doc/index.ts';
 import { t } from '../../kit/i18n.ts';
 import { TILE_INKS, TILE_SIDES, parseTile, tileOf, type Tile } from '../../kit/tile.ts';
 
@@ -757,4 +757,25 @@ export function pasteShapes(doc: Doc, shapes: Shape[], step = GRID): { ops: Op[]
   let last = moved.length - 1;
   while (last > 0 && isLink(moved[last].k)) last--;
   return { ops: b.ops, sel: base + last, all: moved.map((_, i) => base + i) };
+}
+
+/**
+ * A drawing as text (AppDef.text, Motion's too): what it shows in words (its alt, else a description made from its
+ * shapes), then each shape's label in the order drawn, its icon and its marks left out. A join, an icon and a shape
+ * with no words are not said; nothing of where anything sits is.
+ */
+export function drawingText(v: DrawView): TextNode[] {
+  const said = (text: string) =>
+    iconOf(text)[1]
+      .split(' | ')
+      .map((part) => plainText(parseInline(part).filter((r) => !r.ic && r.fn === undefined)))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const labels = v.shapes
+    .filter((s) => !isLink(s.k) && s.k !== 'i')
+    .map((s) => said(s.text))
+    .filter(Boolean);
+  const alt = v.alt.trim() || describeDrawing(v.shapes);
+  return [...(alt ? [{ k: 'p' as const, runs: [{ t: alt }] }] : []), ...(labels.length ? [{ k: 'list' as const, ord: false, items: labels.map((t) => ({ runs: [{ t }] })) }] : [])];
 }

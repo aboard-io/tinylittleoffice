@@ -196,7 +196,7 @@ test('the Display Link: a web picture is a card in the page, and a tap on it sho
   const shell = await mount(`#/v1/write/${encodeDoc(`Words.\n\n![A cat](${CAT})\n`)}?d`);
   await until(() => !!shell.querySelector('.to-display-page svg'));
   expect(shell.querySelector(`.to-display image[href="${VIA}"]`)).toBeNull();
-  const card = shell.querySelector<SVGGElement>('.to-display [data-webpic]')!;
+  const card = shell.querySelector<SVGGElement>('.to-display-pages [data-webpic]')!;
   expect(card.textContent).toContain('pictures.example');
   card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   await until(() => !!shell.querySelector(`.to-display image[href="${VIA}"]`));

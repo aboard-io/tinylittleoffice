@@ -5,7 +5,8 @@
  * short link arrives from tinier (kit/short.ts): the query after the payload names the short link they may
  * update, and stays in the address while they edit; every link the shell shares is written without it.
  * "…?d" is the Display Link: the same document shown as its pages, to read or print, with an Edit button
- * (never inside the payload, so the document is the same bytes either way). tinier hands an owner on by
+ * (never inside the payload, so the document is the same bytes either way); "…?d&text" opens it as its words, reflowed,
+ * rather than its pages (the Text button puts "text" in and takes it out: withText). tinier hands an owner on by
  * adding "?s=…" to whatever link it held, so "?d?s=…" reads as "?d&s=…". Everyone who arrives by a short link
  * arrives with "?s=<id>&x=<expires>" (ms since the epoch), the owner with k and o too: the shell shows how long
  * the link has left (Paul, 2026-10-09), and keeps x in the address beside the owner's query.
@@ -47,6 +48,8 @@ export interface Route {
   sealed: boolean;
   /** A deck's show link: opens presenting. (Absent, not false, when it is not one.) */
   show?: true;
+  /** A Display Link shown as its text layer, not its pages (kit/text-view.ts). (Absent when it is not.) */
+  text?: true;
 }
 
 const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?(?:\?(.*))?$/;
@@ -86,6 +89,7 @@ export function parseHash(hash: string): Route {
     arrived,
     sealed: isSealed(m[4] ?? ''),
     ...(q.has('show') ? { show: true as const } : {}),
+    ...(q.has('text') ? { text: true as const } : {}),
   };
 }
 
@@ -95,6 +99,15 @@ export function routeHash(app: string, payload = '', view = '', owned: Owned | n
   const parts = [...(display ? ['d'] : []), ...tie, ...(arrived && (!owned || owned.id === arrived.id) ? [`x=${arrived.expires}`] : [])];
   const query = parts.length ? `?${parts.join('&')}` : '';
   return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + payload : ''}${query}`;
+}
+
+/** The address with "text" in its query or taken out, the rest as it was ("?d?s=…" read as "?d&s=…"). */
+export function withText(hash: string, on: boolean): string {
+  const at = hash.indexOf('?');
+  const base = at < 0 ? hash : hash.slice(0, at);
+  const params = (at < 0 ? '' : hash.slice(at + 1)).split(/[?&]/).filter((p) => p && p !== 'text');
+  if (on) params.push('text');
+  return params.length ? `${base}?${params.join('&')}` : base;
 }
 
 /**

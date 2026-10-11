@@ -46,7 +46,7 @@ test('the Display Link: the whitelisted picture drawn from the proxy at once; th
   const shell = await write(`Words.\n\n![Example](${WIKI})\n\n![A cat](${CAT})\n`, '?d');
   // Drawn at once, and fetched as it nears the screen (the first page is on it): the observer hands the address over.
   await until(() => !!shell.querySelector(`.to-display image[href="${pictureSrc(WIKI)}"]`));
-  const card = shell.querySelector<SVGGElement>('.to-display [data-webpic]')!;
+  const card = shell.querySelector<SVGGElement>('.to-display-pages [data-webpic]')!;
   expect(card.textContent).toContain('pictures.example');
   card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   await until(() => !!shell.querySelector(`.to-display image[href="${pictureSrc(CAT)}"]`));

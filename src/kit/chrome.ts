@@ -48,7 +48,7 @@
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
- * events: `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter, a short link's Extend: detail.short),
+ * events: `to-display-text` (the Display Link's Text or Pages), `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter, a short link's Extend: detail.short),
  * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -85,6 +85,8 @@ export interface Plain {
   present?: string;
   trust?: TemplateResult;
   locked?: boolean;
+  /** The Display Link shown as its words rather than its pages: its button says Pages, and the column is not a picture. */
+  reading?: boolean;
 }
 
 /** What a person types in: while one of these has the focus, the header steps aside on a phone. */
@@ -419,16 +421,17 @@ export class ToChrome extends LitElement {
       </button>`;
   }
 
-  /** The Display Link: its pages under a line with the title and Edit. The embed: the pages under the title and Open in Tiny Little Office. */
+  /** The Display Link: its pages under a line with the title, Text (its words instead, kit/text-view.ts) and Edit. The embed: the pages under the title and Open in Tiny Little Office. */
   private renderPlain(p: Plain) {
     const head =
       p.kind === 'embed'
         ? html`<header class="to-embed-head"><span class="to-embed-title">${p.title}</span><a class="to-btn to-embed-open" href=${p.href} target="_blank" rel="noopener">${icon(UI.open, 16)}<span>${t('Open in Tiny Little Office')}</span></a></header>`
-        : html`<header class="to-display-head"><h1 class="to-display-title">${p.title}</h1>${p.trust}${p.present ? html`<a class="to-btn primary to-display-present" href=${p.present}>${icon(UI.play, 16)}<span>${t('Present')}</span></a>` : nothing}<a class="to-btn ${p.present ? '' : 'primary'} to-display-edit" href=${p.href}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a></header>`;
+        : html`<header class="to-display-head"><h1 class="to-display-title">${p.title}</h1>${p.trust}<button type="button" class="to-btn to-display-mode" @click=${() => this.say('to-display-text')}>${icon(p.reading ? UI.image : UI.text, 16)}<span>${p.reading ? t('Pages') : t('Text')}</span></button>${p.present ? html`<a class="to-btn primary to-display-present" href=${p.present}>${icon(UI.play, 16)}<span>${t('Present')}</span></a>` : nothing}<a class="to-btn ${p.present ? '' : 'primary'} to-display-edit" href=${p.href}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a></header>`;
     const cls = p.kind === 'embed' ? `to-display to-embed ${p.locked ? 'to-embed-locked' : ''}` : 'to-display';
     // The pages scroll and hold nothing to tab to: the column itself is in the tab order, to scroll by the keys.
     // The pages are a picture to two fingers (kit/shell.ts pinchZoom): spatial, so the size of everything is not what a pinch here sets.
-    return html`${head}${this.renderArrival()}<div class="to-column"><main class=${cls} data-spatial tabindex="0" aria-label=${p.title}>${this.main}</main></div>`;
+    // Shown as words (the Display Link's Text), the column reflows: a pinch is the size of everything, as in a text.
+    return html`${head}${this.renderArrival()}<div class="to-column"><main class=${cls} ?data-spatial=${!p.reading} tabindex="0" aria-label=${p.title}>${this.main}</main></div>`;
   }
 
   render() {

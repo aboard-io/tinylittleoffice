@@ -1993,6 +1993,56 @@
     border-radius: 0.1875rem;
     box-shadow: var(--to-shadow);
   }
+  /* The text layer (kit/text-view.ts): read by a screen reader before the pages; shown by Text in their place, reflowed
+     at the person's size in the theme's colors. Hidden, it is shown should the keyboard reach a link in it (a11y.css). */
+  .to-display-text {
+    max-width: 42em;
+    font-size: calc(1.0625 * var(--to-scale));
+    line-height: 1.6;
+    color: var(--to-ink);
+    overflow-wrap: anywhere;
+  }
+  .to-display-text :is(h1, h2, h3, h4) {
+    line-height: 1.25;
+    margin: 1.25em 0 0.5em;
+  }
+  .to-display-text :is(p, ul, ol, table, pre, blockquote) {
+    margin: 0 0 0.875em;
+  }
+  .to-display-text blockquote {
+    padding-inline-start: 1em;
+    border-inline-start: 0.1875em solid var(--to-border);
+    color: var(--to-ink-2);
+  }
+  .to-display-text li.to-text-task {
+    list-style: none;
+  }
+  /* A wide table scrolls with the column (main.to-display, in the tab order), not in a box of its own. */
+  .to-display-text table {
+    border-collapse: collapse;
+  }
+  .to-display-text :is(th, td) {
+    padding: 0.25em 0.75em;
+    border-bottom: 1px solid var(--to-border);
+    text-align: start;
+  }
+  .to-display-text pre {
+    font-family: var(--to-font-mono);
+    white-space: pre-wrap;
+  }
+  .to-display-text img {
+    max-width: 100%;
+    height: auto;
+  }
+  .to-display-text hr {
+    border: 0;
+    border-top: 1px solid var(--to-border);
+    margin: 1.5em 0;
+  }
+  .to-display-text .to-text-notes {
+    font-size: 0.875em;
+    color: var(--to-ink-2);
+  }
   @media print {
     .to-display-head {
       display: none;

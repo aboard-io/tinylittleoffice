@@ -555,3 +555,33 @@ a template chosen in the drawer asked to leave over the open drawer, two modals;
 a dialog closed over a frame whose page had the focus, or over a menu it had closed, gave it to nothing (kit/dialog.ts
 `focusBack`, the palette's too); Find closed with nothing found gave it to nothing; and on a phone the bar's button
 focused while the bar was away scrolled the whole chrome up by the header's height (the chrome now holds still).
+
+## 12. The text layer (round seventeen, 2026-10-11)
+
+Paul: "Deal with the Display Link." A Display Link was pages of flat SVG text in `role=group` boxes, each with one
+label: an outline read as its title, a deck's table as its slide's. Now every document has one text layer, what it
+says in the order it says it, and the pages are a picture of it.
+
+- **The nodes** (`src/doc/text.ts`). `textOf(doc)` gives a small tree from the blocks every text-shaped app shares:
+  headings (h1 to h4; deeper is h4), paragraphs and quotes as runs with their marks and links (an icon left out, a
+  footnote's mark its number carrying the note), lists nested by depth with a task's state, tables as the values a
+  reader sees (formulas worked out, money and dates formatted, empty rows and nameless empty columns dropped), fences
+  as written, pictures (alt and address), things from the web (title and address), a document held in this one
+  (`inner`, given by the host: its app reads it), the footnotes at the end, and a break for each `hr`. The Word
+  Processor, Outliner, Presentation Builder, To-do List, Spreadsheet, Calculator (its lines) and Kanban Board (columns as
+  headings, cards as items) have no code of their own for it.
+- **A spatial app's own** (`AppDef.text`, same nodes): Diagram (each thing a heading by its depth with its words, then
+  Connections as "A → B: label"; the mind map, the org chart and the rest), Calendar (each day a heading in the reader's
+  language, its events with their times in the calendar's zone and how they repeat), Trip Planner (the stops in order
+  with their notes), Drawing Tool and Motion (the alt, else a description from the shapes, and each shape's label). The
+  locked card says it is locked; a QR code, its address. `kit/text-layer.ts` `textLayer(def, doc)` picks.
+- **Drawn** (`kit/text-view.ts`): plain HTML, tables with column heads, a task's state said before its words, a link
+  through the link guard, a picture through the pictures' gate (its card until asked for). The Display Link puts it
+  first, visually hidden (shown should the keyboard reach a link in it), and the pages after it `aria-hidden`; its Text
+  button shows the words in the pages' place, reflowed at the person's size in the theme's colors, the column no
+  longer a picture (a pinch is the size of everything), and puts `&text` in the address (`route.ts` `withText`), so the
+  link opens that way. The embed and a deck's show are unchanged.
+- **Elsewhere.** The `.html` file carries it the same way before its pages; print is the pages. `textMarkdown(nodes)`
+  writes it through the kernel's writer, footnotes in the reference form, stable when read and written again: the API's
+  `text(link)` and `markdown(app, text)` and `tinyoffice read --text`; `measure` counts its `words` and `headings`.
+

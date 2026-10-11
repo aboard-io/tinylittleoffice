@@ -8,6 +8,15 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+  /* The Display Link's words, read by a screen reader behind the pages (kit/text-view.ts): shown should the keyboard reach a link in them. */
+  .to-display-text.sr-only:focus-within {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

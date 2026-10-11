@@ -15,7 +15,8 @@
  * and a short link only ever hold ciphertext. The envelope's keys (kit/envelope.ts: by, created, key, sig) are the
  * shell's: `created` is stamped with the first change, and every change keeps them. A new document is named at once
  * (library.ts newName), shown in the title box and written with the first change, so a blank page left alone writes
- * nothing. A Display Link ("?d") shows the pages, to read or print, with Edit; ".embed" the pages alone, for another
+ * nothing. A Display Link ("?d") shows the pages, to read or print, with Edit, and its text layer before them for a
+ * screen reader (kit/text-view.ts), which Text shows in their place ("&text"); ".embed" the pages alone, for another
  * site's frame; "…?show" opens a deck presenting; ".<ext>" downloads (exports.ts viewAs); a plain-parameter link
  * (kit/plain.ts) becomes the packed link on arrival; "#/compare/…" is the compare view; a file dropped on the page
  * opens (kit/open.ts). Mod+F finds, Mod+/ the shortcuts, Mod+S keeps, Mod+K the command palette (kit/keys.ts, the page's
@@ -35,6 +36,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { AppDef, Doc, DocChange, Editor } from './app.ts';
 import { appOf } from './apps.ts';
 import { decodeDoc, encodeDoc } from './codec.ts';
@@ -45,7 +47,7 @@ import { ENVELOPE_KEYS, isoMinute } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportItems, printDoc, viewAs } from './exports.ts';
-import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash, withText, type Owned } from './route.ts';
 import { checkSignature, keeping, onPrivacy, pack, reopen, setPrivate, type Signature } from './privacy.ts';
 import { copyText } from './share.ts';
 import { trustButton, type ToPrivacy } from './privacy-dialog.ts';
@@ -60,6 +62,8 @@ import { gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.
 import { motion, reducedMotion } from './motion.ts';
 import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
+import { textLayer } from './text-layer.ts';
+import { textHtml } from './text-view.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
 import type { ToMenu } from './menu.ts';
@@ -95,6 +99,7 @@ export class ToShell extends LitElement {
     owned: { state: true },
     changed: { state: true },
     display: { state: true },
+    reading: { state: true },
     fresh: { state: true },
     expires: { state: true },
     arrived: { state: true },
@@ -113,6 +118,7 @@ export class ToShell extends LitElement {
   declare owned: Owned | null; // the short link this document may update; rides in the hash (kit/route.ts), never in a shared link
   declare changed: boolean; // edited since the short link last had this document
   declare display: boolean; // shown as its pages (the Display Link), not in the editor
+  declare reading: boolean; // the Display Link shown as its words, reflowed, not its pages ("&text")
   declare fresh: string; // a new document's name, until it is given one: "New Spreadsheet 2026-10-09 #1"
   declare expires: number; // when the short link this document is tied to expires, ms since the epoch; 0 when none is known
   declare arrived: boolean; // arrived by a short link this visit, its banner not closed
@@ -154,6 +160,7 @@ export class ToShell extends LitElement {
       owned: null,
       changed: false,
       display: false,
+      reading: false,
       fresh: '',
       expires: 0,
       arrived: false,
@@ -265,7 +272,7 @@ export class ToShell extends LitElement {
     this.refocus = !!document.activeElement && document.activeElement !== document.body && this.contains(document.activeElement);
     unplain(this.pageApp());
     this.comparing = parseCompare(location.hash);
-    const { app, payload, view: asked, owned, display, arrived, sealed, show, version } = parseHash(location.hash);
+    const { app, payload, view: asked, owned, display, arrived, sealed, show, text, version } = parseHash(location.hash);
     const view = asked === 'embed' ? '' : asked;
     this.querySelector<ToFind>('to-find')?.close();
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
@@ -289,6 +296,7 @@ export class ToShell extends LitElement {
     setPictureDoc(def ? routeHash(def.id, payload) : '');
     this.display = !!def && display && !!payload;
     this.embed = !!def && asked === 'embed' && !!payload;
+    this.reading = this.display && !!text;
     this.presentSoon = !!def && !!show && !display && !this.embed;
     this.focusSoon = !!def && !this.display && !this.embed && !this.presentSoon && !this.unreadable && !this.sealed && !view;
     // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
@@ -670,9 +678,13 @@ export class ToShell extends LitElement {
 
   private trust = () => trustButton(this.signature, !!this.sealed, !!this.locker, () => (this.sealed ? void this.askPassword() : void this.privacy?.show()));
 
-  /** The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for first. */
-  private pages = (def: AppDef) =>
-    html`<div class="to-display-pages">${def
+  /**
+   * The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for
+   * first. Behind the text layer (the Display Link), hidden from a screen reader, which reads the words instead; and
+   * hidden from everyone while the words are shown.
+   */
+  private pages = (def: AppDef, behind = false) =>
+    html`<div class="to-display-pages" aria-hidden=${behind ? 'true' : nothing} ?hidden=${behind && this.reading}>${def
       .view(this.doc)
       .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</div>`;
 
@@ -692,11 +704,20 @@ export class ToShell extends LitElement {
       return html`<to-chrome .plain=${{ kind: 'embed', title: this.docTitle, href: u.href, locked: !!this.sealed }} .main=${main}></to-chrome>`;
     }
     const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null);
-    const main = this.pages(def);
+    // The text layer first (kit/text-view.ts): what a screen reader reads, and what Text shows, reflowed, in the pages' place.
+    const root = document.documentElement;
+    const words = html`<div class="to-display-text ${this.reading ? '' : 'sr-only'}" lang=${root.lang || nothing} dir=${root.dir || nothing}>${unsafeHTML(textHtml(textLayer(def, this.doc)))}</div>`;
+    const main = html`${words}${this.pages(def, true)}`;
     // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
     const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;
-    return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, present, trust: this.trust() }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;
+    return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, present, trust: this.trust(), reading: this.reading }} .main=${main} @to-display-text=${this.toggleReading} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;
   }
+
+  /** Text, or Pages: the words shown in the pages' place or the pages again, and the address saying which ("&text"). */
+  private toggleReading = () => {
+    this.reading = !this.reading;
+    history.replaceState(this.state(), '', withText(location.hash, this.reading));
+  };
 
   /** The editor in the column, or the home page, the compare view, a locked or unreadable link, or Loading. */
   private renderMain(def: AppDef | undefined) {

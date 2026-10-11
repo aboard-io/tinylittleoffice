@@ -7,11 +7,12 @@
  *   import { link, read } from 'https://tinylittleoffice.com/api.js';
  *   const url = link('sheet', 'Item | Cost:money\n--- | ---\nRent | 1200\n', { title: 'Budget' });
  *   read(url).text;   // the document's TLO text, its title in the head
+ *   await text(url);  // what the document says, as Markdown (its text layer: src/doc/text.ts)
  *
  * The apps' definitions (their names and templates) are a lazy import: `apps()` and `templates()` are
  * asynchronous so that the rest stays small.
  */
-import { parse as parseText, write as writeDoc, withHead, type Doc } from './doc/index.ts';
+import { parse as parseText, plainText, textMarkdown, textOf, write as writeDoc, withHead, type Doc } from './doc/index.ts';
 import { decodeDoc, encodeDoc, URL_LIMIT } from './kit/codec.ts';
 import { parseHash, routeHash } from './kit/route.ts';
 import { appInHead, plainLink, readPlain, tloText } from './kit/plain.ts';
@@ -97,6 +98,26 @@ export function read(url: string): Read {
   }
   const head = parseText(text).head;
   return { app, view, text, title: head.title ?? '', by: head.by ?? '', display: route.display };
+}
+
+/**
+ * A document in an app as what it says, in Markdown: its text layer (src/doc/text.ts; a spatial app's own, a
+ * diagram's things and connections, a calendar's days), what a screen reader reads on its Display Link. Its title
+ * first, unless its first heading says it already.
+ */
+export async function markdown(app: string, text: string): Promise<string> {
+  const [{ appOf }, { textLayer }] = await Promise.all([import('./kit/apps.ts'), import('./kit/text-layer.ts')]);
+  const def = appOf(app);
+  const nodes = def ? textLayer(def, text) : textOf(parseText(text));
+  const title = (def ? def.title(text) : (parseText(text).head.title ?? '')).trim();
+  const first = nodes[0];
+  const said = first?.k === 'h' && first.level === 1 && plainText(first.runs).trim() === title;
+  return textMarkdown(title && !said ? [{ k: 'h', level: 1, runs: [{ t: title }] }, ...nodes] : nodes);
+}
+/** A link's document as what it says, in Markdown (markdown(app, text)). */
+export async function text(url: string): Promise<string> {
+  const r = read(url);
+  return markdown(r.app, r.text);
 }
 
 /** A document as a .tlo file's text (its app in its head); and a .tlo file's text as the app and the document. */

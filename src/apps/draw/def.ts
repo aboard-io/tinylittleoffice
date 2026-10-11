@@ -11,7 +11,7 @@ import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { drawn, raster } from '../../kit/raster.ts';
 import { blankTile, tileSvg, type Tile } from '../../kit/tile.ts';
-import { readDrawing } from './model.ts';
+import { drawingText, readDrawing } from './model.ts';
 import { drawingPage, drawingToSvg } from './view.ts';
 import { templates } from './templates.ts';
 
@@ -50,6 +50,7 @@ export default defineApp({
   title: titleOf,
   retitle,
   view: (doc, opts) => [drawingPage(parse(doc), opts?.upTo, opts?.thumb)],
+  text: (doc) => drawingText(readDrawing(parse(doc))),
   // Presented on a slide, a shape a step, in the order they were drawn.
   steps: (doc) => {
     const v = readDrawing(parse(doc));

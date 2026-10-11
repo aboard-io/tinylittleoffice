@@ -61,4 +61,6 @@ export const qrPicture: AppDef = {
   title: () => '',
   retitle: (doc) => doc,
   view: (body) => [body.trim() ? qrPage(body.trim(), body.trim()) : qrPage(selfLink())],
+  // What it is, and the address it holds (this document's own when it names none).
+  text: (body) => [{ k: 'p', runs: [{ t: `${t('QR code')}: ` }, ...(body.trim() || selfLink() ? [{ t: body.trim() || selfLink(), href: body.trim() || selfLink() }] : [])] }],
 };
