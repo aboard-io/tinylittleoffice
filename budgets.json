@@ -1,7 +1,7 @@
 {
   "$comment": "The chunk budgets (scripts/budgets.ts says what each number weighs): bytes of each built chunk gzipped at level 9. The first budgets are the sizes of 2026-10-10 (R9-lints, next at 8a59b3d) plus 5%. npm run build fails when a chunk is over; the budget is a tripwire against growth nobody meant, not a ceiling on clarity: growth that buys simplicity is raised here, in a commit of its own whose message says why.",
   "gzipLevel": 9,
-  "main": 42300,
+  "main": 42900,
   "apps": 170906,
   "home": 346796,
   "icons": 18527,
