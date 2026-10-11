@@ -1831,7 +1831,7 @@
     gap: 0.5rem;
     width: 100%;
     max-width: var(--to-max-w);
-    margin: 0 auto;
+    margin: 0;
     padding: 0.5rem var(--to-gutter);
     padding-left: max(var(--to-gutter), env(safe-area-inset-left));
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
@@ -1851,9 +1851,11 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    /* The pages sit at the left of the screen, not centred (Paul, 2026-10-11: "The preview documents should be all the
+       way in the left of the screen"). */
     padding: 0 var(--to-gutter) var(--to-gutter);
-    padding-left: max(var(--to-gutter), env(safe-area-inset-left), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
-    padding-right: max(var(--to-gutter), env(safe-area-inset-right), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
+    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
   }
   /* A website's Display Link: the site itself, the screen's height under the line with Edit. */
   .to-display-site {
@@ -1870,14 +1872,14 @@
   .to-display-pages {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 1rem;
     width: calc(100% * var(--to-view-zoom, 1));
   }
   .to-display-page {
     width: 100%;
     max-width: calc(var(--page-w, 51rem) * var(--to-view-zoom, 1));
-    margin: 0 auto;
+    margin: 0;
   }
   .to-display {
     overflow-x: auto;
