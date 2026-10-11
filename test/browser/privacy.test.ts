@@ -368,8 +368,10 @@ test('Download everything names each file by its title and writes the title into
   keep({ id: 'b', app: 'sheet', title: 'Budget', hash: `#/v1/sheet/${encodeDoc('---\nchart: bar\n---\na | b\n--- | ---\n1 | 2\n')}`, at: at - 1 });
   keep({ id: 'c', app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc('---\ntitle: Launch notes\nby: Paul\n---\nGo.\n')}`, at: at - 2 });
   keep({ id: 'd', app: 'write', title: '', hash: `#/v1/write/${await pack('---\ntitle: Salaries\n---\nsecret\n', await lockWith('pw'))}`, at: at - 3 });
+  // Were a title kept for a locked one, it would go on a line before the link.
+  keep({ id: 'e', app: 'write', title: 'Salaries', hash: `#/v1/write/${await pack('---\ntitle: Salaries\n---\nsecret\n', await lockWith('pw'))}`, at: at - 4 });
   const files = await everything(false, 'https://tinylittleoffice.example/');
-  expect(Object.keys(files).sort()).toEqual(['sheet/budget.tlo', 'write/launch-notes.tlo', 'write/locked.txt', 'write/new-word-processor-2026-10-11-1.tlo']);
+  expect(Object.keys(files).sort()).toEqual(['sheet/budget.tlo', 'write/launch-notes.tlo', 'write/locked.txt', 'write/new-word-processor-2026-10-11-1.tlo', 'write/salaries.txt']);
   // No title in the text: the library's, in a head before the body, the body as it was to the byte.
   expect(files['write/new-word-processor-2026-10-11-1.tlo']).toBe(`---\ntitle: New Word Processor 2026-10-11 #1\n---\n${words}`);
   // A head without a title gains one, first; the rest of the head is kept.
@@ -378,6 +380,7 @@ test('Download everything names each file by its title and writes the title into
   expect(files['write/launch-notes.tlo']).toBe('---\ntitle: Launch notes\nby: Paul\n---\nGo.\n');
   // A locked one is its link alone: its title is its secret.
   expect(files['write/locked.txt']).toMatch(/^https:\/\/tinylittleoffice\.example\/#\/v1\/write\/E[\w~]+\n$/);
+  expect(files['write/salaries.txt']).toBe(`title: Salaries\nhttps://tinylittleoffice.example/${library()[4].hash}\n`);
   // And back: the zip read gives each the same title and the same text.
   const back = readZip(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])), 'write', (id) => ['write', 'sheet'].includes(id));
   const titled = back.filter((d) => !d.payload).map((d) => ({ title: appOf(d.app)!.title(d.text), text: d.text }));
@@ -386,7 +389,7 @@ test('Download everything names each file by its title and writes the title into
     { title: 'Budget', text: files['sheet/budget.tlo'] },
     { title: 'Launch notes', text: files['write/launch-notes.tlo'] },
   ]);
-  expect(back.find((d) => d.payload)!.payload).toBe(parseHash(library()[3].hash).payload);
+  expect(back.filter((d) => d.payload).map((d) => d.payload)).toEqual([3, 4].map((i) => parseHash(library()[i].hash).payload));
   forgetAll();
 });
 
