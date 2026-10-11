@@ -77,6 +77,12 @@ leak. Everything here makes that checkable by a stranger.
    lockfile and `scripts/dependencies.json`, the one-line reasons it refuses to run without; the sizes come
    from a build (`-- --sizes`), shared among each chunk's modules; `test/dependencies.test.ts` and CI hold
    the page current; CI runs `npm audit` with no ignores.
+   *The type, 2026-10-11 (r17-plex).* The fonts are IBM Plex (Sans, Serif and Mono; Sans Arabic and Sans
+   Devanagari behind their `unicode-range`), self-hosted: IBM's own woff2 files, copied as released into
+   `public/fonts/` with the SIL Open Font License beside them, named with their versions in docs/dependencies.md's
+   Type (`scripts/dependencies.ts` `FONTS`), served by the site under `font-src 'self'` and nothing else
+   (`test/csp.test.ts`). Their bytes together are a line of `budgets.json` (`fonts`), and `scripts/check-build.ts`
+   fails a build that names a face it does not hold.
 5. **The crypto in the open** (gate). One short document each, with test vectors in the repo and the fact
    that it is WebCrypto with no library: `docs/crypto/password.md` (PBKDF2 → AES-GCM: parameters, the sealed
    payload form), `docs/crypto/signing.md` (Ed25519 with the P-256 fallback, the envelope's signed message,

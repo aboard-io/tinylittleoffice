@@ -8,16 +8,19 @@
 <meta name="description" content="Every request Tiny Little Office can make: when, what it carries, and what stops it." />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <style>
+@font-face{font-family:'IBM Plex Sans';src:url(./fonts/IBMPlexSans-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Sans';src:url(./fonts/IBMPlexSans-SemiBold.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url(./fonts/IBMPlexMono-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
 :root{--bg:hsl(0 0% 97.5%);--surface:hsl(0 0% 100%);--border:hsl(240 4.9% 83.9%);--ink:hsl(240 5.9% 10%);--ink-2:hsl(240 5.3% 26.1%);--ink-3:hsl(240 5.2% 33.9%);--accent:hsl(243.4 75.4% 58.6%);--code:hsl(240 4.8% 95.9%);color-scheme:light dark}
 @media (prefers-color-scheme:dark){:root{--bg:hsl(240 6% 8%);--surface:hsl(240 5.1% 15%);--border:hsl(240 5.3% 58%);--ink:hsl(240 9.1% 91.8%);--ink-2:hsl(240 7.3% 84%);--ink-3:hsl(240 5.6% 73%);--accent:hsl(229.4 100% 78.3%);--code:hsl(240 5.7% 18.2%)}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
 main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
 h1{font-size:1.75rem;line-height:1.2;margin:.5rem 0 1rem}
 h2{font-size:1.25rem;margin:2.25rem 0 .75rem}
 h3{font-size:1rem;margin:0 0 .25rem;overflow-wrap:anywhere}
 a{color:var(--accent)}
-code{font:.9em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:.05em .3em;border-radius:4px;overflow-wrap:anywhere}
+code{font:.9em 'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:.05em .3em;border-radius:4px;overflow-wrap:anywhere}
 ul{padding-left:1.25rem}
 li{margin:.4rem 0}
 .home{font-size:.95rem}
@@ -39,7 +42,7 @@ dd{margin:0}
 <h2>Every request the site can make</h2>
 <section class="reach">
 <h3><code>tinylittleoffice.com</code></h3>
-<p>The site’s own files: the apps, the fonts, the icon set’s chunk (loaded when the icon picker opens).</p>
+<p>The site’s own files: the apps, the type (IBM Plex, a face when a page’s words need it), the icon set’s chunk (loaded when the icon picker opens).</p>
 <dl>
 <dt>When</dt><dd>while shown</dd>
 <dt>Carries</dt><dd>Which file; never the document, which is after the &quot;#&quot; and stays in the browser</dd>
@@ -355,7 +358,7 @@ dd{margin:0}
 <li><strong>The map.</strong> Map tiles only while a map is on the screen; place search only when a search is tapped. They are not proxied: OpenStreetMap's usage policies are written for the browser that shows the map asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people not to make. The site sends no referrer.</li>
 <li><strong>Short links.</strong> Only when a short link is made, opened, updated or forgotten; the service holds ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send (tinier/tinier.ts).</li>
 <li><strong>Sharing to a service.</strong> Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so whoever reads the post can read it.</li>
-<li><strong>Fonts and icons.</strong> Self-hosted, from the site itself; the full icon set is a chunk of the site's own, loaded when the icon picker opens.</li>
+<li><strong>Fonts and icons.</strong> Self-hosted, from the site itself: the type is IBM Plex (<code>public/fonts/</code>), each face fetched when a page's words need it, and the policy's <code>font-src</code> is <code>'self'</code> alone; the full icon set is a chunk of the site's own, loaded when the icon picker opens.</li>
 <li><strong>Links.</strong> A link in a document that leaves the site opens only after the reader is shown where it goes and says Go (kit/link-guard.ts), in a new tab with no referrer.</li>
 </ul>
 <h2>Nothing else</h2>

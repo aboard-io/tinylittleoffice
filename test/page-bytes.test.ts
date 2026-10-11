@@ -28,4 +28,6 @@ test('the pages of three documents, and their thumbnails, are the same bytes as 
   expect(drawn()).toEqual(EXPECTED);
 });
 
-const EXPECTED = ['write: 99d352286d96c4d9 99d352286d96c4d9', 'deck: 6c3afc6cf2eadac7 2b93a1c61971ee4d', 'draw: 2d08ac410fa23349 2d08ac410fa23349'];
+// Taken again when the type became IBM Plex (r17-plex): the pages name Plex first, a bold word is 600, and the widths
+// they are laid out by are Plex's (kit/draw.ts textWidth).
+const EXPECTED = ['write: 14652a4b18137bcc 14652a4b18137bcc', 'deck: 3e2deea2b6569d3a bd6ffaa363d2de69', 'draw: 9191bafafdf3e32c 9191bafafdf3e32c'];

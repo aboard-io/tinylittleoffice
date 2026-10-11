@@ -97,8 +97,9 @@ a tracker) never is.
 - **Sharing to a service.** Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in
   a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so
   whoever reads the post can read it.
-- **Fonts and icons.** Self-hosted, from the site itself; the full icon set is a chunk of the site's own,
-  loaded when the icon picker opens.
+- **Fonts and icons.** Self-hosted, from the site itself: the type is IBM Plex (\`public/fonts/\`), each face
+  fetched when a page's words need it, and the policy's \`font-src\` is \`'self'\` alone; the full icon set is a
+  chunk of the site's own, loaded when the icon picker opens.
 - **Links.** A link in a document that leaves the site opens only after the reader is shown where it goes
   and says Go (kit/link-guard.ts), in a new tab with no referrer.
 
@@ -189,16 +190,26 @@ function proseHtml(): string {
     .join('\n');
 }
 
-const STYLE = `:root{--bg:hsl(0 0% 97.5%);--surface:hsl(0 0% 100%);--border:hsl(240 4.9% 83.9%);--ink:hsl(240 5.9% 10%);--ink-2:hsl(240 5.3% 26.1%);--ink-3:hsl(240 5.2% 33.9%);--accent:hsl(243.4 75.4% 58.6%);--code:hsl(240 4.8% 95.9%);color-scheme:light dark}
+/** The site's type, IBM Plex, from its own files (src/styles/fonts.css has every face; this page needs three). */
+const FACES = [
+  ['IBM Plex Sans', 'IBMPlexSans-Regular', 400],
+  ['IBM Plex Sans', 'IBMPlexSans-SemiBold', 600],
+  ['IBM Plex Mono', 'IBMPlexMono-Regular', 400],
+]
+  .map(([family, file, weight]) => `@font-face{font-family:'${family}';src:url(./fonts/${file}.woff2) format('woff2');font-weight:${weight};font-display:swap}`)
+  .join('\n');
+
+const STYLE = `${FACES}
+:root{--bg:hsl(0 0% 97.5%);--surface:hsl(0 0% 100%);--border:hsl(240 4.9% 83.9%);--ink:hsl(240 5.9% 10%);--ink-2:hsl(240 5.3% 26.1%);--ink-3:hsl(240 5.2% 33.9%);--accent:hsl(243.4 75.4% 58.6%);--code:hsl(240 4.8% 95.9%);color-scheme:light dark}
 @media (prefers-color-scheme:dark){:root{--bg:hsl(240 6% 8%);--surface:hsl(240 5.1% 15%);--border:hsl(240 5.3% 58%);--ink:hsl(240 9.1% 91.8%);--ink-2:hsl(240 7.3% 84%);--ink-3:hsl(240 5.6% 73%);--accent:hsl(229.4 100% 78.3%);--code:hsl(240 5.7% 18.2%)}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
 main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
 h1{font-size:1.75rem;line-height:1.2;margin:.5rem 0 1rem}
 h2{font-size:1.25rem;margin:2.25rem 0 .75rem}
 h3{font-size:1rem;margin:0 0 .25rem;overflow-wrap:anywhere}
 a{color:var(--accent)}
-code{font:.9em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:.05em .3em;border-radius:4px;overflow-wrap:anywhere}
+code{font:.9em 'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:.05em .3em;border-radius:4px;overflow-wrap:anywhere}
 ul{padding-left:1.25rem}
 li{margin:.4rem 0}
 .home{font-size:.95rem}

@@ -94,11 +94,11 @@
   }
 
   /* The look (look.ts): the type the document is set in, its faces as two properties the page passes down.
-     The stacks are look.ts's STACKS, as CSS needs them written out. */
+     The stacks are look.ts's STACKS: the sans, serif and mono are the site's (tokens.css), the narrow one written out. */
   .write-page {
     --write-sans: var(--to-font);
-    --write-serif: Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif;
-    --write-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --write-serif: var(--to-font-serif);
+    --write-mono: var(--to-font-mono);
     --write-narrow: 'Bodoni 72', Didot, 'Times New Roman', Times, 'Noto Serif', serif;
     --write-head: var(--write-sans);
     --write-body: var(--write-sans);
@@ -157,7 +157,7 @@
   .write-page[data-look='book'] .tx h1.title {
     text-align: center;
     letter-spacing: 0;
-    font-weight: 500;
+    font-weight: 400;
   }
   .write-page[data-look='news'] .tx h1.title {
     font-size: 2.8em;
@@ -170,19 +170,19 @@
     font-family: var(--to-font);
   }
   .write-look .to-menu-item:nth-of-type(2) .to-menu-words {
-    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+    font-family: var(--to-font-serif);
   }
   .write-look .to-menu-item:nth-of-type(3) .to-menu-words {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-family: var(--to-font-mono);
   }
   .write-look .to-menu-item:nth-of-type(4) .to-menu-words > span {
-    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+    font-family: var(--to-font-serif);
   }
   .write-look .to-menu-item:nth-of-type(5) .to-menu-words small {
-    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+    font-family: var(--to-font-serif);
   }
   .write-look .to-menu-item:nth-of-type(6) .to-menu-words {
-    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+    font-family: var(--to-font-serif);
   }
   .write-look .to-menu-item:nth-of-type(6) .to-menu-words > span {
     font-variant: small-caps;
@@ -190,7 +190,7 @@
   }
   .write-look .to-menu-item:nth-of-type(7) .to-menu-words > span {
     font-family: 'Bodoni 72', Didot, 'Times New Roman', Times, serif;
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* The document's own head fields (an invoice's from and to): small labels over boxes, two to a row. */
@@ -292,7 +292,7 @@
   }
   table.wt th.letter {
     color: var(--to-paper-muted);
-    font-weight: 500;
+    font-weight: 400;
     text-align: center;
   }
   /* A column's head and a row's number are buttons: a tap chooses the column or the row and opens its menu. */
@@ -359,7 +359,7 @@
     padding: 0;
     color: var(--to-paper-muted);
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 400;
   }
   table.wt .wt-add,
   table.wt .wt-pad {

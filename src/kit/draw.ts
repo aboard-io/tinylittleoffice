@@ -15,7 +15,8 @@ export const xml = (s: string) =>
 export const PAPER = '#ffffff';
 export const INK = '#18181b';
 export const MUTED = '#52525b';
-export const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+/** The pages' type: IBM Plex Sans, the site's own (src/styles/fonts.css), with the system's behind it where a page is read without the site (an exported SVG or web page). */
+export const FONT = "'IBM Plex Sans', 'IBM Plex Sans Arabic', 'IBM Plex Sans Devanagari', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 /** A page as a complete SVG document: a picture named by its alt, unless `attrs` gives it a role and name of its own. */
 export function pageSvg(p: Page, attrs = ''): string {
@@ -77,23 +78,24 @@ export const rect = (x: number, y: number, w: number, h: number, fill: string, e
   `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${fill}"${extra ? ' ' + extra : ''}/>`;
 
 /**
- * A character's width as a share of the type's size, by script, plain and bold: measured in the Noto of each script
- * (test/browser/metrics.test.ts holds the sums within a tenth). A vowel sign, a virama or a harakah sits on its letter
+ * A character's width as a share of the type's size, by script, plain (400) and bold (600): measured in IBM Plex, the
+ * site's type, for Latin, Cyrillic, Arabic and Devanagari, and in the Noto of each script the device draws (Bengali, Korean,
+ * Chinese, Japanese) (test/browser/metrics.test.ts holds the sums within a tenth). A vowel sign, a virama or a harakah sits on its letter
  * and adds nothing; anything else, emoji included, is counted as before, by its UTF-16 length at the Latin width.
  */
 const SCRIPTS: [RegExp, number, number][] = [
   [/[\p{M}\p{Cf}]/u, 0, 0],
   [/\p{Script=Hangul}/u, 0.9, 0.9],
   [/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\uff01-\uff60]/u, 0.98, 0.98],
-  [/\p{Script=Cyrillic}/u, 0.6, 0.66],
-  [/\p{Script=Arabic}/u, 0.4, 0.42],
-  [/\p{Script=Devanagari}/u, 0.64, 0.67],
+  [/\p{Script=Cyrillic}/u, 0.55, 0.57],
+  [/\p{Script=Arabic}/u, 0.38, 0.4],
+  [/\p{Script=Devanagari}/u, 0.71, 0.74],
   [/\p{Script=Bengali}/u, 0.72, 0.75],
 ];
 
 /** Width of text in px, estimated: a page is drawn the same under node and in a browser. */
 export const textWidth = (text: string, px: number, bold = false) => {
-  const latin = bold ? 0.56 : 0.52;
+  const latin = bold ? 0.48 : 0.47;
   if (!/[\u0400-\uffff]/.test(text)) return text.length * px * latin;
   let em = 0;
   for (const c of text) {
@@ -155,7 +157,7 @@ export interface TextStyle {
 /** One line of words. y is the baseline. */
 export function text(x: number, y: number, content: string, style: TextStyle = {}): string {
   const { px = 16, bold = false, fill = INK, anchor = 'start' } = style;
-  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${xml(content)}</text>`;
+  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="600"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${xml(content)}</text>`;
 }
 
 /* ---------- the palette ---------- */

@@ -88,7 +88,10 @@ test('the Bronx deck: no slide draws Markdown or a raw address, every film and a
   expect(pages.filter((p) => p.svg.includes('data-kind="video"'))).toHaveLength(5);
   expect(pages.filter((p) => p.svg.includes('data-kind="article"'))).toHaveLength(1);
   expect(pages.filter((p) => p.svg.includes('data-pic=""'))).toHaveLength(4);
-  expect(pages.map((p) => (p.svg.match(/<a href="https:\/\/en\.wikipedia\.org/g) ?? []).length).reduce((a, b) => a + b)).toBeGreaterThanOrEqual(14);
+  // Every Wikipedia link in the words is drawn as one (a link a line breaks is two): at least as many as the deck writes.
+  const written = BRONX.match(/\]\(https:\/\/en\.wikipedia\.org/g)!.length;
+  expect(written).toBe(12);
+  expect(pages.map((p) => (p.svg.match(/<a href="https:\/\/en\.wikipedia\.org/g) ?? []).length).reduce((a, b) => a + b)).toBeGreaterThanOrEqual(written);
 });
 
 test('the player page follows a link and turns no slide for it', () => {

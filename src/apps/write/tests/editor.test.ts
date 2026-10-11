@@ -926,7 +926,7 @@ test('the Look menu: each look a sample in its own type, the chosen one checked;
   const second = page.querySelectorAll<HTMLElement>('.tx p')[1];
   expect(getComputedStyle(second).textIndent).not.toBe('0px');
   expect(getComputedStyle(second).textAlign).toBe('justify');
-  expect(getComputedStyle(page.querySelector('.tx h1')!).fontFamily).toMatch(/Charter|Georgia|serif/);
+  expect(getComputedStyle(page.querySelector('.tx h1')!).fontFamily).toMatch(/^"IBM Plex Serif", Charter/);
   // The menu again: the samples are drawn in their looks' type, Book is the one checked.
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open'));

@@ -737,7 +737,7 @@ export default {
   'More': 'Meer',
   'Icon…': 'Icoon…',
   'Background': 'Achtergrond',
-  'Remove the background tile': 'De achtergrondtegel verwijderen',
+  'Remove the background tile': 'Achtergrondtegel verwijderen',
   'Colour': 'Kleur',
   'Arrange': 'Schikken',
   'No fill': 'Geen vulling',

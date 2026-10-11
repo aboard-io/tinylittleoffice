@@ -102,7 +102,7 @@ function svgCard(tag: string, url: string, quiet: boolean): string {
   const px = Math.max(10, Math.min(18, h / 8, w / 16));
   const mid = x + w / 2;
   const words = (dy: number, s: string, extra = '') => `<text x="${mid}" y="${y + h / 2 + dy}" text-anchor="middle" font-size="${px}" fill="#3f3f46"${extra}>${xml(s)}</text>`;
-  return `<g class="to-webpic-svg" data-webpic="" role="button" tabindex="0" aria-label="${xml(t('Show pictures from the web'))}" style="cursor:pointer">${box}${words(-px * 0.4, hostOf(url), ' font-weight="700"')}${words(px * 1.2, t('Show pictures from the web'), ' text-decoration="underline"')}</g>`;
+  return `<g class="to-webpic-svg" data-webpic="" role="button" tabindex="0" aria-label="${xml(t('Show pictures from the web'))}" style="cursor:pointer">${box}${words(-px * 0.4, hostOf(url), ' font-weight="600"')}${words(px * 1.2, t('Show pictures from the web'), ' text-decoration="underline"')}</g>`;
 }
 
 /** Drawn pages with every web picture not yet asked for as its card; `quiet`, every web picture a grey box. */

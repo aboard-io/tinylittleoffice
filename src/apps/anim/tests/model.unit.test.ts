@@ -187,9 +187,9 @@ test('view: a frame drawn with its effects and the nearest last; the playing SVG
   const v = readAnim(parse(LIFT));
   const at0 = frameSvg(v, 0);
   // Effects hold from their key: none at the start, impact and shadow from the last.
-  expect(at0).not.toContain('font-weight="800"');
+  expect(at0).not.toContain('font-weight="600"');
   expect(at0).not.toContain('url(#fx-d)');
-  expect(frameSvg(v, 23)).toContain('font-weight="800"');
+  expect(frameSvg(v, 23)).toContain('font-weight="600"');
   expect(frameSvg(v, 23)).toContain('<g filter="url(#fx-d)">');
   // Nearer things are drawn over farther ones.
   const near = readAnim(parse(LIFT.replace('23,0,-80,0,1,0,i', '23,0,-80,150,1,0,i')));

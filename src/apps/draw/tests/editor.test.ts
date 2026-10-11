@@ -995,7 +995,7 @@ test('a label is rich: words chosen and Bold from the bubble write **…** and t
   await tick();
   expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | **Browser**');
   await wordsKey(el, 'Enter');
-  expect(canvas(el).querySelector('[data-idx="0"] text tspan[font-weight="700"]')!.textContent).toBe('Browser');
+  expect(canvas(el).querySelector('[data-idx="0"] text tspan[font-weight="600"]')!.textContent).toBe('Browser');
   // Mod+K in a label is no link.
   await press(el, 'Enter');
   await tick();

@@ -123,7 +123,7 @@ describe('chunk budgets: the built chunks within budgets.json', () => {
   });
   test('budgets.json has a budget for every chunk it weighs', () => {
     const budgets = readBudgets();
-    for (const k of ['main', 'apps', 'home', 'icons', 'iconsFull'] as const) expect(typeof budgets[k], k).toBe('number');
+    for (const k of ['main', 'apps', 'home', 'icons', 'iconsFull', 'fonts'] as const) expect(typeof budgets[k], k).toBe('number');
     expect(Object.keys(budgets.editors ?? {}).sort()).toStrictEqual(
       tree
         .filter((m) => /^src\/apps\/[^/]+\/editor\.ts$/.test(m.path))

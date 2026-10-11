@@ -2,7 +2,8 @@
  * Write's looks: the type a document is set in, named in its head (`look: serif`) and worn everywhere it is
  * drawn: the editor (a data-look on the page, style.css), the pages (view.ts: print, PDF, pictures,
  * previews), the web page (CSS), Word (font names) and RTF (the font table). Absent means `sans`, the site's
- * own type. Every face is a stack of fonts the reader's system already has; nothing is fetched.
+ * own type. The sans, the serif and the mono are IBM Plex, the site's own files (src/styles/fonts.css), each with the
+ * system's stack behind it for a page read without the site; the narrow face is the system's.
  *
  *   sans     the site's sans throughout
  *   serif    a serif throughout
@@ -22,12 +23,12 @@ export type LookId = 'sans' | 'serif' | 'mono' | 'mixed' | 'inverse' | 'book' | 
 /** The stacks, as CSS and SVG name them. */
 export const STACKS: Record<Face, string> = {
   sans: FONT,
-  serif: "Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif",
-  mono: "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  serif: "'IBM Plex Serif', Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif",
+  mono: "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace",
   narrow: "'Bodoni 72', Didot, 'Times New Roman', Times, 'Noto Serif', serif",
 };
-/** How wide each face sets beside the sans the page's widths are estimated in (kit/draw.ts textWidth). */
-export const WIDTH: Record<Face, number> = { sans: 1, serif: 1.04, mono: 1.16, narrow: 0.9 };
+/** How wide each face sets beside the sans the page's widths are estimated in (kit/draw.ts textWidth): Plex Serif and Plex Mono beside Plex Sans, measured. */
+export const WIDTH: Record<Face, number> = { sans: 1, serif: 1.06, mono: 1.23, narrow: 0.9 };
 /** The face a word processor names, for .docx and .rtf: one font each, the one most systems have. */
 export const NAMED: Record<Face, { name: string; rtf: 'fswiss' | 'froman' | 'fmodern' }> = {
   sans: { name: 'Calibri', rtf: 'fswiss' },

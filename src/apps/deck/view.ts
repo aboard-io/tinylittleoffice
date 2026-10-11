@@ -158,7 +158,7 @@ export function line(x: number, y: number, content: string | Span[], style: Line
       if (s.ic) return `<tspan dx="${r(w)}"></tspan>`;
       if (s.sup) return `<tspan font-size="${r(px * SUP)}" baseline-shift="super">${xml(s.t)}</tspan>`;
       const a =
-        (s.b && !bold ? ' font-weight="700"' : '') +
+        (s.b && !bold ? ' font-weight="600"' : '') +
         (s.i ? ' font-style="italic"' : '') +
         (s.link ? ` fill="${linkFill}"` : s.h ? ` fill="${INK}"` : '') +
         (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
@@ -169,7 +169,7 @@ export function line(x: number, y: number, content: string | Span[], style: Line
     .join('');
   return (
     before +
-    `<text x="${r(x)}" y="${r(y)}" font-size="${r(px)}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`
+    `<text x="${r(x)}" y="${r(y)}" font-size="${r(px)}"${bold ? ' font-weight="600"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`
   );
 }
 

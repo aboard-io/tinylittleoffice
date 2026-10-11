@@ -92,7 +92,7 @@
   table.sheet th {
     background: var(--to-surface-2);
     color: var(--to-ink-3);
-    font-weight: 500;
+    font-weight: 400;
     font-size: 0.75rem;
     text-align: center;
     user-select: none;
@@ -181,7 +181,7 @@
   }
   table.sheet .cn::placeholder {
     color: var(--to-placeholder);
-    font-weight: 500;
+    font-weight: 400;
   }
   /* The + at the end of the header: one more column, a tap away; the height of a thumb on a phone. */
   table.sheet col.add {

@@ -1,9 +1,9 @@
 // Each command's words, in each language, measured against the room its slot gives them: the source of the length rule
 // (src/i18n/en.ts's header points here). The registry says where a command is drawn (kit/commands.ts `where`); the
 // stylesheet says how wide that place is; the box's own fonts say how wide the words are, measured with the font the
-// slot's words are drawn in (the canvas's measureText, given the slot's computed font), with the family of the
-// language's script first where it is not Latin or Cyrillic (test/browser/fonts.ts: the Noto of each script, which the
-// box must have).
+// slot's words are drawn in (the canvas's measureText, given the slot's computed font: IBM Plex Sans, the site's own),
+// with the family of the language's script first where it is not Latin or Cyrillic (test/browser/fonts.ts: Plex Sans
+// Arabic and Devanagari, which the site serves, and the Noto of each script the device draws, which the box must have).
 //
 // The slots, and the room each gives:
 // - a bar button that shows its words (bar.ts cmdBtn, a menu with words, a <to-menu> labelled with a command):
@@ -75,52 +75,37 @@ const RAISED: { key: string; slot: Slot; langs: string[]; why: string }[] = [
   {
     key: 'Tiny Little Office Doc…',
     slot: 'menu',
-    langs: ['de', 'es', 'fr', 'it', 'ja', 'nl', 'pt-br'],
+    langs: ['de', 'es', 'it', 'ja', 'nl', 'pt-br'],
     why: 'the name said in the language’s own words (Paul, 2026-10-10) and the word for a document: no shorter words keep both',
   },
-  { key: 'Page break', slot: 'menu', langs: ['de', 'es', 'it', 'pt-br'], why: 'the word processors’ own term in each language; the row’s keys (Ctrl+Enter) take a third of it' },
-  { key: 'Align right', slot: 'menu', langs: ['nl'], why: 'Rechts uitlijnen is what a Dutch office suite says; the row’s keys take a third of it' },
-  { key: 'Two-column slide', slot: 'menu', langs: ['es', 'fr'], why: 'diapositiva, diapositive: the glossary’s word for a slide, the longest of the deck’s; a few pixels over' },
-  { key: 'Big icon slide', slot: 'menu', langs: ['es', 'it'], why: 'diapositiva: the glossary’s word for a slide, the longest of the deck’s; a few pixels over' },
-  ...['Draw as a mind map', 'Draw as an org chart', 'Draw as a family tree'].map((key) => ({
-    key,
-    slot: 'menu' as const,
-    langs: key.includes('family') ? ['es', 'fr', 'it', 'pt-br'] : ['it', 'pt-br'],
+  { key: 'Page break', slot: 'menu', langs: ['it', 'pt-br'], why: 'the word processors’ own term in each language; the row’s keys (Ctrl+Enter) take a third of it' },
+  {
+    key: 'Draw as a family tree',
+    slot: 'menu',
+    langs: ['es', 'fr', 'it', 'pt-br'],
     why: 'the verb and the diagram’s name, both needed: the outline’s view menu offers the outline itself beside these',
-  })),
+  },
   // The bar's buttons with words: the one-third rule is cruel to a word of four or five letters.
-  { key: 'Chart', slot: 'bar', langs: ['de', 'fr'], why: 'Diagramm, Graphique: the glossary’s word for a chart' },
+  { key: 'Chart', slot: 'bar', langs: ['de', 'fr', 'nl', 'pl'], why: 'Diagramm, Graphique, Grafiek, Wykres: the glossary’s word for a chart, beside an English word Plex sets narrow' },
   { key: 'Time zone', slot: 'bar', langs: ['fr'], why: 'fuseau horaire is the only term' },
   // Russian: its words run a third longer than English.
   { key: 'Effects', slot: 'bar', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Time zone', slot: 'bar', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Big icon slide', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Tiny Little Office Doc…', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Presentation Builder', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Connect', slot: 'bar', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Draw as an org chart', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Draw as a family tree', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Chart', slot: 'bar', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Flows (Sankey)', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Page break', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Time zone', slot: 'bar', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Tiny Little Office Doc…', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Mind map', slot: 'bar', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Draw as a mind map', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Draw as an org chart', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Chart', slot: 'bar', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Page break', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Align left', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Align right', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Link', slot: 'dialog', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Display Link', slot: 'dialog', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Make a short link', slot: 'dialog', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'Align left', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Align right', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'Display Link', slot: 'dialog', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'Copy embed code', slot: 'dialog', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   // The Share dialog.
-  { key: 'Copy embed code', slot: 'dialog', langs: ['pt-br'], why: 'incorporação is the glossary’s embed; no shorter phrase keeps it; a few pixels over' },
   { key: 'Mind map', slot: 'bar', langs: ['fr', 'it', 'ja'], why: 'carte mentale, mappa mentale, マインドマップ: the diagram’s name in each' },
 ];
 

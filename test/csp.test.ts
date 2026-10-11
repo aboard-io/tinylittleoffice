@@ -56,6 +56,11 @@ test('every directive that reaches the web is the site, the proxy and the regist
   expect(directive(csp, 'default-src')).toEqual(["'self'"]);
 });
 
+test('font-src: the site and nothing else; the type is IBM Plex, served by the site (public/fonts/)', () => {
+  expect(directive(csp, 'font-src')).toEqual(["'self'"]);
+  expect(directive(policy(raw.split('/embed/')[1]), 'font-src')).toEqual(["'self'"]);
+});
+
 test('the proxy from VITE_MEDIA_URL: its origin; none, any https: (pictures load from their sites)', () => {
   expect(mediaSource('https://pics.self.host/base/')).toBe('https://pics.self.host');
   expect(mediaSource('')).toBe('https:');

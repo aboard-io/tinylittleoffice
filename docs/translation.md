@@ -108,11 +108,11 @@ Arabic and Urdu are the two RTL languages; mirroring is not enough, and some thi
 
 ## 5. Type and the keyboard
 
-- **Fonts.** The site's one font stack gains a per-script stack chosen by `lang`: Noto Sans (Devanagari,
-  Bengali, Arabic, Urdu's Nastaliq is a choice: Noto Nastaliq Urdu is the native expectation but heavy;
-  Noto Naskh Arabic as the fallback), Noto Sans SC for Chinese, system fonts first on every platform
-  (`-apple-system`, `Segoe UI`, `Noto Sans …`) with the Noto subsets as self-hosted woff2 under
-  `public/fonts/` only for scripts the device lacks. Line height and the 16px
+- **Fonts.** The type is IBM Plex, self-hosted (r17-plex, 2026-10-11: `src/styles/fonts.css`,
+  `public/fonts/`): Plex Sans for Latin, Greek and Cyrillic, Plex Sans Arabic for Arabic and Plex Sans
+  Devanagari for Hindi, each face behind its `unicode-range`; Bengali, Korean, Japanese and Chinese are drawn in
+  the device's own type, and Urdu in its Nastaliq (`:root:lang(ur)` leaves Plex Sans Arabic out of its stack).
+  The measuring tests measure in the same files (`test/browser/fonts.ts`). Line height and the 16px
   rule are revisited per script (Devanagari and Nastaliq need more leading; Chinese needs none of the
   letter-spacing).
 - **The SVG pages** embed the same fonts' metrics for wrapping: `kit/draw.ts`'s `textWidth` needs
@@ -184,12 +184,15 @@ What the tree does for them before a word is translated:
   letters as a reader counts them (a vowel sign or a virama stays on its consonant); Korean by its first
   syllable block or two (the particle comes off: 링크를 is 링크); Traditional Chinese by character pair; Urdu by
   Arabic root or by stem (its Persian, Hindustani and English words are not Arabic roots).
-- **Type for the measuring tests.** The box has `fonts-noto-core`, `fonts-noto-cjk` and `fonts-noto-extra`;
-  test/browser/fonts.ts names the Noto of each script, the label-width test measures each language's words in
-  it, and `kit/draw.ts`'s `textWidth` has a width per script (Cyrillic, Arabic, Devanagari, Bengali, Hangul,
-  Han and kana; a combining mark adds nothing), held within a tenth of Chromium by test/browser/metrics.test.ts
-  on words Intl writes in each language. `/etc/fonts/local.conf` keeps DejaVu Sans the box's Latin sans-serif,
-  as it was before Noto Sans arrived with the rest.
+- **Type for the measuring tests.** The tests measure in IBM Plex, the site's own files (r17-plex: Paul,
+  2026-10-11, "Use IBM Plex to measure"): test/browser/fonts.ts loads every Plex face before a test lays out a
+  word, Latin and Cyrillic are measured in the slot's own font (Plex Sans), Arabic in Plex Sans Arabic and Hindi
+  in Plex Sans Devanagari, and the scripts Plex is not shipped for in the Noto of each, which the box has
+  (`fonts-noto-core`, `fonts-noto-cjk`, `fonts-noto-extra`). `kit/draw.ts`'s `textWidth` has a width per script
+  (Latin, Cyrillic, Arabic, Devanagari, Bengali, Hangul, Han and kana; a combining mark adds nothing), held within
+  a tenth of Chromium by test/browser/metrics.test.ts on words Intl writes in each language. `npm run fonts:box`
+  (`scripts/fonts-box.sh`) copies the site's Plex files to `~/.fonts/plex/` and makes Plex Sans the box's
+  sans-serif and system-ui in `/etc/fonts/local.conf`, for whatever falls through the site's stack.
 
 What is particular to each, for the translator:
 

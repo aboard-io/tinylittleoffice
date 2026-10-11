@@ -12,7 +12,7 @@
  * modules in it by the length each module rendered, and summed by the package a module came from. The
  * sizes move with every change to the code, so the check leaves them be and holds everything else.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SOURCES as EMOJI_SOURCES } from './emoji.ts';
@@ -20,6 +20,37 @@ import { generate } from './generated.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const DOC = resolve(root, 'docs/dependencies.md');
+
+/**
+ * The type, IBM Plex (src/styles/fonts.css): the woff2 files in public/fonts/, each family from IBM's own release on
+ * npm at the version named, copied as released, under the SIL Open Font License 1.1 (public/fonts/LICENSE.txt). They
+ * are files the site serves, not packages the build reads; test/fonts.test.ts holds this list to the folder and the CSS.
+ */
+export const FONTS: { family: string; from: string; version: string; for: string; files: string[] }[] = [
+  {
+    family: 'IBM Plex Sans',
+    from: '@ibm/plex-sans',
+    version: '1.1.0',
+    for: 'The interface and the Sans look',
+    files: ['IBMPlexSans-Regular.woff2', 'IBMPlexSans-Italic.woff2', 'IBMPlexSans-SemiBold.woff2', 'IBMPlexSans-SemiBoldItalic.woff2'],
+  },
+  {
+    family: 'IBM Plex Serif',
+    from: '@ibm/plex-serif',
+    version: '2.0.0',
+    for: 'The Serif look, and the name on the home page',
+    files: ['IBMPlexSerif-Regular.woff2', 'IBMPlexSerif-Italic.woff2', 'IBMPlexSerif-SemiBold.woff2', 'IBMPlexSerif-SemiBoldItalic.woff2'],
+  },
+  { family: 'IBM Plex Mono', from: '@ibm/plex-mono', version: '2.5.0', for: 'Code, keys and the Typewriter look', files: ['IBMPlexMono-Regular.woff2', 'IBMPlexMono-SemiBold.woff2'] },
+  { family: 'IBM Plex Sans Arabic', from: '@ibm/plex-sans-arabic', version: '1.1.0', for: 'Arabic', files: ['IBMPlexSansArabic-Regular.woff2', 'IBMPlexSansArabic-SemiBold.woff2'] },
+  {
+    family: 'IBM Plex Sans Devanagari',
+    from: '@ibm/plex-sans-devanagari',
+    version: '1.1.0',
+    for: 'Hindi',
+    files: ['IBMPlexSansDevanagari-Regular.woff2', 'IBMPlexSansDevanagari-SemiBold.woff2'],
+  },
+];
 
 type Lock = { packages: Record<string, { version?: string; license?: string; dependencies?: Record<string, string>; dev?: boolean }> };
 type Pkg = { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
@@ -158,7 +189,7 @@ with no reason.
 "Adds" is the minified JavaScript the build carries for that package and what it brings, in all its chunks
 (its own share in brackets where the two differ); most of it loads only with the app that uses it (the map with the Trip Planner, mathjs with the Calculator). It is measured by
 \`npm run docs:deps -- --sizes\`, which builds the site, and moves a little with every build. Nothing is
-vendored: every byte comes from npm through the committed lockfile.
+vendored: every byte of code comes from npm through the committed lockfile; the type's files are IBM's, below.
 
 ## Built into the site
 
@@ -171,6 +202,20 @@ ${runtime.map((n) => row(n, adds(n))).join('\n')}
 | Package | Version | Licence | Comes with | Adds |
 | --- | --- | --- | --- | --- |
 ${inner.join('\n')}
+
+## Type
+
+The type is IBM Plex, and the site serves it itself: no font comes from another host (the policy's \`font-src\` is
+\`'self'\`). The files are IBM's own release, copied as released into \`public/fonts/\` with the licence beside them
+(\`public/fonts/LICENSE.txt\`, the SIL Open Font License 1.1, OFL-1.1), listed in \`scripts/dependencies.ts\`
+(\`FONTS\`) and declared in \`src/styles/fonts.css\`, each face behind its \`unicode-range\` so a page loads only the
+faces its words need. The browser has fonts of its own, but each system's differs in width, so the same words would
+fit a slot on one and not on another; Plex is one type everywhere, and the type the box measures in. Bengali, Korean,
+Japanese and Chinese are drawn in the device's own type, and Urdu in its Nastaliq.
+
+| Family | From | Version | Licence | For | Files |
+| --- | --- | --- | --- | --- | --- |
+${FONTS.map((f) => `| ${f.family} | \`${f.from}\` | ${f.version} | OFL-1.1 | ${f.for} | ${f.files.map((n) => `\`${n}\``).join(', ')} (${kb(f.files.reduce((n, name) => n + statSync(resolve(root, 'public/fonts', name)).size, 0))}) |`).join('\n')}
 
 ## Data, not packages
 

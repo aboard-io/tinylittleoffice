@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join as joinPath } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { createHash } from 'node:crypto';
-import { pageSvg } from '../../../kit/draw.ts';
+import { pageSvg, textWidth } from '../../../kit/draw.ts';
 import { applyAll, invertAll, parse, write, type Block, type Doc, type Op } from '../../../doc/index.ts';
 import { iconOf, labelLines, readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
@@ -152,7 +152,9 @@ describe('the eight kinds drawn', () => {
     const d = doc('net', '- Television :film:\n- Router\n\n~ Router -- Television\n');
     const [tv, router] = layout(d).shapes;
     expect(tv.text).toBe(':film Television');
-    expect(tv.w).toBeGreaterThan(router.w + 40);
+    // The icon (24) and the whole name fit beside the shape's padding (30), and the plain one is narrower.
+    expect(tv.w - 24 - 30).toBeGreaterThanOrEqual(textWidth('Television', 14));
+    expect(tv.w).toBeGreaterThan(router.w + 24);
   });
   test('the definition: one page, an SVG file, a hand-off to Draw', async () => {
     const tpl = templates().find((x) => x.id === 'org-company')!;
@@ -516,8 +518,8 @@ test('a thumbnail of a family tree more than twice as wide as tall is its middle
   // A diagram no wider than twice its height is drawn whole.
   const mind = templates().find((x) => x.id === 'mind-launch')!.doc;
   expect(def.view(mind, { small: true, thumb: true })).toEqual(def.view(mind, { small: true }));
-  expect(sha1(def.view(BRONTES))).toBe('78feff525a039b962741c71f16785f64d142ba18');
-  expect(sha1(def.view(BRONTES, { small: true }))).toBe('78feff525a039b962741c71f16785f64d142ba18');
+  expect(sha1(def.view(BRONTES))).toBe('911de8141e5dedfd8e032ad6a9e6f9a8ca9c7a0f');
+  expect(sha1(def.view(BRONTES, { small: true }))).toBe('911de8141e5dedfd8e032ad6a9e6f9a8ca9c7a0f');
 });
 
 describe("the separators in a thing's words", () => {

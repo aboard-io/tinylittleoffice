@@ -55,7 +55,7 @@ export function effectsSvg(s: Shape, i: number, all: Shape[], fx: string, theme?
     const paint = isLine(s.k) || s.k === 'i' ? /stroke="(?!none|transparent)[^"]*"/g : /fill="(?!none|transparent)[^"]*"/g;
     body = body.replace(paint, (m) => `${m.split('=')[0]}="url(#${id})"`);
   }
-  if (has('i') || has('o')) body = `<g stroke="${INK}" stroke-width="${has('i') ? 4 : 3}" stroke-linejoin="round" paint-order="stroke"${has('i') ? ' font-weight="800"' : ''}>${body}</g>`;
+  if (has('i') || has('o')) body = `<g stroke="${INK}" stroke-width="${has('i') ? 4 : 3}" stroke-linejoin="round" paint-order="stroke"${has('i') ? ' font-weight="600"' : ''}>${body}</g>`;
   if (has('3')) body = `<g filter="url(#fx-dark)">${[6, 5, 4, 3, 2, 1].map((k) => `<g transform="translate(${k} ${k})">${body}</g>`).join('')}</g>${body}`;
   if (has('d')) body = `<g filter="url(#fx-d)">${body}</g>`;
   if (has('n')) body = `<g filter="url(#fx-n)">${body}</g>`;

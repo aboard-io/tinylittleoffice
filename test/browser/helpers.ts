@@ -1,5 +1,7 @@
 // A shell on the page, at a link; a wait for something to be so; two fingers.
 import '../../src/styles.css';
+// The type loaded before any test lays out words: every width is Plex's, never the fallback's of the moment before.
+import './fonts.ts';
 import '../../src/kit/shell.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import { applySize } from '../../src/kit/zoom.ts';

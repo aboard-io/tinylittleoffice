@@ -414,6 +414,6 @@ test('a thumbnail of a five-stage board is landscape and holds the first three s
   expect(q.w).toBeGreaterThan(q.h);
   expect(q.svg).toContain('Card 1<');
   expect(q.svg).not.toContain('Card 12<');
-  expect(sha1(def.view(BOARD5))).toBe('09e6df47b7a6dfab327530b3a28c4cc9cd3330d1');
-  expect(sha1(def.view(BOARD5, { small: true }))).toBe('09e6df47b7a6dfab327530b3a28c4cc9cd3330d1');
+  expect(sha1(def.view(BOARD5))).toBe('12dfb157cc44239083c32cd94fbc65cd9fb0fe38');
+  expect(sha1(def.view(BOARD5, { small: true }))).toBe('12dfb157cc44239083c32cd94fbc65cd9fb0fe38');
 });

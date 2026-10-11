@@ -98,7 +98,7 @@ test('the page: a row a task, the done struck through, the date at the right', (
   expect(todoPage(parse(LIST), 1).alt).toBe('1 of 1: ☑ Buy milk');
   expect(todoPage(parse('')).h).toBe(120);
   // Taller as it wraps.
-  expect(todoPage(parse(`- [ ] ${'word '.repeat(40)}\n`)).h).toBeGreaterThan(todoPage(parse('- [ ] one\n')).h);
+  expect(todoPage(parse(`- [ ] ${'word '.repeat(80)}\n`)).h).toBeGreaterThan(todoPage(parse('- [ ] one\n')).h);
 });
 
 test('Markdown: a task list, a star in bold, a date after the words', () => {

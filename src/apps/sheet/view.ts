@@ -31,7 +31,7 @@ function richText(x: number, y: number, raw: string, max: number, size: number):
   if (textWidth(words, size) > max) return text(x, y, clip(words, max, size), { px: size });
   const spans = runs.map((run) => {
     const deco = [run.u || run.href ? 'underline' : '', run.s ? 'line-through' : ''].filter(Boolean).join(' ');
-    const attrs = `${run.b ? ' font-weight="700"' : ''}${run.i ? ' font-style="italic"' : ''}${deco ? ` text-decoration="${deco}"` : ''}`;
+    const attrs = `${run.b ? ' font-weight="600"' : ''}${run.i ? ' font-style="italic"' : ''}${deco ? ` text-decoration="${deco}"` : ''}`;
     return attrs ? `<tspan${attrs}>${xml(run.t)}</tspan>` : xml(run.t);
   });
   return `<text x="${px2(x)}" y="${px2(y)}" font-size="${size}" fill="${INK}" xml:space="preserve">${spans.join('')}</text>`;
