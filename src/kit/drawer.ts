@@ -237,7 +237,7 @@ export class ToDrawer extends LitElement {
             : nothing
         }
         <!-- The size of everything near the top: under the head, after This document when one is open (above it, This document's Download menu would no longer fit under its row on a phone at 150%): a person who needs it larger finds it before the apps, the switches and the rest (the review of 2026-10-11). -->
-        <div class="to-field to-size" role="group" aria-label=${t('Size of everything')}>${icon(UI.view, 18)}<span>${t('Size of everything')}</span>
+        <div class="to-field to-size" role="group" aria-label=${t('Size of everything')}><span class="to-field-words">${icon(UI.view, 18)}<span>${t('Size of everything')}</span></span>
           <span class="to-size-step">
             ${this.sizeButton(SMALLER, 'to-size-less', icon(UI.minus, 16))}${this.sizeButton(NORMAL_SIZE, 'to-size-now', `${Math.round(size() * 100)}%`)}${this.sizeButton(LARGER, 'to-size-more', icon(UI.plus, 16))}
           </span>
@@ -253,7 +253,7 @@ export class ToDrawer extends LitElement {
                                       ? nothing
                                       : apps().map(
                                           (a) => html`<div class="to-app-head" @pointerenter=${() => void preloadTemplates(a)}>
-                        <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>
+                        <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span class="to-app-name">${a.name}</span></a>
                         <to-templates .app=${a} .via=${(app: AppDef) => this.handOver(() => this.templates(app))}></to-templates>
                       </div>`,
                                         )
@@ -271,7 +271,7 @@ export class ToDrawer extends LitElement {
                 </label>
               </section>
               <section class="to-drawer-section to-drawer-prefs">
-                <label class="to-field">${icon(theme() === 'dark' ? UI.moon : theme() === 'light' ? UI.sun : UI.auto, 18)}<span>${t('Theme')}</span>
+                <label class="to-field"><span class="to-field-words">${icon(theme() === 'dark' ? UI.moon : theme() === 'light' ? UI.sun : UI.auto, 18)}<span>${t('Theme')}</span></span>
                   <select @change=${(e: Event) => {
                     setTheme((e.target as HTMLSelectElement).value as Theme);
                     this.requestUpdate();
