@@ -8,6 +8,7 @@ import { test, expect, afterEach } from 'vitest';
 import { cdp, page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
+import { keyboard } from '../../src/kit/commands.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToDrawer } from '../../src/kit/drawer.ts';
@@ -432,9 +433,10 @@ test('390×844 with a finger: a tap in the words slides the burger to the very c
   expect(burger.getBoundingClientRect().right).toBeCloseTo(home.right, 0);
 });
 
-test('390×844 with a finger: the drawer’s This document is a heading over three full-width rows (New, Share…, Download), above the search; the dialog draws no ring and sits flush', async () => {
+test('390×844 with a finger: the drawer’s This document is a heading over full-width rows (New, Share…, Download, Find in this document), above the search; the dialog draws no ring and sits flush', async () => {
   await page.viewport(390, 844);
   await coarse(true);
+  keyboard.seen = false;
   const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const drawer = shell.querySelector<ToDrawer>('to-drawer')!;
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
@@ -469,9 +471,11 @@ test('390×844 with a finger: the drawer’s This document is a heading over thr
   // The order: the head, This document, the search, the apps.
   expect(doc.compareDocumentPosition(drawer.querySelector('.to-find')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(drawer.querySelector('.to-drawer-head')!.compareDocumentPosition(doc) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  // The keys are written at the rows' right.
-  expect(doc.querySelector('.to-drawer-share kbd')).not.toBeNull();
-  expect(doc.querySelector('.to-drawer-download kbd')).not.toBeNull();
+  // A finger with no keyboard seen: no keys written at the rows' right (the review of 2026-10-11), each row's keys its aria-keyshortcuts.
+  expect(doc.querySelector('.to-drawer-share kbd')).toBeNull();
+  expect(doc.querySelector('.to-drawer-download kbd')).toBeNull();
+  expect(doc.querySelector('.to-drawer-share')!.getAttribute('aria-keyshortcuts')).toMatch(/Shift\+S$/);
+  expect(doc.querySelector('.to-drawer-download > button')!.getAttribute('aria-keyshortcuts')).toMatch(/Shift\+D$/);
   drawer.close();
 });
 

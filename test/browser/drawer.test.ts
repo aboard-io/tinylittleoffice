@@ -1,6 +1,8 @@
 // The drawer: opens as a modal dialog, finds apps, closes on Escape with focus back on the menu button.
 import { test, expect } from 'vitest';
-import { mount, until } from './helpers.ts';
+import { cdp } from 'vitest/browser';
+import { mount, openDrawerDoc, until } from './helpers.ts';
+import { encodeDoc } from '../../src/kit/codec.ts';
 import { apps } from '../../src/kit/apps.ts';
 import { running } from '../../src/kit/version.ts';
 import { siteRoot } from '../../src/kit/apps.ts';
@@ -230,5 +232,57 @@ test('a device with no pointer at all (neither fine nor coarse: keys alone) has 
     dialog.close();
   } finally {
     window.matchMedia = real;
+  }
+});
+
+// The review of 2026-10-11: "The drawer's buttons are named 'Share… Ctrl+Shift+S' … which VoiceOver speaks in full on a
+// phone with no keyboard", and Find in this document was reached on a phone only through a ⌘. Under a finger, until a
+// key with Ctrl, ⌘ or Alt is typed, no keys are written in the drawer, its menus or the palette; the keys are each
+// control's aria-keyshortcuts, never its name; Find in this document is a row of This document.
+test('under a finger with no keyboard the drawer, its menus and the palette write no keys and name none; Find is a row', async () => {
+  const { keyboard } = await import('../../src/kit/commands.ts');
+  const named = (el: Element): string =>
+    el.getAttribute('aria-label') ??
+    [...el.childNodes]
+      .map((n) => (n instanceof Element ? (n.getAttribute('aria-hidden') === 'true' ? '' : named(n)) : n instanceof Text ? n.data : ''))
+      .join('')
+      .trim();
+  await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  keyboard.seen = false;
+  try {
+    const shell = await mount(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+    await until(() => !!shell.querySelector('to-write-editor to-bar button'));
+    const doc = await openDrawerDoc(shell);
+    const drawer = shell.querySelector('dialog.to-drawer')!;
+    expect(drawer.querySelectorAll('kbd').length).toBe(0);
+    const controls = [...drawer.querySelectorAll('button, a, [role=menuitem], [role=menuitemcheckbox]')];
+    for (const c of controls) expect(named(c)).not.toMatch(/Ctrl|⌘/);
+    // The keys are said as keys, apart from the name.
+    const share = doc.querySelector('.to-drawer-share')!;
+    expect(named(share)).toBe('Share…');
+    expect(share.getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+Shift\+S$/);
+    // Find in this document, under This document.
+    const find = [...doc.querySelectorAll<HTMLButtonElement>('button')].find((b) => named(b) === 'Find in this document')!;
+    expect(find).toBeTruthy();
+    expect(find.getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+F$/);
+    find.click();
+    await until(() => !(drawer as HTMLDialogElement).open && !!shell.querySelector('to-find input:focus, to-find :focus'));
+    // The palette: its options are named by their words alone, no keys written.
+    await shell.showPalette();
+    const pal = shell.querySelector('to-palette')!;
+    await until(() => pal.querySelectorAll('.to-palette-item').length > 0);
+    expect(pal.querySelectorAll('kbd').length).toBe(0);
+    for (const o of pal.querySelectorAll('[role=option]')) expect(named(o)).not.toMatch(/Ctrl|⌘/);
+    expect([...pal.querySelectorAll('[role=option]')].find((o) => named(o) === 'Share…')!.getAttribute('aria-keyshortcuts')).toMatch(/Shift\+S$/);
+    (pal.querySelector('dialog') as HTMLDialogElement).close();
+    // A key with Ctrl is a keyboard: from then on the keys are written again (and still not part of a name).
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Control', ctrlKey: true }));
+    expect(keyboard.seen).toBe(true);
+    const again = await openDrawerDoc(shell);
+    expect(again.querySelector('.to-drawer-share kbd')).not.toBeNull();
+    expect(named(again.querySelector('.to-drawer-share')!)).toBe('Share…');
+  } finally {
+    keyboard.seen = false;
+    await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: false });
   }
 });

@@ -384,7 +384,8 @@ test('what this device holds, item by item with Forget, and Download everything:
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   privacy.querySelector<HTMLButtonElement>('.to-forget-all')!.click();
   await until(() => now('to-held-key') === 'None' && now('to-held-prefs') === 'None');
-  expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
+  // The language aside, as shell.test.ts sets it aside: another browser test file, running at once on this origin, may choose one after the forgetting.
+  expect(Object.keys(localStorage).filter((k) => (k.startsWith('tinyoffice.') && k !== 'tinyoffice.lang') || k === 'to-theme')).toEqual([]);
   await tick();
 });
 

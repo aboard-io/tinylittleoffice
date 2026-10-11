@@ -10,7 +10,7 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { ChevronLeft, ChevronRight } from 'lucide';
 import { icon, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
-import { drawnIn, keysText, labelOf, run, say, type Command } from './commands.ts';
+import { ariaKeys, chords, drawnIn, keysText, labelOf, run, say, type Command } from './commands.ts';
 
 export { keysText };
 
@@ -59,9 +59,10 @@ export class ToBar extends HTMLElement {
     e.preventDefault();
     stops[(to + stops.length) % stops.length].focus();
   };
-  /** What the edges say: scrolled past the start, more past the end. */
+  /** What the edges say: scrolled past the start, more past the end; and under 360px, room for one pinned tool (Undo) alone. */
   fade = () => {
     const more = this.scrollWidth - this.clientWidth - this.scrollLeft;
+    this.toggleAttribute('data-narrow', this.clientWidth < 360);
     this.toggleAttribute('data-fade-start', this.scrollLeft > 1);
     this.toggleAttribute('data-fade-end', more > 1);
   };
@@ -83,21 +84,34 @@ export interface BtnOpts {
   keep?: boolean;
   /** What more there is to say than the label's two words, as the tooltip ("Use the grid as the drawing's background"). */
   hint?: string;
+  /** Under a finger, kept at the bar's inline end outside its scroll (a command's `pinned`: Undo, Redo). */
+  pinned?: boolean;
 }
 
 // Cancelled on mousedown, not pointerdown: a tap in WebKit whose pointerdown is cancelled fires no click at all, while
 // cancelling the compatibility mousedown (which is what would move the focus) still lets the click through.
 const keepFocus = (e: Event) => e.preventDefault();
 
-const tip = (o: BtnOpts) => (o.keys ? `${o.hint ?? o.label} (${keysText(o.keys)})` : (o.hint ?? o.label));
+// The keys are written in the tooltip where there is a keyboard to press them on (commands.ts chords), and are the button's aria-keyshortcuts always.
+const tip = (o: BtnOpts) => (o.keys && chords() ? `${o.hint ?? o.label} (${keysText(o.keys)})` : (o.hint ?? o.label));
+const cls = (o: BtnOpts) => `${o.cls ?? ''}${o.pinned ? ' to-pin' : ''}`;
+
+/**
+ * The keys written at a row's end (a menu's item, the drawer's, the palette's), where there is a keyboard to press them
+ * on (commands.ts chords); hidden from a screen reader, which hears them from the control's aria-keyshortcuts instead,
+ * so they are never part of its name.
+ */
+export const keysKbd = (keys: string | undefined): TemplateResult | typeof nothing => (keys && chords() ? html`<kbd class="to-menu-keys" aria-hidden="true">${keysText(keys)}</kbd>` : nothing);
+/** The keys as the control's aria-keyshortcuts (none: no attribute). */
+export const keysAria = (keys: string | undefined): string | typeof nothing => (keys ? ariaKeys(keys) : nothing);
 
 /** A button with its words on it (two at most, so the bar never wraps them; `hint` says the rest), and an icon before them if it has one. */
 export const btn = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
+  html`<button type="button" class="to-btn ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} title=${(o.keys && chords()) || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
 
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+  html`<button type="button" class="to-btn to-tool ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
 
 /**
  * A command of the registry (kit/commands.ts) as a bar's icon button, in its context: its words, icon and keys, its
@@ -117,6 +131,7 @@ function drawCmd<C>(draw: (o: BtnOpts) => TemplateResult, cmd: Command<C>, c: C 
     keys: cmd.keys,
     hint: say(cmd.hint, has ? c : undefined),
     keep: !cmd.takesFocus,
+    pinned: cmd.pinned,
     pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
     disabled: !has || !!cmd.disabled?.(c),
     does: (e) => void (has && run(cmd, c, e)),

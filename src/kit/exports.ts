@@ -16,7 +16,6 @@ import { INK, MUTED, FONT, pageSvg, stack, fileName, slug, xml } from './draw.ts
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
 import { appOf } from './apps.ts';
-import { keysText } from './commands.ts';
 import { encodeDoc } from './codec.ts';
 import { go, parseHash, routeHash } from './route.ts';
 import { parse, referenceNotes, write } from '../doc/index.ts';
@@ -342,7 +341,7 @@ export function exportItems(current: () => Current): MenuItem[] {
     does: () => {},
   });
   return [
-    { label: t('Print, or save as PDF'), icon: UI.print, hint: keysText('Mod+P'), does: () => void run(() => printDoc(current())) },
+    { label: t('Print, or save as PDF'), icon: UI.print, keys: 'Mod+P', does: () => void run(() => printDoc(current())) },
     ...formatsOf(def).map(row),
     ...(def.handoffs ?? [])
       .filter((h) => appOf(h.to))

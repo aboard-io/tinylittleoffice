@@ -572,6 +572,7 @@ export class ToShell extends LitElement {
 
   /** What the page's commands act on (kit/keys.ts): print, the shortcuts, find, keep, share, download, the palette, and undo passed to the editor. */
   get page(): Page {
+    const shell = this;
     return {
       flush: this.flushLink,
       print: () => void printDoc(this.current()),
@@ -583,7 +584,10 @@ export class ToShell extends LitElement {
       palette: () => void this.showPalette(),
       doc: !!this.def,
       editing: !!this.def && !this.display,
-      editor: this.editor,
+      // Asked when needed: the drawer holds this from a draw that came before the editor it acts on was up.
+      get editor() {
+        return shell.editor;
+      },
     };
   }
   /** The page's keys (kit/keys.ts pageKey), answered after the words' and the app's. */

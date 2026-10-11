@@ -8,7 +8,8 @@
  * A native modal <dialog>, the kit's dialog's look; the input is a combobox over a listbox (the ARIA pattern).
  */
 import { LitElement, html, nothing } from 'lit';
-import { keysText, labelOf, run, type Command } from './commands.ts';
+import { labelOf, run, type Command } from './commands.ts';
+import { keysAria, keysKbd } from './bar.ts';
 import { t } from './i18n.ts';
 import { icon } from './icons.ts';
 import { fold } from './search.ts';
@@ -130,8 +131,8 @@ export class ToPalette extends LitElement {
                   (
                     o,
                     i,
-                  ) => html`<div id="to-palette-${i}" class="to-palette-item" role="option" aria-selected=${String(i === active)} @pointermove=${() => (this.at = i)} @click=${() => this.choose(o)}>
-                  ${o.cmd.icon ? icon(o.cmd.icon, 18) : html`<span class="to-palette-noicon"></span>`}<span class="to-palette-words">${labelOf(o.cmd, o.c)}</span>${o.cmd.keys ? html`<kbd class="to-menu-keys">${keysText(o.cmd.keys)}</kbd>` : nothing}
+                  ) => html`<div id="to-palette-${i}" class="to-palette-item" role="option" aria-selected=${String(i === active)} aria-keyshortcuts=${keysAria(o.cmd.keys)} @pointermove=${() => (this.at = i)} @click=${() => this.choose(o)}>
+                  ${o.cmd.icon ? icon(o.cmd.icon, 18) : html`<span class="to-palette-noicon"></span>`}<span class="to-palette-words">${labelOf(o.cmd, o.c)}</span>${keysKbd(o.cmd.keys)}
                 </div>`,
                 )
               : this.query

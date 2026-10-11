@@ -1,8 +1,9 @@
 /**
  * The page's own commands (the registry's 'kit' scope, kit/commands.ts): undo and redo passed to the editor, find,
  * keep, share, download, print, the shortcuts and the command palette. The shell answers their keys (pageKey, which
- * it listens with on the window, so every scope inside has answered first); the drawer draws Share and Download from
- * them; every bar ends with Undo, Redo and the palette (DocElement.undoTools).
+ * it listens with on the window, so every scope inside has answered first); the drawer draws Share, Download and Find
+ * in this document from them; every bar ends with Undo, Redo and the palette (DocElement.undoTools), and under a finger
+ * Undo and Redo are pinned there, outside the bar's scroll, so a phone always has Undo on screen (the review of 2026-10-11).
  *
  * The keyboard shortcuts dialog (Mod+/, and Keyboard shortcuts in the menu) is the registry as it stands: the open
  * app's commands that have keys, then the words' (kit/text-commands.ts), then the page's, each key written the way
@@ -11,7 +12,7 @@
 import { html, nothing, type TemplateResult } from 'lit';
 import { Command as CommandIcon } from 'lucide';
 import type { AppDef } from './app.ts';
-import { command, inScope, keysText, labelOf, register, runKey, type Command } from './commands.ts';
+import { command, inScope, keyboard, keysText, labelOf, register, runKey, type Command } from './commands.ts';
 import { t } from './i18n.ts';
 import { UI } from './icons.ts';
 import { TEXT_COMMANDS } from './text-commands.ts';
@@ -45,8 +46,18 @@ const history = (which: 'docundo' | 'docredo') => (p: HasEditor, e?: Event) => {
   return !editor.dispatchEvent(new CustomEvent(which, { cancelable: true, bubbles: true }));
 };
 
-export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: 'Undo', icon: UI.undo, keys: 'Mod+Z', where: ['bar'], when: (p) => !!p.editor, does: history('docundo') });
-export const REDO = command<HasEditor>({ id: 'kit.redo', scope: 'kit', label: 'Redo', icon: UI.redo, keys: 'Mod+Shift+Z / Mod+Y', where: ['bar'], when: (p) => !!p.editor, does: history('docredo') });
+export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: 'Undo', icon: UI.undo, keys: 'Mod+Z', where: ['bar'], pinned: true, when: (p) => !!p.editor, does: history('docundo') });
+export const REDO = command<HasEditor>({
+  id: 'kit.redo',
+  scope: 'kit',
+  label: 'Redo',
+  icon: UI.redo,
+  keys: 'Mod+Shift+Z / Mod+Y',
+  where: ['bar'],
+  pinned: true,
+  when: (p) => !!p.editor,
+  does: history('docredo'),
+});
 export const SHARE = command<Page>({
   id: 'kit.share',
   scope: 'kit',
@@ -83,7 +94,7 @@ export const KIT_COMMANDS = register([
     label: 'Find in this document',
     icon: UI.search,
     keys: 'Mod+F',
-    where: ['keys-only'],
+    where: ['drawer'],
     takesFocus: true,
     when: (p) => p.editing && !!p.editor,
     does: (p) => p.find(),
@@ -121,6 +132,8 @@ export function renderShortcuts(def?: AppDef): TemplateResult {
  * kit's own, Mod+Z is that place's own; during an IME composition it is the IME's.
  */
 export function pageKey(e: KeyboardEvent, page: Page): void {
+  // A key with Ctrl, ⌘ or Alt: a keyboard is here (a phone's own types none), so the menus write their keys again.
+  if (e.metaKey || e.ctrlKey || e.altKey) keyboard.seen = true;
   if ((e.metaKey || e.ctrlKey || e.altKey) && !['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) page.flush();
   runKey(e, KIT_COMMANDS, page);
 }

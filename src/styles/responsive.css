@@ -146,6 +146,32 @@
       height: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
       padding-bottom: env(safe-area-inset-bottom);
     }
+    /* Undo and Redo are always on a phone's screen (kit/keys.ts `pinned`; the review of 2026-10-11: "Undo is never on
+       screen in any app's bar"): held at the bar's inline end, beside the palette's button, however far the bar is
+       scrolled, the rest passing under them; on a bar under 360px (bar.ts data-narrow) Undo alone, Redo in the row.
+       Opaque, off or not, with a margin of the bar's own ground round them, so what passes under never shows. */
+    to-bar .to-pin {
+      position: sticky;
+      inset-inline-end: 0;
+      z-index: 1;
+      box-shadow:
+        0 0 0 calc(0.375 * var(--to-nav-font)) var(--to-bg),
+        0 0 calc(0.75 * var(--to-nav-font)) calc(0.5 * var(--to-nav-font)) var(--to-bg);
+    }
+    to-bar .to-pin:not(.to-pin ~ .to-pin) {
+      margin-inline-start: auto;
+    }
+    to-bar:not([data-narrow]) .to-pin:has(~ .to-pin) {
+      inset-inline-end: calc(var(--to-touch) + 0.375 * var(--to-nav-font));
+    }
+    to-bar[data-narrow] .to-pin ~ .to-pin {
+      position: static;
+      box-shadow: none;
+    }
+    to-bar .to-pin:disabled {
+      opacity: 1;
+      color: color-mix(in srgb, var(--to-ink) 45%, var(--to-surface));
+    }
     /* The context bar as the bottom bar's row: across the column's foot, the bar's height, its buttons in one scrolling row. */
     .to-context[data-docked] {
       max-width: none;
