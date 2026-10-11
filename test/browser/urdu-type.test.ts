@@ -22,10 +22,10 @@ test('in Urdu the body is set in Nastaliq first, on the taller line; the labels�
   expect(ur.label).toBe('1.6');
 });
 
-test('in Arabic and in English neither: the device’s own stack and the line of every other language', () => {
+test('in Arabic and in English neither: Plex’s stack and the line of every other language', () => {
   for (const lang of ['ar', 'en']) {
     const s = style(lang);
-    expect(s.font, lang).toMatch(/^system-ui/);
+    expect(s.font, lang).toMatch(/^"?IBM Plex Sans"?, /);
     expect(s.line, lang).toBeCloseTo(1.5, 2);
     expect(s.label, lang).toBe('1.25');
   }

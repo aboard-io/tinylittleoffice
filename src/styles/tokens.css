@@ -78,7 +78,7 @@
      device's own, which every iPhone, Android from 8 and Windows ship, and the Arabic stack (the device's Naskh) where
      none is there. No font is bundled. Nastaliq's letters climb and fall further than Naskh's, so its lines are taller. */
   :lang(ur) {
-    --to-font: 'Noto Nastaliq Urdu', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Awami Nastaliq', 'IBM Plex Sans', var(--to-font-system);
+    --to-font: 'Noto Nastaliq Urdu', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Awami Nastaliq', var(--to-font-system);
     --to-line: 1.9;
     --to-line-label: 1.6;
   }
