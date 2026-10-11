@@ -89,8 +89,9 @@ test('the normal size draws everything at 1.3: the root carries --to-doc (BASE �
   }
 });
 
-test('nothing drawn outside the page follows the size: every app’s pages are the same bytes at 70%, 100% and 200%', () => {
-  const drawn = () => apps().map((a) => a.templates.map((t) => JSON.stringify(a.view(t.doc, { still: true }))).join('\n'));
+test('nothing drawn outside the page follows the size: every app’s pages are the same bytes at 70%, 100% and 200%', async () => {
+  const all = await Promise.all(apps().map(async (a) => ({ a, templates: await a.templates() })));
+  const drawn = () => all.map(({ a, templates }) => templates.map((t) => JSON.stringify(a.view(t.doc, { still: true }))).join('\n'));
   const normal = drawn();
   keepSize(2);
   expect(drawn()).toEqual(normal);

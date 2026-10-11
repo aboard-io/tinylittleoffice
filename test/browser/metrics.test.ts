@@ -11,20 +11,20 @@ import { layout } from '../../src/apps/diagram/view.ts';
 import { slidesOf } from '../../src/apps/deck/model.ts';
 import { fontIn } from './fonts.ts';
 
-const words = (): string[] => {
+const words = async (): Promise<string[]> => {
   const out: string[] = [];
-  for (const t of appOf('diagram')!.templates) for (const s of layout(parse(t.doc)).shapes) if (s.text) out.push(...s.text.replace(/^:[a-z0-9-]+\s*/, '').split(' | '));
-  for (const t of appOf('deck')!.templates) for (const s of slidesOf(parse(t.doc))) out.push(plainText(s.title), ...s.items.map((it) => plainText(it.runs)));
+  for (const t of await appOf('diagram')!.templates()) for (const s of layout(parse(t.doc)).shapes) if (s.text) out.push(...s.text.replace(/^:[a-z0-9-]+\s*/, '').split(' | '));
+  for (const t of await appOf('deck')!.templates()) for (const s of slidesOf(parse(t.doc))) out.push(plainText(s.title), ...s.items.map((it) => plainText(it.runs)));
   return out.map((w) => w.trim()).filter(Boolean);
 };
 
 test.each([
   ['plain', false],
   ['bold', true],
-])('%s: the fallback metrics are within a tenth of Chromium’s', (_, bold) => {
+])('%s: the fallback metrics are within a tenth of Chromium’s', async (_, bold) => {
   const ctx = document.createElement('canvas').getContext('2d')!;
   ctx.font = `${bold ? 600 : 400} 14px ${FONT}`;
-  const all = words();
+  const all = await words();
   expect(all.length).toBeGreaterThan(200);
   const real = all.reduce((a, w) => a + ctx.measureText(w).width, 0);
   const ours = all.reduce((a, w) => a + textWidth(w, 14, bold), 0);

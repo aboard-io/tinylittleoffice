@@ -13,7 +13,6 @@ import { drawn, raster } from '../../kit/raster.ts';
 import { tableToXlsx } from '../../kit/xlsx.ts';
 import { readSheet } from './model.ts';
 import { cellText, chartOf, sheetPages, sheetToCsv } from './view.ts';
-import { templates } from './templates.ts';
 import { sheetToCal } from './convert.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
@@ -38,9 +37,7 @@ export default defineApp({
     return t('A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

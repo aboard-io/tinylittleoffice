@@ -28,7 +28,7 @@
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import type { AppDef } from './app.ts';
 import { apps, siteRoot } from './apps.ts';
-import { templateHash } from './home.ts';
+import { preloadTemplates, templateHash, templatesOf as arrivedTemplates } from './home.ts';
 import { library } from './library.ts';
 import { icon, UI } from './icons.ts';
 import { startEditing } from './chrome.ts';
@@ -195,7 +195,9 @@ export class ToDrawer extends LitElement {
     const has = (...words: string[]) => words.some((w) => w.toLowerCase().includes(want));
     const all = apps();
     const found = all.filter((a) => has(a.name, a.blurb));
-    const templates = all.flatMap((a) => a.templates.filter((tpl) => has(tpl.name, tpl.blurb, a.name)).map((tpl) => ({ a, tpl })));
+    // The templates that have arrived; asked for here (a chunk an app), the list grows as the rest come.
+    for (const a of all) if (!arrivedTemplates(a)) void preloadTemplates(a).then(() => this.requestUpdate());
+    const templates = all.flatMap((a) => (arrivedTemplates(a) ?? []).filter((tpl) => has(tpl.name, tpl.blurb, a.name)).map((tpl) => ({ a, tpl })));
     const docs = kept.filter((k) => has(k.title)).flatMap((k) => all.filter((a) => a.id === k.app).map((a) => ({ a, k })));
     if (!found.length && !templates.length && !docs.length) return html`<p class="to-hint">${t('Nothing by that name')}</p>`;
     const group = (heading: string, rows: TemplateResult[]) => (rows.length ? html`<h3 class="to-drawer-head3">${heading}</h3>${rows}` : nothing);
@@ -260,7 +262,7 @@ export class ToDrawer extends LitElement {
                                     : !this.downloads
                                       ? nothing
                                       : apps().map(
-                                          (a) => html`<div class="to-app-head">
+                                          (a) => html`<div class="to-app-head" @pointerenter=${() => void preloadTemplates(a)}>
                         <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>
                         <to-templates .app=${a} .via=${(app: AppDef) => this.handOver(() => this.templates(app))}></to-templates>
                       </div>`,

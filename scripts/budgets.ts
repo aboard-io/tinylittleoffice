@@ -4,15 +4,17 @@
  * that buys simplicity is raised into budgets.json, in a commit of its own whose message says why (Paul, 2026-10-10).
  *
  *   main       the entry chunk the home page runs
- *   apps       the apps' definitions, which the home page imports
+ *   apps       the apps' definitions, which the home page imports: light, their templates not in it
  *   home       everything the home page loads before anything is tapped: the entry, its preloads, its stylesheet
  *   icons      the kit's icons, on the home page; iconsFull the whole set, loaded when the icon picker opens
+ *   templates  each app's templates, a chunk of their own (`templates-<app>`), loaded when its list opens or a
+ *              pointer comes over its row; the home page's first load holds none (`eagerTemplates`, which fails the build)
  *   languages  each language's strings, loaded when chosen (English is the keys themselves and ships in the code)
  *   editors    each app's editor chunk and its commands chunk, loaded when it opens, and `open`: all that opening
  *              it adds to the home page's load (the chunks and stylesheets the two imports preload, less home's)
  *
  * The chunks are found by name: vite.config.ts names an app's editor `<app>-editor-<hash>.js`, its commands
- * `<app>-commands-<hash>.js` and a language `lang-<code>-<hash>.js`, and what an import preloads is the list Vite
+ * `<app>-commands-<hash>.js`, its templates `templates-<app>-<hash>.js` and a language `lang-<code>-<hash>.js`, and what an import preloads is the list Vite
  * writes beside it (`__vite__mapDeps`).
  *
  *   node scripts/budgets.ts            dist/ against budgets.json: a line per chunk over, and exit 1 (`npm run build` runs it last)
@@ -29,6 +31,7 @@ export interface Sizes {
   home: number;
   icons: number;
   iconsFull: number;
+  templates: Record<string, number>;
   languages: Record<string, number>;
   editors: Record<string, { editor: number; commands: number; open: number }>;
 }
@@ -58,6 +61,15 @@ export function preloads(code: string): Map<string, string[]> {
   return out;
 }
 
+/** The files of the home page's first load: what its page names (the entry, its preloads, its stylesheet). */
+export function firstLoad(dist: string): Set<string> {
+  const html = readFileSync(join(dist, 'index.html'), 'utf8');
+  return new Set([...html.matchAll(/(?:src|href)="\.\/assets\/([^"]+)"/g)].map((m) => m[1]));
+}
+
+/** The templates chunks among these files: none may be in the home page's first load. */
+export const eagerTemplates = (files: Iterable<string>): string[] => [...files].filter((f) => /^templates-[a-z]+-[\w-]{8}\.js$/.test(f));
+
 /** What a build in `dist` weighs. */
 export function measure(dist: string): Sizes {
   const assets = join(dist, 'assets');
@@ -69,8 +81,7 @@ export function measure(dist: string): Sizes {
     if (!f) throw new Error(`${dist}: no chunk named ${name} in assets/`);
     return f;
   };
-  const html = readFileSync(join(dist, 'index.html'), 'utf8');
-  const home = new Set([...html.matchAll(/(?:src|href)="\.\/assets\/([^"]+)"/g)].map((m) => m[1]));
+  const home = firstLoad(dist);
   const lazy = new Map<string, string[]>();
   for (const f of files.filter((x) => x.endsWith('.js'))) for (const [k, v] of preloads(readFileSync(join(assets, f), 'utf8'))) lazy.set(k, [...new Set([...(lazy.get(k) ?? []), ...v])]);
   const sum = (fs: Iterable<string>) => [...fs].reduce((n, f) => n + weigh(f), 0);
@@ -81,6 +92,7 @@ export function measure(dist: string): Sizes {
     home: sum(home),
     icons: weigh(must('icons')),
     iconsFull: weigh(must('icons-full')),
+    templates: Object.fromEntries(files.flatMap((f) => (/^templates-([a-z]+)-[\w-]{8}\.js$/.exec(f) ? [[/^templates-([a-z]+)-[\w-]{8}\.js$/.exec(f)![1], weigh(f)]] : []))),
     languages: Object.fromEntries(files.flatMap((f) => (/^lang-(.+)-[\w-]{8}\.js$/.exec(f) ? [[/^lang-(.+)-[\w-]{8}\.js$/.exec(f)![1], weigh(f)]] : []))),
     editors: Object.fromEntries(
       ids.map((id) => {
@@ -118,6 +130,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (process.argv.includes('--sizes')) console.log(JSON.stringify(sizes, null, 2));
   else {
     const over = overBudget(sizes, readBudgets());
+    for (const f of eagerTemplates(firstLoad(dist))) over.push(`${f}: an app's templates in the home page's first load (they are a chunk loaded when asked for)`);
     for (const line of over) console.error(line);
     if (over.length) {
       console.error('A chunk grew past its budget (budgets.json). If the growth buys simplicity, raise the budget in a commit of its own that says why.');

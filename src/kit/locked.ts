@@ -134,7 +134,7 @@ export const lockedDoc: AppDef = {
     return t('A document locked with a password');
   },
   blank: () => '',
-  templates: [],
+  templates: async () => [],
   editor: () => Promise.reject(new Error('A locked document is opened in its own app')),
   title: () => '',
   retitle: (doc) => doc,

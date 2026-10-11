@@ -8,7 +8,6 @@ import { Calculator } from 'lucide';
 import { apply, parse, write } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
-import { templates } from './templates.ts';
 import { calcPage, tapeText } from './view.ts';
 
 export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
@@ -30,9 +29,7 @@ export default defineApp({
     return t('A calculator that keeps its working: names, units and conversions, and graphs of y = f(x).');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   commands: () => import('./commands.ts'),
   title: titleOf,

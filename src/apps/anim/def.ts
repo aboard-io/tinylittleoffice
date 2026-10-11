@@ -12,7 +12,6 @@ import { t } from '../../kit/i18n.ts';
 import { pixels } from '../../kit/raster.ts';
 import { H, W } from '../draw/model.ts';
 import { gifLoop, readAnim } from './model.ts';
-import { templates } from './templates.ts';
 import { altOf, animFrames, animPage, animToSvg, frameSvg } from './view.ts';
 
 export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
@@ -45,9 +44,7 @@ export default defineApp({
     return t('Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes.');
   },
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

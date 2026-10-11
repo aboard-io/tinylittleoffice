@@ -56,11 +56,11 @@ function afterBuild(site: string, media: string | undefined): Plugin {
   };
 }
 
-/** A chunk's name: `<app>-editor`, `<app>-commands` or `lang-<code>` for the modules they hold, else the bundler's own. */
+/** A chunk's name: `<app>-editor`, `<app>-commands`, `templates-<app>` or `lang-<code>` for the modules they hold, else the bundler's own. */
 function chunkName(chunk: { name: string; facadeModuleId: string | null; moduleIds: readonly string[] }): string {
   for (const id of chunk.facadeModuleId ? [chunk.facadeModuleId] : chunk.moduleIds) {
-    const m = /\/src\/apps\/([^/]+)\/(editor|commands)\.ts$/.exec(id.replaceAll('\\', '/')) ?? /\/src\/(i18n)\/([^/]+)\.ts$/.exec(id.replaceAll('\\', '/'));
-    if (m) return m[1] === 'i18n' ? `lang-${m[2]}` : `${m[1]}-${m[2]}`;
+    const m = /\/src\/apps\/([^/]+)\/(editor|commands|templates)\.ts$/.exec(id.replaceAll('\\', '/')) ?? /\/src\/(i18n)\/([^/]+)\.ts$/.exec(id.replaceAll('\\', '/'));
+    if (m) return m[1] === 'i18n' ? `lang-${m[2]}` : m[2] === 'templates' ? `templates-${m[1]}` : `${m[1]}-${m[2]}`;
   }
   return chunk.name;
 }
@@ -88,8 +88,8 @@ export default defineConfig(({ mode }) => ({
     // (The API for programs, /api.js, is a build of its own after this one: vite.api.config.ts.)
     rollupOptions: {
       input: { main: resolve(import.meta.dirname, 'index.html') },
-      // An app's editor and its commands are named for the app (write-editor-<hash>.js), a language for its code
-      // (lang-fr-<hash>.js), so the built chunks say what they hold and scripts/budgets.ts can weigh each.
+      // An app's editor and its commands are named for the app (write-editor-<hash>.js), its templates too
+      // (templates-write-<hash>.js), a language for its code (lang-fr-<hash>.js), so the built chunks say what they hold and scripts/budgets.ts can weigh each.
       output: { entryFileNames: 'assets/[name]-[hash].js', chunkFileNames: (chunk) => `assets/${chunkName(chunk)}-[hash].js` },
     },
   },

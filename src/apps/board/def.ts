@@ -8,7 +8,6 @@ import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { templates } from './templates.ts';
 import { boardPage, boardToCsv } from './view.ts';
 import { boardToTodo } from './convert.ts';
 import { partOf } from '../../kit/steps.ts';
@@ -40,9 +39,7 @@ export default defineApp({
     return t('A kanban board: the stages of a workflow, cards, and limits per stage.');
   },
   blank,
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,

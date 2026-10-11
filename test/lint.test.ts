@@ -205,8 +205,9 @@ describe('the measures are the layouts’ own', () => {
 });
 
 describe('what the apps ship lints clean', () => {
-  test('every template of every app', () => {
-    const found = apps().flatMap((a) => a.templates.flatMap((t) => lint(a.id, t.doc).map((f) => `${a.id}/${t.id}: ${findingLine(f)}`)));
+  test('every template of every app', async () => {
+    const all = await Promise.all(apps().map(async (a) => ({ a, templates: await a.templates() })));
+    const found = all.flatMap(({ a, templates }) => templates.flatMap((t) => lint(a.id, t.doc).map((f) => `${a.id}/${t.id}: ${findingLine(f)}`)));
     expect(found).toStrictEqual([]);
   });
 

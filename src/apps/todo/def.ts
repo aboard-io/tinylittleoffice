@@ -7,7 +7,6 @@ import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { templates } from './templates.ts';
 import { todoPage, todoToIcs, todoToMarkdown } from './view.ts';
 import { todoToBoard, todoToCal } from './convert.ts';
 import { partOf } from '../../kit/steps.ts';
@@ -37,9 +36,7 @@ export default defineApp({
   },
   // One empty task to type into.
   blank: () => '- [ ]\n',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   commands: () => import('./commands.ts'),
   title: titleOf,

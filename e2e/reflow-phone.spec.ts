@@ -70,7 +70,7 @@ test('at 200% on a phone, no word in the home page or any app is split across li
   await drawn(page);
   expect.soft(await split(page), 'home').toEqual([]);
   for (const app of apps()) {
-    const tpl = app.templates[0];
+    const tpl = (await app.templates())[0];
     await page.goto('about:blank');
     await page.goto(`/${routeHash(app.id, encodeDoc(tpl.doc))}`);
     await drawn(page);

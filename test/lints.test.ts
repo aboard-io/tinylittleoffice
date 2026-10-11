@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, test } from 'vitest';
-import { measure, overBudget, readBudgets, type Sizes } from '../scripts/budgets.ts';
+import { eagerTemplates, firstLoad, measure, overBudget, readBudgets, type Sizes } from '../scripts/budgets.ts';
 import { staleFiles } from '../scripts/generated.ts';
 import { ALLOWED, NOT_WORDS, bareWords, domNames, graphProblems, type Module } from './lints.ts';
 
@@ -117,6 +117,10 @@ describe('chunk budgets: the built chunks within budgets.json', () => {
       open: gz('write-editor-AAAAAAAA.js') + gz('write-commands-AAAAAAAA.js') + gz('shared-AAAAAAAA.js'),
     });
     expect(sizes.languages).toStrictEqual({ fr: gz('lang-fr-AAAAAAAA.js') });
+    // An app's templates are a chunk of their own, and the home page's first load holds none of them.
+    expect(sizes.templates).toStrictEqual({ write: gz('templates-write-AAAAAAAA.js') });
+    expect(eagerTemplates(firstLoad(join(FIXTURES, 'built')))).toStrictEqual([]);
+    expect(eagerTemplates(['main-AAAAAAAA.js', 'templates-write-AAAAAAAA.js'])).toStrictEqual(['templates-write-AAAAAAAA.js']);
     const budgets: Sizes = JSON.parse(JSON.stringify(sizes));
     budgets.main = 10;
     expect(overBudget(sizes, budgets)).toStrictEqual([`main: ${sizes.main} bytes, over its budget of 10 by ${sizes.main - 10}`]);
@@ -127,6 +131,12 @@ describe('chunk budgets: the built chunks within budgets.json', () => {
     expect(Object.keys(budgets.editors ?? {}).sort()).toStrictEqual(
       tree
         .filter((m) => /^src\/apps\/[^/]+\/editor\.ts$/.test(m.path))
+        .map((m) => m.path.split('/')[2])
+        .sort(),
+    );
+    expect(Object.keys(budgets.templates ?? {}).sort()).toStrictEqual(
+      tree
+        .filter((m) => /^src\/apps\/[^/]+\/templates\.ts$/.test(m.path))
         .map((m) => m.path.split('/')[2])
         .sort(),
     );

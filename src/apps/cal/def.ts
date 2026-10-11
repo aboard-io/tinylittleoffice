@@ -9,7 +9,6 @@ import { defineApp, type Doc } from '../../kit/app.ts';
 import { csvSeparator } from '../../kit/csv.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { templates } from './templates.ts';
 import { calPages, calToCsv, calToIcs } from './view.ts';
 import { calToTodo } from './convert.ts';
 
@@ -33,9 +32,7 @@ export default defineApp({
   },
   // Nothing yet: the editor opens on this month.
   blank: () => '',
-  get templates() {
-    return templates();
-  },
+  templates: () => import('./templates.ts').then((m) => m.templates()),
   editor: () => import('./editor.ts'),
   commands: () => import('./commands.ts'),
   title: titleOf,

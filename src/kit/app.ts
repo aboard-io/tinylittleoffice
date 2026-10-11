@@ -121,7 +121,12 @@ export interface AppDef {
   readonly blurb: string;
   /** A new document. */
   blank(): Doc;
-  readonly templates: Template[];
+  /**
+   * The app's templates, when asked for: a chunk of their own (`() => import('./templates.ts').then((m) => m.templates())`),
+   * so the registry the home page imports carries none of their words. Blank needs none: it is `blank()`. Asked again
+   * after a language is chosen, the names follow it.
+   */
+  templates(): Promise<Template[]>;
   /** The app's templates carry its blank pages (a Diagram Maker's blank per kind); the lists add no Blank of their own. Its row's name still opens `blank()`. */
   blankInTemplates?: boolean;
   /** The editor, lazily: the tag of its element (defined by the module). */

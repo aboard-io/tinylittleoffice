@@ -21,9 +21,9 @@ function printed(pages: Page[], title: string) {
   return { dom, figures: [...dom.querySelectorAll('body > figure')], css: dom.querySelector('style')!.textContent! };
 }
 
-test('every app’s first template prints: a figure per page, each an SVG at its own size, on its paper', () => {
+test('every app’s first template prints: a figure per page, each an SVG at its own size, on its paper', async () => {
   for (const app of apps()) {
-    const tpl = app.templates[0];
+    const tpl = (await app.templates())[0];
     expect(tpl, `${app.id} has a template`).toBeTruthy();
     const pages = app.view(tpl.doc);
     expect(pages.length, app.id).toBeGreaterThan(0);
@@ -44,15 +44,16 @@ test('every app’s first template prints: a figure per page, each an SVG at its
   }
 });
 
-test('a rule is a page: a text with two rules prints three pages, a deck a slide per rule and one more', () => {
+test('a rule is a page: a text with two rules prints three pages, a deck a slide per rule and one more', async () => {
   const write = appOf('write')!;
-  const text = `${write.templates[0].doc.trimEnd()}\n\n---\n\nThe second page.\n\n---\n\nThe third.\n`;
+  const letter = (await write.templates())[0].doc;
+  const text = `${letter.trimEnd()}\n\n---\n\nThe second page.\n\n---\n\nThe third.\n`;
   const ruled = rules(parse(text).blocks).length;
-  expect(ruled).toBe(write.view(write.templates[0].doc).length + 2);
+  expect(ruled).toBe(write.view(letter).length + 2);
   expect(printed(write.view(text), 'Letter').figures).toHaveLength(ruled);
 
   const deck = appOf('deck')!;
-  const talk = deck.templates[0].doc;
+  const talk = (await deck.templates())[0].doc;
   const slides = rules(parse(talk).blocks).length;
   // The talk ends with its QR code, a slide of its own; without it, a slide per rule and one more.
   expect(printed(deck.view(talk), 'Talk').figures).toHaveLength(slides + 1);

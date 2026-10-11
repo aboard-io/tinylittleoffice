@@ -3,8 +3,8 @@ import { test, expect } from 'vitest';
 import { makeLlms, makeSkill } from '../scripts/make-skill.ts';
 import { apps } from '../src/kit/apps.ts';
 
-test('the skill names every app, teaches the plain link, and leaves no placeholder behind', () => {
-  const skill = makeSkill();
+test('the skill names every app, teaches the plain link, and leaves no placeholder behind', async () => {
+  const skill = await makeSkill();
   expect(skill.startsWith('---\nname: tinyoffice\ndescription: ')).toBe(true);
   for (const a of apps()) expect(skill).toContain(`| \`${a.id}\` | ${a.name} |`);
   expect(skill).toContain('#title=<title>&doc=<document>');

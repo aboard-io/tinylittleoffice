@@ -166,8 +166,8 @@ describe('what the registry writes', () => {
       .filter((l) => /^\| [^K-]/.test(l) || /^\| \| /.test(l)).length;
     expect(rows).toBe(all.filter((c) => !c.menu && !c.data).length);
   });
-  test('the skill lists the keys of every app', () => {
-    const skill = makeSkill();
+  test('the skill lists the keys of every app', async () => {
+    const skill = await makeSkill();
     for (const a of apps().filter((x) => all.some((c) => c.scope === x.id && c.keys))) expect(skill).toContain(`**${a.name}**:`);
   });
 });

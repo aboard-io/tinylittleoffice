@@ -16,6 +16,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import type { Template } from '../src/kit/app.ts';
 import { apps, appOf } from '../src/kit/apps.ts';
 import { FUNCTIONS, parse, write } from '../src/doc/index.ts';
 import { plainLink, readPlain } from '../src/kit/plain.ts';
@@ -31,9 +32,11 @@ function app(id: string) {
   return def;
 }
 
-function example(id: string, tpl: string): string {
-  const def = app(id);
-  const t = def.templates.find((x) => x.id === tpl);
+/** Each app's templates, by its id: a chunk of their own, asked for once before the guide is written. */
+type Templates = Map<string, Template[]>;
+
+function example(all: Templates, id: string, tpl: string): string {
+  const t = all.get(app(id).id)!.find((x) => x.id === tpl);
   if (!t) throw new Error(`make-skill: ${id} has no template "${tpl}"`);
   if (write(parse(t.doc)) !== t.doc) throw new Error(`make-skill: ${id}/${tpl} is not as the kernel writes it`);
   const url = plainLink(SITE, id, t.doc);
@@ -43,18 +46,20 @@ function example(id: string, tpl: string): string {
   return `${t.name}:\n\n${fence}\n${t.doc}${fence}\n\nAs a link: <${url}>`;
 }
 
-export function makeSkill(): string {
+export async function makeSkill(): Promise<string> {
+  const all: Templates = new Map(await Promise.all(apps().map(async (a) => [a.id, await a.templates()] as const)));
   const table = ['| App | Name | For |', '| --- | --- | --- |', ...apps().map((a) => `| \`${a.id}\` | ${a.name} | ${a.blurb} |`)].join('\n');
   return readFileSync(at('skill/tinyoffice/SKILL.tpl.md'), 'utf8')
     .replace('{{apps}}', table)
     .replace('{{functions}}', FUNCTIONS.map(([name]) => `\`${name}\``).join(', '))
     .replace('{{commands}}', () => skillCommands())
-    .replace(/\{\{tpl:([a-z]+):([a-z0-9-]+)\}\}/g, (_, id: string, tpl: string) => example(id, tpl))
+    .replace(/\{\{tpl:([a-z]+):([a-z0-9-]+)\}\}/g, (_, id: string, tpl: string) => example(all, id, tpl))
     .replace(
       /\{\{templates:([a-z]+)\}\}/g,
       (_, id: string) =>
-        `Templates: ${app(id)
-          .templates.map((t) => t.name)
+        `Templates: ${all
+          .get(app(id).id)!
+          .map((t) => t.name)
           .join(', ')}.`,
     )
     .replace(/\{\{exports:([a-z]+)\}\}/g, (_, id: string) => {
@@ -65,9 +70,9 @@ export function makeSkill(): string {
 }
 
 /** /llms.txt: the same guide, without the skill's front matter. */
-export const makeLlms = (skill = makeSkill()): string => skill.replace(/^---\n[\s\S]*?\n---\n\n/, '');
+export const makeLlms = (skill: string): string => skill.replace(/^---\n[\s\S]*?\n---\n\n/, '');
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const skill = makeSkill();
+  const skill = await makeSkill();
   generate({ 'skill/tinyoffice/SKILL.md': skill, 'public/llms.txt': makeLlms(skill) }, 'npm run skill');
 }

@@ -142,7 +142,7 @@ export async function templates(app: string): Promise<{ id: string; name: string
   const { appOf } = await import('./kit/apps.ts');
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
-  return def.templates.map((t) => ({ id: t.id, name: t.name, blurb: t.blurb, text: t.doc }));
+  return (await def.templates()).map((t) => ({ id: t.id, name: t.name, blurb: t.blurb, text: t.doc }));
 }
 
 /** The files an app makes from a document without a browser (its own formats that need no drawing), by extension. */

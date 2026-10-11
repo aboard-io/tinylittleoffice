@@ -28,7 +28,7 @@ for (const { file, docs } of corpus)
 
 // And every template of every app on this tree: what the apps themselves write is canonical too.
 for (const app of apps())
-  for (const tpl of app.templates)
+  for (const tpl of await app.templates())
     test(`${app.id}/${tpl.id}: write(parse(x)) === x`, () => {
       expect(write(parse(tpl.doc))).toBe(tpl.doc);
       expect(parse(write(parse(tpl.doc)))).toStrictEqual(parse(tpl.doc));
