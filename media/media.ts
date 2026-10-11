@@ -96,10 +96,14 @@ const typeOf = (res: Response) => (res.headers.get('content-type') ?? '').split(
 const picture = (type: string) => /^image\/[a-z0-9.+-]+$/.test(type) && (type === SVG || !type.includes('svg'));
 
 /** Fetch an address, following at most HOPS redirects by hand, each under the same rules. */
+/** Who is asking: the proxy names itself and the page that says what it does. */
+export const UA = 'TinyLittleOffice/1 (+https://tinylittleoffice.com/network; the picture proxy)';
+
 async function follow(deps: Deps, start: URL, signal: AbortSignal): Promise<Response | number> {
   let at = start;
   for (let hop = 0; ; hop++) {
-    const res = await deps.fetch(at.href, { method: 'GET', redirect: 'manual', signal, headers: { accept: 'image/avif,image/webp,image/*;q=0.9' } });
+    // Named, as Wikimedia and others require of a fetcher (an unnamed one gets 403, and the picture a broken glyph: 2026-10-11).
+    const res = await deps.fetch(at.href, { method: 'GET', redirect: 'manual', signal, headers: { accept: 'image/avif,image/webp,image/*;q=0.9', 'user-agent': UA } });
     if (res.status < 300 || res.status >= 400 || res.status === 304) return res;
     await res.body?.cancel();
     const next = fetchable(res.headers.get('location'), at.href);

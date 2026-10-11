@@ -1,6 +1,6 @@
 // media, the picture proxy: what it fetches, what it refuses, what it hands back, what it keeps.
 import { test, expect } from 'vitest';
-import { fetchable, handle, MAX_BYTES, type CacheLike, type Deps } from '../media/media.ts';
+import { fetchable, handle, MAX_BYTES, UA, type CacheLike, type Deps } from '../media/media.ts';
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
 const CAT = 'https://images.unsplash.com/cat.png';
@@ -47,7 +47,9 @@ test('media: a picture is fetched once with nothing of the reader, and handed ba
   // Nothing of the reader's: no cookie, no referrer, no address.
   expect(w.asked).toHaveLength(1);
   const sent = new Headers(w.asked[0].init?.headers);
-  expect([...sent.keys()]).toEqual(['accept']);
+  expect([...sent.keys()]).toEqual(['accept', 'user-agent']);
+  // The proxy names itself and nothing else: Wikimedia answers an unnamed fetcher with 403 (2026-10-11).
+  expect(sent.get('user-agent')).toBe(UA);
   expect(w.asked[0].init?.redirect).toBe('manual');
 });
 
