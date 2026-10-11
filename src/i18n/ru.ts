@@ -55,7 +55,7 @@ export default {
   'About Tiny Little Office': 'О Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крошечный офисный набор, который целиком живёт в адресе страницы. Без сервера, без аккаунтов, без сохранения: документ — это ссылка.',
   'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Только карта поездки сама обращается к интернету: её картинки приходят из OpenStreetMap, пока карта на экране. По умолчанию приватно: ничего не хранится. Режим «Сохранено» (переключатель в этом меню) хранит ваши настройки и открытые документы на этом устройстве.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'У документа может быть пароль: он шифруется здесь, в браузере, и в ссылке остаётся только зашифрованный текст. Документ можно подписать ключом, который создаёт ваш браузер, и тогда любой проверит, что это ровно то, что вы подписали, и под каким именем. «Конфиденциальность и ключи» в этом меню покажет, что хранит это устройство.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'У документа может быть пароль: он шифруется здесь, в браузере, и в ссылке остаётся только зашифрованный текст. Документ можно подписать ключом, который создаёт ваш браузер, и тогда любой проверит, что это ровно то, что вы подписали, и под каким именем. «Приватность и ключи» в этом меню покажет, что хранит это устройство.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -189,7 +189,7 @@ export default {
   'Paste a key exported from another device': 'Вставьте ключ, экспортированный с другого устройства',
   'Preferences': 'Настройки',
   'Privacy': 'Конфиденциальность',
-  'Privacy and keys': 'Конфиденциальность и ключи',
+  'Privacy and keys': 'Приватность и ключи',
   'Private: nothing is written to this device. What is listed lasts for this visit.': 'Приватно: на это устройство ничего не записывается. Всё, что в списке, останется до конца визита.',
   'Private: this key lasts for this visit only. Turn on Saved in the menu to keep it, or Export it.': 'Приватно: этот ключ живёт только до конца визита. Включите «Сохранено» в меню, чтобы хранить его, или экспортируйте.',
   'Private: your signing key lasts for this visit. Turn on Saved in the menu to keep it.': 'Приватно: ваш ключ для подписи живёт до конца визита. Включите «Сохранено» в меню, чтобы хранить его.',
