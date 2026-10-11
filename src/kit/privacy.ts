@@ -20,6 +20,7 @@ import { newLocker, PBKDF2_ITERATIONS, seal, unseal, unsealWith, type Locker } f
 import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './links.ts';
 import { parseHash } from './route.ts';
+import { titledText } from './plain.ts';
 import { slug } from './draw.ts';
 
 /** The preferences this site may keep, by key; with them which documents have been told they are copies (kit/shell.ts). */
@@ -122,7 +123,8 @@ export async function forgetEverything() {
 }
 
 /**
- * Every document kept here as a file, in a folder by app: its text as .tlo; one under a password as its link
+ * Every document kept here as a file named by its title, in a folder by app: its text as .tlo, the title
+ * written into its head when the text names none (kit/plain.ts titledText); one under a password as its link
  * in a .txt (its text is not to be had without the password). `base` is the address a link starts with.
  */
 export async function everything(base: string): Promise<Record<string, string>> {
@@ -134,10 +136,11 @@ export async function everything(base: string): Promise<Record<string, string>> 
   };
   for (const k of library()) {
     const { payload } = parseHash(k.hash);
-    if (isSealed(payload)) files[name(k.app, slug(k.title) || 'locked', 'txt')] = `${base}${k.hash}\n`;
+    // A locked document's title is its secret: the library holds none for it, and nothing is written.
+    if (isSealed(payload)) files[name(k.app, slug(k.title) || 'locked', 'txt')] = `${k.title ? `title: ${k.title}\n` : ''}${base}${k.hash}\n`;
     else {
       const text = decodeDoc(payload);
-      if (text) files[name(k.app, slug(k.title) || 'untitled', 'tlo')] = text;
+      if (text) files[name(k.app, slug(k.title) || 'untitled', 'tlo')] = titledText(text, k.title);
     }
   }
   return files;

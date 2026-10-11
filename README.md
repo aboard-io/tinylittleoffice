@@ -177,7 +177,7 @@ carries `by` and `created` (stamped to the minute at the first change; `src/kit/
 Beside the title, while there is a password, a lock (Locked, or Protected by a password); it opens the Privacy
 dialog (`src/kit/privacy-dialog.ts`, also "Privacy" in the menu): the document's password, what this device holds
 item by item with Forget and Forget everything, and Download everything, every kept document as its .tlo text in
-one zip (a locked one as its link).
+one zip, named by its title and the title in its head (a locked one as its link).
 A locked document placed inside another goes in as its sealed link (a ```` ```locked ```` fence, `src/kit/locked.ts`)
 and is drawn everywhere as a locked card: the lock, "Locked with a password", its app; in an editor a tap asks for the
 password and the card draws the document for the rest of the visit, while the outer link goes on holding only the

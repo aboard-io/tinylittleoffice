@@ -12,7 +12,7 @@
  * A .tlo file is the document's text with `app: <id>` in its head, so it opens as its own app: the head's
  * `app` is taken out again on opening (the link never carries it).
  */
-import { takeHead, withHead } from '../doc/index.ts';
+import { splitHead, takeHead, withHead, writeHead } from '../doc/index.ts';
 import { parseHash } from './route.ts';
 
 /** What a plain link or a file holds: the app it opens in, and the document's text. */
@@ -80,6 +80,18 @@ export function plainLink(site: string, app: string, text: string, opts: { title
 export const tloText = (app: string, text: string): string => withHead(text, { app });
 
 /**
+ * A document as Download everything writes it (kit/privacy.ts everything): with the title the library gives it
+ * (an automatic name, its first words) first in a head that names none, so it comes back from the zip as it was
+ * named (Paul, 2026-10-11). A text whose head has its title, or no title to give, is as it was.
+ */
+export function titledText(text: string, title: string): string {
+  const [head, body] = splitHead(text);
+  if (head.title || !title) return text;
+  const { title: _, ...rest } = head;
+  return writeHead({ title, ...rest }) + body;
+}
+
+/**
  * A file's words, as a document: a .tlo (or any text whose head names its app) opens in that app; any other
  * text (a .md, a .txt) opens in `fallback`, the app open now, else the Word Processor. Its title is the file's
  * name, for a document that names none. null for a file that is not words.
@@ -117,7 +129,8 @@ export function readZip(files: Record<string, Uint8Array>, fallback: string, kno
     const here = known(dir) ? dir : fallback;
     const words = new TextDecoder().decode(bytes);
     if (/\.txt$/i.test(name)) {
-      const link = words.trim();
+      // (The link is the last line: a line before it, "title: …", is for the person who opens the file.)
+      const link = words.trim().split('\n').at(-1)!.trim();
       const { app, payload } = /^\S*#\/v\d+\/\S+$/.test(link) ? parseHash(link.slice(link.indexOf('#'))) : { app: null, payload: '' };
       if (app && known(app) && payload) found.push({ app, text: '', title: '', payload });
       continue;

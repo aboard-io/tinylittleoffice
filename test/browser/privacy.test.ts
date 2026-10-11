@@ -2,11 +2,13 @@
 // every change, the state beside the title, what the device holds, and the zip. Signing is gone (Paul, 2026-10-11:
 // "Get rid of signatures everywhere, including templates"): a signature said more than it proved.
 import { test, expect, afterEach, beforeAll, vi } from 'vitest';
-import { unzipSync, strFromU8 } from 'fflate';
+import { unzipSync, strFromU8, strToU8 } from 'fflate';
 import { mount, tick, until, openShare as openShareFromDrawer } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { PREFS, forgetPrefs, prefsKept, lockCost, lockWith, pack, unlock } from '../../src/kit/privacy.ts';
+import { readZip } from '../../src/kit/plain.ts';
+import { appOf } from '../../src/kit/apps.ts';
+import { PREFS, everything, forgetPrefs, prefsKept, lockCost, lockWith, pack, unlock } from '../../src/kit/privacy.ts';
 import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
@@ -188,6 +190,40 @@ test('Under Saved, a sealed document is kept as ciphertext, with no name; the ho
   const home = await mount('');
   await until(() => !!home.querySelector('.to-drive-words span'));
   expect(home.querySelector('.to-drive-words span')!.textContent).toBe('Locked document');
+});
+
+test('Download everything names each file by its title and writes the title into a head that has none (Paul, 2026-10-11: "Do both")', async () => {
+  setKeeping(true);
+  forgetAll();
+  const at = Date.now();
+  const words = 'Words that end in a space\\ \n\\\nand go on.\n';
+  keep({ id: 'a', app: 'write', title: 'New Word Processor 2026-10-11 #1', hash: `#/v1/write/${encodeDoc(words)}`, at });
+  keep({ id: 'b', app: 'sheet', title: 'Budget', hash: `#/v1/sheet/${encodeDoc('---\nchart: bar\n---\na | b\n--- | ---\n1 | 2\n')}`, at: at - 1 });
+  keep({ id: 'c', app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc('---\ntitle: Launch notes\nby: Paul\n---\nGo.\n')}`, at: at - 2 });
+  keep({ id: 'd', app: 'write', title: '', hash: `#/v1/write/${await pack('---\ntitle: Salaries\n---\nsecret\n', await lockWith('pw'))}`, at: at - 3 });
+  // Were a title kept for a locked one, it would go on a line before the link.
+  keep({ id: 'e', app: 'write', title: 'Salaries', hash: `#/v1/write/${await pack('---\ntitle: Salaries\n---\nsecret\n', await lockWith('pw'))}`, at: at - 4 });
+  const files = await everything('https://tinylittleoffice.example/');
+  expect(Object.keys(files).sort()).toEqual(['sheet/budget.tlo', 'write/launch-notes.tlo', 'write/locked.txt', 'write/new-word-processor-2026-10-11-1.tlo', 'write/salaries.txt']);
+  // No title in the text: the library's, in a head before the body, the body as it was to the byte.
+  expect(files['write/new-word-processor-2026-10-11-1.tlo']).toBe(`---\ntitle: New Word Processor 2026-10-11 #1\n---\n${words}`);
+  // A head without a title gains one, first; the rest of the head is kept.
+  expect(files['sheet/budget.tlo']).toBe('---\ntitle: Budget\nchart: bar\n---\na | b\n--- | ---\n1 | 2\n');
+  // A text with its title is written as it is.
+  expect(files['write/launch-notes.tlo']).toBe('---\ntitle: Launch notes\nby: Paul\n---\nGo.\n');
+  // A locked one is its link alone: its title is its secret.
+  expect(files['write/locked.txt']).toMatch(/^https:\/\/tinylittleoffice\.example\/#\/v1\/write\/E[\w~]+\n$/);
+  expect(files['write/salaries.txt']).toBe(`title: Salaries\nhttps://tinylittleoffice.example/${library()[4].hash}\n`);
+  // And back: the zip read gives each the same title and the same text.
+  const back = readZip(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])), 'write', (id) => ['write', 'sheet'].includes(id));
+  const titled = back.filter((d) => !d.payload).map((d) => ({ title: appOf(d.app)!.title(d.text), text: d.text }));
+  expect(titled).toEqual([
+    { title: 'New Word Processor 2026-10-11 #1', text: files['write/new-word-processor-2026-10-11-1.tlo'] },
+    { title: 'Budget', text: files['sheet/budget.tlo'] },
+    { title: 'Launch notes', text: files['write/launch-notes.tlo'] },
+  ]);
+  expect(back.filter((d) => d.payload).map((d) => d.payload)).toEqual([3, 4].map((i) => parseHash(library()[i].hash).payload));
+  forgetAll();
 });
 
 test('what this device holds, item by item with Forget, and Download everything: every kept document in one zip', async () => {
