@@ -16,7 +16,6 @@ import type { ToDialog } from './dialog.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { lockedOf, lockedPage, notOpened, openedText, setOpened } from './locked.ts';
-import { gateSvg } from './pictures.ts';
 import { reopen, unlock } from './privacy.ts';
 import './dialog.ts';
 
@@ -114,7 +113,7 @@ export class ToLockedDoc extends LitElement {
     const def = it ? lookup.appOf(it.app) : undefined;
     const text = it ? openedText(it.payload) : undefined;
     const page = lockedPage(this.ref, { small: true, open: true });
-    const drawn = html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt ?? ''}>${unsafeSVG(gateSvg(page.svg))}</svg>`;
+    const drawn = html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt ?? ''}>${unsafeSVG(page.svg)}</svg>`;
     const name = text !== undefined && def ? def.title(text) || def.name : t('Locked document');
     const caption = this.caption && def ? html`<figcaption><b>${name}</b><small>${def.name}</small></figcaption>` : nothing;
     if (!it || text !== undefined) return html`${drawn}${caption}`;

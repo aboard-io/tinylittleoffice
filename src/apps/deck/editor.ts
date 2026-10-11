@@ -8,8 +8,7 @@
  * of the slide and the caret (or the slides chosen) that undone() puts back. The footnotes are at the slide's
  * foot (<to-notes>, kit/notes.ts), their words typed there: a mark tapped, or Footnote, puts the caret in its
  * note; Enter or Escape come back to the mark. A slide that shows another
- * document (a fence, a table, a picture) shows it as a card with a menu; a thing from the web (a web address or a
- * titled link alone) is the live card (<to-embed>, kit/embeds.ts) in the editor and in the show, loaded on a tap.
+ * document (a fence, a table) shows it as a card with a menu.
  * A link in a slide's words, in the show, is followed through the link guard (kit/link-guard.ts) and turns no slide.
  *
  * The rail's thumbnails are the slides as rows (kit/rows.ts, docs/editing.md §6): a tap chooses one (Shift
@@ -24,11 +23,10 @@
 import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { gateSvg } from '../../kit/pictures.ts';
 import { motion, reducedMotion } from '../../kit/motion.ts';
 import { pinchZoom } from '../../kit/pinch.ts';
 import { ChevronDown, ChevronUp, GripVertical, StickyNote } from 'lucide';
-import { applyAll, parse, plainText, webOf, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { cmdMenu, cmdTool, tool } from '../../kit/bar.ts';
 import { coarse, drawnIn, runKey } from '../../kit/commands.ts';
@@ -42,7 +40,7 @@ import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, iconNamed, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { noteMarks, type NoteMark, type ToNotes } from '../../kit/notes.ts';
-import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
+import { askDocLink } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { LOCKED_LANG, isOpened, placedLink } from '../../kit/locked.ts';
 import { OPENED_EVENT, openPlaced } from '../../kit/locked-doc.ts';
@@ -64,7 +62,6 @@ import {
   setSub,
   settingsOf,
   slidesOf,
-  webBlock,
   type Format,
   type Layout,
   type Settings,
@@ -73,7 +70,6 @@ import {
 import { closingPage, emptySlide, wantsClosing, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/doc-dialog.ts';
-import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/notes.ts';
@@ -94,19 +90,6 @@ interface Mark {
   /** The footnote whose words were typed: an undo puts the caret back in it. */
   note?: number;
 }
-/** What answers a tap on the live card itself (<to-embed>, embeds.ts): its buttons, its links, the thing once loaded. */
-const LIVE = 'button, a, iframe, video, audio, img';
-/**
- * Whether an event began on the live card's own controls. Read from the path the event took, not from its target:
- * a real tap or key lets the card redraw between listeners (a tap on Load swaps the button for the frame), and a
- * target taken out of the page is inside nothing by the time the slide hears it.
- */
-const onLive = (e: Event): boolean => {
-  const path = e.composedPath();
-  const card = path.findIndex((n) => n instanceof Element && n.localName === 'to-embed');
-  return card > 0 && path.slice(0, card).some((n) => n instanceof Element && n.matches(LIVE));
-};
-
 /** Two clicks closer together than this are a double click: show the whole slide. */
 const FAST = 350;
 
@@ -612,24 +595,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       ];
     }
     if (b.k === 'table') return [{ label: t('Edit'), icon: UI.pen, does: () => void this.editSub() }, remove];
-    return [
-      {
-        label: t('Change the address…'),
-        icon: UI.pen,
-        does: async () => {
-          if (b.k === 'img') {
-            const pic = await askPicture({ url: b.url, alt: b.alt });
-            if (pic) this.change(setSub(this.slide, { ...b, url: pic.url, alt: pic.alt }));
-          } else {
-            const web = webOf(b);
-            const url = await askEmbed(web?.url ?? '');
-            // A new address keeps the title its author gave the old one.
-            if (url) this.change(setSub(this.slide, webBlock(url, web?.title)));
-          }
-        },
-      },
-      remove,
-    ];
+    return [remove];
   }
   /** The document or table on the slide, edited in its app in the dialog: Done writes it back as one step. */
   private async editSub() {
@@ -644,8 +610,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   /** A locked document opened (here or in another card): the slide draws it. */
   private onOpened = () => this.requestUpdate();
   private openSubMenu = (e: Event) => {
-    // The live card's own controls (load, open on the provider, the frame) are its own, not the menu's.
-    if (onLive(e)) return;
     // A locked document not yet opened: a tap asks for its password (kit/locked-doc.ts); opened, the menu.
     const b = this.slide.sub >= 0 ? this.doc.blocks[this.slide.sub] : null;
     if (b?.k === 'fence' && b.lang === LOCKED_LANG && !isOpened(b.body)) return void openPlaced(b.body);
@@ -661,14 +625,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
 
   /* ---------- putting things on the slide ---------- */
 
-  async insertPicture() {
-    const pic = await askPicture();
-    if (pic) this.putSub({ k: 'img', alt: pic.alt, url: pic.url });
-  }
-  async insertWeb() {
-    const url = await askEmbed();
-    if (url) this.putSub(linkToFence(url) ?? webBlock(url));
-  }
   async insertDocument() {
     const fence = await askDocLink();
     if (fence) this.putSub(fence);
@@ -749,9 +705,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     if (this.shown > 0) this.shown--;
     else if (this.showing > 0) this.show(this.showing - 1, this.steps(this.showing - 1));
   }
-  private onShowClick = (e: Event) => {
-    // A tap on the live card's controls is the card's; a tap anywhere else turns the slide.
-    if (onLive(e)) return;
+  private onShowClick = () => {
     const now = performance.now();
     // Two fingers zoom; they never turn a slide, nor does a tap they leave as they lift, nor one a swipe leaves.
     if (now - this.pinched < 300 || now - this.swiped < 300) return;
@@ -884,22 +838,22 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.go(this.cur - 1);
     this.focusBox(this.slide.sub >= 0 ? 'title' : 'words', 'end');
   }
-  /** A lone web address pasted into empty words: the thing from the web on the slide, as Insert ▾ would put it. */
+  /** A Tiny Little Office link pasted alone into empty words: its document on the slide, as Insert ▾ would put it. */
   private onWordsPaste = {
     capture: true,
     handleEvent: (e: ClipboardEvent) => {
       const text = (e.clipboardData?.getData('text/plain') ?? '').trim();
       const box = this.text('words');
-      if (!/^https?:\/\/\S+$/.test(text) || !box || box.model.some((b) => 'runs' in b && plainText(b.runs).trim())) return;
+      const fence = /^https?:\/\/\S+$/.test(text) ? linkToFence(text) : null;
+      if (!fence || !box || box.model.some((b) => 'runs' in b && plainText(b.runs).trim())) return;
       e.preventDefault();
       e.stopPropagation();
       const made = this.existing();
-      this.change([...made.ops, ...setSub(made.s, linkToFence(text) ?? webBlock(text))]);
+      this.change([...made.ops, ...setSub(made.s, fence)]);
     },
   };
   /** Delete or Backspace on the document on the slide takes it off; Enter or Space opens its menu. */
   private onSubKey = (e: KeyboardEvent) => {
-    // A key on the live card's button is the button's.
     if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -912,20 +866,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   };
 
   /* ---------- drawing ---------- */
-
-  /** The thing from the web a slide shows, if it shows one: its address and its author's title. */
-  private webOn(s: Slide | undefined): { url: string; title: string } | null {
-    const b = s && s.sub >= 0 ? this.doc.blocks[s.sub] : undefined;
-    return b ? webOf(b) : null;
-  }
-  /** In the show, the live card over the card the slide draws, in the same box: a tap loads it, a tap elsewhere turns the slide. */
-  private renderLive(s: Slide | undefined) {
-    const web = this.webOn(s);
-    if (!web || !s) return nothing;
-    const box = layoutSlide(s).sub!;
-    const pc = (n: number, of: number) => `${Math.round((n / of) * 10000) / 100}%`;
-    return html`<div class="deck-live" style=${`left:${pc(box.x, SW)};top:${pc(box.y, SH)};width:${pc(box.w, SW)};height:${pc(box.h, SH)}`}><to-embed url=${web.url} alt=${web.title}></to-embed></div>`;
-  }
 
   /** The theme as the canvas wears it: its colours, the sizes the layout chose (in the canvas's own width), and its decoration as the background. */
   private canvasStyle(s: Slide, look: Look, size: { w: number; h: number }): string {
@@ -951,8 +891,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const leftNotes = marks.filter((x) => x.field === 'words').length;
     const notes = marks.map((x) => x.m.fn);
     const sub = s.sub >= 0 ? subPage(this.doc, s, undefined, true) : null;
-    // A thing from the web is the live card (kit/embeds.ts), the Word Processor's: nothing asked of its provider until it is tapped.
-    const web = this.webOn(s);
     const prose = !!st.format && st.format !== 'comic' && !s.layout;
     const wordsHint =
       st.format === 'comic'
@@ -972,8 +910,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
         </div>
         ${
           sub
-            ? html`<figure class="deck-sub ${web ? 'web' : ''}" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
-              ${web ? html`<to-embed url=${web.url} alt=${web.title}></to-embed>` : html`<svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(gateSvg(sub.svg))}</svg>`}
+            ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
+              <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(sub.svg)}</svg>
             </figure>`
             : html`<div class="deck-words-row">
               <to-text class="deck-words" shape="lines" notes @paste=${this.onWordsPaste} .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('words', e)}></to-text>
@@ -1013,7 +951,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
         const name = (g ? g.name(i, n) : t('Slide {n}', { n: i + 1 })) + (words ? `: ${words}` : '');
         const ranged = !!s && this.rows.has(i);
         return html`<div class="deck-slot ${ranged ? 'ranged' : ''} ${d?.id === i ? 'dragging' : ''}">
-          <button type="button" class="deck-thumb" data-i=${i} aria-label=${name} aria-current=${i === this.cur ? 'true' : 'false'} aria-pressed=${s ? String(ranged) : nothing} @click=${(e: MouseEvent) => this.onThumb(i, e)} @dblclick=${() => (this.rows.release(), this.go(i), this.focusBox('title'))}><span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(gateSvg(p.svg, true))}</svg></button>
+          <button type="button" class="deck-thumb" data-i=${i} aria-label=${name} aria-current=${i === this.cur ? 'true' : 'false'} aria-pressed=${s ? String(ranged) : nothing} @click=${(e: MouseEvent) => this.onThumb(i, e)} @dblclick=${() => (this.rows.release(), this.go(i), this.focusBox('title'))}><span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg></button>
           ${s ? html`<button type="button" class="deck-grip to-rows-handle" tabindex="-1" aria-label=${t('Move this slide: drag it onto another')} title=${t('Drag to move')}>${icon(GripVertical, 14)}</button>` : nothing}
         </div>`;
       })}
@@ -1031,7 +969,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const g = geometryOf(st.format)!;
     return html`<div class="deck-sheets">
       <p class="to-hint">${g.how(st.two)}</p>
-      ${sheetsOf(this.doc, st).map((p, i) => html`<div class="deck-sheet">${unsafeSVG(gateSvg(pageSvg(p, `role="img" aria-label="${t('Sheet, side {n}', { n: i + 1 })}"`)))}</div>`)}
+      ${sheetsOf(this.doc, st).map((p, i) => html`<div class="deck-sheet">${unsafeSVG(pageSvg(p, `role="img" aria-label="${t('Sheet, side {n}', { n: i + 1 })}"`))}</div>`)}
     </div>`;
   }
   private renderShow(look: Look) {
@@ -1043,8 +981,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const s = slides[this.showing];
     const motion = `tr-${this.settings.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
     return html`<div class="deck-show" data-spatial role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick} @pointerdown=${this.onShowDown} @pointerup=${this.onShowUp} @pointercancel=${() => (this.swipe = null)}>
-      ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(gateSvg(page(this.leaving).svg))}</svg></div>`) : nothing}
-      ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(gateSvg(p.svg))}</svg>${this.renderLive(s)}</div>`)}
+      ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(page(this.leaving).svg)}</svg></div>`) : nothing}
+      ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(p.svg)}</svg></div>`)}
       <p class="sr-only" aria-live="polite">${t('Slide {n} of {total}', { n: this.showing + 1, total })}: ${p.alt ?? ''}</p>
       <div class="ctl" role="group" aria-label=${t('Presentation')} @click=${(e: Event) => e.stopPropagation()}>
         ${tool({ label: t('Previous'), icon: ChevronUp, disabled: this.showing === 0 && this.shown === 0, does: () => this.back() })}

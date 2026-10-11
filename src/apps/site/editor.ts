@@ -8,8 +8,8 @@
  * written as one `text` op, the page left as it is meanwhile (the frame holds the words being typed); Enter in a
  * heading or a paragraph goes on into a new paragraph; done (Enter elsewhere, Escape, which puts them back, a tap
  * elsewhere), the page is drawn again. What is not words is a form (forms.ts: where a link goes and its icon, from
- * the URL chip; the shop's settings) or the kit's own dialogs (a picture's, a thing from the web's, another
- * document's; a table's the Spreadsheet's), opened by the tap; its bar is under the form, inside it, so a move is a
+ * the URL chip; the shop's settings) or the kit's own dialogs (another document's; a table's the
+ * Spreadsheet's), opened by the tap; its bar is under the form, inside it, so a move is a
  * tap away (a move closes the form unwritten first). Escape writes nothing and leaves the thing in hand, its bar
  * beside it; a tap on the page's empty room lets it go. Enter or Edit on the thing in hand opens its words (or its
  * form) again. Nobody types a marker: the code writes every line.
@@ -23,8 +23,8 @@
  * Up/Down take the thing before or after, Escape lets go. Undo puts back the thing in hand of the change it
  * takes back. Every change is the kernel's ops (model.ts).
  */
-import { html, nothing, type PropertyDeclarations } from 'lit';
-import { applyAll, plainText, write, type Block, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import { html, type PropertyDeclarations } from 'lit';
+import { applyAll, write, type Block, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
 import { cmdBtn, cmdMenu } from '../../kit/bar.ts';
 import { contextOf, drawnIn, runKey } from '../../kit/commands.ts';
 import COMMANDS, { BOX, PREVIEW } from './commands.ts';
@@ -32,12 +32,9 @@ import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { editFence, editTable, makeDoc } from '../../kit/doc-dialog.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
-import { icon, UI } from '../../kit/icons.ts';
-import { gateHtml, showPictures } from '../../kit/pictures.ts';
 import { t } from '../../kit/i18n.ts';
-import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
+import { askDocLink } from '../../kit/insert-dialogs.ts';
 import { openLink } from '../../kit/link-guard.ts';
-import { webBlock } from '../write/model.ts';
 import { askPlace, askShop, same, type Anchor } from './forms.ts';
 import {
   cardFields,
@@ -117,9 +114,7 @@ export const objName = (k: ObjKind): string =>
     card: t('Big link'),
     button: t('Button'),
     link: t('Small link'),
-    picture: t('Web Picture'),
     icon: t('Big icon'),
-    web: t('Web Embed'),
     doc: t('Tiny Little Office Doc'),
     table: t('Table'),
     products: t('Products'),
@@ -493,22 +488,10 @@ export class ToSiteEditor extends DocElement<Site> {
     const lend = this.held === id ? this.lend : undefined;
     let ops: Op[] = [];
     switch (o.kind) {
-      case 'picture': {
-        const url = b?.k === 'img' ? b.url : b?.k === 'p' ? plainText(b.runs).trim() : '';
-        const p = await this.asked(askPicture({ url, alt: b?.k === 'img' ? b.alt : '' }));
-        // A picture with no words for it stays its address alone where it was one.
-        if (p) ops = replace(b?.k === 'p' && !p.alt ? webBlock(p.url) : { k: 'img', url: p.url, alt: p.alt });
-        break;
-      }
       case 'icon': {
         const { chooseIcon } = await import('../../kit/icons-picker.ts');
         const name = await this.asked(chooseIcon({ emoji: false, current: b?.k === 'p' ? (b.runs[0]?.ic ?? '') : '' }));
         if (name) ops = replace({ k: 'p', runs: [{ t: '', ic: name }] });
-        break;
-      }
-      case 'web': {
-        const url = await this.asked(askEmbed(b?.k === 'p' ? plainText(b.runs).trim() : ''));
-        if (url) ops = replace(webBlock(url));
         break;
       }
       case 'doc':
@@ -556,20 +539,10 @@ export class ToSiteEditor extends DocElement<Site> {
         return offered({ k: 'li', depth: 0, runs: linkRuns({ icon: 'globe', label: t('Small link'), url: '' }) });
       case 'card':
         return offered({ k: 'li', depth: 0, runs: cardRuns({ icon: '', head: plainRuns(t('Big link')), detail: [], url: '' }) });
-      case 'picture': {
-        const p = await this.asked(askPicture());
-        if (p) block = { k: 'img', url: p.url, alt: p.alt };
-        break;
-      }
       case 'icon': {
         const { chooseIcon } = await import('../../kit/icons-picker.ts');
         const name = await this.asked(chooseIcon({ emoji: false }));
         if (name) block = { k: 'p', runs: [{ t: '', ic: name }] };
-        break;
-      }
-      case 'web': {
-        const url = await this.asked(askEmbed());
-        if (url) block = webBlock(url);
         break;
       }
       case 'doc':
@@ -613,8 +586,6 @@ export class ToSiteEditor extends DocElement<Site> {
   render() {
     const o = objectAt(this.view, this.held);
     const label = t('The website, as it will look');
-    // The page in the frame with its pictures from the web grey until asked for (kit/pictures.ts).
-    const framed = gateHtml(this.shown);
     const own = (id: string) => COMMANDS.find((c) => c.id === `site.${id}`)!;
     return html`<to-bar class="site-bar">
         ${
@@ -626,12 +597,7 @@ export class ToSiteEditor extends DocElement<Site> {
         }
       </to-bar>
       <div class="site-page" tabindex="-1" role="group" aria-label=${label} @keydown=${this.onBoxKey}>
-        ${
-          framed.hidden
-            ? html`<p class="to-webpics-bar">${icon(UI.image, 18)}<span>${t('{n|A picture from the web waits|# pictures from the web wait} to be asked for.', { n: framed.hidden })}</span><button type="button" class="to-btn" @click=${() => showPictures()}>${t('Show pictures from the web')}</button></p>`
-            : nothing
-        }
-        <iframe class="site-frame" sandbox="allow-scripts allow-popups" title=${this.preview ? t('The website, as a visitor sees it') : label} .srcdoc=${framed.html}></iframe>
+        <iframe class="site-frame" sandbox="allow-scripts allow-popups" title=${this.preview ? t('The website, as a visitor sees it') : label} .srcdoc=${this.shown}></iframe>
       </div>
       <to-context class="site-context" .label=${o ? objName(o.kind) : ''} .items=${this.heldItems()}></to-context>`;
   }

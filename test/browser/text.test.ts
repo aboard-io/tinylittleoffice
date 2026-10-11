@@ -265,7 +265,7 @@ test('a footnote mark asks its host for its note: a tap, or Enter on it, says te
 });
 
 test('cards for what is not words: drawn non-editable, skipped by the caret, a tap says text-embed', async () => {
-  const h = await mount('a\n\n![pic](https://p.q/r.png)\n\n---\n\n~ A -> B\n\nb\n', 'doc', caret(0, 1));
+  const h = await mount('a\n\n```sheet\nA\n---\n1\n```\n\n---\n\n~ A -> B\n\nb\n', 'doc', caret(0, 1));
   const cards = [...h.el.tx.querySelectorAll('.tx-card')];
   expect(cards).toHaveLength(3);
   expect(cards.every((c) => (c as HTMLElement).getAttribute('contenteditable') === 'false')).toBe(true);
@@ -303,7 +303,7 @@ test('the selection round trip: every offset of every kind of block comes back a
   expect(domSel().text).toBe('ead\nSom');
 });
 
-test('paste, each source: our HTML, a Tiny Little Office link, an address, HTML from elsewhere, Markdown, words', async () => {
+test('paste, each source: our HTML, a Tiny Little Office link, an address (words), HTML from elsewhere, Markdown, words', async () => {
   const h = await mount('ab\n', 'doc', caret(0, 1));
   await paste(h, { 'text/plain': '# T\n\n- i\n', 'text/html': '<meta name="generator" content="TinyLittleOffice"><h1>T</h1>' });
   expect(h.tlo).toBe('aT\n\n- ib\n');
@@ -314,7 +314,7 @@ test('paste, each source: our HTML, a Tiny Little Office link, an address, HTML 
   expect(link.el.tx.querySelector('.tx-card-kind')!.textContent).toBe(`A ${appOf('sheet')!.noun}`);
   const url = await mount('ab\n', 'doc', caret(0, 1));
   await paste(url, { 'text/plain': 'https://example.com/x' });
-  expect(url.tlo).toBe('a\n\nhttps://example.com/x\n\nb\n');
+  expect(url.tlo).toBe('ahttps://example.com/xb\n');
   const html = await mount('', 'doc');
   await paste(html, {
     'text/plain': 'x y z',
@@ -333,12 +333,12 @@ test('paste, each source: our HTML, a Tiny Little Office link, an address, HTML 
   expect(line.tlo).toBe('aTwo oneb\n');
 });
 
-test('htmlToBlocks reads tags, styles, lists, headings, pictures and tables', () => {
+test('htmlToBlocks reads tags, styles, lists, headings, pictures (as words with a link) and tables', () => {
   const blocks = htmlToBlocks(
-    '<h2>Head</h2><p>Plain <strong>b</strong> <em>i</em> <u>u</u> <s>s</s> <mark>h</mark> <a href="https://x.y/">link</a> <a href="https://z.w">https://z.w</a> <span style="background-color: yellow">bg</span></p><ol><li>one</li><li>two</li></ol><img src="https://p.q/r.png" alt="pic"><table><tr><th>A</th><th>N:number</th></tr><tr><td>a</td><td>1</td></tr></table><pre>  kept   spaces</pre>',
+    '<h2>Head</h2><p>Plain <strong>b</strong> <em>i</em> <u>u</u> <s>s</s> <mark>h</mark> <a href="https://x.y/">link</a> <a href="https://z.w">https://z.w</a> <span style="background-color: yellow">bg</span></p><ol><li>one</li><li>two</li></ol><p><img src="https://p.q/r.png" alt="pic"></p><table><tr><th>A</th><th>N:number</th></tr><tr><td>a</td><td>1</td></tr></table><pre>  kept   spaces</pre>',
   );
   expect(write({ head: {}, blocks })).toBe(
-    '## Head\n\nPlain **b** *i* ++u++ ~~s~~ ==h== [link](https://x.y/) https://z.w ==bg==\n\n1. one\n2. two\n\n![pic](https://p.q/r.png)\n\nA | N:number\n--- | ---\na | 1\n\nkept   spaces\n',
+    '## Head\n\nPlain **b** *i* ++u++ ~~s~~ ==h== [link](https://x.y/) https://z.w ==bg==\n\n1. one\n2. two\n\n[pic](https://p.q/r.png)\n\nA | N:number\n--- | ---\na | 1\n\nkept   spaces\n',
   );
   // A <br> is a line break; Google Docs' bold-that-is-not is not bold.
   expect(htmlToBlocks('<p>a<br>b</p><b style="font-weight:normal">c</b>')).toEqual([

@@ -32,7 +32,7 @@ import { slug } from './draw.ts';
 import { forgetLanguage } from './i18n.ts';
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
+export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
 /** Where the key, the signer's name and the owner links are kept. */
 const KEY = 'tinyoffice.key';
 const NAME = 'tinyoffice.name';

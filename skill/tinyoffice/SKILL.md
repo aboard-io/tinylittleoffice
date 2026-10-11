@@ -32,7 +32,7 @@ The packed form: after `#/v1/<app>/` comes one letter and then base64url bytes (
 
 ## TLO: Markdown, and what it adds
 
-Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested by two spaces, `- [ ]` and `- [x]` tasks, `> ` quotes, `---` rules, tables with a `--- | ---` line under their header row, and inline `**bold**`, `*italic*`, `~~strike~~`, `[words](https://…)`, `![what it shows](https://…picture)`. A footnote sits where it belongs: `^[the note's words]` (Markdown's `[^1]` with a `[^1]: the note` paragraph reads too). TLO adds:
+Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested by two spaces, `- [ ]` and `- [x]` tasks, `> ` quotes, `---` rules, tables with a `--- | ---` line under their header row, and inline `**bold**`, `*italic*`, `~~strike~~`, `[words](https://…)`. A footnote sits where it belongs: `^[the note's words]` (Markdown's `[^1]` with a `[^1]: the note` paragraph reads too). TLO adds:
 
 | Write | Means |
 | --- | --- |
@@ -42,10 +42,8 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `~ A -> B: label` | A connection between two things (`->`, `<-`, `<->`, `--`) |
 | a code fence named for an app: ```` ```sheet ```` | Another document inside this one, written in that app's TLO: a chart on a slide, a table in a text |
 | `==highlight==`, `++underline++`, `:icon-name:` | A highlight, an underline, an icon in the line (Lucide's names: `rocket`, `calendar`, `coffee`…) |
-| a line that is only a web address | That thing from the web, as a card that loads it only when the reader taps it (a video, a post, a track, a map, a picture, a PDF) |
-| a line that is only a link, `[The title](https://…)` | The same thing from the web, its card titled with your words, for a site the card can show (YouTube, Wikipedia, Spotify and the rest below): give every video and article a title, or its card says only "YouTube video". A link to any other site alone on a line stays words |
 
-`---` between blocks starts the next slide, page or card. A table anywhere is a spreadsheet: its formulas work.
+`---` between blocks starts the next slide, page or card. A table anywhere is a spreadsheet: its formulas work. A link is words: `[words](https://…)` or a web address, alone on a line or among other words, is words that go there when the reader follows them. Nothing in a document is fetched from another site: there are no pictures from the web and no embedded videos or posts, and Markdown's picture line, `![words](https://…)`, reads as a link.
 
 ## The apps
 
@@ -558,7 +556,7 @@ Templates: A weekend in Copenhagen, Iceland’s Ring Road, A Dublin pub crawl, Y
 
 ### site: a website of little pages, or a page of quick links
 
-`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a picture's address alone on a line a picture, `:icon:` alone a big icon, a fence another document. `theme:` in the head sets the look: `indigo teal rose amber ink forest ocean sunset plum candy olive slate paper typewriter midnight coal`, with `serif`, `sans`, `rounded` or `mono` to change the type and `dark` or `light` the mode (`theme: teal serif dark`). A table `Name | Price:money | About | Image` in a section is a shop with a cart; the head holds `currency: $` and `orders: someone@example.com`. `look: links` makes it a Quick Links page (a link-in-bio): one column, the buttons stacked, the list items small links at the foot.
+`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), `:icon:` alone a big icon, a fence another document. `theme:` in the head sets the look: `indigo teal rose amber ink forest ocean sunset plum candy olive slate paper typewriter midnight coal`, with `serif`, `sans`, `rounded` or `mono` to change the type and `dark` or `light` the mode (`theme: teal serif dark`). A table `Name | Price:money | About` in a section is a shop with a cart; the head holds `currency: $` and `orders: someone@example.com`. `look: links` makes it a Quick Links page (a link-in-bio): one column, the buttons stacked, the list items small links at the foot.
 
 A café:
 
@@ -596,12 +594,14 @@ What we pour, and what we bake.
 
 14 Quay Street, open 7 to 3, every day but Monday.
 
-https://www.openstreetmap.org/?mlat=43.6567&mlon=-70.2484#map=17/43.6567/-70.2484
+[Open the map](https://www.openstreetmap.org/?mlat=43.6567&mlon=-70.2484#map=17/43.6567/-70.2484)
+
+:map-pin:
 
 > Email us | mailto:hello@harborcoffee.example
 ```
 
-As a link: <https://tinylittleoffice.com/site/#doc=---%0Atheme%3A+amber%0A---%0A%23+Harbor+Coffee%0A%0ASmall-batch+coffee%2C+roasted+on+the+quay+every+morning.%0A%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A%0A-+%3Acoffee%3A+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf%3A+Fair+trade+%7C+From+farms+we+have+visited%0A-+%3Abike%3A+Delivered+%7C+By+bike%2C+on+the+day%0A%0A%23+Menu%0A%0AWhat+we+pour%2C+and+what+we+bake.%0A%0A%23%23+Coffee%0A%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A-+Filter%2C+by+the+cup+%7C+3.50%0A%0A%23%23+Pastry%0A%0A-+Cardamom+bun+%7C+3.50%0A-+Sourdough+toast%2C+butter+and+jam+%7C+4.00%0A%0A%23+Find+us%0A%0A14+Quay+Street%2C+open+7+to+3%2C+every+day+but+Monday.%0A%0Ahttps%3A%2F%2Fwww.openstreetmap.org%2F%3Fmlat%3D43.6567%26mlon%3D-70.2484%23map%3D17%2F43.6567%2F-70.2484%0A%0A%3E+Email+us+%7C+mailto%3Ahello%40harborcoffee.example>
+As a link: <https://tinylittleoffice.com/site/#doc=---%0Atheme%3A+amber%0A---%0A%23+Harbor+Coffee%0A%0ASmall-batch+coffee%2C+roasted+on+the+quay+every+morning.%0A%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A%0A-+%3Acoffee%3A+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf%3A+Fair+trade+%7C+From+farms+we+have+visited%0A-+%3Abike%3A+Delivered+%7C+By+bike%2C+on+the+day%0A%0A%23+Menu%0A%0AWhat+we+pour%2C+and+what+we+bake.%0A%0A%23%23+Coffee%0A%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A-+Filter%2C+by+the+cup+%7C+3.50%0A%0A%23%23+Pastry%0A%0A-+Cardamom+bun+%7C+3.50%0A-+Sourdough+toast%2C+butter+and+jam+%7C+4.00%0A%0A%23+Find+us%0A%0A14+Quay+Street%2C+open+7+to+3%2C+every+day+but+Monday.%0A%0A%5BOpen+the+map%5D%28https%3A%2F%2Fwww.openstreetmap.org%2F%3Fmlat%3D43.6567%26mlon%3D-70.2484%23map%3D17%2F43.6567%2F-70.2484%29%0A%0A%3Amap-pin%3A%0A%0A%3E+Email+us+%7C+mailto%3Ahello%40harborcoffee.example>
 
 Quick Links: a maker:
 
@@ -612,7 +612,7 @@ theme: rose
 ---
 # Ada Diaz
 
-![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)
+:palette:
 
 Potter in Lisbon. Mugs, bowls, the odd lamp.
 
@@ -624,7 +624,7 @@ Potter in Lisbon. Mugs, bowls, the odd lamp.
 - :film: YouTube | https://youtube.com/@ada
 ```
 
-As a link: <https://tinylittleoffice.com/site/#doc=---%0Alook%3A+links%0Atheme%3A+rose%0A---%0A%23+Ada+Diaz%0A%0A%21%5B%5D%28https%3A%2F%2Fimages.unsplash.com%2Fphoto-1544005313-94ddf0286df2%3Fw%3D400%29%0A%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0A%0A%3E+%3Acart%3A+The+shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Acalendar%3A+Book+a+class+%7C+https%3A%2F%2Fexample.com%2Fclasses%0A%3E+%3Amail%3A+Email+me+%7C+mailto%3Aada%40example.com%0A%0A-+%3Acamera%3A+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A-+%3Afilm%3A+YouTube+%7C+https%3A%2F%2Fyoutube.com%2F%40ada>
+As a link: <https://tinylittleoffice.com/site/#doc=---%0Alook%3A+links%0Atheme%3A+rose%0A---%0A%23+Ada+Diaz%0A%0A%3Apalette%3A%0A%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0A%0A%3E+%3Acart%3A+The+shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Acalendar%3A+Book+a+class+%7C+https%3A%2F%2Fexample.com%2Fclasses%0A%3E+%3Amail%3A+Email+me+%7C+mailto%3Aada%40example.com%0A%0A-+%3Acamera%3A+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A-+%3Afilm%3A+YouTube+%7C+https%3A%2F%2Fyoutube.com%2F%40ada>
 
 Templates: A café, A small shop, An event, A portfolio, A wedding, A band, A clinic, A campaign, A mutual-aid group, A school club, A newsletter sign-up, A holiday cottage, A plumber, A yoga studio, Quick Links: a maker, Quick Links: a group, Quick Links: a band, Quick Links: a small business, Quick Links: a writer, Quick Links: one link. Its own files: `.html`.
 
@@ -676,10 +676,9 @@ Before you share a link, lint it: `tinyoffice lint <link or file.tlo>` (or `awai
 - `title-cut`, `title-small`: a headline cut after two lines, or set at its smallest size.
 - `body-over`, `body-small`: a slide's words running off its foot, or set at their smallest size.
 - `formula-error`: a table's formula that works out to an error (`#CIRC`, `#REF`, `#DIV/0`, `#NAME`, `#VALUE`, `#NUM`, `#ERR`), in any table, a fenced one too: the cell, the formula, the error and the fix. A total over its own column takes in its own cell when the rows are counted from the header: rows count from the first data row, so the eighth row's total of the seven above is `=SUM(B1:B7)`.
-- `picture-indirect`: a picture asked for at a page rather than the picture itself (Commons' `Special:FilePath` or a `File:` page): it redirects, the picture proxy does not follow it, and the slide shows the picture's card instead. Use the file's own `upload.wikimedia.org` address.
 - `length`: a link past 2,000 characters, which some chat apps cut.
 
-A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides, what it shows (`shows`) and, for a thing from the web, its `embed`: kind, provider and the title its card will say; per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages. If you do open a development copy of the site, pictures from the web show there only while its picture proxy runs (`npm run media:dev`, with `SITE` set to the site's address), as short links need its shortener (`npm run tinier:dev`); without it every web picture is its card.
+A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides, what it shows (`shows`); per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut; per table, its formulas and the ones that fail. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages. If you do open a development copy of the site, short links need its shortener (`npm run tinier:dev`).
 
 ## Driving the editors
 

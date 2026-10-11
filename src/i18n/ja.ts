@@ -54,12 +54,12 @@ export default {
   'Tiny Little Office': 'ちいさなちいさなオフィス',
   'About Tiny Little Office': 'ちいさなちいさなオフィスについて',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'URLの中だけで動く、小さなオフィスアプリです。サーバーも、アカウントも、保存もありません。リンクがそのままドキュメントです。',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'リンクを共有しないかぎり、書いた内容がブラウザの外に出ることはありません。自分からウェブに問い合わせるのは二つだけです。旅行の地図は、表示するあいだ画像をOpenStreetMapから取得します。信頼済みリストにあるサイトの画像は、ドキュメントを開いたときに、このサイトの画像サービスを通して取得します。',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'リンクを共有しないかぎり、書いた内容がブラウザの外に出ることはありません。自分からウェブに問い合わせるのは一つだけです。旅行の地図は、表示するあいだ画像をOpenStreetMapから取得します。',
   'Private, the default:': 'プライベート（標準）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'このメニューのスイッチ「保存」をオンにすると、設定と開いたドキュメントをこの端末に保存します。',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'ドキュメントにはパスワードを付けられます。暗号化はここ、ブラウザの中で行われ、リンクには暗号文だけが入ります。このブラウザが作るキーで署名もでき、そのキーが署名したとおりの内容であることを誰でも確かめられます。署名の名前は署名した人の自己申告です。この端末に何があるかは、このメニューの「プライバシーとキー」で見られます。',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'ちいさなちいさなオフィスのメニュー',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -72,14 +72,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'このリンクはドキュメントに書き込まれたものです。リンクに表示される文字と、実際の移動先が同じとは限りません。行き先を信頼できる場合だけ進んでください。',
   'Go': '移動',
   'Links of this kind do not open here.': 'この種類のリンクは、ここでは開けません。',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': '{host}の画像',
-  'Show pictures from the web': 'ウェブの画像を表示',
-  'Showing them tells their site this document was opened, and when.': '表示すると、そのサイトにこのドキュメントが開かれたことと、その日時が伝わります。',
-  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|# 件}のウェブの画像が、表示の許可を待っています。',
-  'Always show pictures from the web': 'ウェブの画像を常に表示',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'オフのとき、ほかのサイトにある画像は、許可するまで読み込みません。読み込むと、誰が読んでいるかがそのサイトに伝わるためです。',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'ほかのサイトのアドレスで指定された画像は、許可するまで読み込みません。読み込むと、誰が、いつ読んでいるかがそのサイトに伝わるためです。ちいさなちいさなオフィスの外へ出るリンクは、開く前に行き先を表示して確認します。',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'ちいさなちいさなオフィスの外へ出るリンクは、開く前に行き先を表示して確認します。',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': '解析も、エラー報告も、外部のフォントやスクリプトもありません。あなたが操作していないのに、このサイトがウェブへ問い合わせることはありません。',
   'What leaves your browser': 'ブラウザから外に出るもの',
   'What this protects against, and what it does not': '守れること、守れないこと',
@@ -365,12 +358,9 @@ export default {
   'A narrow headline, two columns': '細い見出しと2段組み',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': '改ページ',
-  'Address of the picture': '画像のアドレス',
-  'Address of a video, a post, a song, a place, a page': '動画、投稿、曲、場所、ページのアドレス',
   'OK': 'OK', // same
   'This card': 'このカード',
   'Open in {app}': '{app}で開く',
-  'Change the address…': 'アドレスを変更…',
   'Signatures': '署名',
   'No one has signed yet.': 'まだ誰も署名していません。',
   'Locked: worked out for you': 'ロック中：自動で計算',
@@ -443,36 +433,13 @@ export default {
   'Terms of service': '利用規約',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': '小さなお店の規約を平易な言葉で：予約、料金、鍵、もしものとき、終了。',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'ウェブから',
-  'Read on {provider}': '{provider}で読む',
-  'Spotify album': 'Spotifyのアルバム',
-  'Spotify episode': 'Spotifyのエピソード',
-  'Spotify playlist': 'Spotifyのプレイリスト',
-  'Spotify show': 'Spotifyの番組',
-  'Spotify track': 'Spotifyの曲',
-  '{provider} video': '{provider}の動画',
-  'Open on {provider}': '{provider}で開く',
-  'Play (loads it from {provider})': '再生（{provider}から読み込みます）',
-  'Show (loads it from {provider})': '表示（{provider}から読み込みます）',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'ちいさなちいさなオフィスのリンク',
-  'A film, a sound, a PDF or a picture': '動画、音声、PDF、画像',
-  'No picture came from this address. Check it, or try another.': 'このアドレスから画像は届きませんでした。確認するか、別のアドレスを試してください。',
-  'Not one of these: it goes in as a link to the page.': 'これらのどれでもありません。ページへのリンクとして入ります。',
   'Opening the short link…': '短縮リンクを開いています…',
-  'Paste the address of a picture on the web: the picture shows here.': 'ウェブにある画像のアドレスを貼り付けてください。ここに画像が表示されます。',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'ほかのちいさなちいさなオフィスドキュメントのリンク（長いものでも短縮でも）を貼り付けてください。最初のページがここに表示されます。',
   'This is not a Tiny Little Office link, or it has expired.': 'ちいさなちいさなオフィスのリンクではないか、期限が切れています。',
   'Tiny Little Office Doc': 'ちいさなちいさなオフィスドキュメント',
   'Tiny Little Office Doc…': 'ちいさなちいさなオフィスドキュメント…',
-  'Web Embed': 'ウェブ埋め込み',
-  'Web Embed…': 'ウェブ埋め込み…',
-  'Web Picture': 'ウェブの画像',
-  'Web Picture…': 'ウェブの画像…',
-  'What it can show': '表示できるもの',
-  'Words for anyone who cannot see it (optional)': '見えない人のための説明（省略可）',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': '新しいドキュメント',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -908,7 +875,6 @@ export default {
   'Everything': 'すべて',
   'Fold': '折りたたむ',
   'Fold all': 'すべて折りたたむ',
-  'From the web: {url}': 'ウェブから：{url}',
   'Item': '項目',
   'Item {n}': '項目{n}',
   'Kind of line': '線の種類',

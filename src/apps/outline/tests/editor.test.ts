@@ -305,7 +305,7 @@ test('folding hides the family and counts it; Fold all and Unfold all; the zoom 
   expect(changes).toEqual([]);
 });
 
-test('Insert puts a document under the chosen item; a web address becomes a card once the caret leaves; a tap below the last row starts an item; View as shows the page', async () => {
+test('Insert puts a document under the chosen item; a tap below the last row starts an item; View as shows the page', async () => {
   const { el, last, changes } = await editor(TREE);
   await choose(el, 1);
   await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Spreadsheet');
@@ -326,26 +326,6 @@ test('Insert puts a document under the chosen item; a web address becomes a card
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
   await el.updateComplete;
   expect(last()).toContain('```sheet {depth=1}');
-  // Web Embed (the kit's dialog) makes an item that is its address, shown as a card.
-  await choose(el, 4);
-  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Web Embed');
-  await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
-  const box = document.querySelector<HTMLInputElement>('.to-ask-embed .to-ask-url')!;
-  expect(document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.disabled).toBe(true);
-  box.value = 'https://example.com/watch?v=1';
-  box.dispatchEvent(new Event('input', { bubbles: true }));
-  await tick();
-  document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.click();
-  await until(() => !document.querySelector('.to-ask-embed'));
-  await until(() => (last() ?? '').includes('https://example.com/watch?v=1'));
-  await tick();
-  expect(last()!.split('\n')[8]).toBe('  - https://example.com/watch?v=1');
-  // While the caret is in it the address can still be edited; once the caret leaves it is a card.
-  expect(focusedRow()).toBe(5);
-  expect(row(el, 5).querySelector('.ol-doc')).toBeNull();
-  await choose(el, 0);
-  await until(() => !!row(el, 5).querySelector('.ol-doc'));
-  expect(row(el, 5).querySelector('.ol-doc')!.textContent).toContain('https://example.com/watch?v=1');
   // A tap under the last row starts a new item at the margin.
   const n = changes.length;
   el.querySelector<HTMLElement>('.ol-below')!.click();
@@ -353,7 +333,7 @@ test('Insert puts a document under the chosen item; a web address becomes a card
   await tick();
   expect(changes.length).toBe(n + 1);
   expect(last()!.endsWith('\n-\n')).toBe(true);
-  expect(focusedRow()).toBe(6);
+  expect(focusedRow()).toBe(5);
   // A second tap only puts the caret back in the empty item.
   el.querySelector<HTMLElement>('.ol-below')!.click();
   await el.updateComplete;
@@ -961,14 +941,15 @@ test('a document under an item: Edit opens its own editor in the dialog; Done wr
   await until(() => last() === FENCE);
 });
 
-test('Insert ▾ lists Web Embed, Tiny Little Office Doc and every other app; a Tiny Little Office link goes in after the chosen item as its document', async () => {
+test('Insert ▾ lists Tiny Little Office Doc and every other app, and no web embed; a Tiny Little Office link goes in after the chosen item as its document', async () => {
   const { el, last } = await editor('- One\n');
   await choose(el, 0);
   const opener = el.querySelector<HTMLButtonElement>('to-insert button')!;
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
   const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(labels).toEqual(expect.arrayContaining(['Item', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board']));
+  expect(labels).toEqual(expect.arrayContaining(['Item', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board']));
+  expect(labels.filter((l) => /Picture|Embed/.test(l))).toEqual([]);
   expect(labels).not.toContain('Outliner');
   opener.click();
   await tick();

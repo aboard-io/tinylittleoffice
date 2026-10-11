@@ -7,9 +7,8 @@
  *
  * The page is SVG, rasterised by Chromium (through Playwright, which the tests already have), as the kit's
  * raster (src/kit/raster.ts) does it in the browser: an <img> of the SVG drawn by the browser itself, so the
- * card shows the page exactly as a person sees it. Nothing is fetched: a picture a template holds by its
- * address stays a blank, as a preview leaves it. The cards are kept in public/; run this again when an app's
- * name, line or first template changes.
+ * card shows the page exactly as a person sees it. Nothing is fetched. The cards are kept in public/; run this
+ * again when an app's name, line or first template changes.
  *
  *   npm run cards
  */

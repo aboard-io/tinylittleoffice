@@ -40,8 +40,8 @@ test('the name is the head title, else the title heading; retitle writes the hea
   expect(retitle('---\ntitle: Named\n---\nwords\n', '')).toBe('words\n');
 });
 
-test('words are counted in the text and its notes, not in a web address alone', () => {
-  expect(wordCount(parse('One two^[three four] five\n\nhttps://example.com/x\n\n- six\n'))).toBe(6);
+test('words are counted in the text and its notes; a web address alone is a word like any other', () => {
+  expect(wordCount(parse('One two^[three four] five\n\nhttps://example.com/x\n\n- six\n'))).toBe(7);
 });
 
 test('every template is canonical and parses as the kernel wrote it', () => {
@@ -154,7 +154,7 @@ test('pages: letter by default, A4 when the head says so, one page drawn small, 
   expect(pages('A :star: day\n')[0].svg).toMatch(/<g transform="translate\([\d.]+ [\d.]+\) scale\([\d.]+\)"/);
 });
 
-test('pages draw the table worked out, the head fields, a footnote, a web card and another document', () => {
+test('pages draw the table worked out, the head fields, a footnote, a web address as words, and another document', () => {
   const doc = parse(invoice() + '\nA note^[Said in passing].\n\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n```sheet\nA | B:number\n--- | ---\nx | 1\n```\n');
   const all = pages(doc);
   const p = { svg: all.map((x) => x.svg).join('') };
@@ -162,7 +162,8 @@ test('pages draw the table worked out, the head fields, a footnote, a web card a
   expect(p.svg).toContain('FROM');
   expect(p.svg).toContain('Street and number');
   expect(p.svg).toContain('Said in passing');
-  expect(p.svg).toContain('YouTube');
+  expect(p.svg).toContain('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  expect(p.svg).not.toMatch(/<image|YouTube/);
   expect(p.svg).toContain(appOf('sheet')!.name);
   // The head's currency in place of the dollar.
   const euro = pages(parse(invoice().replace('currency: $', 'currency: €')))[0];
@@ -184,7 +185,7 @@ test('the web page: the title large, the fields, the table of values, the notes 
   expect(html).toContain('<meta name="generator" content="TinyLittleOffice">');
 });
 
-test('RTF: the words, the marks, a table as a table, a link to a thing from the web, the notes at the end', () => {
+test('RTF: the words, the marks, a table as a table, a web address as a link, the notes at the end', () => {
   const rtf = docToRtf(parse('# Head {.title}\n\nSome **bold** and *italic* words^[A note].\n\nA | B:number\n--- | ---\nx | =1+2\n\nhttps://example.com/a.mp3\n'), ctx);
   expect(rtf.startsWith('{\\rtf1')).toBe(true);
   expect(rtf).toContain('{\\b bold}');

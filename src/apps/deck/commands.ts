@@ -55,9 +55,7 @@ const INSERTS: Command<D>[] = [
     }),
   ),
   cmd('insert.pages', 'Four more pages', { icon: UI.plus, heading: slides, where: ['menu:insert'], when: bySheet, disabled: full, does: (d) => d.morePages() }),
-  cmd('insert.picture', 'Web Picture…', { icon: UI.image, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertPicture() }),
   cmd('insert.table', 'Table', { icon: UI.table, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertTable() }),
-  cmd('insert.web', 'Web Embed…', { icon: UI.globe, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertWeb() }),
   cmd('insert.doc', 'Tiny Little Office Doc…', { icon: UI.insert, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertDocument() }),
   cmd('insert.qr', 'QR code of this document', { icon: UI.qr, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertQr() }),
   ...apps()

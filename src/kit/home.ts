@@ -24,7 +24,6 @@ import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { hoverFocus, menuKey, openedByPointer } from './menu.ts';
 import { CROPPED, pageSvg } from './draw.ts';
-import { gateSvg } from './pictures.ts';
 import './preview.ts';
 import { startEditing } from './chrome.ts';
 import { go, parseHash, routeHash } from './route.ts';
@@ -127,7 +126,7 @@ export class ToTemplates extends LitElement {
     const name = tpl?.name ?? t('Blank');
     const page = this.drawn ? this.app.view(tpl?.doc ?? this.app.blank(), { small: true, thumb: true })[0] : null;
     return html`<div role="option" class="to-option" tabindex="-1" aria-selected=${String(this.current === id)} @pointermove=${hoverFocus} @click=${() => this.choose(tpl)}>
-      <span class="to-thumb" aria-hidden="true">${page ? unsafeSVG(gateSvg(pageSvg(page, CROPPED), true)) : nothing}</span>
+      <span class="to-thumb" aria-hidden="true">${page ? unsafeSVG(pageSvg(page, CROPPED)) : nothing}</span>
       <span class="to-option-words"><span>${name}</span>${tpl?.blurb ? html`<small>${tpl.blurb}</small>` : nothing}</span>
     </div>`;
   }

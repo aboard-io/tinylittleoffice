@@ -25,7 +25,6 @@ import { copyText } from './share.ts';
 import { ensureIcons, iconNames, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
-import { embedPictures } from './media.ts';
 
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
 export { raster } from './raster.ts';
@@ -164,9 +163,6 @@ export async function printPages(pages: Page[], title: string): Promise<void> {
   win?.print();
 }
 
-/** Pages with every web picture's bytes inside them, fetched through the proxy: a file never asks a picture's site anything. */
-export const withPictures = (pages: Page[]): Promise<Page[]> => Promise.all(pages.map(async (p) => (p.svg.includes('<image') ? { ...p, svg: await embedPictures(p.svg) } : p)));
-
 /* ---------- the formats ---------- */
 
 /** The document in hand: what every format builds from. */
@@ -181,8 +177,8 @@ const STILL = { still: true } as const;
 /** The document's name, or what one of the app's documents is called when untitled: a file's title. */
 const titleOf = (doc: Doc, { def, title }: ExportContext) => title || def.title(doc) || t('Untitled {noun}', { noun: def.noun });
 
-/** The pages, drawn still where the format says so, with every web picture's bytes inside them. */
-const pagesOf = (doc: Doc, ctx: ExportContext, still?: boolean) => withPictures(ctx.def.view(doc, still ? STILL : undefined));
+/** The pages, drawn still where the format says so. */
+const pagesOf = (doc: Doc, ctx: ExportContext, still?: boolean) => ctx.def.view(doc, still ? STILL : undefined);
 
 /**
  * The formats every app has: the .pdf file, a picture, a web page, Markdown, the text. Each builds its own bytes
@@ -190,9 +186,9 @@ const pagesOf = (doc: Doc, ctx: ExportContext, still?: boolean) => withPictures(
  * the reference form other readers know; a .tlo carries its app (kit/plain.ts).
  */
 export const KIT_FORMATS: readonly Export[] = [
-  { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', shows: 'own', still: true, build: async (doc, ctx) => drawn(await pdfOf(await pagesOf(doc, ctx, true), titleOf(doc, ctx))) },
-  { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', shows: 'own', still: true, build: async (doc, ctx) => drawn(await picture(await pagesOf(doc, ctx, true))) },
-  { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: async (doc, ctx) => htmlOf(await pagesOf(doc, ctx), titleOf(doc, ctx), ctx.link) },
+  { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', shows: 'own', still: true, build: async (doc, ctx) => drawn(await pdfOf(pagesOf(doc, ctx, true), titleOf(doc, ctx))) },
+  { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', shows: 'own', still: true, build: async (doc, ctx) => drawn(await picture(pagesOf(doc, ctx, true))) },
+  { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: async (doc, ctx) => htmlOf(pagesOf(doc, ctx), titleOf(doc, ctx), ctx.link) },
   { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => write(referenceNotes(parse(doc))) },
   { ext: 'tlo', label: () => t('Text (TLO)'), mime: 'text/plain;charset=utf-8', shows: 'text', build: (doc, { def }) => tloText(def.id, doc) },
 ];
@@ -218,14 +214,12 @@ export interface Made {
   data: Uint8Array | string;
 }
 
-/** The document built as a file of this format: every icon it names drawn first, and a web page holding its pictures' bytes. */
+/** The document built as a file of this format: every icon it names drawn first. */
 export async function fileOf(format: Export, { doc, ctx }: Current): Promise<Made> {
   const { def } = ctx;
   // Every icon the document names is drawn: one outside the starter set waits for the rest of Lucide.
   await ensureIcons(iconNames(doc));
-  const built = await format.build(doc, ctx);
-  // A web page, the kit's or an app's own, never asks a picture's site anything once saved.
-  const data = typeof built === 'string' && format.mime.startsWith('text/html') ? await embedPictures(built) : built;
+  const data = await format.build(doc, ctx);
   return { name: fileName(ctx.title || def.title(doc), slug(def.noun) || def.id, format.ext), mime: format.mime, data };
 }
 
@@ -257,7 +251,7 @@ export async function viewAs(view: string, current: () => Current): Promise<void
 /** Print the document (not a format: the browser's dialog, which saves a PDF too), drawn still. */
 export async function printDoc({ doc, ctx }: Current): Promise<void> {
   await ensureIcons(iconNames(doc));
-  await printPages(await pagesOf(doc, ctx, true), titleOf(doc, ctx));
+  await printPages(pagesOf(doc, ctx, true), titleOf(doc, ctx));
 }
 
 /* ---------- a file shown, or shared ---------- */

@@ -17,7 +17,7 @@ import type { ToSiteEditor } from './editor.ts';
 
 type S = ToSiteEditor;
 const cmd = commandsOf<S>('site');
-const KINDS: Kind[] = ['page', 'section', 'heading', 'p', 'button', 'card', 'link', 'picture', 'icon', 'web', 'doc', 'product'];
+const KINDS: Kind[] = ['page', 'section', 'heading', 'p', 'button', 'card', 'link', 'icon', 'doc', 'product'];
 const KIND_ICON: Record<Kind, Command['icon']> = {
   page: UI.heading1,
   section: UI.heading,
@@ -26,9 +26,7 @@ const KIND_ICON: Record<Kind, Command['icon']> = {
   button: UI.link,
   card: UI.list,
   link: UI.link,
-  picture: UI.image,
   icon: UI.icon,
-  web: UI.globe,
   doc: UI.insert,
   product: UI.table,
 };

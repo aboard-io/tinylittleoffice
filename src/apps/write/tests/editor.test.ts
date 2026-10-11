@@ -275,20 +275,15 @@ test("a table column's menu says what it holds, the Spreadsheet's types: Money a
   expect(cell(el, 'A1').getAttribute('list')).toBeNull();
 });
 
-test("a web address alone is a card that loads nothing until tapped; a tap on a task's box ticks it; the paper is a head field", async () => {
-  const { el, last } = await editor('https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n- [ ] walk the dog\n');
-  await until(() => !!el.querySelector('to-embed'));
-  const embed = el.querySelector<HTMLElement>('to-embed')!;
-  expect(embed.querySelector('iframe')).toBeNull();
-  expect(embed.textContent).toContain('YouTube');
-  embed.querySelector<HTMLButtonElement>('.to-embed-load')!.click();
-  await until(() => !!embed.querySelector('iframe'));
-  expect(embed.querySelector('iframe')!.getAttribute('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
-  expect(embed.querySelector('iframe')!.getAttribute('sandbox')).toContain('allow-scripts');
+test("a link alone on a line is words with a link, never a card; a tap on a task's box ticks it; the paper is a head field", async () => {
+  const { el, last } = await editor('[The film](https://www.youtube.com/watch?v=dQw4w9WgXcQ)\n\n- [ ] walk the dog\n');
+  await until(() => !!el.querySelector('.write-page .tx a[href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"]'));
+  expect(el.querySelector('.write-page .tx a')!.textContent).toBe('The film');
+  expect(el.querySelector('.tx-card, iframe, img')).toBeNull();
   const li = el.querySelector<HTMLElement>('.write-page .tx li[data-done]')!;
   const r = li.getBoundingClientRect();
   li.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + 4, clientY: r.top + 8 }));
-  await until(() => last() === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n- [x] walk the dog\n');
+  await until(() => last() === '[The film](https://www.youtube.com/watch?v=dQw4w9WgXcQ)\n\n- [x] walk the dog\n');
   await pick(el, el.querySelector<HTMLElement>('to-menu.write-paper button')!, 'A4');
   await until(() => (last() ?? '').startsWith('---\npaper: a4\n---\n'));
   expect(el.querySelector('.write-page')!.getAttribute('data-paper')).toBe('a4');
@@ -346,7 +341,8 @@ const undo = (el: ToWriteEditor) => el.dispatchEvent(new CustomEvent('docundo', 
 const redo = (el: ToWriteEditor) => el.dispatchEvent(new CustomEvent('docredo', { cancelable: true, bubbles: true }));
 const card = (el: ToWriteEditor, at: number) => el.text.tx.children[at] as HTMLElement;
 const barItems = () => [...document.querySelectorAll<HTMLButtonElement>('to-context.write-cardbar .to-context:popover-open button')].map((b) => b.getAttribute('aria-label'));
-const PIC = '![a picture](https://example.com/a.png)';
+/** A card: another document held in the text, a sheet. */
+const PIC = '```sheet\nA | B\n--- | ---\n1 | 2\n```';
 
 test('§1 the bar ends with Undo and Redo, off with nothing to do', async () => {
   const { el } = await editor('Words\n');
@@ -396,14 +392,14 @@ test("§1 Mod+Z in the Ask dialog is the field's own: the document behind it is 
   el.text.focus();
   el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
   await type(el, 'abc');
-  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Web Picture');
-  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
-  const field = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Tiny Little Office Doc');
+  await until(() => !!document.querySelector('.to-ask-doc .to-ask-url'));
+  const field = document.querySelector<HTMLInputElement>('.to-ask-doc .to-ask-url')!;
   field.focus();
   expect(key(field, 'z', { ctrlKey: true }).defaultPrevented).toBe(false);
   await tick(50);
   expect(el.value).toBe('abc\n');
-  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
+  document.querySelector<HTMLDialogElement>('.to-ask-doc dialog')!.close();
 });
 
 test("§1/§6 a card in hand: a tap takes it, the bar under it is in the standard's order, and Enter edits it", async () => {
@@ -412,37 +408,13 @@ test("§1/§6 a card in hand: a tap takes it, the bar under it is in the standar
   card(el, 1).dispatchEvent(new MouseEvent('click', { bubbles: true }));
   await until(() => document.activeElement === card(el, 1));
   await until(() => barItems().length > 0);
-  expect(barItems()).toEqual(['Change the address…', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  expect(barItems()).toEqual(['Edit', 'Open in a new tab', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
   // The bar's buttons never take the focus from the card.
   const del = document.querySelector<HTMLButtonElement>('to-context.write-cardbar button[aria-label="Delete"]')!;
   expect(del.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))).toBe(false);
   expect(key(card(el, 1), 'Enter').defaultPrevented).toBe(true);
-  await until(() => !!document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url'));
-  expect(document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!.value).toBe('https://example.com/a.png');
-  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
-});
-
-test('§6 a new address for a thing from the web keeps the title its author gave the old one; a bare address stays bare', async () => {
-  const OLD = 'https://www.youtube.com/watch?v=eRVYwDtI2E8';
-  const NEW = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-  const readdress = async (value: string) => {
-    const { el, last } = await editor(value);
-    await until(() => !!card(el, 1)?.classList.contains('tx-card'));
-    card(el, 1).dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await until(() => document.activeElement === card(el, 1));
-    expect(key(card(el, 1), 'Enter').defaultPrevented).toBe(true);
-    await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
-    const box = document.querySelector<HTMLInputElement>('.to-ask-embed .to-ask-url')!;
-    expect(box.value).toBe(OLD);
-    box.value = NEW;
-    box.dispatchEvent(new Event('input', { bubbles: true }));
-    await tick();
-    document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.click();
-    await until(() => (last() ?? '').includes(NEW));
-    return parse(last()!).blocks[1];
-  };
-  expect(await readdress(`One\n\n[The neighbourhood the road replaced](${OLD})\n\nTwo\n`)).toEqual({ k: 'p', runs: [{ t: 'The neighbourhood the road replaced', href: NEW }] });
-  expect(await readdress(`One\n\n${OLD}\n\nTwo\n`)).toEqual({ k: 'p', runs: [{ t: NEW }] });
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-sheet-editor'));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
 });
 
 test('§1 Mod+C, Mod+X, Mod+V on a card in hand: TLO and our HTML; a cut takes it out, a paste puts it in after the card in hand', async () => {
@@ -454,7 +426,7 @@ test('§1 Mod+C, Mod+X, Mod+V on a card in hand: TLO and our HTML; a cut takes i
   expect(ev.defaultPrevented).toBe(true);
   expect(dt.getData('text/plain')).toBe(`${PIC}\n`);
   expect(dt.getData('text/html')).toContain('<meta name="generator" content="TinyLittleOffice">');
-  expect(dt.getData('text/html')).toContain('<img src="https://example.com/a.png"');
+  expect(dt.getData('text/html')).toContain('<pre data-lang="sheet">');
   const cut = clip(card(el, 1), 'cut');
   expect(cut.dt.getData('text/plain')).toBe(`${PIC}\n`);
   await until(() => last() === 'One\n\nTwo\n');
@@ -836,7 +808,7 @@ test('Mod+Shift+L, E, R and J align the block in hand left, centred, right and j
 const FENCE = '```draw\nrect 10 10 100 60\n```';
 const docDialog = () => document.querySelector('to-doc-dialog');
 
-test('Insert ▾ lists the web things by their names and every other app; a new drawing is made in the Drawing Tool first, and Done puts it in as one step', async () => {
+test('Insert ▾ lists the Tiny Little Office Doc and every other app, and no web picture or embed; a new drawing is made in the Drawing Tool first, and Done puts it in as one step', async () => {
   const { el, last } = await editor('Before\n');
   el.text.focus();
   el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
@@ -845,8 +817,9 @@ test('Insert ▾ lists the web things by their names and every other app; a new 
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
   const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(labels).toEqual(expect.arrayContaining(['Table', 'Web Picture…', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board', 'Spreadsheet']));
+  expect(labels).toEqual(expect.arrayContaining(['Table', 'Tiny Little Office Doc…', 'Drawing Tool', 'Spreadsheet']));
   expect(labels).not.toContain('Word Processor');
+  expect(labels.filter((l) => /Picture|Embed/.test(l))).toEqual([]);
   opener.click();
   await tick();
   await pick(el, opener, 'Drawing Tool');
@@ -862,25 +835,6 @@ test('Insert ▾ lists the web things by their names and every other app; a new 
   await until(() => !!el.querySelector('.write-doc svg'));
   undo(el);
   await until(() => last() === 'Before\n');
-});
-
-test("Insert ▾ Web Picture: the kit's dialog; OK puts the picture in, with its words, where the caret was", async () => {
-  const { el, last } = await editor('Before\n');
-  el.text.focus();
-  el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
-  await tick();
-  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Web Picture');
-  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
-  const url = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
-  url.value = 'https://example.com/a.png';
-  url.dispatchEvent(new Event('input', { bubbles: true }));
-  const alt = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-alt input')!;
-  alt.value = 'a picture';
-  alt.dispatchEvent(new Event('input', { bubbles: true }));
-  await tick();
-  document.querySelector<HTMLButtonElement>('.to-ask-picture .to-ask-ok')!.click();
-  await until(() => (last() ?? '').includes(PIC));
-  expect(last()).toBe(`Before\n\n${PIC}\n\n<br>\n`);
 });
 
 test('a document in the text: its bar is Edit then Open in a new tab; Edit opens its own editor, Done writes it back as one undo step, Cancel changes nothing', async () => {

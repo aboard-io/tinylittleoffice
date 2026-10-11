@@ -142,9 +142,7 @@ test('the page in its frame the whole width, its script running; no panel beside
     'Paragraph',
     'Button',
     'Big link',
-    'Web Picture',
     'Big icon',
-    'Web Embed',
     'Tiny Little Office Doc',
     'Products',
     'QR code of this document',
@@ -153,7 +151,7 @@ test('the page in its frame the whole width, its script running; no panel beside
       .map((a) => a.name),
   ]);
   const links = await editor(MAKER);
-  expect(await insertLabels(links.el)).toEqual(['Paragraph', 'Button', 'Small link', 'Web Picture', 'Big icon', 'Web Embed', 'QR code of this document']);
+  expect(await insertLabels(links.el)).toEqual(['Paragraph', 'Button', 'Small link', 'Big icon', 'QR code of this document']);
 });
 
 test('a tap takes a thing in hand, its bar beside it in the standard’s order: a button has its URL chip and left and right; stale or foreign messages change nothing', async () => {
@@ -373,24 +371,7 @@ test('the URL chip: where a button goes and its icon, in a small form under the 
   expect(last()).toContain('- :coffee: [Roasted daily](#menu) | Never more than a week old\n');
 });
 
-test('a picture’s form is the kit’s Web Picture, a thing from the web’s its Web Embed, opened by the tap; the shop’s form holds its currency and where orders go', async () => {
-  const { el, last } = await editor('# Site\n\n![A cup](https://x.example/cup.png)\n\nhttps://youtu.be/dQw4w9WgXcQ\n');
-  await hold(el, '1', false);
-  key(box(el), 'Enter');
-  await until(() => !!document.querySelector('.to-ask-picture dialog[open]'));
-  const url = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
-  expect(url.value).toBe('https://x.example/cup.png');
-  typeIn(url, 'https://x.example/mug.png');
-  document.querySelector<HTMLFormElement>('.to-ask-picture form')!.requestSubmit();
-  await settle(el);
-  expect(last()).toContain('![A cup](https://x.example/mug.png)\n');
-  await hold(el, '2', false);
-  key(box(el), 'Enter');
-  await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
-  expect(document.querySelector<HTMLInputElement>('.to-ask-embed .to-ask-url')!.value).toBe('https://youtu.be/dQw4w9WgXcQ');
-  document.querySelector<HTMLDialogElement>('.to-ask-embed dialog')!.close();
-  await settle(el);
-  // The shop.
+test('the shop’s form holds its currency and where orders go', async () => {
   const shop = await editor(SHOP);
   const at = frame(shop.el).srcdoc.match(/<div class="shop" data-o="(\d+)"/)![1];
   await hold(shop.el, at, false);
@@ -435,9 +416,9 @@ test('Insert at the top left: words put in after the thing in hand with their wo
   expect(last()).toContain('\n\n# Hours\n\n# Find us');
   // Closed without Done: nothing.
   const before = changes.length;
-  await insert(el, 'Web Picture');
-  await until(() => !!document.querySelector('.to-ask-picture dialog[open]'));
-  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
+  await insert(el, 'Tiny Little Office Doc');
+  await until(() => !!document.querySelector('.to-ask-doc dialog[open]'));
+  document.querySelector<HTMLDialogElement>('.to-ask-doc dialog')!.close();
   await settle(el);
   expect(changes.length).toBe(before);
   // With nothing in hand: at the end of the section on view.
@@ -531,11 +512,11 @@ test('Mod+C, Mod+X, Mod+V on the thing in hand: TLO text and our marked HTML out
   const copied = clip('copy');
   expect(copied.getData('text/plain')).toBe('> Find us | #find-us\n');
   expect(copied.getData('text/html')).toContain('<meta name="generator"');
-  await hold(el, '17', false);
+  await hold(el, '18', false);
   clip('paste', copied);
   await settle(el);
-  expect(last()).toContain('#map=17/43.6567/-70.2484\n\n> Find us | #find-us\n\n> Email us');
-  expect(el.held).toBe('18.0');
+  expect(last()).toContain(':map-pin:\n\n> Find us | #find-us\n\n> Email us');
+  expect(el.held).toBe('19.0');
   const cut = clip('cut');
   await settle(el);
   expect(cut.getData('text/plain')).toBe('> Find us | #find-us\n');
@@ -737,10 +718,10 @@ test('the frame’s own script: a tap takes a thing and outlines it and opens it
   d.querySelector<HTMLElement>('#home > .part')!.click();
   await tick(30);
   expect(picks().length).toBe(3);
-  // A thing that is not words (the map, on its page): in hand, no words opened.
+  // A thing that is not words (the big icon, on its page): in hand, no words opened.
   w.location.hash = 'find-us';
   await tick(30);
-  d.querySelector<HTMLElement>('figure[data-o]')!.click();
+  d.querySelector<HTMLElement>('svg.ico[data-o]')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   await until(() => picks().length === 4);
   expect(picks()[3].words).toBeUndefined();
   w.location.hash = '';

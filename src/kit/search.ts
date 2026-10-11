@@ -139,7 +139,6 @@ export function linesOf(text: string): string[] {
     // (A document locked with a password holds its sealed link: no words to find.)
     else if (b.k === 'fence' && b.lang !== 'locked') out.push(...linesOf(b.body));
     else if (b.k === 'edge') out.push(`${b.from} → ${b.to}${b.label ? `: ${b.label}` : ''}`);
-    else if (b.k === 'img') out.push(b.alt);
   }
   return out.filter((l) => l.trim());
 }

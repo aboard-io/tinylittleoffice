@@ -43,7 +43,7 @@ change itself is last, and is Paul's click.
       `app: board`, `app: calc`, `app: cal`, `app: draw`, `app: anim`, `app: diagram`, `app: trip`,
       `app: site`.
 - [ ] `kit` (`#fbca04`, "The shell, the bar, the editor and the rest of src/kit"), `kernel` (`#fbca04`,
-      "src/doc: the model, TLO, the operations"), `tinier` and `media` (`#bfd4f2`, "A Worker"),
+      "src/doc: the model, TLO, the operations"), `tinier` (`#bfd4f2`, "The Worker"),
       `docs` (`#0075ca`), `security` (`#b60205`, "Security-relevant, after disclosure").
 - [ ] Delete the defaults that do not fit (`enhancement`, `question`, `wontfix`, `invalid`, `duplicate`,
       `good first issue` and `help wanted` may stay).

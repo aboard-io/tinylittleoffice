@@ -62,7 +62,7 @@ Rules:
 - Selecting words shows the **selection bubble** (B, I, U, S, highlight | link, footnote | list) centred under the selection; it hides when the selection collapses or leaves. Hosts may turn it off (`no-bubble`).
 - The caret in a link shows the link bubble (open, edit, remove).
 - **Footnotes are typed at the foot**, where they are drawn (the Word Processor's endnotes at the end of the page, a slide's foot, the notes under an outline), never in a box beside the mark: each note is a one-line `<to-text>` (its marks and links; no blocks, no note in a note). A tap or Enter on a mark brings the foot into view with the caret at the end of that note; the Footnote command puts the mark at the caret and the caret in its new, empty note; Enter or Escape in a note returns to the words after its mark (the Word Processor's ↩ too); a note emptied and left takes its mark with it, and Backspace at the start of an empty note removes it and returns to where its mark was. The note's words are the document's like any others: Mod+Z undoes them, the caret back in the note.
-- Cards (tables, pictures, documents, web things) are one character to the caret: skipped by arrows, removed by one Backspace/Delete, tapped to open.
+- Cards (tables, documents, page breaks) are one character to the caret: skipped by arrows, removed by one Backspace/Delete, tapped to open.
 - Paste: our HTML → blocks; other HTML → blocks (`htmlToBlocks`); Markdown/TLO text → blocks; a lone address → a card; words → words. A paste never brings styles the document cannot keep.
 - A paste keeps lists (with their depth and numbers), headings, the five marks and links from wherever they were copied (Google Docs, Word, Apple Notes, Notion, Slack, a web page, bullets typed as `•`, `-` or `1.`, even on one line), and is fitted to what the box can hold (a label takes words, a slide's words items and paragraphs, a table elsewhere its rows). Nothing else arrives: no HTML remnant, and no marker, since words that look like syntax are kept as the words they are.
 - IME: a composition is left to the browser and read back at `compositionend` as one op; no selection is written during a composition.
@@ -143,7 +143,7 @@ Paul, 2026-10-10: a low-vision reader wants big, scrollable nav, a useful menu, 
 - Calculator: Up/Down in the entry line recall tape lines (with no modifier only); Escape clears the entry, and an entry is not in the undo log; the tape grows at its end.
 - The Animator: `,` and `.` step a frame; arrows nudge the selected shape (with nothing selected they step a frame); K keys the shape; Space plays. The Animator's Draw mode has no pixel mode. Its length (frames, with the seconds beside), speed (frames a second) and repeat (for ever, once, a number of times, back and forth) are fields and a menu under the stage in Move mode; Depth is which shape is in front (a far one a little dimmer), Size how large, Spin the turn in the plane, Turn the turn about the upright axis (a card turning, mirrored past 90°).
 - The Trip Planner: the map keeps its own wheel and pinch (Leaflet's), and a double tap on it zooms (never adds two stops).
-- The Website Builder: the page is the editor. One tap on a thing in the page (a heading, a paragraph, a button, a big or small link, a picture, a web thing, a document, the shop) takes it in hand, with its bar beside it; the same tap on its words opens them where they are drawn, typed in the page itself (§5, §6: a `<to-text shape=line>` inside the sandboxed frame, put there by the frame's own script and focused in the tap, so a phone's keyboard comes up; rich where the thing is rich, plain with no bubble where it is drawn plain), each change one op. Enter in a heading or a paragraph goes on into a new paragraph after it, the caret there (Shift+Enter is a line break in a paragraph); elsewhere Enter is done. Escape puts the words back as they were and is done, the thing still in hand; a tap elsewhere keeps them (a tap on other words opens those in the same tap). A form is opened only for what is not words: where a button, a big link or a small link goes and its icon, by the URL chip on its bar; a picture's, a web thing's and another document's dialogs, opened by the tap; the shop's. While a form is open the thing's bar is under it, inside the form (outside a modal dialog the page is inert), so a move is a tap away; a move from it closes the form unwritten first; Escape writes nothing and leaves the thing in hand with its bar beside it. A tap on the page's empty room lets it go; Enter or Edit on the thing in hand opens its words (or its form) again. The bar is Edit, the URL chip (on what links), Move up, Move down, Move left and Move right in a row of cards, buttons or small links (Mod+Alt+Left/Right), Duplicate, Delete. Insert ▾ makes a thing after the one in hand: words with words offered, opened in the page and chosen, so the first letter replaces them; the rest through its dialog. Preview shows the page as a visitor has it, with one Edit button back (Escape too).
+- The Website Builder: the page is the editor. One tap on a thing in the page (a heading, a paragraph, a button, a big or small link, a big icon, a document, the shop) takes it in hand, with its bar beside it; the same tap on its words opens them where they are drawn, typed in the page itself (§5, §6: a `<to-text shape=line>` inside the sandboxed frame, put there by the frame's own script and focused in the tap, so a phone's keyboard comes up; rich where the thing is rich, plain with no bubble where it is drawn plain), each change one op. Enter in a heading or a paragraph goes on into a new paragraph after it, the caret there (Shift+Enter is a line break in a paragraph); elsewhere Enter is done. Escape puts the words back as they were and is done, the thing still in hand; a tap elsewhere keeps them (a tap on other words opens those in the same tap). A form is opened only for what is not words: where a button, a big link or a small link goes and its icon, by the URL chip on its bar; a picture's, a web thing's and another document's dialogs, opened by the tap; the shop's. While a form is open the thing's bar is under it, inside the form (outside a modal dialog the page is inert), so a move is a tap away; a move from it closes the form unwritten first; Escape writes nothing and leaves the thing in hand with its bar beside it. A tap on the page's empty room lets it go; Enter or Edit on the thing in hand opens its words (or its form) again. The bar is Edit, the URL chip (on what links), Move up, Move down, Move left and Move right in a row of cards, buttons or small links (Mod+Alt+Left/Right), Duplicate, Delete. Insert ▾ makes a thing after the one in hand: words with words offered, opened in the page and chosen, so the first letter replaces them; the rest through its dialog. Preview shows the page as a visitor has it, with one Edit button back (Escape too).
 - The Outliner: Mod+Alt+Up/Down fold and unfold; Mod+Shift+. and Mod+Shift+, zoom in and out; Select All inside a zoom takes the zoomed family. A document or a web thing under an item is a whole row, not a one-character card.
 - Lists inside a document (the Word Processor, the Presentation Builder, the Website Builder): items are words in one box, so Shift+arrows extend the selection by characters as Docs does, and there are no handles; Alt+Up/Down, Tab, cut and paste move items. The §3 node selection belongs to the Outliner and to rows.
 - The Drawing Tool: Alt+Up/Down move the chosen shapes one place in the stack (there is no "past a neighbour" on a canvas). The Diagram Maker drags the thing itself (a 6px threshold, `touch-action: none` on the thing alone) since a tap on it edits; it has no grip.
@@ -238,8 +238,6 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | Keys | Command | Where |
 |---|---|---|
 |  | Table | insert ▾ |
-|  | Web Picture… | insert ▾ |
-|  | Web Embed… | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
 |  | QR code of this document | insert ▾ |
 |  | Date | insert ▾ |
@@ -272,7 +270,6 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | Keys | Command | Where |
 |---|---|---|
 |  | Item | insert ▾ |
-|  | Web Embed… | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
 |  | Icon | bar |
 | `Tab` | Indent | bar, at: words |
@@ -305,9 +302,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Two-column slide | insert ▾ |
 |  | Big icon slide | insert ▾ |
 |  | Four more pages | insert ▾ |
-|  | Web Picture… | insert ▾ |
 |  | Table | insert ▾ |
-|  | Web Embed… | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
 |  | QR code of this document | insert ▾ |
 | `Mod+Alt+Enter` | Present | bar, at: slide, drawer on a phone |
@@ -686,9 +681,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Button | insert ▾ |
 |  | Big link | insert ▾ |
 |  | Small link | insert ▾ |
-|  | Web Picture | insert ▾ |
 |  | Big icon | insert ▾ |
-|  | Web Embed | insert ▾ |
 |  | Tiny Little Office Doc | insert ▾ |
 |  | Products | insert ▾ |
 |  | QR code of this document | insert ▾ |

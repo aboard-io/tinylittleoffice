@@ -56,7 +56,6 @@ import { opensDropped, unplain } from './open.ts';
 import { parseCompare, type Side } from './compare.ts';
 import { toast } from './toast.ts';
 import { installLinkGuard, openLink } from './link-guard.ts';
-import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { motion, reducedMotion } from './motion.ts';
 import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
@@ -224,13 +223,11 @@ export class ToShell extends LitElement {
     const redraw = () => this.requestUpdate();
     this.offs.push(
       onLanguage(() => (this.setTitle(), redraw())),
-      onPictures(redraw),
       onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())),
       onPrivacy(() => (void this.checkSignature(), this.guard())),
     );
-    // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
+    // Every link that leaves the site asks first.
     installLinkGuard();
-    installPictures();
     installPlainCopy();
     this.onHash();
   }
@@ -288,8 +285,6 @@ export class ToShell extends LitElement {
     this.signature = { state: 'none' };
     // An icon the starter set lacks: the rest of Lucide is fetched, and everything is drawn again when it joins (onIcons).
     void ensureIcons(iconNames(this.doc));
-    // Show pictures from the web is remembered for this document, as it arrived, for the visit.
-    setPictureDoc(def ? routeHash(def.id, payload) : '');
     this.display = !!def && display && !!payload;
     this.embed = !!def && asked === 'embed' && !!payload;
     this.presentSoon = !!def && !!show && !display && !this.embed;
@@ -684,11 +679,11 @@ export class ToShell extends LitElement {
     openLink(m.href);
   };
 
-  /** The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for first. */
+  /** The pages one under another at their paper's width (scaled down only to fit). */
   private pages = (def: AppDef) =>
     html`<div class="to-display-pages">${def
       .view(this.doc)
-      .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</div>`;
+      .map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</div>`;
 
   /**
    * The Display Link: the pages, to read or print (a website: the site itself, as a visitor has it), with Edit. The
@@ -707,7 +702,7 @@ export class ToShell extends LitElement {
     }
     const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null);
     const main = def.page
-      ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`, SITE_STAMP)).html}></iframe>`
+      ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups" title=${this.docTitle} .srcdoc=${def.page(this.doc, `${location.origin}${location.pathname}`, SITE_STAMP)}></iframe>`
       : this.pages(def);
     // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
     const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;

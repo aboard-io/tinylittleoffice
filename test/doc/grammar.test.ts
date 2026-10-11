@@ -109,12 +109,10 @@ test('edges: ~ A -> B: label with ->, <-, <->, --; consecutive edges on consecut
   same('~ A -> B\n\nWords\n\n~ C -> D\n');
 });
 
-test('images: ![alt](url) alone on a line, <url> accepted, \\] in alt', () => {
-  const doc = parse('![A \\] b](<https://x.y/p.png>)\n');
-  expect(doc.blocks[0]).toStrictEqual({ k: 'img', alt: 'A ] b', url: 'https://x.y/p.png' });
-  expect(write(doc)).toBe('![A \\] b](https://x.y/p.png)\n');
+test("a picture's line is words with a link: the alt the link's words, nothing fetched", () => {
+  expect(parse('![A b](https://x.y/p.png)\n').blocks).toStrictEqual([{ k: 'p', runs: [{ t: '!' }, { t: 'A b', href: 'https://x.y/p.png' }] }]);
   same('![The plan](https://tinylittleoffice.com/#/v0/deck/abc)\n');
-  same('![](https://images.unsplash.com/photo?w=400)\n');
+  same('![](https://x.y/photo?w=400)\n');
 });
 
 test('quotes: > lines merge into one block, written a line each', () => {

@@ -1,12 +1,11 @@
-// Website under node: the site read from the document (pages, sections, cards, buttons, pictures, icons, a
-// shop, documents and things from the web), the page it becomes (its nav, its ids, its look, its registered
+// Website under node: the site read from the document (pages, sections, cards, buttons, icons, a shop,
+// documents), the page it becomes (its nav, its ids, its look, its registered
 // scripts, nothing typed able to run), the preview's marks, a Quick Links page, the sixteen themes at AA in
 // light and dark, every command as ops, the pictures of the pages, and the templates.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Block } from '../../../doc/index.ts';
 // The registry, so a document held in a page is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
-import { embedOf } from '../../../kit/embeds.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
@@ -41,7 +40,7 @@ import {
 } from '../model.ts';
 import { templates } from '../templates.ts';
 import { contrast, isDark, paletteOf, parseTheme, themeCss, themeWords, THEMES } from '../theme.ts';
-import { CART, PEEK, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
+import { CART, PEEK, ROUTER, sitePage, sitePictures } from '../view.ts';
 
 const CAFE = templates().find((t) => t.id === 'cafe')!.doc;
 const SHOP = templates().find((t) => t.id === 'shop')!.doc;
@@ -50,7 +49,7 @@ const page = (text: string, o = {}) => sitePage(parse(text), o);
 const scriptsIn = (html: string) => [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 const code = (tag: string) => tag.slice('<script>'.length, -'</script>'.length);
 
-test('pages, sections, theme, pictures, icons, documents and buttons are read from the blocks, each with its span', () => {
+test('pages, sections, theme, icons, documents and buttons are read from the blocks, each with its span', () => {
   const text =
     '---\ntheme: teal serif dark\n---\n# Harbor\n\nOn the quay.\n\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n```todo\n- grind\n```\n\n# Last\n\nLast.\n';
   const s = readSite(parse(text));
@@ -77,7 +76,8 @@ test('pages, sections, theme, pictures, icons, documents and buttons are read fr
     [3, 2, 'Last', 10, 12],
   ]);
   expect(coffee.cards.map((c) => [c.icon, c.head[0].t, c.detail[0].t])).toEqual([['coffee', 'Espresso', '3.00']]);
-  expect(coffee.pics).toEqual([{ url: 'https://example.com/beans.png', alt: '' }]);
+  // A picture's address alone is words, as any address is: nothing is fetched.
+  expect(coffee.text.map((r) => r.map((x) => x.t).join(''))).toEqual(['https://example.com/beans.png']);
   expect(coffee.embeds).toEqual([{ lang: 'todo', body: '- grind' }]);
   // A site of one page is navigated by its sections; lines and fields are cut where the text says.
   expect(readSite(parse('# A\n\nabout\n\n## B\n\n- x\n')).pages[0].sections.map((x) => x.title)).toEqual(['A', 'B']);
@@ -114,11 +114,12 @@ test('the page: a nav of its pages, each a section switched by a registered scri
   // Two buttons side by side, the second quiet; the cards of the front in a part under it.
   expect(html).toContain('<p class="go"><a class="btn" href="#menu">See the menu</a> <a class="btn quiet" href="#find-us">Find us</a></p>');
   expect(html).toContain('<ul class="cards"><li><svg viewBox="0 0 24 24" width="28"');
-  // The scripts are registered ones, so the policy allows them by hash; the map is a card to tap, loaded by WEB.
+  // The scripts are registered ones, so the policy allows them by hash; the map is a link.
   const scripts = scriptsIn(html);
-  expect(scripts).toEqual([code(ROUTER), code(WEB)]);
+  expect(scripts).toEqual([code(ROUTER)]);
   for (const s of scripts) expect(pageScripts()).toContain(s);
-  for (const s of [ROUTER, WEB, CART, PEEK]) expect(pageScripts()).toContain(code(s));
+  for (const s of [ROUTER, CART, PEEK]) expect(pageScripts()).toContain(code(s));
+  expect(html).toContain('<a href="https://www.openstreetmap.org/?mlat=43.6567');
   // Dark: an ink accent goes pale; a site of one page has a nav of its sections.
   const dark = page('---\ntheme: ink dark\n---\n# A\n\nabout\n\n## B\n\n- x\n\n## C\n');
   expect(dark).toContain('--on:#18181b');
@@ -165,7 +166,7 @@ test('a shop: a table of products, one cart for the site, its words and the orde
   expect(html).toContain('Send order by email');
   expect(scriptsIn(html)).toEqual([code(CART), code(ROUTER)]);
   // A price worked out by a formula is the price; with nowhere for orders to go, the order is copied.
-  const bare = '# A\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nMug | =4*2 |  |\n';
+  const bare = '# A\n\nName | Price:money | About\n--- | --- | ---\nMug | =4*2 | \n';
   expect(readSite(parse(bare)).sections[0].products[0].price).toBe(8);
   expect(page(bare)).toContain('Copy order');
 });
@@ -183,7 +184,7 @@ test('the editor’s frame: every thing marked with its id and its words with th
   );
   expect(html).toContain('<div class="hero" data-sec="0">');
   expect(html).toContain('<section class="part" id="coffee" data-sec="8"><div class="wrap"><h2 data-o="8" data-w="8:0">Coffee</h2>');
-  expect(html).toContain('<figure class="embed" data-o="17">');
+  expect(html).toContain('<p data-o="17" data-w="17:0" data-empty="Words for the page"><a href="https://www.openstreetmap.org/');
   // What the frame's script needs: the stamp, the thing in hand, the scroll to keep, every thing's words; the page to show first.
   expect(html).toContain('{"stamp":7,"held":"2.1","y":120,"show":false,"dark":false,"words":{');
   expect(html).toContain('"1:0":{"next":true,"breaks":true,"runs":[{"t":"Small-batch coffee, roasted on the quay every morning."}],"kind":"rich"');
@@ -192,14 +193,14 @@ test('the editor’s frame: every thing marked with its id and its words with th
   // The editor's script is the frame's, from the site ('self' in the policy the frame inherits), never inline.
   expect(html).toContain('<script src="/site-frame.js"></script>');
   expect(page(CAFE, { edit: { stamp: 1, src: 'https://x.example/site-frame.js' } })).toContain('<script src="https://x.example/site-frame.js"></script>');
-  expect(scriptsIn(html)).toEqual([code(ROUTER), code(WEB)]);
+  expect(scriptsIn(html)).toEqual([code(ROUTER)]);
   // None of it in the page as it is downloaded; the Preview carries only its Escape.
   const plain = page(CAFE);
   for (const mark of ['data-o=', 'data-sec=', 'data-w=', 'site-cur', 'site-edit', 'site-at"', 'site-peek', 'site-frame.js']) expect(plain).not.toContain(mark);
   const peek = page(CAFE, { cur: 4, peek: 3 });
   expect(peek).not.toContain('data-o=');
   expect(peek).toContain('<script type="application/json" id="site-at">"find-us"</script>');
-  expect(scriptsIn(peek)).toEqual([code(ROUTER), code(WEB), '{"stamp":3}', code(PEEK)].filter((x) => !x.startsWith('{')));
+  expect(scriptsIn(peek)).toEqual([code(ROUTER), '{"stamp":3}', code(PEEK)].filter((x) => !x.startsWith('{')));
   // A home page with no name yet: its heading is still a thing to tap, its id -1.
   expect(page('', { edit: { stamp: 1 } })).toContain('<h1 data-o="-1" data-w="-1:0">My site</h1>');
 });
@@ -208,18 +209,19 @@ test('the things of a site in the order of the document, rows of cards, buttons 
   const doc = parse('# Site\n\nWords.\n\n> A | #a\n> B | #b\n\n- :star: One | first\n- Two | second\n\n![Cup](https://x.example/c.png)\n\n## Part\n\n### Under\n\nMore.\n\n:heart:\n');
   const s = readSite(doc);
   expect(s.sections.map((x) => x.title)).toEqual(['Site', 'Part']);
-  expect(objectsOf(s).map((o) => `${o.kind}:${objId(o)}`)).toEqual(['page:0', 'p:1', 'button:2.0', 'button:2.1', 'card:3', 'card:4', 'picture:5', 'section:6', 'heading:7', 'p:8', 'icon:9']);
+  expect(objectsOf(s).map((o) => `${o.kind}:${objId(o)}`)).toEqual(['page:0', 'p:1', 'button:2.0', 'button:2.1', 'card:3', 'card:4', 'p:5', 'section:6', 'heading:7', 'p:8', 'icon:9']);
   const html = page(write(doc));
-  // In order: the words and buttons under the title; the cards, a row, begin the part below; the picture after them.
+  // In order: the words and buttons under the title; the cards, a row, begin the part below; a picture's line after them, as words with a link.
   expect(html).toMatch(
-    /<h1>Site<\/h1><p>Words\.<\/p><p class="go">.*<\/p><\/div><\/div>\n<div class="part"><div class="wrap"><ul class="cards">.*<\/ul><img class="pic" src="https:\/\/x\.example\/c\.png" alt="Cup"/,
+    /<h1>Site<\/h1><p>Words\.<\/p><p class="go">.*<\/p><\/div><\/div>\n<div class="part"><div class="wrap"><ul class="cards">.*<\/ul><p>!<a href="https:\/\/x\.example\/c\.png"[^>]*>Cup<\/a><\/p>/,
   );
+  expect(html).not.toContain('<img');
   expect(html).toContain('<h2>Part</h2><h3>Under</h3><p>More.</p><svg class="ico"');
 });
 
-test('Quick Links: one column, a picture, a name, a line, a stack of buttons, the small links at the foot', () => {
+test('Quick Links: one column, a big icon, a name, a line, a stack of buttons, the small links at the foot', () => {
   const html = page(MAKER);
-  expect(html).toContain('<main class="hero"><div><img class="pic" src="https://images.unsplash.com/');
+  expect(html).toMatch(/<main class="hero"><div><svg class="ico"/);
   expect(html).toContain('<h1>Ada Diaz</h1><p>Potter in Lisbon. Mugs, bowls, the odd lamp.</p>');
   expect(html).toContain('<p class="go stack">');
   expect(html.match(/<a class="btn" href=/g)!.length).toBe(3);
@@ -228,7 +230,7 @@ test('Quick Links: one column, a picture, a name, a line, a stack of buttons, th
   expect(scriptsIn(html)).toEqual([]);
   expect(titleOf(MAKER)).toBe('Ada Diaz');
   // Edited: Insert offers what a links page takes; its small links are things to tap.
-  expect(kindsOf(readSite(parse(MAKER)))).toEqual(['p', 'button', 'link', 'picture', 'icon', 'web']);
+  expect(kindsOf(readSite(parse(MAKER)))).toEqual(['p', 'button', 'link', 'icon']);
   expect(page(MAKER, { edit: { stamp: 1 } })).toContain('<li data-o="4"><a href="https://instagram.com/ada"');
   expect(page(MAKER, { edit: { stamp: 1 } })).toMatch(/<li data-o="4"><a [^]*?<\/a><span class="site-label" data-w="4:label" data-empty="Label">Instagram<\/span><\/li>/);
   // The same lines with the shape changed are a website: the list items cards.
@@ -236,20 +238,14 @@ test('Quick Links: one column, a picture, a name, a line, a stack of buttons, th
   expect(readSite(parse(asSite)).sections[0].cards.length).toBe(2);
 });
 
-test('a thing from the web in a section is a card on the page, loaded only by its button', () => {
-  const text = '# A\n\nWatch this.\n\nhttps://youtu.be/dQw4w9WgXcQ\n\n## Listen\n\nhttps://example.org/talk.mp3\n\nhttps://en.wikipedia.org/wiki/Ada_Lovelace\n';
+test('a web address alone in a section is words with a link: no card, no frame, no script', () => {
+  const text = '# A\n\nWatch this.\n\nhttps://youtu.be/dQw4w9WgXcQ\n\n[A talk](https://example.org/talk.mp3)\n';
   const s = readSite(parse(text));
-  expect(s.sections[0].embeds).toEqual([{ web: 'https://youtu.be/dQw4w9WgXcQ' }]);
+  expect(s.sections[0].embeds).toEqual([]);
   const html = page(text);
-  expect(html).toContain(
-    '<div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-title="YouTube video"><button type="button" class="btn web-load">Play (loads it from YouTube)</button></div>',
-  );
-  expect(html).not.toContain('<iframe');
-  expect(html).toContain('data-as="audio" data-kind="audio" data-src="https://example.org/talk.mp3"');
-  // Wikipedia must be asked first: the link alone.
-  expect(html).toContain('>Ada Lovelace</a> <small>Wikipedia</small>');
-  expect(html).not.toContain('loads it from Wikipedia');
-  expect(scriptsIn(page('# A\n\nJust words.\n'))).toEqual([code(ROUTER)]);
+  expect(html).not.toMatch(/<iframe|<audio|<video|<img|web-pic|web-load/);
+  expect(html).toContain('<a href="https://example.org/talk.mp3"');
+  expect(scriptsIn(html)).toEqual([code(ROUTER)]);
   // The document is kept as written.
   expect(write(parse(text))).toBe(text);
 });
@@ -433,7 +429,7 @@ test("a table's money in its column's currency, else the site's: the plumber's p
 });
 
 test("a shop's prices in the Price column's currency, else the site's: a code through Intl, never \"GBP12.00\"; a symbol before the price", () => {
-  const gbp = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money(GBP) | About | Image\n--- | --- | --- | ---\nMug | 12 |  |\nJug | 1200 |  |\n';
+  const gbp = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money(GBP) | About\n--- | --- | ---\nMug | 12 | \nJug | 1200 | \n';
   const shop = readSite(parse(gbp)).sections[0].products;
   expect(shop.map((p) => [p.name, p.price, p.currency])).toEqual([
     ['Mug', 12, 'GBP'],
@@ -448,7 +444,7 @@ test("a shop's prices in the Price column's currency, else the site's: a code th
   // The cart is given each thing's currency.
   expect(html).toContain('"currency":"GBP"');
   // A Price column that names none: the head's symbol, before the price.
-  const euros = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nTea | 3 |  |\n';
+  const euros = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money | About\n--- | --- | ---\nTea | 3 | \n';
   expect(readSite(parse(euros)).sections[0].products[0].currency).toBe('€');
   expect(page(euros)).toContain('<b class="price">€3.00</b>');
   // And none anywhere: dollars.
@@ -521,7 +517,7 @@ test('every template is a whole site: a name, every card and button filled, ever
     for (const sec of s.sections) {
       for (const c of sec.cards) expect(c.head.length && c.detail.length, `${tpl.id}: a card`).toBeTruthy();
       for (const b of [...sec.buttons, ...sec.socials]) expect(b.label && b.url !== '#', `${tpl.id}: ${b.label}`).toBeTruthy();
-      for (const e of sec.embeds) expect('lang' in e ? !!appOf(e.lang) || e.lang === 'qr' || e.lang === 'sheet' : !!embedOf(e.web), `${tpl.id}: an embed`).toBe(true);
+      for (const e of sec.embeds) expect(!!appOf(e.lang) || e.lang === 'qr' || e.lang === 'sheet', `${tpl.id}: a document`).toBe(true);
     }
     if (/orders:/.test(tpl.doc))
       expect(

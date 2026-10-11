@@ -2,10 +2,9 @@
  * A website as a view of the kernel's document (docs/kernel.md §1, "site, links"): the first `# Name` is
  * the site's name over the home page; each further `#` heading starts another page (a `---` before it is
  * welcome); `##` is a section of a page. In a section: paragraphs (inline Markdown), `- :icon: Head |
- * detail` cards, `> :icon: Label | url` buttons (a line each), a picture (`![alt](url)`, or a paragraph that
- * is a picture's address), `:icon:` alone as a big icon, a table `Name | Price:money | About | Image` the
- * products of a shop with one cart for the site, another document (a fence) or a thing from the web (its
- * address alone). The head holds `theme:`, `currency:` and `orders:` (where orders go); `look: links` makes
+ * detail` cards, `> :icon: Label | url` buttons (a line each), `:icon:` alone as a big icon, a table
+ * `Name | Price:money | About` the products of a shop with one cart for the site, or another document (a
+ * fence). The head holds `theme:`, `currency:` and `orders:` (where orders go); `look: links` makes
  * it a Quick Links page: one column, the buttons stacked, and the list items small links at the foot.
  *
  * Every thing on a page (Obj) has an id from its block; every command is a list of the kernel's ops: a thing
@@ -17,7 +16,6 @@
 import { apply, applyAll, columnsOf, evaluate, isAtomic, normalRuns, parse, plainText, runLength, sliceRuns, text, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { slug } from '../../kit/draw.ts';
 import { runsDiff } from '../../kit/textops.ts';
-import { embedOf } from '../../kit/embeds.ts';
 import { t } from '../../kit/i18n.ts';
 import { parseTheme, themeWords, type Theme } from './theme.ts';
 
@@ -37,16 +35,14 @@ export interface Product {
   /** The Price column's own currency, else the site's: a symbol or an ISO 4217 code. */
   currency: string;
   about: string;
-  image: string;
 }
 /**
  * A thing on a page, as a person sees it and taps it: a page's or a section's heading, a heading inside a
  * section, a paragraph, a button (a line of a quote), a big link (a card: a list item), a small link (a list
- * item on a Quick Links page), a picture, a big icon, a thing from the web, another document, a table, the
- * shop's products. `at` is its block (-1 for the heading of a home page with no name), `line` a button's line
+ * item on a Quick Links page), a big icon, another document, a table, the shop's products. `at` is its block (-1 for the heading of a home page with no name), `line` a button's line
  * in its quote (-1 for the rest), `n` the section it is in. Its id in the page is objId().
  */
-export type ObjKind = 'page' | 'section' | 'heading' | 'p' | 'card' | 'button' | 'link' | 'picture' | 'icon' | 'web' | 'doc' | 'table' | 'products';
+export type ObjKind = 'page' | 'section' | 'heading' | 'p' | 'card' | 'button' | 'link' | 'icon' | 'doc' | 'table' | 'products';
 export interface Obj {
   kind: ObjKind;
   at: number;
@@ -57,8 +53,8 @@ export interface Obj {
 export const ROW: ReadonlySet<ObjKind> = new Set(['card', 'button', 'link']);
 export const objId = (o: Pick<Obj, 'at' | 'line'>): string => (o.line >= 0 ? `${o.at}.${o.line}` : String(o.at));
 
-/** Another document (a fence: its app and its text) or a thing from the web (its address). */
-export type Embed = { lang: string; body: string } | { web: string };
+/** Another document (a fence: its app and its text). */
+export type Embed = { lang: string; body: string };
 
 export interface Section {
   /** Its place among all the site's sections, the home page's front first. */
@@ -77,7 +73,6 @@ export interface Section {
   cards: Card[];
   buttons: Link[];
   socials: Link[];
-  pics: { url: string; alt: string }[];
   icon: string;
   embeds: Embed[];
   /** The products table's block, -1 for none. */
@@ -111,8 +106,6 @@ export interface Site {
   sections: Section[];
 }
 
-/** A paragraph that is only a picture's address. */
-export const isPicture = (s: string) => /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg|avif)(\?\S*)?$/i.test(s);
 /** Where a button may go: out to the web, to mail or a phone, or to a page or section of the site. */
 export const safeUrl = (url: string) => (/^(https?:|mailto:|tel:|#)/.test(url) ? url : '#');
 
@@ -162,7 +155,7 @@ function linkOf(runs: Run[]): Link {
 
 /* ---------- reading ---------- */
 
-const PRODUCT = [/^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|description|details?)$/, /^(image|picture|photo)$/];
+const PRODUCT = [/^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|description|details?)$/];
 /** Whether a table is the products of a shop: it has something to call each thing, and a price. */
 export const isShop = (b: Block) => b.k === 'table' && (([n, p]) => n >= 0 && p >= 0)(columnsOf(b, ...PRODUCT));
 
@@ -179,7 +172,6 @@ function section(n: number, page: number, title: string, at: number, from: numbe
     cards: [],
     buttons: [],
     socials: [],
-    pics: [],
     icon: '',
     embeds: [],
     shop: -1,
@@ -221,11 +213,8 @@ export function readSite(doc: Doc): Site {
       item('heading');
       cur.text.push(b.runs);
     } else if (b.k === 'p') {
-      const words = plain(b.runs);
       const [ic, rest] = iconOf(b.runs);
       if (ic && !rest.length) ((cur.icon = ic), item('icon'));
-      else if (b.runs.length === 1 && isPicture(words)) (cur.pics.push({ url: words, alt: '' }), item('picture'));
-      else if (b.runs.length === 1 && /^https?:\/\/\S+$/.test(words) && embedOf(words)) (cur.embeds.push({ web: words }), item('web'));
       // (A paragraph with no words yet is one too: Enter has just made it, and it is being typed in.)
       else (cur.text.push(...linesOf(b.runs).filter((l) => l.length)), item('p'));
     } else if (b.k === 'quote')
@@ -242,12 +231,11 @@ export function readSite(doc: Doc): Site {
         cur.cards.push({ icon, head, detail });
         item('card');
       }
-    } else if (b.k === 'img') (cur.pics.push({ url: /^https?:\/\//.test(b.url) ? b.url : '', alt: b.alt }), item('picture'));
-    else if (b.k === 'table') {
+    } else if (b.k === 'table') {
       if (isShop(b) && cur.shop < 0) {
         item('products');
         cur.shop = i;
-        const [n, p, a, im] = columnsOf(b, ...PRODUCT);
+        const [n, p, a] = columnsOf(b, ...PRODUCT);
         const values = evaluate(doc, i)?.values ?? [];
         const currency = b.cols[p]?.currency || site.currency;
         b.rows.forEach((r, k) => {
@@ -255,8 +243,7 @@ export function readSite(doc: Doc): Site {
           if (!name) return;
           const v = values[k]?.[p];
           const price = typeof v === 'number' ? v : parseFloat((r[p] ?? '').replace(/[^0-9.-]/g, '')) || 0;
-          const image = (r[im] ?? '').trim();
-          cur.products.push({ name, price, currency, about: a >= 0 ? (r[a] ?? '').trim() : '', image: /^https?:\/\//.test(image) ? image : '' });
+          cur.products.push({ name, price, currency, about: a >= 0 ? (r[a] ?? '').trim() : '' });
         });
       } else (cur.embeds.push({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }), item('table'));
     } else if (b.k === 'fence' && b.lang) (cur.embeds.push({ lang: b.lang, body: b.body }), item('doc'));
@@ -295,11 +282,9 @@ export function retitle(textDoc: string, title: string): string {
 /* ---------- commands, as ops ---------- */
 
 /** What Insert ▾ can put in: a website's things, and a Quick Links page's. */
-export type Kind = 'page' | 'section' | 'heading' | 'p' | 'button' | 'card' | 'link' | 'picture' | 'icon' | 'web' | 'doc' | 'product';
+export type Kind = 'page' | 'section' | 'heading' | 'p' | 'button' | 'card' | 'link' | 'icon' | 'doc' | 'product';
 export const kindsOf = (site: Site, n = 0): Kind[] =>
-  site.links
-    ? ['p', 'button', 'link', 'picture', 'icon', 'web']
-    : ['page', 'section', 'heading', 'p', 'button', 'card', 'picture', 'icon', 'web', 'doc', ...((site.sections[n]?.shop ?? -1) < 0 ? (['product'] as const) : [])];
+  site.links ? ['p', 'button', 'link', 'icon'] : ['page', 'section', 'heading', 'p', 'button', 'card', 'icon', 'doc', ...((site.sections[n]?.shop ?? -1) < 0 ? (['product'] as const) : [])];
 export const kindName = (k: Kind): string =>
   ({
     page: t('Page'),
@@ -309,23 +294,20 @@ export const kindName = (k: Kind): string =>
     button: t('Button'),
     card: t('Big link'),
     link: t('Small link'),
-    picture: t('Web Picture'),
     icon: t('Big icon'),
-    web: t('Web Embed'),
     doc: t('Tiny Little Office Doc'),
     product: t('Products'),
   })[k];
 
-/** A new products table: what each thing is called, its price, a line about it, a picture; one thing to begin with. */
+/** A new products table: what each thing is called, its price, a line about it; one thing to begin with. */
 export const productsBlock = (): Block => ({
   k: 'table',
   cols: [
     { name: 'Name', type: 'text' },
     { name: 'Price', type: 'money' },
     { name: 'About', type: 'text' },
-    { name: 'Image', type: 'text' },
   ],
-  rows: [[t('New thing'), '10', '', '']],
+  rows: [[t('New thing'), '10', '']],
 });
 
 /* ---------- the things on a page ---------- */

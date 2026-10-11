@@ -7,7 +7,7 @@
  *
  * What is not words is a card the editor asks this host to draw: a table block as a grid whose cells are
  * `cells` ops, worked out in place by the formula engine; another document as a picture of its first page;
- * a web address alone as a click-to-load card (<to-embed>); a page break (the kernel's `hr`, from Insert ▾ or
+ * a page break (the kernel's `hr`, from Insert ▾ or
  * Mod+Shift+Enter) as a thin dashed rule with its name in the middle. The document's own head fields (an invoice's
  * from and to) are inputs over the text; the footnotes are listed under it (<to-notes>, kit/notes.ts), each
  * note's words typed there, where they are drawn (a mark tapped, or a new footnote, puts the caret in its note;
@@ -27,14 +27,13 @@
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { guard } from 'lit/directives/guard.js';
-import { gateSvg } from '../../kit/pictures.ts';
 import { SquarePen } from 'lucide';
-import { isEmbed, parse, webOf, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { parse, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { cmdTool } from '../../kit/bar.ts';
 import { contextOf, drawnIn, labelOf, runKey } from '../../kit/commands.ts';
 import { BOLD, BULLETS, FOOTNOTE, HIGHLIGHT, INDENT, ITALIC, LINK, NUMBERS, OUTDENT, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
-import { copyData, linkToFence, pasteFrom, writeClip } from '../../kit/clipboard.ts';
+import { copyData, pasteFrom, writeClip } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts';
@@ -42,7 +41,7 @@ import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { language, t } from '../../kit/i18n.ts';
 import { noteIndex, noteMarks, type ToNotes } from '../../kit/notes.ts';
-import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
+import { askDocLink } from '../../kit/insert-dialogs.ts';
 import { myKey, signerName, signWords } from '../../kit/privacy.ts';
 import { signatureIcon, signatureTone, signatureWords, uncheckedHint } from '../../kit/privacy-dialog.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
@@ -66,7 +65,6 @@ import {
   tableRowsIn,
   tableRowsOut,
   tableView,
-  webBlock,
   wordCount,
   type Paper,
 } from './model.ts';
@@ -81,7 +79,6 @@ import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/dialog.ts';
 import '../../kit/doc-dialog.ts';
-import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/notes.ts';
@@ -260,17 +257,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     this.querySelector<ToDialog>('to-dialog.write-ask')?.close();
     a.done(value);
   }
-  /** Insert ▾'s things with an address, each asked for in the kit's dialog, then put in where the caret was. */
-  async insertPicture() {
-    const at = this.where();
-    const pic = await askPicture();
-    if (pic) this.insertBlock({ k: 'img', alt: pic.alt, url: pic.url }, at);
-  }
-  async insertWeb() {
-    const at = this.where();
-    const url = await askEmbed();
-    if (url) this.insertBlock(linkToFence(url) ?? webBlock(url), at);
-  }
+  /** Insert ▾'s Tiny Little Office Doc, asked for in the kit's dialog, then put in where the caret was. */
   async insertDocument() {
     const at = this.where();
     const fence = await askDocLink();
@@ -353,7 +340,7 @@ export class ToWriteEditor extends DocElement<Doc> {
 
   /* ---------- the table ---------- */
 
-  /** What the editor shows for a block that is not words: a grid for a table, a picture of another document, a thing from the web. */
+  /** What the editor shows for a block that is not words: a grid for a table, a picture of another document. */
   private card = (b: Block, at: number): TemplateResult | null => {
     if (b.k === 'table') {
       const v = tableView(this.doc, at);
@@ -368,13 +355,11 @@ export class ToWriteEditor extends DocElement<Doc> {
       const page = def?.view(b.body, { small: true })[0];
       const name = fenceTitle(b.body) || def?.name || b.lang;
       return html`<figure class="write-doc">
-        ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${name}>${unsafeSVG(gateSvg(page.svg))}</svg>` : html`<pre>${b.body.split('\n').slice(0, 6).join('\n')}</pre>`}
+        ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${name}>${unsafeSVG(page.svg)}</svg>` : html`<pre>${b.body.split('\n').slice(0, 6).join('\n')}</pre>`}
         <figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption>
       </figure>`;
     }
     if (b.k === 'hr') return html`<div class="write-break" role="separator" aria-label=${t('Page break')}><span>${t('Page break')}</span></div>`;
-    const web = webOf(b);
-    if (web) return html`<to-embed url=${web.url} alt=${web.title}></to-embed>`;
     return null;
   };
   private tableEl(at: number): ToWriteTable | null {
@@ -466,33 +451,13 @@ export class ToWriteEditor extends DocElement<Doc> {
   private onCardTap = (e: CustomEvent<{ block: number }>) => {
     if (this.isCard(e.detail.block)) this.holdCard(e.detail.block);
   };
-  /** What the card's Edit is: into the table's first cell, the address changed, the document opened in its app. */
+  /** What the card's Edit is: into the table's first cell, the document opened in its app. */
   private editOf(at: number): ContextEntry | null {
     const b = this.doc.blocks[at];
     if (!b) return null;
     if (b.k === 'fence' && b.lang === 'signatures') return { label: t('Sign this contract'), icon: UI.sign, keys: 'Enter', does: () => void this.signContract() };
     if (b.k === 'table' || (b.k === 'fence' && b.lang && b.lang !== 'signatures' && lookup.appOf(b.lang)))
       return { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editCard(at) };
-    if (b.k === 'img' || (b.k === 'p' && isEmbed(b))) {
-      const swap = (next: Block) => this.change([{ op: 'splice', at, n: 1, blocks: [next] }], { before: null, after: null, card: at, cardAfter: at });
-      return {
-        label: t('Change the address…'),
-        icon: UI.pen,
-        keys: 'Enter',
-        does: async () => {
-          if (b.k === 'img') {
-            const pic = await askPicture({ url: b.url, alt: b.alt });
-            if (pic) swap({ ...b, url: pic.url, alt: pic.alt });
-          } else {
-            const web = webOf(b);
-            const url = await askEmbed(web?.url ?? '');
-            // A new address keeps the title its author gave the old one.
-            if (url) swap(webBlock(url, web?.title));
-          }
-          this.holdCard(at);
-        },
-      };
-    }
     return null;
   }
   /** The card's Edit, as its words say it ('' where it has none), and done: for the card's commands (commands.ts). */

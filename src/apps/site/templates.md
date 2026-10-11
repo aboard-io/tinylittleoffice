@@ -2,7 +2,7 @@
 
 Blank first (the kit's: an empty site), then the everyday sites, then the Quick Links pages. Each is a real
 site with real words, a theme that suits it, and what a site has where it fits: pages and sections, buttons,
-big links (one to a ticket each on the band's tour), pictures, a map, a shop with a cart where something is
+big links (one to a ticket each on the band's tour), a map, a shop with a cart where something is
 for sale, a table with its sums, another document held in a page (a list, a QR code), a footnote. Each is
 canonical TLO, held byte for byte by the corpus test (test/doc/corpus/apps/site.json and every app's templates).
 
@@ -20,7 +20,7 @@ canonical TLO, held byte for byte by the corpus test (test/doc/corpus/apps/site.
 - **A holiday cottage**: a cottage in Port Isaac, the rooms, prices by season worked out per night, booking, a map.
 - **A plumber**: a family firm in Truro, what they do, what it costs, when to ring at night.
 - **A yoga studio**: the week's classes, passes to buy with a cart, the teachers.
-- **Quick Links: a maker**: a potter's picture, shop, classes and inbox; the places she posts at the foot.
+- **Quick Links: a maker**: a potter's shop, classes and inbox; the places she posts at the foot.
 - **Quick Links: a group**: a mutual-aid group's ways to ask, help, meet and chat.
 - **Quick Links: a band**: the new record, the dates, the merch, every place the music is.
 - **Quick Links: a small business**: a café's menu, a table booked, the way there, the phone.

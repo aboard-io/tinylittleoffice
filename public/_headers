@@ -4,15 +4,14 @@
 # The site is its own only source of code and style; nothing may embed the editor (frame-ancestors 'none') but the
 # embed page, /embed/ (the embed view: the pages alone, for another site's frame), below. Where the site may reach is
 # filled in by scripts/headers.ts from src/kit/network.ts, the one list of every host (docs/network.md, /network):
-# {{media}} is the picture proxy (every web picture is fetched through it; an export fetches a picture's bytes), and
-# {{img}}, {{connect}}, {{frame}} and {{media-src}} the hosts the list allows by each directive: the map's tiles, place
-# search, the short-link service, Bluesky and Wikipedia, and a thing from the web only in a sandboxed frame made
-# after a tap, as the embeds do. Nothing else.
+# {{img}} and {{connect}} are the hosts the list allows by each directive: the map's tiles, place search and the
+# short-link service. Nothing else: a document fetches nothing from any other site, so there is no frame-src or
+# media-src of the list's (default-src 'self' holds frames, films and sounds to the site's own).
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {{media}} {{img}}; font-src 'self' data:; media-src {{media-src}}; connect-src 'self' data: {{media}} {{connect}}; worker-src 'self'; frame-src 'self' about: blob: {{frame}}; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {{img}}; font-src 'self' data:; connect-src 'self' data: {{connect}}; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors 'none'
   Cache-Control: no-cache
 # The pages themselves: no-transform, so Cloudflare does not rewrite them to add its analytics beacon (which the
 # policy above would block anyway). Only the HTML: the scripts keep their compression.
@@ -29,7 +28,7 @@
 # The embed page: the same policy, but any page may frame it (it shows the document's pages and a link to open them).
 /embed/
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src https:; connect-src 'self' data:; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors *
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {{img}}; font-src 'self' data:; connect-src 'self' data:; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors *
   ! Cache-Control
   Cache-Control: no-cache, no-transform
 # For programs: the guide (/llms.txt), the API (/api.js, and the pieces of it under /api/) and the helper for

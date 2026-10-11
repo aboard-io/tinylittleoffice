@@ -1,8 +1,8 @@
 /**
  * Website's templates: Blank is the app's own page; these are the rest, each a real site in TLO with real
  * sample data, canonical as the kernel writes it so each round-trips byte for byte (the corpus test holds
- * every one). The Quick Links pages are a set of Website's templates (`look: links`): a picture or a big
- * icon, a name, a line, a stack of buttons and the small links at the foot.
+ * every one). The Quick Links pages are a set of Website's templates (`look: links`): a big icon, a name,
+ * a line, a stack of buttons and the small links at the foot.
  */
 import type { Template } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
@@ -40,7 +40,9 @@ What we pour, and what we bake.
 
 14 Quay Street, open 7 to 3, every day but Monday.
 
-https://www.openstreetmap.org/?mlat=43.6567&mlon=-70.2484#map=17/43.6567/-70.2484
+[Open the map](https://www.openstreetmap.org/?mlat=43.6567&mlon=-70.2484#map=17/43.6567/-70.2484)
+
+:map-pin:
 
 > Email us | mailto:hello@harborcoffee.example
 `;
@@ -61,11 +63,11 @@ Mugs, bowls and the odd lamp, thrown by hand in a shed by the harbour.
 
 Everything is made to order and posted within two weeks.
 
-Name | Price:money | About | Image
---- | --- | --- | ---
-Harbour mug | 24 | Holds a big coffee; blue glaze | https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=600
-Breakfast bowl | 30 | Wide and shallow, speckled white | https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=600
-Bud vase | 18 | For one stem from the garden | https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=600
+Name | Price:money | About
+--- | --- | ---
+Harbour mug | 24 | Holds a big coffee; blue glaze
+Breakfast bowl | 30 | Wide and shallow, speckled white
+Bud vase | 18 | For one stem from the garden
 
 # Classes
 
@@ -111,7 +113,7 @@ theme: rose
 ---
 # Ada Diaz
 
-![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)
+:palette:
 
 Potter in Lisbon. Mugs, bowls, the odd lamp.
 
@@ -148,7 +150,7 @@ theme: midnight
 ---
 # The Harbour Lights
 
-![](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400)
+:music:
 
 New record, Low Tide, out Friday.
 
@@ -208,8 +210,6 @@ orders: prints@ionareid.example
 
 Photographs of the Highlands and the islands, taken on foot, mostly before breakfast.
 
-![](https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200)
-
 > See the work | #work
 > Buy a print | #prints
 > Commission me | #about
@@ -218,13 +218,9 @@ Photographs of the Highlands and the islands, taken on foot, mostly before break
 
 ## Skye, October
 
-![](https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1200)
-
 The Fairy Glen at first light, the day after the storm. Four hours of waiting for six minutes of sun.
 
 ## Glen Affric
-
-![](https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200)
 
 Old Caledonian pine on the north shore path, in the rain that never quite stopped.
 
@@ -232,11 +228,11 @@ Old Caledonian pine on the north shore path, in the rain that never quite stoppe
 
 Printed on cotton rag paper in Inverness, signed, and posted flat in a box within ten days.
 
-Name | Price:money | About | Image
---- | --- | --- | ---
-Fairy Glen, first light | 85 | A3, edition of 50 | https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=600
-Affric pines | 85 | A3, edition of 50 | https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600
-Loch, before the boats | 140 | A2, edition of 25 | https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600
+Name | Price:money | About
+--- | --- | ---
+Fairy Glen, first light | 85 | A3, edition of 50
+Affric pines | 85 | A3, edition of 50
+Loch, before the boats | 140 | A2, edition of 25
 
 # About
 
@@ -255,8 +251,6 @@ theme: rose
 # Priya & Sam
 
 Saturday 5 December 2026, at Larkhill Barn, near Hebden Bridge.
-
-![](https://images.unsplash.com/photo-1519741497674-611481863552?w=1200)
 
 > :mail: Say you are coming | #rsvp
 > :map-pin: Getting there | #travel
@@ -278,7 +272,7 @@ Everything is vegetarian and made by Rosa's kitchen in Todmorden. Tell us anythi
 
 Larkhill Barn is two miles up the hill from Hebden Bridge station. A minibus leaves the station at 12.45 pm and comes back at 11.30 pm.
 
-https://www.openstreetmap.org/?mlat=53.7420&mlon=-2.0120#map=14/53.7420/-2.0120
+[Open the map](https://www.openstreetmap.org/?mlat=53.7420&mlon=-2.0120#map=14/53.7420/-2.0120)
 
 ## Where to stay
 
@@ -306,8 +300,6 @@ orders: merch@harbourlights.example
 
 Four friends from Falmouth who play loud songs about the sea. The new record, Low Tide, is out on 6 November 2026.
 
-![](https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200)
-
 > :headphones: Listen to Low Tide | https://harbourlights.bandcamp.com
 > :calendar: On tour | #tour
 
@@ -332,8 +324,6 @@ Lighthouse T-shirt | 20 | Navy, organic cotton, S to XXL
 
 # About
 
-![](https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200)
-
 Jess sings and plays guitar, Tom plays bass, Kit plays drums, Ollie plays everything else. They met at the sailing club in 2019.
 
 > :mail: Booking and press | mailto:hello@harbourlights.example
@@ -345,8 +335,6 @@ theme: ocean
 # Shore Road Health Centre
 
 A family practice in Leith: four doctors, two nurses, a midwife on Thursdays.
-
-![](https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200)
 
 > :phone: Call 0131 496 0712 | tel:+441314960712
 > :calendar: Book online | https://example.com/appointments
@@ -372,7 +360,7 @@ Order online or put the slip in the box by the door. Allow two working days; the
 
 12 Shore Road, Leith, EH6 6RA. Step-free from the street, with a loop in reception. The 16 and 22 buses stop outside.
 
-https://www.openstreetmap.org/?mlat=55.9756&mlon=-3.1723#map=17/55.9756/-3.1723
+[Open the map](https://www.openstreetmap.org/?mlat=55.9756&mlon=-3.1723#map=17/55.9756/-3.1723)
 
 > :mail: Write to the practice manager | mailto:manager@shoreroadhealth.example
 `;
@@ -383,8 +371,6 @@ theme: sunset
 # Keep the Branch Library Open
 
 The library on Munjoy Hill closes on 31 December unless the city funds it for one more year. We think it should.
-
-![](https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200)
 
 > :megaphone: Sign the petition | https://example.com/petition
 > :calendar: Come to the hearing | #the-hearing
@@ -471,8 +457,6 @@ orders: robots@northfieldschool.example
 
 Years 7 to 9 build robots out of kits and junk, and then make them race. Tuesdays after school, in the D&T room.
 
-![](https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200)
-
 > :rocket: Join the club | #join
 > :trophy: The competition | #the-competition
 
@@ -517,8 +501,6 @@ theme: olive
 
 A letter every other Sunday from plot 14 at Fernside Allotments: what to sow, what went wrong, what to do with forty courgettes.
 
-![](https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1200)
-
 > :mail: Send it to me | mailto:letter@plot14.example?subject=Subscribe
 > :book: Read the last one | #recent-letters
 
@@ -544,8 +526,6 @@ theme: teal serif
 
 A fisherman's cottage for four, two minutes up the hill from the harbour at Port Isaac, Cornwall.
 
-![](https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1200)
-
 > :calendar: Ask about dates | #book
 > :map-pin: Where it is | #where-it-is
 
@@ -554,8 +534,6 @@ A fisherman's cottage for four, two minutes up the hill from the harbour at Port
 - :flame: A wood stove | The first basket of logs is on us
 
 # The cottage
-
-![](https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200)
 
 Downstairs is one room with the kitchen, the stove and a window on the sea. Upstairs, the double looks over the harbour; the twin looks at the hill. There is wifi, a washing machine, and a parking permit for the top car park.
 
@@ -580,7 +558,7 @@ Changeover is Saturday. Tell us your dates and who is coming; we reply within a 
 
 Trewetha Lane, Port Isaac, PL29 3RU. The nearest station is Bodmin Parkway, forty minutes by taxi.
 
-https://www.openstreetmap.org/?mlat=50.5928&mlon=-4.8292#map=16/50.5928/-4.8292
+[Open the map](https://www.openstreetmap.org/?mlat=50.5928&mlon=-4.8292#map=16/50.5928/-4.8292)
 `;
 
 const TRADES = `---
@@ -589,8 +567,6 @@ theme: slate
 # Pellow & Sons
 
 Plumbing and heating in Truro and twenty miles round, since 1987. Gas Safe registered, number 551203.
-
-![](https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=1200)
 
 > :phone: Call 01872 960 330 | tel:+441872960330
 > :mail: Ask for a quote | mailto:quotes@pellowandsons.example
@@ -630,8 +606,6 @@ orders: hello@stillwateryoga.example
 # Still Water Yoga
 
 A small studio over the bike shop on Gloucester Road, Bristol. Twelve mats, slow classes, no mirrors.
-
-![](https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200)
 
 > :calendar: The timetable | #timetable
 > :cart: Buy a class pass | #passes

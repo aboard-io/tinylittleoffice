@@ -15,7 +15,7 @@
  * page's; on the home page itself the rows are the page, so the drawer has none: Paul, 2026-10-10),
  * so a template is reachable from inside any app; Private or Saved; Language;
  * Theme; Keyboard shortcuts; Add to home screen where the browser offers it (install.ts)
- * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; says what the site does not protect against, limits(); and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; says what the site does not protect against, limits(); and names the commit it runs, from /version.json, kit/version.ts, read when About opens). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt, a zip of them: kit/open.ts) and Compare… (this document beside another link:
  * kit/compare.ts) sit above the switches.
@@ -40,7 +40,6 @@ import { canInstall, install, installByHand, onInstall } from './install.ts';
 import { size } from './zoom.ts';
 import { toast } from './toast.ts';
 import { reveal } from './scroll.ts';
-import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
 import { openFile, OPENS } from './open.ts';
 import { compareHash } from './compare.ts';
 import { currentHash, parseHash } from './route.ts';
@@ -122,14 +121,7 @@ export class ToDrawer extends LitElement {
     window.addEventListener('hashchange', away);
     // The size row says the size as a pinch changes it (kit/pinch.ts), the drawer open or not.
     window.addEventListener('to-size', redraw);
-    this.offs = [
-      onLanguage(redraw),
-      onPrivacy(redraw),
-      onInstall(redraw),
-      onPictures(redraw),
-      () => window.removeEventListener('hashchange', away),
-      () => window.removeEventListener('to-size', redraw),
-    ];
+    this.offs = [onLanguage(redraw), onPrivacy(redraw), onInstall(redraw), () => window.removeEventListener('hashchange', away), () => window.removeEventListener('to-size', redraw)];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -277,14 +269,6 @@ export class ToDrawer extends LitElement {
                   <input type="checkbox" role="switch" .checked=${keeping()} @change=${(e: Event) => void this.togglePrivate(e)} />
                   <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences and the documents you open stay here. Turn off to forget all of it.') : t('This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.')}</small></span>
                 </label>
-                ${
-                  keeping()
-                    ? html`<label class="to-switch to-pictures-switch">
-                      <input type="checkbox" role="switch" .checked=${alwaysPictures()} @change=${(e: Event) => setAlwaysPictures((e.target as HTMLInputElement).checked)} />
-                      <span class="to-switch-words"><b>${t('Always show pictures from the web')}</b><small>${t('Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.')}</small></span>
-                    </label>`
-                    : nothing
-                }
               </section>
               <section class="to-drawer-section to-drawer-prefs">
                 <label class="to-field">${icon(theme() === 'dark' ? UI.moon : theme() === 'light' ? UI.sun : UI.auto, 18)}<span>${t('Theme')}</span>
@@ -312,7 +296,7 @@ export class ToDrawer extends LitElement {
     </dialog>
     <to-privacy></to-privacy>
     ${this.templatesOf ? html`<to-templates class="to-drawer-templates" bare .app=${this.templatesOf}></to-templates>` : nothing}
-    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.')}</p><p class="to-hint">${t('Private, the default:')} ${t('This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.')} ${t('Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><button type="button" class="to-about-threats" @click=${() => this.showLimits()}>${t('What this protects against, and what it does not')}</button></p><section class="to-about-limits" aria-labelledby="to-about-limits-h"><h3 id="to-about-limits-h" tabindex="-1">${t('What it does not protect against')}</h3><ul class="to-hint">${limits().map((s) => html`<li>${s}</li>`)}</ul></section>${
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.')}</p><p class="to-hint">${t('Private, the default:')} ${t('This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.')} ${t('Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><button type="button" class="to-about-threats" @click=${() => this.showLimits()}>${t('What this protects against, and what it does not')}</button></p><section class="to-about-limits" aria-labelledby="to-about-limits-h"><h3 id="to-about-limits-h" tabindex="-1">${t('What it does not protect against')}</h3><ul class="to-hint">${limits().map((s) => html`<li>${s}</li>`)}</ul></section>${
       this.version
         ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
         : nothing

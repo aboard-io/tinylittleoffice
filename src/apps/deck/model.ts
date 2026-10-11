@@ -6,8 +6,8 @@
  *   - A bullet                       the words: items are bullets, paragraphs are prose
  *     - Under it
  *   |                                on a two-column slide, where the right column starts
- *   ```sheet                         another document shown on the slide (or a table, a picture, a web
- *   > Say this first                 address alone); speaker notes, never on the slide
+ *   ```sheet                         another document shown on the slide (or a table)
+ *   > Say this first                 speaker notes, never on the slide
  *
  * The header holds the deck's settings: "theme: midnight", "transition: cut", "color: red" (every icon),
  * "qr: no" (no closing QR slide), and "format: zine" — a printed thing (zine, booklet, brochure, comic,
@@ -15,7 +15,7 @@
  * and "pages: 12". A slide records its block span, so the editor puts <to-text> straight over the blocks
  * and every command here is a list of the kernel's operations. (Ported from the old tree's deckmodel.ts.)
  */
-import { apply, isEmbed, isText, notesOf, pages, parse, plainText, write, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, isInnerDoc, isText, notesOf, pages, parse, plainText, write, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { t } from '../../kit/i18n.ts';
 import { ICON_COLORS, THEMES, themeOf } from './theme.ts';
 
@@ -80,7 +80,7 @@ export interface Slide {
   pipe: number;
   items: Item[];
   right: Item[];
-  /** The block that is a document shown on the slide (a fence, a table, a picture, a web address alone), -1 for none. */
+  /** The block that is a document shown on the slide (a fence named for an app, a table), -1 for none. */
   sub: number;
   /** The speaker notes: the quote blocks at the slide's end, [from, to). */
   notes: [number, number];
@@ -103,8 +103,8 @@ export interface Settings {
 }
 
 const PIPE = (b: Block) => b.k === 'p' && b.runs.length === 1 && b.runs[0].t === '|';
-/** A block that is another document on the slide: a fence named for an app, a table, a picture, a web address alone. */
-const isSub = (b: Block) => b.k === 'table' || isEmbed(b);
+/** A block that is another document on the slide: a fence named for an app, or a table. */
+const isSub = (b: Block) => b.k === 'table' || isInnerDoc(b);
 
 /** The headline's runs as the icon and the words: ":rocket: Headline" is the icon rocket, the words "Headline". */
 export function splitHeadline(runs: Run[]): { icon: string; title: Run[] } {
@@ -128,7 +128,7 @@ function itemsOf(blocks: Block[], from: number, to: number): Item[] {
     const b = blocks[i];
     n = b.k === 'li' && b.ord ? n + 1 : 0;
     if (b.k === 'li') out.push({ runs: b.runs, depth: Math.min(3, b.depth), ...(b.ord ? { n } : {}) });
-    else if (b.k === 'p' && !PIPE(b) && !isEmbed(b)) out.push({ runs: b.runs, depth: 0, para: true });
+    else if (b.k === 'p' && !PIPE(b)) out.push({ runs: b.runs, depth: 0, para: true });
     else if (b.k === 'h') out.push({ runs: b.runs, depth: 0, para: true });
     else if (b.k === 'fence' && !b.lang) out.push(...b.body.split('\n').map((l) => ({ runs: [{ t: l }], depth: 0, para: true })));
   }
@@ -306,9 +306,6 @@ export function setSub(s: Slide, block: Block | null): Op[] {
   if (s.sub >= 0) return [{ op: 'splice', at: s.sub, n: 1, blocks: block ? [block] : [] }];
   return block ? [{ op: 'splice', at: s.words[1], n: 0, blocks: [block] }] : [];
 }
-
-/** A paragraph that is a thing from the web (the kernel's), which takes the slide. */
-export { webBlock } from '../../doc/index.ts';
 
 /**
  * Markdown as a person or a model loosely writes it: with no rules between them, each heading starts a

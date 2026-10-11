@@ -24,7 +24,6 @@ const words = (o: O) => !!o.itemAt(o.sel) && !o.itemAt(o.sel)!.doc;
 
 export const INSERTS: Command<O>[] = [
   cmd('insert.item', 'Item', { icon: Plus, where: ['menu:insert'], does: (o) => o.addItem() }),
-  cmd('insert.web', 'Web Embed…', { icon: UI.globe, where: ['menu:insert'], does: (o) => o.insertWeb() }),
   cmd('insert.doc', 'Tiny Little Office Doc…', { icon: UI.insert, where: ['menu:insert'], does: (o) => o.insertLinked() }),
   ...apps()
     .filter((a) => a.id !== 'outline')

@@ -54,12 +54,12 @@ export default {
   'Tiny Little Office': 'Winzig Kleines Büro',
   'About Tiny Little Office': 'Über Winzig Kleines Büro',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Ein winziges Office-Paket, das ganz in der URL lebt. Kein Server, keine Konten, kein Speichern: Der Link ist das Dokument.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nichts, was du schreibst, verlässt deinen Browser, solange du den Link nicht teilst. Zwei Dinge fragen von sich aus das Web: die Karte einer Reise, deren Bilder von OpenStreetMap kommen, solange sie angezeigt wird, und ein Bild von einer Seite auf der vertrauenswürdigen Liste, das über den Bilderdienst dieser Seite geholt wird, wenn sein Dokument geöffnet wird.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Nichts, was du schreibst, verlässt deinen Browser, solange du den Link nicht teilst. Ein Ding fragt von sich aus das Web: die Karte einer Reise, deren Bilder von OpenStreetMap kommen, solange sie angezeigt wird.',
   'Private, the default:': 'Privat, die Voreinstellung:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '„Gespeichert“, der Schalter in diesem Menü, behält deine Einstellungen und die Dokumente, die du öffnest, auf diesem Gerät.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'Ein Dokument kann ein Passwort haben: Es wird hier im Browser verschlüsselt, und der Link enthält nur Geheimtext. Es lässt sich mit einem Schlüssel signieren, den dieser Browser erzeugt, sodass jeder prüfen kann, dass es genau das ist, was dieser Schlüssel signiert hat; der Name, unter dem signiert wurde, ist nur das Wort der Person, die signiert. „Datenschutz und Schlüssel“ in diesem Menü zeigt, was dieses Gerät enthält.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Winzig Kleines Büro Menü',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -72,14 +72,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Jemand hat diesen Link ins Dokument geschrieben. Der angezeigte Text eines Links muss nicht zum Ziel passen. Geh nur weiter, wenn du dem Ziel vertraust.',
   'Go': 'Los',
   'Links of this kind do not open here.': 'Links dieser Art öffnen sich hier nicht.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Ein Bild von {host}',
-  'Show pictures from the web': 'Bilder aus dem Web zeigen',
-  'Showing them tells their site this document was opened, and when.': 'Sie zu zeigen verrät ihrer Seite, dass dieses Dokument geöffnet wurde, und wann.',
-  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Ein Bild aus dem Web wartet|# Bilder aus dem Web warten} darauf, angefordert zu werden.',
-  'Always show pictures from the web': 'Bilder aus dem Web immer zeigen',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Ausgeschaltet wartet ein Bild, das eine andere Seite hält, auf deine Anfrage: Es zu laden verrät dieser Seite, wer liest.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Ein Bild, das ein Dokument über seine Adresse auf einer anderen Seite hält, wird erst geladen, wenn du es willst: Das Laden würde dieser Seite verraten, wer liest und wann. Ein Link, der Winzig Kleines Büro verlässt, zeigt sein Ziel und fragt, bevor er sich öffnet.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Ein Link, der Winzig Kleines Büro verlässt, zeigt sein Ziel und fragt, bevor er sich öffnet.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Keine Analysen, keine Fehlerberichte, keine Schriften oder Skripte von anderswo: Die Seite fragt das Web nach nichts, was du nicht ausgelöst hast.',
   'What leaves your browser': 'Was deinen Browser verlässt',
   'What this protects against, and what it does not': 'Wovor das schützt und wovor nicht',
@@ -365,12 +358,9 @@ export default {
   'A narrow headline, two columns': 'Eine schmale Schlagzeile, zwei Spalten',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Seitenumbruch',
-  'Address of the picture': 'Adresse des Bildes',
-  'Address of a video, a post, a song, a place, a page': 'Adresse eines Videos, eines Beitrags, eines Songs, eines Ortes, einer Seite',
   'OK': 'OK', // same
   'This card': 'Diese Karte',
   'Open in {app}': 'In {app} öffnen',
-  'Change the address…': 'Adresse ändern …',
   'Signatures': 'Signaturen',
   'No one has signed yet.': 'Noch niemand hat signiert.',
   'Locked: worked out for you': 'Gesperrt: für dich ausgerechnet',
@@ -443,36 +433,13 @@ export default {
   'Terms of service': 'Geschäftsbedingungen',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Die Bedingungen eines kleinen Betriebs in einfachen Worten: Buchung, Preise, Schlüssel, was wenn, Ende.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'Aus dem Web',
-  'Read on {provider}': 'Auf {provider} lesen',
-  'Spotify album': 'Spotify-Album',
-  'Spotify episode': 'Spotify-Folge',
-  'Spotify playlist': 'Spotify-Playlist',
-  'Spotify show': 'Spotify-Sendung',
-  'Spotify track': 'Spotify-Titel',
-  '{provider} video': '{provider}-Video',
-  'Open on {provider}': 'Auf {provider} öffnen',
-  'Play (loads it from {provider})': 'Abspielen (lädt von {provider})',
-  'Show (loads it from {provider})': 'Anzeigen (lädt von {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Ein Tiny-Little-Office-Link',
-  'A film, a sound, a PDF or a picture': 'Ein Film, ein Ton, eine PDF-Datei oder ein Bild',
-  'No picture came from this address. Check it, or try another.': 'Von dieser Adresse kam kein Bild. Prüfe sie oder versuch eine andere.',
-  'Not one of these: it goes in as a link to the page.': 'Nichts davon: Es wird als Link zur Seite eingefügt.',
   'Opening the short link…': 'Öffne den Kurzlink …',
-  'Paste the address of a picture on the web: the picture shows here.': 'Füge die Adresse eines Bildes im Web ein: Das Bild erscheint hier.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Füge den Link eines anderen Winzig-Kleines-Büro-Dokuments ein, lang oder kurz: Seine erste Seite erscheint hier.',
   'This is not a Tiny Little Office link, or it has expired.': 'Das ist kein Tiny-Little-Office-Link, oder er ist abgelaufen.',
   'Tiny Little Office Doc': 'Winzig-Kleines-Büro-Dokument',
   'Tiny Little Office Doc…': 'Winzig-Kleines-Büro-Dokument…',
-  'Web Embed': 'Web-Einbettung',
-  'Web Embed…': 'Web-Einbettung …',
-  'Web Picture': 'Web-Bild',
-  'Web Picture…': 'Web-Bild …',
-  'What it can show': 'Was sich zeigen lässt',
-  'Words for anyone who cannot see it (optional)': 'Worte für alle, die es nicht sehen können (optional)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Ein neues Dokument',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -908,7 +875,6 @@ export default {
   'Everything': 'Alles',
   'Fold': 'Zuklappen',
   'Fold all': 'Alle zuklappen',
-  'From the web: {url}': 'Aus dem Web: {url}',
   'Item': 'Eintrag',
   'Item {n}': 'Eintrag {n}',
   'Kind of line': 'Art der Linie',

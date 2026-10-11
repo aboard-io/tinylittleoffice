@@ -14,8 +14,7 @@
  *
  * An item's words are rich text. An item may say how it joins its parent: {.from} an arrow from the parent,
  * {.to} an arrow to it, {.both}, and label="..." names the line. Another document under an item is a fence
- * that says its depth; an item that is one web address is a thing from the web. Edges ("~ A -> B: name") join
- * any two items by their plain words.
+ * that says its depth. Edges ("~ A -> B: name") join any two items by their plain words.
  *
  * Read leniently: a text of headings and paragraphs reads as a tree too (a heading is an item with what
  * follows nested beneath it; `listify` is the one splice that makes such a text an outline). Every command
@@ -65,7 +64,7 @@ export interface Item {
   depth: number;
   /** The words; none for a document. */
   runs: Run[];
-  /** Another document under this item, as a ref: "<app>\n<its text>"; "web\n<address>" for a thing from the web. */
+  /** Another document under this item, as a ref: "<app>\n<its text>". */
   doc?: string;
   /** The line to the parent: '->' from the parent to this, '<-' back to it, '<->' both; absent, a plain line. */
   dir?: Dir;
@@ -98,9 +97,6 @@ export interface OutlineView {
 const JOIN: Record<string, Dir> = { from: '->', to: '<-', both: '<->' };
 const CLASS: Partial<Record<Dir, string>> = { '->': 'from', '<-': 'to', '<->': 'both' };
 
-/** The address an item is, when its words are one web address and nothing else. */
-export const webAddress = (runs: Run[]): string | null => (runs.length === 1 && !isAtomic(runs[0]) && /^https?:\/\/\S+$/.test(runs[0].t.trim()) ? runs[0].t.trim() : null);
-
 /** A name as an edge can hold it: no arrow or colon inside to end it early. */
 export const edgeName = (s: string): string =>
   s
@@ -130,8 +126,6 @@ export function readOutline(doc: Doc): OutlineView {
   doc.blocks.forEach((b, at) => {
     switch (b.k) {
       case 'li': {
-        const url = webAddress(b.runs);
-        if (url) return add({ at, depth: pad + b.depth, runs: [], doc: `web\n${url}` });
         const dir = b.a?.cls?.map((c) => JOIN[c]).find(Boolean);
         const label = attr(b, 'label');
         return add({ at, depth: pad + b.depth, runs: b.runs, ...(dir ? { dir } : {}), ...(label ? { label } : {}), ...(b.ord ? { ord: true as const } : {}) });
@@ -152,12 +146,8 @@ export function readOutline(doc: Doc): OutlineView {
       case 'p':
       case 'quote': {
         loose = true;
-        const url = webAddress(b.runs);
-        return add(url ? { at, depth: pad, runs: [], doc: `web\n${url}` } : { at, depth: pad, runs: b.runs });
+        return add({ at, depth: pad, runs: b.runs });
       }
-      case 'img':
-        loose = true;
-        return add({ at, depth: pad, runs: [], doc: `web\n${b.url}` });
       case 'table':
         loose = true;
         return add({ at, depth: pad, runs: [], doc: `sheet\n${write({ head: {}, blocks: [b] })}` });
@@ -181,8 +171,6 @@ export function itemBlock(depth: number, runs: Run[], dir?: Dir, label?: string,
 }
 /** A fence holding another document under an item, saying its depth. */
 export const docBlock = (depth: number, ref: string): Block => ({ ...refFence(ref), a: { kv: { depth: String(depth) } } });
-/** The item that is a thing from the web: its address as its words. */
-export const webBlock = (depth: number, url: string): Block => ({ k: 'li', depth, runs: [{ t: url.trim() }] });
 
 /** The one splice that makes loose words an outline: headings and paragraphs become items (a paragraph's lines each one), edges go last. Nothing for an outline already. */
 export function listify(doc: Doc): Op[] {
@@ -191,7 +179,7 @@ export function listify(doc: Doc): Op[] {
   const blocks: Block[] = [];
   for (const it of v.items) {
     if (it.doc) {
-      blocks.push(it.doc.startsWith('web\n') ? webBlock(it.depth, it.doc.slice(4)) : docBlock(it.depth, it.doc));
+      blocks.push(docBlock(it.depth, it.doc));
       continue;
     }
     // A line of a paragraph is an item of its own; marks never cross a line, so the runs cut cleanly.
@@ -503,7 +491,7 @@ export function insertDoc(doc: Doc, v: OutlineView, after: number, ref: string):
   const i = indexAt(v, after);
   const at = i < 0 ? itemsEnd(doc, v) : family(doc, after, v.depths);
   const depth = i < 0 ? 0 : v.items[i].depth;
-  return { ops: [{ op: 'splice', at, n: 0, blocks: [ref.startsWith('web\n') ? webBlock(depth, ref.slice(4)) : docBlock(depth, ref)] }], at };
+  return { ops: [{ op: 'splice', at, n: 0, blocks: [docBlock(depth, ref)] }], at };
 }
 /** The document under an item replaced by another text of the same app. */
 export function setDoc(doc: Doc, at: number, ref: string): Op[] {
@@ -552,12 +540,11 @@ export const liveItems = (v: OutlineView): Item[] => v.items.filter((it) => plai
 /** The joins whose two ends are items of the outline. */
 export const liveLinks = (v: OutlineView): Link[] => v.links.filter((l) => l.live);
 
-/** What an item holds in words, for a card or a listing: the app's name and the first line of the document (a thing from the web: its address). */
+/** What an item holds in words, for a card or a listing: the app's name and the first line of the document. */
 export function docGist(ref: string): { app: string; gist: string } {
   const nl = ref.indexOf('\n');
   const app = nl < 0 ? ref : ref.slice(0, nl);
   const body = nl < 0 ? '' : ref.slice(nl + 1);
-  if (app === 'web') return { app, gist: body.trim() };
   // A document locked with a password: nothing of it can be read but its app (kit/locked.ts).
   if (app === 'locked') return { app, gist: '' };
   // A document's title, where it has one; else its first line of words.
@@ -640,7 +627,7 @@ export function outlineToDeck(v: OutlineView, head: Doc['head'] = {}): string {
   const slides: Block[][] = [];
   const kids = (i: number) => live.slice(i + 1, familyEnd(live, i)).filter((it) => it.depth === live[i].depth + 1 && !it.doc);
   live.forEach((it, i) => {
-    if (it.doc) return void slides.push([it.doc.startsWith('web\n') ? { k: 'p', runs: [{ t: it.doc.slice(4) }] } : refFence(it.doc)]);
+    if (it.doc) return void slides.push([refFence(it.doc)]);
     if (!hasChildren(live, i)) return;
     // The one root is the title slide, and a title slide is the title alone: its children are the slides that follow (Paul, 2026-10-11).
     const title = it.depth === 0 && roots.length === 1 && i === 0;

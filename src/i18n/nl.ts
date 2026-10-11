@@ -56,12 +56,12 @@ export default {
   'Tiny Little Office': 'Piepklein Kantoortje',
   'About Tiny Little Office': 'Over Piepklein Kantoortje',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Een piepklein kantoorpakket dat helemaal in de URL leeft. Geen server, geen accounts, niets opslaan: de link is het document.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Niets wat je schrijft verlaat je browser, tenzij je de link deelt. Twee dingen roepen zelf het web aan: de kaart van een reis, waarvan de kaartbeelden van OpenStreetMap komen zolang de kaart zichtbaar is, en een afbeelding van een site op de vertrouwde lijst, opgehaald via de afbeeldingendienst van deze site wanneer het document opengaat.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Niets wat je schrijft verlaat je browser, tenzij je de link deelt. Eén ding roept zelf het web aan: de kaart van een reis, waarvan de kaartbeelden van OpenStreetMap komen zolang de kaart zichtbaar is.',
   'Private, the default:': 'Privé, de standaard:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Opgeslagen, de schakelaar in dit menu, bewaart je instellingen en de documenten die je opent op dit apparaat.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'Een document kan een wachtwoord hebben: het wordt hier in de browser versleuteld en de link bevat alleen versleutelde tekst. Het kan worden ondertekend met een sleutel die deze browser maakt, zodat iedereen kan nagaan dat het precies is wat die sleutel ondertekende; de naam waaronder is ondertekend is alleen het woord van wie ondertekent. Privacy en sleutels, in dit menu, laat zien wat dit apparaat bewaart.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Piepklein Kantoortje-menu',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -74,14 +74,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Iemand heeft deze link in het document gezet. De woorden die bij een link staan hoeven niet overeen te komen met waar hij heen gaat. Ga alleen als je vertrouwt waar hij naartoe leidt.',
   'Go': 'Ga',
   'Links of this kind do not open here.': 'Links van dit soort openen hier niet.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Een afbeelding van {host}',
-  'Show pictures from the web': 'Afbeeldingen van het web tonen',
-  'Showing them tells their site this document was opened, and when.': 'Ze tonen vertelt hun site dat dit document is geopend, en wanneer.',
-  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Een afbeelding van het web wacht|# afbeeldingen van het web wachten} tot je erom vraagt.',
-  'Always show pictures from the web': 'Afbeeldingen van het web altijd tonen',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Uit: een afbeelding op een andere site wacht tot je erom vraagt, want ophalen laat die site weten wie er leest.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Een afbeelding die een document via het adres op een andere site bewaart, wordt pas opgehaald als je erom vraagt: ophalen laat die site weten wie er leest, en wanneer. Een link die Piepklein Kantoortje verlaat toont waar hij heen gaat en vraagt het eerst, voordat hij opent.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Een link die Piepklein Kantoortje verlaat toont waar hij heen gaat en vraagt het eerst, voordat hij opent.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Geen analyse, geen foutrapporten, geen lettertypen of scripts van elders: de site vraagt het web om niets wat jij niet hebt veroorzaakt.',
   'What leaves your browser': 'Wat je browser verlaat',
   'What this protects against, and what it does not': 'Waartegen dit beschermt, en waartegen niet',
@@ -367,12 +360,9 @@ export default {
   'A narrow headline, two columns': 'Een smalle kop, twee kolommen',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Pagina-einde',
-  'Address of the picture': 'Adres van de afbeelding',
-  'Address of a video, a post, a song, a place, a page': 'Adres van een video, een bericht, een nummer, een plek, een pagina',
   'OK': 'OK', // same
   'This card': 'Deze kaart',
   'Open in {app}': 'Openen in {app}',
-  'Change the address…': 'Het adres wijzigen…',
   'Signatures': 'Handtekeningen',
   'No one has signed yet.': 'Nog niemand heeft ondertekend.',
   'Locked: worked out for you': 'Vergrendeld: voor je uitgerekend',
@@ -445,36 +435,13 @@ export default {
   'Terms of service': 'Algemene voorwaarden',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'De voorwaarden van een klein bedrijf in gewone woorden: boeken, prijzen, sleutels, wat als, beëindigen.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'Van het web',
-  'Read on {provider}': 'Lezen op {provider}',
-  'Spotify album': 'Spotify-album',
-  'Spotify episode': 'Spotify-aflevering',
-  'Spotify playlist': 'Spotify-afspeellijst',
-  'Spotify show': 'Spotify-programma',
-  'Spotify track': 'Spotify-nummer',
-  '{provider} video': '{provider}-video',
-  'Open on {provider}': 'Openen op {provider}',
-  'Play (loads it from {provider})': 'Afspelen (laadt van {provider})',
-  'Show (loads it from {provider})': 'Tonen (laadt van {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Een Piepklein Kantoortje-link',
-  'A film, a sound, a PDF or a picture': 'Een film, een geluid, een pdf of een afbeelding',
-  'No picture came from this address. Check it, or try another.': 'Van dit adres kwam geen afbeelding. Controleer het, of probeer een ander.',
-  'Not one of these: it goes in as a link to the page.': 'Niets hiervan: het komt erin als link naar de pagina.',
   'Opening the short link…': 'De korte link openen…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Plak het adres van een afbeelding op het web: de afbeelding verschijnt hier.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Plak de link van een ander Piepklein Kantoortje-document, lang of kort: de eerste pagina verschijnt hier.',
   'This is not a Tiny Little Office link, or it has expired.': 'Dit is geen Piepklein Kantoortje-link, of hij is verlopen.',
   'Tiny Little Office Doc': 'Piepklein Kantoortje-document',
   'Tiny Little Office Doc…': 'Piepklein Kantoortje-document…',
-  'Web Embed': 'Webinsluiting',
-  'Web Embed…': 'Webinsluiting…',
-  'Web Picture': 'Webafbeelding',
-  'Web Picture…': 'Webafbeelding…',
-  'What it can show': 'Wat het kan tonen',
-  'Words for anyone who cannot see it (optional)': 'Woorden voor wie het niet kan zien (optioneel)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Een nieuw document',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -910,7 +877,6 @@ export default {
   'Everything': 'Alles',
   'Fold': 'Dicht',
   'Fold all': 'Alles dicht',
-  'From the web: {url}': 'Van het web: {url}',
   'Item': 'Item', // same
   'Item {n}': 'Item {n}', // same
   'Kind of line': 'Soort lijn',

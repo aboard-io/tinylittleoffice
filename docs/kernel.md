@@ -17,7 +17,7 @@ The short version. Today `src/lib/tlo.ts` already holds the kernel in embryo: `T
 
 | file | holds |
 |---|---|
-| `src/doc/model.ts` | the types below; `plainText`, `hasClass`, `attr`, `pages`, `sections`, `isEmbed`, `blankDoc` |
+| `src/doc/model.ts` | the types below; `plainText`, `hasClass`, `attr`, `pages`, `sections`, `isInnerDoc`, `blankDoc` |
 | `src/doc/tlo.ts` | `parse`, `write`, `writeBlock`, `splitHead`, `takeHead`, `withHead`; the inline codec `parseInline`, `writeInline`, `escapeInline`, `balanceNote`; `refFence`, `fenceRef`; `column`, `columnText`, `columnsOf`, `amountOf` |
 | `src/doc/ops.ts` | `Op`, `apply`, `invert`, and the composed edits (`splitBlock`, `joinBlocks`, `family`, `shiftFamily`, `moveFamily`, `placeFamily`, `removeItem`) |
 | `src/doc/notes.ts` | `foldNotes`, `notesOf`, `noteRuns`, `noteNumbers`, `markNotes`, `referenceNotes`, `listNumbers`, `linkify`, `runLinks`, `linkTarget`, `linkable` |
@@ -51,8 +51,7 @@ export type Block =
   | { k: 'hr'; a?: Attrs }                                               // a break: the next slide, page or card
   | { k: 'table'; cols: Column[]; rows: string[][]; a?: Attrs }          // cells are raw strings: formulas, numbers, words
   | { k: 'fence'; lang: string; body: string; a?: Attrs }                // lang names an app: another document; else text kept as written
-  | { k: 'edge'; from: string; to: string; dir: Dir; label?: string; a?: Attrs }
-  | { k: 'img'; alt: string; url: string; a?: Attrs };
+  | { k: 'edge'; from: string; to: string; dir: Dir; label?: string; a?: Attrs };
 
 export type TextBlock = Extract<Block, { runs: Run[] }>;                 // h, p, li, quote
 
@@ -86,7 +85,7 @@ without a signature is no signature. Checked against the text as it is, a signat
 key signed it and the text has changed since) or invalid. A document under a password is not a head field: its whole
 payload is sealed (`E…`, `src/kit/crypt.ts`), so nothing of it, the title included, is readable without the password.
 
-Nine block kinds, as today; the two changes are `runs` in place of `text` on the four text kinds and `cols: Column[]` in place of `head: string[]` on tables. There is no `embed` kind: an embedded document is a `fence` whose `lang` is an app id (as now, `refFence`/`fenceRef`); a thing from the web is a `p` whose only run is its address, or an `img` (as `richtext.parseDoc` and `deckmodel.slideOf` already decide with `embedOf`). `isEmbed(b)` in model.ts names that rule once. A lock and a chart are not fields of the table block: they ride on the head for a sheet document and on the table's attrs anywhere else (see `tableAt` in §5), which is exactly what the format does today and keeps every sheet example byte-identical.
+Eight block kinds; the two changes are `runs` in place of `text` on the four text kinds and `cols: Column[]` in place of `head: string[]` on tables. There is no `embed` kind: an embedded document is a `fence` whose `lang` is an app id (as now, `refFence`/`fenceRef`), and `isInnerDoc(b)` in model.ts names that rule once. There is no picture kind and no thing from the web (round seventeen, Paul, 2026-10-11: pictures and embeds are gone): a web address alone is a `p` of words, a link alone on a line is a `p` with a link, and `![alt](address)` reads as the words `!` and a link whose words are the alt. A lock and a chart are not fields of the table block: they ride on the head for a sheet document and on the table's attrs anywhere else (see `tableAt` in §5), which is exactly what the format does today and keeps every sheet example byte-identical.
 
 Why runs in the model rather than text with runs derived: every view already parses inline on each draw; the editor's selection must be a run position; and footnotes/icons are run-level things the kernel must know. Why cells stay strings: the one inline construct that a canonical writer would alter (`*` and `_` in `=passers_by*buy_rate/100`) lives in cells, and the formula engine needs the raw formula. A `rich` column is parsed by its view.
 
@@ -94,10 +93,10 @@ Why runs in the model rather than text with runs derived: every view already par
 
 | app | blocks | head | cannot be expressed today (decide: drop, or add) |
 |---|---|---|---|
-| write | `h` (level 1 `.title`; 1, 2), `p` (`<br>` for an empty one; a lone web address, or a lone link `[title](address)`, is a web embed (`webOf`); `.center/.right/.justify`), `li` (ul/ol, depth ≤ 3), `fence` (another document), `table` (an embedded sheet), `img` (web picture) | `paper` | `li.done` is folded into the words as a `☐`/`☑` glyph by `richtext.parseDoc` (lossy: `- [x] a` is written back as `- ☑ a`); `quote` and `edge` are flattened to `p`; `h3+` becomes `h2`; a fence with no app (` ```js `) becomes an embed of an unknown app. The kernel keeps all four; Write's view decides what to draw. |
+| write | `h` (level 1 `.title`; 1, 2), `p` (`<br>` for an empty one; `.center/.right/.justify`), `li` (ul/ol, depth ≤ 3), `fence` (another document), `table` (an embedded sheet) | `paper` | `li.done` is folded into the words as a `☐`/`☑` glyph by `richtext.parseDoc` (lossy: `- [x] a` is written back as `- ☑ a`); `quote` and `edge` are flattened to `p`; `h3+` becomes `h2`; a fence with no app (` ```js `) becomes an embed of an unknown app. The kernel keeps all four; Write's view decides what to draw. |
 | contract | write's blocks + a trailing `fence` `signatures` holding a `table` Name\|Key\|Signature | — | — |
 | outline, mind, family, org | `li` (depth; `.to/.from/.both`, `label=`), `fence` (`{depth=N}`), `edge` | — | an item is one line (`\n` → space); a fence under an item needs `depth=` because a list restarts after it (no nesting of blocks); org's `Name \| Role` is a convention in the run text |
-| deck, zine, booklet, brochure, poster, badges, comic | `hr` between pages; `h` level 2 (`.title/.two/.icon`; the icon a leading `ic` run), `li` (bullets, `ord` steps), `p` (prose on print pages; `\|` alone is the column break; a web address or a titled link alone is the slide's sub-document), `quote` (speaker notes), `fence`/`table`(+`{chart=}`)/`img`(TLO link) as the sub-document | `theme transition color qr`; `sides pages` | words and a sub-document cannot show together (the sub takes the slide); comic panel `said \| caption` is a convention |
+| deck, zine, booklet, brochure, poster, badges, comic | `hr` between pages; `h` level 2 (`.title/.two/.icon`; the icon a leading `ic` run), `li` (bullets, `ord` steps), `p` (prose on print pages; `\|` alone is the column break), `quote` (speaker notes), `fence`/`table`(+`{chart=}`) as the sub-document | `theme transition color qr`; `sides pages` | words and a sub-document cannot show together (the sub takes the slide); comic panel `said \| caption` is a convention |
 | sheet | one `table` | `chart lock` | rows past 1000 and columns past Z are dropped (a limit, not a format) |
 | draw, pixel mode | one `p`, a line a row | `grid` (8, 16, 32, 64); `tile` (kit/tile.ts) on any page | — |
 | todo | `li` with `done`, `.star`, `due=` | — | — |
@@ -106,7 +105,7 @@ Why runs in the model rather than text with runs derived: every view already par
 | trip | `table` Place\|Lat:number\|Lon:number\|Note | `units route` | — |
 | cal | `li` `when: label` with `color= every= times= until=` | `zone`, colour names | *when* is text inside the run, not a field |
 | invoice | `table` What\|Qty:number\|Units\|Price:money, `p` notes | `from to number date due tax currency terms` | the sums are not in the document (see §5) |
-| site, links | `h` 1 (pages), `h` 2 (sections), `li` (`:icon: Head \| detail` cards; links' small links), `quote` (`Label \| url` buttons), `img`/`p`-address (pictures), `p` `:icon:` (big icon), `table` Name\|Price:money\|About\|Image (shop), `fence` | `theme currency orders` | card and button fields are `\|` conventions in a run |
+| site, links | `h` 1 (pages), `h` 2 (sections), `li` (`:icon: Head \| detail` cards; links' small links), `quote` (`Label \| url` buttons), `p` `:icon:` (big icon), `table` Name\|Price:money\|About (shop), `fence` | `theme currency orders` | card and button fields are `\|` conventions in a run |
 | lanes, timeline, seating, venn, net, spinner, santa, wordsearch, split | `h` 1 title, `li` `Key: words` (or `Set: a, b`), `edge`, `table` (split's payments) | `between` | the `Key:` and comma-list conventions are text, read by `lines.ts` patterns |
 | draw, anim | `table` Kind\|X\|Y\|W\|H\|Style\|Label[\|Points]; anim adds `table` Shape\|Keys | `alt`; `frames fps` | — |
 | calc | `p` (tape, a line each) or `li` (`- key = value`) | `mode` | money modes are a sheet in disguise (§5) |
@@ -273,7 +272,7 @@ Every `beforeinput` is `preventDefault()`ed and turned into ops, except while co
 
 ### Rendering and reconciliation
 
-Lit `repeat` keyed by block object identity (a `WeakMap<Block, number>` hands out keys). A block renders as one element: `h1.title`/`h1`/`h2`/`p`/`li` (lists are flat `li`s with `style="--d"`; the `ul`/`ol` wrappers of today's `blocksHtml` are not needed in the editor, which draws its own bullets and numbers via `listNumbers`), `blockquote`, `to-embed` (fence), `figure` (img). Inside, runs render to `<b>/<i>/<u>/<s>/<mark>/<a>` nesting as `markedHtml`, atomic runs to `<span class=ic data-icon contenteditable=false role=img>` (the icon's SVG inside; a name outside the starter set after the one lazy load, a name nothing has as its name in small type), `<sup class=fn data-fn tabindex=0 contenteditable=false>`, `'\n'` to `<br>`. Only blocks whose identity changed re-render (the ops say which: a `text` op touches one block), and a changed block is re-rendered whole — no run-level diffing. After render, the model `sel` is written to the DOM selection (`Pos → Range`: walk the block's text nodes, counting atomic elements as 1). `selectionchange` maps back (`Range → Pos`) and fires `text-select`, from which the host's toolbar sets its pressed states (today's `queryCommandState` goes).
+Lit `repeat` keyed by block object identity (a `WeakMap<Block, number>` hands out keys). A block renders as one element: `h1.title`/`h1`/`h2`/`p`/`li` (lists are flat `li`s with `style="--d"`; the `ul`/`ol` wrappers of today's `blocksHtml` are not needed in the editor, which draws its own bullets and numbers via `listNumbers`), `blockquote`, a card (fence, table, rule, edge). Inside, runs render to `<b>/<i>/<u>/<s>/<mark>/<a>` nesting as `markedHtml`, atomic runs to `<span class=ic data-icon contenteditable=false role=img>` (the icon's SVG inside; a name outside the starter set after the one lazy load, a name nothing has as its name in small type), `<sup class=fn data-fn tabindex=0 contenteditable=false>`, `'\n'` to `<br>`. Only blocks whose identity changed re-render (the ops say which: a `text` op touches one block), and a changed block is re-rendered whole — no run-level diffing. After render, the model `sel` is written to the DOM selection (`Pos → Range`: walk the block's text nodes, counting atomic elements as 1). `selectionchange` maps back (`Range → Pos`) and fires `text-select`, from which the host's toolbar sets its pressed states (today's `queryCommandState` goes).
 
 ### IME and composition
 
@@ -289,7 +288,7 @@ The kernel supplies `invert`. The shell's `History` keeps the document as text (
 
 ### Atomic runs and blocks
 
-Footnote marks, icons and embeds are `contenteditable=false`; a mark is `tabindex=0` and, on click, Enter or Space, says `text-note` ({block, nth}) for the host to open its note; Backspace/Delete beside or on one removes it (one `text` or `splice` op). A note's words are typed where the host draws them, at the foot (Write's endnotes, a slide's foot, under an outline): `<to-notes>` (kit/notes.ts) draws each note as a `line`-shaped `<to-text>` over `noteRuns(fn)` and tells the host `note-change` (one `text` op replacing that mark's run), `note-back` and `note-remove`; only a host with `notes` is offered the Footnote command. (2026-10-10: the note popover is gone, docs/editing.md §2.)
+Footnote marks, icons and cards are `contenteditable=false`; a mark is `tabindex=0` and, on click, Enter or Space, says `text-note` ({block, nth}) for the host to open its note; Backspace/Delete beside or on one removes it (one `text` or `splice` op). A note's words are typed where the host draws them, at the foot (Write's endnotes, a slide's foot, under an outline): `<to-notes>` (kit/notes.ts) draws each note as a `line`-shaped `<to-text>` over `noteRuns(fn)` and tells the host `note-change` (one `text` op replacing that mark's run), `note-back` and `note-remove`; only a host with `notes` is offered the Footnote command. (2026-10-10: the note popover is gone, docs/editing.md §2.)
 
 ### Phones (iOS Safari)
 

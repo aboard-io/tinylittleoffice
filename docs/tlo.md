@@ -38,7 +38,7 @@ document; it never parses text of its own.
 
 ## The model
 
-A document is a head and a list of blocks. Nine kinds of block:
+A document is a head and a list of blocks. Eight kinds of block:
 
 | Kind | Written | Notes |
 | --- | --- | --- |
@@ -50,12 +50,13 @@ A document is a head and a list of blocks. Nine kinds of block:
 | `table` | `Name | Price:money` / `--- | ---` / rows | Cells are raw strings (formulas start with `=`). Written without outer pipes. |
 | `fence` | ```` ```<lang> ```` … ```` ``` ```` | `lang` names an app: another document, its whole TLO text. Else text kept as written. |
 | `edge` | `~ A -> B: label` | A connection by the things' words (or `#id`): `->`, `<-`, `<->`, `--`. |
-| `img` | `![alt](address)` | A picture by its address. |
 
-Any block may end with attributes: `{#id .class key=value}` (classes before values). A web address alone on a
-line is a thing from the web, shown as a card that loads only when asked (`src/kit/embeds.ts`); a link alone on a line, `[The title](https://…)`, is the same with the title its author gave it, for a site the kit shows (a film, an article, a song: `src/kit/embeds.ts` says which); a link to any other site alone on a line stays words (`webOf` in `src/doc/model.ts`; Paul, 2026-10-11: "Plain link should stay words"). An
-address may hold one pair of brackets, as Wikipedia's and Commons' do (`…/Grand_Concourse_(Bronx)`); a lone
-bracket is written `%28` or `%29`.
+Any block may end with attributes: `{#id .class key=value}` (classes before values). A link is words, wherever
+it is: a web address alone on a line, or a link alone on a line, `[The title](https://…)`, is a paragraph like
+any other, and Markdown's picture line, `![alt](address)`, reads as the words `!` and a link whose words are
+the alt (Paul, 2026-10-11: pictures and embeds are gone). Nothing in a document is fetched from another site.
+An address may hold one pair of brackets, as Wikipedia's do (`…/Grand_Concourse_(Bronx)`); a lone bracket is
+written `%28` or `%29`.
 
 ### Column types
 
@@ -113,9 +114,8 @@ An item joins its parent plainly, or `{.from}`, `{.to}`, `{.both}`, with `label=
 paragraphs reads as a tree too.
 
 **deck** (Presentation Builder): a slide between each `---`. `## :icon-name: Headline {.title}` (or `.two`,
-`.icon`); `- ` bullets; a paragraph `|` between the columns of a `.two` slide; `> ` speaker notes; a fence, a
-table, a picture or a thing from the web (an address or a titled link alone) is the slide's document: a card by
-its kind in the reader, the live card in the editor and the show; a link in a slide's words is a link. Head: `theme: midnight`, `transition: cut`
+`.icon`); `- ` bullets; a paragraph `|` between the columns of a `.two` slide; `> ` speaker notes; a fence or a
+table is the slide's document; a link in a slide's words, or alone on a line, is a link. Head: `theme: midnight`, `transition: cut`
 (`slide`, `zoom`), `color: red`, `qr: no` (no closing QR slide), and `format: zine` (`booklet`, `brochure`,
 `comic`, `poster`, `badges`) for a printed thing, with `sides: 2` and `pages: 12`.
 
@@ -172,8 +172,8 @@ the task items one level under it. `look: rows` in the head draws the stages as 
 driving where absent), `route: dots` for places that are not a route.
 
 **site** (Website Builder): `# Name` and a line about it; each further `# Title` a page, `## Section` a part of
-one. `- :icon: Point | detail` a card, `> Label | https://…` a button, a picture's address alone a picture,
-`:icon:` alone a big icon, a table `Name | Price:money | About | Image` a shop with a cart (its prices, the
+one. `- :icon: Point | detail` a card, `> Label | https://…` a button,
+`:icon:` alone a big icon, a table `Name | Price:money | About` a shop with a cart (its prices, the
 cart's lines and total and the order mailed in the Price column's currency, `Price:money(GBP)`, else the
 head's). Head: `theme: teal serif dark`, `currency`, `orders` (where orders are mailed); `look: links` makes
 it a Quick Links page (one column, the buttons stacked, `- ` items small links at the foot).

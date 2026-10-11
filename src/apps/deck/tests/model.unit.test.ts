@@ -25,7 +25,6 @@ import {
   slideNotes,
   slidesOf,
   titleOf,
-  webBlock,
 } from '../model.ts';
 import { deckToPptx } from '../pptx.ts';
 import { decodeDoc } from '../../../kit/codec.ts';
@@ -58,10 +57,10 @@ test('slides are spans between rules: headline, icon, layout, words, the right c
   expect(s2.noteLines).toEqual(['say this', 'and this']);
   expect(s2.words).toEqual([4, 9]);
   expect([s3.sub, s3.head, isBlank(s3)]).toEqual([11, -1, false]);
-  // A slide whose only words are a web address shows that, whole.
-  const web = slidesOf(parse('## Watch\n\nhttps://www.youtube.com/watch?v=abc\n'))[0];
-  expect(web.sub).toBe(1);
-  expect(web.items).toEqual([]);
+  // A slide whose only words are a web address, or a picture's line, shows them as words with a link: nothing else.
+  const web = slidesOf(parse('## Watch\n\nhttps://www.youtube.com/watch?v=abc\n\n![A cat](https://x.y/cat.png)\n'))[0];
+  expect(web.sub).toBe(-1);
+  expect(web.items.map((it) => plainText(it.runs))).toEqual(['https://www.youtube.com/watch?v=abc', '!A cat']);
   // An empty document is one blank slide.
   expect(slidesOf(parse('')).map(isBlank)).toEqual([true]);
   expect(slidesOf(parse('a\n\n---\n\n---\n\nb\n')).map((s) => [s.from, s.to])).toEqual([
@@ -127,7 +126,7 @@ test('commands are ops: a slide added, removed, moved; a layout, an icon, a docu
   bare = applyAll(bare, setIcon(bare, slidesOf(bare)[0], 'star'));
   expect(write(bare)).toBe('## :star: {.title}\n\n- just words\n');
   // A document on the slide goes after the words, and is replaced in place.
-  let withSub = applyAll(doc, setSub(slidesOf(doc)[1], webBlock('https://example.com/a')));
+  let withSub = applyAll(doc, setSub(slidesOf(doc)[1], { k: 'fence', lang: 'sheet', body: 'A | B' }));
   expect(slidesOf(withSub)[1].sub).toBeGreaterThan(0);
   withSub = applyAll(withSub, setSub(slidesOf(withSub)[1], null));
   expect(write(withSub)).toBe(TALK);
@@ -193,7 +192,7 @@ test('a slide is laid out so everything fits: type shrinks as words grow; footno
   expect(wrap([{ t: 'https://example.com/a/very/long/path/that/keeps/going/and/going' }], 120, 16).every((l) => l.length >= 1)).toBe(true);
 });
 
-test('themes draw their paper and decoration; a table on a slide is drawn by the sheet; a web address alone is a card', () => {
+test('themes draw their paper and decoration; a table on a slide is drawn by the sheet; a web address alone is words with a link', () => {
   const doc = parse('---\ntheme: midnight\n---\n## Hi\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n---\n\n## Web\n\nhttps://www.youtube.com/watch?v=abc\n');
   const look = lookOf(settingsOf(doc));
   const [s1, s2] = slidesOf(doc);
@@ -202,7 +201,8 @@ test('themes draw their paper and decoration; a table on a slide is drawn by the
   expect(p1.svg).toContain('rx="12"'); // the white card under a document on a dark slide
   expect(p1.svg).toContain('Hi');
   const p2 = slidePage(doc, s2, look);
-  expect(p2.svg).toContain('YouTube');
+  expect(p2.svg).toContain('<a href="https://www.youtube.com/watch?v=abc"');
+  expect(p2.svg).not.toMatch(/<image|data-kind/);
 });
 
 test('formats: page counts, geometry and impositions; a comic draws panels; a poster is one letter page', () => {

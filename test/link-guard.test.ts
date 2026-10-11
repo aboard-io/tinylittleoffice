@@ -1,9 +1,6 @@
-// Where a link goes: here (it opens), elsewhere (asked first), or nowhere (refused). And the pictures a page
-// draws from another site: a card until asked for, a grey box in a preview.
-import { describe, expect, test, beforeEach } from 'vitest';
+// Where a link goes: here (it opens), elsewhere (asked first), or nowhere (refused).
+import { describe, expect, test } from 'vitest';
 import { leaving, where } from '../src/kit/link-guard.ts';
-import { authored, BLANK, forgetPictures, gateHtml, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
-import { pictureSrc } from '../src/kit/media.ts';
 
 const BASE = 'https://tinylittleoffice.com/write/#/v1/write/abc';
 
@@ -51,60 +48,5 @@ describe('where()', () => {
     const web = new URL('https://example.com/a\u202eb');
     expect(where(web)?.name).toBe('example.com');
     expect(web.href).toBe('https://example.com/a%E2%80%AEb');
-  });
-});
-
-describe('pictures from the web', () => {
-  beforeEach(() => forgetPictures());
-  test('only another site’s http(s) address is a web picture', () => {
-    const base = 'https://tinylittleoffice.com/';
-    expect(webPicture('https://example.com/a.png', base)).toBe(true);
-    expect(webPicture('http://example.com/a.png', base)).toBe(true);
-    expect(webPicture('https://tinylittleoffice.com/og.png', base)).toBe(false);
-    expect(webPicture('data:image/png;base64,AAAA', base)).toBe(false);
-    expect(webPicture('blob:https://tinylittleoffice.com/1', base)).toBe(false);
-  });
-  const page =
-    '<rect width="10" height="10"/><image href="https://example.com/a.png?x=1&amp;y=2" x="40" y="50" width="400" height="200" preserveAspectRatio="xMidYMid meet"/><image href="data:image/png;base64,AAAA" width="10" height="10"/>';
-  // Shown, it is drawn from the picture proxy, never from its own site (kit/media.ts), and fetched only as it nears the
-  // screen: the proxy's address waits in data-src behind a blank pixel until then (watchPictures).
-  const shownPage = page.replace('<image href="https://example.com/a.png?x=1&amp;y=2"', `<image data-src="${pictureSrc('https://example.com/a.png?x=1&y=2')}" href="${BLANK}"`);
-  test('a drawn page shows a web picture as its card, in its box; a data: picture as it is', () => {
-    const out = gateSvg(page);
-    expect(out).not.toContain('https://example.com');
-    expect(out).toContain('data-webpic');
-    expect(out).toContain('example.com');
-    expect(out).toContain('x="40" y="50" width="400" height="200"');
-    expect(out).toContain('Show pictures from the web');
-    expect(out).toContain('<image href="data:image/png;base64,AAAA"');
-  });
-  test('a preview never fetches one, even once shown: a grey box', () => {
-    showPictures();
-    const quiet = gateSvg(page, true);
-    expect(quiet).not.toContain('https://example.com');
-    expect(quiet).not.toContain('data-webpic');
-    expect(quiet).toContain('fill="#e4e4e7"');
-  });
-  test('shown for the document asked about, for the visit; another document asks again', () => {
-    setPictureDoc('#/v1/write/one');
-    expect(mayShow('https://example.com/a.png')).toBe(false);
-    showPictures();
-    expect(gateSvg(page)).toBe(shownPage);
-    setPictureDoc('#/v1/write/two');
-    expect(mayShow('https://example.com/a.png')).toBe(false);
-    setPictureDoc('#/v1/write/one');
-    expect(mayShow('https://example.com/a.png')).toBe(true);
-  });
-  test('a picture put in this visit is the author’s own', () => {
-    authored('https://example.com/a.png?x=1&y=2');
-    expect(gateSvg(page)).toBe(shownPage);
-    expect(mayShow('https://example.com/other.png')).toBe(false);
-  });
-  test('a generated page: web pictures grey (counted), every picture without a referrer', () => {
-    const { html, hidden } = gateHtml('<img class="pic" src="https://example.com/a.png" alt="A"><img src="/me.png" alt="">');
-    expect(hidden).toBe(1);
-    expect(html).not.toContain('https://example.com/a.png');
-    expect(html).toContain('src="data:image/svg+xml,');
-    expect(html.match(/referrerpolicy="no-referrer"/g)).toHaveLength(2);
   });
 });

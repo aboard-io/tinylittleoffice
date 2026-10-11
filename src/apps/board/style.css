@@ -182,10 +182,6 @@
   .board-col to-text .tx li::before {
     content: none;
   }
-  .board-web {
-    display: block;
-    padding: 0 0.625rem 0.625rem;
-  }
   .board-items {
     list-style: none;
     margin: 0;

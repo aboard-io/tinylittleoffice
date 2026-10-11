@@ -41,7 +41,7 @@ document   = [ head ] , block , { "\n" , block } ;
 head       = "---\n" , field , { field } , ( "---\n" | "...\n" ) ;
 field      = ? key ? , ": " , ? value ? , "\n" ;
 
-block      = paragraph | heading | items | quote | rule | table | fence | edges | image | web ;
+block      = paragraph | heading | items | quote | rule | table | fence | edges ;
 
 paragraph  = [ "\\" ] , line , { "\n" , bline } , [ attrs ] , "\n" | "<br>\n" | "|\n" ;
 bline      = line | "\\" ;
@@ -67,8 +67,6 @@ ticks      = "\u0060\u0060\u0060" | "\u0060\u0060\u0060\u0060" ;
 edges      = edge , { edge } ;
 edge       = "~ " , ? node ? , " " , dir , " " , ? node ? , [ ": " , ? words ? ] , [ attrs ] , "\n" ;
 dir        = "->" | "<-" | "<->" | "--" ;
-image      = "![" , ? alt ? , "](" , [ "<" ] , ( ? url ? | ? page ? ) , [ ">" ] , ")" , [ attrs ] , "\n" ;
-web        = ( ? url ? | "[" , ? words ? , "](" , ? page ? , ")" ) , "\n" ;
 
 attrs      = " {" , attr , { " " , attr } , "}" ;
 attr       = "#" , ? ident ? | "." , ? ident ? | ? ident ? , "=" , ? ident ? | ? ident ? , "=\"" , ? words ? , "\"" ;
@@ -129,8 +127,8 @@ export const POOLS: Record<string, string[]> = {
     'done.',
   ],
   url: ['https://x.y/', 'https://e.com/a_b?q=1&r=_2_', 'http://x.y/a*b*', 'mailto:a@b.c', 'https://x.y/~~s~~'],
-  // An address with a pair of brackets in it (Wikipedia's, Commons'): read whole, written with the brackets escaped.
-  page: ['https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)', 'https://upload.wikimedia.org/x/A_(b)_1.jpg', 'https://www.youtube.com/watch?v=eRVYwDtI2E8'],
+  // An address with a pair of brackets in it (Wikipedia's): read whole, written with the brackets escaped.
+  page: ['https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)', 'https://x.y/A_(b)_1.jpg', 'https://www.youtube.com/watch?v=eRVYwDtI2E8'],
   href: ['https://x.y/', 'https://e.com/a_b?q=1', 'mailto:a@b.c', 'tel:+1', '#top', 'https://x.y/a%20b'],
   icon: ['star', 'rocket', 'map-pin', 'x', 'a1'],
   ident: ['a', 'id', 'big', 'x-y', 'due', 'depth', 'chart', 'lock', '2'],
@@ -140,7 +138,6 @@ export const POOLS: Record<string, string[]> = {
   lang: ['sheet', 'Draw', 'js', 'qr', 'signatures'],
   body: ['a | b', '--- | ---', '```', '~~~', 'x', '', '# not a heading', '  indented'],
   node: ['A', 'Web', 'Two words', '🚀', 'שלום', '#id', 'a-b'],
-  alt: ['', 'A picture', 'a \\] b', '🚀'],
 };
 
 type Expr = { k: 'lit'; s: string } | { k: 'ref'; name: string } | { k: 'pool'; name: string } | { k: 'seq'; xs: Expr[] } | { k: 'alt'; xs: Expr[] } | { k: 'opt'; x: Expr } | { k: 'rep'; x: Expr };
@@ -373,16 +370,6 @@ export const arbitraryBlock: fc.Arbitrary<Block> = fc.oneof(
         a: arbitraryAttrs,
       })
       .map(({ label, a, ...e }): Block => withA({ k: 'edge', ...e, ...(label ? { label } : {}) }, a)),
-  },
-  {
-    weight: 1,
-    arbitrary: fc
-      .record({
-        alt: pick(['', 'A picture', 'a ] b', '🚀', 'a [b] c']),
-        url: pick(['https://x.y/p.png', 'https://images.unsplash.com/photo?w=400', 'https://tinylittleoffice.com/#/v0/deck/abc']),
-        a: arbitraryAttrs,
-      })
-      .map(({ alt, url, a }): Block => withA({ k: 'img', alt, url }, a)),
   },
 );
 

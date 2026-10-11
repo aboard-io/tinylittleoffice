@@ -55,12 +55,12 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'О Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крошечный офисный набор, который целиком живёт в адресе страницы. Без сервера, без аккаунтов, без сохранения: документ — это ссылка.',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Сами обращаются к интернету только две вещи: карта поездки, чьи картинки приходят из OpenStreetMap, пока карта на экране, и картинка с сайта из списка доверенных, которую сервис картинок этого сайта загружает, когда открывается её документ.',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Сама обращается к интернету только одна вещь: карта поездки, чьи картинки приходят из OpenStreetMap, пока карта на экране.',
   'Private, the default:': 'Приватно, по умолчанию:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Режим «Сохранено» (переключатель в этом меню) хранит ваши настройки и открытые документы на этом устройстве.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'У документа может быть пароль: он шифруется здесь, в браузере, и в ссылке остаётся только зашифрованный текст. Документ можно подписать ключом, который создаёт ваш браузер, и тогда любой проверит, что это ровно то, что подписал этот ключ; имя, под которым подписано, — лишь слово того, кто подписал. «Приватность и ключи» в этом меню покажет, что хранит это устройство.',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': 'Меню Tiny Little Office',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -73,14 +73,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Эту ссылку вписал в документ кто-то другой. Слова, которые показаны вместо ссылки, могут не совпадать с тем, куда она ведёт. Переходите, только если доверяете тому, что там.',
   'Go': 'Перейти',
   'Links of this kind do not open here.': 'Ссылки такого вида здесь не открываются.',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': 'Картинка с {host}',
-  'Show pictures from the web': 'Показать картинки из интернета',
-  'Showing them tells their site this document was opened, and when.': 'Если их показать, их сайт узнает, что этот документ открыли, и когда.',
-  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Картинка из интернета ждёт|# картинки из интернета ждут|# картинок из интернета ждут|# картинки из интернета ждут} вашего запроса.',
-  'Always show pictures from the web': 'Всегда показывать картинки из интернета',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Выключено: картинка с другого сайта ждёт, пока вы её запросите, потому что при загрузке тот сайт узнаёт, кто читает.',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Картинка, которая лежит в документе по адресу на другом сайте, не загружается, пока вы не попросите: тот сайт узнал бы, кто и когда читает. Ссылка, которая уводит из Tiny Little Office, показывает, куда ведёт, и спрашивает, прежде чем открыться.',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'Ссылка, которая уводит из Tiny Little Office, показывает, куда ведёт, и спрашивает, прежде чем открыться.',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Ни аналитики, ни отчётов об ошибках, ни шрифтов или скриптов со стороны: сайт не обращается к интернету ни за чем, что вы не вызвали сами.',
   'What leaves your browser': 'Что уходит из вашего браузера',
   'What this protects against, and what it does not': 'От чего это защищает, а от чего нет',
@@ -366,12 +359,9 @@ export default {
   'A narrow headline, two columns': 'Узкий заголовок, две колонки',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Разрыв страницы',
-  'Address of the picture': 'Адрес картинки',
-  'Address of a video, a post, a song, a place, a page': 'Адрес видео, поста, песни, места, страницы',
   'OK': 'OK', // same
   'This card': 'Эта карточка',
   'Open in {app}': 'Открыть в «{app}»',
-  'Change the address…': 'Изменить адрес…',
   'Signatures': 'Подписи',
   'No one has signed yet.': 'Пока никто не подписал.',
   'Locked: worked out for you': 'Заблокировано: посчитано за вас',
@@ -444,30 +434,13 @@ export default {
   'Terms of service': 'Условия обслуживания',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Условия небольшого бизнеса простыми словами: запись, цены, ключи, что если, расторжение.',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': 'Из интернета',
-  'Read on {provider}': 'Читать на {provider}',
-  'Open on {provider}': 'Открыть на {provider}',
-  'Play (loads it from {provider})': 'Включить (загрузится с {provider})',
-  'Show (loads it from {provider})': 'Показать (загрузится с {provider})',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': 'Ссылка на Tiny Little Office',
-  'A film, a sound, a PDF or a picture': 'Фильм, звук, PDF или картинка',
-  'No picture came from this address. Check it, or try another.': 'По этому адресу картинки нет. Проверьте адрес или попробуйте другой.',
-  'Not one of these: it goes in as a link to the page.': 'Это не из перечисленного: оно вставится как ссылка на страницу.',
   'Opening the short link…': 'Открываем короткую ссылку…',
-  'Paste the address of a picture on the web: the picture shows here.': 'Вставьте адрес картинки из интернета: она появится здесь.',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Вставьте ссылку на другой документ Tiny Little Office, длинную или короткую: здесь покажется его первая страница.',
   'This is not a Tiny Little Office link, or it has expired.': 'Это не ссылка на Tiny Little Office, или её срок истёк.',
   'Tiny Little Office Doc': 'Документ Tiny Little Office',
   'Tiny Little Office Doc…': 'Документ Tiny Little Office…',
-  'Web Embed': 'Вставка из интернета',
-  'Web Embed…': 'Вставка из интернета…',
-  'Web Picture': 'Картинка из интернета',
-  'Web Picture…': 'Картинка из интернета…',
-  'What it can show': 'Что можно показать',
-  'Words for anyone who cannot see it (optional)': 'Описание для тех, кто не видит картинку (необязательно)',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': 'Новый документ',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -903,7 +876,6 @@ export default {
   'Everything': 'Всё',
   'Fold': 'Свернуть',
   'Fold all': 'Свернуть всё',
-  'From the web: {url}': 'Из интернета: {url}',
   'Item': 'Пункт',
   'Item {n}': 'Пункт {n}',
   'Kind of line': 'Вид линии',
@@ -1896,12 +1868,6 @@ export default {
   'Download the .{ext}': 'Скачать .{ext}',
   'Share the .{ext}…': 'Поделиться файлом .{ext}…',
   'View the .{ext}': 'Посмотреть .{ext}',
-  'Spotify album': 'Альбом в Spotify',
-  'Spotify episode': 'Эпизод в Spotify',
-  'Spotify playlist': 'Плейлист в Spotify',
-  'Spotify show': 'Подкаст в Spotify',
-  'Spotify track': 'Трек в Spotify',
-  '{provider} video': 'Видео с {provider}',
   'Keep them on this device': 'Хранить их на этом устройстве',
   'Nothing is saved on this device now. Keep them here, or open one.': 'Сейчас на этом устройстве ничего не сохраняется. Храните их здесь или откройте один.',
   'Open the first': 'Открыть первый',

@@ -4,15 +4,14 @@
  * into another Tiny Little Office document comes back whole and a paste into
  * anything else arrives with its marks. Paste reads, in order: our own HTML
  * (the marker) → the TLO, or for words from within one block their exact
- * runs; a Tiny Little Office link alone → a fence holding that document; a
- * web address alone → a paragraph that is the address (a card); HTML from
- * elsewhere → blocks (tags and styles to marks, lists to items from
+ * runs; a Tiny Little Office link alone → a fence holding that document;
+ * any other web address is words, as typed; HTML from elsewhere → blocks (tags and styles to marks, lists to items from
  * Google Docs, Word, Apple Notes, Notion and Slack, Docs'
  * bold-that-is-not); plain text → read as TLO, a bullet glyph as an item,
  * one line too (pasted Markdown becomes headings, lists and marks); words
  * with no syntax → those words. What comes back is fitted to the editor's
  * shape and what it can show: lines keeps items and paragraphs only; a
- * line takes the words alone; a table, a picture, a connection or a fence
+ * line takes the words alone; a table, a connection or a fence
  * of no app's is words where it cannot be shown. Words that look like
  * syntax stay words: the TLO writer escapes them.
  */
@@ -87,9 +86,6 @@ export function docToHtml(blocks: Block[]): string {
         break;
       case 'edge':
         out.push(`<p>${esc(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}</p>`);
-        break;
-      case 'img':
-        out.push(`<img src="${esc(b.url)}" alt="${esc(b.alt)}" referrerpolicy="no-referrer">`);
         break;
     }
   }
@@ -226,8 +222,8 @@ const NO_BACKGROUND = /^(?:|transparent|initial|inherit|unset|none|white|#fff(?:
 
 /**
  * HTML from anywhere as blocks: tags and styles to marks, lists to items
- * with their depth, headings by level (by tag, or role="heading"), pictures
- * and tables as such. Spaces collapse as a browser shows them; a <br> is a
+ * with their depth, headings by level (by tag, or role="heading"), tables
+ * as such, a picture as words that link to it (its description, else its address: nothing is fetched). Spaces collapse as a browser shows them; a <br> is a
  * line break. What other editors put around a list item is read as one:
  * Google Docs' <p> inside each <li> (paragraphs inside an item are its
  * lines), Word's list paragraphs (`mso-list: … level2`, the glyph in a
@@ -314,9 +310,8 @@ export function htmlToBlocks(html: string): Block[] {
       return;
     }
     if (tag === 'IMG') {
-      close();
       const src = el.getAttribute('src') ?? '';
-      if (/^https?:/.test(src)) blocks.push({ k: 'img', alt: el.getAttribute('alt') ?? '', url: src });
+      if (/^https?:/.test(src)) ensure().runs.push({ t: el.getAttribute('alt')?.trim() || src, ...m, href: src });
       return;
     }
     if (tag === 'HR') {
@@ -448,7 +443,7 @@ const appFence = (b: Block) => b.k === 'fence' && (b.lang === LOCKED_LANG || !!l
 
 /**
  * What is not words, as the words it holds, where the host cannot show it: a table as its rows (tab between the
- * cells), a picture as its description, a connection as its ends, a code fence as its lines; a page break, and
+ * cells), a connection as its ends, a code fence as its lines; a page break, and
  * another document, are nothing there. `doc` hosts show all of them but a connection and a fence of no app's.
  */
 function asWords(b: Block, shape: Shape): Block[] {
@@ -460,8 +455,6 @@ function asWords(b: Block, shape: Shape): Block[] {
       return appFence(b) ? (shape === 'doc' ? [b] : []) : p(b.body);
     case 'table':
       return shape === 'doc' ? [b] : [b.cols.map((c) => c.name), ...b.rows].flatMap((r) => p(r.join('\t')));
-    case 'img':
-      return shape === 'doc' ? [b] : p(b.alt);
     case 'hr':
       return shape === 'doc' ? [b] : [];
     default:
@@ -515,7 +508,6 @@ export function pasteFrom(data: { text: string; html: string }, shape: Shape): P
   if (shape === 'doc' && !/\s/.test(trimmed)) {
     const fence = linkToFence(trimmed);
     if (fence) return { blocks: [fence] };
-    if (/^https?:\/\/\S+$/.test(trimmed)) return { blocks: [{ k: 'p', runs: [{ t: trimmed }] }] };
   }
   if (html.trim()) {
     const blocks = htmlToBlocks(html);

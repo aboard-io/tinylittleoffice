@@ -23,7 +23,7 @@ import { withHead } from '../doc/tlo.ts';
 import { readEnvelope } from './envelope.ts';
 import { ensureIcons, icon, iconNames, UI } from './icons.ts';
 import { t } from './i18n.ts';
-import { picture, raster, saveFile, slug, utf8, withPictures } from './exports.ts';
+import { picture, raster, saveFile, slug, utf8 } from './exports.ts';
 import { parseHash, routeHash, type Owned } from './route.ts';
 import { fitLine, roomFor } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, forget, ownerLink, shorten, shortLink, update, type Shortened } from './short.ts';
@@ -255,7 +255,7 @@ export class ToShare extends LitElement {
     const share = async () => {
       await ensureIcons(iconNames(this.doc));
       if (this.locked) return shareNative(this.named, this.link);
-      return shareNative(this.heading, this.link, await picture(await withPictures(def.view(this.doc, { still: true }))));
+      return shareNative(this.heading, this.link, await picture(def.view(this.doc, { still: true })));
     };
     const made = this.madeLine();
     return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}

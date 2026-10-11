@@ -1,41 +1,27 @@
 /**
- * The three things Insert ▾ asks an address for, as one kind of dialog each app shares (Write, Deck, the
- * Outliner, the Website Builder): Web Picture, Web Embed and Tiny Little Office Doc. Each is a <to-dialog>
- * with one layout: one wide address field with OK at its right (one row; the field takes the room), and
- * under it what that address will be, drawn as soon as it is typed or pasted. The content sits at the top of
- * the dialog, so nothing moves as the preview arrives or the window grows. A person never types a marker:
- * the address is all, and the code writes the block.
+ * What Insert ▾ asks a link for, as one dialog each app shares (Write, Deck, the Outliner, the Website
+ * Builder): Tiny Little Office Doc. It is a <to-dialog> with one layout: one wide address field with OK at
+ * its right (one row; the field takes the room), and under it what that link will be, drawn as soon as it is
+ * typed or pasted. The content sits at the top of the dialog, so nothing moves as the preview arrives or the
+ * window grows. A person never types a marker: the link is all, and the code writes the block.
  *
- *   askPicture()  a picture by its address, shown as it will be (an <img> that sends no referrer; a broken
- *                 one says so), and the words for anyone who cannot see it, optional, in a second field.
- *   askEmbed()    a thing from the web: the sources embeds.ts knows as a row of icons and names, and the
- *                 card <to-embed> will draw.
  *   askDocLink()  a Tiny Little Office link, long or short, and the document's first page drawn small; it
  *                 resolves to the fence that holds the document (refFence), a short link opened here first.
  *                 A link locked with a password goes in as itself, drawn as the locked card (kit/locked.ts).
  *
- * Each resolves null when closed without OK.
+ * It resolves null when closed without OK.
  */
 import { html, nothing, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { BookOpen, Code, File as FileIcon, Landmark, MapPin, MessageCircle, Music, Video, type IconNode } from 'lucide';
 import type { Block } from '../doc/index.ts';
 import { lookup } from './app.ts';
 import { linkToFence } from './clipboard.ts';
 import { LOCKED_LANG } from './locked.ts';
 import type { ToDialog } from './dialog.ts';
-import { EMBED_SOURCES, embedOf, type EmbedKind } from './embeds.ts';
-import { icon, UI } from './icons.ts';
-import { authored, gateSvg, mayShow, onPictures, picture } from './pictures.ts';
-import { pictureSrc } from './media.ts';
 import { t } from './i18n.ts';
 import { TINIER, unshorten } from './short.ts';
 import { origin } from './network.ts';
 import './dialog.ts';
-import './embeds.ts';
-
-/** An address that can be asked for: http or https, no spaces. */
-export const isAddress = (url: string): boolean => /^https?:\/\/\S+$/.test(url.trim());
 
 interface Frame<T> {
   /** Draw the dialog again (after the state changed). */
@@ -59,9 +45,7 @@ function ask<T>(heading: string, cls: string, body: (f: Frame<T>) => TemplateRes
       },
     };
     f.draw();
-    const off = onPictures(f.draw);
     dialog.addEventListener('to-close', () => {
-      off();
       dialog.remove();
       done(answer);
     });
@@ -78,80 +62,6 @@ function urlRow(o: { label: string; placeholder: string; value: string; ok: bool
   </div>`;
 }
 const form = (cls: string, submit: () => void, inner: TemplateResult) => html`<form class="to-ask ${cls}" novalidate @submit=${(e: Event) => (e.preventDefault(), submit())}>${inner}</form>`;
-
-/* ---------- Web Picture ---------- */
-
-export interface Picture {
-  url: string;
-  alt: string;
-}
-
-/** A picture from the web, by its address (and, optionally, its words): the address shows the picture as it is typed. */
-export function askPicture(now: Partial<Picture> = {}): Promise<Picture | null> {
-  let url = now.url ?? '';
-  let alt = now.alt ?? '';
-  let state: 'loading' | 'ok' | 'broken' = 'loading';
-  return ask<Picture>(t('Web Picture'), 'to-ask-picture', (f) => {
-    const ok = isAddress(url);
-    // The address typed here is the author's own choice: it shows at once, here and in the document (kit/pictures.ts).
-    const submit = () => ok && (authored(url.trim()), f.finish({ url: url.trim(), alt: alt.trim() }));
-    // The address the picture already had is the document's: not fetched until asked for, even here.
-    const asked = url.trim() !== (now.url ?? '').trim() || mayShow(url.trim());
-    return form(
-      'to-ask-picture-form',
-      submit,
-      html`${urlRow({ label: t('Address of the picture'), placeholder: 'https://', value: url, ok, input: (v) => ((url = v), (state = 'loading'), f.draw()) })}
-        <label class="to-ask-alt"><span>${t('Words for anyone who cannot see it (optional)')}</span><input class="to-ask-text" type="text" .value=${alt} autocomplete="off" enterkeyhint="done" @input=${(e: Event) => (alt = (e.target as HTMLInputElement).value)} /></label>
-        <div class="to-ask-preview" aria-live="polite">
-          ${
-            ok && !asked
-              ? picture(url.trim(), alt)
-              : ok
-                ? html`<img class=${state} src=${pictureSrc(url.trim())} alt=${alt} referrerpolicy="no-referrer" @load=${() => ((state = 'ok'), f.draw())} @error=${() => ((state = 'broken'), f.draw())} />
-                ${state === 'broken' ? html`<p class="to-hint to-ask-broken">${t('No picture came from this address. Check it, or try another.')}</p>` : nothing}`
-                : html`<p class="to-hint">${t('Paste the address of a picture on the web: the picture shows here.')}</p>`
-          }
-        </div>`,
-    );
-  });
-}
-
-/* ---------- Web Embed ---------- */
-
-const KIND_ICON: Record<EmbedKind, IconNode> = {
-  video: Video,
-  audio: Music,
-  music: Music,
-  image: UI.image,
-  pdf: FileIcon,
-  post: MessageCircle,
-  map: MapPin,
-  code: Code,
-  page: Landmark,
-  article: BookOpen,
-  link: UI.globe,
-};
-
-/** A thing from the web, by its address: the sources it can come from are shown, and the card it will be. Resolves the address. */
-export function askEmbed(now = ''): Promise<string | null> {
-  let url = now;
-  return ask<string>(t('Web Embed'), 'to-ask-embed', (f) => {
-    const ok = isAddress(url);
-    const known = ok ? embedOf(url.trim()) : null;
-    return form(
-      'to-ask-embed-form',
-      () => ok && f.finish(url.trim()),
-      html`${urlRow({ label: t('Address of a video, a post, a song, a place, a page'), placeholder: 'https://', value: url, ok, input: (v) => ((url = v), f.draw()) })}
-        <ul class="to-ask-sources" aria-label=${t('What it can show')}>
-          ${EMBED_SOURCES.map((s) => html`<li class=${known?.provider === s.name ? 'on' : ''}>${icon(KIND_ICON[s.kind], 18)}<span>${s.name}</span></li>`)}
-          <li class=${known?.file ? 'on' : ''}>${icon(FileIcon, 18)}<span>${t('A film, a sound, a PDF or a picture')}</span></li>
-        </ul>
-        <div class="to-ask-preview" aria-live="polite">
-          ${ok ? html`<to-embed url=${url.trim()}></to-embed>${known ? nothing : html`<p class="to-hint">${t('Not one of these: it goes in as a link to the page.')}</p>`}` : nothing}
-        </div>`,
-    );
-  });
-}
 
 /* ---------- Tiny Little Office Doc ---------- */
 
@@ -218,7 +128,7 @@ export function askDocLink(): Promise<Block | null> {
           ${
             state === 'ok' && b?.k === 'fence'
               ? html`<figure class="to-ask-page">
-                ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt || name}>${unsafeSVG(gateSvg(page.svg, true))}</svg>` : nothing}
+                ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt || name}>${unsafeSVG(page.svg)}</svg>` : nothing}
                 <figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption>
               </figure>`
               : state === 'opening'

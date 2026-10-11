@@ -17,8 +17,7 @@ afterEach(async () => {
 });
 
 const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-const MIXED =
-  '# A heading\n\nThe first paragraph.\n\n- one item\n- another item\n\nCol | Two\n--- | ---\n1 | 2\n\n![a picture](https://example.com/a.png)\n\nThe last words.\n\n![the end](https://example.com/b.png)\n';
+const MIXED = '# A heading\n\nThe first paragraph.\n\n- one item\n- another item\n\nCol | Two\n--- | ---\n1 | 2\n\n---\n\nThe last words.\n\n```sheet\nA | B\n--- | ---\n1 | 2\n```\n';
 
 async function write(tlo: string): Promise<{ shell: ToShell; el: ToWriteEditor }> {
   const shell = await mount(`#/v1/write/${encodeDoc(tlo)}`);
@@ -53,7 +52,7 @@ test('Mod+A in the Word Processor selects the whole document, cards too: Backspa
   await userEvent.keyboard('{Escape}');
   await frame();
   expect(text.sel).toEqual(caret(last, 'The last words.'.length));
-  // Again, then Backspace: one empty paragraph is left, the table and the pictures gone with the words.
+  // Again, then Backspace: one empty paragraph is left, the table, the page break and the sheet gone with the words.
   await userEvent.keyboard('{Control>}a{/Control}');
   await frame();
   await userEvent.keyboard('{Backspace}');
@@ -70,7 +69,7 @@ test('Mod+A in the Word Processor selects the whole document, cards too: Backspa
 });
 
 test('Mod+A then typing over a document that starts with a card replaces the card too; Delete empties it', async () => {
-  const { el } = await write('![first](https://example.com/a.png)\n\nWords between.\n\nCol | Two\n--- | ---\n1 | 2\n');
+  const { el } = await write('~ A -> B\n\nWords between.\n\nCol | Two\n--- | ---\n1 | 2\n');
   const text = el.text;
   text.tx.focus();
   text.sel = caret(1, 2);
@@ -102,8 +101,8 @@ test('Mod+A then Mod+C copies the whole document, cards and all', async () => {
   got.text = ev.clipboardData!.getData('text/plain');
   expect(got.text).toContain('A heading');
   expect(got.text).toContain('Col | Two');
-  expect(got.text).toContain('https://example.com/a.png');
-  expect(got.text).toContain('https://example.com/b.png');
+  expect(got.text).toContain('\n\n---\n\n');
+  expect(got.text).toContain('```sheet\nA | B');
 });
 
 const BIG = `${Array.from({ length: 300 }, (_, i) => `Paragraph ${i + 1}, long enough to take a line or two of the page when it is drawn.`).join('\n\n')}\n`;

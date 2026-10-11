@@ -55,12 +55,12 @@ export default {
   'Tiny Little Office': '小小办公室',
   'About Tiny Little Office': '关于 小小办公室',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': '一个完全存在于网址里的小型办公套件。没有服务器，没有账号，不用保存：链接就是文档。',
-  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '除非你分享链接，否则你写的任何内容都不会离开浏览器。会自己联网的只有两处：行程的地图，显示时图片来自 OpenStreetMap；以及受信任列表中网站的图片，在文档打开时通过本站的图片服务获取。',
+  'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': '除非你分享链接，否则你写的任何内容都不会离开浏览器。会自己联网的只有一处：行程的地图，显示时图片来自 OpenStreetMap。',
   'Private, the default:': '隐私（默认）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '打开本菜单里的“保存”开关后，才会在此设备上保留你的设置和打开过的文档。',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': '文档可以设密码：它在这里、在浏览器中加密，链接里只有密文。文档还可以用本浏览器生成的密钥签名，这样任何人都能核实它与这个密钥签名时完全一致；签名用的名字只是签名者自己的说法。本菜单里的“隐私与密钥”会显示此设备保存了什么。',
 
-  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // ---- links that leave the site (kit/link-guard.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
   'Tiny Little Office menu': '小小办公室 菜单',
   // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
@@ -73,14 +73,7 @@ export default {
   'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': '这个链接是别人写进文档的。链接上显示的文字不一定与它的去向相符。只有信任目的地时才继续。',
   'Go': '前往',
   'Links of this kind do not open here.': '这类链接无法在此打开。',
-  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
-  'A picture from {host}': '来自 {host} 的图片',
-  'Show pictures from the web': '显示网络图片',
-  'Showing them tells their site this document was opened, and when.': '显示它们会让其网站知道这个文档被打开过，以及打开的时间。',
-  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|有 # 张网络图片}等你确认后才会加载。',
-  'Always show pictures from the web': '总是显示网络图片',
-  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': '关闭时，其他网站上的图片要等你确认才加载：加载它会让那个网站知道谁在阅读。',
-  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': '文档里引用其他网站地址的图片，在你确认之前不会加载：加载它会让那个网站知道谁在阅读，以及何时阅读。离开 小小办公室 的链接会先显示去向并询问，然后才会打开。',
+  'A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': '离开 小小办公室 的链接会先显示去向并询问，然后才会打开。',
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': '没有分析统计，没有错误报告，不从别处加载字体或脚本：除了你触发的请求，网站不会向网络索取任何东西。',
   'What leaves your browser': '哪些内容会离开你的浏览器',
   'What this protects against, and what it does not': '它能防范什么，不能防范什么',
@@ -366,12 +359,9 @@ export default {
   'A narrow headline, two columns': '窄幅大标题，分两栏',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': '分页符',
-  'Address of the picture': '图片地址',
-  'Address of a video, a post, a song, a place, a page': '视频、帖子、歌曲、地点或页面的地址',
   'OK': '确定',
   'This card': '这张卡片',
   'Open in {app}': '在{app}中打开',
-  'Change the address…': '更改地址…',
   'Signatures': '签名',
   'No one has signed yet.': '还没有人签名。',
   'Locked: worked out for you': '已锁定：由系统为你算出',
@@ -444,36 +434,13 @@ export default {
   'Terms of service': '服务条款',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': '小生意的条款，用平实的话写：预订、价格、钥匙、意外情况、终止。',
 
-  // ---- a thing from the web (kit/embeds.ts) ----
-  'From the web': '来自网络',
-  'Read on {provider}': '在{provider}上阅读',
-  'Spotify album': 'Spotify 专辑',
-  'Spotify episode': 'Spotify 单集',
-  'Spotify playlist': 'Spotify 播放列表',
-  'Spotify show': 'Spotify 节目',
-  'Spotify track': 'Spotify 曲目',
-  '{provider} video': '{provider} 视频',
-  'Open on {provider}': '在{provider}上打开',
-  'Play (loads it from {provider})': '播放（从{provider}加载）',
-  'Show (loads it from {provider})': '显示（从{provider}加载）',
-
-  // ---- Insert's dialogs (kit/insert-dialogs.ts): Web Picture, Web Embed, Tiny Little Office Doc ----
+  // ---- Insert's dialog (kit/insert-dialogs.ts): Tiny Little Office Doc ----
   'A Tiny Little Office link': '小小办公室 链接',
-  'A film, a sound, a PDF or a picture': '影片、声音、PDF 或图片',
-  'No picture came from this address. Check it, or try another.': '这个地址没有返回图片。请检查，或换一个。',
-  'Not one of these: it goes in as a link to the page.': '不属于这些类型：它会作为页面链接插入。',
   'Opening the short link…': '正在打开短链接…',
-  'Paste the address of a picture on the web: the picture shows here.': '粘贴网络图片的地址：图片会显示在这里。',
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': '粘贴另一份 小小办公室 文档的链接，长短均可：它的第一页会显示在这里。',
   'This is not a Tiny Little Office link, or it has expired.': '这不是 小小办公室 链接，或者已过期。',
   'Tiny Little Office Doc': '小小办公室 文档',
   'Tiny Little Office Doc…': '小小办公室 文档…',
-  'Web Embed': '网页嵌入',
-  'Web Embed…': '网页嵌入…',
-  'Web Picture': '网络图片',
-  'Web Picture…': '网络图片…',
-  'What it can show': '可以显示什么',
-  'Words for anyone who cannot see it (optional)': '给看不到它的人的说明文字（可选）',
   // Insert ▾'s group of the apps a new document can be made in, inside this one.
   'A new document': '新文档',
   // ---- another document edited in place (kit/doc-dialog.ts); a table's size is Rows × Columns ----
@@ -909,7 +876,6 @@ export default {
   'Everything': '全部',
   'Fold': '折叠',
   'Fold all': '全部折叠',
-  'From the web: {url}': '来自网络：{url}',
   'Item': '条目',
   'Item {n}': '条目 {n}',
   'Kind of line': '线型',

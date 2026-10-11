@@ -560,20 +560,6 @@
   .write-signatures .write-sign {
     align-self: flex-start;
   }
-  .write-page .to-embed {
-    color: var(--to-paper-ink);
-    border-color: var(--to-paper-line);
-    background: #fff;
-  }
-  .write-page .to-embed figcaption {
-    background: var(--to-paper-shade);
-    border-top-color: var(--to-paper-line);
-  }
-  .write-page .to-embed-what small,
-  .write-page .to-embed figcaption small {
-    color: var(--to-paper-muted);
-  }
-
   /* The notes under the text: a thin rule, small type, each with the way back to its mark. */
   .write-notes {
     margin-top: 1.5rem;

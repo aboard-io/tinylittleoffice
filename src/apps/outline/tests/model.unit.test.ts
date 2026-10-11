@@ -86,7 +86,7 @@ test('read: each kind of line, its name, the joins, and which joins are live', (
   expect(readOutline(parse('')).items).toEqual([]);
 });
 
-test('documents under items are fences that say their depth; an item that is a web address is a thing from the web', () => {
+test('documents under items are fences that say their depth; an item that is a web address is words', () => {
   const text = '- A\n  - B\n\n```sheet {depth=2}\nx | y\n--- | ---\n1 | 2\n```\n\n    - C\n  - D\n- E\n  - https://example.com/a-video\n';
   const v = readOutline(parse(text));
   expect(v.items.map((it) => [it.depth, it.doc ? it.doc.split('\n')[0] : nameOf(it.runs)])).toEqual([
@@ -96,10 +96,10 @@ test('documents under items are fences that say their depth; an item that is a w
     [2, 'C'],
     [1, 'D'],
     [0, 'E'],
-    [1, 'web'],
+    [1, 'https://example.com/a-video'],
   ]);
   expect(v.items[2].doc).toBe('sheet\nx | y\n--- | ---\n1 | 2');
-  expect(v.items[6].doc).toBe('web\nhttps://example.com/a-video');
+  expect(v.items[6].doc).toBeUndefined();
   expect(write(parse(text))).toBe(text);
   // A fence with no depth of its own sits at the margin, and Tab gives it one before moving it.
   const loose = '- A\n\n```draw\nKind | X\n--- | ---\n```\n';
@@ -118,7 +118,7 @@ test('loose words read as a tree, and listify is the one splice that makes them 
     [2, 'b'],
     [1, 'Later'],
     [2, 'c d'],
-    [2, 'web\nhttps://example.com/x'],
+    [2, 'https://example.com/x'],
   ]);
   expect(after('# Plan\n\n- a\n  - b\n\n## Later\n\nc\nd\n\nhttps://example.com/x\n\n~ a -> b\n', listify)).toBe(
     '- Plan\n  - a\n    - b\n  - Later\n    - c\n    - d\n    - https://example.com/x\n\n~ a -> b\n',
@@ -345,7 +345,7 @@ test('numbered: the list a row belongs to, toggled; the numbers round-trip and c
 
 test('the text export: bullets, numbers, two spaces a level, a document as its app and first line', () => {
   const text = '- Launch\n  1. Product\n     - Pricing\n  2. Marketing\n\n```sheet {depth=1}\nBudget | Cost\n--- | ---\n```\n\n  - https://example.com/v\n  -\n';
-  expect(outlineText(readOutline(parse(text)))).toBe('- Launch\n  1. Product\n    - Pricing\n  2. Marketing\n  - [sheet] Budget | Cost\n  - [web] https://example.com/v\n');
+  expect(outlineText(readOutline(parse(text)))).toBe('- Launch\n  1. Product\n    - Pricing\n  2. Marketing\n  - [sheet] Budget | Cost\n  - https://example.com/v\n');
   expect(outlineText(readOutline(parse('')))).toBe('');
 });
 
@@ -394,12 +394,11 @@ test('joins: connected by their words, turned, named, taken away; a renamed item
   expect(renameIn(parse(DOC), readOutline(parse(DOC)), 'Marketing', 'Growth')).toEqual([]);
 });
 
-test('a document goes under an item after its family, at its depth; a web address is an item of its own', () => {
+test('a document goes under an item after its family, at its depth', () => {
   expect(after(TREE, (d, v) => insertDoc(d, v, 1, 'sheet\na | b\n--- | ---\n1 | 2'))).toBe(
     '- Launch\n  - Product\n    - Pricing\n\n```sheet {depth=1}\na | b\n--- | ---\n1 | 2\n```\n\n  - Marketing\n',
   );
   expect(after(TREE, (d, v) => insertDoc(d, v, -1, 'draw\n'))).toBe(TREE + '\n```draw {depth=0}\n```\n');
-  expect(after(TREE, (d, v) => insertDoc(d, v, 2, 'web\nhttps://example.com/v'))).toBe('- Launch\n  - Product\n    - Pricing\n    - https://example.com/v\n  - Marketing\n');
   // The edges stay last.
   expect(
     after(DOC, (d, v) => insertDoc(d, v, -1, 'draw\n'))

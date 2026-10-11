@@ -24,7 +24,6 @@ import COMMANDS, { CHOSEN, WORDS } from './commands.ts';
 import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import type { ContextEntry } from '../../kit/context.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
-import { embedOf } from '../../kit/embeds.ts';
 import { icon } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { ToMenu } from '../../kit/menu.ts';
@@ -64,7 +63,6 @@ import {
 } from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
-import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
@@ -722,7 +720,6 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.rows.selectAll();
   };
   private card(s: Stage, c: Card, j: number) {
-    const web = c.words.trim() && !/\s/.test(c.words.trim()) && embedOf(c.words.trim()) ? c.words.trim() : '';
     const dragging = this.drag === c.at;
     const before = this.over?.stage === this.view.stages.indexOf(s) && this.over.pos === j && this.drag !== null;
     const ranged = this.rows.has(c.at);
@@ -731,7 +728,6 @@ export class ToBoardEditor extends DocElement<BoardView> {
         <to-text shape="line" data-at=${c.at} .blocks=${this.one(c.block)} label=${t('Card')} placeholder=${t('Card')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, c.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onCardEnter(s, c))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(c.at, e.detail.dir))} @text-selectall=${this.onSelectAll} @focusin=${(e: Event) => this.at(c.at, e)}></to-text>
         <button type="button" class="to-btn to-tool board-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('Choose this card: drag it to move it')} title=${t('Drag to move; tap to choose')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: MouseEvent) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
       </div>
-      ${web ? html`<to-embed class="board-web" url=${web}></to-embed>` : nothing}
       ${
         c.items.length
           ? html`<ul class="board-items" aria-label=${t('Checklist')}>${c.items.map((it, k) => this.item(c, k, it))}</ul>

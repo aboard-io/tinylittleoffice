@@ -41,8 +41,6 @@ const ALIGN_ICON = { left: UI.alignLeft, center: UI.alignCenter, right: UI.align
 /** Insert ▾: what goes in at the caret. */
 const INSERTS: Command<W>[] = [
   cmd('insert.table', 'Table', { icon: UI.table, where: ['menu:insert'], does: (w) => w.insertTable() }),
-  cmd('insert.picture', 'Web Picture…', { icon: UI.image, where: ['menu:insert'], does: (w) => w.insertPicture() }),
-  cmd('insert.web', 'Web Embed…', { icon: UI.globe, where: ['menu:insert'], does: (w) => w.insertWeb() }),
   cmd('insert.doc', 'Tiny Little Office Doc…', { icon: UI.insert, where: ['menu:insert'], does: (w) => w.insertDocument() }),
   cmd('insert.qr', 'QR code of this document', { icon: UI.qr, where: ['menu:insert'], does: (w) => w.insertQr() }),
   cmd('insert.date', 'Date', { icon: UI.calendar, where: ['menu:insert'], does: (w) => w.text.exec('date') }),

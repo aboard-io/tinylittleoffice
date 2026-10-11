@@ -1,6 +1,6 @@
 /**
- * The site drawn: as the web page it is (one HTML file, its pages switched by hash, a shop's cart, things
- * from the web loaded only when tapped), and as pictures of its pages for print, thumbnails and previews.
+ * The site drawn: as the web page it is (one HTML file, its pages switched by hash, a shop's cart), and as
+ * pictures of its pages for print, thumbnails and previews.
  * Every script in the page is a fixed text registered with the kit (src/kit/page.ts), so the site's
  * Content-Security-Policy allows it by hash and nothing typed can run, not even in the editor's frame; a
  * page's data goes beside its script as JSON. A section's things are drawn in the order of the document (a
@@ -13,7 +13,6 @@
 import { formatMoney, isAtomic, linkify, parse, plainText, write, type Doc, type Run } from '../../doc/index.ts';
 import { lookup, type Page as Picture } from '../../kit/app.ts';
 import { clip, pageSvg, rect, text as line, wrapText, xml } from '../../kit/draw.ts';
-import { embedOf, embedCaption } from '../../kit/embeds.ts';
 import { iconInner, iconNamed, glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { MOTION_JS } from '../../kit/motion.ts';
@@ -44,22 +43,6 @@ document.title=page===pages[0]||!head?name:head.textContent+' \\u00b7 '+name;
 if(at&&at!==page)at.scrollIntoView();else if(was&&was!==page){window.scrollTo(0,0);if(head){head.tabIndex=-1;head.focus();}}
 was=page;}
 window.addEventListener('hashchange',show);show();
-})();`);
-
-/**
- * A thing from the web on a page: its card, and under the card's button the thing itself, loaded only
- * then, in a sandboxed frame that sends no referrer, or by the browser's own element for a sound, a film
- * or a picture. The card says what to make in its attributes; this script holds no document text.
- */
-export const WEB = pageScript(`(function(){
-document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.web-load'):null;if(!b)return;
-var box=b.parentNode,as=box.getAttribute('data-as'),el=document.createElement(as==='frame'?'iframe':as);
-if(as==='frame'){el.setAttribute('sandbox','allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation');el.setAttribute('allow','autoplay; fullscreen; picture-in-picture');el.setAttribute('loading','lazy');el.title=box.getAttribute('data-title');}
-else if(as==='img')el.alt=box.getAttribute('data-title');
-else{el.controls=true;el.preload='none';el.setAttribute('playsinline','');}
-el.className='web-'+box.getAttribute('data-kind');if(box.getAttribute('data-h'))el.style.height=box.getAttribute('data-h')+'px';
-el.setAttribute('referrerpolicy','no-referrer');el.src=box.getAttribute('data-src');
-while(box.firstChild)box.removeChild(box.firstChild);box.appendChild(el);});
 })();`);
 
 /**
@@ -147,20 +130,18 @@ header .wrap{display:flex;align-items:center;gap:1.2rem;min-height:3.4rem}header
 nav{display:flex;gap:1.1rem;margin-left:auto;overflow-x:auto;scrollbar-width:none}nav a{color:var(--ink2);text-decoration:none;font-size:.95rem;white-space:nowrap;padding:.9rem 0}nav a:hover{color:var(--deep)}nav a[aria-current]{color:var(--deep);box-shadow:inset 0 -2px var(--a)}
 .hero{padding:5rem 0 4rem;text-align:center;background:linear-gradient(var(--tint),var(--bg))}.hero.top{padding:3.2rem 0 2.6rem}
 .hero h1{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 1rem}.hero.top h1{font-size:clamp(1.8rem,5vw,2.6rem)}.hero p{font-size:1.25rem;color:var(--ink2);max-width:38rem;margin:0 auto 1rem}
-.hero .pic{width:8rem;height:8rem;border-radius:50%;object-fit:cover;display:block;margin:0 auto 1.2rem}.ico{display:block;margin:0 auto 1rem;color:var(--a)}.part .ico{margin:0 0 1rem}
-.part{padding:3.2rem 0;border-top:1px solid var(--line)}.part h2{font-size:1.8rem;margin:0 0 1rem}.part p{max-width:44rem;color:var(--ink2)}.part .pic{display:block;max-width:100%;border-radius:var(--r);margin:0 0 1.2rem}
+.ico{display:block;margin:0 auto 1rem;color:var(--a)}.part .ico{margin:0 0 1rem}
+.part{padding:3.2rem 0;border-top:1px solid var(--line)}.part h2{font-size:1.8rem;margin:0 0 1rem}.part p{max-width:44rem;color:var(--ink2)}
 .cards{list-style:none;padding:0;margin:1.6rem 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem}
 .cards li{border:1px solid var(--line);border-radius:var(--r);padding:1.2rem;display:flex;flex-direction:column;gap:.4rem;background:var(--bg)}.cards svg{color:var(--a)}.cards span{color:var(--ink3);font-size:.95rem}
 .go-card{position:relative}.go-card strong a{color:inherit;text-decoration:none}.go-card strong a::after{content:'';position:absolute;inset:0;border-radius:var(--r)}.go-card:hover{border-color:var(--a)}
-.part h3{font-size:1.25rem;margin:1.8rem 0 .6rem}.pic.ph{width:8rem;height:6rem;background:var(--tint);border-radius:var(--r)}
+.part h3{font-size:1.25rem;margin:1.8rem 0 .6rem}
 .go{margin:1.6rem 0 0;display:flex;flex-wrap:wrap;gap:.6rem}.hero .go{justify-content:center}.btn svg{vertical-align:-.25em;margin-right:.4rem}
 .go.stack{flex-direction:column;max-width:22rem;margin:1.6rem auto 0}.go.stack .btn{padding:.85rem 1.1rem;font-size:1.05rem;text-align:center}
 .social{list-style:none;padding:0;margin:2rem 0 0;display:flex;justify-content:center;gap:.8rem}.social a{display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;background:var(--tint);color:var(--deep)}
 .embed{margin:1.6rem 0 0}.embed svg{display:block;width:100%;max-width:48rem;height:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff}.embed figcaption{font-size:.9rem;color:var(--ink3);margin-top:.4rem}
-.web-pic{position:relative;max-width:48rem;min-height:9rem;border:1px solid var(--line);border-radius:var(--r);background:var(--tint)}.web-load{position:absolute;left:50%;bottom:1rem;transform:translateX(-50%);white-space:nowrap}.web-pic iframe,.web-pic video,.web-pic audio,.web-pic img{display:block;width:100%;border:0;border-radius:var(--r);background:#fff}
-.web-pic img{height:auto}.web-video{aspect-ratio:16/9}.web-map{aspect-ratio:4/3}.web-post{height:520px}.web-music{height:352px}.web-code{height:400px}.web-pdf,.web-page{height:70vh}
 .shop{display:grid;grid-template-columns:1fr 18rem;gap:1.6rem;align-items:start;margin-top:1.6rem}.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:1rem}
-.grid li{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}.grid img,.grid .ph{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--tint);display:block}
+.grid li{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}.grid .ph{width:100%;aspect-ratio:4/3;background:var(--tint);display:block}
 .grid div{padding:.9rem;display:flex;flex-direction:column;gap:.3rem;flex:1}.grid span{color:var(--ink3);font-size:.92rem;flex:1}.price{font-weight:700}
 .cart{position:sticky;top:4.4rem;border:1px solid var(--line);border-radius:var(--r);padding:1.1rem}.cart h3{margin:0 0 .6rem;font-size:1.1rem}#lines{list-style:none;margin:0;padding:0}#lines li{display:flex;align-items:center;gap:.4rem;padding:.35rem 0}#lines span:first-child{flex:1}
 .q{padding:0;width:2rem;height:2rem;border-radius:50%;background:var(--tint);color:var(--deep)}.sum{min-width:4.2rem;text-align:right;font-variant-numeric:tabular-nums}
@@ -204,29 +185,16 @@ export interface SitePageOpts {
 }
 
 function embedHtml(e: Embed, base: string, attrs = ''): string {
-  if ('lang' in e) {
-    const def = lookup.appOf(e.lang);
-    const page = def?.view(e.body, { small: true })[0];
-    const name = (def && def.title(e.body)) || def?.name || e.lang;
-    // A QR code is a picture: nothing to open beneath it.
-    if (e.lang === 'qr') return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(page.alt ?? name)}"`) : ''}</figure>`;
-    return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(name)}"`) : ''}<figcaption><a href="${xml(fenceLink(e.lang, e.body, base))}">${xml(name)}</a> <small>${xml(def?.name ?? t('Document'))}</small></figcaption></figure>`;
-  }
-  // From the web: a card, a button that loads the thing in its place (WEB), and a link to it where it lives. What must be asked first (a Wikipedia summary), or embeds nothing, is the link alone.
-  const w = embedOf(e.web);
-  const { provider, title } = embedCaption(e.web);
-  const caption = `<figcaption><a href="${xml(e.web)}" target="_blank" rel="noopener noreferrer">${xml(title)}</a> <small>${xml(provider)}</small></figcaption>`;
-  if (!w || !w.src || w.lookup || w.kind === 'link') return `<figure class="embed"${attrs}>${caption}</figure>`;
-  const as = w.kind === 'image' ? 'img' : w.kind === 'audio' ? 'audio' : w.file && w.kind === 'video' ? 'video' : 'frame';
-  const plays = w.kind === 'video' || w.kind === 'audio' || w.kind === 'music';
-  const label = plays ? t('Play (loads it from {provider})', { provider: w.provider }) : t('Show (loads it from {provider})', { provider: w.provider });
-  return `<figure class="embed"${attrs}><div class="web-pic" data-as="${as}" data-kind="${w.kind}" data-src="${xml(w.src)}" data-title="${xml(w.title)}"${w.h ? ` data-h="${w.h}"` : ''}><button type="button" class="btn web-load">${xml(label)}</button></div>${caption}</figure>`;
+  const def = lookup.appOf(e.lang);
+  const page = def?.view(e.body, { small: true })[0];
+  const name = (def && def.title(e.body)) || def?.name || e.lang;
+  // A QR code is a picture: nothing to open beneath it.
+  if (e.lang === 'qr') return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(page.alt ?? name)}"`) : ''}</figure>`;
+  return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(name)}"`) : ''}<figcaption><a href="${xml(fenceLink(e.lang, e.body, base))}">${xml(name)}</a> <small>${xml(def?.name ?? t('Document'))}</small></figcaption></figure>`;
 }
 
-const hasWeb = (site: Site) => site.sections.some((s) => s.embeds.some((e) => 'web' in e && !!embedOf(e.web)?.src));
-
-/** What sits under a page's title: the things that are not words, buttons or pictures begin the part below the front. */
-const BODY: ReadonlySet<ObjKind> = new Set(['heading', 'card', 'products', 'web', 'doc', 'table']);
+/** What sits under a page's title: the things that are not words, buttons or a big icon begin the part below the front. */
+const BODY: ReadonlySet<ObjKind> = new Set(['heading', 'card', 'products', 'doc', 'table']);
 
 interface Ctx {
   doc: Doc;
@@ -293,19 +261,6 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
       case 'icon':
         out += iconSvg(iconOf(b.k === 'p' ? b.runs : [])[0], hero ? 64 : 40, 'ico', mark(x));
         break;
-      case 'picture': {
-        const url = b.k === 'img' ? b.url : b.k === 'p' ? plainText(b.runs).trim() : '';
-        const alt = b.k === 'img' ? b.alt : '';
-        out += /^https?:\/\//.test(url)
-          ? `<img class="pic"${mark(x)} src="${xml(url)}" alt="${xml(alt)}" referrerpolicy="no-referrer" loading="lazy">`
-          : o.edit
-            ? `<span class="pic ph"${mark(x)} role="img" aria-label="${xml(t('Web Picture'))}"></span>`
-            : '';
-        break;
-      }
-      case 'web':
-        out += embedHtml({ web: plainText(b.k === 'p' ? b.runs : []).trim() }, o.base ?? '', mark(x));
-        break;
       case 'doc':
         if (b.k === 'fence') out += embedHtml({ lang: b.lang, body: b.body }, o.base ?? '', mark(x));
         break;
@@ -328,7 +283,7 @@ function shopHtml(c: Ctx, s: Section, attrs: string): string {
   return `<div class="shop"${attrs}><ul class="grid" aria-label="${xml(t('Products'))}">${s.products
     .map(
       (p) =>
-        `<li>${p.image ? `<img src="${xml(p.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${xml(formatMoney(p.price, p.currency))}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
+        `<li><div class="ph" aria-hidden="true"></div><div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${xml(formatMoney(p.price, p.currency))}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
     )
     .join('')}</ul>${
     first
@@ -350,11 +305,11 @@ function shopHtml(c: Ctx, s: Section, attrs: string): string {
   }</div>`;
 }
 
-/** A front's things cut in three: the pictures and the big icon before anything else (drawn over the title), the words and buttons under the title, the rest in the part below. */
+/** A front's things cut in three: the big icon before anything else (drawn over the title), the words and buttons under the title, the rest in the part below. */
 function front(items: Obj[]) {
   const cut = items.findIndex((x) => BODY.has(x.kind));
   const top = cut < 0 ? items : items.slice(0, cut);
-  const isPic = (x: Obj) => x.kind === 'picture' || x.kind === 'icon';
+  const isPic = (x: Obj) => x.kind === 'icon';
   return { pics: top.filter(isPic), hero: top.filter((x) => !isPic(x)), rest: cut < 0 ? [] : items.slice(cut) };
 }
 
@@ -417,7 +372,7 @@ ${site.pages.map((_, i) => render(i)).join('\n')}
         strings: Object.fromEntries(FRAME_STRINGS.map((k) => [k, t(k)])),
       }) + `<script src="${xml(edit.src ?? `/${FRAME_SCRIPT}`)}"></script>`
     : '';
-  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${editing}${o.peek !== undefined && !edit ? pageData('site-peek', { stamp: o.peek }) + PEEK : ''}`;
+  const scripts = `${site.links ? '' : ROUTER}${editing}${o.peek !== undefined && !edit ? pageData('site-peek', { stamp: o.peek }) + PEEK : ''}`;
   const lang = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
   return `<!doctype html>
 <html lang="${lang}">
@@ -480,7 +435,6 @@ export function sitePictures(textDoc: string, small = false): Picture[] {
       if (hero) {
         y += 48;
         if (s.icon && iconNamed(s.icon)) ((svg += glyphNamed(s.icon, W / 2 - 28, y, 56, p.hex.a)), (y += 72));
-        else if (s.pics.some((x) => x.url)) ((svg += `<circle cx="${W / 2}" cy="${y + 44}" r="44" fill="${p.hex.tint}" stroke="${p.line}"/>`), (y += 104));
         y += 34;
         svg += line(W / 2, y, clip(i ? pg.title || t('Page {n}', { n: i + 1 }) : name, inner, 34, true), { px: 34, bold: true, fill: p.ink, anchor: 'middle' });
         y += 10;
@@ -526,8 +480,8 @@ export function sitePictures(textDoc: string, small = false): Picture[] {
         ...s.cards.map((c) => ({ head: words(c.head), detail: words(c.detail), icon: c.icon })),
         ...s.products.map((x) => ({ head: x.name, detail: formatMoney(x.price, x.currency), icon: '' })),
         ...s.embeds.map((e) => ({
-          head: 'lang' in e ? lookup.appOf(e.lang)?.title(e.body) || lookup.appOf(e.lang)?.name || e.lang : embedCaption(e.web).title,
-          detail: 'lang' in e ? (lookup.appOf(e.lang)?.name ?? '') : embedCaption(e.web).provider,
+          head: lookup.appOf(e.lang)?.title(e.body) || lookup.appOf(e.lang)?.name || e.lang,
+          detail: lookup.appOf(e.lang)?.name ?? '',
           icon: '',
         })),
       ];

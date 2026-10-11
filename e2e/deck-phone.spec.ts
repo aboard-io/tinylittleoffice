@@ -119,7 +119,7 @@ test('deck: on a phone, a tap on a thumbnail chooses the slide with its bar insi
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
 });
 
-test("deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills the screen, with Done reachable by finger; Web Picture's field and OK are one row inside the screen", async ({
+test("deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills the screen, with Done reachable by finger; Tiny Little Office Doc's field and OK are one row inside the screen", async ({
   page,
 }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
@@ -146,11 +146,11 @@ test("deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills
   await expect(page.locator('to-doc-dialog')).toHaveCount(0);
   await expect(page).toHaveURL(/#\/v1\/deck\/[ryz]/);
   await expect(page.locator('figure.deck-sub')).toBeVisible();
-  // Web Picture: the address and OK on one row, both inside the screen, the field 16px.
+  // Tiny Little Office Doc: the link and OK on one row, both inside the screen, the field 16px.
   await page.getByRole('button', { name: 'Insert', exact: true }).tap();
-  await page.getByRole('menuitem', { name: 'Web Picture…' }).tap();
-  const field = page.locator('.to-ask-picture .to-ask-url');
-  const ok = page.locator('.to-ask-picture .to-ask-ok');
+  await page.getByRole('menuitem', { name: 'Tiny Little Office Doc…' }).tap();
+  const field = page.locator('.to-ask-doc .to-ask-url');
+  const ok = page.locator('.to-ask-doc .to-ask-ok');
   await expect(field).toBeVisible();
   const [f, o] = [(await field.boundingBox())!, (await ok.boundingBox())!];
   expect(Math.abs(f.y + f.height / 2 - (o.y + o.height / 2))).toBeLessThan(2);

@@ -18,9 +18,6 @@
  *   ...                      or text kept exactly as written
  *   ```
  *   ~ A -> B: label          an edge between two things in the document (->, <-, <->, --)
- *   ![alt](address)          an image, or another document by its link, alone on a line
- *   https://… / [title](https://…)  a thing from the web (a film, an article…) alone on a line, the
- *                            second with the title its author gave it (model.ts webOf)
  *
  * An address may hold one pair of brackets, as Wikipedia's do; a lone bracket is written escaped (%28, %29).
  * Any block may end with attributes, "{#id .kind key=value}".
@@ -82,8 +79,6 @@ const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])(?:\s+(.*))?$/;
 const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 const SEP = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
 const EDGE = /^~\s+(.+?)\s+(<->|->|<-|--)\s+(.+?)(?::\s+(.*))?$/;
-// (An address may hold one pair of brackets, as Wikipedia's and Commons' do: "…/Grand_Concourse_(Bronx)".)
-const IMAGE = /^!\[((?:\\.|[^\]\\])*)\]\(\s*<?((?:[^()\s>]|\([^()\s>]*\))+)>?\s*\)$/;
 
 /** The cells of a table row: pipes split them, "\|" is a pipe in a cell. */
 export function cells(line: string): string[] {
@@ -121,7 +116,7 @@ function readHead(lines: string[]): [Head, number] {
 }
 
 /** What a line may not open with and still be words: the guard `write` puts a backslash before. */
-const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|\||\{)/;
+const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|\||\{)/;
 /** Undo the guard that kept a line from being read as a block of another kind (and only that: "\`" is an escaped backtick). */
 // (Words that are only "{...}" keep their backslash for splitAttrs: it is the one that says they are not attributes.)
 const unblock = (s: string) => (s[0] === '\\' && !/\s/.test(s[1] ?? '') && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
@@ -297,13 +292,6 @@ export function parse(text: string): Doc {
       blocks.push({ k: 'edge', from: edge[1], to: edge[3], dir: edge[2] as Dir, ...(label ? { label } : {}), ...(a ? { a } : {}) });
       continue;
     }
-    const [imgLine, imgA] = splitAttrs(t);
-    const img = IMAGE.exec(imgLine);
-    if (img) {
-      flush();
-      blocks.push({ k: 'img', alt: img[1].replace(/\\(.)/g, '$1'), url: img[2], ...(imgA ? { a: imgA } : {}) });
-      continue;
-    }
     const item = ITEM.exec(line);
     if (item && (item[3] !== undefined || /^[-*+]$|^\d+[.)]$/.test(t))) {
       flush();
@@ -466,12 +454,10 @@ export function writeBlock(b: Block, n = 1): string {
     }
     case 'edge':
       return `${guardEnd(`~ ${b.from} ${b.dir} ${b.to}${b.label ? ': ' + b.label : ''}`)}${at}`;
-    case 'img':
-      return `![${b.alt.replace(/[[\]\\]/g, '\\$&')}](${addressText(b.url)})${at}`;
   }
 }
 
-/** An address as a link or a picture writes it: a pair of brackets kept (the reader takes one), a space or a lone bracket escaped so as not to end it early. */
+/** An address as a link writes it: a pair of brackets kept (the reader takes one), a space or a lone bracket escaped so as not to end it early. */
 const addressText = (url: string): string => url.replace(/^((?:[^()\s]|\([^()\s]*\))*)$|[\s()]/g, (c, whole?: string) => whole ?? '%' + c.charCodeAt(0).toString(16).toUpperCase());
 
 /** A document as text. Blocks that would run together are kept apart by a blank line; list items and edges sit line by line. */
@@ -507,7 +493,7 @@ const MARKS: [string, 'b' | 'i' | 'u' | 's' | 'h'][] = [
   ['*', 'i'],
   ['_', 'i'],
 ];
-const LINK = /^\[((?:\\.|[^\]\\\n])*)\]\(\s*<?((?:https?:\/\/|mailto:|tel:|#)(?:[^()\s>]|\([^()\s>]*\))*)>?\s*\)/;
+const LINK = /^\[((?:\\.|[^\]\\\n])+)\]\(\s*<?((?:https?:\/\/|mailto:|tel:|#)(?:[^()\s>]|\([^()\s>]*\))*)>?\s*\)/;
 const ICON = /^:([a-z][a-z0-9-]*):/;
 /** A web or mail address, as far as it can go without taking in a mark that follows it (read at a line's start, after a space, a "(" or a link's "["). */
 const URL = '(?:https?:\\/\\/|mailto:)(?:(?!\\*\\*|~~|==|\\+\\+|__|:[a-z][a-z0-9-]*:)[^\\s<`\\\\[\\]*])+';
