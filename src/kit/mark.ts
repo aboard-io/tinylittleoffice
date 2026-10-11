@@ -6,10 +6,10 @@
  * drawer's head, the favicon and app icons (scripts/icons.ts) and the cards (scripts/make-cards.ts).
  */
 export const markPaths = [
-  'M14 2.5H6.5a1 1 0 0 0-1 1v17a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V7z', // the sheet, its top right corner turned down
-  'M14 2.5V7h4.5', // the fold
-  'M10.7 14.05a2.1 2.1 0 0 0 3.17.23l1.26-1.26a2.1 2.1 0 0 0-2.97-2.97l-.72.72', // the link's upper loop
-  'M12.38 13.2a2.1 2.1 0 0 0-3.17-.23l-1.26 1.26a2.1 2.1 0 0 0 2.97 2.97l.72-.72', // and its lower loop
+  'M14.5 2.5h-9a1 1 0 0 0-1 1v17a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V7.5z', // the sheet, Lucide's file proportion, its top right corner turned down
+  'M14.5 2.5v5h5', // the fold
+  'M11.12 14.24a2.2 2.2 0 0 0 3.32.24l1.32-1.32a2.2 2.2 0 0 0-3.11-3.11l-.76.75', // the link's upper loop
+  'M12.88 13.36a2.2 2.2 0 0 0-3.32-.24l-1.32 1.32a2.2 2.2 0 0 0 3.11 3.11l.75-.75', // and its lower loop
 ];
 
 /** The mark as an SVG element, `size` sixteenths of its scale square (--i, kit.css), in the colour of the words around it. */
