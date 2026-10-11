@@ -113,9 +113,17 @@ const WEB = /^https?:\/\/\S+$/;
 export function webOf(b: Block): { url: string; title: string } | null {
   if (b.k !== 'p' || b.runs.length !== 1 || isAtomic(b.runs[0])) return null;
   const r = b.runs[0];
-  if (r.href) return WEB.test(r.href) && r.t.trim() ? { url: r.href, title: r.t.trim() } : null;
+  // A titled link alone on its line is a thing from the web only where the site is one the kit shows (a film, an
+  // article, a song: kit/embeds.ts says which); a plain link to anywhere else stays words (Paul, 2026-10-11).
+  if (r.href) return WEB.test(r.href) && r.t.trim() && webSites.known(r.href) ? { url: r.href, title: r.t.trim() } : null;
   return WEB.test(r.t.trim()) ? { url: r.t.trim(), title: '' } : null;
 }
+
+/**
+ * Which sites a titled link alone on a line is a thing from the web for. The kernel knows no sites: the kit's
+ * embeds (kit/embeds.ts) say so when they load; until then, none, and a titled link is words.
+ */
+export const webSites = { known: (_url: string): boolean => false };
 
 /** A paragraph that is a thing from the web: the address alone, or, given a title, the link alone on its line. */
 export const webBlock = (url: string, title = ''): Block => ({ k: 'p', runs: [title.trim() ? { t: title.trim(), href: url.trim() } : { t: url.trim() }] });

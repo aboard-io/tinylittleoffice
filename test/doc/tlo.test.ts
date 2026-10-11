@@ -2,7 +2,25 @@
 // tlo.test, its literals as runs and columns).
 import { expect, test } from 'vitest';
 import { rng } from './helpers.ts';
-import { column, isEmbed, noteRuns, webOf, pages, parse, parseInline, parseLines, plainText, sections, splitAttrs, write, writeInline, type Block, type Doc, type Run } from '../../src/doc/index.ts';
+import {
+  column,
+  isEmbed,
+  noteRuns,
+  webOf,
+  webSites,
+  pages,
+  parse,
+  parseInline,
+  parseLines,
+  plainText,
+  sections,
+  splitAttrs,
+  write,
+  writeInline,
+  type Block,
+  type Doc,
+  type Run,
+} from '../../src/doc/index.ts';
 
 const t = (s: string): Run[] => [{ t: s }];
 
@@ -374,11 +392,18 @@ test('tlo: a link alone on a line is a thing from the web with its title; a bare
     '[The neighbourhood the road replaced](https://www.youtube.com/watch?v=eRVYwDtI2E8)\n\nhttps://en.wikipedia.org/wiki/History_of_the_Bronx\n\nSee [the road](https://x.y/) here.\n\n[Write to us](mailto:a@b.c)\n';
   const d = parse(text);
   expect(write(d)).toBe(text);
+  // The kernel knows no sites: a titled link is words until the kit says its site is one a card shows (kit/embeds.ts).
+  expect(d.blocks.map(isEmbed)).toEqual([false, true, false, false]);
+  const known = webSites.known;
+  webSites.known = (url) => url.includes('youtube.com');
   expect(d.blocks.map(isEmbed)).toEqual([true, true, false, false]);
+  // A plain link to any other site alone on a line stays words (Paul, 2026-10-11).
+  expect(webOf(parse('[The society](https://bronxhistoricalsociety.org/)\n').blocks[0])).toBeNull();
   expect(webOf(d.blocks[0])).toEqual({ url: 'https://www.youtube.com/watch?v=eRVYwDtI2E8', title: 'The neighbourhood the road replaced' });
   expect(webOf(d.blocks[1])).toEqual({ url: 'https://en.wikipedia.org/wiki/History_of_the_Bronx', title: '' });
   expect(webOf(d.blocks[2])).toBeNull();
   expect(webOf({ k: 'li', depth: 0, runs: [{ t: 'A', href: 'https://x.y/' }] })).toBeNull();
+  webSites.known = known;
 });
 
 test("tlo: an address with a pair of brackets in it (Wikipedia's, Commons') is read whole, in a link and in a picture", () => {

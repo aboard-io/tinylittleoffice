@@ -5,7 +5,7 @@
  * says how the pieces fit.
  */
 export type { Attrs, Block, ColType, Column, Dir, Doc, FenceBlock, Head, Run, TableBlock, TextBlock } from './model.ts';
-export { attr, blankDoc, hasClass, isAtomic, isEmbed, isText, normalRuns, pages, plainText, sameMarks, sections, webBlock, webOf } from './model.ts';
+export { attr, blankDoc, hasClass, isAtomic, isEmbed, isText, normalRuns, pages, plainText, sameMarks, sections, webBlock, webOf, webSites } from './model.ts';
 
 export {
   amountOf,

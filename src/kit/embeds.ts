@@ -12,6 +12,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { Newspaper, type IconNode } from 'lucide';
+import { webSites } from '../doc/index.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { pictureSrc } from './media.ts';
@@ -150,6 +151,12 @@ export function embedOf(url: string): Embed | null {
   if (IMAGE.test(path)) return file('image');
   return null;
 }
+
+// A titled link alone on a line is a thing from the web for the sites shown here, and words for any other (src/doc/model.ts webSites).
+webSites.known = (url) => {
+  const e = embedOf(url);
+  return !!e && e.kind !== 'link';
+};
 
 /**
  * The places embedOf() knows, by name and by what they hold, for the Web Embed dialog's row of sources (a

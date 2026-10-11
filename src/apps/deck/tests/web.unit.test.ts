@@ -45,10 +45,14 @@ test("an article is a card with the article's glyph and its title; a page nobody
   expect(drawnWords(wiki.svg)).toContain('History of the Bronx');
   expect(drawnWords(wiki.svg)).toContain('Wikipedia');
   expect(drawnWords(wiki.svg)).not.toContain('https://');
-  const page = one('## Read\n\n[The society](https://bronxhistoricalsociety.org/)\n').sub!;
+  // A bare address nobody embeds: the globe and its host. The same address with a title is words (Paul, 2026-10-11:
+  // "Plain link should stay words"), so the slide shows the link in its lines and no card.
+  const page = one('## Read\n\nhttps://bronxhistoricalsociety.org/\n').sub!;
   expect(page.svg).toContain('data-kind="link"');
-  expect(drawnWords(page.svg)).toContain('The society');
   expect(drawnWords(page.svg)).toContain('bronxhistoricalsociety.org');
+  const titled = one('## Read\n\n[The society](https://bronxhistoricalsociety.org/)\n');
+  expect(titled.sub ?? null).toBeNull();
+  expect(titled.s.items.length).toBe(1);
 });
 
 test('a picture is drawn over its card: where it cannot be fetched, the alt text and the picture glyph, never a broken glyph', () => {

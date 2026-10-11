@@ -38,7 +38,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | a code fence named for an app: ```` ```sheet ```` | Another document inside this one, written in that app's TLO: a chart on a slide, a table in a text |
 | `==highlight==`, `++underline++`, `:icon-name:` | A highlight, an underline, an icon in the line (Lucide's names: `rocket`, `calendar`, `coffee`…) |
 | a line that is only a web address | That thing from the web, as a card that loads it only when the reader taps it (a video, a post, a track, a map, a picture, a PDF) |
-| a line that is only a link, `[The title](https://…)` | The same thing from the web, its card titled with your words: give every video and article a title, or its card says only "YouTube video" |
+| a line that is only a link, `[The title](https://…)` | The same thing from the web, its card titled with your words, for a site the card can show (YouTube, Wikipedia, Spotify and the rest below): give every video and article a title, or its card says only "YouTube video". A link to any other site alone on a line stays words |
 
 `---` between blocks starts the next slide, page or card. A table anywhere is a spreadsheet: its formulas work.
 

@@ -53,8 +53,7 @@ A document is a head and a list of blocks. Nine kinds of block:
 | `img` | `![alt](address)` | A picture by its address. |
 
 Any block may end with attributes: `{#id .class key=value}` (classes before values). A web address alone on a
-line is a thing from the web, shown as a card that loads only when asked (`src/kit/embeds.ts`); a link alone on a
-line, `[The title](https://…)`, is the same with the title its author gave it (`webOf` in `src/doc/model.ts`). An
+line is a thing from the web, shown as a card that loads only when asked (`src/kit/embeds.ts`); a link alone on a line, `[The title](https://…)`, is the same with the title its author gave it, for a site the kit shows (a film, an article, a song: `src/kit/embeds.ts` says which); a link to any other site alone on a line stays words (`webOf` in `src/doc/model.ts`; Paul, 2026-10-11: "Plain link should stay words"). An
 address may hold one pair of brackets, as Wikipedia's and Commons' do (`…/Grand_Concourse_(Bronx)`); a lone
 bracket is written `%28` or `%29`.
 
