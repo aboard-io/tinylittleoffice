@@ -49,12 +49,16 @@ function theGuard(): ToDialog {
   return guard;
 }
 
-/** The characters that turn or hide what is drawn: the bidi controls and marks, the zero-width ones, the byte-order mark. */
+/**
+ * The characters that turn or hide what is drawn: the bidi controls and marks (U+200E–200F, U+202A–202E, U+2066–2069),
+ * the zero-width ones (U+200B–200D), the byte-order mark (U+FEFF); and, beyond that list, the Arabic letter mark
+ * (U+061C, a bidi mark like U+200F) and the word joiner and invisible operators (U+2060–2064, zero-width like U+200B).
+ */
 const HIDDEN = /[\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/;
 
 /**
  * What the dialog says of an address: what the link does, and the one name to read (the host, the mailbox, the
- * number). Null for a mailbox or a number whose name hides characters (a reversal drawn would show a false address in
+ * number). Null for a mailbox or a number whose name hides characters (HIDDEN: a reversal drawn would show a false address in
  * large type); a web address's host is the browser's own spelling, and its whole address spells such characters out.
  */
 export function where(u: URL): { what: string; name: string } | null {

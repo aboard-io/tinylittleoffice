@@ -42,7 +42,8 @@ describe('where()', () => {
     const tel = leaving('tel:\u2066+15551234567\u2069', BASE) as URL;
     expect(tel.protocol).toBe('tel:');
     expect(where(tel)).toBeNull();
-    for (const c of ['\u200b', '\u200f', '\u202a', '\u2068', '\ufeff']) expect(where(new URL(`mailto:a${encodeURIComponent(c)}b@example.com`)), c.codePointAt(0)!.toString(16)).toBeNull();
+    for (const c of ['\u061c', '\u200b', '\u200f', '\u202a', '\u2060', '\u2064', '\u2068', '\ufeff'])
+      expect(where(new URL(`mailto:a${encodeURIComponent(c)}b@example.com`)), c.codePointAt(0)!.toString(16)).toBeNull();
   });
   test('a plain one is named by its mailbox or number; a web address by its host, its hidden characters spelled out', () => {
     expect(where(new URL('mailto:hello@example.com'))?.name).toBe('hello@example.com');

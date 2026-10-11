@@ -1,6 +1,7 @@
 // The site's side of the picture proxy: the address a picture is drawn from, the whitelist, and an export's bytes.
 import { test, expect, afterEach } from 'vitest';
-import { embedPictures, MEDIA_DEFAULT, pictureOf, pictureSrc, trusted, trustedHost, TRUSTED, useMedia } from '../src/kit/media.ts';
+import { embedPictures, MEDIA_DEFAULT, pictureOf, pictureSrc, trusted, useMedia } from '../src/kit/media.ts';
+import { TRUSTED, trustedHost } from '../src/kit/network.ts';
 
 const AT = 'https://tinylittleoffice.com/write/';
 const CAT = 'https://pictures.example/cat.png?size=2&x=y';
@@ -10,7 +11,12 @@ afterEach(() => useMedia(MEDIA_DEFAULT));
 test('pictureSrc: every https picture through the proxy; data:, blob:, this site’s own and the proxy’s as they are', () => {
   expect(pictureSrc(CAT, AT)).toBe(`https://media.tinylittleoffice.com/img?u=${encodeURIComponent(CAT)}`);
   expect(pictureOf(pictureSrc(CAT, AT))).toBe(CAT);
-  expect(pictureSrc('https://upload.wikimedia.org/a.jpg', AT)).toMatch(/^https:\/\/media\.tinylittleoffice\.com\/img\?u=https%3A%2F%2Fupload/);
+  const WIKI = 'https://upload.wikimedia.org/a.jpg';
+  // A trusted picture carries "&t=1", so the proxy follows its redirects only to a trusted host; an untrusted one carries none.
+  expect(pictureSrc(WIKI, AT)).toBe(`https://media.tinylittleoffice.com/img?u=${encodeURIComponent(WIKI)}&t=1`);
+  expect(pictureSrc(WIKI, AT).endsWith('&t=1')).toBe(true);
+  expect(pictureSrc(CAT, AT)).not.toContain('t=1');
+  expect(pictureOf(pictureSrc(WIKI, AT))).toBe(WIKI);
   for (const same of [
     'data:image/gif;base64,R0lGOD',
     'blob:https://tinylittleoffice.com/1234',

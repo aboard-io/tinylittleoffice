@@ -4,7 +4,7 @@
  * host named anywhere else in src/ fails test/network.test.ts; the Content-Security-Policy's connect-src,
  * img-src, frame-src and media-src are written from the `csp` field (scripts/headers.ts), and
  * docs/network.md and /network (public/network.html) are written from the whole list by
- * scripts/network-doc.ts. The picture whitelist (kit/media.ts TRUSTED) is the entries with a `picture`.
+ * scripts/network-doc.ts. The picture whitelist (TRUSTED, below) is the entries with a `picture`.
  *
  * A host is a name, a "*." name (every host under it), a name whose first part ends in "*" ("ia*.us.archive.org":
  * that part begins so, letters, digits and hyphens after), or "*": any https address, for a thing the person chose
@@ -40,7 +40,7 @@ const trusted = (host: string, picture: string): Reach => ({
   when: 'while shown',
   carries: 'The picture’s address, asked by the proxy: nothing of the reader',
   stops: 'Nothing to stop: the reader’s browser never asks this host',
-  by: 'kit/media.ts TRUSTED, through media/',
+  by: 'kit/network.ts TRUSTED, through media/',
   picture,
 });
 

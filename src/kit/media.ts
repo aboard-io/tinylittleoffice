@@ -3,7 +3,7 @@
  * draws from an https address is asked of media.tinylittleoffice.com (media/ in this repository), never of
  * the picture's own site, so that site never learns who read the document: pictureSrc() is that address.
  * Whether a picture shows at once or waits for "Show pictures from the web" is kit/pictures.ts; a picture
- * from a host on TRUSTED shows at once, because the proxy fetches it and the host holds public, static,
+ * from a host on TRUSTED (kit/network.ts) shows at once, because the proxy fetches it and the host holds public, static,
  * licensed pictures (docs/network.md gives the reason for each).
  *
  * VITE_MEDIA_URL sets the proxy (a self-hoster's own copy of media/); set empty, pictures load directly
@@ -11,8 +11,6 @@
  */
 
 import { origin, trustedHost } from './network.ts';
-
-export { TRUSTED, trustedHost } from './network.ts';
 
 const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 /** The proxy this site uses unless VITE_MEDIA_URL says otherwise. */
@@ -51,7 +49,7 @@ export function hostOf(url: string): string {
 /** Whether an address is already the proxy's. */
 const proxied = (url: string) => !!base && url.startsWith(base + '/');
 
-/** Whether this picture shows without asking: https, from a host on TRUSTED, and a proxy to fetch it. */
+/** Whether this picture shows without asking: https, from a host on TRUSTED (kit/network.ts), and a proxy to fetch it. */
 export function trusted(url: string): boolean {
   if (!base) return false;
   if (proxied(url)) return true;
