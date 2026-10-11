@@ -1,7 +1,8 @@
 /**
  * <to-share>: the Share dialog (Paul, 2026-10-09: "The short link function modal needs to be redesigned"). When the
  * document was first written and by whom; the head line, where the link fits, red past the link's limit, with Copy,
- * opening a table of the rooms it fits in (kit/limits.ts) on a hover or a tap; Copy link and Copy display link, and
+ * opening a table of the rooms it fits in (kit/limits.ts) on a hover or a tap; the sentence that says a link is a copy
+ * (whoever opens it gets their own; their changes stay in their link); Copy link and Copy display link, and
  * the device's share sheet; Password (drawn by <to-privacy>, renderProtect, handed in as `protect`);
  * a short link that expires (the lifetimes as one row, Make, then the link with Copy; it cannot be changed or recalled
  * once made, so there is nothing more to do with it); posting the link to a service's compose box (through the link guard), a deck's show link; the QR code;
@@ -205,7 +206,10 @@ export class ToShare extends LitElement {
       return shareNative(this.heading, this.link, await picture(def.view(this.doc, { still: true })));
     };
     const made = this.madeLine();
+    // A link is a copy, never a shared document (Paul, 2026-10-11: "docs are not collaborative like Google Docs: that's
+    // fine. Communicate it in all the languages"): said under the link, before the ways of sending it.
     return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}
+      <p class="to-hint to-share-copies">${t('Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.')}</p>
       <div class="to-share-links">
         <button type="button" class="to-btn to-share-copy to-copy-link" @click=${() => void this.copyLink(this.link)}><span>${icon(UI.link, 18)}${t('Copy link')}</span><small>${t('Opens in the editor')}</small></button>
         <button type="button" class="to-btn to-share-copy to-copy-display" @click=${() => void this.copyLink(this.displayLink)}><span>${icon(UI.view, 18)}${t('Copy display link')}</span><small>${t('Opens as pages to read')}</small></button>

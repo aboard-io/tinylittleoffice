@@ -22,8 +22,8 @@ import { keptLinks } from './links.ts';
 import { parseHash } from './route.ts';
 import { slug } from './draw.ts';
 
-/** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.shortTtl', 'tinyoffice.size'];
+/** The preferences this site may keep, by key; with them which documents have been told they are copies (kit/shell.ts). */
+export const PREFS = ['to-theme', 'tinyoffice.shortTtl', 'tinyoffice.size', 'tinyoffice.copiesSaid'];
 /** Where the short links made here are kept. */
 const LINKS = 'tinyoffice.links';
 

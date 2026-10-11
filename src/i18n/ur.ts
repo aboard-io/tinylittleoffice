@@ -58,6 +58,7 @@ export default {
     'Tiny Little Office': 'Tiny Little Office', // same
     'About Tiny Little Office': 'Tiny Little Office کا تعارف',
     'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'ایک چھوٹا سا آفس سویٹ جو پورا URL میں رہتا ہے۔ نہ سرور، نہ اکاؤنٹ، نہ محفوظ کرنے کا جھنجھٹ: لنک ہی دستاویز ہے۔',
+    'There is no shared document: every link is a copy, and what is changed in one never reaches another.': 'کوئی ایسی دستاویز نہیں جسے سب مل کر بدلیں: ہر لنک ایک کاپی ہے، اور ایک میں کی گئی تبدیلی کبھی دوسری تک نہیں پہنچتی۔',
     'Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ صرف ایک چیز خود ویب سے کچھ مانگتی ہے: سفر کا نقشہ، جس کی تصویریں دکھائے جانے تک OpenStreetMap سے آتی ہیں۔',
     'Private, the default:': 'نجی، پہلے سے:',
     'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'اس مینو میں "محفوظ" کا سوئچ آپ کی سیٹنگز اور کھولی ہوئی دستاویزات کو اس ڈیوائس پر رکھتا ہے۔',
@@ -105,6 +106,7 @@ export default {
     'Expires in {n|# minute|# minutes} ({date})': '{n|# منٹ|# منٹ} میں ختم ({date})',
     'Opens as pages to read': 'پڑھنے کے لیے صفحات کی صورت میں کھلتا ہے',
     'Opens in the editor': 'ایڈیٹر میں کھلتا ہے',
+    'Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.': 'جو بھی یہ لنک کھولے، اسے اپنی الگ کاپی ملتی ہے۔ اس کی تبدیلیاں اس کے لنک میں رہتی ہیں، آپ کے لنک میں نہیں: اس سے کہیں کہ اپنا لنک آپ کو واپس بھیجے۔',
     'Short link that expires': 'ختم ہو جانے والا مختصر لنک',
     'This link expires in {n|# day|# days}': 'یہ لنک {n|# دن|# دن} میں ختم ہو جائے گا',
     'This link expires in {n|# hour|# hours}': 'یہ لنک {n|# گھنٹے|# گھنٹوں} میں ختم ہو جائے گا',

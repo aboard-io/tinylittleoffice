@@ -49,7 +49,8 @@
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
  * events: `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter),
- * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`.
+ * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`, `to-copies-close` (the
+ * Display Link's line that says a link is a copy, `plain.copies`).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import type { AppDef } from './app.ts';
@@ -85,6 +86,8 @@ export interface Plain {
   present?: string;
   trust?: TemplateResult | typeof nothing;
   locked?: boolean;
+  /** Arrived by someone else's link: the line that says it is a copy, under the header (closed: `to-copies-close`). */
+  copies?: boolean;
 }
 
 /** What a person types in: while one of these has the focus, the header steps aside on a phone. */
@@ -423,7 +426,13 @@ export class ToChrome extends LitElement {
     const cls = p.kind === 'embed' ? `to-display to-embed ${p.locked ? 'to-embed-locked' : ''}` : 'to-display';
     // The pages scroll and hold nothing to tab to: the column itself is in the tab order, to scroll by the keys.
     // The pages are a picture to two fingers (kit/shell.ts pinchZoom): spatial, so the size of everything is not what a pinch here sets.
-    return html`${head}${this.renderArrival()}<div class="to-column"><main class=${cls} data-spatial tabindex="0" aria-label=${p.title}>${this.main}</main></div>`;
+    const copies = p.copies
+      ? html`<div class="to-copies" role="note">
+          <p>${t('Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.')}</p>
+          <button type="button" class="to-btn to-tool to-copies-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.say('to-copies-close')}>${icon(UI.close, 18)}</button>
+        </div>`
+      : nothing;
+    return html`${head}${copies}${this.renderArrival()}<div class="to-column"><main class=${cls} data-spatial tabindex="0" aria-label=${p.title}>${this.main}</main></div>`;
   }
 
   render() {

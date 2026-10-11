@@ -82,6 +82,17 @@ test('Copy link and Copy display link copy the two links; each says where it ope
   await until(() => said() === 'Link copied');
 });
 
+// A link is a copy (Paul, 2026-10-11: "docs are not collaborative like Google Docs: that's fine. Communicate it in all the
+// languages"): one sentence under the link, before the ways of sending it.
+test('Share says a link is a copy: one sentence under the link, before the ways of sending it', async () => {
+  const shell = await written(null!);
+  const d = await open(shell);
+  const line = d.querySelector<HTMLElement>('.to-share-copies')!;
+  expect(line.textContent).toBe('Whoever opens this link gets their own copy. Changes they make are in their link, not in yours: ask them to send theirs back.');
+  expect(line.previousElementSibling!.matches('.to-share-fit')).toBe(true);
+  expect(line.nextElementSibling!.matches('.to-share-links')).toBe(true);
+});
+
 test('the lifetimes: one row of segments, a week by default, the choice written to shortTtl and remembered', async () => {
   let shell = await written(null!);
   let d = await open(shell);

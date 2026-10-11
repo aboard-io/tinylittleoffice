@@ -6,7 +6,7 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { mount, tick, until, openShare as openShareFromDrawer } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { PREFS, lockCost, lockWith, pack, unlock } from '../../src/kit/privacy.ts';
+import { PREFS, forgetPrefs, prefsKept, lockCost, lockWith, pack, unlock } from '../../src/kit/privacy.ts';
 import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
@@ -236,6 +236,23 @@ test('what this device holds, item by item with Forget, and Download everything:
   await until(() => now('to-held-prefs') === 'None');
   expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
   await tick();
+});
+
+// Which documents were told they are copies (kit/shell.ts) is something this device holds: counted, and forgotten with the rest.
+test('the copies already told are counted among the preferences and forgotten with them', () => {
+  try {
+    setKeeping(true);
+    for (const k of PREFS) store.remove(k);
+    expect(prefsKept()).toBe(0);
+    store.set('tinyoffice.copiesSaid', '["abc"]');
+    expect(localStorage.getItem('tinyoffice.copiesSaid')).toBe('["abc"]');
+    expect(prefsKept()).toBe(1);
+    forgetPrefs();
+    expect(prefsKept()).toBe(0);
+    expect(localStorage.getItem('tinyoffice.copiesSaid')).toBeNull();
+  } finally {
+    setKeeping(false);
+  }
 });
 
 test('the language is never among what the device holds: chosen, it counts no preference, and after Forget everything no key remains', async () => {

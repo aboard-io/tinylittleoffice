@@ -184,6 +184,8 @@ test('About says what it does not protect against in its own section, in the lan
   const about = shell.querySelector('.to-about-dialog')!.textContent!;
   expect(about).toContain('Your browser’s history still holds every link opened here');
   expect(about).not.toMatch(/nothing is kept|no trace/i);
+  // There is no shared document: every link is a copy (r17-copies).
+  expect(shell.querySelector('.to-about-dialog .to-about-copies')!.textContent).toBe('There is no shared document: every link is a copy, and what is changed in one never reaches another.');
 });
 
 test("the Private switch says what is true: this site keeps nothing, the browser's history holds every link", async () => {
