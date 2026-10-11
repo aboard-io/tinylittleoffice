@@ -2,7 +2,7 @@
 // draws from another site: a card until asked for, a grey box in a preview.
 import { describe, expect, test, beforeEach } from 'vitest';
 import { leaving, where } from '../src/kit/link-guard.ts';
-import { authored, BLANK, forgetPictures, gateHtml, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
+import { authored, BLANK, forgetPictures, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
 import { pictureSrc } from '../src/kit/media.ts';
 
 const BASE = 'https://tinylittleoffice.com/write/#/v1/write/abc';
@@ -99,12 +99,5 @@ describe('pictures from the web', () => {
     authored('https://example.com/a.png?x=1&y=2');
     expect(gateSvg(page)).toBe(shownPage);
     expect(mayShow('https://example.com/other.png')).toBe(false);
-  });
-  test('a generated page: web pictures grey (counted), every picture without a referrer', () => {
-    const { html, hidden } = gateHtml('<img class="pic" src="https://example.com/a.png" alt="A"><img src="/me.png" alt="">');
-    expect(hidden).toBe(1);
-    expect(html).not.toContain('https://example.com/a.png');
-    expect(html).toContain('src="data:image/svg+xml,');
-    expect(html.match(/referrerpolicy="no-referrer"/g)).toHaveLength(2);
   });
 });

@@ -2,7 +2,7 @@
  * Axe over every app at phone size (WebKit, 390 by 844), in light and in dark: the home page, then each app
  * of the registry opened on its first template. One test with soft assertions, so a run reports every app
  * and theme that fails rather than the first. (The smoke's axe covers the home, a text and the Display Link
- * at both sizes; the site and diagram specs, their own pages.)
+ * at both sizes; the diagram spec, its own pages.)
  *
  *   PW_PORT=4423 npx playwright test e2e/a11y.spec.ts --project=phone
  */

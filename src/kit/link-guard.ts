@@ -9,7 +9,7 @@
  * auxclick (a middle click), so every link in every app, the display mode, a card's "open on the site", a
  * footnote's link, Mod+click and Enter on a focused link (the browser's own click) are all asked about. Links
  * that stay here pass: this origin (the apps' own routes, "Open in a new tab" of a document held in another),
- * and a file this page made (blob:). A generated website shown in its frame is its own page, out of reach.
+ * and a file this page made (blob:).
  * openLink(href) is the same question for a link followed from code (the link bubble's Open).
  * (Ported from the old tree's src/widgets/link-guard.ts; the dialog is the kit's <to-dialog>.)
  */

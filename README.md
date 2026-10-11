@@ -3,7 +3,7 @@
 **Tiny Little Office is a free office suite where your document is the link. There's no account, nothing is
 stored anywhere, and whoever has the link has the document.**
 
-Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list, a website. When
+Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list. When
 you want to share it, copy the link. The whole document lives inside that link, so sending it is like
 handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you write.
 If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It works on
@@ -67,7 +67,7 @@ Three layers, each small enough to read.
   the blocks that changed are drawn again. There is no contenteditable anywhere else.
 - **The apps** (`src/apps/<id>/`): definitions on the kit. Each is a view of the kernel's document and the
   commands it adds: the Word Processor, Spreadsheet, Presentation Builder, Outliner, To-Do List, Kanban
-  Board, Calculator, Calendar, Drawing Tool, Animator, Diagram Maker, Trip Planner and Website Builder.
+  Board, Calculator, Calendar, Drawing Tool, Animator, Diagram Maker and Trip Planner.
   Each is a chunk of its own; the home page loads the kit and nothing else.
 
 The plan of the rebuild is docs/rebuild.md; every document in `docs/` is listed in docs/README.md.

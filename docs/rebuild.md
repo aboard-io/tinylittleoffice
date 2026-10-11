@@ -64,7 +64,7 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 | Todo | the simplest list | — |
 | Board | columns of cards | — |
 | Map | places | trip |
-| Page | a web page | website, quick links, invoice, contract? |
+| Page | a web page | invoice and contract as Write templates; no website (Paul, 2026-10-11) |
 | Calculator | a tape | — |
 
 Hidden: web (embeds), qr (the deck's closing slide). The small tools (wordsearch, spinner, santa, split) are
@@ -74,8 +74,8 @@ no compatibility code).
 The names people read, by app id (Paul, 2026-10-09: "We need to rename the apps to be very generic"; the ids,
 folders and routes do not change): write, the Word Processor; sheet, the Spreadsheet; calc, the Calculator; deck,
 the Presentation Builder; outline, the Outliner; draw, the Drawing Tool; diagram, the Diagram Maker; anim, the
-Animator; board, the Kanban Board; todo, the To-Do List; cal, the Calendar; trip, the Trip Planner; site, the
-Website Builder. The names in the table above and in docs/kernel.md are the working names of the plan.
+Animator; board, the Kanban Board; todo, the To-Do List; cal, the Calendar; trip, the Trip Planner. The
+names in the table above and in docs/kernel.md are the working names of the plan.
 
 Round four (Paul, 2026-10-09): every link that leaves the site asks first (src/kit/link-guard.ts: the site's name
 large, the whole address, red Cancel, green Go); pictures from the web are asked for before they load (src/kit/pictures.ts:

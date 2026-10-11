@@ -61,7 +61,6 @@ there it is drawn still, at its resting moment (`ViewOpts.still`).
 | Calendar | `.csv` | CSV |
 | Trip Planner | `.gpx` | GPX route |
 | Trip Planner | `.geojson` | GeoJSON |
-| Website Builder | `.html` | The website (HTML) |
 
 A seating chart (Diagram Maker, `kind: seating`) prints its place cards from its bar: a card a guest, eight to a
 letter sheet, with lines to cut along.
@@ -75,7 +74,6 @@ Under Download, "Open in": the document as another app reads it, converted by a 
 | --- | --- | --- |
 | Word Processor | Presentation Builder | Show as slides |
 | Word Processor | Outliner | Open as an outline |
-| Word Processor | Website Builder | Make it a website |
 | Outliner | Presentation Builder | Show as slides |
 | Outliner | Diagram Maker | Draw as a mind map |
 | Outliner | Diagram Maker | Draw as an org chart |

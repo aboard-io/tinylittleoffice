@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a Tiny Little Office URL: spreadsheets and charts, models of a small business, text, letters, résumés, contracts, invoices, slide decks, outlines, zines, booklets, brochures, comics, posters, name badges, drawings and pixel art, diagrams (mind map, org chart, family tree, swimlanes, timeline, Venn, seating chart, network), animations, kanban boards, to-do lists, calendars and Gantt schedules, trips on a map, websites of little pages and link-in-bio pages, shops, and a calculator that keeps its working. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a Tiny Little Office URL: spreadsheets and charts, models of a small business, text, letters, résumés, contracts, invoices, slide decks, outlines, zines, booklets, brochures, comics, posters, name badges, drawings and pixel art, diagrams (mind map, org chart, family tree, swimlanes, timeline, Venn, seating chart, network), animations, kanban boards, to-do lists, calendars and Gantt schedules, trips on a map, and a calculator that keeps its working. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # Tiny Little Office links
@@ -188,18 +188,6 @@ A table `Place | Lat:number | Lon:number | Note`, in decimal degrees. `units: km
 
 {{templates:trip}} {{exports:trip}}
 
-## The web
-
-### site: a website of little pages, or a page of quick links
-
-`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a picture's address alone on a line a picture, `:icon:` alone a big icon, a fence another document. `theme:` in the head sets the look: `indigo teal rose amber ink forest ocean sunset plum candy olive slate paper typewriter midnight coal`, with `serif`, `sans`, `rounded` or `mono` to change the type and `dark` or `light` the mode (`theme: teal serif dark`). A table `Name | Price:money | About | Image` in a section is a shop with a cart; the head holds `currency: $` and `orders: someone@example.com`. `look: links` makes it a Quick Links page (a link-in-bio): one column, the buttons stacked, the list items small links at the foot.
-
-{{tpl:site:cafe}}
-
-{{tpl:site:links-maker}}
-
-{{templates:site}} {{exports:site}}
-
 ## Every app's files
 
 Every document downloads as a `.pdf` (its pages as pictures; Print in the browser saves one with the words still words), a picture (`.png`), a web page (`.html`), Markdown (`.md`, footnotes in Markdown's reference form) and its own text (`.tlo`: the TLO with `app: <id>` in its head, which opens as its own app when dropped on the site or opened from its menu). A `.zip` of `.tlo` and `.md` files, a folder per app as the site's Download everything writes it, opens the same way: every document in it is kept on the device (under Private, listed to keep or to open). A link that downloads a file as it opens is `#/v1/<app>.<ext>/<payload>`, or `view=<ext>` in the plain form.
@@ -265,7 +253,7 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
 - A wall of work in stages: `board`. Things to tick off: `todo`. Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`.
-- Something to publish: `site`. Anything else visual: `draw`; moving: `anim`.
+- Anything else visual: `draw`; moving: `anim`.
 
 ## Good practice
 

@@ -1,16 +1,16 @@
 /**
- * Pages that move. An animation drawn into a page (the Animator's view, placed on a slide, a site's page, a
- * text) plays by SMIL: the SVG animates itself, no script needed. What a script adds is when: a slide or a
- * site's page that comes on starts its animations from the beginning, one that goes off is paused (a deck
+ * Pages that move. An animation drawn into a page (the Animator's view, placed on a slide or in a text)
+ * plays by SMIL: the SVG animates itself, no script needed. What a script adds is when: a slide that comes
+ * on starts its animations from the beginning, one that goes off is paused (a deck
  * of ten animations runs no ten clocks), and with "reduce motion" asked of the system every animation
  * stands at its resting moment, where a once-through ends. All by the <svg> element's own clock
  * (setCurrentTime, pauseAnimations, unpauseAnimations): an outermost <svg> holds the clock of everything
  * inside it, a placed page's nested <svg> included. Chromium never moves an animation that was under
- * `display: none` when the page loaded (a slide not on, a site's page not shown), whatever its clock says,
+ * `display: none` when the page loaded (a slide not on), whatever its clock says,
  * until the <svg> is put in the page again: so one that comes on is put back where it is, first.
  *
  * motion() is for the kit and the editors; MOTION_JS is the same function as a fixed text, for the pages
- * the apps make (a deck's slideshow, a site), whose scripts are registered with kit/page.ts by their text.
+ * the apps make (a deck's slideshow), whose scripts are registered with kit/page.ts by their text.
  */
 
 /** Every outermost <svg> under a node: each holds one clock. */

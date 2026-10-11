@@ -199,11 +199,6 @@ const PLAN: Record<string, State[]> = {
     { name: 'a pin', tpl: 'weekend', set: (ed) => (ed.pinAt = 0) },
     { name: 'presenting', tpl: 'weekend', set: (ed) => ((ed.presenting = 0), ed.requestUpdate()) },
   ],
-  site: [
-    { name: 'the page', tpl: 'cafe' },
-    { name: 'a thing in hand', tpl: 'cafe', set: (ed) => ed.hold(String(ed.doc.blocks.findIndex((b: { k: string }) => b.k === 'p'))) },
-    { name: 'preview', tpl: 'cafe', set: (ed) => ed.startPreview() },
-  ],
 };
 
 for (const [app, states] of Object.entries(PLAN))

@@ -113,9 +113,6 @@ export function setCellAt(doc: Doc, at: number, r: number, c: number, raw: strin
   return ops;
 }
 
-/** A blank row put in after row r of the table at `at` (Website's grid asks for it). */
-export const insertRowAfter = (at: number, r: number): Op[] => [{ op: 'rows', at, r: r + 1, n: 1, rows: [[]] }];
-
 /**
  * One of the sheet's commands (sheet/model.ts) on the table at `at`: they work on a document's first table, so
  * they are given a document of that block alone and their ops are moved to where it stands.

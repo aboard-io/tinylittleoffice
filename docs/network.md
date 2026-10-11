@@ -82,7 +82,7 @@ redirect on one of them leads nowhere else.
 | `commons.wikimedia.org` | Commons’ own pages’ pictures (the same files, by another address) |
 | `archive.org` | The Internet Archive’s files: public-domain and archived pictures |
 | `ia*.us.archive.org` | The Internet Archive’s storage hosts (ia800….us.archive.org), where its download addresses lead |
-| `images.unsplash.com` | Unsplash’s image CDN: pictures under the Unsplash licence; the Website Builder’s templates use it |
+| `images.unsplash.com` | Unsplash’s image CDN: pictures under the Unsplash licence |
 | `images.pexels.com` | Pexels’ image CDN: pictures under the Pexels licence |
 | `live.staticflickr.com` | Flickr’s static files: pictures with their licence stated, many Creative Commons |
 | `raw.githubusercontent.com` | Files in public GitHub repositories: static, the address names the file |

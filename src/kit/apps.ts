@@ -14,12 +14,11 @@ import cal from '../apps/cal/def.ts';
 import diagram from '../apps/diagram/def.ts';
 import anim from '../apps/anim/def.ts';
 import trip from '../apps/trip/def.ts';
-import site from '../apps/site/def.ts';
 import calc from '../apps/calc/def.ts';
 import { QR_LANG, qrPicture } from './qr-picture.ts';
 import { LOCKED_LANG, lockedDoc } from './locked.ts';
 
-const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal, trip, site];
+const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal, trip];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);

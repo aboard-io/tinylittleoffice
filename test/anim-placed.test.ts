@@ -60,18 +60,6 @@ test('the deck passes still through to an animation on a slide, and its own pict
   expect(deckToHtml(text, 'Up')).toMatch(/<animateTransform attributeName="transform" type="translate"/);
 });
 
-test('the site page plays a placed animation; its pictures never hold one', () => {
-  const site = appOf('site')!;
-  const text = `# Home\n\nWords.\n\n${fence}`;
-  expect(site.page!(text, 'https://tinylittleoffice.com/')).toMatch(SMIL);
-  expect(
-    site
-      .view(text, { still: true })
-      .map((p) => p.svg)
-      .join(''),
-  ).not.toMatch(SMIL);
-});
-
 test('a text passes still through: its pages move, its print stands still, its web page moves', () => {
   const write = appOf('write')!;
   const text = `# A text\n\nWords.\n\n${fence}`;

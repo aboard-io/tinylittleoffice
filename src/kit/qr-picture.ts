@@ -1,7 +1,7 @@
 /**
  * The QR code as a picture a document can hold: a fence "```qr```". Empty, it is the code of this
  * document's own link (the one the shell holds now, `setSelfLink`), drawn afresh each time so it always
- * opens the document as it is; holding an address, it is that address's code. Write, Deck and Website put
+ * opens the document as it is; holding an address, it is that address's code. Write and Deck put
  * it in from Insert ▾ ("QR code of this document"), and draw it as they draw another document held in
  * them: the kit's registry lookup knows it by "qr" (kit/apps.ts), though it is not an app of its own (no
  * home row, no editor; editing it does nothing).

@@ -1,4 +1,4 @@
-// Insert ▾ narrowed by the letters typed; the QR code of this document as a picture Write, Deck and Website
+// Insert ▾ narrowed by the letters typed; the QR code of this document as a picture Write and Deck
 // hold; and the new blank documents of every other app offered wherever a document can hold one.
 import { test, expect, afterEach } from 'vitest';
 import { mount, tick, until } from './helpers.ts';
@@ -83,12 +83,11 @@ test('a QR picture with no link yet, or one too long, says so instead', () => {
   expect(qrPage('https://x.example/' + 'a'.repeat(4000)).alt).toMatch(/Too long for a QR code/);
 });
 
-test('Deck and Website offer the QR code too; every app that holds documents offers a new one of each other app', async () => {
+test('Deck offers the QR code too; every app that holds documents offers a new one of each other app', async () => {
   for (const [app, doc] of [
     ['write', 'Words.\n'],
     ['deck', '## A slide\n'],
     ['outline', '- An idea\n'],
-    ['site', '# Harbor Coffee\n\n## Menu\n\nWords.\n'],
   ] as const) {
     const shell = await mount(`#/v1/${app}/${encodeDoc(doc)}`);
     const ins = await openInsert(shell, app);

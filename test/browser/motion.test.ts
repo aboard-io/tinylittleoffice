@@ -1,6 +1,6 @@
-// An animation placed on a slide or a site's page plays when its slide or page comes on, from the beginning,
-// and is paused while it is not shown; with reduced motion it rests where it ends (kit/motion.ts). In a real
-// Chromium: the deck's slideshow page, the site's page, the deck editor's show, and motion() itself.
+// An animation placed on a slide plays when its slide comes on, from the beginning, and is paused while it is not
+// shown; with reduced motion it rests where it ends (kit/motion.ts). In a real Chromium: the deck's slideshow page,
+// the deck editor's show, and motion() itself.
 import { afterEach, expect, test } from 'vitest';
 import '../../src/styles.css';
 import '../../src/kit/apps.ts';
@@ -79,22 +79,6 @@ test('the slideshow page with reduced motion: a slide that comes on shows its an
   await tick(100);
   expect(svg.animationsPaused()).toBe(true);
   expect(svg.getCurrentTime()).toBeCloseTo(23 / 8, 2);
-});
-
-test('the site page: a page shown by the hash starts its animation from 0; the pages not shown are paused', async () => {
-  const site = appOf('site')!;
-  const doc = await framed(site.page!(`# Home\n\nWords.\n\n# Moves\n\n${fence}`, location.origin + '/'));
-  const pages = doc.querySelectorAll<HTMLElement>('main>.page');
-  expect(pages.length).toBe(2);
-  const svg = clockIn(pages[1]);
-  expect(pages[1].hidden).toBe(true);
-  expect(svg.animationsPaused()).toBe(true);
-  doc.defaultView!.location.hash = pages[1].id;
-  await until(() => !pages[1].hidden);
-  expect(svg.animationsPaused()).toBe(false);
-  expect(svg.getCurrentTime()).toBeLessThan(0.2);
-  await until(() => svg.getCurrentTime() > 0.2);
-  await moves(svg);
 });
 
 test('the deck editor’s show: a slide that comes on starts its animation from the beginning', async () => {

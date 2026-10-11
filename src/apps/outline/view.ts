@@ -165,7 +165,6 @@ export function appName(id: string): string {
     todo: () => t('To-Do List'),
     board: () => t('Kanban Board'),
     trip: () => t('Trip Planner'),
-    site: () => t('Website Builder'),
     calc: () => t('Calculator'),
     anim: () => t('Animator'),
     web: () => t('From the web'),

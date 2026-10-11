@@ -17,12 +17,6 @@ const files = (dir: string): string[] =>
 
 /** Tests hold made-up addresses (example.com, x.y) and are never shipped. */
 const isTest = (path: string) => /(^|\/)tests\/|\.test\.ts$/.test(path);
-/**
- * Templates are sample documents: the addresses in them are a document's own content (a band's Bandcamp, a
- * café's Instagram, Unsplash pictures), shown as links and cards, and fetched, if ever, by the rules for any
- * document (a link asks first, a picture comes through the proxy). They are not requests the site makes.
- */
-const TEMPLATES = ['src/apps/site/templates.ts'];
 /** XML namespaces: names in an SVG, a .docx, a .pptx, an .xlsx or a .gpx file, never fetched. */
 const NAMESPACES = ['www.w3.org', 'schemas.openxmlformats.org', 'purl.org', 'www.topografix.com'];
 const LOCAL = ['localhost', '127.0.0.1'];
@@ -42,7 +36,7 @@ const source = [...files('src'), ...files('tinier'), ...files('media')];
 test('every host the source reaches is on the list, or localhost, or a namespace', () => {
   const stray: string[] = [];
   for (const path of source) {
-    if (isTest(path) || TEMPLATES.includes(path)) continue;
+    if (isTest(path)) continue;
     for (const host of hosts(code(readFileSync(join(root, path), 'utf8')))) if (!listed(host) && !LOCAL.includes(host) && !NAMESPACES.includes(host)) stray.push(`${path}: ${host}`);
   }
   expect(stray).toEqual([]);
@@ -51,14 +45,13 @@ test('every host the source reaches is on the list, or localhost, or a namespace
 test('src/ names a host only through src/kit/network.ts', () => {
   const named: string[] = [];
   for (const path of files('src')) {
-    if (isTest(path) || TEMPLATES.includes(path) || path === 'src/kit/network.ts') continue;
+    if (isTest(path) || path === 'src/kit/network.ts') continue;
     for (const host of hosts(code(readFileSync(join(root, path), 'utf8')))) if (!LOCAL.includes(host) && !NAMESPACES.includes(host)) named.push(`${path}: ${host}`);
   }
   expect(named).toEqual([]);
 });
 
-test('the exemptions are still needed: each template holds an address, each namespace is still used', () => {
-  for (const path of TEMPLATES) expect(hosts(readFileSync(join(root, path), 'utf8')).length, path).toBeGreaterThan(0);
+test('the exemptions are still needed: each namespace is still used', () => {
   const all = source.filter((p) => !isTest(p)).flatMap((p) => hosts(readFileSync(join(root, p), 'utf8')));
   for (const ns of NAMESPACES) expect(all, ns).toContain(ns);
 });

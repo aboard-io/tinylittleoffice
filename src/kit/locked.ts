@@ -9,7 +9,7 @@
  *
  * and every place that draws a placed document draws it as a locked card, at the card's normal size for its
  * app: the lock, "Locked with a password", the app's icon and name. The registry's lookup knows the fence
- * (kit/apps.ts), so a text's pages, a slide, a site page, a print and every export draw the card with no
+ * (kit/apps.ts), so a text's pages, a slide, a print and every export draw the card with no
  * code of their own. In an editor a tap asks for the password (kit/locked-doc.ts) and, opened, the card
  * draws the document (`view(…, { open: true })`), the opened copy held in memory for this visit alone and
  * never written into the outer document, whose link goes on holding the sealed one. A fence whose link
