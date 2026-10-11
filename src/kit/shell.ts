@@ -36,7 +36,11 @@
  * fine. Communicate it in all the languages"). Share says so under the link; and someone who arrives at the Display
  * Link of a document that is not their own (not in the library, not made or changed in this page) is told it once a
  * document, in a quiet line under the header that its × closes (`copies`). Which documents have been told is kept
- * as short digests under `tinyoffice.copiesSaid` (in memory under Private), never the document.
+ * as short digests under `tinyoffice.copiesSaid` (in memory under Private), never the document. A digest names a
+ * document by its app and its `created` stamp (and signer), so every link of one document is one digest; a document
+ * changed here is stamped at its first change and its digest counted as told then, so after a reload (which forgets
+ * which links this page wrote) its Display Link stays quiet under Saved. One with no `created` (never changed by
+ * anyone) is named by its link, so each of its links is told once.
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -447,6 +451,8 @@ export class ToShell extends LitElement {
   }
   private writeLink(app: string, payload: string) {
     madeHere.add(routeHash(app, payload));
+    // Told already, by its name rather than its link: a reload forgets madeHere, but this digest is kept under Saved.
+    firstTold(docDigest(app, this.envelope, routeHash(app, payload)));
     this.payloadLength = payload.length;
     this.keepSoon(payload);
     history.replaceState(this.state(), '', routeHash(app, payload, '', this.owned, false, this.tie));

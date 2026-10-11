@@ -31,8 +31,8 @@ import { parseHash } from './route.ts';
 import { slug } from './draw.ts';
 import { forgetLanguage } from './i18n.ts';
 
-/** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
+/** The preferences this site may keep, by key; with them which documents have been told they are copies (kit/shell.ts). */
+export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size', 'tinyoffice.copiesSaid'];
 /** Where the key, the signer's name and the owner links are kept. */
 const KEY = 'tinyoffice.key';
 const NAME = 'tinyoffice.name';

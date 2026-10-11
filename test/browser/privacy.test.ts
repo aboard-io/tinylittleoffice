@@ -7,7 +7,7 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { mount, tick, until, openShare as openShareFromDrawer, said } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { checkSignature, PREFS, exportKey, forgetKey, knowKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
+import { checkSignature, PREFS, exportKey, forgetPrefs, prefsKept, forgetKey, knowKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
 import { createSigner, fingerprintOf, generate, verify } from '../../src/kit/sign.ts';
 import { messageOf } from '../../src/kit/envelope.ts';
 import { withHead } from '../../src/doc/tlo.ts';
@@ -415,6 +415,23 @@ test('what this device holds, item by item with Forget, and Download everything:
   // The language aside, as shell.test.ts sets it aside: another browser test file, running at once on this origin, may choose one after the forgetting.
   expect(Object.keys(localStorage).filter((k) => (k.startsWith('tinyoffice.') && k !== 'tinyoffice.lang') || k === 'to-theme')).toEqual([]);
   await tick();
+});
+
+// Which documents were told they are copies (kit/shell.ts) is something this device holds: counted, and forgotten with the rest.
+test('the copies already told are counted among the preferences and forgotten with them', () => {
+  try {
+    setKeeping(true);
+    for (const k of PREFS) store.remove(k);
+    expect(prefsKept()).toBe(0);
+    store.set('tinyoffice.copiesSaid', '["abc"]');
+    expect(localStorage.getItem('tinyoffice.copiesSaid')).toBe('["abc"]');
+    expect(prefsKept()).toBe(1);
+    forgetPrefs();
+    expect(prefsKept()).toBe(0);
+    expect(localStorage.getItem('tinyoffice.copiesSaid')).toBeNull();
+  } finally {
+    setKeeping(false);
+  }
 });
 
 test('Forget everything forgets the language chosen too, and the page keeps its words for the visit', async () => {

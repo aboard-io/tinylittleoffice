@@ -1,15 +1,16 @@
 // The shell: the home page, the route to an app, the link following every edit, the title in the head, a new
 // document's name, the Link and the Display Link, and the documents kept on the device (Saved only) listed
 // under their apps on the home page.
-import { test, expect, afterEach } from 'vitest';
+import { test, expect, afterEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { mount, tick, until } from './helpers.ts';
+import { mount, openShare, tick, until } from './helpers.ts';
 import { apps } from '../../src/kit/apps.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
-import { keep, library, localDay } from '../../src/kit/library.ts';
+import { forgetAll, keep, library, localDay } from '../../src/kit/library.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { keeping, setKeeping, store } from '../../src/kit/store.ts';
 import { lockWith, pack } from '../../src/kit/privacy.ts';
+import { setLanguage } from '../../src/kit/i18n.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 
@@ -482,4 +483,59 @@ test('a Display Link that arrived says once that it is a copy; one made here doe
   location.hash = new URL(shell.displayLink).hash;
   await until(() => !!shell.querySelector('.to-display-page svg'));
   expect(line(shell)).toBeNull();
+});
+
+// A document in the library is the reader's own: its Display Link says nothing about copies.
+test('a Display Link of a document kept in the library has no line about copies', async () => {
+  afterEachRemove();
+  await saved(async () => {
+    const hash = `#/v1/write/${encodeDoc('Kept words.\n')}`;
+    keep({ id: 'kept-copy', app: 'write', title: 'Kept words.', hash, at: Date.now() });
+    const display = await mount(`${hash}?d`);
+    await until(() => !!display.querySelector('.to-display-page svg'));
+    expect(display.querySelector('.to-copies')).toBeNull();
+  });
+});
+
+// A document changed here is counted as told by its name (its app and `created` stamp), not only by the links this
+// page wrote: after a reload, which forgets those links, its Display Link stays quiet. Another link of the same
+// document, one this page never wrote, stands in for the reload; the library is emptied so it is not what keeps it quiet.
+test('a document made here stays quiet after a reload: told by its created stamp, kept under Saved', async () => {
+  afterEachRemove();
+  await saved(async () => {
+    const shell = await mount('#/v1/write');
+    await type(shell, 'Made here.');
+    const made = new URL(shell.displayLink).hash.match(/^#\/v1\/write\/([^?]+)/)![1];
+    const text = decodeDoc(made);
+    expect(text).toMatch(/\ncreated: /);
+    expect(localStorage.getItem('tinyoffice.copiesSaid')).not.toBeNull();
+    forgetAll();
+    const display = await mount(`#/v1/write/${encodeDoc(text.replace('Made here.', 'Made here, then reloaded.'))}?d`);
+    await until(() => !!display.querySelector('.to-display-page svg'));
+    expect(display.querySelector('.to-copies')).toBeNull();
+  });
+});
+
+// In each language's own voice: the line and Share's sentence are the language's, so a missing translation fails here.
+test('the copies line and Share’s sentence follow the language: Haitian Creole', async () => {
+  afterEachRemove();
+  // Haitian Creole in this page alone: the choice never touches the origin's storage, which other test files share as they run.
+  const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
+  const remove = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {});
+  await setLanguage('ht');
+  try {
+    const ht = 'Nenpòt moun ki louvri lyen sa a jwenn pwòp kopi pa l. Sa yo chanje rete nan lyen pa yo, pa nan pa w: mande yo voye pa yo ba ou.';
+    const display = await mount(`#/v1/write/${encodeDoc('Mo ki rive.\n')}?d`);
+    await until(() => !!display.querySelector('.to-display-page svg'));
+    expect(display.querySelector('.to-copies p')!.textContent).toBe(ht);
+    const shell = await mount(`#/v1/write/${encodeDoc('Bonjou\n')}`);
+    await until(() => !!shell.querySelector('to-write-editor'));
+    await openShare(shell);
+    await until(() => !!shell.querySelector('.to-share-copies'));
+    expect(shell.querySelector('.to-share-copies')!.textContent).toBe(ht);
+  } finally {
+    await setLanguage(null);
+    set.mockRestore();
+    remove.mockRestore();
+  }
 });
