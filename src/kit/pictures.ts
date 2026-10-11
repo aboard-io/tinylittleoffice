@@ -143,7 +143,7 @@ export function gateHtml(page: string): { html: string; hidden: number } {
 export const hidesPictures = (svg: string): boolean => gateSvg(svg).includes('data-webpic=""');
 
 /** A picture's stand-in until it nears the screen: one transparent pixel. */
-const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+export const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 /**
  * Web pictures are fetched only as they near the screen (Paul, 2026-10-11: "It shouldn't fetch images until right

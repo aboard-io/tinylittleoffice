@@ -2,7 +2,7 @@
 // draws from another site: a card until asked for, a grey box in a preview.
 import { describe, expect, test, beforeEach } from 'vitest';
 import { leaving } from '../src/kit/link-guard.ts';
-import { authored, forgetPictures, gateHtml, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
+import { authored, BLANK, forgetPictures, gateHtml, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
 import { pictureSrc } from '../src/kit/media.ts';
 
 const BASE = 'https://tinylittleoffice.com/write/#/v1/write/abc';
@@ -47,8 +47,9 @@ describe('pictures from the web', () => {
   });
   const page =
     '<rect width="10" height="10"/><image href="https://example.com/a.png?x=1&amp;y=2" x="40" y="50" width="400" height="200" preserveAspectRatio="xMidYMid meet"/><image href="data:image/png;base64,AAAA" width="10" height="10"/>';
-  // Shown, it is drawn from the picture proxy, never from its own site (kit/media.ts).
-  const shownPage = page.replace('https://example.com/a.png?x=1&amp;y=2', pictureSrc('https://example.com/a.png?x=1&y=2'));
+  // Shown, it is drawn from the picture proxy, never from its own site (kit/media.ts), and fetched only as it nears the
+  // screen: the proxy's address waits in data-src behind a blank pixel until then (watchPictures).
+  const shownPage = page.replace('<image href="https://example.com/a.png?x=1&amp;y=2"', `<image data-src="${pictureSrc('https://example.com/a.png?x=1&y=2')}" href="${BLANK}"`);
   test('a drawn page shows a web picture as its card, in its box; a data: picture as it is', () => {
     const out = gateSvg(page);
     expect(out).not.toContain('https://example.com');
