@@ -1,7 +1,9 @@
-# Every check a change must pass, on every push and pull request: the types, the strings, the generated
-# pages, the dependencies' advisories, the unit tests under node, the browser tests in Chromium, and the
-# build, made twice more to show it is the same bytes. Branch protection on main requires this job
-# (docs/github-setup.md).
+# Every check a deploy runs (scripts/deploy.mjs, held to it by test/repository.test.ts), on every push and pull
+# request: the types, the strings, the unit tests under node, the browser tests in Chromium, the build (whose
+# budgets are a tripwire: a chunk over budgets.json fails it), the smoke run on the built site in desktop Chromium
+# and a phone-sized WebKit, and the policy and version the build writes. Then the lints and Prettier, the
+# dependencies' advisories, and the build made twice more to show it is the same bytes. Branch protection on main
+# requires the job `check` (docs/github-setup.md).
 name: CI
 
 on:
@@ -18,41 +20,50 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    env:
+      # The smoke run's preview port (playwright.config.ts).
+      PW_PORT: 4179
     steps:
       - uses: actions/checkout@v5
+        with:
+          # build:verify checks the commit out again, by its history.
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
-          node-version: lts/*
+          node-version: 24
           cache: npm
       - run: npm ci
+      - name: Chromium and WebKit, with what they need
+        run: npx playwright install --with-deps chromium webkit
+      - name: The fonts the measuring tests draw each script in (test/browser/fonts.ts)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-noto-extra
+          # As on the box the tests were calibrated on: Latin and Cyrillic in DejaVu Sans, not in Noto Sans.
+          printf '%s\n' '<?xml version="1.0"?>' '<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">' '<fontconfig>' \
+            '  <alias binding="strong"><family>sans-serif</family><prefer><family>DejaVu Sans</family></prefer></alias>' \
+            '  <alias binding="strong"><family>system-ui</family><prefer><family>DejaVu Sans</family></prefer></alias>' \
+            '</fontconfig>' | sudo tee /etc/fonts/local.conf > /dev/null
+          if [ -f scripts/fonts-box.sh ]; then bash scripts/fonts-box.sh; fi
+          fc-cache -f > /dev/null
       - name: Types
-        run: npm run lint
+        run: npm run typecheck
       - name: Strings
         run: npm run i18n:check
-      - name: What leaves the browser (docs/network.md)
-        run: |
-          if node -e "process.exit(require('./package.json').scripts['docs:network'] ? 0 : 1)"; then
-            npm run docs:network -- --check
-          else
-            echo "No docs:network script on this branch yet."
-          fi
-      - name: Dependencies (docs/dependencies.md)
-        run: |
-          if node -e "process.exit(require('./package.json').scripts['docs:deps'] ? 0 : 1)"; then
-            npm run docs:deps -- --check
-          else
-            echo "No docs:deps script on this branch yet."
-          fi
+      - name: Unit tests (node)
+        run: npm run test:unit
+      - name: Browser tests (the kit and every editor, in Chromium)
+        run: npm run test:browser
+      - name: Build, and the chunks against budgets.json
+        run: npm run build
+      - name: The smoke run on the built site (desktop Chromium, phone WebKit)
+        run: npx playwright test e2e/smoke.spec.ts e2e/keyboard.spec.ts e2e/a11y.spec.ts
+      - name: The policy and the version
+        run: node scripts/check-build.ts
+      - name: The lints, Prettier and the generated pages
+        run: npm run lint
       - name: Advisories, with no ignores
         run: npm audit
-      - name: Unit tests (node)
-        run: npx vitest run --project unit
-      - name: Chromium for the browser tests
-        run: npx playwright install --with-deps chromium
-      - name: Browser tests (the kit and every editor, in Chromium)
-        run: npx vitest run --project browser
-      - name: Build
-        run: npm run build
       - name: The same bytes, built twice (scripts/reproducible.ts)
         run: npm run build:verify

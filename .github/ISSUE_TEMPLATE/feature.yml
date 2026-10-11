@@ -1,12 +1,12 @@
-name: An idea
+name: A feature
 description: Something Tiny Little Office could do, or do better.
-labels: [idea]
+labels: [feature]
 body:
   - type: markdown
     attributes:
       value: |
-        Tiny Little Office is small on purpose: an idea that makes a thing simpler is likelier to land than one
-        that adds a setting. For a conversation rather than a proposal, Discussions → Ideas is the place.
+        Tiny Little Office is small on purpose: a feature that makes a thing simpler is likelier to land than one
+        that adds a setting.
   - type: textarea
     id: need
     attributes:

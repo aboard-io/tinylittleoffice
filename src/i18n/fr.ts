@@ -37,6 +37,8 @@ export default {
   'Forget {title}': 'Oublier {title}',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n} de plus',
+  'Made with respect by {aboard}': 'Fait avec respect par {aboard}',
+  'Open source': 'Code source ouvert',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Apps', // same
@@ -86,6 +88,7 @@ export default {
   'What leaves your browser': 'Ce qui quitte votre navigateur',
   'What this protects against, and what it does not': 'Ce contre quoi cela protège, et ce contre quoi cela ne protège pas',
   'What it does not protect against': 'Ce contre quoi cela ne protège pas',
+  'The whole threat model, in English': 'Le modèle de menaces complet, en anglais',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'L’historique du navigateur, et sa synchronisation si elle est active : la barre d’adresse contient le document, donc eux aussi. Privé ne change rien à ce que le navigateur enregistre.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Toute personne à qui vous donnez le lien, et tout ce par quoi il passe (une messagerie, un e-mail, un aperçu de lien) : un lien est une copie, et on ne peut pas le reprendre.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Une capture d’écran, une photo de l’écran, une impression ou un export : ce qui a été montré l’a été.',

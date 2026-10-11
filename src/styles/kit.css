@@ -2069,6 +2069,19 @@
     background: transparent;
     color: var(--to-ink-2);
   }
+  /* The foot (kit/home.ts): who made it and where its source is, quiet, its words in line with the apps' names, clear of
+     a phone's home indicator. */
+  .to-home-foot {
+    padding: 1.5em 0.5em max(1.5em, env(safe-area-inset-bottom));
+    color: var(--to-ink-3);
+  }
+  .to-home-foot p {
+    margin: 0 0 0.25em;
+    font-size: calc(0.8125 * var(--to-scale));
+  }
+  .to-home-foot a {
+    color: inherit;
+  }
   .to-drive {
     list-style: none;
     margin: 0 0 0.375em;

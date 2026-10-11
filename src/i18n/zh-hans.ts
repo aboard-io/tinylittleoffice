@@ -35,6 +35,8 @@ export default {
   'Forget {title}': '忘记{title}',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '还有 {n} 个',
+  'Made with respect by {aboard}': '由 {aboard} 怀着敬意打造',
+  'Open source': '开源',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': '应用',
@@ -84,6 +86,7 @@ export default {
   'What leaves your browser': '哪些内容会离开你的浏览器',
   'What this protects against, and what it does not': '它能防范什么，不能防范什么',
   'What it does not protect against': '它不能防范的',
+  'The whole threat model, in English': '完整的威胁模型（英文）',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': '浏览器的历史记录，以及开启时的同步：地址栏里就是文档，所以它们也保存着文档。隐私模式不会改变浏览器记录的内容。',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': '你把链接给的任何人，以及链接途经的一切（聊天、邮件、链接预览）：链接是一份副本，无法收回。',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': '截图、对着屏幕拍的照片、打印件或导出的文件：一旦显示，就已经显示了。',

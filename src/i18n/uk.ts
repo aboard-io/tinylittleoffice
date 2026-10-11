@@ -36,6 +36,8 @@ export default {
   'Forget {title}': 'Забути {title}',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': 'Ще {n}',
+  'Made with respect by {aboard}': 'Зроблено з повагою в {aboard}',
+  'Open source': 'Відкритий код',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Застосунки',
@@ -86,6 +88,7 @@ export default {
   'What leaves your browser': 'Що залишає ваш браузер',
   'What this protects against, and what it does not': 'Від чого це захищає, а від чого ні',
   'What it does not protect against': 'Від чого це не захищає',
+  'The whole threat model, in English': 'Модель загроз повністю, англійською',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'Історія браузера та її синхронізація, якщо вона ввімкнена: в адресному рядку — документ, тож і в них теж. Режим «Приватно» не змінює того, що записує браузер.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Будь-хто, кому ви дали посилання, і все, через що воно проходить (чат, лист, попередній перегляд посилання): посилання — це копія, і його не повернути.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Знімок екрана, фото екрана, роздруківка чи експорт: що показано, те показано.',

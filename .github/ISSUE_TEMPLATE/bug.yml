@@ -5,8 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you. A security problem is not an issue: write to security@tinylittleoffice.com (SECURITY.md).
-        A link holds its whole document, so share one here only if everything in it may be public.
+        Thank you. A security problem is not an issue: report it privately (SECURITY.md).
   - type: input
     id: app
     attributes:
@@ -15,10 +14,17 @@ body:
     validations:
       required: true
   - type: textarea
+    id: link
+    attributes:
+      label: The link that shows it
+      description: |
+        A link holds its whole document, and this issue is public. Make a document that shows the problem with
+        nothing private in it (or take out what is private and check it still shows), and paste its link here.
+  - type: textarea
     id: steps
     attributes:
       label: What you did
-      description: The steps, one per line, from opening the app. A link to a document that shows it, if it may be public.
+      description: The steps, one per line, from opening the link or the app.
     validations:
       required: true
   - type: textarea

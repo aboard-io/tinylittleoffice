@@ -1,0 +1,15 @@
+# Updates to the dependencies, once a week, as one pull request for the site's and one for the tools'. A pull request
+# that moves a version also runs `npm run docs:deps` on its branch (docs/dependencies.md names each exact version),
+# or CI's check of that page fails it.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      site:
+        dependency-type: production
+      tools:
+        dependency-type: development

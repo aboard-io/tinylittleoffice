@@ -259,12 +259,23 @@ dd{margin:0}
 </section>
 <section class="reach">
 <h3><code>github.com</code></h3>
-<p>The site’s source: the commit this copy was built from, named in About, a link.</p>
+<p>The site’s source: the repository, “Open source” at the home page’s foot; the commit this copy was built from and the threat model in full, in About; links.</p>
 <dl>
 <dt>When</dt><dd>after a tap</dd>
-<dt>Carries</dt><dd>Which commit; it opens in a new tab, and nothing of the document goes with it</dd>
+<dt>Carries</dt><dd>Which page of the source; it opens in a new tab, and nothing of the document goes with it</dd>
 <dt>Stopped by</dt><dd>Not following the link: the commit’s name comes from the site’s own /version.json</dd>
-<dt>Made by</dt><dd><code>kit/drawer.ts, kit/version.ts</code></dd>
+<dt>Made by</dt><dd><code>kit/home.ts, kit/drawer.ts, kit/version.ts</code></dd>
+<dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>aboard.com</code></h3>
+<p>Aboard, who made the site, named at the home page’s foot, a link.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>Nothing: it opens in a new tab, from the home page, where no document is open</dd>
+<dt>Stopped by</dt><dd>Not following the link</dd>
+<dt>Made by</dt><dd><code>kit/home.ts</code></dd>
 <dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
 </dl>
 </section>

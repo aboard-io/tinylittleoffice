@@ -1,73 +1,76 @@
-# Setting up the repository on GitHub
+# The repository on GitHub
 
-What the files cannot do: the settings Paul applies by hand in GitHub before the repository goes public
-(docs/transparency.md §2). Each line is a box to tick; the strings are exact, to paste. The visibility
-change itself is last, and is Paul's click.
+The source is public at **https://github.com/aboard-io/tinylittleoffice**, in the Aboard organization, under
+the MIT License. It was renamed, moved to the organization and opened on 2026-10-11; GitHub redirects the old
+address. This page is what the files in the repository cannot do: the settings set by hand, each a box to tick,
+with the strings exact, to paste. The files assume every one of them.
 
-## Before anything: two addresses
+## Who may push
 
-- [ ] **security@tinylittleoffice.com** exists and reaches Paul (SECURITY.md, the issue chooser).
-- [ ] **conduct@tinylittleoffice.com** exists and reaches Paul (CODE_OF_CONDUCT.md).
+- **Paul** (an owner of the organization) is the repository's admin, and the only one who may tag a release.
+- **Maintainers** are an organization team with the **Maintain** role on the repository; while there is no
+  second maintainer the team is Paul alone.
+- **Everyone else** works in a fork and opens a pull request; CI runs on it, and a maintainer merges it.
+- [ ] Settings → Collaborators and teams: the maintainers' team with **Maintain**; nobody with **Admin** but
+      the organization's owners.
+- [ ] The organization's Settings → Actions: allow GitHub's own actions and those of verified creators
+      (`actions/checkout`, `actions/setup-node`, `actions/attest-build-provenance`); require approval for
+      workflows from first-time contributors' forks.
 
-## The name and the About box (the repository's front page, the gear beside About)
-
-- [ ] Name: `tinylittleoffice`, or keep `tinyoffice`. If renamed, change `ftrain/tinyoffice` in
-      `.github/ISSUE_TEMPLATE/config.yml` (GitHub redirects the old address, but the links should be true).
-- [ ] Description: `A free office suite where your document is the link. No account, nothing stored, the code open.`
-- [ ] Website: `https://tinylittleoffice.com`
-- [ ] Topics: `office-suite` `privacy` `local-first` `no-backend` `pwa` `web-components` `lit`
-      `cloudflare-workers` `typescript` `url-as-document` `markdown`
-- [ ] Include in the home page: **Releases** on, **Packages** off, **Deployments** off (the site deploys
-      from this machine, not from GitHub).
-
-## General (Settings → General)
-
-- [ ] Social preview: the Office mark's share card, `public/og.png` (drawn by `npm run icons`).
-- [ ] Features: **Issues** on; **Discussions** on; **Wiki** off (the docs are in `docs/`); **Projects** off.
-- [ ] Pull requests: allow **squash merging** and **merge commits**, not rebase merging; tick **Always suggest
-      updating pull request branches** and **Automatically delete head branches**.
-
-## Discussions (the Discussions tab → the pencil beside Categories)
-
-- [ ] `Announcements` (announcement format: only maintainers post)
-- [ ] `Ideas` (open-ended discussion)
-- [ ] `Q&A` (question and answer)
-- [ ] `Show and tell` (open-ended discussion)
-- [ ] Delete the default `General` and `Polls` if GitHub made them.
-
-## Labels (Issues → Labels)
-
-- [ ] `bug` (`#d73a4a`, "Something is wrong") and `idea` (`#a2eeef`, "Something it could do"): the issue
-      templates apply these.
-- [ ] One per app, colour `#c5def5`: `app: write`, `app: sheet`, `app: deck`, `app: outline`, `app: todo`,
-      `app: board`, `app: calc`, `app: cal`, `app: draw`, `app: anim`, `app: diagram`, `app: trip`,
-      `app: site`.
-- [ ] `kit` (`#fbca04`, "The shell, the bar, the editor and the rest of src/kit"), `kernel` (`#fbca04`,
-      "src/doc: the model, TLO, the operations"), `tinier` and `media` (`#bfd4f2`, "A Worker"),
-      `docs` (`#0075ca`), `security` (`#b60205`, "Security-relevant, after disclosure").
-- [ ] Delete the defaults that do not fit (`enhancement`, `question`, `wontfix`, `invalid`, `duplicate`,
-      `good first issue` and `help wanted` may stay).
-
-## Security (Settings → Code security, and Security → Advisories)
-
-- [ ] **Private vulnerability reporting** on (a second door to SECURITY.md's address).
-- [ ] **Dependency graph** and **Dependabot alerts** on; Dependabot security updates on; version updates
-      off (a dependency changes only with its line in `scripts/dependencies.json`).
-- [ ] **Secret scanning** and **push protection** on.
-- [ ] Code scanning: not yet (CI runs `npm audit` with no ignores).
-
-## The main branch (Settings → Rules → Rulesets → New branch ruleset)
+## The branch rule (Settings → Rules → Rulesets → New branch ruleset)
 
 - [ ] Ruleset name: `main`; enforcement: **Active**; target: the default branch.
 - [ ] **Restrict deletions**; **Block force pushes**.
 - [ ] **Require a pull request before merging**: 0 approvals while Paul works alone (1 once there is a second
       maintainer); dismiss stale approvals; require conversation resolution.
-- [ ] **Require status checks to pass**: the check `check` (the CI workflow's one job: types, strings, the
-      generated pages, advisories, unit, browser, build; the network test is in the unit tests when it lands);
-      tick **Require branches to be up to date before merging**.
-- [ ] **Require signed commits**: recommended, not required, until every contributor signs (transparency.md
-      §2); revisit at launch.
-- [ ] Bypass list: Paul, for the deploy commits from this machine.
+- [ ] **Require status checks to pass**: the check `check` (the CI workflow's one job, `.github/workflows/ci.yml`:
+      every check a deploy runs, then the lints, the advisories and the build made twice); tick **Require
+      branches to be up to date before merging**.
+- [ ] **Require signed commits**: recommended, not required, until every contributor signs; revisit at launch.
+- [ ] Bypass list: the organization's admins, for the deploy commits made from Paul's machine.
+
+## The About box (the repository's front page, the gear beside About)
+
+- [ ] Description: `A free office suite where your document is the link. No account, nothing stored, the code open.`
+- [ ] Website: `https://tinylittleoffice.com`
+- [ ] Topics: `office-suite` `privacy` `local-first` `no-backend` `pwa` `web-components` `lit` `cloudflare-workers`
+      `typescript` `url-as-document` `markdown`
+- [ ] Include in the home page: **Releases** on, **Packages** off, **Deployments** off (the site deploys from
+      Paul's machine, not from GitHub).
+
+## General (Settings → General)
+
+- [ ] Social preview: the Office mark's share card, `public/og.png` (drawn by `npm run icons`).
+- [ ] Features: **Issues** on; **Discussions** off; **Wiki** off (the docs are in `docs/`); **Projects** off.
+- [ ] Pull requests: allow **squash merging** and **merge commits**, not rebase merging; tick **Always suggest
+      updating pull request branches** and **Automatically delete head branches**.
+
+## Issues (Issues → Labels)
+
+The issue chooser (`.github/ISSUE_TEMPLATE/`) offers a bug and a feature, and sends a security problem to the
+private report; there are no blank issues.
+
+- [ ] `bug` (`#d73a4a`, "Something is wrong") and `feature` (`#a2eeef`, "Something it could do"): the templates
+      apply these.
+- [ ] `dependencies` (`#0366d6`): Dependabot applies it to its pull requests.
+- [ ] One per app in the registry (`src/kit/apps.ts`), color `#c5def5`: `app: <id>` (`app: write`, `app: sheet`…).
+- [ ] `kit` (`#fbca04`, "The shell, the bar, the editor and the rest of src/kit"), `kernel` (`#fbca04`,
+      "src/doc: the model, TLO, the operations"), `tinier` (`#bfd4f2`, "The short-link service"),
+      `docs` (`#0075ca`), `security` (`#b60205`, "Security-relevant, after disclosure").
+- [ ] Delete the defaults that do not fit (`enhancement`, `question`, `wontfix`, `invalid`; `duplicate`,
+      `good first issue` and `help wanted` may stay).
+
+## Security (Settings → Code security)
+
+- [ ] **Private vulnerability reporting** on: it is the only way SECURITY.md and the issue chooser give to report
+      a hole (no email address).
+- [ ] **Dependency graph** and **Dependabot alerts** on; **Dependabot security updates** on. Version updates are
+      `.github/dependabot.yml`: npm, weekly, the site's dependencies in one pull request and the tools' in
+      another. Such a pull request also needs `npm run docs:deps` run on its branch (docs/dependencies.md names
+      each exact version), or CI fails it.
+- [ ] **Secret scanning** and **push protection** on.
+- [ ] Code scanning: not yet (CI runs `npm audit` with no ignores).
+- [ ] **conduct@tinylittleoffice.com** exists and reaches Paul (CODE_OF_CONDUCT.md names it for reports).
 
 ## Releases
 
@@ -85,10 +88,6 @@ CSP's script hashes (docs/transparency.md §1 item 3).
 - [ ] Settings → Actions → General → Workflow permissions: leave **Read repository contents** as the default;
       the release workflow asks for its own (`contents: write`, `id-token: write`, `attestations: write`).
 
-A release is checked with `gh attestation verify tinylittleoffice-v1.0.0.tar.gz -R ftrain/tinyoffice` (built
-by that workflow, from that commit), and the live site against it with
+A release is checked with `gh attestation verify tinylittleoffice-v1.0.0.tar.gz -R aboard-io/tinylittleoffice`
+(built by that workflow, from that commit), and the live site against it with
 `npm run verify-deploy -- https://tinylittleoffice.com/ v1.0.0`.
-
-## Last
-
-- [ ] Settings → General → Danger Zone → **Change visibility → Public**.

@@ -160,6 +160,14 @@ test('About says what it does not protect against in its own section, in the lan
   expect(limits.querySelector('h3')!.textContent).toBe('What it does not protect against');
   const said = limits.textContent!;
   for (const w of ['history', 'screenshot', 'weak password', 'serves the code']) expect(said).toContain(w);
+  // Under the list, the whole document in the public repository, said to be in English, in a new tab.
+  const whole = limits.querySelector<HTMLAnchorElement>('a.to-about-threat-model')!;
+  expect([whole.textContent, whole.href, whole.target, whole.rel]).toEqual([
+    'The whole threat model, in English',
+    'https://github.com/aboard-io/tinylittleoffice/blob/main/docs/threat-model.md',
+    '_blank',
+    'noopener',
+  ]);
   go.click();
   await until(() => document.activeElement === limits.querySelector('h3'));
   // About's words are true: the browser's history is named, nothing promises "no trace".
@@ -199,7 +207,7 @@ test('About names the commit the site runs, from /version.json, asked when it op
     await until(() => !!shell.querySelector('.to-about-dialog .to-about-version a'));
     const a = shell.querySelector<HTMLAnchorElement>('.to-about-dialog .to-about-version a')!;
     expect(a.textContent).toBe('Running commit 0123456');
-    expect(a.href).toBe(`https://github.com/ftrain/tinyoffice/commit/${commit}`);
+    expect(a.href).toBe(`https://github.com/aboard-io/tinylittleoffice/commit/${commit}`);
     expect(a.target).toBe('_blank');
     expect(a.closest('p')!.textContent).toBe('Running commit 0123456 (v1.0.0)');
     expect(asked.length).toBe(1);

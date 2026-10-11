@@ -10,6 +10,11 @@
  * previews"). <to-templates> is the drawer's too: there a row's button (`via`) hands over to the drawer's one dialog
  * (`bare`, drawn outside the drawer's own), the drawer closing first (one modal at a time: kit/drawer.ts).
  *
+ * Below the apps, the foot: who made it, Aboard a link to aboard.com, and "Open source", a link to the repository
+ * (Paul, 2026-10-11: "At the bottom of the home page put: 'Made with respect by Aboard' … And another that just says
+ * 'Open source'"); the only words on the page beyond the apps' names. Each opens in a new tab, unasked: the chrome's
+ * own links (kit/link-guard.ts `data-to-chrome`).
+ *
  * Above the apps, once something is kept, a search box over the library (kit/search.ts): every word of it
  * somewhere in a document's title or text, the best first, each found document with its title and the
  * lines that hold the words, the words marked. Each document's link is decoded once, when first searched.
@@ -31,6 +36,8 @@ import { go, parseHash, routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
 import { onPrivacy } from './privacy.ts';
 import { focusBack } from './dialog.ts';
+import { origin } from './network.ts';
+import { repoUrl } from './version.ts';
 
 /** The documents shown under an app before "n more". */
 const SHOWN = 5;
@@ -234,6 +241,14 @@ export class ToHome extends LitElement {
         })}
       </ul>`;
   }
+  /** Who made it and where its source is. "Aboard" is a name, said as it is in every language, and the link. */
+  private foot() {
+    const [before, after = ''] = t('Made with respect by {aboard}').split('{aboard}');
+    return html`<footer class="to-home-foot">
+      <p>${before}<a href=${origin('maker')} target="_blank" rel="noopener" data-to-chrome>Aboard</a>${after}</p>
+      <p><a href=${repoUrl()} target="_blank" rel="noopener" data-to-chrome>${t('Open source')}</a></p>
+    </footer>`;
+  }
   render() {
     const kept = library();
     const want = this.query.trim();
@@ -259,6 +274,7 @@ export class ToHome extends LitElement {
           </section>`,
         )}
       </div>
+      ${this.foot()}
     </div>`;
   }
 }

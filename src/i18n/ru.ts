@@ -34,6 +34,8 @@ export default {
   'Forget {title}': 'Забыть «{title}»',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': 'Ещё {n}',
+  'Made with respect by {aboard}': 'Сделано с уважением в {aboard}',
+  'Open source': 'Открытый исходный код',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Приложения',
@@ -84,6 +86,7 @@ export default {
   'What leaves your browser': 'Что уходит из вашего браузера',
   'What this protects against, and what it does not': 'От чего это защищает, а от чего нет',
   'What it does not protect against': 'От чего это не защищает',
+  'The whole threat model, in English': 'Модель угроз целиком, на английском',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'История браузера и её синхронизация, если она включена: в адресной строке — документ, значит, и в них тоже. Режим «Приватно» не меняет того, что записывает браузер.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Любой, кому вы дали ссылку, и всё, через что она проходит (чат, письмо, предпросмотр ссылки): ссылка — это копия, и её не вернуть.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Снимок экрана, фото экрана, распечатка или экспорт: что показано, то показано.',

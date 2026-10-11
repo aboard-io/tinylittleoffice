@@ -35,6 +35,8 @@ export default {
     'Forget {title}': '{title} بھلا دیں',
   // Under an app's documents, the rest folded away: "3 more"
     '{n} more': '{n} اور',
+  'Made with respect by {aboard}': '{aboard} نے احترام کے ساتھ بنایا',
+  'Open source': 'اوپن سورس',
 
   // ---- the drawer (hamburger menu) ----
     'Apps': 'ایپس',
@@ -85,6 +87,7 @@ export default {
     'What leaves your browser': 'آپ کے براؤزر سے کیا باہر جاتا ہے',
     'What this protects against, and what it does not': 'یہ کس سے بچاتا ہے، اور کس سے نہیں',
     'What it does not protect against': 'یہ کس سے نہیں بچاتا',
+  'The whole threat model, in English': 'پورا خطرات کا ماڈل، انگریزی میں',
     'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'براؤزر کی ہسٹری، اور اگر آن ہو تو اس کی سنک: ایڈریس بار میں دستاویز ہوتی ہے، اس لیے ان میں بھی ہوتی ہے۔ نجی موڈ براؤزر کے ریکارڈ کو نہیں بدلتا۔',
     'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'جسے بھی آپ لنک دیں، اور راستے میں وہ جہاں سے بھی گزرے (چیٹ، ای میل، لنک کا پیش منظر): لنک ایک کاپی ہے، اور اسے واپس نہیں لیا جا سکتا۔',
     'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'اسکرین شاٹ، اسکرین کی تصویر، پرنٹ یا ایکسپورٹ: ایک بار دکھ گیا تو دکھ گیا۔',

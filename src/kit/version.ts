@@ -19,10 +19,16 @@ export interface Version {
 }
 
 /** The repository the source is published in, on the host kit/network.ts names. */
-export const REPO = 'ftrain/tinyoffice';
+export const REPO = 'aboard-io/tinylittleoffice';
+
+/** The repository's own page: the home page's "Open source". */
+export const repoUrl = () => `${origin('source')}/${REPO}`;
 
 /** The page for a commit (or a tag) in the published source. */
-export const commitUrl = (commit: string) => `${origin('source')}/${REPO}/commit/${commit}`;
+export const commitUrl = (commit: string) => `${repoUrl()}/commit/${commit}`;
+
+/** A file of the source as main holds it ("docs/threat-model.md"). */
+export const sourceFile = (path: string) => `${repoUrl()}/blob/main/${path}`;
 
 /** Whether a value has the shape of /version.json. */
 export function isVersion(v: unknown): v is Version {
