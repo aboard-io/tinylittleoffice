@@ -350,7 +350,8 @@ test('what this device holds, item by item with Forget, and Download everything:
   const now = (cls: string) => privacy.querySelector(`.${cls} .to-held-now`)!.textContent;
   expect(now('to-held-docs')).toBe('3 documents');
   expect(now('to-held-links')).toBe('1 link');
-  expect(now('to-held-prefs')).toBe('1 set');
+  // The theme; the language too when another browser test file, running at once on this origin, has chosen one.
+  expect(now('to-held-prefs')).toMatch(/^[12] set$/);
   expect(now('to-held-key')).toBe('None');
   // The zip: each document as its text, the locked one as its link; the key only when asked.
   await saved(async (files) => {
