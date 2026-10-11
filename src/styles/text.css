@@ -14,7 +14,9 @@
     line-height: 1.5;
     /* The box collapses the whitespace between its blocks (the template's own newlines); each block keeps its spaces and line breaks. */
     white-space: normal;
-    overflow-wrap: anywhere;
+    /* A word too long for its line breaks; one that would fit goes to the next line whole (never "anywhere", which
+       lets a squeezed box split every word). */
+    overflow-wrap: break-word;
     outline: none;
     caret-color: var(--to-accent);
     -webkit-tap-highlight-color: transparent;
@@ -315,10 +317,12 @@
     margin: 0;
     padding-left: 1.6em;
   }
+  /* The words beside the way back; where that leaves them less than 8em (a large size on a phone), the whole line, and
+     the way back under them. */
   .to-note > to-text.to-note-words {
     display: inline-block;
     vertical-align: top;
-    width: calc(100% - 2.5em);
+    width: max(100% - 2.5em, min(8em, 100%));
   }
   .to-note-words .tx {
     min-height: 1.4em;

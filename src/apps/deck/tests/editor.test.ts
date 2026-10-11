@@ -195,6 +195,46 @@ test('presenting shows the slide large, reveals a line a click, and Escape comes
   await until(() => document.activeElement === button(el, 'Present'));
 });
 
+/** A finger (or a mouse) drawn across the show from x0 to x1, and down by dy. */
+function swipe(show: HTMLElement, x0: number, x1: number, dy = 0, pointerType = 'touch') {
+  const fire = (type: string, x: number, y: number) =>
+    show.dispatchEvent(new PointerEvent(type, { pointerId: 5, pointerType, isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+  fire('pointerdown', x0, 300);
+  for (let i = 1; i <= 4; i++) fire('pointermove', x0 + ((x1 - x0) * i) / 4, 300 + (dy * i) / 4);
+  fire('pointerup', x1, 300 + dy);
+}
+
+test('a finger swiped across the show turns the slide: to the left the next, to the right the one before, mirrored right to left; a short or a downward drag, or a mouse, turns nothing', async () => {
+  const { el } = await editor(talk());
+  button(el, 'Present').click();
+  await el.updateComplete;
+  const show = el.querySelector<HTMLElement>('.deck-show')!;
+  const pos = () => el.querySelector('.deck-show .pos')!.textContent;
+  expect(pos()).toBe('1 / 7');
+  swipe(show, 300, 100);
+  await el.updateComplete;
+  expect(pos()).toBe('2 / 7');
+  // The click a browser may send after the finger lifts turns nothing more.
+  show.click();
+  await el.updateComplete;
+  expect(pos()).toBe('2 / 7');
+  swipe(show, 100, 300);
+  await el.updateComplete;
+  expect(pos()).toBe('1 / 7');
+  // Not far enough, more down than across, or a mouse's drag: nothing.
+  swipe(show, 300, 270);
+  swipe(show, 300, 220, 200);
+  swipe(show, 300, 100, 0, 'mouse');
+  await el.updateComplete;
+  expect(pos()).toBe('1 / 7');
+  // Right to left, the next slide is to the right.
+  el.dir = 'rtl';
+  swipe(show, 100, 300);
+  await el.updateComplete;
+  expect(pos()).toBe('2 / 7');
+  el.removeAttribute('dir');
+});
+
 test('under a finger the notes start hidden while presenting, and the show’s Notes button (or N) brings them up (Paul, 2026-10-10)', async () => {
   const real = window.matchMedia;
   window.matchMedia = (q: string) =>

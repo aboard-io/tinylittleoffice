@@ -40,7 +40,7 @@ async function type(el: ToWriteEditor, s: string, tx: HTMLElement = el.text.tx) 
   }
 }
 const button = (root: ParentNode, label: string) => root.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
-const cell = (el: HTMLElement, ref: string) => el.querySelector<HTMLInputElement>(`to-write-table input[aria-label="${ref}"]`)!;
+const cell = (el: HTMLElement, ref: string) => el.querySelector<HTMLInputElement>(`to-write-table :is(input, textarea)[aria-label="${ref}"]`)!;
 async function typeCell(el: ToWriteEditor, inp: HTMLInputElement, value: string) {
   inp.focus();
   inp.value = value;

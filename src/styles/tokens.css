@@ -62,8 +62,10 @@
     /* The column's height, what a canvas, a map or a site's frame fills: <to-chrome> sets it as measured (kit/chrome.ts);
        until then, and for an editor drawn alone, the screen less the header and the bar. */
     --to-col-h: calc(100dvh - var(--to-header-h) - var(--to-bar-h));
-    /* A finger's target, 44 of the stylesheet's pixels: the document's here, the nav's on every nav element (kit.css). */
-    --to-touch: 2.75rem;
+    /* A finger's target, 44 of the stylesheet's pixels: the document's here, the nav's on every nav element (kit.css).
+       A finger does not grow with the words: the document's grows to the nav's limit (120%) and no further, so at 200% a
+       row's grip, tick and menu leave its words the room (the review of 2026-10-11: 114px each had left a task 25px). */
+    --to-touch: min(2.75rem, calc(2.75 * var(--to-nav-font)));
     --to-max-w: 67.5rem;
     /* The gutter: a number of the scale's 16px (12 on a narrow screen, responsive.css), the document's here and the
        nav's on every nav element. */

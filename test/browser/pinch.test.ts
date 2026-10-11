@@ -445,8 +445,15 @@ test('two fingers over a slide in the show zoom it in place, not the size of eve
   // The pinch turned nothing; the show scrolls sideways to the rest of the slide.
   expect(show.querySelector('.pos')!.textContent).toMatch(/^1 \//);
   expect(show.scrollWidth).toBeGreaterThan(show.clientWidth);
-  // A tap a moment later goes to the next slide, which arrives whole.
+  // Zoomed, a finger drawn sideways pans the slide: it turns nothing.
   await tick(400);
+  const swipe = (type: string, x: number) =>
+    show.dispatchEvent(new PointerEvent(type, { pointerId: 13, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+  swipe('pointerdown', 300);
+  swipe('pointerup', 100);
+  await tick(400);
+  expect(show.querySelector('.pos')!.textContent).toMatch(/^1 \//);
+  // A tap a moment later goes to the next slide, which arrives whole.
   show.click();
   await until(() => /^2 \//.test(show.querySelector('.pos')!.textContent!));
   expect(show.style.getPropertyValue('--deck-zoom')).toBe('');

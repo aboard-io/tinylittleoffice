@@ -15,6 +15,7 @@
 
   /* ---- the month ---- */
   .cal-grid {
+    container: cal-grid / inline-size;
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
     background: var(--to-surface);
@@ -28,12 +29,29 @@
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
+  /* A weekday's short name ("Mon"), or its narrow one ("M") where the grid is narrow (a phone, a large size): the
+     columns are a seventh of the grid each, and the short names had run into each other. Clipped as a backstop. */
   .cal-wd {
     padding: 0.375rem 0.375rem 0.25rem;
     font-size: 0.75rem;
     color: var(--to-ink-3);
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    overflow: hidden;
+  }
+  .cal-wd abbr {
+    text-decoration: none;
+  }
+  .cal-wd .narrow {
+    display: none;
+  }
+  @container cal-grid (max-width: 34rem) {
+    .cal-wd .short {
+      display: none;
+    }
+    .cal-wd .narrow {
+      display: inline;
+    }
   }
   .cal-cell {
     display: flex;

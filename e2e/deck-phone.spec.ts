@@ -7,6 +7,7 @@
  *   PW_PORT=4187 npx playwright test e2e/deck-phone.spec.ts --project=phone --workers=1
  */
 import { test, expect } from '@playwright/test';
+import { encodeDoc } from '../src/kit/codec.ts';
 
 const SHOTS = process.env.SHOTS;
 
@@ -187,5 +188,68 @@ test("deck: on a phone, a footnote is typed at the slide's foot: Footnote puts t
   await expect(words).toBeFocused();
   await words.locator('.fn').tap();
   await expect(note).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test("deck: at 200% on a phone, the show's controls lie inside the screen and read on their backing in the light theme; a swipe left turns to the next slide", async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.addInitScript(() => (localStorage.setItem('tinyoffice.keep', '1'), localStorage.setItem('tinyoffice.size', '2')));
+  await page.goto(`/#/v1/deck/${encodeDoc('## One\n\n## Two\n\n## Three\n')}?show`);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  const pos = page.locator('.deck-show .pos');
+  await expect(pos).toHaveText('1 / 4');
+  const buttons = await page.locator('.deck-show .ctl .to-btn').evaluateAll((els) => {
+    /** A colour as [r, g, b, a], from what getComputedStyle gives (rgb()/rgba(), or color(srgb …)). */
+    const rgba = (c: string): number[] => {
+      const n = c.match(/[\d.]+/g)!.map(Number);
+      return c.startsWith('color(') ? [n[0] * 255, n[1] * 255, n[2] * 255, n[3] ?? 1] : [n[0], n[1], n[2], n[3] ?? 1];
+    };
+    const over = (top: number[], under: number[]) => [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3])).concat(1);
+    const lum = ([r, g, b]: number[]) => {
+      const l = (v: number) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b);
+    };
+    return els.map((el) => {
+      // What the icon is drawn on: each background from the button out, laid over the next, until one is solid.
+      const layers: number[][] = [];
+      for (let e: Element | null = el; e; e = e.parentElement) {
+        const bg = rgba(getComputedStyle(e).backgroundColor);
+        if (bg[3] > 0) layers.push(bg);
+        if (bg[3] >= 1) break;
+      }
+      const backing = layers.reduceRight((under, top) => over(top, under), [255, 255, 255, 1]);
+      const ink = over(rgba(getComputedStyle(el).color), backing);
+      const [a, b] = [lum(ink), lum(backing)].sort((x, y) => y - x);
+      const r = el.getBoundingClientRect();
+      return { name: el.getAttribute('aria-label'), left: r.left, right: r.right, contrast: (a + 0.05) / (b + 0.05) };
+    });
+  });
+  expect(buttons.length).toBeGreaterThanOrEqual(3);
+  for (const b of buttons) {
+    expect(b.left, `${b.name} starts on the screen`).toBeGreaterThanOrEqual(0);
+    expect(b.right, `${b.name} ends on the screen`).toBeLessThanOrEqual(390);
+    expect(b.contrast, `${b.name} reads on its backing`).toBeGreaterThanOrEqual(3);
+  }
+  // A finger drawn from right to left across the slide turns to the next one; one swipe, one slide.
+  const swipe = (from: number, to: number) =>
+    page.evaluate(
+      ([x0, x1]) => {
+        const show = document.querySelector('.deck-show')!;
+        const fire = (type: string, x: number) =>
+          show.dispatchEvent(new PointerEvent(type, { pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: x, clientY: 400, bubbles: true, cancelable: true }));
+        fire('pointerdown', x0);
+        for (let i = 1; i <= 5; i++) fire('pointermove', x0 + ((x1 - x0) * i) / 5);
+        fire('pointerup', x1);
+      },
+      [from, to],
+    );
+  await swipe(300, 80);
+  await expect(pos).toHaveText('2 / 4');
+  await swipe(80, 300);
+  await expect(pos).toHaveText('1 / 4');
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   expect(errors).toEqual([]);
 });

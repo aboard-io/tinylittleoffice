@@ -937,7 +937,9 @@ export class ToCalEditor extends DocElement<CalView> {
     const last = ymdToDay(y, m + 1, 1) - 1;
     const rows = Math.ceil((lead + last - first + 1) / 7);
     const today = this.todayDay();
-    const wdFmt = new Intl.DateTimeFormat(language(), { weekday: 'short', timeZone: 'UTC' });
+    // Each weekday's name in three lengths: the long for a reader and a pointer resting on it, the short where the
+    // columns have the room, the narrow where they do not (the grid's container query, style.css).
+    const wdFmts = (['long', 'short', 'narrow'] as const).map((weekday) => new Intl.DateTimeFormat(language(), { weekday, timeZone: 'UTC' }));
     const dayFmt = new Intl.DateTimeFormat(language(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
     const swept = this.drag?.moved ? this.drag : this.sweep;
     const range = swept ? [Math.min(swept.from, swept.to), Math.max(swept.from, swept.to)] : null;
@@ -945,7 +947,10 @@ export class ToCalEditor extends DocElement<CalView> {
     // Every time of every span that lands on the grid (a day either side: a repeat keeps its time of day in another zone).
     const times = v.items.flatMap((s) => occurrences(s, gridStart - 1, gridStart + rows * 7, this.repeatZone));
     return html`<div class="cal-grid" role="grid" aria-label=${this.monthName(y, m)} @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${() => (this.drag = null)}>
-        <div class="cal-row" role="row">${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}</div>
+        <div class="cal-row" role="row">${Array.from({ length: 7 }, (_, i) => {
+          const [long, short, narrow] = wdFmts.map((f) => f.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7))));
+          return html`<div class="cal-wd" role="columnheader" aria-label=${long}><abbr title=${long}><span class="short">${short}</span><span class="narrow">${narrow}</span></abbr></div>`;
+        })}</div>
         ${Array.from(
           { length: rows },
           (_, week) =>

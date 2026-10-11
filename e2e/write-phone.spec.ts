@@ -59,7 +59,7 @@ test('write: on a phone, a table is taken in hand by its handle and taken out fr
   page.on('pageerror', (e) => errors.push(String(e)));
   const doc = await open(page, 'Before\n\nWhat | Qty:number | Units | Price:money | Amount:money | Note\n--- | --- | --- | --- | --- | ---\nDesign | 12 | hours | 150 | =B1*D1 | first\n\nAfter\n');
   const table = page.locator('to-write-table');
-  await expect(table.locator('input').first()).toBeVisible();
+  await expect(table.locator('textarea').first()).toBeVisible();
   const wide = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(await wide()).toBeLessThanOrEqual(0);
   // A column's head: its menu opens inside the screen.
@@ -94,7 +94,7 @@ test("write: on a phone, a table column's menu picks Money, its currency asked i
   page.on('pageerror', (e) => errors.push(String(e)));
   const doc = await open(page, 'Before\n\nItem | Cost\n--- | ---\nTea | 1200\n\nAfter\n');
   const table = page.locator('to-write-table');
-  await expect(table.locator('input').first()).toBeVisible();
+  await expect(table.locator('textarea').first()).toBeVisible();
   await table.locator('.wt-col').nth(1).tap();
   const colMenu = page.locator('to-menu.wt-colmenu [role=menu]');
   await expect(colMenu).toBeVisible();
@@ -109,7 +109,7 @@ test("write: on a phone, a table column's menu picks Money, its currency asked i
   await page.getByRole('button', { name: 'OK', exact: true }).tap();
   await expect(field).toBeHidden();
   await expect.poll(doc.value).toContain('Item | Cost:money(£)\n');
-  await table.locator('input').first().tap();
+  await table.locator('textarea').first().tap();
   await expect(table.getByRole('textbox', { name: 'B1', exact: true })).toHaveValue('£1,200.00');
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   expect(errors).toEqual([]);
@@ -132,4 +132,41 @@ test('write: on a phone, ":car" typed opens the icons and emoji inside the scree
   await expect(list).toHaveCount(0);
   await expect.poll(() => doc.value()).toBe('Drive 🚗\n\nSlowly\n');
   await expect(page.locator('to-write-editor .tx')).toBeFocused();
+});
+
+test("write: on a phone, a table's cells wrap their words rather than cutting them short, and its heads break only between words", async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  await open(page, 'Before\n\nQuestion | Drawing | Answer\n--- | --- | ---\nFirst, draw the water cycle and name its parts | Drawing | \n\nAfter\n');
+  const table = page.locator('to-write-table');
+  const first = table.getByRole('textbox', { name: 'A1', exact: true });
+  await expect(first).toBeVisible();
+  // The whole question shows: nothing of it is past the cell's edge, and the cell is taller for it.
+  const cell = await first.evaluate((el) => ({
+    sw: el.scrollWidth,
+    cw: el.clientWidth,
+    sh: el.scrollHeight,
+    ch: el.clientHeight,
+    h: el.getBoundingClientRect().height,
+    font: parseFloat(getComputedStyle(el).fontSize),
+  }));
+  expect(cell.sw).toBeLessThanOrEqual(cell.cw);
+  expect(cell.sh).toBeLessThanOrEqual(cell.ch + 1);
+  expect(cell.h).toBeGreaterThan(cell.font * 2);
+  // Each head's words each on one line.
+  const heads = await table.locator('thead th').evaluateAll((ths) =>
+    ths.flatMap((th) => {
+      const out: string[] = [];
+      const walk = document.createTreeWalker(th, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode())
+        for (const m of n.textContent!.matchAll(/\S+/g)) {
+          const r = document.createRange();
+          r.setStart(n, m.index!);
+          r.setEnd(n, m.index! + m[0].length);
+          if (new Set([...r.getClientRects()].filter((b) => b.width > 0.5).map((b) => Math.round(b.top))).size > 1) out.push(m[0]);
+        }
+      return out;
+    }),
+  );
+  expect(heads).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 });

@@ -2,15 +2,19 @@
    What acts on a row (the drag handle, the fold arrow) sits in a gutter to the left of the bullet, so it never
    moves the words; the bullet itself opens what can be said of the line. Type never under 16px. */
 @layer apps {
+  /* A level's step, the bullet and the gutter are structure, not words: they grow with the size to the nav's limit
+     (120%) and no further, as a finger's target does, so at 200% a deep line still has the room for its words. */
   to-outline-editor {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    --ol-step: min(1.375rem, calc(1.375 * var(--to-nav-font)));
+    /* The gutter the handle and the fold arrow sit in, left of the bullet. */
+    --ol-gut: var(--to-touch);
   }
   .ol {
-    --ol-step: 1.375rem;
     --ol-row: 2.25rem;
-    padding: 0.5rem 0.5rem 1.25rem 2.75rem;
+    padding: 0.5rem 0.5rem 1.25rem var(--ol-gut);
     /* The outline's measure, centred in the window's width (so are its joins, its trail and its footnotes). */
     width: 100%;
     max-width: 51.25rem;
@@ -50,8 +54,8 @@
   .ol-gutter {
     position: absolute;
     top: 0;
-    left: calc(var(--d, 0) * var(--ol-step) - 2.75rem);
-    width: 2.75rem;
+    left: calc(var(--d, 0) * var(--ol-step) - var(--ol-gut));
+    width: var(--ol-gut);
     height: var(--ol-row);
     display: flex;
     align-items: center;
@@ -59,7 +63,7 @@
   }
   .ol-handle,
   .ol-fold {
-    width: 1.375rem;
+    width: calc(var(--ol-gut) / 2);
     height: var(--ol-row);
     display: inline-grid;
     place-items: center;
@@ -109,8 +113,8 @@
     place-items: center;
   }
   .ol-kind {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: min(1.75rem, calc(1.75 * var(--to-nav-font)));
+    height: min(1.75rem, calc(1.75 * var(--to-nav-font)));
     display: grid;
     place-items: center;
     border: 0;
@@ -275,7 +279,7 @@
     width: 100%;
     max-width: 51.25rem;
     margin-inline: auto;
-    padding: 0.5rem 0.5rem 0 2.75rem;
+    padding: 0.5rem 0.5rem 0 var(--ol-gut);
     font-size: 0.875rem;
     color: var(--to-ink-3);
   }
@@ -333,7 +337,7 @@
 
   /* The joins, under the outline, lined up with it. */
   .ol-links {
-    padding: 0.25rem 0.5rem 1.25rem 2.75rem;
+    padding: 0.25rem 0.5rem 1.25rem var(--ol-gut);
     width: 100%;
     max-width: 51.25rem;
     margin-inline: auto;
@@ -341,8 +345,8 @@
   /* The footnotes under the outline, numbered as their marks are: as a slide shows them at its foot. */
   .ol-fn {
     max-width: 48.5rem;
-    margin: 0.5rem 0 1.25rem calc(max(0rem, (100% - 51.25rem) / 2) + 2.75rem);
-    padding: 0.5rem 0.5rem 0 var(--ol-step, 1.375rem);
+    margin: 0.5rem 0 1.25rem calc(max(0rem, (100% - 51.25rem) / 2) + var(--ol-gut));
+    padding: 0.5rem 0.5rem 0 var(--ol-step);
     font-size: 0.875rem;
     color: var(--to-ink-2);
     border-top: 1px solid var(--to-border);
@@ -351,7 +355,7 @@
     margin: 0.2em 0;
   }
   .ol-links h2 {
-    margin: 0 0 0.25rem var(--ol-step, 1.375rem);
+    margin: 0 0 0.25rem var(--ol-step);
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -360,7 +364,7 @@
   }
   .ol-link {
     position: relative;
-    margin-left: var(--ol-step, 1.375rem);
+    margin-left: var(--ol-step);
     display: flex;
     align-items: center;
     gap: 0.125rem;
@@ -400,24 +404,9 @@
     }
   }
   @media (max-width: 600px) {
-    .ol,
-    .ol-links,
-    .ol-crumbs {
-      padding-left: 2.25rem;
-    }
-    .ol-fn {
-      margin-left: 2.25rem;
-    }
-    .ol-gutter {
-      left: calc(var(--d, 0) * var(--ol-step) - 2.25rem);
-      width: 2.25rem;
-    }
-    .ol-handle,
-    .ol-fold {
-      width: 1.125rem;
-    }
-    .ol {
-      --ol-step: 1.125rem;
+    to-outline-editor {
+      --ol-gut: min(2.25rem, calc(2.25 * var(--to-nav-font)));
+      --ol-step: min(1.125rem, calc(1.125 * var(--to-nav-font)));
     }
   }
 }
