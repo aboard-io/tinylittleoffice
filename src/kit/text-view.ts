@@ -3,7 +3,7 @@
  * lists (a task's state said before its words, its box drawn and kept from the reader), tables with their column
  * heads, fences as written, pictures, things from the web as links, a document held in this one as a section of
  * its own, the footnotes, and a rule between pages. Nothing styled but by the kit's tokens: the person's size, the
- * theme's colours, reflowed (kit.css .to-display-text).
+ * theme's colors, reflowed (kit.css .to-display-text).
  *
  * The Display Link (kit/shell.ts) puts it first, for a screen reader, the pages after it hidden from one; its Text
  * button shows it instead of the pages. A web page made of a document (kit/exports.ts htmlOf) carries it the same
