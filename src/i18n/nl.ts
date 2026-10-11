@@ -59,7 +59,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Niets wat je schrijft verlaat je browser, tenzij je de link deelt. Twee dingen roepen zelf het web aan: de kaart van een reis, waarvan de kaartbeelden van OpenStreetMap komen zolang de kaart zichtbaar is, en een afbeelding van een site op de vertrouwde lijst, opgehaald via de afbeeldingendienst van deze site wanneer het document opengaat.',
   'Private, the default:': 'Privé, de standaard:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Opgeslagen, de schakelaar in dit menu, bewaart je instellingen en de documenten die je opent op dit apparaat.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Een document kan een wachtwoord hebben: het wordt hier in de browser versleuteld en de link bevat alleen versleutelde tekst. Het kan worden ondertekend met een sleutel die deze browser maakt, zodat iedereen kan nagaan dat het precies is wat je ondertekende, en onder welke naam. Privacy en sleutels, in dit menu, laat zien wat dit apparaat bewaart.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'Een document kan een wachtwoord hebben: het wordt hier in de browser versleuteld en de link bevat alleen versleutelde tekst. Het kan worden ondertekend met een sleutel die deze browser maakt, zodat iedereen kan nagaan dat het precies is wat die sleutel ondertekende; de naam waaronder is ondertekend is alleen het woord van wie ondertekent. Privacy en sleutels, in dit menu, laat zien wat dit apparaat bewaart.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -236,7 +236,6 @@ export default {
   'Use this key': 'Deze sleutel gebruiken',
   'What this device holds': 'Wat dit apparaat bewaart',
   'With my signing key': 'Met mijn ondertekeningssleutel',
-  'Wrong password': 'Verkeerd wachtwoord',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'Je hebt het ondertekend en het is sindsdien gewijzigd. Onderteken opnieuw, bij Delen, om ervoor in te staan zoals het nu is.',
   'Your documents': 'Je documenten',
   'Your key, as text: keep it secret, it signs as you': 'Je sleutel, als tekst: houd hem geheim, hij ondertekent als jij',
@@ -251,6 +250,17 @@ export default {
   '{n|# document|# documents}': '{n|# document|# documenten}',
   '{n|# link|# links}': '{n|# link|# links}',
   '{n} set': '{n} ingesteld',
+  'Signed as “{name}” · key {fp}': 'Ondertekend als ‘{name}’ · sleutel {fp}',
+  'Signed · key {fp}': 'Ondertekend · sleutel {fp}',
+  'A different key from the one {name} used before': 'Een andere sleutel dan die {name} eerder gebruikte',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'Iedereen kan onder elke naam ondertekenen. Controleer deze sleutel bij de persoon, via een andere weg.',
+  'I know this key': 'Ik ken deze sleutel',
+  'Keys you know': 'Sleutels die je kent',
+  'The names and keys you said you know.': 'De namen en sleutels waarvan je zei dat je ze kent.',
+  '{n|# key|# keys}': '{n|# sleutel|# sleutels}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'Wie de link heeft, kan dit offline raden. Gebruik Maken, of vier of meer willekeurige woorden.',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'Iedereen met de link kan dit wachtwoord raden. Toch instellen?',
+  'Send the password another way than the link.': 'Stuur het wachtwoord via een andere weg dan de link.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -262,6 +272,7 @@ export default {
   'locked document': 'vergrendeld document',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'Dit document kan niet worden gelezen.',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'Dat wachtwoord opent deze link niet. Weet je het zeker, dan is de link misschien afgekapt bij het kopiëren: vraag er opnieuw om, of om een korte link.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

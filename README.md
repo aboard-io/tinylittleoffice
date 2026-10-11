@@ -187,7 +187,9 @@ holds **Sign**: the document is signed with this browser's key (Ed25519, ECDSA P
 `src/kit/sign.ts`), made the first time and kept through `src/kit/store.ts` (under Private for the visit, under Saved
 on the device); the name asked once and kept. The head carries `by`, `created` (stamped to the minute at the first
 change), `key` and `sig` (`src/kit/envelope.ts`, docs/kernel.md §1); the signature is checked on open and after every
-change. Beside the title, the state: Unsigned (quiet), Signed by a name (green, the key's fingerprint on hover),
+change. Beside the title, the state: Unsigned (quiet), Signed by a name (green for this device's key or one it knows,
+the key's fingerprint on hover), Signed as a name with the key (neutral, for a key nobody here knows: anyone can
+sign under any name), a different key from the one a known name used before (amber),
 Changed since signed or Signature does not match (red), Locked; it opens the Privacy dialog
 (`src/kit/privacy-dialog.ts`, also "Privacy and keys" in the menu): the document's state, the key with Export
 (a file and the text), Import and Forget, what this device holds item by item with Forget and Forget everything,

@@ -74,7 +74,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.',
   'Private, the default:': 'Private, the default:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Saved, the switch in this menu, keeps your settings and the documents you open on this device.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -251,7 +251,6 @@ export default {
   'Use this key': 'Use this key',
   'What this device holds': 'What this device holds',
   'With my signing key': 'With my signing key',
-  'Wrong password': 'Wrong password',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.',
   'Your documents': 'Your documents',
   'Your key, as text: keep it secret, it signs as you': 'Your key, as text: keep it secret, it signs as you',
@@ -266,6 +265,18 @@ export default {
   '{n|# document|# documents}': '{n|# document|# documents}',
   '{n|# link|# links}': '{n|# link|# links}',
   '{n} set': '{n} set',
+  // A signature by a key this device does not know proves the key, not the name: "Signed as “Paul” · key abcde-fghij-klmno-pqrst".
+  'Signed as “{name}” · key {fp}': 'Signed as “{name}” · key {fp}',
+  'Signed · key {fp}': 'Signed · key {fp}',
+  'A different key from the one {name} used before': 'A different key from the one {name} used before',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'Anyone can sign under any name. Check this key with the person, another way.',
+  'I know this key': 'I know this key',
+  'Keys you know': 'Keys you know',
+  'The names and keys you said you know.': 'The names and keys you said you know.',
+  '{n|# key|# keys}': '{n|# key|# keys}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'Someone with the link can guess this offline. Use Generate, or four or more random words.',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'This password can be guessed by anyone with the link. Set it anyway?',
+  'Send the password another way than the link.': 'Send the password another way than the link.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -277,6 +288,8 @@ export default {
   'locked document': 'locked document',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'This document cannot be read.',
+  // A password that does not open a sealed link: wrong, or the link cut short in a chat (the two cannot be told apart).
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

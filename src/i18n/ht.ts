@@ -60,7 +60,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. De bagay mande entènèt pou kont yo: kat yon vwayaj, foto li yo soti nan OpenStreetMap pandan l ap parèt, ak yon foto ki soti nan yon sit ki sou lis konfyans lan, sèvis foto sit sa a al chèche l lè dokiman li a louvri.',
   'Private, the default:': 'Prive, nòmalman:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Anrejistre, ba nan meni sa a, kenbe paramèt ou yo ak dokiman ou louvri yo sou aparèy sa a.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Yon dokiman ka gen yon modpas: yo chifre l isit la, nan navigatè a, epi lyen an pa kenbe anyen sof tèks chifre. Yo ka siyen l ak yon kle navigatè sa a fè, konsa nenpòt moun ka verifye se egzakteman sa ou te siyen, ak ki non. Vi prive ak kle, nan meni sa a, montre sa aparèy sa a kenbe.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'Yon dokiman ka gen yon modpas: yo chifre l isit la, nan navigatè a, epi lyen an pa kenbe anyen sof tèks chifre. Yo ka siyen l ak yon kle navigatè sa a fè, konsa nenpòt moun ka verifye se egzakteman sa kle sa a te siyen; non yo siyen anba a se pawòl moun ki siyen an sèlman. Vi prive ak kle, nan meni sa a, montre sa aparèy sa a kenbe.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -237,7 +237,6 @@ export default {
   'Use this key': 'Sèvi ak kle sa a',
   'What this device holds': 'Sa aparèy sa a kenbe',
   'With my signing key': 'Ak kle siyati m',
-  'Wrong password': 'Move modpas',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'Ou te siyen l, e li chanje depi lè sa a. Siyen l ankò, nan Pataje, pou garanti l jan l ye a.',
   'Your documents': 'Dokiman ou yo',
   'Your key, as text: keep it secret, it signs as you': 'Kle ou, an tèks: kenbe l sekrè, li siyen kòm ou',
@@ -252,6 +251,17 @@ export default {
   '{n|# document|# documents}': '{n|# dokiman|# dokiman}',
   '{n|# link|# links}': '{n|# lyen|# lyen}',
   '{n} set': '{n} mete',
+  'Signed as “{name}” · key {fp}': 'Siyen kòm “{name}” · kle {fp}',
+  'Signed · key {fp}': 'Siyen · kle {fp}',
+  'A different key from the one {name} used before': 'Yon lòt kle pase sa {name} te itilize anvan',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'Nenpòt moun ka siyen anba nenpòt non. Verifye kle sa a ak moun nan, yon lòt fason.',
+  'I know this key': 'Mwen konnen kle sa a',
+  'Keys you know': 'Kle ou konnen',
+  'The names and keys you said you know.': 'Non ak kle ou te di ou konnen yo.',
+  '{n|# key|# keys}': '{n|# kle|# kle}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'Nenpòt moun ki gen lyen an ka devine l san entènèt. Sèvi ak Fè, oswa kat mo o aza oswa plis.',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'Nenpòt moun ki gen lyen an ka devine modpas sa a. Mete l kanmenm?',
+  'Send the password another way than the link.': 'Voye modpas la yon lòt fason pase lyen an.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -263,6 +273,7 @@ export default {
   'locked document': 'dokiman bloke',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'Dokiman sa a pa ka li.',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'Modpas sa a pa louvri lyen sa a. Si ou sèten de li, petèt yo te koupe lyen an lè yo te kopye l: mande l ankò, oswa mande yon lyen kout.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

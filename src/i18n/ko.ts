@@ -58,7 +58,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 스스로 웹에 요청하는 건 두 가지예요. 여행 지도는 보이는 동안 OpenStreetMap에서 사진을 가져오고, 신뢰 목록에 있는 사이트의 사진은 문서가 열릴 때 이 사이트의 사진 서비스를 거쳐 가져와요.',
   'Private, the default:': '비공개, 기본값:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '이 메뉴의 스위치인 저장을 켜면 설정과 연 문서가 이 기기에 남아요.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': '문서에는 비밀번호를 걸 수 있어요. 브라우저에서 바로 암호화되고 링크에는 암호문만 들어 있어요. 이 브라우저가 만든 키로 서명할 수도 있어서, 서명한 그대로인지, 어떤 이름으로 서명했는지 누구나 확인할 수 있어요. 이 메뉴의 개인정보와 키에서 이 기기에 있는 것을 볼 수 있어요.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': '문서에는 비밀번호를 걸 수 있어요. 브라우저에서 바로 암호화되고 링크에는 암호문만 들어 있어요. 이 브라우저가 만든 키로 서명할 수도 있어서, 그 키가 서명한 그대로인지 누구나 확인할 수 있어요. 서명한 이름은 서명한 사람이 스스로 밝힌 것일 뿐이에요. 이 메뉴의 개인정보와 키에서 이 기기에 있는 것을 볼 수 있어요.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -235,7 +235,6 @@ export default {
   'Use this key': '이 키 사용',
   'What this device holds': '이 기기에 있는 것',
   'With my signing key': '내 서명 키로',
-  'Wrong password': '비밀번호가 틀려요',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': '서명한 뒤에 바뀌었어요. 지금 모습 그대로 보증하려면 공유에서 다시 서명하세요.',
   'Your documents': '내 문서',
   'Your key, as text: keep it secret, it signs as you': '텍스트로 된 내 키예요. 비밀로 하세요. 이 키로 내 이름으로 서명돼요',
@@ -250,6 +249,17 @@ export default {
   '{n|# document|# documents}': '문서 {n}개',
   '{n|# link|# links}': '링크 {n}개',
   '{n} set': '{n}개 설정됨',
+  'Signed as “{name}” · key {fp}': '‘{name}’(으)로 서명 · 키 {fp}',
+  'Signed · key {fp}': '서명됨 · 키 {fp}',
+  'A different key from the one {name} used before': '{name}이(가) 전에 쓰던 키와 다른 키',
+  'Anyone can sign under any name. Check this key with the person, another way.': '누구나 어떤 이름으로든 서명할 수 있어요. 이 키를 그 사람과 다른 방법으로 확인하세요.',
+  'I know this key': '아는 키예요',
+  'Keys you know': '내가 아는 키',
+  'The names and keys you said you know.': '안다고 표시한 이름과 키예요.',
+  '{n|# key|# keys}': '키 {n}개',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': '링크를 가진 사람은 오프라인에서 추측할 수 있어요. 만들기를 쓰거나, 무작위 단어 네 개 이상을 쓰세요.',
+  'This password can be guessed by anyone with the link. Set it anyway?': '링크가 있는 누구나 이 비밀번호를 추측할 수 있어요. 그래도 설정할까요?',
+  'Send the password another way than the link.': '비밀번호는 링크와 다른 방법으로 보내세요.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -261,6 +271,7 @@ export default {
   'locked document': '잠긴 문서',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': '이 문서를 읽을 수 없어요.',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': '이 비밀번호로는 이 링크가 열리지 않아요. 비밀번호가 확실하다면, 복사할 때 링크가 잘렸을 수 있어요. 다시 보내 달라고 하거나 짧은 링크를 요청하세요.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

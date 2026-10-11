@@ -58,8 +58,9 @@ would go on meaning exactly this. The plain (unsealed) payloads start with their
 - **Each edit.** The same key and salt, a fresh IV, a new payload in the address bar. Random 12-byte IVs are
   safe for about 2^32 seals under one key, far beyond any document's edits.
 - **Opening.** The salt is read from the payload, the key derived from the password typed, and AES-GCM
-  decrypts. A wrong password and a damaged link look the same (the tag does not match), and the person is
-  told only that it did not open.
+  decrypts. A wrong password and a damaged link look the same (the tag does not match), so the person is told
+  both: that password does not open this link, and if they are sure of it, the link may have been cut short
+  when it was copied (a chat that trims a long line), to ask for it again or for a short link.
 - **The rest of the visit.** The key is kept in memory, as a non-extractable `CryptoKey`, so the document
   (and another link with the same salt) opens again without asking. The password itself is never kept, under
   Saved or not, and the key is never written anywhere.
@@ -83,7 +84,11 @@ second per card**. Rough times on one such card:
 | four random words from a 7,776-word list | 4×10^15 | thousands of years |
 | five random words from that list | 3×10^19 | tens of millions of years |
 
-Cards get faster and attackers rent many. The protection is exactly as strong as the password. The site
+Cards get faster and attackers rent many. The protection is exactly as strong as the password, so the Password
+dialog says what one costs: under the fields, an estimate (`strength` in `src/kit/passwords.ts`: the length times
+log2 of the character sets used, and next to nothing for one of the commonest passwords or a run of one character;
+no library). Below 50 bits it says that someone with the link can guess it offline, and to use Generate or four or
+more random words; Set password then asks once. Under Set: send the password another way than the link. The site
 cannot slow an attacker who has the link; the iterations are the one lever, and they also cost the reader:
 deriving the key takes a moment on a laptop, longer on a phone, once a visit.
 

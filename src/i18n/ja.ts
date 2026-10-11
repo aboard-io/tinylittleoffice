@@ -57,7 +57,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'リンクを共有しないかぎり、書いた内容がブラウザの外に出ることはありません。自分からウェブに問い合わせるのは二つだけです。旅行の地図は、表示するあいだ画像をOpenStreetMapから取得します。信頼済みリストにあるサイトの画像は、ドキュメントを開いたときに、このサイトの画像サービスを通して取得します。',
   'Private, the default:': 'プライベート（標準）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'このメニューのスイッチ「保存」をオンにすると、設定と開いたドキュメントをこの端末に保存します。',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'ドキュメントにはパスワードを付けられます。暗号化はここ、ブラウザの中で行われ、リンクには暗号文だけが入ります。このブラウザが作るキーで署名もでき、署名したとおりの内容であること、そして誰の名前で署名されたかを、誰でも確かめられます。この端末に何があるかは、このメニューの「プライバシーとキー」で見られます。',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'ドキュメントにはパスワードを付けられます。暗号化はここ、ブラウザの中で行われ、リンクには暗号文だけが入ります。このブラウザが作るキーで署名もでき、そのキーが署名したとおりの内容であることを誰でも確かめられます。署名の名前は署名した人の自己申告です。この端末に何があるかは、このメニューの「プライバシーとキー」で見られます。',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -234,7 +234,6 @@ export default {
   'Use this key': 'このキーを使う',
   'What this device holds': 'この端末にあるもの',
   'With my signing key': '自分の署名キーで',
-  'Wrong password': 'パスワードが違います',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': '署名したあとに変更されています。今の内容を保証するには、「共有」でもう一度署名してください。',
   'Your documents': 'あなたのドキュメント',
   'Your key, as text: keep it secret, it signs as you': 'キーをテキストにしたものです。署名に使われるので、秘密にしてください',
@@ -249,6 +248,17 @@ export default {
   '{n|# document|# documents}': '{n|#件}のドキュメント',
   '{n|# link|# links}': '{n|#件}のリンク',
   '{n} set': '{n}件を設定',
+  'Signed as “{name}” · key {fp}': '「{name}」として署名 · キー {fp}',
+  'Signed · key {fp}': '署名済み · キー {fp}',
+  'A different key from the one {name} used before': '{name}が以前使っていたキーとは別のキー',
+  'Anyone can sign under any name. Check this key with the person, another way.': '誰でもどんな名前でも署名できます。このキーを本人と別の方法で確かめてください。',
+  'I know this key': 'このキーを知っている',
+  'Keys you know': '知っているキー',
+  'The names and keys you said you know.': '知っていると答えた名前とキー。',
+  '{n|# key|# keys}': '{n|#件}のキー',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'リンクを持つ人はオフラインで推測できます。「作る」を使うか、ランダムな単語を4つ以上にしてください。',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'このパスワードはリンクを持つ誰でも推測できます。それでも設定しますか？',
+  'Send the password another way than the link.': 'パスワードはリンクとは別の方法で送ってください。',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -260,6 +270,7 @@ export default {
   'locked document': 'ロックされたドキュメント',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'このドキュメントは読み取れません。',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'このパスワードではこのリンクを開けません。パスワードに間違いがなければ、コピーの際にリンクが途中で切れたのかもしれません。もう一度送ってもらうか、短縮リンクを頼んでください。',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

@@ -58,7 +58,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Сами обращаются к интернету только две вещи: карта поездки, чьи картинки приходят из OpenStreetMap, пока карта на экране, и картинка с сайта из списка доверенных, которую сервис картинок этого сайта загружает, когда открывается её документ.',
   'Private, the default:': 'Приватно, по умолчанию:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Режим «Сохранено» (переключатель в этом меню) хранит ваши настройки и открытые документы на этом устройстве.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'У документа может быть пароль: он шифруется здесь, в браузере, и в ссылке остаётся только зашифрованный текст. Документ можно подписать ключом, который создаёт ваш браузер, и тогда любой проверит, что это ровно то, что вы подписали, и под каким именем. «Приватность и ключи» в этом меню покажет, что хранит это устройство.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'У документа может быть пароль: он шифруется здесь, в браузере, и в ссылке остаётся только зашифрованный текст. Документ можно подписать ключом, который создаёт ваш браузер, и тогда любой проверит, что это ровно то, что подписал этот ключ; имя, под которым подписано, — лишь слово того, кто подписал. «Приватность и ключи» в этом меню покажет, что хранит это устройство.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -235,7 +235,6 @@ export default {
   'Use this key': 'Использовать этот ключ',
   'What this device holds': 'Что хранит это устройство',
   'With my signing key': 'Моим ключом для подписи',
-  'Wrong password': 'Неверный пароль',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'Вы подписали документ, но с тех пор он изменился. Подпишите его снова в «Поделиться», чтобы поручиться за него в нынешнем виде.',
   'Your documents': 'Ваши документы',
   'Your key, as text: keep it secret, it signs as you': 'Ваш ключ текстом: держите его в секрете, им подписывают от вашего имени',
@@ -250,6 +249,17 @@ export default {
   '{n|# document|# documents}': '{n|# документ|# документа|# документов|# документа}',
   '{n|# link|# links}': '{n|# ссылка|# ссылки|# ссылок|# ссылки}',
   '{n} set': 'Задано: {n}',
+  'Signed as “{name}” · key {fp}': 'Подписан как «{name}» · ключ {fp}',
+  'Signed · key {fp}': 'Подписан · ключ {fp}',
+  'A different key from the one {name} used before': 'Не тот ключ, которым {name} подписывал раньше',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'Подписаться можно любым именем. Сверьте этот ключ с человеком другим способом.',
+  'I know this key': 'Я знаю этот ключ',
+  'Keys you know': 'Знакомые ключи',
+  'The names and keys you said you know.': 'Имена и ключи, которые вы отметили как знакомые.',
+  '{n|# key|# keys}': '{n|# ключ|# ключа|# ключей|# ключа}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'Тот, у кого есть ссылка, может подобрать его офлайн. Нажмите «Создать» или возьмите четыре и больше случайных слов.',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'Этот пароль может подобрать любой, у кого есть ссылка. Всё равно задать?',
+  'Send the password another way than the link.': 'Передайте пароль иначе, чем ссылку.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -261,6 +271,7 @@ export default {
   'locked document': 'заблокированный документ',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'Этот документ не удаётся прочитать.',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'Этот пароль не открывает эту ссылку. Если вы в нём уверены, возможно, ссылку обрезали при копировании: попросите её ещё раз или попросите короткую ссылку.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

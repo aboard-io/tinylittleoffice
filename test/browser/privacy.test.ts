@@ -7,8 +7,10 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { mount, tick, until, openShare as openShareFromDrawer, said } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { PREFS, exportKey, forgetKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
-import { verify } from '../../src/kit/sign.ts';
+import { checkSignature, PREFS, exportKey, forgetKey, knowKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
+import { createSigner, fingerprintOf, generate, verify } from '../../src/kit/sign.ts';
+import { messageOf } from '../../src/kit/envelope.ts';
+import { withHead } from '../../src/doc/tlo.ts';
 import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
@@ -27,11 +29,13 @@ afterEach(() => {
   vi.restoreAllMocks();
   forgetKey();
   store.remove('tinyoffice.name');
+  store.remove('tinyoffice.known');
   setKeeping(false);
   store.remove('to-theme');
   history.replaceState(null, '', location.pathname);
 });
 
+const NOT_OPENED = 'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.';
 const payload = () => parseHash(location.hash).payload;
 const pill = (shell: ToShell) => shell.querySelector<HTMLButtonElement>('.to-header .to-trust')!;
 const dialog = (shell: ToShell, cls: string) => shell.querySelector<ToDialog>(`to-dialog.${cls}`)!;
@@ -70,6 +74,14 @@ async function saved(body: (files: () => File[]) => Promise<void>) {
     w.showSaveFilePicker = had;
   }
 }
+/** A document signed under `name` by a key that is not this device's: somebody else's, or a forger's. */
+async function signedElsewhere(text: string, name: string) {
+  let kept: string | null = null;
+  const other = createSigner({ get: () => kept, set: (v) => (kept = v), remove: () => (kept = null) }, () => generate('ec'));
+  const unsigned = withHead(text, { by: name, created: '2026-10-05T14:32Z' });
+  const { key, sig } = await other.sign(messageOf('write', unsigned));
+  return { text: withHead(unsigned, { key, sig }), fp: await fingerprintOf(key) };
+}
 async function sealedLink(text: string, password: string) {
   return `#/v1/write/${await pack(text, await lockWith(password))}`;
 }
@@ -89,7 +101,7 @@ test('a sealed link opens with the unlock dialog: nothing of the document shown,
   expect(pill(shell).classList.contains('locked')).toBe(true);
   fill(field, 'wrong horse');
   shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
-  await until(() => shell.querySelector('.to-unlock-wrong')!.textContent === 'Wrong password');
+  await until(() => shell.querySelector('.to-unlock-wrong')!.textContent === NOT_OPENED);
   expect(field.getAttribute('aria-invalid')).toBe('true');
   expect(d.dialog.open).toBe(true);
   fill(field, 'correct horse');
@@ -141,7 +153,18 @@ test('Password… sets a password: the address bar holds ciphertext, sealed agai
   expect(shell.querySelector('.to-password-differ')!.textContent).toBe('The two passwords differ');
   fill(b, 'tulip');
   expect(set.disabled).toBe(false);
+  // A short password says what it costs, and Set asks once before it is used.
+  expect(shell.querySelector('.to-password-cost')!.getAttribute('role')).toBe('status');
+  expect(shell.querySelector('.to-password-cost')!.textContent).toBe('Someone with the link can guess this offline. Use Generate, or four or more random words.');
+  expect(shell.querySelector('.to-password-send')!.textContent).toBe('Send the password another way than the link.');
+  const ask = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
   set.click();
+  expect(ask).toHaveBeenCalledTimes(1);
+  await tick();
+  expect(isSealed(payload())).toBe(false);
+  ask.mockReturnValueOnce(true);
+  set.click();
+  expect(ask).toHaveBeenCalledTimes(2);
   await until(() => isSealed(payload()) && !pd.dialog.open);
   expect(location.hash).not.toContain(encodeDoc('Plain words.\n').slice(1, 12));
   expect(decodeDoc(payload())).toBe('');
@@ -191,7 +214,7 @@ test('Sign: the name asked once and kept, the envelope written; checked on open;
   shell.querySelector<HTMLButtonElement>('.to-sign-go')!.click();
   await until(() => pill(shell).classList.contains('signed'));
   expect(pill(shell).textContent!.trim()).toBe('Signed by Paul');
-  expect(pill(shell).title).toMatch(/^Signed by Paul · Key [0-9a-f]{5}-[0-9a-f]{5} · Private$/);
+  expect(pill(shell).title).toMatch(/^Signed by Paul · Key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5} · Private$/);
   expect(store.get('tinyoffice.name')).toBe('Paul');
   const text = decodeDoc(payload());
   expect(text).toMatch(/^---\ntitle: Terms\ncreated: \d{4}-\d\d-\d\dT\d\d:\d\dZ\nby: Paul\nkey: [\w~]{43}\nsig: [\w~]{86}\n---\nWe agree.\n$/);
@@ -218,13 +241,13 @@ test('Sign: the name asked once and kept, the envelope written; checked on open;
   expect(decodeDoc(payload())).toMatch(/\ncreated: /);
 });
 
-test('the state beside the title, four ways: unsigned, signed (green), does not match (red), locked; it opens the Privacy dialog', async () => {
+test('the state beside the title, four ways: unsigned, signed by a key this device does not know (neutral), does not match (red), locked; it opens the Privacy dialog', async () => {
   // Signed elsewhere (the old tree, an Ed25519 key) and checked here.
   const OLD =
     '---\ntitle: Q3 budget\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 9E3ieLH4GaPHFbLzA-gvCGg1PmAdTzYD6tiPYTW-S70\nsig: w8JnnS5IwMK42vdwH2XLmVVjO2NjNKX_lOu60fKIfDzxVRmQgkmBZz6nHqRffx5VNQYt27kWzgugnOEoIw3wBw\nchart: bar\n---\n# Budget\n\nQ | Sales:money\n--- | ---\nQ1 | 120\n';
   let shell = await mount(`#/v1/sheet/${encodeDoc(OLD)}`);
-  await until(() => pill(shell).classList.contains('signed'));
-  expect(pill(shell).textContent!.trim()).toBe('Signed by Paul');
+  await until(() => pill(shell).classList.contains('neutral'));
+  expect(pill(shell).textContent!.trim()).toMatch(/^Signed as “Paul” · key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}$/);
   const signed = getComputedStyle(pill(shell));
   // Somebody else's signature over words that are not what was signed.
   shell = await mount(`#/v1/sheet/${encodeDoc(OLD.replace('120', '999'))}`);
@@ -263,7 +286,7 @@ test('a browser without Ed25519 shows an Ed25519 signature as cannot check here 
     await until(() => pill(shell).textContent!.trim() === 'Cannot check here');
     expect(pill(shell).classList.contains('quiet')).toBe(true);
     expect(pill(shell).classList.contains('mismatch')).toBe(false);
-    expect(pill(shell).title).toMatch(/^Cannot check here · This browser cannot check this kind of signature · Key [0-9a-f]{5}-[0-9a-f]{5} · Private$/);
+    expect(pill(shell).title).toMatch(/^Cannot check here · This browser cannot check this kind of signature · Key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5} · Private$/);
     pill(shell).click();
     const privacy = shell.querySelector<ToPrivacy>('to-privacy[doc]')!;
     await until(() => !!privacy.querySelector('dialog')?.open && !!privacy.querySelector('.to-privacy-doc'));
@@ -464,10 +487,69 @@ test('Generate a strong password fills both fields, shows it, enables Set, and C
     expect(fields[0].value).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
     expect(shell.querySelector<HTMLElement>('.to-password-made')!.hidden).toBe(false);
     expect(set.disabled).toBe(false);
+    // Twenty random characters: nothing to warn of.
+    expect(shell.querySelector('.to-password-cost')!.textContent).toBe('');
     shell.querySelector<HTMLButtonElement>('.to-password-copy')!.click();
     await until(() => written.length === 1);
     expect(written[0]).toBe(fields[0].value);
   } finally {
     Object.defineProperty(navigator.clipboard, 'writeText', { value: clip, configurable: true });
   }
+});
+
+test('a sealed link cut short in a chat, with the right password, is not called a wrong password', async () => {
+  const link = await sealedLink('---\ntitle: Salaries\n---\nWords.\n', 'pw');
+  const shell = await mount(link.slice(0, -10));
+  await until(() => dialog(shell, 'to-unlock-dialog').dialog.open);
+  fill(shell.querySelector<HTMLInputElement>('.to-unlock-field')!, 'pw');
+  shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
+  await until(() => shell.querySelector('.to-unlock-wrong')!.textContent === NOT_OPENED);
+});
+
+test('a signature says what it proves: a key this device does not know reads "Signed as", neutral; known under Saved it is green; the same name with another key is amber', async () => {
+  setKeeping(true);
+  const a = await signedElsewhere('---\ntitle: Notice\n---\nCamp B is closed.\n', 'UNHCR');
+  let shell = await mount(`#/v1/write/${encodeDoc(a.text)}`);
+  await until(() => pill(shell).classList.contains('neutral'));
+  expect(pill(shell).textContent!.trim()).toBe(`Signed as “UNHCR” · key ${a.fp}`);
+  expect(pill(shell).classList.contains('signed')).toBe(false);
+  pill(shell).click();
+  let privacy = shell.querySelector<ToPrivacy>('to-privacy[doc]')!;
+  await until(() => !!privacy.querySelector('dialog')?.open && !!privacy.querySelector('.to-privacy-doc .to-know-key'));
+  expect(privacy.querySelector('.to-privacy-doc .to-trust-line')!.classList.contains('neutral')).toBe(true);
+  expect(privacy.querySelector('.to-privacy-anyone')!.textContent).toBe('Anyone can sign under any name. Check this key with the person, another way.');
+  // The reader has checked the key with the sender: this device knows it from now on.
+  privacy.querySelector<HTMLButtonElement>('.to-know-key')!.click();
+  await until(() => pill(shell).classList.contains('signed'));
+  expect(pill(shell).textContent!.trim()).toBe('Signed by UNHCR');
+  expect(JSON.parse(localStorage.getItem('tinyoffice.known')!)).toEqual({ unhcr: a.fp });
+  await until(() => !privacy.querySelector('.to-know-key'));
+  privacy.close();
+  // Somebody else, under the same name: a different key, said in amber.
+  const b = await signedElsewhere('---\ntitle: Notice\n---\nGo to camp C.\n', 'UNHCR');
+  shell = await mount(`#/v1/write/${encodeDoc(b.text)}`);
+  await until(() => pill(shell).classList.contains('otherkey'));
+  expect(pill(shell).textContent!.trim()).toBe('A different key from the one UNHCR used before');
+  expect(getComputedStyle(pill(shell)).color).not.toBe(getComputedStyle(pill(shell)).backgroundColor);
+  // What the device holds lists it, with Forget.
+  pill(shell).click();
+  privacy = shell.querySelector<ToPrivacy>('to-privacy[doc]')!;
+  await until(() => privacy.querySelector('.to-held-known .to-held-now')?.textContent === '1 key');
+  privacy.querySelector<HTMLButtonElement>('.to-held-known .to-held-forget')!.click();
+  await until(() => pill(shell).classList.contains('neutral'));
+  expect(localStorage.getItem('tinyoffice.known')).toBeNull();
+});
+
+test('under Private nothing is remembered: no "I know this key", no write, every key unknown', async () => {
+  const a = await signedElsewhere('---\ntitle: Notice\n---\nCamp B is closed.\n', 'UNHCR');
+  const shell = await mount(`#/v1/write/${encodeDoc(a.text)}`);
+  await until(() => pill(shell).classList.contains('neutral'));
+  pill(shell).click();
+  const privacy = shell.querySelector<ToPrivacy>('to-privacy[doc]')!;
+  await until(() => !!privacy.querySelector('dialog')?.open && !!privacy.querySelector('.to-privacy-anyone'));
+  expect(privacy.querySelector('.to-know-key')).toBeNull();
+  knowKey('UNHCR', a.fp);
+  expect(store.get('tinyoffice.known')).toBeNull();
+  expect(localStorage.getItem('tinyoffice.known')).toBeNull();
+  expect((await checkSignature('write', a.text)).known).toBeFalsy();
 });

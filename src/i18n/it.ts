@@ -59,7 +59,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Quello che scrivi non lascia il tuo browser, a meno che tu non condivida il link. Due cose interrogano il web da sole: la mappa di un viaggio, le cui immagini arrivano da OpenStreetMap finché viene mostrata, e un’immagine da un sito della lista fidata, presa tramite il servizio immagini di questo sito quando il suo documento si apre.',
   'Private, the default:': 'Privato, l’impostazione predefinita:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Salvato, l’interruttore in questo menu, conserva le impostazioni e i documenti che apri su questo dispositivo.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Un documento può avere una password: viene cifrato qui, nel browser, e il link contiene solo testo cifrato. Può essere firmato con una chiave creata da questo browser, così chiunque può verificare che sia esattamente ciò che hai firmato, e con quale nome. Privacy e chiavi, in questo menu, mostra cosa conserva questo dispositivo.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'Un documento può avere una password: viene cifrato qui, nel browser, e il link contiene solo testo cifrato. Può essere firmato con una chiave creata da questo browser, così chiunque può verificare che sia esattamente ciò che quella chiave ha firmato; il nome con cui è firmato è solo la parola di chi firma. Privacy e chiavi, in questo menu, mostra cosa conserva questo dispositivo.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -236,7 +236,6 @@ export default {
   'Use this key': 'Usa questa chiave',
   'What this device holds': 'Cosa conserva questo dispositivo',
   'With my signing key': 'Con la mia chiave di firma',
-  'Wrong password': 'Password errata',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'L’hai firmato, ma da allora è cambiato. Firmalo di nuovo, in Condividi, per garantirlo così com’è.',
   'Your documents': 'I tuoi documenti',
   'Your key, as text: keep it secret, it signs as you': 'La tua chiave, come testo: tienila segreta, firma al posto tuo',
@@ -251,6 +250,17 @@ export default {
   '{n|# document|# documents}': '{n|# documento|# di documenti|# documenti}',
   '{n|# link|# links}': '{n|# link|# di link|# link}',
   '{n} set': '{n} impostati',
+  'Signed as “{name}” · key {fp}': 'Firmato come «{name}» · chiave {fp}',
+  'Signed · key {fp}': 'Firmato · chiave {fp}',
+  'A different key from the one {name} used before': 'Una chiave diversa da quella che {name} usava prima',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'Chiunque può firmare con qualsiasi nome. Verifica questa chiave con la persona, per un’altra via.',
+  'I know this key': 'Conosco questa chiave',
+  'Keys you know': 'Chiavi che conosci',
+  'The names and keys you said you know.': 'I nomi e le chiavi che hai detto di conoscere.',
+  '{n|# key|# keys}': '{n|# chiave|# di chiavi|# chiavi}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'Chi ha il link può indovinarla offline. Usa Genera, oppure quattro o più parole a caso.',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'Chiunque abbia il link può indovinare questa password. Impostarla comunque?',
+  'Send the password another way than the link.': 'Manda la password per un’altra via, non con il link.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -262,6 +272,7 @@ export default {
   'locked document': 'documento bloccato',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'Questo documento non si può leggere.',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'Questa password non apre questo link. Se ne sei sicuro, il link potrebbe essere stato tagliato quando è stato copiato: chiedilo di nuovo, o chiedi un link breve.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

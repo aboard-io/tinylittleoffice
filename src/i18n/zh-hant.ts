@@ -60,7 +60,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '除非你分享連結，否則你寫的任何內容都不會離開瀏覽器。會自己連上網路的只有兩處：旅程的地圖，顯示時圖片來自 OpenStreetMap；以及信任清單上網站的圖片，在文件開啟時透過本站的圖片服務取得。',
   'Private, the default:': '私密（預設）：',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '開啟本選單裡的「儲存」開關，就會把你的設定和開啟過的文件保留在此裝置上。',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': '文件可以設定密碼：它會在這裡、在瀏覽器中加密，連結裡只有密文。文件也可以用本瀏覽器產生的金鑰簽署，讓任何人都能確認內容與你簽署的完全一致，以及簽署的名字。本選單裡的「隱私與金鑰」會顯示此裝置保存了什麼。',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': '文件可以設定密碼：它會在這裡、在瀏覽器中加密，連結裡只有密文。文件也可以用本瀏覽器產生的金鑰簽署，讓任何人都能確認內容與這把金鑰簽署時完全一致；簽署的名字只是簽署者自己的說法。本選單裡的「隱私與金鑰」會顯示此裝置保存了什麼。',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -237,7 +237,6 @@ export default {
   'Use this key': '使用這把金鑰',
   'What this device holds': '此裝置保存了什麼',
   'With my signing key': '用我的簽署金鑰',
-  'Wrong password': '密碼錯誤',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': '你簽署過它，之後它又被更改了。請在「分享」裡重新簽署，為現在的內容作保。',
   'Your documents': '你的文件',
   'Your key, as text: keep it secret, it signs as you': '你的金鑰（文字形式）：請保密，它能以你的名義簽署',
@@ -252,6 +251,17 @@ export default {
   '{n|# document|# documents}': '{n|# 份文件}',
   '{n|# link|# links}': '{n|# 個連結}',
   '{n} set': '已設定 {n} 個',
+  'Signed as “{name}” · key {fp}': '以「{name}」的名義簽署 · 金鑰 {fp}',
+  'Signed · key {fp}': '已簽署 · 金鑰 {fp}',
+  'A different key from the one {name} used before': '與{name}以前用的金鑰不同',
+  'Anyone can sign under any name. Check this key with the person, another way.': '任何人都能以任何名字簽署。請透過別的途徑和本人核對這把金鑰。',
+  'I know this key': '我認得這把金鑰',
+  'Keys you know': '你認得的金鑰',
+  'The names and keys you said you know.': '你說認得的名字與金鑰。',
+  '{n|# key|# keys}': '{n|# 把金鑰}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': '拿到連結的人可以離線猜出它。請用「產生」，或用四個以上的隨機單字。',
+  'This password can be guessed by anyone with the link. Set it anyway?': '任何拿到連結的人都能猜出這個密碼。仍要設定嗎？',
+  'Send the password another way than the link.': '請用連結以外的途徑傳送密碼。',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -263,6 +273,7 @@ export default {
   'locked document': '已鎖定的文件',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': '無法讀取這份文件。',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': '這個密碼打不開此連結。如果你確定密碼沒錯，連結可能在複製時被截斷了：請對方重新傳送，或要一個短連結。',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

@@ -28,11 +28,13 @@ import {
   forgetDocuments,
   forgetEverything,
   forgetKey,
+  forgetKnown,
   forgetLinks,
   forgetPrefs,
   holdings,
   importKey,
   keeping,
+  knowKey,
   lockWith,
   onPrivacy,
   remember,
@@ -43,14 +45,22 @@ import {
   type Signature,
 } from './privacy.ts';
 import type { Locker } from './crypt.ts';
-import { generatePassword } from './passwords.ts';
+import { generatePassword, guessable } from './passwords.ts';
 import { unlockForm } from './locked-doc.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
 
+/**
+ * A valid signature by a key that is neither this device's nor one it knows: it proves the key, not the name. Anyone
+ * can sign under any name, so the words say "Signed as" with the key, in a neutral tone, never green.
+ */
+export const unknownKey = (sig: Signature): boolean => sig.state === 'valid' && !sig.mine && !sig.known && !sig.other;
+
 /** The words for a signature's state, and for the state pill (kit/shell.ts) too. */
 export function signatureWords(sig: Signature, sealed = false): string {
   if (sealed) return t('Locked');
+  if (sig.state === 'valid' && sig.other) return t('A different key from the one {name} used before', { name: sig.by ?? '' });
+  if (unknownKey(sig)) return sig.by ? t('Signed as “{name}” · key {fp}', { name: sig.by, fp: sig.fingerprint ?? '' }) : t('Signed · key {fp}', { fp: sig.fingerprint ?? '' });
   if (sig.state === 'valid') return sig.by ? t('Signed by {name}', { name: sig.by }) : t('Signed');
   if (sig.state === 'stale') return t('Changed since signed');
   if (sig.state === 'invalid') return t('Signature does not match');
@@ -58,14 +68,21 @@ export function signatureWords(sig: Signature, sealed = false): string {
   return t('Unsigned');
 }
 
-/** How a signature's state is drawn: green when it holds, red when it was checked and does not, grey otherwise. */
-export const signatureTone = (sig: Signature): string => (sig.state === 'valid' ? 'signed' : sig.state === 'none' || sig.state === 'unchecked' ? 'quiet' : 'mismatch');
-export const signatureIcon = (sig: Signature) => (sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : sig.state === 'unchecked' ? UI.unchecked : UI.mismatch);
+/**
+ * How a signature's state is drawn: green when it holds by this device's key or one it knows; neutral when it holds
+ * by a key nobody here knows; amber when a known name comes with another key; red when it was checked and does not
+ * hold; grey otherwise.
+ */
+export const signatureTone = (sig: Signature): string =>
+  sig.state === 'valid' ? (sig.other ? 'otherkey' : unknownKey(sig) ? 'neutral' : 'signed') : sig.state === 'none' || sig.state === 'unchecked' ? 'quiet' : 'mismatch';
+export const signatureIcon = (sig: Signature) =>
+  sig.state === 'valid' ? (sig.other ? UI.mismatch : unknownKey(sig) ? UI.key : UI.shield) : sig.state === 'none' ? UI.unsigned : sig.state === 'unchecked' ? UI.unchecked : UI.mismatch;
 /** Why a signature could not be checked, said beside it. */
 export const uncheckedHint = () => t('This browser cannot check this kind of signature');
 
 /**
- * The state beside the title: unsigned (quiet), signed by a name (green, the key's fingerprint on hover), changed
+ * The state beside the title: unsigned (quiet), signed by a name (green for a key this device has or knows, the key's
+ * fingerprint on hover; neutral, with the key in the words, for any other; amber for a known name's new key), changed
  * since signed or not matching (red), cannot check here (quiet, the reason on hover: a browser without Ed25519),
  * locked (a lock). A lock rides beside the state while the document has a password. `open` is the Privacy dialog,
  * or for a locked document the unlock dialog.
@@ -77,7 +94,7 @@ export function trustButton(sig: Signature, sealed: boolean, locked: boolean, op
   const tip = [
     words,
     sig.state === 'unchecked' && !sealed ? uncheckedHint() : '',
-    sig.fingerprint && !sealed ? t('Key {fp}', { fp: sig.fingerprint }) : '',
+    sig.fingerprint && !sealed && !unknownKey(sig) ? t('Key {fp}', { fp: sig.fingerprint }) : '',
     locked ? t('Protected by a password') : '',
     where,
   ]
@@ -293,7 +310,13 @@ export class ToPrivacy extends LitElement {
     return html`<section class="to-privacy-section to-privacy-doc" aria-labelledby="to-privacy-doc-h">
       <h3 id="to-privacy-doc-h">${t('This document')}</h3>
       <p class="to-trust-line ${tone}">${icon(signatureIcon(sig), 18)}<span>${signatureWords(sig)}</span></p>
-      ${sig.fingerprint ? html`<p class="to-hint to-privacy-signer">${t('Key {fp}', { fp: sig.fingerprint })}${sig.mine ? html` · ${t('yours')}` : nothing}</p>` : nothing}
+      ${sig.fingerprint && !unknownKey(sig) ? html`<p class="to-hint to-privacy-signer">${t('Key {fp}', { fp: sig.fingerprint })}${sig.mine ? html` · ${t('yours')}` : nothing}</p>` : nothing}
+      ${unknownKey(sig) || (sig.state === 'valid' && sig.other) ? html`<p class="to-hint to-privacy-anyone">${t('Anyone can sign under any name. Check this key with the person, another way.')}</p>` : nothing}
+      ${
+        keeping() && sig.by && sig.fingerprint && (unknownKey(sig) || (sig.state === 'valid' && sig.other))
+          ? html`<button type="button" class="to-btn to-know-key" @click=${() => knowKey(sig.by!, sig.fingerprint!)}>${icon(UI.key, 16)}<span>${t('I know this key')}</span></button>`
+          : nothing
+      }
       ${sig.state === 'invalid' ? html`<p class="to-hint">${t('The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.')}</p>` : nothing}
       ${sig.state === 'unchecked' ? html`<p class="to-hint to-unchecked-hint">${uncheckedHint()}</p>` : nothing}
       ${sig.state === 'stale' ? html`<p class="to-hint">${t('You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.')}</p>` : nothing}
@@ -341,6 +364,7 @@ export class ToPrivacy extends LitElement {
         ${row('to-held-docs', t('Your documents'), t('Their names and links, for the home page.'), t('{n|# document|# documents}', { n: held.documents }), held.documents ? () => forgetDocuments() : null)}
         ${row('to-held-links', t('Short links'), t('The owner links that update short links you made.'), t('{n|# link|# links}', { n: held.links }), held.links ? () => forgetLinks() : null)}
         ${row('to-held-key', t('Your signing key'), t('Says a signature is yours.'), held.key ?? t('None'), held.key ? () => this.forgetKey() : null)}
+        ${keeping() ? row('to-held-known', t('Keys you know'), t('The names and keys you said you know.'), t('{n|# key|# keys}', { n: held.known }), held.known ? () => forgetKnown() : null) : nothing}
         ${row('to-held-history', t('Your browser’s history'), t('Every document opened here, in full, unless it has a password.'), t('Not ours to clear'), null)}
       </ul>
       <button type="button" class="to-btn to-forget-all" @click=${() => void this.forgetAll()}>${icon(UI.trash, 16)}<span>${t('Forget everything')}</span></button>
@@ -363,11 +387,16 @@ export class ToPrivacy extends LitElement {
       if (go) go.disabled = !a || a !== b;
       const differ = this.querySelector<HTMLElement>('.to-password-differ');
       if (differ) differ.textContent = b && a !== b ? t('The two passwords differ') : '';
+      const cost = this.querySelector<HTMLElement>('.to-password-cost');
+      if (cost) cost.textContent = a && guessable(a) ? t('Someone with the link can guess this offline. Use Generate, or four or more random words.') : '';
     };
+    // A guessable password is the author's to choose, asked once: the warning above says why.
     const submit = (e: Event) => {
       e.preventDefault();
       const [a, b] = fields().map((f) => f.value);
-      if (a && a === b) void this.setPassword(a);
+      if (!a || a !== b) return;
+      if (guessable(a) && !confirm(t('This password can be guessed by anyone with the link. Set it anyway?'))) return;
+      void this.setPassword(a);
     };
     // Generate: a strong password made here, shown in both fields so it can be read and copied before it is set.
     const generate = () => {
@@ -385,6 +414,7 @@ export class ToPrivacy extends LitElement {
       <label class="to-password-label"><span>${has ? t('New password') : t('Password')}</span><input type="password" class="to-password-new" autocomplete="new-password" @input=${check} /></label>
       <label class="to-password-label"><span>${t('Again')}</span><input type="password" class="to-password-new" autocomplete="new-password" @input=${check} /></label>
       <p class="to-password-differ to-hint" role="status"></p>
+      <p class="to-password-cost to-hint" role="status"></p>
       <div class="to-row">
         <button type="button" class="to-btn to-password-generate" @click=${generate}>${icon(UI.key, 16)}<span>${t('Generate a strong password')}</span></button>
         <button type="button" class="to-btn to-password-copy" @click=${copyMade}>${icon(UI.copy, 16)}<span>${t('Copy')}</span></button>
@@ -394,6 +424,7 @@ export class ToPrivacy extends LitElement {
         <button type="submit" class="to-btn primary to-password-set" disabled>${icon(UI.lock, 16)}<span>${this.busy ? t('Sealing…') : has ? t('Change password') : t('Set password')}</span></button>
         ${has ? html`<button type="button" class="to-btn to-password-remove" ?disabled=${this.busy} @click=${() => void this.setPassword('')}>${icon(UI.unlock, 16)}<span>${t('Remove password')}</span></button>` : nothing}
       </div>
+      <p class="to-password-send to-hint">${t('Send the password another way than the link.')}</p>
     </form>`;
   }
 
@@ -408,7 +439,7 @@ export class ToPrivacy extends LitElement {
         <p class="to-trust-line quiet">${icon(this.protected ? UI.lock : UI.unlock, 18)}<span>${this.protected ? t('Protected by a password') : t('No password')}</span></p>
         <button type="button" class="to-btn to-password-open" aria-haspopup="dialog" @click=${(e: Event) => void this.passwordFrom(e.currentTarget as HTMLElement)}>${icon(UI.lock, 16)}<span>${t('Password…')}</span></button>
       </div>
-      <p class="to-trust-line ${signatureTone(sig)}">${icon(signatureIcon(sig), 18)}<span>${signatureWords(sig)}</span>${sig.fingerprint ? html`<small>${t('Key {fp}', { fp: sig.fingerprint })}</small>` : nothing}</p>
+      <p class="to-trust-line ${signatureTone(sig)}">${icon(signatureIcon(sig), 18)}<span>${signatureWords(sig)}</span>${sig.fingerprint && !unknownKey(sig) ? html`<small>${t('Key {fp}', { fp: sig.fingerprint })}</small>` : nothing}</p>
       ${sig.state === 'unchecked' ? html`<p class="to-hint to-unchecked-hint">${uncheckedHint()}</p>` : nothing}
       <form class="to-sign" @submit=${(e: Event) => (e.preventDefault(), void this.sign(name(e)))}>
         <label class="to-sign-label"><span>${t('Sign as')}</span><input type="text" class="to-sign-name" autocomplete="name" placeholder=${t('Your name')} .value=${this.by || signerName()} /></label>

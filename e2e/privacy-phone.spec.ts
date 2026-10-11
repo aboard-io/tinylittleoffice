@@ -30,7 +30,7 @@ test('a sealed link on a phone: the unlock dialog inside 390px, a wrong password
   await expect(page).toHaveTitle('Locked document · Tiny Little Office');
   await field.fill('wrong horse');
   await go.tap();
-  await expect(page.locator('.to-unlock-wrong')).toHaveText('Wrong password', { timeout: 15_000 });
+  await expect(page.locator('.to-unlock-wrong')).toHaveText(/^That password does not open this link\./, { timeout: 15_000 });
   await field.fill('correct horse');
   await go.tap();
   await expect(page.locator('to-text .tx p').first()).toHaveText('The secret words.', { timeout: 15_000 });

@@ -15,7 +15,7 @@ import type { Locker } from './crypt.ts';
 import type { ToDialog } from './dialog.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
-import { lockedOf, lockedPage, openedText, setOpened } from './locked.ts';
+import { lockedOf, lockedPage, notOpened, openedText, setOpened } from './locked.ts';
 import { gateSvg } from './pictures.ts';
 import { reopen, unlock } from './privacy.ts';
 import './dialog.ts';
@@ -31,7 +31,7 @@ export function unlockForm(o: { wrong: boolean; busy: boolean; submit: (e: Event
       <input type="password" class="to-unlock-field" aria-label=${t('Password')} autocomplete="current-password" aria-invalid=${String(o.wrong)} aria-describedby="to-unlock-wrong" @input=${o.input} />
       <button type="submit" class="to-btn primary to-unlock-go" ?disabled=${o.busy}>${icon(UI.unlock, 16)}<span>${o.busy ? t('Opening…') : t('Unlock')}</span></button>
     </div>
-    <p id="to-unlock-wrong" class="to-unlock-wrong" role="alert">${o.wrong ? t('Wrong password') : ''}</p>
+    <p id="to-unlock-wrong" class="to-unlock-wrong" role="alert">${o.wrong ? notOpened() : ''}</p>
   </form>`;
 }
 
