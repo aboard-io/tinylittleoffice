@@ -1,6 +1,6 @@
 /**
  * Privacy on a phone: a sealed link opens with the unlock dialog inside the screen, its field 16px (no zoom),
- * a wrong password said so and the right one opening the document; the state beside the title a finger big,
+ * a wrong password said so and the right one opening the document; the lock beside the title a finger big,
  * the header one row; a locked document placed in a text, its card tapped open. Real layout on a real phone engine (the phone project: WebKit, 390 by 844):
  *
  *   PW_PORT=4420 npx playwright test e2e/privacy-phone.spec.ts --project=phone --workers=1
@@ -37,7 +37,7 @@ test('a sealed link on a phone: the unlock dialog inside 390px, a wrong password
   await expect(dialog).toBeHidden();
   const zoom = await page.evaluate(() => window.visualViewport?.scale ?? 1);
   expect(zoom).toBe(1);
-  // The state beside the title: a finger big, and the header one row inside the screen.
+  // The lock beside the title: a finger big, and the header one row inside the screen.
   const pill = (await page.locator('.to-header .to-trust').boundingBox())!;
   expect(pill.height).toBeGreaterThanOrEqual(44);
   expect(pill.width).toBeGreaterThanOrEqual(44);

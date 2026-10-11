@@ -1,13 +1,11 @@
 // The test vectors (test/vectors/*.json, docs/crypto/): fixed inputs and the exact outputs the kit gives for a
-// password's seal, a signature and a short link's cipher. Each is checked twice: against the kit, and against
+// password's seal and a short link's cipher. Each is checked twice: against the kit, and against
 // WebCrypto called directly with the layout the documents describe, so the JSON is enough for another
 // implementation to check itself against.
 import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fromBase64Url, toBase64Url } from '../src/kit/codec.ts';
 import { deriveKey, PBKDF2_ITERATIONS, sealAt, unseal } from '../src/kit/crypt.ts';
-import { createSigner, fingerprintOf, verify } from '../src/kit/sign.ts';
-import { encodeCreated, messageOf, signingMessage } from '../src/kit/envelope.ts';
 import { ownerHash, ownerLink, publicLink, sealShortAt, shortLink, unshorten } from '../src/kit/short.ts';
 import { ownerHash as serverHash } from '../tinier/tinier.ts';
 
@@ -17,7 +15,6 @@ const unhex = (h: string) => Uint8Array.from(h.match(/../g) ?? [], (x) => parseI
 const b64 = (s: string) => Uint8Array.from(fromBase64Url(s));
 const utf8 = (s: string) => new TextEncoder().encode(s);
 const subtle = globalThis.crypto.subtle;
-const memKey = (k: unknown) => ({ get: () => JSON.stringify(k), set() {}, remove() {} });
 
 test("password: the parameters are the documents' and the kit's", () => {
   const v = read('password.json');
@@ -51,48 +48,6 @@ for (const [i, v] of (read('password.json').vectors as Record<string, string>[])
     expect(await unseal(v.password + ' ', v.sealed)).toBeNull();
   });
 }
-
-test("signing: the envelope's message, its bytes, and as read from a document", () => {
-  const { envelope: e } = read('signing.json');
-  expect(encodeCreated(Date.parse(e.created))).toBe(e.createdBase36);
-  expect(parseInt(e.createdBase36, 36)).toBe((Date.parse(e.created) - Date.UTC(2020, 0, 1)) / 60_000);
-  expect(signingMessage(e.app, Date.parse(e.created), e.body, e.title, e.by)).toBe(e.message);
-  expect(hex(utf8(e.message))).toBe(e.messageHex);
-  expect(messageOf(e.app, e.document)).toBe(e.message);
-});
-
-test("signing: Ed25519 (RFC 8032's own key), the exact signature, verified", async () => {
-  const { envelope: e, ed25519: v } = read('signing.json');
-  const signer = createSigner(memKey(v.stored));
-  // RFC 8032 §7.1 TEST 1: the empty message.
-  expect(hex(b64((await signer.sign('')).sig))).toBe(v.rfc8032.signatureHex);
-  const { key, sig } = await signer.sign(e.message);
-  expect(key).toBe(v.publicKey);
-  expect(b64(key).length).toBe(32);
-  expect(sig).toBe(v.signature);
-  expect(hex(b64(sig))).toBe(v.signatureHex);
-  expect(await fingerprintOf(key)).toBe(v.fingerprint);
-  expect(await verify(v.publicKey, v.signature, e.message)).toBe(true);
-  expect(await verify(v.publicKey, v.signature, e.message.replace('Paul', 'Pau1'))).toBe(false);
-  // By hand: the raw public key verifies the signature over the UTF-8 bytes.
-  const pub = await subtle.importKey('raw', b64(v.publicKey), { name: 'Ed25519' }, false, ['verify']);
-  expect(await subtle.verify({ name: 'Ed25519' }, pub, b64(v.signature), unhex(e.messageHex))).toBe(true);
-});
-
-test('signing: the P-256 fallback, its raw key from the JWK, its signature verified', async () => {
-  const { envelope: e, p256: v } = read('signing.json');
-  const raw = b64(v.publicKey);
-  expect(raw.length).toBe(65);
-  expect(hex(raw)).toBe('04' + hex(b64(v.stored.pub.x)) + hex(b64(v.stored.pub.y)));
-  expect(await createSigner(memKey(v.stored)).publicKey()).toBe(v.publicKey);
-  expect(await fingerprintOf(v.publicKey)).toBe(v.fingerprint);
-  expect(await verify(v.publicKey, v.signature, e.message)).toBe(true);
-  expect(await verify(v.publicKey, v.signature, e.message + ' ')).toBe(false);
-  // ECDSA is not deterministic: a new signature differs and verifies all the same.
-  const again = await createSigner(memKey(v.stored)).sign(e.message);
-  expect(again.sig).not.toBe(v.signature);
-  expect(await verify(again.key, again.sig, e.message)).toBe(true);
-});
 
 test('short links: the ciphertext, the owner hash on both sides, the two links', async () => {
   for (const v of read('short-links.json').vectors as Record<string, string>[]) {
@@ -131,8 +86,6 @@ test('the vectors\' text is written with "~" for 62, and the same text with "-" 
   const texts = [
     ...(read('password.json').vectors as Record<string, string>[]).map((v) => v.sealed.slice(1)),
     ...(read('short-links.json').vectors as Record<string, string>[]).flatMap((v) => [v.key, v.iv, v.c, v.o, v.ownerHash]),
-    read('signing.json').ed25519.signature,
-    read('signing.json').p256.publicKey,
   ];
   expect(texts.join('')).toContain('~');
   for (const s of texts) {

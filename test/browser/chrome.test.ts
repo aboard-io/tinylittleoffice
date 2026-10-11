@@ -652,15 +652,15 @@ test('390×844 with a finger: a dialog opened from the bar (a drawing from Inser
   expect(chrome.hasAttribute('indoc')).toBe(true);
 });
 
-test('a header too narrow for all of it keeps a password’s lock beside the title, and leaves out only the unsigned state that has nothing to say', async () => {
+test('a header too narrow for all of it keeps a password’s lock beside the title; with no password there is nothing beside it', async () => {
   await mount('#/');
   const header = document.createElement('div');
   header.className = 'to-header';
   header.style.width = '280px';
   document.body.append(header);
-  render(html`${trustButton({ state: 'none' }, false, true, () => {})}${trustButton({ state: 'none' }, false, false, () => {})}`, header);
-  const [locked, plain] = header.querySelectorAll<HTMLElement>('.to-trust');
-  expect(locked.offsetWidth).toBeGreaterThan(0);
-  expect(plain.offsetWidth).toBe(0);
+  render(html`${trustButton(false, true, () => {})}${trustButton(false, false, () => {})}`, header);
+  const all = header.querySelectorAll<HTMLElement>('.to-trust');
+  expect(all.length).toBe(1);
+  expect(all[0].offsetWidth).toBeGreaterThan(0);
   header.remove();
 });

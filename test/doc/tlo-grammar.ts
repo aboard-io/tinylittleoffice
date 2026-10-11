@@ -137,7 +137,7 @@ export const POOLS: Record<string, string[]> = {
   name: ['Name', 'Qty', 'Price', '# of units', 'Time', '', '🚀 Launch', 'שם', 'a|b', 'Note'],
   currency: ['£', 'GBP', 'R$', 'eur'],
   cell: ['1', '2.5', 'words', '=A1+B1', '=SUM(A1:B3)', 'a \\| b', 'x\\\\y', '1<br>2', '🚀', 'שלום', '| lead', '-', '#'],
-  lang: ['sheet', 'Draw', 'js', 'qr', 'signatures'],
+  lang: ['sheet', 'Draw', 'js', 'qr', 'notes'],
   body: ['a | b', '--- | ---', '```', '~~~', 'x', '', '# not a heading', '  indented'],
   node: ['A', 'Web', 'Two words', '🚀', 'שלום', '#id', 'a-b'],
   alt: ['', 'A picture', 'a \\] b', '🚀'],

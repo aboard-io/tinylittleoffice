@@ -41,7 +41,7 @@ for (const row of [
     close: (m: HTMLDialogElement) => m.querySelector<HTMLElement>('.to-listbox-close')!.click(),
   },
   {
-    name: 'Privacy and keys',
+    name: 'Privacy',
     press: (d: HTMLElement) => d.querySelector<HTMLElement>('.to-drawer-privacy')!,
     opens: 'to-dialog.to-privacy-dialog dialog',
     close: (m: HTMLDialogElement) => m.querySelector<HTMLElement>('.to-dialog-head button')!.click(),
@@ -106,12 +106,10 @@ test('Password… from Share: Share closes, the password dialog alone is open; c
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   await openShare(shell);
   const share = await only('to-share dialog');
-  // State to keep: the QR code's Display Link chosen, a name typed to sign under, the body scrolled.
+  // State to keep: the QR code's Display Link chosen, the body scrolled.
   await until(() => !!share.querySelector('.to-share-qr .to-which'));
   share.querySelectorAll<HTMLElement>('.to-share-qr .to-which button')[1].click();
   await until(() => share.querySelectorAll('.to-share-qr .to-which button')[1].getAttribute('aria-pressed') === 'true');
-  const name = share.querySelector<HTMLInputElement>('.to-sign-name')!;
-  name.value = 'Ada Lovelace';
   // The body made shorter than what it holds, and scrolled part way down: kept across the step (the browser keeps a
   // closed dialog's scroll, Chromium and WebKit alike, since nothing is drawn again).
   const body = share.querySelector<HTMLElement>('.to-dialog-body')!;
@@ -130,7 +128,6 @@ test('Password… from Share: Share closes, the password dialog alone is open; c
   pw.querySelector<HTMLElement>('.to-dialog-head button')!.click();
   await only('to-share dialog');
   await until(() => document.activeElement === share.querySelector('.to-password-open'));
-  expect(share.querySelector<HTMLInputElement>('.to-sign-name')!.value).toBe('Ada Lovelace');
   expect(share.querySelectorAll('.to-share-qr .to-which button')[1].getAttribute('aria-pressed')).toBe('true');
   expect(body.scrollTop).toBe(top);
   // Escape, the commonest way out: Share is back the same.
@@ -139,7 +136,6 @@ test('Password… from Share: Share closes, the password dialog alone is open; c
   await userEvent.keyboard('{Escape}');
   await only('to-share dialog');
   await until(() => document.activeElement === share.querySelector('.to-password-open'));
-  expect(share.querySelector<HTMLInputElement>('.to-sign-name')!.value).toBe('Ada Lovelace');
   expect(body.scrollTop).toBe(top);
   expect(stacked).toEqual([]);
   // Done (a password set): Share is back too, saying so.
@@ -150,7 +146,6 @@ test('Password… from Share: Share closes, the password dialog alone is open; c
   await only('to-share dialog');
   await until(() => share.querySelector('.to-share-protect .to-trust-line')!.textContent!.includes('Protected by a password'));
   await until(() => document.activeElement === share.querySelector('.to-password-open'));
-  expect(share.querySelector<HTMLInputElement>('.to-sign-name')!.value).toBe('Ada Lovelace');
   expect(stacked).toEqual([]);
   // Share closed for good: it says so (to-close, which a step left behind would swallow), and the next Share begins
   // afresh as before, its body drawn anew, not the one kept across the steps.
@@ -174,7 +169,7 @@ test('no dialog opens another while it is open: every drawer row and every Share
     await until(() => modals().length === 0);
     await tick(20);
   };
-  // The drawer's rows that open a dialog: Share…, Keyboard shortcuts, Privacy and keys, About, and every app's templates.
+  // The drawer's rows that open a dialog: Share…, Keyboard shortcuts, Privacy, About, and every app's templates.
   const rows = ['.to-drawer-share', '.to-drawer-keys', '.to-drawer-privacy', '.to-drawer-about', ...apps().map((_, i) => `.to-drawer-apps .to-app-head:nth-of-type(${i + 1}) to-templates > button`)];
   for (const sel of rows) {
     const drawer = (await openDrawerDoc(shell)).closest('dialog')!;

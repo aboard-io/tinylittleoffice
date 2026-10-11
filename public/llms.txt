@@ -14,7 +14,7 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 
 - `<app>` is one of the apps below (the table's first column).
 - `doc` is the document, URL-encoded: a new line is `%0A`, a space `+` or `%20`; `& # % + =` in the text must be percent-encoded. Non-ASCII is fine, percent-encoded as UTF-8.
-- `title` (optional) is the document's name. `by` (optional) is who made it: your name as an agent, say. It is a claim: only a signature proves it (below).
+- `title` (optional) is the document's name. `by` (optional) is who made it: your name as an agent, say. It is a claim, in your own word (below).
 - `view` (optional) opens the document another way: `pdf`, `png`, `html`, `md` or `tlo` download it as it opens, as do an app's own formats (listed under each app); `embed` is the pages alone, for a frame; on a deck, `show` opens it presenting.
 - `md=` may stand for `doc=`: it is the same text (TLO is Markdown). With no app in the path or the head, `md=` opens a text in the Word Processor.
 - The document's own head may name the app instead: a `doc` that begins `---%0Aapp: sheet%0A---` needs no app in the path (`https://tinylittleoffice.com/#doc=...`).
@@ -61,7 +61,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 
 ### write: a text
 
-Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table works out its formulas; a fence named for an app holds that document. `paper: a4` or `letter` in the head sets the paper (a reader in North America gets letter otherwise). Notes are listed at the end, in the editor, on paper, in the web page and in Word. A contract is a text whose signatures follow in a `signatures` fence; an invoice is a text with its lines as a table.
+Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table works out its formulas; a fence named for an app holds that document. `paper: a4` or `letter` in the head sets the paper (a reader in North America gets letter otherwise). Notes are listed at the end, in the editor, on paper, in the web page and in Word. an invoice is a text with its lines as a table.
 
 Meeting notes:
 
@@ -497,9 +497,9 @@ POST https://tinier.tinylittleoffice.com/api   {c, iv, ttl, owner}   → 201 {id
 
 `c` and `iv` are the AES-GCM ciphertext of the long link and its 12-byte IV, base64url; `ttl` is 3600, 86400, 604800, 2592000 or 31536000 seconds; `owner` is base64url(sha256(o)) for 32 random bytes `o` you keep. The short link is `https://tinier.tinylittleoffice.com/<id>#<key>` (the key as base64url); `…#<key>.<o>` is the owner's link, which can update (`PUT /api/<id> {c, iv, o, ttl?}`: a new version under the same link) or forget it (`DELETE /api/<id> {o}`). The ciphertext may be 16 KiB at most.
 
-## Who made it: the signed head
+## Who made it
 
-The head may carry `created` (when the document was first written, to the minute), `by` (who made it, a claim), and, once signed in the app, `key` (the signer's public key) and `sig` (a signature over the document). The app checks the signature on opening: a document changed after it was signed shows that it no longer matches. Never write `key` or `sig` yourself; write `by` to say who you are.
+The head may carry `created` (when the document was first written, to the minute) and `by` (who made it, a claim: nothing proves it). Write `by` to say who you are.
 
 ## Without a browser
 

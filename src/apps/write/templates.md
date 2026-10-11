@@ -12,7 +12,7 @@ look fits it, it names one in its head (`look:`, look.ts).
 - **Résumé**: name, experience, education and skills on a page.
 - **One-page CV** (typewriter): a backend engineer's CV, set in monospace.
 - **Invoice**: head fields for from and to, lines in a table whose amounts, subtotal, tax and total are formulas.
-- **Contract**: a plain-words agreement with a signatures card at the end.
+- **Contract**: a plain-words agreement: what each party does, and how it ends.
 - **Newsletter** (serif and sans): a block association's month, with icons and a table of dates.
 - **Recipe** (sans and serif): ingredients in a table that scales from four to six by formula, steps, a footnote.
 - **Questions and answers**: a community garden's questions, each a heading over its answer.
@@ -30,5 +30,5 @@ look fits it, it names one in its head (`look:`, look.ts).
 - **Wedding speech**: the best woman's speech: how they met, what she has seen, a word to the groom, the toast.
 - **Eulogy** (serif): a grandmother's life in a few minutes.
 - **Zine essay** (typewriter): a personal essay about the night bus, with a highlighted line.
-- **Petition**: what is asked, why (with a footnote to the evidence), and a table of signatures.
+- **Petition**: what is asked, why (with a footnote to the evidence), and a table of names.
 - **Terms of service**: a dog walker's terms: booking, a price table, keys, insurance in a footnote, ending.

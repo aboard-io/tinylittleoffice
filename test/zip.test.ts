@@ -21,7 +21,7 @@ test('not a zip: an error, for the caller to say so', () => {
   expect(() => unzip(new TextEncoder().encode('just words'))).toThrow();
 });
 
-test('a zip of documents is read as documents: the app from the head, else the folder, else the app open now; the key and a README left alone', () => {
+test('a zip of documents is read as documents: the app from the head, else the folder, else the app open now; anything else left alone', () => {
   const files = unzip(
     zip({
       'write/launch-notes.tlo': '---\ntitle: Launch notes\n---\nGo.\n',
@@ -29,7 +29,7 @@ test('a zip of documents is read as documents: the app from the head, else the f
       'write/locked.txt': 'https://tinylittleoffice.com/#/v1/write/Eabc~def\n',
       'notes/shopping.md': '---\napp: outline\n---\n- [ ] Milk\n',
       'loose.md': '# Loose\n',
-      'signing-key.json': '{"kty":"OKP"}',
+      'notes.json': '{"a":1}',
       'README.txt': 'What this is.\n',
       '__MACOSX/write/._launch-notes.tlo': 'junk',
       'write/.hidden.tlo': 'hidden\n',

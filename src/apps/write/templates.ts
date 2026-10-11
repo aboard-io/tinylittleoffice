@@ -6,8 +6,7 @@
  * paragraph of prose is one hint in italics, saying what goes there. The numeric parts keep their numbers: the
  * invoice's lines, the recipe's scaling, the thesis's table, the grant's budget, the newsletter's dates, the
  * minutes' sums. Each is canonical as the kernel writes it, so it round-trips byte for byte (the corpus test holds
- * every one). The contract ends in a signatures fence, a table of Name | Key | Signature | Signed that Sign this
- * contract fills (contract.ts). The invoice is a text whose fields are head fields and whose lines are a table
+ * every one). The invoice is a text whose fields are head fields and whose lines are a table
  * block the formula engine works out in place: Amount is =Qty×Price and locked, the blank row under the lines is
  * inside the subtotal's reach so a line added there is summed, and the tax rate sits in its own row's Qty cell,
  * where a formula can read it.
@@ -87,13 +86,6 @@ const CONTRACT = `# *What this agreement is about* {.title}
 - *What one of you does, and when.*
 - *What the other pays or does in return.*
 - *How either of you can end it.*
-
-## Signed
-
-\`\`\`signatures
-Name | Key | Signature | Signed
---- | --- | --- | ---
-\`\`\`
 `;
 
 const INVOICE = `---
@@ -794,7 +786,7 @@ const PETITION = `# *What you want, as a headline* {.title}
 
 *A petition to whom · started when*
 
-## We, the undersigned, ask *them* to
+## We ask *them* to
 
 1. *The first thing you ask.*
 2. *The second.*
@@ -805,7 +797,7 @@ const PETITION = `# *What you want, as a headline* {.title}
 
 *The facts, and where they come from.*^[*The source.*]
 
-## Signatures
+## Names
 
 Name | Postcode | Date:date
 --- | --- | ---
@@ -823,7 +815,7 @@ export const templates = (): Template[] => [
   { id: 'resume', name: t('Résumé'), blurb: t('Name and contact, experience, education, skills: a résumé fitted to a page.'), doc: RESUME },
   { id: 'cv', name: t('One-page CV'), blurb: t('A typewriter-set CV: now, before, education, languages and tools.'), doc: CV },
   { id: 'invoice', name: t('Invoice'), blurb: t('Who, what and how much, the sums done in the table; printed as paper to send.'), doc: INVOICE },
-  { id: 'contract', name: t('Contract'), blurb: t('A plain-words agreement, with room at the end for each party to sign.'), doc: CONTRACT },
+  { id: 'contract', name: t('Contract'), blurb: t('A plain-words agreement: what each of you does, and how it ends.'), doc: CONTRACT },
   { id: 'newsletter', name: t('Newsletter'), blurb: t("A block association's month: dates in a table, welcomes, news and thanks."), doc: NEWSLETTER },
   { id: 'recipe', name: t('Recipe'), blurb: t('What you need, in a table that scales from four to six, and how, step by step.'), doc: RECIPE },
   { id: 'faq', name: t('Questions and answers'), blurb: t('The questions people ask, each a heading with its answer under it.'), doc: FAQ },

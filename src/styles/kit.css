@@ -1676,14 +1676,13 @@
     color: var(--to-accent);
   }
   /* A header too narrow for all of it (a phone with the nav at its limit) keeps one row: the meter goes while the link
-     is far from full (Share says how full) and the trust while it has nothing to say (unsigned, and no password's lock),
-     so the title keeps a little room and Share and Download stay at the right rather than wrapping under the rest. */
+     is far from full (Share says how full), so the title keeps a little room and Share and Download stay at the right
+     rather than wrapping under the rest. */
   .to-header {
     container: to-header / inline-size;
   }
   @container to-header (width < 18.75em) {
-    .to-meter:not(.warn, .over),
-    .to-trust.quiet:not(:has(.to-trust-lock)) {
+    .to-meter:not(.warn, .over) {
       display: none;
     }
   }
@@ -1725,7 +1724,7 @@
     color: var(--to-ink-2);
   }
 
-  /* ---- privacy: the signed state beside the title, the unlock and password dialogs, the Privacy dialog ---- */
+  /* ---- privacy: the lock beside the title, the unlock and password dialogs, the Privacy dialog ---- */
   .to-header .to-trust,
   .to-trust {
     gap: 0.2857em;
@@ -1735,28 +1734,6 @@
     border-radius: var(--to-radius-pill);
     font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-3);
-  }
-  .to-header .to-trust.signed,
-  .to-trust.signed {
-    color: var(--to-signed-ink);
-    background: var(--to-signed-bg);
-  }
-  .to-header .to-trust.mismatch,
-  .to-trust.mismatch {
-    color: var(--to-mismatch-ink);
-    background: var(--to-mismatch-bg);
-  }
-  /* Signed by a key nobody here knows: it proves the key, not the name, so it is not green. */
-  .to-header .to-trust.neutral,
-  .to-trust.neutral {
-    color: var(--to-ink-2);
-    background: var(--to-surface-2);
-  }
-  /* A name this device knows, under another key. */
-  .to-header .to-trust.otherkey,
-  .to-trust.otherkey {
-    color: var(--to-otherkey-ink);
-    background: var(--to-otherkey-bg);
   }
   .to-header .to-trust.locked,
   .to-trust.locked {
@@ -1797,23 +1774,6 @@
     font-weight: 400;
     color: var(--to-ink-2);
   }
-  .to-trust-line.signed {
-    color: var(--to-signed-ink);
-  }
-  .to-trust-line.mismatch {
-    color: var(--to-mismatch-ink);
-  }
-  .to-trust-line.neutral {
-    color: var(--to-ink);
-  }
-  .to-trust-line.otherkey {
-    color: var(--to-otherkey-ink);
-  }
-  .to-trust-line small {
-    font-weight: 400;
-    color: var(--to-ink-3);
-    font-family: var(--to-font-mono);
-  }
   .to-share-made {
     margin: 0 0 0.2857em;
     color: var(--to-ink-2);
@@ -1827,7 +1787,6 @@
     gap: 0.5em;
     width: 100%;
   }
-  .to-sign,
   .to-password,
   .to-unlock {
     display: flex;
@@ -1835,19 +1794,15 @@
     gap: 0.625em;
     width: 100%;
   }
-  .to-sign-label,
-  .to-password-label,
-  .to-privacy-keytext {
+  .to-password-label {
     display: flex;
     flex-direction: column;
     gap: 0.2857em;
     font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
   }
-  .to-sign-name,
   .to-password-new,
-  .to-unlock-field,
-  .to-key-text {
+  .to-unlock-field {
     font-size: var(--to-scale);
     width: 100%;
   }
@@ -1864,10 +1819,6 @@
     min-height: 1.5em;
     color: var(--to-danger);
     font-weight: 600;
-  }
-  .to-key-text {
-    font-family: var(--to-font-mono);
-    font-size: calc(0.8125 * var(--to-scale));
   }
   .to-privacy-section {
     display: flex;
@@ -1887,12 +1838,6 @@
   .to-privacy-section p {
     margin: 0;
   }
-  .to-privacy-fp {
-    display: flex;
-    align-items: center;
-    gap: 0.375em;
-  }
-  .to-privacy-fp code,
   .to-held-now {
     font-family: var(--to-font-mono);
   }
@@ -1923,15 +1868,6 @@
     font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
     white-space: nowrap;
-  }
-  .to-check {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-    min-height: var(--to-touch);
-  }
-  .to-key-file {
-    position: relative;
   }
 
   /* ---- the Display Link: the pages one under another, the title and Edit above them ---- */

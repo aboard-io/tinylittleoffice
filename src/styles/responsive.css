@@ -36,7 +36,7 @@
       padding-top: env(safe-area-inset-top);
     }
     /* The templates too (home.ts; Paul, 2026-10-10: "a large modal that takes over the screen"): one column of rows under the head. */
-    /* The reader's line: the title on a line of its own, its controls (Unsigned, Present, Edit) on the next, since a phone has no width for all four. */
+    /* The reader's line: the title on a line of its own, its controls (a password's lock, Present, Edit) on the next, since a phone has no width for all four. */
     .to-display-head {
       flex-wrap: wrap;
     }
@@ -62,7 +62,7 @@
     .to-templates-dialog .to-listbox {
       grid-template-columns: minmax(0, 1fr);
     }
-    /* The signed state beside the title is its icon alone; its words are its label, and the Privacy dialog's. */
+    /* The lock beside the title is its icon alone; its words are its label, and the Privacy dialog's. */
     .to-header .to-trust-words {
       position: absolute;
       width: 1px;

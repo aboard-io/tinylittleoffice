@@ -209,10 +209,7 @@ const finish = (b: Raw): Block => {
   return { ...rest, runs: parseLines(text, b.k === 'quote') } as Block;
 };
 
-/**
- * NUL (U+0000) never enters a document: no editor writes one, and the reader drops any it is given, so the
- * NULs that separate the parts of a signed message (kit/envelope.ts) can only ever be those separators.
- */
+/** NUL (U+0000) never enters a document: no editor writes one, and the reader drops any it is given. */
 const NUL = /\u0000/g;
 
 /** A text as a document: its header and its blocks, read leniently. */

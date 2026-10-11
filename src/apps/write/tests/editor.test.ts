@@ -650,7 +650,7 @@ test("§4 a column's head and a row's number open their menus; the + adds a colu
   await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[2], 'Name this column');
   const field = el.querySelector<HTMLInputElement>('to-write-table th input.wt-cn')!;
   expect(document.activeElement).toBe(field);
-  expect(el.querySelector('to-dialog.write-ask dialog[open]')).toBeNull();
+  expect(el.querySelector('to-dialog dialog[open]')).toBeNull();
   field.value = 'Notes';
   field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   await until(() => last() === 'A | B | Notes\n--- | --- | ---\n3 | 4 |\n');

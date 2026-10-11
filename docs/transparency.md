@@ -79,11 +79,10 @@ leak. Everything here makes that checkable by a stranger.
    the page current; CI runs `npm audit` with no ignores.
 5. **The crypto in the open** (gate). One short document each, with test vectors in the repo and the fact
    that it is WebCrypto with no library: `docs/crypto/password.md` (PBKDF2 → AES-GCM: parameters, the sealed
-   payload form), `docs/crypto/signing.md` (Ed25519 with the P-256 fallback, the envelope's signed message,
-   key storage under Saved), `docs/crypto/short-links.md` (AES-256-GCM, the key in the fragment, the owner
+   payload form), `docs/crypto/short-links.md` (AES-256-GCM, the key in the fragment, the owner
    capability, what tinier stores and for how long, what its logs hold: nothing).
-   *Built, 2026-10-10.* The three documents, with the byte layouts; the vectors in `test/vectors/password.json`,
-   `signing.json` (Ed25519 on RFC 8032's own test key, and a P-256 key) and `short-links.json`, checked by
+   *Built, 2026-10-10.* The two documents, with the byte layouts; the vectors in `test/vectors/password.json`
+   and `short-links.json`, checked by
    `test/crypto-vectors.test.ts` against the kit and against WebCrypto called by hand. `sealAt` (crypt.ts)
    and `sealShortAt` (short.ts) take a fixed IV for the vectors; a test fails if the site calls either. "Logs
    nothing" for tinier is held by `test/tinier.test.ts` as it is for the proxy.
