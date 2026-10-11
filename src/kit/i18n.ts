@@ -74,9 +74,10 @@ export function onLanguage(cb: () => void): () => void {
   return () => listeners.delete(cb);
 }
 
-/** A dictionary given by hand (a test's in-memory Spanish). */
-export function register(code: string, strings: Strings) {
-  dicts.set(code, strings);
+/** A dictionary given by hand (a test's in-memory Spanish), or a loader for one (a test's slow chunk). */
+export function register(code: string, strings: Strings | Loader) {
+  if (typeof strings === 'function') loaders.set(code, strings);
+  else dicts.set(code, strings);
 }
 
 /** A language's plural rules, the categories it has in ORDER's order, and its numbers: made once per language (each is costly to make, and a word count is plural on every keystroke). */

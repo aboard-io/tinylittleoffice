@@ -8,10 +8,13 @@ import { page } from 'vitest/browser';
 import { mount, tick, until, openShare } from './helpers.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
-import { chosenLanguage, directionOf, languages, missed, register, setLanguage, type Strings } from '../../src/kit/i18n.ts';
+import { chosenLanguage, directionOf, language, languagePending, languages, missed, register, setLanguage, type Strings } from '../../src/kit/i18n.ts';
+import { takeHomeLink } from '../../src/apps/deck/view.ts';
+import { parse } from '../../src/doc/index.ts';
 import { pseudo } from '../pseudo.ts';
 import en from '../../src/i18n/en.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import type { ToShare } from '../../src/kit/share-dialog.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
 import { keepSize, SIZE_MAX } from '../../src/kit/zoom.ts';
 
@@ -170,10 +173,18 @@ test('the language is in the link, not on the device: chosen in the drawer it jo
   shell.querySelector<HTMLElement>('to-write-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'Bonjou tout moun\n', bubbles: true }));
   shell.flushLink();
   expect(parseHash(location.hash).lang).toBe('ht');
-  // Another page of the site, reached by a link without it, keeps the page's language.
+  // Another page of the site, reached by a link without it, keeps the page's language: the home page, and a document
+  // opened from the library, a template, a dropped file or a zip (each a route to a link without it).
   location.hash = '#/';
   await until(() => location.hash === '#/?lang=ht');
   expect(document.documentElement.lang).toBe('ht');
+  const other = encodeDoc('Lòt dokiman\n');
+  location.hash = `#/v1/write/${other}`;
+  await until(() => parseHash(location.hash).lang === 'ht' && !!shell.querySelector('to-write-editor'));
+  expect(parseHash(location.hash)).toMatchObject({ app: 'write', payload: other, lang: 'ht' });
+  expect(document.documentElement.lang).toBe('ht');
+  location.hash = '#/';
+  await until(() => location.hash === '#/?lang=ht');
   // The browser's language again: out of the address and of every link made.
   const select = shell.querySelector<HTMLSelectElement>('.to-drawer-lang select')!;
   select.value = '';
@@ -187,4 +198,80 @@ test('the language is in the link, not on the device: chosen in the drawer it jo
   expect(again.querySelector('.to-burger')!.getAttribute('aria-label')).not.toBe('Menu');
   expect(location.hash).toBe('#/?lang=ht');
   expect(stored()).toEqual([]);
+});
+
+test('the embed code, the deck’s show link and its take-home QR carry the language chosen', async () => {
+  const deck = '## Lansman {.title}\n\n---\n\n## Objektif\n\n- Voye l\n';
+  const shell = await mount(`#/v1/deck/${encodeDoc(deck)}`);
+  await until(() => !!shell.querySelector('to-deck-editor'));
+  await choose(shell, 'ht');
+  await until(() => parseHash(location.hash).lang === 'ht');
+  await openShare(shell);
+  const d = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
+  await until(() => d.dialog.open && !!d.querySelector('.to-copy-embed') && !!d.querySelector('.to-copy-show'));
+  const copied: string[] = [];
+  const clip = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async (s: string) => void copied.push(s);
+  try {
+    d.querySelector<HTMLButtonElement>('.to-copy-embed')!.click();
+    d.querySelector<HTMLButtonElement>('.to-copy-show')!.click();
+    await until(() => copied.length === 2);
+  } finally {
+    navigator.clipboard.writeText = clip;
+  }
+  const code = copied.find((c) => c.startsWith('<iframe'))!;
+  const show = copied.find((c) => !c.startsWith('<iframe'))!;
+  const src = /src="([^"]+)"/.exec(code)![1].replace(/&amp;/g, '&');
+  expect(parseHash(new URL(src).hash)).toMatchObject({ app: 'deck', view: 'embed', lang: 'ht' });
+  expect(parseHash(new URL(show).hash)).toMatchObject({ app: 'deck', show: true, lang: 'ht' });
+  expect(parseHash(new URL(shell.querySelector<ToShare>('to-share')!.showLink).hash).lang).toBe('ht');
+  d.close();
+  // The take-home QR's link, in the language the deck is shown in.
+  expect(parseHash(new URL(takeHomeLink(parse(deck))).hash)).toMatchObject({ app: 'deck', display: true, lang: 'ht' });
+});
+
+test('a link in a language whose dictionary is on its way draws nothing until it is here, so no English flashes; a slower dictionary arriving after a newer choice is dropped', async () => {
+  let arrive!: (m: { default: Strings }) => void;
+  register('xx', () => new Promise((r) => (arrive = r)));
+  const shell = await mount('#/?lang=xx');
+  expect(languagePending()).not.toBeNull();
+  await tick(100);
+  expect(shell.textContent!.trim()).toBe('');
+  expect(shell.querySelector('.to-burger')).toBeNull();
+  expect(language()).toBe('en');
+  arrive({ default: pseudo('xx', en) });
+  await until(() => document.documentElement.lang === 'xx' && !!shell.querySelector('.to-burger'));
+  expect(shell.querySelector('.to-burger')!.getAttribute('aria-label')).not.toBe('Menu');
+  expect(location.hash).toBe('#/?lang=xx');
+  // A slow choice overtaken by a quick one: the slow dictionary, when it comes, is not put in force.
+  let late!: (m: { default: Strings }) => void;
+  register('xy', () => new Promise((r) => (late = r)));
+  register('xz', pseudo('xz', en));
+  const slow = setLanguage('xy');
+  await setLanguage('xz');
+  expect(language()).toBe('xz');
+  late({ default: pseudo('xy', en) });
+  await slow;
+  await tick(50);
+  expect(language()).toBe('xz');
+  expect(document.documentElement.lang).toBe('xz');
+  expect(location.hash).toBe('#/?lang=xz');
+});
+
+test('a page of an app with an empty address ("/sheet/"): the language chosen joins a link to that app, not the home page', async () => {
+  const home = location.pathname;
+  const page = home.replace(/[^/]*$/, '') + 'sheet/';
+  try {
+    history.replaceState(null, '', page);
+    const shell = await mount('');
+    await until(() => !!shell.querySelector('to-sheet-editor'));
+    expect(location.hash).toBe('');
+    await choose(shell, 'ht');
+    await until(() => parseHash(location.hash).lang === 'ht');
+    expect(parseHash(location.hash)).toMatchObject({ app: 'sheet', payload: '', lang: 'ht' });
+    expect(location.pathname).toBe(page);
+    expect(shell.querySelector('to-sheet-editor')).not.toBeNull();
+  } finally {
+    history.replaceState(null, '', home);
+  }
 });

@@ -59,10 +59,12 @@ const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?
 const B64 = /^[A-Za-z0-9_~-]+$/;
 /** A language's code as src/i18n names its files: "ht", "pt-br", "zh-hant". */
 const LANG = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/;
+/** Whether a code is a well-formed language code (the link's "lang", the API's and the command line's). */
+export const isLang = (code: string) => LANG.test(code);
 /** The language a query names, well formed, as a property to spread (absent when none). */
 const langOf = (q: URLSearchParams) => {
   const lang = q.get('lang') ?? '';
-  return LANG.test(lang) ? { lang } : {};
+  return isLang(lang) ? { lang } : {};
 };
 
 /** The owner's query, "s=<id>&k=<key>&o=<o>", read; null unless all three are there and well formed. */

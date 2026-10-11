@@ -13,7 +13,7 @@
  */
 import { parse as parseText, write as writeDoc, withHead, type Doc } from './doc/index.ts';
 import { decodeDoc, encodeDoc, URL_LIMIT } from './kit/codec.ts';
-import { parseHash, routeHash } from './kit/route.ts';
+import { isLang, parseHash, routeHash } from './kit/route.ts';
 import { appInHead, plainLink, readPlain, tloText } from './kit/plain.ts';
 import { diff, tally, type Change } from './kit/diff.ts';
 import { origin } from './kit/network.ts';
@@ -59,7 +59,7 @@ export function link(app: string, text: string, opts: LinkOptions = {}): string 
   if (opts.title) head.title = opts.title.replace(/\s+/g, ' ').trim();
   if (opts.by) head.by = opts.by.replace(/\s+/g, ' ').trim();
   const doc = Object.keys(head).length ? withHead(text, head) : text;
-  if (opts.lang && !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(opts.lang)) throw new Error(`Not a language code: "${opts.lang}" (as src/i18n names them: ht, pt-br, zh-hant)`);
+  if (opts.lang && !isLang(opts.lang)) throw new Error(`Not a language code: "${opts.lang}" (as src/i18n names them: ht, pt-br, zh-hant)`);
   const site = (opts.site ?? SITE).replace(/\/?$/, '/');
   const hash = routeHash(app, encodeDoc(doc), opts.view ?? '', null, !!opts.display, null, opts.lang || null);
   return `${site}${app}/${hash}${opts.show ? (hash.includes('?') ? '&show' : '?show') : ''}`;
