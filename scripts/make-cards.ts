@@ -7,7 +7,8 @@
  *
  * The page is SVG, rasterised by Chromium (through Playwright, which the tests already have), as the kit's
  * raster (src/kit/raster.ts) does it in the browser: an <img> of the SVG drawn by the browser itself, so the
- * card shows the page exactly as a person sees it. Nothing is fetched. The cards are kept in public/; run this
+ * card shows the page exactly as a person sees it. The words are in IBM Plex, the site's own faces carried in the
+ * page (scripts/plex.ts), so nothing is fetched. The cards are kept in public/; run this
  * again when an app's name, line or first template changes.
  *
  *   npm run cards
@@ -15,11 +16,11 @@
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
 import { apps } from '../src/kit/apps.ts';
 import type { AppDef } from '../src/kit/app.ts';
 import { FONT, INK, MUTED, PAPER, pageSvg, xml } from '../src/kit/draw.ts';
 import { markPaths } from '../src/kit/mark.ts';
+import { plexFaces, shoot } from './plex.ts';
 
 const root = resolve(fileURLToPath(import.meta.url), '../..');
 const ACCENT = '#4f46e5';
@@ -48,6 +49,7 @@ async function pageOf(def: AppDef) {
 export async function cardHtml(def: AppDef): Promise<string> {
   const page = await pageOf(def);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
+${plexFaces()}
 html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:${PAPER};font-family:${FONT};color:${INK}}
 .bar{position:absolute;inset:0 0 auto 0;height:12px;background:${ACCENT}}
 .words{position:absolute;left:80px;top:80px;bottom:60px;width:580px;display:flex;flex-direction:column;gap:18px}
@@ -65,15 +67,8 @@ p{margin:0;font-size:28px;line-height:1.3;color:${MUTED};display:-webkit-box;-we
 async function main() {
   const out = join(root, 'public', 'og');
   mkdirSync(out, { recursive: true });
-  const browser = await chromium.launch();
-  const tab = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   // Nothing from the web: a card is drawn from the template alone.
-  await tab.route('**/*', (r) => (r.request().url().startsWith('data:') ? r.continue() : r.abort()));
-  for (const def of apps()) {
-    await tab.setContent(await cardHtml(def), { waitUntil: 'load' });
-    await tab.screenshot({ path: join(out, `${def.id}.png`), type: 'png' });
-  }
-  await browser.close();
+  await shoot(await Promise.all(apps().map(async (def): Promise<[string, string]> => [await cardHtml(def), join(out, `${def.id}.png`)])));
   console.log(
     `cards: ${apps()
       .map((a) => `og/${a.id}.png`)
