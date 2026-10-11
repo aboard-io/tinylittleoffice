@@ -29,5 +29,6 @@ test('the pages of three documents, and their thumbnails, are the same bytes as 
 });
 
 // Taken again when the type became IBM Plex (r17-plex): the pages name Plex first, a bold word is 600, and the widths
-// they are laid out by are Plex's (kit/draw.ts textWidth).
-const EXPECTED = ['write: 14652a4b18137bcc 14652a4b18137bcc', 'deck: 3e2deea2b6569d3a bd6ffaa363d2de69', 'draw: 9191bafafdf3e32c 9191bafafdf3e32c'];
+// they are laid out by are Plex's (kit/draw.ts textWidth). The deck's page again when the codec's dictionary primed America/New_York
+// (r17-finish): the page's QR code carries the deck's link, and the link's bytes moved.
+const EXPECTED = ['write: 14652a4b18137bcc 14652a4b18137bcc', 'deck: 2d9654cfbd24e547 bd6ffaa363d2de69', 'draw: 9191bafafdf3e32c 9191bafafdf3e32c'];

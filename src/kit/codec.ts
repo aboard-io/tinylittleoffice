@@ -83,7 +83,7 @@ const DICTIONARY_TEXT = [
   'What | Qty:number | Units | Price:money\nName | Price:money | About\nTask | Start:date | Days:number | Done:percent\nPlace | Lat:number | Lon:number | Note',
   'Kind | X:number | Y:number | W:number | H:number | Style | Label\nQuestion | Answer\nFront | Back\nClue | Answer\n',
   '~ \n- [ ] \n- [x] \n  - \n    - \n1. \n> \n\n---\n\n## \n### \n# \n```sheet\n```draw\n```\n{.title}\n{.two}\n**',
-  '---\ntitle: \nby: \ncreated: 2026-\nchart: bar\ncurrency: $\ntax: \nzone: Europe/London\nunits: km\nmode: \n---\n',
+  '---\ntitle: \nby: \ncreated: 2026-\nchart: bar\ncurrency: $\ntax: \nzone: America/New_York\nunits: km\nmode: \n---\n',
 ].join('\n');
 /** The dictionary's bytes (exported for scripts/dictionary.ts, which measures it). */
 export const DICTIONARY = strToU8(DICTIONARY_TEXT);

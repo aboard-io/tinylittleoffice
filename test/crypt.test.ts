@@ -1,5 +1,5 @@
-// A password on a document (kit/crypt.ts): AES-256-GCM under a PBKDF2-SHA-256 key, the old tree's parameters
-// and its sealed links still opening.
+// A password on a document (kit/crypt.ts): AES-256-GCM under a PBKDF2-SHA-256 key, the old tree's parameters,
+// and a sealed vector opening.
 import { test, expect } from 'vitest';
 import { PBKDF2_ITERATIONS, isSealed, newLocker, seal, unseal, unsealWith } from '../src/kit/crypt.ts';
 import { decodeDoc, encodeDoc, packDoc, unpackDoc } from '../src/kit/codec.ts';
@@ -15,9 +15,10 @@ test('the parameters are the old tree\'s: 600,000 iterations, a 16-byte salt, a 
   expect(sealed.length - 1).toBe(Math.ceil(((16 + 12 + 1 + bytes.length + 16) * 4) / 3));
 });
 
-test('a vector sealed by the old tree opens to its text, and only with its password', async () => {
-  // Made by the old tree's src/lib/crypt.ts (seal over packDoc), at 1000 iterations.
-  const payload = 'EV59p3BLw_XNTS9RwSEBQODOZ5keb3cycabRF9yqSuVGmZ82NHUwLRdb4BpETbxfGYrg16XECZTErrcVo0yCcgRnkwOiwa3zROg';
+test('a sealed vector opens to its text, and only with its password', async () => {
+  // Sealed by kit/crypt.ts (seal over packDoc, flag "y"), at 1000 iterations; made again when the dictionary's zone
+  // became America/New_York (r17-finish), since the old tree's vector inflated against the old dictionary.
+  const payload = 'EqNNvy_Xyadn4GYEvTwcDzYJeBVS54SVFC89YrGTnbBoQI4P2FNzcfi2HEWgs6JJeEP8XomdfYzFlb6yv4lBKhsg1yiIOk9WnJg';
   const opened = await unseal('correct horse', payload, FAST);
   expect(opened).not.toBeNull();
   expect(unpackDoc(opened!.flag, opened!.bytes)).toBe('---\ntitle: Secret\n---\nhello sealed world\n');

@@ -1,7 +1,7 @@
 // The link codec: round trips, the dictionary's gain, and a refusal to unpack a mountain. (Ported from the old tree's test/codec.test.ts.)
 import { test, expect } from 'vitest';
 import { deflateSync, strToU8 } from 'fflate';
-import { encodeDoc, decodeDoc, toBase64Url, fromBase64Url, budgetFor, unpackDoc, MAX_DOC_BYTES, URL_LIMIT } from '../src/kit/codec.ts';
+import { encodeDoc, decodeDoc, toBase64Url, fromBase64Url, budgetFor, unpackDoc, DICTIONARY, MAX_DOC_BYTES, URL_LIMIT } from '../src/kit/codec.ts';
 
 test('base64url round trip', () => {
   for (const len of [0, 1, 2, 3, 4, 5, 31, 100]) {
@@ -48,6 +48,12 @@ test('the dictionary shortens everyday documents; plain deflate still reads', ()
   expect(e.length).toBeLessThan(old.length * 0.8);
   // (Frozen once v1 launches: then a payload made today must decode forever.)
   expect(decodeDoc(encodeDoc('Launch plan for the team meeting on Monday'))).toBe('Launch plan for the team meeting on Monday');
+});
+
+test("the dictionary primes the product's home zone, America/New_York, as the templates now do", () => {
+  const text = new TextDecoder().decode(DICTIONARY);
+  expect(text).toContain('zone: America/New_York\n');
+  expect(text).not.toContain('Europe/London');
 });
 
 test('a link that would unpack to a mountain is refused', () => {
