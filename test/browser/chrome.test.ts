@@ -210,6 +210,27 @@ test('390×844 with a finger and a keyboard: Enter at the end of a long text lan
   expect(block.top).toBeGreaterThanOrEqual(0);
 });
 
+// A new document made by the person's own tap arrives ready to type (Paul, 2026-10-11): the focus in its first box, the
+// bar shown and the header away as after a tap into the words; a document a link opens is still read first.
+test('390×844 with a finger: an app tapped on the home page opens editing, the first box focused and the bar shown; a link opened is not', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const shell = await mount('');
+  await until(() => !!shell.querySelector('a.to-app-open[href="#/v1/write"]'));
+  await userEvent.click(shell.querySelector<HTMLElement>('a.to-app-open[href="#/v1/write"]')!);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  await until(() => document.activeElement?.classList.contains('tx') === true);
+  const chrome = shell.querySelector('to-chrome')!;
+  await until(() => chrome.hasAttribute('indoc'));
+  expect(chrome.hasAttribute('editing')).toBe(true);
+  expect(document.querySelector('.to-keyboard-hold')).toBeNull();
+  const opened = await mount(`#/v1/write/${encodeDoc('Words\n')}`);
+  await until(() => document.activeElement?.classList.contains('tx') === true);
+  await tick();
+  await tick();
+  expect(opened.querySelector('to-chrome')!.hasAttribute('indoc')).toBe(false);
+});
+
 test('1440×900: the header stays while the words have the focus, and the bar is under it at the column’s top', async () => {
   await page.viewport(1440, 900);
   const { text, main, chrome } = await write();

@@ -26,6 +26,7 @@ import { hoverFocus, menuKey, openedByPointer } from './menu.ts';
 import { CROPPED, pageSvg } from './draw.ts';
 import { gateSvg } from './pictures.ts';
 import './preview.ts';
+import { startEditing } from './chrome.ts';
 import { go, parseHash, routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
 import { onPrivacy } from './privacy.ts';
@@ -118,6 +119,7 @@ export class ToTemplates extends LitElement {
   private choose(tpl: Template | null) {
     this.chosen = tpl?.id ?? '';
     this.hide();
+    startEditing();
     go(templateHash(this.app, tpl));
   }
   private option(tpl: Template | null) {
@@ -247,7 +249,7 @@ export class ToHome extends LitElement {
         ${apps().map(
           (a) => html`<section class="to-app" aria-label=${a.name}>
             <div class="to-app-head">
-              <a class="to-app-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<span class="to-app-name">${a.name}</span></a>
+              <a class="to-app-open" href=${routeHash(a.id)} @click=${startEditing}>${icon(a.icon, 20)}<span class="to-app-name">${a.name}</span></a>
               <to-templates .app=${a}></to-templates>
             </div>
             ${this.drive(

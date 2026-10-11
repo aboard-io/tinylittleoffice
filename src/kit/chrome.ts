@@ -95,6 +95,31 @@ const GLIDE_MS = 260;
 /** What a box hands the focus to and back from without the person having left it: the bar, a menu, a popover, a dialog. */
 const ASIDE = 'to-bar, to-context, [popover], dialog, to-dialog, to-link-pop, to-complete';
 
+/** When a tap last made a new document (the home page's rows and templates, the drawer's New): its editor, once drawn, is the person's to type in. */
+let madeAt = -Infinity;
+/**
+ * A new document is being made by the person's own tap: it arrives with the focus in its first box and, on a phone, the
+ * keyboard up and the bar shown (Paul, 2026-10-11: "When I make a new doc of any kind I should land on it open with
+ * focus on the first node"). iOS raises the keyboard only for a focus taken in the gesture itself, and the editor is
+ * drawn later: so a hidden box takes the focus now, and the editor's first box takes it from there when it is drawn,
+ * the keyboard staying up between the two. The focus a shared link opens with is still not the person's.
+ */
+export function startEditing(): void {
+  madeAt = performance.now();
+  if (!matchMedia('(pointer: coarse)').matches) return;
+  let hold = document.querySelector<HTMLElement>('.to-keyboard-hold');
+  if (!hold) {
+    hold = document.createElement('div');
+    hold.className = 'to-keyboard-hold';
+    hold.contentEditable = 'true';
+    hold.tabIndex = -1;
+    hold.setAttribute('aria-hidden', 'true');
+    hold.addEventListener('focusout', () => hold!.remove());
+    document.body.append(hold);
+  }
+  hold.focus({ preventScroll: true });
+}
+
 export class ToChrome extends LitElement {
   static properties = {
     doc: { attribute: false },
@@ -234,8 +259,13 @@ export class ToChrome extends LitElement {
 
   /** When the person last touched, clicked or pressed a key: a box focused by the page itself (a document opening) is not editing. */
   private touched = -Infinity;
-  /** Another document opened: not editing it yet, whatever had the focus. */
-  private opened = () => ((this.editing = false), (this.indoc = false), (this.touched = -Infinity));
+  /** Another document opened: not editing it yet, whatever had the focus; unless the person's own tap just made it (startEditing), which counts as their tap into it, once. */
+  private opened = () => {
+    this.editing = false;
+    this.indoc = false;
+    this.touched = performance.now() - madeAt < 3000 ? performance.now() : -Infinity;
+    madeAt = -Infinity;
+  };
   private onPerson = (e: Event) => {
     // A tap on the bar, in a menu or on the header acts on the box in hand (or elsewhere) without being a tap into it.
     if ((e.target as Element | null)?.closest?.(`${ASIDE}, .to-burger, .to-header`)) return;

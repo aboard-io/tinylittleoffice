@@ -2591,3 +2591,14 @@
     font-size: calc(0.8125 * var(--to-scale));
   }
 }
+@layer kit {
+  /* The hidden box that holds a phone's keyboard up between a tap that makes a document and its editor being drawn (kit/chrome.ts startEditing). */
+  .to-keyboard-hold {
+    position: fixed;
+    inset: auto 0 0 auto;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+}

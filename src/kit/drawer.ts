@@ -28,6 +28,7 @@ import { apps, siteRoot } from './apps.ts';
 import { templateHash } from './home.ts';
 import { library } from './library.ts';
 import { icon, UI } from './icons.ts';
+import { startEditing } from './chrome.ts';
 import { routeHash } from './route.ts';
 import { chosenLanguage, languageName, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { THEMES, setTheme, theme, themeName, type Theme } from './theme.ts';
@@ -218,7 +219,7 @@ export class ToDrawer extends LitElement {
           this.open && this.downloads
             ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
-              ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => this.close()}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
+              ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => (startEditing(), this.close())}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
               <button type="button" class="to-btn to-drawer-share" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
               <to-menu class="to-drawer-download" .label=${labelOf(DOWNLOAD)} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
               ${coarse() ? this.renderCommands() : nothing}
