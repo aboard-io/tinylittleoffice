@@ -109,8 +109,7 @@ Arabic and Urdu are the two RTL languages; mirroring is not enough, and some thi
 ## 5. Type and the keyboard
 
 - **Fonts.** The site's one font stack gains a per-script stack chosen by `lang`: Noto Sans (Devanagari,
-  Bengali, Arabic, Urdu's Nastaliq is a choice: Noto Nastaliq Urdu is the native expectation but heavy;
-  Noto Naskh Arabic as the fallback), Noto Sans SC for Chinese, system fonts first on every platform
+  Bengali, Arabic; Urdu in Nastaliq where the device has it, Naskh after it, §8), Noto Sans SC for Chinese, system fonts first on every platform
   (`-apple-system`, `Segoe UI`, `Noto Sans …`) with the Noto subsets as self-hosted woff2 under
   `public/fonts/` only for scripts the device lacks. Line height and the 16px
   rule are revisited per script (Devanagari and Nastaliq need more leading; Chinese needs none of the
@@ -151,7 +150,7 @@ Arabic and Urdu are the two RTL languages; mirroring is not enough, and some thi
 6. The Language menu loses "(machine translated)" per language as reviews land.
 
 Decisions for Paul: formal or informal address per language (the plan proposes the common interface
-choice above); Nastaliq or Naskh for Urdu; whether a language goes live machine-translated with the label
+choice above); Nastaliq for Urdu (decided 2026-10-11, §8); whether a language goes live machine-translated with the label
 or waits for its review; and who reviews (the sheet-based review needs one speaker per language for about
 a day each).
 
@@ -205,9 +204,12 @@ What is particular to each, for the translator:
 - **Hindi.** Everyday Hindi of the interfaces people use (लिंक, फ़ाइल, टेम्पलेट where those are the words), not a
   Sanskritised register; `आप`. Western digits, as Intl gives by default.
 - **Urdu.** Right to left, like Arabic (`dir` follows from `directionOf`, and everything the Arabic round made
-  logical holds); written in Nastaliq where the device has it (iOS draws Urdu in Noto Nastaliq Urdu, and the
-  label-width test measures in it; Android draws Naskh), which is taller and wider than Naskh: keep labels short.
-  `آپ`; Western digits. Whether the stylesheet asks for Nastaliq itself is Paul's decision (§7).
+  logical holds); `آپ`; Western digits. **Set in Nastaliq** (Paul, 2026-10-11: the best path for colloquial
+  speakers): Urdu's readers read Nastaliq, and Naskh, the Arabic default, reads to them as a foreign typesetting,
+  so under `:lang(ur)` the stylesheet asks for the device's own (Noto Nastaliq Urdu on iPhone and Android 8 on,
+  Urdu Typesetting on Windows) with the Arabic stack's Naskh after it, and bundles none; Nastaliq is taller than
+  Naskh, not wider, so Urdu's lines are 1.9 and its headings' and labels' 1.6 (`--to-line`, `--to-line-label`), and
+  the label-width and metrics tests measure in it.
 - **Haitian Creole.** The official orthography of 1979: every sound written one way (Kreyòl, not *Créole*;
   *-syon*, not *-tion*; *k*, not *qu*; `ou`, `yo`), no French spellings, as the city's Haitian community reads it
   on its signs and forms. Intl has no Kreyòl months or names, so dates fall back to

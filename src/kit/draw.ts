@@ -80,6 +80,10 @@ export const rect = (x: number, y: number, w: number, h: number, fill: string, e
  * A character's width as a share of the type's size, by script, plain and bold: measured in the Noto of each script
  * (test/browser/metrics.test.ts holds the sums within a tenth). A vowel sign, a virama or a harakah sits on its letter
  * and adds nothing; anything else, emoji included, is counted as before, by its UTF-16 length at the Latin width.
+ * Urdu is measured with Arabic's widths, in Nastaliq as in Naskh: Nastaliq is taller, not wider. Its letters stack on
+ * the diagonal, so a word comes out a little narrower than in Noto Sans Arabic (0.95 plain, 0.9 bold over every string
+ * of src/i18n/ur.ts on the box), not the 1.15 times wider once supposed; metrics.test.ts holds ur.ts's words within a
+ * tenth in Nastaliq.
  */
 const SCRIPTS: [RegExp, number, number][] = [
   [/[\p{M}\p{Cf}]/u, 0, 0],
