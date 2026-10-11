@@ -13,6 +13,7 @@
  * `app` is taken out again on opening (the link never carries it).
  */
 import { takeHead, withHead } from '../doc/index.ts';
+import { parseHash } from './route.ts';
 
 /** What a plain link or a file holds: the app it opens in, and the document's text. */
 export interface Plain {
@@ -88,4 +89,42 @@ export function readFile(name: string, text: string, fallback: string, known: (i
   const [named, rest] = appInHead(tidy(text));
   const app = named && known(named) ? named : known(fallback) ? fallback : 'write';
   return { app, text: rest, view: '', title: name.replace(/\.[A-Za-z0-9]+$/, '').trim() };
+}
+
+/** A document found in a zip: its app and text (or, locked, its link's payload and no text), and the name its file gives it. */
+export interface InZip {
+  app: string;
+  text: string;
+  title: string;
+  /** A locked document's payload ("E…"), '' for one that is words. */
+  payload: string;
+}
+
+/**
+ * The documents in a zip's files (kit/zip.ts unzip), in the zip's order: what Download everything writes (a folder
+ * by app; the folder names the app where the head does not, else `fallback`), or any zip of .tlo and .md files. A
+ * .txt that is one link to a document (a locked one, as Download everything writes it) is that document; anything
+ * else (the signing key, a README, a picture, the dot files an archiver adds) is left alone. The name Download
+ * everything gives a document with none ("untitled", "locked") is no name.
+ */
+export function readZip(files: Record<string, Uint8Array>, fallback: string, known: (id: string) => boolean): InZip[] {
+  const found: InZip[] = [];
+  for (const [path, bytes] of Object.entries(files)) {
+    const parts = path.split('/');
+    const name = parts.at(-1)!;
+    if (!name || parts.some((p) => p.startsWith('.') || p === '__MACOSX')) continue;
+    const dir = parts.at(-2) ?? '';
+    const here = known(dir) ? dir : fallback;
+    const words = new TextDecoder().decode(bytes);
+    if (/\.txt$/i.test(name)) {
+      const link = words.trim();
+      const { app, payload } = /^\S*#\/v\d+\/\S+$/.test(link) ? parseHash(link.slice(link.indexOf('#'))) : { app: null, payload: '' };
+      if (app && known(app) && payload) found.push({ app, text: '', title: '', payload });
+      continue;
+    }
+    if (!/\.(?:tlo|md|markdown)$/i.test(name)) continue;
+    const doc = readFile(name, words, here, known);
+    if (doc?.text) found.push({ app: doc.app, text: doc.text, title: /^(?:untitled|locked)(?:-\d+)?$/.test(doc.title) ? '' : doc.title, payload: '' });
+  }
+  return found;
 }

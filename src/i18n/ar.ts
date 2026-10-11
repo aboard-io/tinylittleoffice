@@ -1876,4 +1876,10 @@ export default {
   'Download the .{ext}': 'تنزيل ملف .{ext}',
   'Share the .{ext}…': 'مشاركة ملف .{ext}…',
   'View the .{ext}': 'عرض ملف .{ext}',
+  'Keep them on this device': 'الحفظ على هذا الجهاز',
+  'Nothing is saved on this device now. Keep them here, or open one.': 'لا شيء يُحفظ على هذا الجهاز الآن. احفظها هنا أو افتح واحدًا منها.',
+  'Open the first': 'فتح الأول',
+  'Saved on this device from now on: {n|# document kept|# documents kept}': 'الحفظ على هذا الجهاز من الآن: {n|لا مستندات محفوظة|مستند واحد محفوظ|مستندان محفوظان|# مستندات محفوظة|# مستندًا محفوظًا|# مستند محفوظ}',
+  'That zip holds no documents Tiny Little Office can read.': 'لا يحتوي ملف zip هذا على مستندات يستطيع مكتب صغير جدًا قراءتها.',
+  '{n|# document kept|# documents kept}': '{n|لا مستندات محفوظة|مستند واحد محفوظ|مستندان محفوظان|# مستندات محفوظة|# مستندًا محفوظًا|# مستند محفوظ}',
 } satisfies Strings;

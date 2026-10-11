@@ -59,6 +59,20 @@ export function keep(entry: Kept) {
   write([entry, ...all.filter((k) => k.id !== entry.id)]);
 }
 
+/**
+ * Several documents kept at once (a zip of them opened, kit/open.ts), in one write: in their order, the first the
+ * newest and each a millisecond older than the one before; one already kept with the same link is left as it is.
+ * How many were new. Only while Saved.
+ */
+export function keepAll(entries: Omit<Kept, 'id' | 'at'>[], now = Date.now()): number {
+  if (!keeping()) return 0;
+  const all = library();
+  const seen = new Set(all.map((k) => k.hash));
+  const fresh = entries.filter((e) => !seen.has(e.hash) && !!seen.add(e.hash)).map((e, i) => ({ ...e, id: crypto.randomUUID(), at: now - i }));
+  if (fresh.length) write([...fresh, ...all]);
+  return fresh.length;
+}
+
 export function forget(id: string) {
   if (keeping()) write(library().filter((k) => k.id !== id));
 }

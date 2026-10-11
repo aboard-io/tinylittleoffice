@@ -580,6 +580,40 @@
   .to-leave-acts .to-btn {
     justify-content: center;
   }
+  /* ---- A zip's documents under Private (open.ts): by app, a row each, three answers stacked, narrow ---- */
+  .to-zip-dialog .to-dialog {
+    width: min(26.25em, calc(100vw - 2em));
+  }
+  .to-zip-app {
+    margin: 0.75em 0 0.25em;
+    font-size: calc(0.875 * var(--to-scale));
+    color: var(--to-ink-2);
+  }
+  .to-zip-docs {
+    list-style: none;
+    margin: 0 0 0.75em;
+    padding: 0;
+  }
+  .to-zip-docs a {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    min-height: 2.75em;
+    border-bottom: 1px solid var(--to-border);
+    color: inherit;
+    text-decoration: none;
+  }
+  .to-zip-docs a:hover {
+    background: var(--to-surface-2);
+  }
+  .to-zip-acts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+  .to-zip-acts .to-btn {
+    justify-content: center;
+  }
   /* ---- A money column's currency (columns.ts): one field and OK, narrow ---- */
   .to-currency-dialog .to-dialog {
     width: min(26.25em, calc(100vw - 2em));

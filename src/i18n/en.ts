@@ -1892,4 +1892,10 @@ export default {
   'Spotify show': 'Spotify show',
   'Spotify track': 'Spotify track',
   '{provider} video': '{provider} video',
+  'Keep them on this device': 'Keep them on this device',
+  'Nothing is saved on this device now. Keep them here, or open one.': 'Nothing is saved on this device now. Keep them here, or open one.',
+  'Open the first': 'Open the first',
+  'Saved on this device from now on: {n|# document kept|# documents kept}': 'Saved on this device from now on: {n|# document kept|# documents kept}',
+  'That zip holds no documents Tiny Little Office can read.': 'That zip holds no documents Tiny Little Office can read.',
+  '{n|# document kept|# documents kept}': '{n|# document kept|# documents kept}',
 } satisfies Strings;
