@@ -70,8 +70,10 @@ hex, a whole document carrying the Ed25519 signature, and both signatures.
 - **Exported** from Privacy and keys as that same JSON text, private half included, to be kept somewhere
   safe or taken to another device; **imported** there from such text (checked to be a key that signs);
   **forgotten** there.
-- **Shown** as a fingerprint: the first 5 bytes of SHA-256 of the raw public key, in hex, a hyphen after the
-  fifth character (`21fe3-1dfa1`).
+- **Shown** as a fingerprint: the first 100 bits of SHA-256 of the raw public key, in base32 (RFC 4648's
+  alphabet in lower case, `a`–`z` then `2`–`7`, most significant bit first), four groups of five joined by
+  hyphens (`eh7dd-x5bks-rgcyt-l7bka`). 100 bits so that no one can make a key to match another's: 40 bits,
+  as it was, fell to one rented GPU in hours.
 
 The key is extractable because it has to be: it is kept as JWK so it survives a reload, and exporting it is
 how it moves to another device. Anything that can run script on the site's origin (an extension allowed to,
@@ -87,8 +89,8 @@ It does not prove:
 
 - **Who signed.** The name is the signer's own word. A key is not tied to a person, an email address or an
   account. The reader learns which key signed; whether that key is the person's is something they must
-  find out another way, by comparing the fingerprint (or, against a determined forger, the whole key: the
-  fingerprint is 40 bits) with one the person gave them.
+  find out another way, by comparing the fingerprint with one the person gave them. The shell says so: a
+  key this device does not know reads "Signed as “name” · key …", never green (below).
 - **When.** The creation time is the signer's own clock and word; there is no timestamping authority.
 - **That it was not signed before**, by someone else, or that the signer meant it for you. A signed document
   can be copied unchanged and still checks.
@@ -106,5 +108,16 @@ fingerprint.
 `checkSignature` in privacy.ts: **none** (no key and signature); **valid**; **stale** (this browser's key
 signed it and the text has changed since: sign again); **invalid** (it was checked and does not match,
 whoever signed it); **unchecked** (this browser has no Ed25519, so it cannot check an Ed25519 signature).
-With a signature it shows the name it was signed under and the key's fingerprint, and whether the key is
-this browser's.
+
+A valid signature is said by what it proves:
+
+- **This device's key, or a key it knows**: green, "Signed by Paul", the fingerprint on hover.
+- **Any other key**: neutral, not green, "Signed as “Paul” · key eh7dd-x5bks-rgcyt-l7bka", and in the Privacy
+  dialog: "Anyone can sign under any name. Check this key with the person, another way."
+- **A name this device knows, under another key**: amber, "A different key from the one Paul used before".
+
+A key is known when the reader, having checked it with the person, taps **I know this key** in the Privacy
+dialog: trust on first use. Under Saved alone the device keeps the name (its spaces made one, case set aside)
+and the key's fingerprint, `tinyoffice.known` in `src/kit/store.ts`, listed in What this device holds with
+Forget. Under Private nothing is remembered and every key but this device's own is unknown. No key server, no
+network.

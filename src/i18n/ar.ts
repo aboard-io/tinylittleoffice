@@ -59,7 +59,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'لا شيء مما تكتبه يغادر متصفحك إلا إذا شاركت الرابط. شيئان يطلبان من الويب من تلقاء نفسيهما: خريطة الرحلة، التي تأتي صورها من OpenStreetMap ما دامت معروضة، وصورة من موقع في القائمة الموثوقة، تجلبها خدمة الصور في هذا الموقع حين يُفتح مستندها.',
   'Private, the default:': 'خاص، وهو الافتراضي:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'أما «محفوظ»، وهو المفتاح في هذه القائمة، فيُبقي إعداداتك والمستندات التي تفتحها على هذا الجهاز.',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'يمكن أن تكون لكل مستند كلمة مرور: يُشفَّر هنا في المتصفح، ولا يحمل الرابط إلا نصًا مشفرًا. ويمكن توقيعه بمفتاح يُنشئه هذا المتصفح، فيستطيع أي شخص التحقق من أنه هو ما وقّعتَ عليه تمامًا، وباسم من. «الخصوصية والمفاتيح» في هذه القائمة تعرض ما يحتفظ به هذا الجهاز.',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'يمكن أن تكون لكل مستند كلمة مرور: يُشفَّر هنا في المتصفح، ولا يحمل الرابط إلا نصًا مشفرًا. ويمكن توقيعه بمفتاح يُنشئه هذا المتصفح، فيستطيع أي شخص التحقق من أنه هو ما وقّعه ذلك المفتاح تمامًا؛ أما الاسم الذي وُقِّع به فهو كلمة الموقِّع وحده. «الخصوصية والمفاتيح» في هذه القائمة تعرض ما يحتفظ به هذا الجهاز.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -236,7 +236,6 @@ export default {
   'Use this key': 'استخدام هذا المفتاح',
   'What this device holds': 'ما يحتفظ به هذا الجهاز',
   'With my signing key': 'بمفتاح توقيعي',
-  'Wrong password': 'كلمة المرور خاطئة',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'وقّعتَه ثم تغيّر. وقّعه مجددًا من «مشاركة» لتشهد به كما هو الآن.',
   'Your documents': 'مستنداتك',
   'Your key, as text: keep it secret, it signs as you': 'مفتاحك نصًا: أبقِه سرًا، فهو يوقّع باسمك',
@@ -251,6 +250,17 @@ export default {
   '{n|# document|# documents}': '{n|لا مستندات|مستند واحد|مستندان|# مستندات|# مستندًا|# مستند}',
   '{n|# link|# links}': '{n|لا روابط|رابط واحد|رابطان|# روابط|# رابطًا|# رابط}',
   '{n} set': '{n} معيّنة',
+  'Signed as “{name}” · key {fp}': 'موقَّع باسم «{name}» · المفتاح {fp}',
+  'Signed · key {fp}': 'موقَّع · المفتاح {fp}',
+  'A different key from the one {name} used before': 'مفتاح غير الذي استخدمه {name} من قبل',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'يستطيع أي شخص أن يوقّع بأي اسم. تحقّق من هذا المفتاح مع الشخص نفسه، بطريقة أخرى.',
+  'I know this key': 'أعرف هذا المفتاح',
+  'Keys you know': 'مفاتيح تعرفها',
+  'The names and keys you said you know.': 'الأسماء والمفاتيح التي قلت إنك تعرفها.',
+  '{n|# key|# keys}': '{n|لا مفاتيح|مفتاح واحد|مفتاحان|# مفاتيح|# مفتاحًا|# مفتاح}',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'يستطيع من يملك الرابط تخمينها دون اتصال. استخدم «إنشاء»، أو أربع كلمات عشوائية أو أكثر.',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'يستطيع أي شخص لديه الرابط تخمين كلمة المرور هذه. أتريد تعيينها على أي حال؟',
+  'Send the password another way than the link.': 'أرسل كلمة المرور بطريقة غير الرابط.',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -262,6 +272,7 @@ export default {
   'locked document': 'مستند مقفل',
   // A placed document whose link cannot be read (cut short when it was copied).
   'This document cannot be read.': 'تعذّرت قراءة هذا المستند.',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'كلمة المرور هذه لا تفتح هذا الرابط. إن كنت متأكدًا منها، فربما قُطع الرابط عند نسخه: اطلبه مرة أخرى، أو اطلب رابطًا قصيرًا.',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

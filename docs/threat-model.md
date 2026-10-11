@@ -49,9 +49,11 @@ random bytes that exist only in the owner's link (`#<key>.<o>`); the service kee
   write a new sealed document.
 - A signed document carries a public key and a signature over its app, creation time, words, title and the
   name it was signed under (`docs/crypto/signing.md`). Any change to those shows the signature as not
-  matching. A forger can remove the signature, or sign the altered document with their own key; what tells
-  the reader is the key's fingerprint, which they must compare with one they got from the signer some other
-  way. A document with neither a password nor a signature has no protection against alteration: anyone who
+  matching. A forger can remove the signature, or sign the altered document with their own key under the
+  same name; what tells the reader is the key. A key this device does not know is never shown green: it
+  reads "Signed as “name” · key …" in a neutral tone, with the advice to check the key with the person
+  another way. A name the reader has marked as known ("I know this key", under Saved) that comes with another
+  key reads in amber: "A different key from the one name used before". A document with neither a password nor a signature has no protection against alteration: anyone who
   passes it on can change it.
 
 **A scam link inside a document.** Words in a document can say one address and link to another. No link that
@@ -126,9 +128,11 @@ with your key. There is no remote wipe and no way to revoke a signing key: a key
 reader checks, and a stolen key makes a signature that checks. Turning Saved off (from the phone) removes
 all of it.
 
-**A determined forger matching a fingerprint.** The fingerprint is 40 bits, short so a person can compare
-it. Finding a different key with the same fingerprint takes about 2^40 key generations: expensive but
-possible. Against someone who would spend that, compare the whole public key.
+**A determined forger matching a fingerprint.** The fingerprint is 100 bits of the key's SHA-256, twenty base32
+characters in four groups, short enough to read out. Finding a different key with the same fingerprint takes
+about 2^100 key generations: out of reach (at 40 bits, as it was until round sixteen, one rented GPU found a
+match in hours). A forger's way in is not a matching key but a reader who never checks one: hence the neutral
+"Signed as" words for a key the device does not know.
 
 **After a tap, the provider.** An embed (a video, a post, a song) loads from its provider once the reader
 taps it, and the map's tiles and place search go to OpenStreetMap directly while a map is shown

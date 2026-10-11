@@ -1,5 +1,5 @@
 {
-  "about": "Tiny Little Office signatures (src/kit/sign.ts, src/kit/envelope.ts, docs/crypto/signing.md). The signed bytes are the UTF-8 of: 'tinyoffice' LF app LF created LF body NUL title NUL by, where created is whole minutes since 2020-01-01T00:00Z in base 36 (empty when the document has none). Ed25519 signs them as they are (RFC 8032, deterministic); ECDSA P-256 with SHA-256 is the fallback, its signature r|s, 64 bytes, and different every time, so its vector is checked by verifying. A public key travels as base64url without padding of its raw form: 32 bytes for Ed25519, 65 (0x04|x|y) for P-256, which is how a verifier tells them apart. The fingerprint is the first 5 bytes of SHA-256(raw public key) in hex, a hyphen after the fifth character. The envelope's document is the Ed25519 vector as a Word Processor document carries it: the message is read from it by taking title, by, created, key and sig out of its head. These keys are published test keys: never sign with them. Base64url here is RFC 4648's URL alphabet with '~' for 62 where the RFC has '-' (a hyphen is where a pasted link breaks a line), no padding; '-' is read as 62 too.",
+  "about": "Tiny Little Office signatures (src/kit/sign.ts, src/kit/envelope.ts, docs/crypto/signing.md). The signed bytes are the UTF-8 of: 'tinyoffice' LF app LF created LF body NUL title NUL by, where created is whole minutes since 2020-01-01T00:00Z in base 36 (empty when the document has none). Ed25519 signs them as they are (RFC 8032, deterministic); ECDSA P-256 with SHA-256 is the fallback, its signature r|s, 64 bytes, and different every time, so its vector is checked by verifying. A public key travels as base64url without padding of its raw form: 32 bytes for Ed25519, 65 (0x04|x|y) for P-256, which is how a verifier tells them apart. The fingerprint is the first 100 bits of SHA-256(raw public key) in base32 (RFC 4648 alphabet, lower case, most significant bit first), in four groups of five characters joined by hyphens. The envelope's document is the Ed25519 vector as a Word Processor document carries it: the message is read from it by taking title, by, created, key and sig out of its head. These keys are published test keys: never sign with them. Base64url here is RFC 4648's URL alphabet with '~' for 62 where the RFC has '-' (a hyphen is where a pasted link breaks a line), no padding; '-' is read as 62 too.",
   "envelope": {
     "app": "text",
     "document": "---\ntitle: Vector\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo\nsig: AIC5cjH3hLp8BqR9PKHT0Zefj3B1plX6aivHly9Q1GyykekqS9oD4h6SKW6G_x85~SKQg4iX_33tIGpvZD2GCQ\n---\nThe note passed in class.\n",
@@ -28,7 +28,7 @@
       }
     },
     "publicKey": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
-    "fingerprint": "21fe3-1dfa1",
+    "fingerprint": "eh7dd-x5bks-rgcyt-l7bka",
     "rfc8032": {
       "messageHex": "",
       "signatureHex": "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b"
@@ -54,7 +54,7 @@
       }
     },
     "publicKey": "BBvkU0G9UVXGef~AqYlRpkF_8VHRID4difbhFTHBUaqhlfHEVl7be8oRnV~1MI1Yh6_Wg39_91pmOTfQbskiprA",
-    "fingerprint": "3905e-0adc0",
+    "fingerprint": "hec6b-loamy-ivtjt-yzhl7",
     "signature": "NX5PvjeRlla7BrbfvmmddVSucfA7UOTSQ3DFgSdkkCNJf5HzGtuIxZ0KfNKLRdfNOHWQP58rh65BsMTbSmDJ6Q"
   }
 }

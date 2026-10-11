@@ -51,7 +51,7 @@ export default {
   'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'আপনি লিংক শেয়ার না করলে আপনার লেখা কিছুই ব্রাউজারের বাইরে যায় না। দুটি জিনিস নিজে থেকে ওয়েবে অনুরোধ পাঠায়: ভ্রমণের ম্যাপ, যার ছবি দেখানোর সময় OpenStreetMap থেকে আসে, আর বিশ্বস্ত তালিকার কোনো সাইটের ছবি, যা নথি খোলার সময় এই সাইটের ছবি পরিষেবা নিয়ে আসে।',
   'Private, the default:': 'ব্যক্তিগত, ডিফল্টে:',
   'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'এই মেনুর “সংরক্ষিত” সুইচটি আপনার সেটিংস ও খোলা নথিগুলো এই ডিভাইসে রাখে।',
-  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'নথিতে পাসওয়ার্ড দেওয়া যায়: এটি এখানেই, ব্রাউজারে, এনক্রিপ্ট হয় এবং লিংকে থাকে শুধু এনক্রিপ্ট করা লেখা। এই ব্রাউজারের তৈরি কী দিয়ে নথিতে সই করা যায়, ফলে যে কেউ যাচাই করতে পারে নথিটি ঠিক আপনি যা সই করেছেন তা-ই কি না, আর কোন নামে। এই মেনুর “গোপনীয়তা ও কী” দেখায় এই ডিভাইসে কী আছে।',
+  'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'নথিতে পাসওয়ার্ড দেওয়া যায়: এটি এখানেই, ব্রাউজারে, এনক্রিপ্ট হয় এবং লিংকে থাকে শুধু এনক্রিপ্ট করা লেখা। এই ব্রাউজারের তৈরি কী দিয়ে নথিতে সই করা যায়, ফলে যে কেউ যাচাই করতে পারে নথিটি ঠিক সেই কী যা সই করেছে তা-ই কি না; কোন নামে সই হয়েছে, সেটা কেবল সইকারীর নিজের কথা। এই মেনুর “গোপনীয়তা ও কী” দেখায় এই ডিভাইসে কী আছে।',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   'Tiny Little Office menu': 'Tiny Little Office মেনু',
@@ -221,7 +221,6 @@ export default {
   'Use this key': 'এই কী ব্যবহার করুন',
   'What this device holds': 'এই ডিভাইসে কী আছে',
   'With my signing key': 'আমার সই করার কী দিয়ে',
-  'Wrong password': 'ভুল পাসওয়ার্ড',
   'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'আপনি সই করেছিলেন, এরপর নথিটি বদলেছে। এখনকার অবস্থার দায় নিতে শেয়ারে গিয়ে আবার সই করুন।',
   'Your documents': 'আপনার নথি',
   'Your key, as text: keep it secret, it signs as you': 'আপনার কী, লেখা আকারে: গোপন রাখুন, এটি আপনার হয়ে সই করে',
@@ -236,6 +235,17 @@ export default {
   '{n|# document|# documents}': '{n|#|#}টি নথি',
   '{n|# link|# links}': '{n|#|#}টি লিংক',
   '{n} set': '{n}টি দেওয়া',
+  'Signed as “{name}” · key {fp}': '“{name}” নামে সই করা · কী {fp}',
+  'Signed · key {fp}': 'সই করা · কী {fp}',
+  'A different key from the one {name} used before': '{name} আগে যে কী ব্যবহার করেছিলেন, এটি তার থেকে আলাদা কী',
+  'Anyone can sign under any name. Check this key with the person, another way.': 'যে কেউ যেকোনো নামে সই করতে পারে। এই কী-টি মানুষটির সঙ্গে অন্য কোনো উপায়ে মিলিয়ে নিন।',
+  'I know this key': 'আমি এই কী চিনি',
+  'Keys you know': 'আপনার চেনা কী',
+  'The names and keys you said you know.': 'যে নাম আর কী আপনি চেনেন বলেছেন।',
+  '{n|# key|# keys}': '{n|#|#}টি কী',
+  'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'লিংক যার কাছে আছে সে এটি অফলাইনে আন্দাজ করতে পারে। বানান ব্যবহার করুন, বা চার বা তার বেশি এলোমেলো শব্দ।',
+  'This password can be guessed by anyone with the link. Set it anyway?': 'লিংক যার কাছে আছে সে-ই এই পাসওয়ার্ড আন্দাজ করতে পারে। তবুও সেট করবেন?',
+  'Send the password another way than the link.': 'পাসওয়ার্ডটি লিংক ছাড়া অন্য কোনো উপায়ে পাঠান।',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   'Locked with a password': 'পাসওয়ার্ডের তালা দেওয়া',
@@ -244,6 +254,7 @@ export default {
   'A document locked with a password': 'পাসওয়ার্ডের তালা দেওয়া একটি নথি',
   'locked document': 'তালা দেওয়া নথি',
   'This document cannot be read.': 'এই নথি পড়া যাচ্ছে না।',
+  'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'এই পাসওয়ার্ডে এই লিংক খোলে না। আপনি নিশ্চিত হলে, হয়তো কপি করার সময় লিংকটি কেটে গেছে: আবার চেয়ে নিন, বা একটি ছোট লিংক চান।',
 
   // ---- words several apps share ----
   'This document': 'এই নথি',

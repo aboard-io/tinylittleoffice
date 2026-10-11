@@ -1,6 +1,10 @@
 // Signing (kit/sign.ts): Ed25519, with P-256 where a browser has none; tampering fails; a key moves between devices.
 import { test, expect } from 'vitest';
+import { fromBase64Url } from '../src/kit/codec.ts';
 import { canCheck, createSigner, fingerprintOf, generate, verify, type KeyStore } from '../src/kit/sign.ts';
+
+/** A fingerprint: 100 bits of the key's SHA-256 in base32, four groups of five. */
+const FP = /^[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}$/;
 
 function memStore(): KeyStore {
   let v: string | null = null;
@@ -20,7 +24,7 @@ for (const alg of ['ed', 'ec'] as const) {
     const flipped = sig.slice(0, 20) + (sig[20] === 'A' ? 'B' : 'A') + sig.slice(21);
     expect(await verify(key, flipped, m)).toBe(false);
     expect(await verify('nope', sig, m)).toBe(false);
-    expect(await signer.fingerprint()).toMatch(/^[0-9a-f]{5}-[0-9a-f]{5}$/);
+    expect(await signer.fingerprint()).toMatch(FP);
     expect(await signer.fingerprint()).toBe(await fingerprintOf(key));
     expect(await signer.publicKey()).toBe(key);
   });
@@ -81,4 +85,20 @@ test('two browsers, two keys', async () => {
   const sb = await createSigner(memStore()).sign('m');
   expect(sa.key).not.toBe(sb.key);
   expect(await verify(sa.key, sb.sig, 'm')).toBe(false);
+});
+
+test('a fingerprint is the first 100 bits of SHA-256 of the raw key, in base32 (RFC 4648, lower case), four groups of five', async () => {
+  const key = '11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo';
+  const fp = await fingerprintOf(key);
+  expect(fp).toMatch(FP);
+  // By hand: the digest's bits, five at a time.
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', fromBase64Url(key) as BufferSource));
+  const bits = Array.from(digest, (b) => b.toString(2).padStart(8, '0'))
+    .join('')
+    .slice(0, 100);
+  const chars = bits
+    .match(/.{5}/g)!
+    .map((b) => 'abcdefghijklmnopqrstuvwxyz234567'[parseInt(b, 2)])
+    .join('');
+  expect(fp).toBe(chars.match(/.{5}/g)!.join('-'));
 });

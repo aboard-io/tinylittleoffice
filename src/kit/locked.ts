@@ -27,6 +27,12 @@ import type { Block } from '../doc/index.ts';
 
 export const LOCKED_LANG = 'locked';
 
+/**
+ * Said when a password does not open a sealed link. AES-GCM cannot tell a wrong password from a link cut short in a
+ * chat, so it says both, the cut first-hand: a person sure of their password asks for the link again.
+ */
+export const notOpened = () => t('That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.');
+
 /** The fence that holds a sealed document by its link. */
 export const lockedFence = (app: string, payload: string): Block => ({ k: 'fence', lang: LOCKED_LANG, body: routeHash(app, payload) });
 

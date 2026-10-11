@@ -12,6 +12,9 @@
  *     without asking.
  *   - The signature: this device's key made, shown, exported, imported and forgotten (kit/sign.ts, kept
  *     through kit/store.ts, so under Private it lives for the visit); a document signed, and checked.
+ *   - The keys this device knows: under Saved alone, a name and the key the reader said is that name's ("I know
+ *     this key"), so a signature by it is green and the same name under another key is amber. Trust on first
+ *     use, nothing more: no key server, no network. Under Private every key is unknown.
  *   - What the device holds, item by item, and everything kept in one zip.
  *
  * The shell and <to-privacy> (kit/privacy-dialog.ts) only call this.
@@ -34,6 +37,7 @@ export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tin
 const KEY = 'tinyoffice.key';
 const NAME = 'tinyoffice.name';
 const LINKS = 'tinyoffice.links';
+const KNOWN = 'tinyoffice.known';
 
 const listeners = new Set<() => void>();
 export function onPrivacy(cb: () => void): () => void {
@@ -51,6 +55,7 @@ export async function setPrivate(privately: boolean) {
   setKeeping(!privately);
   if (privately) {
     store.remove(KEY);
+    store.remove(KNOWN);
   }
   changed();
 }
@@ -111,6 +116,43 @@ export interface Signature {
   fingerprint?: string;
   /** Signed with this device's key. */
   mine?: boolean;
+  /** A key this device knows as the name's (under Saved). */
+  known?: boolean;
+  /** The name is known here with another key: not the key it used before. */
+  other?: boolean;
+}
+
+/* ---------- the keys this device knows ---------- */
+
+/** A name as the known keys hold it: one space between words, case and width set aside. */
+const nameKey = (name: string) => name.normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** The names and the keys' fingerprints this device knows; none under Private. */
+export function knownKeys(): Record<string, string> {
+  if (!keeping()) return {};
+  try {
+    const map = JSON.parse(store.get(KNOWN) ?? '{}');
+    return map && typeof map === 'object' ? map : {};
+  } catch {
+    return {};
+  }
+}
+/** The key this device knows as the name's, if any. */
+const knownAs = (name: string): string | undefined => {
+  const map = knownKeys();
+  const v = Object.hasOwn(map, nameKey(name)) ? map[nameKey(name)] : undefined;
+  return typeof v === 'string' ? v : undefined;
+};
+/** "I know this key": the name's key from now on, under Saved; under Private nothing is written. */
+export function knowKey(name: string, fingerprint: string) {
+  const who = nameKey(name);
+  if (!keeping() || !who || !fingerprint) return;
+  store.set(KNOWN, JSON.stringify({ ...knownKeys(), [who]: fingerprint }));
+  changed();
+}
+export function forgetKnown() {
+  store.remove(KNOWN);
+  changed();
 }
 
 export async function checkSignature(app: string, text: string): Promise<Signature> {
@@ -118,7 +160,10 @@ export async function checkSignature(app: string, text: string): Promise<Signatu
   if (!env.key || !env.sig) return { state: 'none' };
   const [ok, can, fingerprint, me] = await Promise.all([verify(env.key, env.sig, messageOf(app, text)), canCheck(env.key), fingerprintOf(env.key), signer.publicKey()]);
   const mine = me === env.key;
-  return { state: ok ? 'valid' : !can ? 'unchecked' : mine ? 'stale' : 'invalid', ...(env.by ? { by: env.by } : {}), fingerprint, mine };
+  const was = env.by ? knownAs(env.by) : undefined;
+  const known = !mine && !!was && was === fingerprint;
+  const other = !mine && !!was && was !== fingerprint;
+  return { state: ok ? 'valid' : !can ? 'unchecked' : mine ? 'stale' : 'invalid', ...(env.by ? { by: env.by } : {}), fingerprint, mine, known, other };
 }
 
 /** The name signatures are made under, as given last; '' until one is. */
@@ -182,10 +227,12 @@ export interface Holdings {
   links: number;
   /** The signing key's fingerprint, or null. */
   key: string | null;
+  /** Keys this device knows by name. */
+  known: number;
 }
 
 export async function holdings(): Promise<Holdings> {
-  return { prefs: prefsKept(), documents: library().length, links: keptLinks().length, key: await myFingerprint() };
+  return { prefs: prefsKept(), documents: library().length, links: keptLinks().length, key: await myFingerprint(), known: Object.keys(knownKeys()).length };
 }
 
 export function forgetPrefs() {

@@ -75,7 +75,7 @@ test('on open every row is checked: a contract the old tree signed shows both va
     ['Paul Ford', 'valid'],
     ['Sam Reyes', 'valid'],
   ]);
-  expect(el.querySelector('.write-sig small')!.textContent).toMatch(/^key [0-9a-f]{5}-[0-9a-f]{5}$/);
+  expect(el.querySelector('.write-sig small')!.textContent).toMatch(/^key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}$/);
   expect(el.querySelector('.write-sig.valid .write-sig-state')!.textContent).toContain('Signed these words');
   const { el: changed } = await editor(OLD.replace('noon', 'one'));
   await until(() => rows(changed).length === 2 && rows(changed).every((r) => r[1] === 'mismatch'));
@@ -162,7 +162,9 @@ test('printed: a signature block with the name, the day, the key and "verified";
     .map((p) => p.svg)
     .join('');
   expect(svg).toContain('>Paul Ford</text>');
-  expect(svg).toMatch(/Signed \d{4}-\d{2}-\d{2} · key [0-9a-f]{5}-[0-9a-f]{5} · verified/);
+  // The detail runs to a second line at the block's width now the fingerprint is twenty characters: read as words.
+  const words = svg.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  expect(words).toMatch(/Signed \d{4}-\d{2}-\d{2} · key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5} · verified/);
   const html = String(await def.exports!.find((x) => x.ext === 'html')!.build(last(), { def, title: 'Deal', link: '' }));
   expect(html).toContain('<div class="valid"><strong>Paul Ford</strong>');
   const changed = last().replace('in return', 'at once');
@@ -191,7 +193,7 @@ test("a browser without Ed25519: the old tree's Ed25519 rows say Cannot check he
   glyph.innerHTML = iconInner(signatureIcon({ state: 'unchecked' }));
   expect(state.querySelector('svg')!.innerHTML.replace(/<!--.*?-->/g, '')).toBe(glyph.innerHTML);
   expect(row.querySelector('b')!.textContent).toBe('Paul Ford');
-  expect(row.querySelector('small')!.textContent).toMatch(/^key [0-9a-f]{5}-[0-9a-f]{5}$/);
+  expect(row.querySelector('small')!.textContent).toMatch(/^key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}$/);
   // Grey: not the mismatch red, neither the words nor the line above them.
   const probe = document.createElement('span');
   probe.style.color = 'var(--to-mismatch-ink)';

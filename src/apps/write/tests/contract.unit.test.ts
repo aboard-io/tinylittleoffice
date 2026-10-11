@@ -123,7 +123,7 @@ test('the printed block and every file: name, day, key and whether it verified w
   await checkContract(doc);
   const [p, s] = printedSignatures(doc, signaturesAt(doc));
   expect(p.verdict).toBe('valid');
-  expect(p.detail).toMatch(/^Signed 2027-03-01 · key [0-9a-f]{5}-[0-9a-f]{5} · verified$/);
+  expect(p.detail).toMatch(/^Signed 2027-03-01 · key [a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5}-[a-z2-7]{5} · verified$/);
   expect(s).toEqual({ name: 'Sam Reyes', detail: 'not signed', verdict: 'unsigned' });
   const svg = pages(doc)
     .map((pg) => pg.svg)

@@ -59,7 +59,7 @@ export default {
     'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ دو چیزیں خود ویب سے کچھ مانگتی ہیں: سفر کا نقشہ، جس کی تصویریں دکھائے جانے تک OpenStreetMap سے آتی ہیں، اور بھروسے کی فہرست والی کسی سائٹ کی تصویر، جسے اس سائٹ کی تصویری سروس اس کی دستاویز کھلتے ہی لاتی ہے۔',
     'Private, the default:': 'نجی، پہلے سے:',
     'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'اس مینو میں "محفوظ" کا سوئچ آپ کی سیٹنگز اور کھولی ہوئی دستاویزات کو اس ڈیوائس پر رکھتا ہے۔',
-    'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'دستاویز پر پاس ورڈ لگایا جا سکتا ہے: وہ یہیں، براؤزر میں انکرپٹ ہوتی ہے اور لنک میں صرف انکرپٹڈ متن ہوتا ہے۔ اس پر اس کلید سے دستخط بھی ہو سکتے ہیں جو یہ براؤزر بناتا ہے، تاکہ کوئی بھی جانچ سکے کہ وہ بالکل وہی ہے جس پر آپ نے دستخط کیے، اور کس نام سے۔ اس مینو میں "رازداری اور کلیدیں" بتاتا ہے کہ اس ڈیوائس میں کیا ہے۔',
+    'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.': 'دستاویز پر پاس ورڈ لگایا جا سکتا ہے: وہ یہیں، براؤزر میں انکرپٹ ہوتی ہے اور لنک میں صرف انکرپٹڈ متن ہوتا ہے۔ اس پر اس کلید سے دستخط بھی ہو سکتے ہیں جو یہ براؤزر بناتا ہے، تاکہ کوئی بھی جانچ سکے کہ یہ بالکل وہی ہے جس پر اس کلید نے دستخط کیے؛ جس نام سے دستخط ہوئے وہ صرف دستخط کرنے والے کی اپنی بات ہے۔ اس مینو میں ”پرائیویسی اور کلیدیں“ دکھاتا ہے کہ اس آلے میں کیا محفوظ ہے۔',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
   // The menu button's tooltip: the Office mark is the menu.
@@ -236,7 +236,6 @@ export default {
     'Use this key': 'یہ کلید استعمال کریں',
     'What this device holds': 'اس ڈیوائس میں کیا ہے',
     'With my signing key': 'میری دستخط کی کلید کے ساتھ',
-    'Wrong password': 'غلط پاس ورڈ',
     'You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.': 'آپ نے دستخط کیے تھے، اور اس کے بعد یہ بدل گئی ہے۔ جیسی ہے ویسی کی ضمانت دینے کے لیے "شیئر" میں دوبارہ دستخط کریں۔',
     'Your documents': 'آپ کی دستاویزات',
     'Your key, as text: keep it secret, it signs as you': 'آپ کی کلید، متن کی صورت میں: اسے خفیہ رکھیں، یہ آپ کی طرف سے دستخط کرتی ہے',
@@ -251,6 +250,17 @@ export default {
     '{n|# document|# documents}': '{n|# دستاویز|# دستاویزات}',
     '{n|# link|# links}': '{n|# لنک|# لنکس}',
     '{n} set': '{n} مقرر',
+    'Signed as “{name}” · key {fp}': '”{name}“ کے نام سے دستخط شدہ · کلید {fp}',
+    'Signed · key {fp}': 'دستخط شدہ · کلید {fp}',
+    'A different key from the one {name} used before': 'اس کلید سے مختلف جو {name} نے پہلے استعمال کی تھی',
+    'Anyone can sign under any name. Check this key with the person, another way.': 'کوئی بھی کسی بھی نام سے دستخط کر سکتا ہے۔ اس کلید کو اس شخص سے کسی اور طریقے سے ملا لیں۔',
+    'I know this key': 'میں یہ کلید جانتا ہوں',
+    'Keys you know': 'آپ کی جانی ہوئی کلیدیں',
+    'The names and keys you said you know.': 'وہ نام اور کلیدیں جنہیں آپ نے جانا ہوا بتایا۔',
+    '{n|# key|# keys}': '{n|# کلید|# کلیدیں}',
+    'Someone with the link can guess this offline. Use Generate, or four or more random words.': 'جس کے پاس لنک ہے وہ اسے آف لائن اندازے سے کھول سکتا ہے۔ بنائیں استعمال کریں، یا چار یا زیادہ بے ترتیب الفاظ۔',
+    'This password can be guessed by anyone with the link. Set it anyway?': 'لنک والا کوئی بھی اس پاس ورڈ کا اندازہ لگا سکتا ہے۔ پھر بھی مقرر کریں؟',
+    'Send the password another way than the link.': 'پاس ورڈ لنک کے علاوہ کسی اور طریقے سے بھیجیں۔',
 
   // ---- a document locked with a password, placed inside another (kit/locked.ts, kit/locked-doc.ts) ----
   // The card drawn where it sits; {app} is the app's name: "A Spreadsheet document, locked with a password".
@@ -262,6 +272,7 @@ export default {
     'locked document': 'مقفل دستاویز',
   // A placed document whose link cannot be read (cut short when it was copied).
     'This document cannot be read.': 'یہ دستاویز پڑھی نہیں جا سکتی۔',
+    'That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.': 'یہ پاس ورڈ اس لنک کو نہیں کھولتا۔ اگر آپ کو اس کا یقین ہے تو شاید کاپی کرتے وقت لنک کٹ گیا ہو: اسے دوبارہ مانگیں، یا مختصر لنک مانگیں۔',
 
   // ---- words several apps share ----
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).

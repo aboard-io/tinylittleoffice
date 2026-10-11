@@ -48,7 +48,7 @@ test('the Word Processor: the locked card, a tap asks for the password, opened i
   expect(document.querySelector('to-dialog.to-locked-unlock')).toBeNull();
   card.querySelector<HTMLButtonElement>('.to-locked-open')!.click();
   await tryPassword(document, 'nope');
-  await until(() => document.querySelector('to-dialog.to-locked-unlock .to-unlock-wrong')?.textContent === 'Wrong password');
+  await until(() => document.querySelector('to-dialog.to-locked-unlock .to-unlock-wrong')?.textContent?.startsWith('That password does not open this link.') === true);
   await tryPassword(document, 'pw');
   await until(() => !card.querySelector('.to-locked-open'));
   expect(document.querySelector('to-dialog.to-locked-unlock')).toBeNull();

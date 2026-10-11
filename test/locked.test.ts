@@ -6,9 +6,9 @@ import '../src/kit/apps.ts';
 import { appOf } from '../src/kit/apps.ts';
 import { lookup } from '../src/kit/app.ts';
 import { encodeDoc, packDoc } from '../src/kit/codec.ts';
-import { newLocker, seal } from '../src/kit/crypt.ts';
+import { newLocker, seal, unseal } from '../src/kit/crypt.ts';
 import { linkToFence } from '../src/kit/clipboard.ts';
-import { forgetOpened, LOCKED_LANG, lockedFence, lockedOf, lockedPage, setOpened } from '../src/kit/locked.ts';
+import { forgetOpened, LOCKED_LANG, lockedFence, lockedOf, lockedPage, notOpened, setOpened } from '../src/kit/locked.ts';
 import { routeHash } from '../src/kit/route.ts';
 import { parse, write, type Block } from '../src/doc/index.ts';
 import { fenceLink } from '../src/apps/write/view.ts';
@@ -85,4 +85,12 @@ test('the registry knows the fence, as it knows a QR code; a plain link still go
   expect(appOf(LOCKED_LANG)).toBeUndefined();
   const plain = linkToFence(`https://tinylittleoffice.com/${routeHash('write', encodeDoc('Hello\n'))}`);
   expect(plain).toEqual({ k: 'fence', lang: 'write', body: 'Hello\n' });
+});
+
+test('a link cut short by ten characters does not open with the right password, and the words say it may be cut short, not that the password is wrong', async () => {
+  const cut = sealed.slice(0, -10);
+  expect(await unseal('pw', sealed, 1000)).not.toBeNull();
+  expect(await unseal('pw', cut, 1000)).toBeNull();
+  expect(notOpened()).toBe('That password does not open this link. If you are sure of it, the link may have been cut short when it was copied: ask for it again, or for a short link.');
+  expect(notOpened()).not.toMatch(/^Wrong password/);
 });

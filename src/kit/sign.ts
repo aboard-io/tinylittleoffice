@@ -57,11 +57,22 @@ async function rawPublic(k: StoredKey): Promise<Uint8Array> {
   return new Uint8Array(await subtle().exportKey('raw', key));
 }
 
-/** A short, human-comparable id for a public key: 10 hex characters of its SHA-256, "a1b2c-3d4e5". */
+const BASE32 = 'abcdefghijklmnopqrstuvwxyz234567';
+
+/**
+ * A human-comparable id for a public key: the first 100 bits of its SHA-256 in base32 (RFC 4648's alphabet, lower
+ * case), four groups of five, "abcde-fghij-klmno-pqrst". 100 bits so that no one can make a key that matches
+ * another's (40 bits fell to a rented GPU in hours), still short enough to read out.
+ */
 export async function fingerprintOf(keyB64: string): Promise<string> {
   const digest = new Uint8Array(await subtle().digest('SHA-256', fromBase64Url(keyB64) as BufferSource));
-  const hex = Array.from(digest.slice(0, 5), (b) => b.toString(16).padStart(2, '0')).join('');
-  return hex.slice(0, 5) + '-' + hex.slice(5);
+  let out = '';
+  for (let i = 0; i < 20; i++) {
+    const bit = i * 5;
+    const two = (digest[bit >> 3] << 8) | digest[(bit >> 3) + 1];
+    out += BASE32[(two >> (11 - (bit & 7))) & 31] + (i % 5 === 4 && i < 19 ? '-' : '');
+  }
+  return out;
 }
 
 /** Whether a signature made by sign() holds for this message. The key's length tells the algorithm. */

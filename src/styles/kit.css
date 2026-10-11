@@ -1714,6 +1714,18 @@
     color: var(--to-mismatch-ink);
     background: var(--to-mismatch-bg);
   }
+  /* Signed by a key nobody here knows: it proves the key, not the name, so it is not green. */
+  .to-header .to-trust.neutral,
+  .to-trust.neutral {
+    color: var(--to-ink-2);
+    background: var(--to-surface-2);
+  }
+  /* A name this device knows, under another key. */
+  .to-header .to-trust.otherkey,
+  .to-trust.otherkey {
+    color: var(--to-otherkey-ink);
+    background: var(--to-otherkey-bg);
+  }
   .to-header .to-trust.locked,
   .to-trust.locked {
     color: var(--to-ink);
@@ -1758,6 +1770,12 @@
   }
   .to-trust-line.mismatch {
     color: var(--to-mismatch-ink);
+  }
+  .to-trust-line.neutral {
+    color: var(--to-ink);
+  }
+  .to-trust-line.otherkey {
+    color: var(--to-otherkey-ink);
   }
   .to-trust-line small {
     font-weight: 400;
