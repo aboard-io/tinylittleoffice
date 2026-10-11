@@ -14,6 +14,6 @@ test('the skill names every app, teaches the plain link, and leaves no placehold
   expect(makeLlms(skill).startsWith('# Tiny Little Office links')).toBe(true);
 });
 
-test('the skill says the short link’s limit as the site counts it', () => {
-  expect(makeSkill()).toContain(`a link of at most ${SHORT_LINK_MAX.toLocaleString('en')} characters`);
+test('the skill says the short link’s limit as the site counts it', async () => {
+  expect(await makeSkill()).toContain(`a link of at most ${SHORT_LINK_MAX.toLocaleString('en')} characters`);
 });
