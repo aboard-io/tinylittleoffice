@@ -4,6 +4,7 @@ import { render, html } from 'lit';
 import { cdp } from 'vitest/browser';
 import { tool, btn, cmdTool } from '../../src/kit/bar.ts';
 import { REDO, UNDO } from '../../src/kit/keys.ts';
+import { keyboard } from '../../src/kit/commands.ts';
 import { UI } from '../../src/kit/icons.ts';
 import { until } from './helpers.ts';
 import '../../src/styles.css';
@@ -106,4 +107,30 @@ test('under a finger Undo and Redo stay at the end of a bar however it is scroll
     { undo: true, redo: true },
   ]);
   expect(getComputedStyle(document.querySelector('.cmd-kit-undo')!).position).toBe('static');
+});
+
+// The review of 2026-10-11: a key is written only where there is a keyboard to press it on (commands.ts chords). A bar's
+// tooltip says Undo's keys under a mouse, and under a finger once a keyboard is seen; under a finger with none, Undo
+// alone; its aria-keyshortcuts say the keys either way.
+test("a bar's tooltip writes the keys under a mouse and once a keyboard is seen, never under a finger with none", async () => {
+  const undo = () => {
+    document.body.innerHTML = '<to-bar></to-bar>';
+    render(html`${cmdTool(UNDO, { editor: document.createElement('div') })}`, document.querySelector('to-bar')!);
+    return document.querySelector<HTMLButtonElement>('.cmd-kit-undo')!;
+  };
+  keyboard.seen = false;
+  expect(undo().title).toMatch(/^Undo \((⌘|Ctrl\+)Z\)$/);
+  expect(undo().getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+Z\b/);
+  await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  try {
+    const b = undo();
+    expect(b.title).toBe('Undo');
+    expect(b.title).not.toMatch(/Ctrl|⌘/);
+    expect(b.getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+Z\b/);
+    keyboard.seen = true;
+    expect(undo().title).toMatch(/^Undo \((⌘|Ctrl\+)Z\)$/);
+  } finally {
+    keyboard.seen = false;
+    await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  }
 });

@@ -2,13 +2,14 @@
 // every size, and a table of formats, each with view, share, download and copy link (kit/exports.ts exportItems,
 // kit/menu.ts's rows of actions).
 import { test, expect, afterEach, vi } from 'vitest';
-import { page } from 'vitest/browser';
+import { cdp, page } from 'vitest/browser';
 import { mount, openDrawerDoc, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { appOf } from '../../src/kit/apps.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { keepSize, stepSize } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import { keyboard } from '../../src/kit/commands.ts';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -325,3 +326,35 @@ test('a ".<ext>" link downloads any of the app\'s formats, a kit\'s or its own, 
   expect(got.size).toBe(0);
   expect(shell.querySelector('to-toast [role=status]')?.textContent ?? '').toBe('');
 }, 40_000);
+
+// The review of 2026-10-11: Print's keys are keys (exports.ts `keys`), not words of its name: under a mouse a <kbd>
+// hidden from a screen reader, which hears them as aria-keyshortcuts; under a finger with no keyboard no keys written.
+test("the Print row's keys are a kbd beside its name under a mouse, and are not written under a finger with no keyboard", async () => {
+  const print = async () => {
+    const shell = await mount(NOTES);
+    await until(() => !!shell.querySelector('to-write-editor'));
+    await openDownload(shell);
+    const item = [...menu(shell).querySelectorAll<HTMLElement>('.to-menu-item')].find((b) => b.textContent!.includes('Print, or save as PDF'))!;
+    expect(item).toBeTruthy();
+    return item;
+  };
+  const spoken = (el: HTMLElement) => [...el.querySelectorAll('.to-menu-words')].map((w) => w.textContent!.trim()).join(' ');
+  keyboard.seen = false;
+  let item = await print();
+  const kbd = item.querySelector('kbd')!;
+  expect(kbd).not.toBeNull();
+  expect(kbd.getAttribute('aria-hidden')).toBe('true');
+  expect(kbd.textContent).toMatch(/^(⌘|Ctrl\+)P$/);
+  expect(item.getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+P$/);
+  expect(spoken(item)).toBe('Print, or save as PDF');
+  await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  try {
+    item = await print();
+    expect(item.querySelector('kbd')).toBeNull();
+    expect(item.textContent).not.toMatch(/Ctrl|⌘/);
+    expect(item.getAttribute('aria-keyshortcuts')).toMatch(/^(Control|Meta)\+P$/);
+  } finally {
+    keyboard.seen = false;
+    await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  }
+});
