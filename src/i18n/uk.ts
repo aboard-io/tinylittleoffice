@@ -1502,7 +1502,7 @@ export default {
   'New paragraph': 'Новий абзац',
   'Icon: none': 'Значок: немає',
   'Icon: {name}': 'Значок: {name}',
-  'Preview': 'Попередній перегляд',
+  'Preview': 'Огляд',
   'The site’s name': 'Назва сайту',
   'The website, as a visitor sees it': 'Сайт очима відвідувача',
   'Words for the page': 'Слова для сторінки',
