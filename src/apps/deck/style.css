@@ -433,22 +433,25 @@
   }
 
   /* ---- the show: the slide is one picture, as large as the screen allows ---- */
+  /* The slide centred in one cell, the one being left under it. Two fingers zoom it (editor.ts pinchZoom):
+     --deck-zoom is its width over its whole-screen width, 1 to 4, and the show scrolls to the rest; a slide larger
+     than the show starts at its edge (auto margins take no room they lack), so all of it can be reached. */
   .deck-show {
     user-select: none;
     position: fixed;
     inset: 0;
     background: #111;
     z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    grid-template: 100% / 100%;
     cursor: pointer;
-    overflow: hidden;
+    overflow: auto;
   }
   .deck-show .frame,
   .deck-show .was {
-    position: absolute;
-    width: min(100vw, 160dvh);
+    grid-area: 1 / 1;
+    margin: auto;
+    width: calc(min(100vw, 160dvh) * var(--deck-zoom, 1));
     aspect-ratio: 16 / 10;
     background: #fff;
   }
