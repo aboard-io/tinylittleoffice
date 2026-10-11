@@ -93,7 +93,7 @@ test('a keep menu, opened and chosen from by a pointer, never takes the focus fr
   const chosen: string[] = [];
   render(
     html`<div contenteditable="true" id="words">words</div>
-      <to-menu keep label="Align" .items=${[{ label: 'Centre', does: () => chosen.push('centre') }]}></to-menu>`,
+      <to-menu keep label="Align" .items=${[{ label: 'Center', does: () => chosen.push('centre') }]}></to-menu>`,
     document.querySelector('#box')!,
   );
   const words = document.querySelector<HTMLElement>('#words')!;
@@ -298,7 +298,7 @@ test("an item's keys are written at its end as the device writes them, and type-
   render(
     html`<to-menu label="Align" .items=${[
       { label: 'Align left', keys: 'Mod+Shift+L', checked: true, does: () => {} },
-      { label: 'Centre', keys: 'Mod+Shift+E', checked: false, does: () => {} },
+      { label: 'Center', keys: 'Mod+Shift+E', checked: false, does: () => {} },
     ]}></to-menu>`,
     document.querySelector('#box')!,
   );
@@ -311,7 +311,7 @@ test("an item's keys are written at its end as the device writes them, and type-
   // "c" finds Centre by its name, never "Ctrl" in a key.
   await until(() => named() === 'Align left');
   press('c');
-  expect(named()).toBe('Centre');
+  expect(named()).toBe('Center');
 });
 
 test('opened by a pointer from a button that never takes the focus (a row’s bullet), Escape gives the focus back to the words that had it, not to the button', async () => {

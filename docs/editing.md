@@ -209,7 +209,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `Shift+Tab` | Bring out | bar |
 | `Alt+ArrowUp` | Move up | keys only |
 | `Alt+ArrowDown` | Move down | keys only |
-| `Mod+Enter` | Tick or untick a task | keys only |
+| `Mod+Enter` | Check or uncheck a task | keys only |
 | `Mod+A` | Select all: the words of the box, then everything | keys only |
 
 ### Rows chosen whole (`rows`)
@@ -246,7 +246,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Paragraph | bar |
 |  | Icon | bar |
 | `Mod+Shift+L` | Align left | align ▾, at: words |
-| `Mod+Shift+E` | Centre | align ▾, at: words |
+| `Mod+Shift+E` | Center | align ▾, at: words |
 | `Mod+Shift+R` | Align right | align ▾, at: words |
 | `Mod+Shift+J` | Justify | align ▾, at: words |
 |  | Letter | paper ▾ |
@@ -310,7 +310,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Title | layout ▾ |
 |  | Two columns | layout ▾ |
 |  | Big icon | layout ▾ |
-|  | The theme's colour | look ▾ |
+|  | The theme's color | look ▾ |
 |  | Fade | transition ▾ |
 |  | Cut | transition ▾ |
 |  | Slide | transition ▾ |
@@ -370,7 +370,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `Tab`, `Shift+Tab` | Indent or bring out in a list; the next cell in a grid | keys only, at: cell |
 | `F2` | Edit the cell, the caret at its end | keys only, at: cell |
 | `Shift+ArrowUp`, `Shift+ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight` | Extend the selection | keys only, at: cell |
-| `Space` | Tick or untick a task | keys only, at: cell |
+| `Space` | Check or uncheck a task | keys only, at: cell |
 | `Escape` | Step out: close, collapse, let go | keys only, at: cell |
 | `Escape` | Put back what the cell held | keys only, at: cell |
 | `Enter`, `Shift+Enter`, `ArrowDown`, `ArrowUp`, `ArrowLeft`, `ArrowRight` | The next or the one before | keys only, at: cell |
@@ -451,7 +451,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Dashed line | context |
 |  | Dotted line | context |
 |  | No fill | context |
-|  | Grey fill | context |
+|  | Gray fill | context |
 |  | Solid fill | context |
 |  | Small text | context |
 |  | Medium text | context |
@@ -476,7 +476,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Enter` | Join two shapes | keys only, at: canvas |
 | `Mod+A` | Select all: the words of the box, then everything | keys only, at: canvas |
 | `Mod+Shift+L` | Align: left | keys only, at: canvas |
-| `Mod+Shift+E` | Align: centre | keys only, at: canvas |
+| `Mod+Shift+E` | Align: center | keys only, at: canvas |
 | `Mod+Shift+R` | Align: right | keys only, at: canvas |
 | `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: canvas |
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown`, `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+ArrowUp`, `Mod+ArrowDown` | Nudge the shapes in hand | keys only, at: canvas |
@@ -543,14 +543,14 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Blur | fx ▾ |
 |  | Draw | drawer |
 |  | Move | drawer |
-|  | Loop for ever | loop ▾ |
+|  | Loop forever | loop ▾ |
 |  | Play once | loop ▾ |
 |  | Back and forth | loop ▾ |
 |  | 2 times | loop ▾ |
 |  | 3 times | loop ▾ |
 |  | 5 times | loop ▾ |
 |  | 10 times | loop ▾ |
-|  | Loop for ever | loop ▾ |
+|  | Loop forever | loop ▾ |
 | `K` | Add a key here | context, at: stage |
 |  | Remove this key | context |
 | `Enter` | Edit the words | context, at: stage |
@@ -585,7 +585,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: words |
 | `ArrowUp`, `ArrowDown` | The next or the one before | keys only, at: words |
 | `Mod+D` | Duplicate | keys only, at: words |
-| `Mod+Enter` | Tick or untick a task | keys only, at: words |
+| `Mod+Enter` | Check or uncheck a task | keys only, at: words |
 | `Mod+Alt+ArrowLeft` | A day earlier | keys only, at: words |
 | `Mod+Alt+ArrowRight` | A day later | keys only, at: words |
 | `Alt+Enter` | Dates… | keys only, at: words |
@@ -603,7 +603,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | A stop at the middle of the map | insert ▾ |
 |  | Hours of driving | units ▾ |
 |  | Miles | units ▾ |
-|  | Kilometres | units ▾ |
+|  | Kilometers | units ▾ |
 |  | Join the stops in order | bar, drawer on a phone |
 |  | Show the whole route | bar, drawer on a phone |
 |  | Map | bar, drawer on a phone |

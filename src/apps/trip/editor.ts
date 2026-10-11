@@ -836,7 +836,7 @@ export class ToTripEditor extends DocElement<TripView> {
           this.showMap
             ? html`<div class="trip-side">
               <div class="trip-map" data-spatial role="region" aria-label=${t('Map: tap to add a stop')}></div>
-              <p class="to-hint trip-privacy">${t('The map’s pictures come from OpenStreetMap while it is shown.')} ${n ? nothing : t('Your location is asked for only to centre the map, and is never written anywhere.')}</p>
+              <p class="to-hint trip-privacy">${t('The map’s pictures come from OpenStreetMap while it is shown.')} ${n ? nothing : t('Your location is asked for only to center the map, and is never written anywhere.')}</p>
             </div>`
             : nothing
         }

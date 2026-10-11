@@ -290,9 +290,9 @@ export class ToCalEditor extends DocElement<CalView> {
     this.mode = mode;
     this.edit(setGantt(this.view, false));
   }
-  /** The zone repeats keep their time of day in: the document's, or the viewer's until it has one. */
+  /** The zone repeats keep their time of day in: the document's, or, with none named, this reader's own. */
   private get repeatZone() {
-    return this.view.zone || this.zone;
+    return this.view.tz;
   }
 
   /* ---------- the dialog ---------- */
@@ -916,7 +916,9 @@ export class ToCalEditor extends DocElement<CalView> {
             if (isValidZone(z)) this.zone = z;
           }}>${(this.zones ?? []).map((z) => html`<option value=${z} ?selected=${z === this.zone}>${z.replace(/_/g, ' ')}</option>`)}</select>
         </label>
-        ${docZone ? html`<p class="to-hint">${t('This calendar is written in {zone} time.', { zone: docZone.replace(/_/g, ' ') })}</p>` : nothing}
+        <p class="to-hint">
+          ${docZone ? t('This calendar is written in {zone} time.', { zone: docZone.replace(/_/g, ' ') }) : t('This calendar names no time zone: its times are read in yours, {zone}.', { zone: v.tz.replace(/_/g, ' ') })}
+        </p>
         <div class="to-row">
           ${docZone && docZone !== this.zone ? btn({ label: t('Its own zone'), does: () => (this.zone = docZone) }) : nothing}
           ${this.zone !== localZone() ? btn({ label: t('My zone'), does: () => (this.zone = localZone()) }) : nothing}
@@ -1161,10 +1163,10 @@ export class ToCalEditor extends DocElement<CalView> {
         </span>
       </div>
       ${timed ? html`<p class="to-hint">${t('Times in {zone}', { zone: `${this.zone.replace(/_/g, ' ')} (${zoneAbbr(spanStartMs(s), this.zone)})` })}</p>` : nothing}
-      <div class="cal-field"><span>${t('Colour')}</span>
-        <span class="cal-swatches" role="group" aria-label=${t('Colour')}>${Object.entries(CAL_COLORS).map(([k, c]) => html`<button type="button" class="to-btn to-tool cal-swatch" aria-pressed=${String(s.color === k)} aria-label=${this.view.legend[k] ? `${c.name()}: ${this.view.legend[k]}` : c.name()} title=${this.view.legend[k] ?? c.name()} @click=${() => ((this.ink = k), this.patch({ color: k }))}><span class="to-swatch" style="--swatch:${c.hex}"></span></button>`)}</span>
+      <div class="cal-field"><span>${t('Color')}</span>
+        <span class="cal-swatches" role="group" aria-label=${t('Color')}>${Object.entries(CAL_COLORS).map(([k, c]) => html`<button type="button" class="to-btn to-tool cal-swatch" aria-pressed=${String(s.color === k)} aria-label=${this.view.legend[k] ? `${c.name()}: ${this.view.legend[k]}` : c.name()} title=${this.view.legend[k] ?? c.name()} @click=${() => ((this.ink = k), this.patch({ color: k }))}><span class="to-swatch" style="--swatch:${c.hex}"></span></button>`)}</span>
       </div>
-      <label class="cal-field"><span>${t('{colour} stands for', { colour: colour.name() })}</span><input type="text" class="cal-legend-name" maxlength="24" placeholder=${t('A name (yours, say)')} .value=${e.legend} @input=${(ev: Event) => this.editing && (this.editing = { ...this.editing, legend: (ev.target as HTMLInputElement).value })} /></label>
+      <label class="cal-field"><span>${t('{color} stands for', { color: colour.name() })}</span><input type="text" class="cal-legend-name" maxlength="24" placeholder=${t('A name (yours, say)')} .value=${e.legend} @input=${(ev: Event) => this.editing && (this.editing = { ...this.editing, legend: (ev.target as HTMLInputElement).value })} /></label>
       <label class="cal-field"><span>${t('Repeats')}</span>
         <select @change=${(ev: Event) => {
           const val = (ev.target as HTMLSelectElement).value;

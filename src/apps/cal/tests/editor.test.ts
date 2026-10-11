@@ -684,3 +684,18 @@ test("§1 opens with the focus on today's day, else the shown month's first; a G
   expect(plan.querySelector<ToText>('.cal-trow to-text')!.sel?.focus.offset).toBe('Design'.length);
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
+
+test("the zone dialog says whose zone a calendar's times are in: its own, or, with none named, the reader's", async () => {
+  const { el } = await editor('- 2027-03-10 17:30-19:30: Packing bags\n');
+  await el.openZones();
+  await settle(el);
+  const hint = () => document.querySelector('to-dialog.cal-zones .to-hint')!.textContent!.replace(/\s+/g, ' ').trim();
+  const reader = Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, ' ');
+  expect(hint()).toBe(`This calendar names no time zone: its times are read in yours, ${reader}.`);
+  // Read in the reader's zone, the 17:30 is 17:30 on the clock this device keeps.
+  expect(el.view.tz).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  el.value = DOC;
+  await settle(el);
+  expect(hint()).toBe('This calendar is written in Europe/London time.');
+  document.querySelector<HTMLDialogElement>('to-dialog.cal-zones dialog')?.close();
+});

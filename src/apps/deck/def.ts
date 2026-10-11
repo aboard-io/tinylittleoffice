@@ -67,7 +67,7 @@ export default defineApp({
     },
     {
       ext: 'gif',
-      label: () => t('A film of the deck (GIF)'),
+      label: () => t('An animation of the deck (GIF)'),
       mime: 'image/gif',
       shows: 'own',
       build: async (doc) => {

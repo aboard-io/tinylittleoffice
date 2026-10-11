@@ -114,7 +114,7 @@ test("draw: a shape tapped has its contextual bar inside the screen, and the bar
   if (touch) await align.tap();
   else await align.click();
   await expect(canvas.locator('[data-idx="1"] text')).toHaveAttribute('text-anchor', 'middle');
-  await expect(bar.getByRole('button', { name: 'Align: centre' })).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Align: center' })).toBeVisible();
   if (touch) await canvas.tap(at(240, 144));
   else await canvas.click(at(240, 144));
   await expect(bar).toBeVisible();

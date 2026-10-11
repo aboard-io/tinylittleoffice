@@ -132,7 +132,7 @@ const SHEET: Command<S>[] = [
     where: ['keys-only'],
     does: (s, e) => e instanceof KeyboardEvent && s.stretch(ARROWS[e.key]),
   }),
-  cmd('tick', 'Tick or untick a task', { at: 'cell', keys: 'Space', where: ['keys-only'], does: (s) => s.tickHere() }),
+  cmd('tick', 'Check or uncheck a task', { at: 'cell', keys: 'Space', where: ['keys-only'], does: (s) => s.tickHere() }),
   cmd('letgo', 'Step out: close, collapse, let go', { at: 'cell', keys: 'Escape', where: ['keys-only'], when: (s) => s.many, does: (s) => void (s.end = null) }),
   cmd('cancel', 'Put back what the cell held', { at: 'cell', keys: 'Escape', where: ['keys-only'], does: (s) => s.cancelHere() }),
   cmd('move', 'The next or the one before', {

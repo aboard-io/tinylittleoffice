@@ -102,7 +102,7 @@ const WRITE: Command<W>[] = [
   cmd('icon', 'Icon', { icon: UI.icon, where: ['bar'], does: (w) => w.insertIcon() }),
   cmd('align', 'Align', { icon: UI.alignLeft, menu: 'align', where: ['bar'], does: () => undefined }),
   align('left', 'Align left', UI.alignLeft, 'L'),
-  align('center', 'Centre', UI.alignCenter, 'E'),
+  align('center', 'Center', UI.alignCenter, 'E'),
   align('right', 'Align right', UI.alignRight, 'R'),
   align('justify', 'Justify', UI.alignJustify, 'J'),
   cmd('look', (w) => t('Look: {theme}', { theme: (w ? lookOf(w.doc) : LOOKS.sans).name() }), { icon: Palette, menu: 'look', where: ['bar'], document: true, does: () => undefined }),

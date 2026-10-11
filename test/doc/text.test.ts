@@ -113,8 +113,8 @@ test('an outline: one nested list, footnotes at the end', async () => {
   const nodes = textOf(parse(await tpl('outline', 'packing')));
   expect(nodes.map((n) => n.k)).toEqual(['list', 'notes']);
   const top = nodes[0] as Extract<TextNode, { k: 'list' }>;
-  expect(top.items[0].runs).toEqual([{ t: 'Lisbon, Wednesday 14 to Monday 19 October 2026' }]);
-  expect(top.items[0].list!.items.map((i) => i.runs[0].t)).toEqual(['Clothes', 'Washbag', 'Papers and money', 'Tech', 'Before leaving']);
+  expect(top.items[0].runs).toEqual([{ t: 'Lisbon, Wednesday, October 14, to Monday, October 19, 2026' }]);
+  expect(top.items[0].list!.items.map((i) => i.runs[0].t)).toEqual(['Clothes', 'Toiletries', 'Papers and money', 'Tech', 'Before leaving']);
   expect(top.items[0].list!.items[4].list!.ord).toBe(true);
 });
 

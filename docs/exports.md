@@ -42,7 +42,7 @@ there it is drawn still, at its resting moment (`ViewOpts.still`).
 | Presentation Builder | `.pptx` | PowerPoint (PPTX) |
 | Presentation Builder | `.html` | Web page (HTML) |
 | Presentation Builder | `.zip` | A picture of every slide (ZIP of PNGs) |
-| Presentation Builder | `.gif` | A film of the deck (GIF) |
+| Presentation Builder | `.gif` | An animation of the deck (GIF) |
 | Spreadsheet | `.xlsx` | Excel (XLSX) |
 | Spreadsheet | `.csv` | CSV |
 | Spreadsheet | `.chart.svg` | Chart (SVG) |

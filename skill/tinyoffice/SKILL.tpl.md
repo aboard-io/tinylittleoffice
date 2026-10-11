@@ -40,7 +40,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 
 | Write | Means |
 | --- | --- |
-| `---` / `key: value` lines / `---` at the very top | The head: the document's settings (`chart: bar`, `zone: Europe/London`, `theme: midnight`) and its `title` and `by` |
+| `---` / `key: value` lines / `---` at the very top | The head: the document's settings (`chart: bar`, `zone: America/New_York`, `theme: midnight`) and its `title` and `by` |
 | `{#id .class key=value}` at the end of a line | Attributes: a layout (`{.title}`, `{.two}`), a setting for that line (`{due=2027-03-01}`) |
 | `Price:money` in a table's header | A typed column: `text number money percent date time check url rich long icon name option` |
 | `~ A -> B: label` | A connection between two things (`->`, `<-`, `<->`, `--`) |
@@ -113,7 +113,7 @@ An expression a line (`2+3*4`, `sqrt(16)`, `20!`); `name = expression` keeps its
 
 ### draw: a drawing, or pixel art
 
-A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid of 8px squares. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `i` icon (its label is the icon's name), `l` line, `a` arrow (X, Y the start; W, H the distance to the end). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid), then a colour letter (`r o g b p`) and a text size (`1` to `4`); a text (`t`) may end it with `=` to centre its words or `>` to set them right. `alt:` in the head describes the drawing for people who cannot see it. Prefer a diagram when one fits: it lays itself out.
+A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid of 8px squares. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `i` icon (its label is the icon's name), `l` line, `a` arrow (X, Y the start; W, H the distance to the end). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid), then a color letter (`r o g b p`) and a text size (`1` to `4`); a text (`t`) may end it with `=` to center its words or `>` to set them right. `alt:` in the head describes the drawing for people who cannot see it. Prefer a diagram when one fits: it lays itself out.
 
 {{tpl:draw:request}}
 
@@ -127,7 +127,7 @@ Pixel art: `grid: 16` (or 8, 32, 64) in the head, then a line per row and a lett
 
 `kind:` in the head says which, and each is a list:
 
-- `mind`: a nested list, the centre then its branches.
+- `mind`: a nested list, the center then its branches.
 - `org`: a nested list of `Name | Role`; a dotted line between two people is `~ Ben -- Eve: advises`.
 - `family`: a nested list, a person or a couple each, `Rose + Albert Hale | m. 1948`.
 - `lanes`: `- Who: what they do`, in order; a step ending in `?` is a decision.
@@ -158,7 +158,7 @@ A drawing's table, then a table `Shape | Keys`: for each moving shape (its row n
 
 ### cal: a calendar, or a schedule
 
-A list item per thing: `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`. Attributes give a colour and a repeat: `{color=green every=week times=6}` (or `until=2027-06-01`). The head holds the time zone, `zone: Europe/London`, and may say what a colour stands for: `green: Sam`. `view: gantt` in the head draws the same items as a schedule: an item nested under another is part of it, `{done=40%}` is how far along it is, `- [x]` that it is done.
+A list item per thing: `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`. Attributes give a color and a repeat: `{color=green every=week times=6}` (or `until=2027-06-01`). The head may hold a time zone, `zone: America/New_York`; without one the times are read in the reader's own zone. It may say what a color stands for: `green: Sam`. `view: gantt` in the head draws the same items as a schedule: an item nested under another is part of it, `{done=40%}` is how far along it is, `- [x]` that it is done.
 
 {{tpl:cal:family}}
 

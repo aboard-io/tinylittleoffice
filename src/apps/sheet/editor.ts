@@ -1227,7 +1227,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
           />
           ${
             tick
-              ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Tick {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}>
+              ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Check {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}>
                 <span class="box" aria-hidden="true">${v ? icon(UI.check, 18) : nothing}</span>
               </button>`
               : nothing

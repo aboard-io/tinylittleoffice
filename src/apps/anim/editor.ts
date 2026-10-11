@@ -699,7 +699,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     const reach = (drawn: number) => (coarse ? Math.max(drawn, FINGER / 2 / this.scale()) : drawn);
     return html`<div class="anim-wrap" data-spatial @wheel=${this.onWheel}>
-      <svg class="anim-stage ${this.held ? 'held' : ''}" style=${this.zoom === 1 ? '' : `width:${this.zoom * 100}%;max-height:none;max-width:none`} viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="application" aria-label=${t('Stage: {alt}. Arrow keys move the shape in hand (or the time), comma and full stop step a frame, Space plays, K keeps a key.', { alt: altOf(a) })} tabindex="0"
+      <svg class="anim-stage ${this.held ? 'held' : ''}" style=${this.zoom === 1 ? '' : `width:${this.zoom * 100}%;max-height:none;max-width:none`} viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="application" aria-label=${t('Stage: {alt}. Arrow keys move the shape in hand (or the time), comma and period step a frame, Space plays, K keeps a key.', { alt: altOf(a) })} tabindex="0"
         @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         ${unsafeSVG(frameSvg(a, now, THEME))}
         ${
@@ -733,7 +733,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return html`<div class="anim-props">
       ${slider(t('Depth'), t('Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.'), 'z', -MAX_Z, MAX_Z, 1, `${Math.round(at.z)}`)}
       ${slider(t('Size'), t('How large the shape is drawn: 1× is as drawn.'), 's', 0.2, 4, 0.1, `${at.s.toFixed(1)}×`)}
-      ${slider(t('Spin'), t('Turns the shape round in the plane of the stage, like a wheel.'), 'r', -360, 360, 1, `${Math.round(at.r)}°`)}
+      ${slider(t('Spin'), t('Turns the shape around in the plane of the stage, like a wheel.'), 'r', -360, 360, 1, `${Math.round(at.r)}°`)}
       ${slider(t('Turn'), t('Turns the shape about its upright axis, like a card: edge on at 90°, mirrored past it.'), 'u', -360, 360, 1, `${Math.round(at.u ?? 0)}°`)}
     </div>`;
   }

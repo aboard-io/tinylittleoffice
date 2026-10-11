@@ -102,7 +102,7 @@ const DECK: Command<D>[] = [
       does: (d) => d.change(setHead('theme', id)),
     }),
   ),
-  cmd('look.color', "The theme's colour", {
+  cmd('look.color', "The theme's color", {
     swatch: (d) => THEMES[d?.settings.theme ?? 'paper']?.accent ?? '',
     heading: 'Icons',
     where: ['menu:look'],

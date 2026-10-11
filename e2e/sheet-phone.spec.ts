@@ -117,8 +117,8 @@ test('sheet: under a finger, a tap selects a cell whole, heads and row numbers a
   // Column C holds checkboxes: a tap on C1 ticks it, and no keyboard comes up (the focus stays off the cell).
   await page.getByRole('button', { name: /^Column C:/ }).tap();
   await page.locator('.sheet-colmenu [role=menu]').getByText('Checkbox', { exact: true }).tap();
-  await page.getByRole('button', { name: 'Tick C1', exact: true }).tap();
-  await expect(page.getByRole('button', { name: 'Tick C1', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Check C1', exact: true }).tap();
+  await expect(page.getByRole('button', { name: 'Check C1', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(cell('C1')).not.toBeFocused();
   expect(errors).toEqual([]);
 });
@@ -150,7 +150,7 @@ test('sheet: on a phone, the row numbers are a narrow quiet side, a checkbox is 
   // Column B holds checkboxes: a 24px box (at the size of 100%) in a cell a finger can hit, ticked by a tap, no keyboard coming up.
   await page.getByRole('button', { name: /^Column B:/ }).tap();
   await page.locator('.sheet-colmenu [role=menu]').getByText('Checkbox', { exact: true }).tap();
-  const tick = page.getByRole('button', { name: 'Tick B1', exact: true });
+  const tick = page.getByRole('button', { name: 'Check B1', exact: true });
   expect((await tick.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   const box = (await tick.locator('.box').boundingBox())!;
   expect([box.width, box.height].map((x) => Math.round(x / look.base))).toEqual([24, 24]);

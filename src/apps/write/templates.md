@@ -7,7 +7,7 @@ look fits it, it names one in its head (`look:`, look.ts).
 - **A letter**: a business letter from a studio to a client, setting down what was agreed.
 - **Cover letter** (serif and sans): applying for a job, in four short paragraphs.
 - **Memo**: one change at a studio, why (with its figure in a footnote), and what is needed by when.
-- **Meeting notes**: agenda, notes, decisions and actions as tasks to tick.
+- **Meeting notes**: agenda, notes, decisions and actions as tasks to check off.
 - **Minutes**: a tenants' association meeting: who came, the treasurer's sums in a table, a motion and its vote.
 - **Résumé**: name, experience, education and skills on a page.
 - **One-page CV** (typewriter): a backend engineer's CV, set in monospace.
@@ -24,7 +24,7 @@ look fits it, it names one in its head (`look:`, look.ts).
 - **Thesis** (book): title page, abstract, a page break, chapters with footnotes, a table of changes worked out, a bibliography.
 - **Grant proposal** (serif and sans): a repair café: the ask, the need, the plan, a budget that sums, measures.
 - **Syllabus** (serif and sans): a history course: times, aims, a week-by-week table, grade weights summing to 100%.
-- **Formal complaint**: a cancelled train: what happened, in order; what is wanted; a deadline; a footnote.
+- **Formal complaint**: a canceled train: what happened, in order; what is wanted; a deadline; a footnote.
 - **Letter to a politician** (serif): a parent asks their representative to vote for a bill, and asks how they will.
 - **Love letter** (serif): ordinary things missed, across the distance.
 - **Wedding speech**: the best woman's speech: how they met, what she has seen, a word to the groom, the toast.

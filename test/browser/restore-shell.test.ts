@@ -170,7 +170,7 @@ test('Mod+/ and the menu open the keyboard shortcuts, read from the command regi
   const rows = (d: HTMLDialogElement) => [...d.querySelectorAll('.to-keys')[0].querySelectorAll('tr')].map((r) => [r.querySelector('kbd')!.textContent, r.querySelector('td')!.textContent]);
   const shift = (k: string) => keysText(`Mod+Shift+${k}`);
   expect(rows(dialog())).toContainEqual([shift('L'), 'Align: left']);
-  expect(rows(dialog())).toContainEqual([shift('E'), 'Align: centre']);
+  expect(rows(dialog())).toContainEqual([shift('E'), 'Align: center']);
   expect(rows(dialog())).toContainEqual([shift('R'), 'Align: right']);
   dialog().close();
   await until(() => !dialog().open);
@@ -185,7 +185,7 @@ test('Mod+/ and the menu open the keyboard shortcuts, read from the command regi
   expect(writeDialog().querySelector('.to-keys caption')!.textContent).toBe('Word Processor');
   for (const row of [
     [shift('L'), 'Align left'],
-    [shift('E'), 'Centre'],
+    [shift('E'), 'Center'],
     [shift('R'), 'Align right'],
     [shift('J'), 'Justify'],
   ])

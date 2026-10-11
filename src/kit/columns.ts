@@ -81,7 +81,7 @@ export function askCurrency(now = ''): Promise<string | null> {
           <button type="submit" class="to-btn primary to-ask-ok" ?disabled=${!ok()}>${t('OK')}</button>
         </div>
         <datalist id=${list}>${CURRENCIES.map((c) => html`<option value=${c}></option>`)}</datalist>
-        ${ok() ? html`<p class="to-hint">${t('A symbol, like £, or a code, like GBP. Empty is the document’s own.')}</p>` : html`<p class="to-hint" role="alert">${t('A symbol of up to three characters, or a code of three letters.')}</p>`}
+        ${ok() ? html`<p class="to-hint">${t('A symbol, like $, or a code, like USD. Empty is the document’s own.')}</p>` : html`<p class="to-hint" role="alert">${t('A symbol of up to three characters, or a code of three letters.')}</p>`}
       </form>`);
     draw();
     dialog.addEventListener('to-close', () => {

@@ -72,6 +72,7 @@ test('a span an item: days, several days, a time, a time past midnight; the labe
     parse(
       '- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-10 22:00 to 2027-03-11 01:00: Party\n- 2027-03-10 22:00-01:00: Late\n- 2027-03-12 08:00: Ping\n- someday: not a span\n\nA paragraph.\n',
     ),
+    'UTC',
   );
   expect(v.zone).toBe('');
   expect(v.items.map((i) => [i.kind, i.dur, i.words])).toEqual([
@@ -83,7 +84,7 @@ test('a span an item: days, several days, a time, a time past midnight; the labe
     ['t', 0, 'Ping'],
   ]);
   expect(v.items[0].start).toBe(day(2027, 3, 1));
-  // Without a zone, times are UTC.
+  // Without a zone, times are the reader's: here, UTC.
   expect(spanStartMs(v.items[2])).toBe(Date.UTC(2027, 2, 10, 9, 0));
   expect(readWhen('2027-03-02 to 2027-03-01: Backwards', 'UTC')).toMatchObject({ kind: 'd', dur: 1 });
   expect(readWhen('2027-03-02 10:00-09:00: Overnight', 'UTC')).toMatchObject({ kind: 't', dur: 23 * 60 });
@@ -158,9 +159,10 @@ test("a new span goes in date order; a time written into a calendar with no zone
   const timed = { kind: 't' as const, start: Date.UTC(2027, 2, 1, 0, 0) / 60000, dur: 60, color: '', label: [{ t: 'Call' }], done: 0 };
   // Tokyo is nine hours on: midnight UTC is 9:00 there, and the head says so.
   expect(run('- 2027-03-01: a\n', (doc) => putItem(doc, readCal(doc), null, timed, 'Asia/Tokyo'))).toBe('---\nzone: Asia/Tokyo\n---\n- 2027-03-01: a\n- 2027-03-01 09:00-10:00: Call\n');
-  // A calendar already holding times in UTC keeps writing them in UTC.
+  // A calendar already holding times with no zone keeps writing them in its reader's, and names none.
   const utc = '- 2027-03-01 12:00: a\n';
-  expect(writeZone(readCal(parse(utc)), 'Asia/Tokyo')).toEqual({ zone: 'UTC', ops: [] });
+  expect(writeZone(readCal(parse(utc), 'UTC'), 'Asia/Tokyo')).toEqual({ zone: 'UTC', ops: [] });
+  expect(writeZone(readCal(parse(utc), 'America/New_York'), 'Asia/Tokyo')).toEqual({ zone: 'America/New_York', ops: [] });
   expect(run(utc, (doc) => putItem(doc, readCal(doc), null, timed, 'Asia/Tokyo'))).toBe('- 2027-03-01 00:00-01:00: Call\n' + utc);
 });
 
@@ -271,7 +273,7 @@ test('iCalendar: floating days, instants, repeats as RRULEs, lines folded at 75 
 
 test("CSV: a calendar's spans, a schedule's tasks with their level", () => {
   expect(calToCsv(parse(DOC))).toBe(
-    'What,Start,End,Repeats,Colour\r\nLaunch,2027-03-01,2027-03-01,,\r\nOffsite,2027-03-01,2027-03-03,,Sam\r\nRetro,2027-03-10 09:00,2027-03-10 10:30,"Every week, 6 times",\r\n',
+    'What,Start,End,Repeats,Color\r\nLaunch,2027-03-01,2027-03-01,,\r\nOffsite,2027-03-01,2027-03-03,,Sam\r\nRetro,2027-03-10 09:00,2027-03-10 10:30,"Every week, 6 times",\r\n',
   );
   const plan = calToCsv(parse(SITE_PLAN), ';');
   expect(plan.split('\r\n').slice(0, 3)).toEqual(['Task;Level;Start;End;Days;Done %', 'Discovery;1;2027-03-01;2027-03-12;12;80', 'Stakeholder interviews;2;2027-03-01;2027-03-03;3;100']);
@@ -283,7 +285,7 @@ test('the templates are canonical, and the definition names its exports', async 
     'family',
     'school',
     'bills',
-    'rota',
+    'volunteers',
     'holidays',
     'fixtures',
     'garden',
@@ -315,8 +317,8 @@ test('every template is a real calendar: a title, a name and a blurb, every list
     ).toBe(true);
     // A colour written on an item is a calendar colour, and (on a calendar) the head says what it stands for.
     for (const i of v.items) if (i.block.a?.kv?.color) expect(v.gantt || !!v.legend[i.color], `${tpl.id}: ${i.words}`).toBe(true);
-    // A time needs the zone it is in.
-    if (v.items.some((i) => i.kind === 't')) expect(v.zone, tpl.id).not.toBe('');
+    // No template names a zone: its times are read in the reader's own.
+    expect(v.zone, tpl.id).toBe('');
     const [page] = calPages(doc, true);
     expect(page.svg.length, tpl.id).toBeGreaterThan(500);
     expect(page.svg, tpl.id).not.toContain('No tasks yet');
@@ -399,4 +401,26 @@ test('pasted items: dated ones keep their dates or move to the day pasted on, wo
   expect(run(PLAN, () => swap.ops)).toBe(PLAN.replace('- 2027-03-08 to 2027-03-10: Build\n', '- 2027-04-01: A\n  - 2027-04-02: B\n'));
   expect([swap.from, swap.to]).toEqual([3, 5]);
   expect(pasteItems(doc, v, [], null, 0)).toBeNull();
+});
+
+test("a calendar with no zone is read in the reader's own: a template's 17:30 is 5:30 PM in New York; one that names a zone keeps it", () => {
+  const shown = (v: ReturnType<typeof readCal>, words: string, zone: string) => {
+    const i = v.items.find((x) => x.words.startsWith(words))!;
+    return new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(spanStartMs(i));
+  };
+  const shifts = templates().find((x) => x.id === 'volunteers')!.doc;
+  const at = shifts.split('\n').find((l) => / 17:30-/.test(l))!;
+  const words = at.replace(/^- [^:]+ \d\d:\d\d-\d\d:\d\d: /, '').replace(/ \{.*$/, '');
+  const ny = readCal(parse(shifts), 'America/New_York');
+  expect(ny.zone).toBe('');
+  expect(ny.tz).toBe('America/New_York');
+  expect(shown(ny, words, 'America/New_York')).toBe('5:30 PM');
+  // The same template read in Tokyo is 5:30 PM in Tokyo: a time with no zone is the clock where it is read.
+  expect(shown(readCal(parse(shifts), 'Asia/Tokyo'), words, 'Asia/Tokyo')).toBe('5:30 PM');
+  // A document that names its zone keeps it: London's 17:30 is 12:30 PM in New York.
+  const london = readCal(parse('---\nzone: Europe/London\n---\n- 2026-11-04 17:30-19:30: Packing\n'), 'America/New_York');
+  expect(london.tz).toBe('Europe/London');
+  expect(shown(london, 'Packing', 'America/New_York')).toBe('12:30 PM');
+  // Without a reader named, the reader is this device.
+  expect(readCal(parse(shifts)).tz).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
 });

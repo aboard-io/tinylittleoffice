@@ -123,9 +123,9 @@ export const templates = (): Template[] => [
   {
     id: 'habits',
     name: t('Habit tracker'),
-    blurb: t('Four habits ticked off day by day for two weeks; how much of each day was kept, and how many days each.'),
+    blurb: t('Four habits checked off day by day for two weeks; how much of each day was kept, and how many days each.'),
     doc: sheet(
-      { title: 'Habits, 21 September to 4 October', lock: 'F1:F14, H1:H4' },
+      { title: 'Habits, September 21 to October 4', lock: 'F1:F14, H1:H4' },
       ['Day:date', 'Walk 30 minutes:check', 'Read 20 pages:check', 'Stretch:check', 'In bed by 11:check', 'Kept:percent', 'Habit:name', 'Days kept:number'],
       numbered(
         [
@@ -167,7 +167,7 @@ export const templates = (): Template[] => [
         ['*James*', 'Percival Everett', '303', 'Read', '2026-01-12', '2026-01-27', '=F2-E2', 'Lent to Dad'],
         ['*Braiding Sweetgrass*', 'Robin Wall Kimmerer', '391', 'Read', '2026-02-02', '2026-03-08', '=F3-E3', 'A chapter a night'],
         ['*Piranesi*', 'Susanna Clarke', '272', 'Read', '2026-03-10', '2026-03-21', '=F4-E4', 'From the library'],
-        ['*The Overstory*', 'Richard Powers', '502', 'Read', '2026-06-01', '2026-07-19', '=F5-E5', 'On holiday in Maine'],
+        ['*The Overstory*', 'Richard Powers', '502', 'Read', '2026-06-01', '2026-07-19', '=F5-E5', 'On vacation in Maine'],
         ['*Middlemarch*', 'George Eliot', '880', 'Reading', '2026-09-07', '', '=TODAY()-E6', 'Book club, a book of it a month'],
         ['*The Dispossessed*', 'Ursula K. Le Guin', '387', 'Next', '', '', '', 'Maya’s copy'],
         ['*Intermezzo*', 'Sally Rooney', '448', 'Want to read', '', '', '', 'On hold at the library'],
@@ -208,12 +208,12 @@ export const templates = (): Template[] => [
       { title: 'Training, the first week of October', lock: 'F1:F3' },
       ['Date:date', 'What', 'How much:number', 'Unit', 'Kind', 'Total:number'],
       [
-        ['2026-10-01', 'Run', '5', 'km', 'Run', '=SUMIF(B1:B30, E1, C1:C30)'],
+        ['2026-10-01', 'Run', '3', 'miles', 'Run', '=SUMIF(B1:B30, E1, C1:C30)'],
         ['2026-10-02', 'Piano', '30', 'min', 'Piano', '=SUMIF(B1:B30, E2, C1:C30)'],
-        ['2026-10-03', 'Run', '7.5', 'km', 'Swim', '=SUMIF(B1:B30, E3, C1:C30)'],
-        ['2026-10-05', 'Swim', '40', 'lengths'],
+        ['2026-10-03', 'Run', '4.5', 'miles', 'Swim', '=SUMIF(B1:B30, E3, C1:C30)'],
+        ['2026-10-05', 'Swim', '40', 'laps'],
         ['2026-10-06', 'Piano', '45', 'min'],
-        ['2026-10-07', 'Run', '10', 'km'],
+        ['2026-10-07', 'Run', '6', 'miles'],
       ],
     ),
   },
@@ -222,7 +222,7 @@ export const templates = (): Template[] => [
     name: t('Time sheet'),
     blurb: t('A week’s hours by client and task; the billable ones priced at their rate, and the totals.'),
     doc: sheet(
-      { title: 'Time sheet, week of 5 October 2026', lock: 'G1:G8' },
+      { title: 'Time sheet, week of October 5, 2026', lock: 'G1:G8' },
       ['Date:date', 'Client', 'Task', 'Hours:number', 'Billable:check', 'Rate:money', 'Amount:money'],
       numbered(
         [
@@ -261,7 +261,7 @@ export const templates = (): Template[] => [
   {
     id: 'tracker',
     name: t('Project tracker'),
-    blurb: t('Tasks with owners, start and due dates counted from today, days each, how each is going, and a tick when done.'),
+    blurb: t('Tasks with owners, start and due dates counted from today, days each, how each is going, and a check when done.'),
     doc: sheet(
       { title: 'Website relaunch' },
       ['Task', 'Owner', 'Start:date', 'Due:date', 'Days:number', 'Status:option', 'Done:check'],
@@ -278,15 +278,15 @@ export const templates = (): Template[] => [
     name: t('Schedule with dates'),
     blurb: t('A job in steps, each starting when the last one ends: who, how many days, the end date and the working days.'),
     doc: sheet(
-      { title: 'Kitchen redo, autumn 2026', lock: 'C2:C9, E1:F9' },
+      { title: 'Kitchen redo, fall 2026', lock: 'C2:C9, E1:F9' },
       ['Step', 'Who', 'Starts:date', 'Days:number', 'Ends:date', 'Workdays:number', 'Done:check'],
       numbered(
         [
           ['Clear out the kitchen', 'Us', '2', 'x'],
-          ['Take out the old units', 'Reyes Builders', '3', 'x'],
+          ['Tear out the old cabinets', 'Reyes Builders', '3', 'x'],
           ['Plumbing and wiring', 'Reyes Builders', '5', ''],
           ['Walls patched and primed', 'Reyes Builders', '4', ''],
-          ['Cabinets in', 'Oak and Iron Joinery', '3', ''],
+          ['Cabinets in', 'Oak and Iron Woodworks', '3', ''],
           ['Countertop measured, cut and fitted', 'Stoneworks', '10', ''],
           ['Tile behind the sink', 'Reyes Builders', '3', ''],
           ['Paint', 'Us', '2', ''],
@@ -298,7 +298,7 @@ export const templates = (): Template[] => [
   {
     id: 'grades',
     name: t('Grade book'),
-    blurb: t('A class’s marks for essays, quizzes and a project; each student’s average and letter, and the class average.'),
+    blurb: t('A class’s grades for essays, quizzes and a project; each student’s average and letter, and the class average.'),
     doc: sheet(
       { title: 'English 9, fall 2026', lock: 'G1:H10, B11:G11' },
       ['Student', 'Essay 1:number', 'Quiz 1:number', 'Quiz 2:number', 'Essay 2:number', 'Project:number', 'Average:number', 'Grade'],
@@ -346,17 +346,17 @@ export const templates = (): Template[] => [
     name: t('Seating count'),
     blurb: t('Tables for a wedding: seats, guests, places free and the meals chosen, with a check that the meals add up.'),
     doc: sheet(
-      { title: 'Ada and Sam’s wedding, 19 December 2026', lock: 'E1:E9, I1:I9, C9:H9' },
+      { title: 'Ada and Sam’s wedding, December 19, 2026', lock: 'E1:E9, I1:I9, C9:H9' },
       ['Table', 'Who sits there', 'Seats:number', 'Guests:number', 'Free:number', 'Chicken:number', 'Fish:number', 'Vegetarian:number', 'Meals add up'],
       numbered([
         ...[
-          ['Top table', 'Ada, Sam and the wedding party', '10', '10', '4', '3', '3'],
+          ['Head table', 'Ada, Sam and the wedding party', '10', '10', '4', '3', '3'],
           ['Table 2', 'Ada’s family', '10', '9', '5', '2', '2'],
           ['Table 3', 'Sam’s family', '10', '10', '4', '4', '2'],
-          ['Table 4', 'University friends', '10', '8', '3', '2', '3'],
+          ['Table 4', 'College friends', '10', '8', '3', '2', '3'],
           ['Table 5', 'Work friends', '10', '10', '5', '3', '2'],
           ['Table 6', 'Cousins', '10', '9', '4', '2', '2'],
-          ['Table 7', 'Neighbours', '8', '7', '3', '2', '2'],
+          ['Table 7', 'Neighbors', '8', '7', '3', '2', '2'],
           ['Table 8', 'The children', '8', '6', '6', '0', '0'],
         ].map(([name, who, seats, guests, ...meals]) => (n: number) => [name, who, seats, guests, `=C${n}-D${n}`, ...meals, `=IF(F${n}+G${n}+H${n}=D${n}, "Yes", "Check")`]),
         (n: number) => ['All tables', '', ...[2, 3, 4, 5, 6, 7].map((c) => `=SUM(${L(c)}1:${L(c)}8)`), `=IF(F${n}+G${n}+H${n}=D${n}, "Yes", "Check")`],
@@ -442,16 +442,16 @@ export const templates = (): Template[] => [
   {
     id: 'pettycash',
     name: t('Petty cash'),
-    blurb: t('Money in and out of the tin, who spent it and on what, the balance after each, and a tick for a receipt.'),
+    blurb: t('Money in and out of the cash box, who spent it and on what, the balance after each, and a check for a receipt.'),
     doc: sheet(
       { title: 'Petty cash, Maple Street Clinic, October 2026', lock: 'F1:F8' },
       ['Date:date', 'What', 'Who', 'In:money', 'Out:money', 'Balance:money', 'Receipt:check'],
       numbered(
         [
-          ['2026-10-01', 'Float for the month', 'Office', '200', '', 'x'],
-          ['2026-10-02', 'Milk and coffee for the staff room', 'Dana', '', '12.40', 'x'],
+          ['2026-10-01', 'Starting cash for the month', 'Office', '200', '', 'x'],
+          ['2026-10-02', 'Milk and coffee for the break room', 'Dana', '', '12.40', 'x'],
           ['2026-10-03', 'Stamps', 'Marcus', '', '23.60', 'x'],
-          ['2026-10-06', 'Batteries for the scales', 'Dana', '', '8.99', 'x'],
+          ['2026-10-06', 'Batteries for the scale', 'Dana', '', '8.99', 'x'],
           ['2026-10-07', 'Card and flowers for Ruth’s retirement', 'Priya', '', '34', 'x'],
           ['2026-10-08', 'Parking for the courier', 'Marcus', '', '6', ''],
           ['2026-10-09', 'Top-up from the office account', 'Office', '50', '', 'x'],
@@ -472,7 +472,7 @@ export const templates = (): Template[] => [
           ['Spot illustration', 'One drawing, two rounds of changes', '6', 'Hourly rate', '90'],
           ['Editorial illustration', 'A full-page drawing for a magazine', '10', 'Rush extra percent', '25'],
           ['Poster', 'One design, print and social sizes', '12'],
-          ['Pattern tile', 'A repeating tile in two colourways', '8'],
+          ['Pattern tile', 'A repeating tile in two colorways', '8'],
           ['Logo and mark', 'Three ideas, one refined, files for print and web', '20'],
           ['Book cover', 'Front, spine and back, ready for the printer', '24'],
           ['Workshop, half a day', 'Up to 12 people, materials included', '5'],
@@ -528,41 +528,41 @@ export const templates = (): Template[] => [
   {
     id: 'converter',
     name: t('Unit converter'),
-    blurb: t('Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.'),
+    blurb: t('Miles and kilometers, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.'),
     doc: sheet(
       { title: 'Unit converter', lock: 'C1:D12' },
       ['Unit:name', 'Amount:number', 'Comes to:number', 'In'],
       [
-        ['Miles', '26.2', '=ROUND(miles*1.609344, 2)', 'kilometres'],
-        ['Kilometres', '10', '=ROUND(kilometres/1.609344, 2)', 'miles'],
+        ['Miles', '26.2', '=ROUND(miles*1.609344, 2)', 'kilometers'],
+        ['Kilometers', '10', '=ROUND(kilometers/1.609344, 2)', 'miles'],
         ['Pounds', '150', '=ROUND(pounds*0.45359237, 2)', 'kilograms'],
         ['Kilograms', '5', '=ROUND(kilograms/0.45359237, 2)', 'pounds'],
         ['Fahrenheit', '350', '=ROUND((fahrenheit-32)*5/9, 1)', 'degrees Celsius'],
         ['Celsius', '21', '=ROUND(celsius*9/5+32, 1)', 'degrees Fahrenheit'],
-        ['Inches', '55', '=ROUND(inches*2.54, 1)', 'centimetres'],
-        ['Feet', '6', '=ROUND(feet*0.3048, 2)', 'metres'],
-        ['Cups', '2', '=ROUND(cups*236.588, 0)', 'millilitres'],
+        ['Inches', '55', '=ROUND(inches*2.54, 1)', 'centimeters'],
+        ['Feet', '6', '=ROUND(feet*0.3048, 2)', 'meters'],
+        ['Cups', '2', '=ROUND(cups*236.588, 0)', 'milliliters'],
         ['Ounces', '8', '=ROUND(ounces*28.3495, 1)', 'grams'],
-        ['Gallons', '12', '=ROUND(gallons*3.78541, 2)', 'litres'],
-        ['Acres', '0.25', '=ROUND(acres*4046.86, 0)', 'square metres'],
+        ['Gallons', '12', '=ROUND(gallons*3.78541, 2)', 'liters'],
+        ['Acres', '0.25', '=ROUND(acres*4046.86, 0)', 'square meters'],
       ],
     ),
   },
   {
     id: 'bracket',
     name: t('Tournament bracket'),
-    blurb: t('Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.'),
+    blurb: t('Eight teams, single elimination: each match’s score, the winner worked out, and the winners carried on to the final.'),
     doc: sheet(
-      { title: 'Riverside Rec League cup, autumn 2026', lock: 'C5:C7, E5:E7, G1:G7' },
+      { title: 'Riverside Rec League cup, fall 2026', lock: 'C5:C7, E5:E7, G1:G7' },
       ['Round', 'Date:date', 'Home', 'Home goals:number', 'Away', 'Away goals:number', 'Winner'],
       numbered(
         [
-          ['Quarter-final 1', '2026-09-19', 'Riverside Rovers', '3', 'Mill Creek United', '1'],
-          ['Quarter-final 2', '2026-09-19', 'Eastgate Eagles', '0', 'Harbor Lights FC', '2'],
-          ['Quarter-final 3', '2026-09-20', 'Northfield Foxes', '2', 'Pine Hollow', '4'],
-          ['Quarter-final 4', '2026-09-20', 'Old Town Athletic', '1', 'Lakeview Strikers', '0'],
-          ['Semi-final 1', '2026-09-26', '=G1', '2', '=G2', '1'],
-          ['Semi-final 2', '2026-09-27', '=G3', '1', '=G4', '3'],
+          ['Quarterfinal 1', '2026-09-19', 'Riverside Rovers', '3', 'Mill Creek United', '1'],
+          ['Quarterfinal 2', '2026-09-19', 'Eastgate Eagles', '0', 'Harbor Lights FC', '2'],
+          ['Quarterfinal 3', '2026-09-20', 'Northfield Foxes', '2', 'Pine Hollow', '4'],
+          ['Quarterfinal 4', '2026-09-20', 'Old Town Athletic', '1', 'Lakeview Strikers', '0'],
+          ['Semifinal 1', '2026-09-26', '=G1', '2', '=G2', '1'],
+          ['Semifinal 2', '2026-09-27', '=G3', '1', '=G4', '3'],
           ['Final', '2026-10-03', '=G5', '2', '=G6', '3'],
         ].map((row) => (n: number) => [...row, `=IF(D${n}>F${n}, C${n}, E${n})`]),
       ),
@@ -610,7 +610,7 @@ export const templates = (): Template[] => [
   {
     id: 'cafe',
     name: t('A café'),
-    blurb: t('Customers a day, what they spend, and where the month’s takings go: supplies, rent, wages, profit.'),
+    blurb: t('Customers a day, what they spend, and where the month’s revenue goes: supplies, rent, wages, profit.'),
     doc: model(
       'A café, a month',
       'C1:C5, E8:E10',

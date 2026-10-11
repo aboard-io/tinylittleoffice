@@ -156,7 +156,7 @@ test('a shape tapped has the contextual bar under it: the inks, the style, the s
     'Blue',
     'Purple',
     'No fill',
-    'Grey fill',
+    'Gray fill',
     'Solid fill',
     'Small text',
     'Medium text',
@@ -1047,13 +1047,13 @@ test('a text in hand has one Align item beside its size: it shows the alignment 
   await el.updateComplete;
   expect(last()).toContain('| 0= | Hello\n');
   expect(anchor()).toBe('middle');
-  ctxButton(el, 'Align: centre').click();
+  ctxButton(el, 'Align: center').click();
   await el.updateComplete;
   expect(last()).toContain('| 0> | Hello\n');
   expect(anchor()).toBe('end');
   await undo(el);
   expect(last()).toContain('| 0= | Hello\n');
-  ctxButton(el, 'Align: centre').click();
+  ctxButton(el, 'Align: center').click();
   await el.updateComplete;
   ctxButton(el, 'Align: right').click();
   await el.updateComplete;

@@ -1019,7 +1019,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (this.editing >= 0) return t('Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.');
     if (this.chosen.length > 1) return t('Drag to move them together; Shift and a tap adds a shape or takes it away.');
     if (this.selected) return t('Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.');
-    return t('Tap a shape to select it, or drag round shapes to choose them; choose a tool to draw.');
+    return t('Tap a shape to select it, or drag around shapes to choose them; choose a tool to draw.');
   }
 
   render() {
