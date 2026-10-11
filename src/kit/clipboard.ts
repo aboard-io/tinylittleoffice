@@ -554,6 +554,9 @@ export function installPlainCopy(root: Document = document) {
       type,
       () => {
         root.documentElement.setAttribute('data-copying', '');
+        // WebKit serialises the selection with the styles it last computed: a read forces them computed now, under the mark.
+        void getComputedStyle(root.documentElement).color;
+        void root.body?.offsetHeight;
         setTimeout(() => root.documentElement.removeAttribute('data-copying'), 0);
       },
       true,
