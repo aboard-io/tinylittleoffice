@@ -194,7 +194,7 @@ sign under any name), a different key from the one a known name used before (amb
 Changed since signed or Signature does not match (red), Locked; it opens the Privacy dialog
 (`src/kit/privacy-dialog.ts`, also "Privacy and keys" in the menu): the document's state, the key with Export
 (a file and the text), Import and Forget, what this device holds item by item with Forget and Forget everything,
-and Download everything, every kept document as its .tlo text in one zip (a locked one as its link), the key
+and Download everything, every kept document as its .tlo text in one zip, named by its title and the title in its head (a locked one as its link), the key
 if asked. A signature proves who holds the key and that nothing changed; the name and the time are the signer's word.
 A locked document placed inside another goes in as its sealed link (a ```` ```locked ```` fence, `src/kit/locked.ts`)
 and is drawn everywhere as a locked card: the lock, "Locked with a password", its app; in an editor a tap asks for the

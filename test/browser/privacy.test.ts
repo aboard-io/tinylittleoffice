@@ -3,11 +3,13 @@
 // signed or not"): the unlock dialog, Password… and the re-seal on every change, Sign and the check on open,
 // stale after an edit, the state beside the title, the key, what the device holds, and the zip.
 import { test, expect, afterEach, beforeAll, vi } from 'vitest';
-import { unzipSync, strFromU8 } from 'fflate';
+import { unzipSync, strFromU8, strToU8 } from 'fflate';
 import { mount, tick, until, openShare as openShareFromDrawer, said } from './helpers.ts';
 import { decodeDoc, encodeDoc, isSealed } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
-import { checkSignature, PREFS, exportKey, forgetKey, knowKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
+import { readZip } from '../../src/kit/plain.ts';
+import { appOf } from '../../src/kit/apps.ts';
+import { checkSignature, everything, PREFS, exportKey, forgetKey, knowKey, lockCost, lockWith, myFingerprint, myKey, pack, signerName, signWords, unlock } from '../../src/kit/privacy.ts';
 import { createSigner, fingerprintOf, generate, verify } from '../../src/kit/sign.ts';
 import { messageOf } from '../../src/kit/envelope.ts';
 import { withHead } from '../../src/doc/tlo.ts';
@@ -355,6 +357,37 @@ test('the key: Export (a file, and the text), Import on another device signs as 
   privacy.querySelector<HTMLButtonElement>('.to-key-use')!.click();
   await until(() => said() === 'That is not a signing key.');
   expect(await myFingerprint()).toBe(fp);
+});
+
+test('Download everything names each file by its title and writes the title into a head that has none (Paul, 2026-10-11: "Do both")', async () => {
+  setKeeping(true);
+  forgetAll();
+  const at = Date.now();
+  const words = 'Words that end in a space\\ \n\\\nand go on.\n';
+  keep({ id: 'a', app: 'write', title: 'New Word Processor 2026-10-11 #1', hash: `#/v1/write/${encodeDoc(words)}`, at });
+  keep({ id: 'b', app: 'sheet', title: 'Budget', hash: `#/v1/sheet/${encodeDoc('---\nchart: bar\n---\na | b\n--- | ---\n1 | 2\n')}`, at: at - 1 });
+  keep({ id: 'c', app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc('---\ntitle: Launch notes\nby: Paul\n---\nGo.\n')}`, at: at - 2 });
+  keep({ id: 'd', app: 'write', title: '', hash: `#/v1/write/${await pack('---\ntitle: Salaries\n---\nsecret\n', await lockWith('pw'))}`, at: at - 3 });
+  const files = await everything(false, 'https://tinylittleoffice.example/');
+  expect(Object.keys(files).sort()).toEqual(['sheet/budget.tlo', 'write/launch-notes.tlo', 'write/locked.txt', 'write/new-word-processor-2026-10-11-1.tlo']);
+  // No title in the text: the library's, in a head before the body, the body as it was to the byte.
+  expect(files['write/new-word-processor-2026-10-11-1.tlo']).toBe(`---\ntitle: New Word Processor 2026-10-11 #1\n---\n${words}`);
+  // A head without a title gains one, first; the rest of the head is kept.
+  expect(files['sheet/budget.tlo']).toBe('---\ntitle: Budget\nchart: bar\n---\na | b\n--- | ---\n1 | 2\n');
+  // A text with its title is written as it is.
+  expect(files['write/launch-notes.tlo']).toBe('---\ntitle: Launch notes\nby: Paul\n---\nGo.\n');
+  // A locked one is its link alone: its title is its secret.
+  expect(files['write/locked.txt']).toMatch(/^https:\/\/tinylittleoffice\.example\/#\/v1\/write\/E[\w~]+\n$/);
+  // And back: the zip read gives each the same title and the same text.
+  const back = readZip(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])), 'write', (id) => ['write', 'sheet'].includes(id));
+  const titled = back.filter((d) => !d.payload).map((d) => ({ title: appOf(d.app)!.title(d.text), text: d.text }));
+  expect(titled).toEqual([
+    { title: 'New Word Processor 2026-10-11 #1', text: files['write/new-word-processor-2026-10-11-1.tlo'] },
+    { title: 'Budget', text: files['sheet/budget.tlo'] },
+    { title: 'Launch notes', text: files['write/launch-notes.tlo'] },
+  ]);
+  expect(back.find((d) => d.payload)!.payload).toBe(parseHash(library()[3].hash).payload);
+  forgetAll();
 });
 
 test('what this device holds, item by item with Forget, and Download everything: every kept document in one zip', async () => {

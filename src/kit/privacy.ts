@@ -28,6 +28,7 @@ import { withHead } from '../doc/tlo.ts';
 import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './links.ts';
 import { parseHash } from './route.ts';
+import { titledText } from './plain.ts';
 import { slug } from './draw.ts';
 import { forgetLanguage } from './i18n.ts';
 
@@ -262,7 +263,8 @@ export async function forgetEverything() {
 }
 
 /**
- * Every document kept here as a file, in a folder by app: its text as .tlo; one under a password as its link
+ * Every document kept here as a file named by its title, in a folder by app: its text as .tlo, the title
+ * written into its head when the text names none (kit/plain.ts titledText); one under a password as its link
  * in a .txt (its text is not to be had without the password). With `withKey`, the signing key too. `base`
  * is the address a link starts with.
  */
@@ -275,10 +277,11 @@ export async function everything(withKey: boolean, base: string): Promise<Record
   };
   for (const k of library()) {
     const { payload } = parseHash(k.hash);
-    if (isSealed(payload)) files[name(k.app, slug(k.title) || 'locked', 'txt')] = `${base}${k.hash}\n`;
+    // A locked document's title is its secret: the library holds none for it, and nothing is written.
+    if (isSealed(payload)) files[name(k.app, slug(k.title) || 'locked', 'txt')] = `${k.title ? `title: ${k.title}\n` : ''}${base}${k.hash}\n`;
     else {
       const text = decodeDoc(payload);
-      if (text) files[name(k.app, slug(k.title) || 'untitled', 'tlo')] = text;
+      if (text) files[name(k.app, slug(k.title) || 'untitled', 'tlo')] = titledText(text, k.title);
     }
   }
   if (withKey && (await myFingerprint())) files['signing-key.json'] = await exportKey();

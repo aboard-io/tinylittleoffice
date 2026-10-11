@@ -74,6 +74,8 @@ title: The document's name
 ---
 ```
 
+Download everything writes the title here, the one the library gives it (an automatic name, its first words), in
+a text whose head names none, so the file comes back as it was named.
 The shell's keys are `title`, `by`, `created`, `key` and `sig` (and `app` in a `.tlo` file). A table's `lock:` and
 `chart:` ride on the head for a sheet and on the table's attributes anywhere else.
 
