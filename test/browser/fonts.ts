@@ -2,7 +2,8 @@
  * The type each language's words are measured in by the measuring tests (label-widths, metrics): the Noto family of its
  * script, as Android and ChromeOS draw it and as the box has it (fonts-noto-core, fonts-noto-cjk, fonts-noto-extra), so
  * a width is a width and never a run of fallback boxes, and never whatever the box's fontconfig happens to reach for
- * first (FreeSans for Bengali, WenQuanYi for Korean). Urdu in Nastaliq, as iOS draws it. English and every language in
+ * first (FreeSans for Bengali, WenQuanYi for Korean). Urdu in Nastaliq, the stylesheet's first choice for it (tokens.css
+ * :lang(ur)) and what iOS, Android and Windows draw. English and every language in
  * the Latin or Cyrillic script are measured in the slot's own font, which the box draws in DejaVu Sans: /etc/fonts/local.conf
  * keeps it the box's sans-serif after Noto Sans came with the scripts' fonts, so the widths every Latin test was
  * calibrated against do not move.

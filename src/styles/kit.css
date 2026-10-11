@@ -78,7 +78,7 @@
   }
   body {
     margin: 0;
-    font: 1rem/1.5 var(--to-font);
+    font: 1rem/var(--to-line) var(--to-font);
     color: var(--to-ink);
     background: var(--to-bg);
   }
@@ -1116,7 +1116,7 @@
     margin: 0;
     font-size: 1.375rem;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: var(--to-line-label);
   }
   .to-arrival-acts {
     display: flex;

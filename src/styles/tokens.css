@@ -4,7 +4,9 @@
    that can be seen (3:1), the accent lighter with dark words on it. test/contrast.test.ts reads every pair. */
 @layer tokens {
   :root {
-    --to-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* The device's own type: every script's words in the font the device draws that script in (Naskh for Arabic). */
+    --to-font-system: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --to-font: var(--to-font-system);
     --to-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     /* The home page's wordmark (kit.css .to-header .to-brand): a light serif, the system's. */
     --to-font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Times New Roman', serif;
@@ -62,11 +64,22 @@
        row's grip, tick and menu leave its words the room (the review of 2026-10-11: 114px each had left a task 25px). */
     --to-touch: min(2.75rem, calc(2.75 * var(--to-nav-font)));
     --to-max-w: 67.5rem;
+    /* The line: body text's, and the tighter one of headings and labels. */
+    --to-line: 1.5;
+    --to-line-label: 1.25;
     /* The gutter: a number of the scale's 16px (12 on a narrow screen, responsive.css), the document's here and the
        nav's on every nav element. */
     --to-gutter-k: 1;
     --to-gutter: calc(var(--to-gutter-k) * 1rem);
     color-scheme: light;
+  }
+  /* Urdu reads in Nastaliq (Paul, 2026-10-11: the best path for colloquial speakers; docs/translation.md §8): the
+     device's own, which every iPhone, Android from 8 and Windows ship, and the Arabic stack (the device's Naskh) where
+     none is there. No font is bundled. Nastaliq's letters climb and fall further than Naskh's, so its lines are taller. */
+  :lang(ur) {
+    --to-font: 'Noto Nastaliq Urdu', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Awami Nastaliq', var(--to-font-system);
+    --to-line: 1.9;
+    --to-line-label: 1.6;
   }
   :root[data-theme='dark'] {
     --to-bg: hsl(240 6% 8%);

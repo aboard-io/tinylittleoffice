@@ -9,9 +9,9 @@
   }
   to-text .tx {
     position: relative;
-    min-height: 1.5em;
+    min-height: calc(var(--to-line) * 1em);
     font-size: max(1rem, 1em);
-    line-height: 1.5;
+    line-height: var(--to-line);
     /* The box collapses the whitespace between its blocks (the template's own newlines); each block keeps its spaces and line breaks. */
     white-space: normal;
     /* A word too long for its line breaks; one that would fit goes to the next line whole (never "anywhere", which
@@ -52,7 +52,7 @@
   to-text .tx h2,
   to-text .tx h3,
   to-text .tx h4 {
-    line-height: 1.25;
+    line-height: var(--to-line-label);
     font-weight: 700;
   }
   to-text .tx h1 {
@@ -339,8 +339,8 @@
     width: max(100% - 2.5em, min(8em, 100%));
   }
   .to-note-words .tx {
-    min-height: 1.4em;
-    line-height: 1.4;
+    min-height: calc(var(--to-line) * 1em);
+    line-height: var(--to-line);
     border-radius: 0.25rem;
   }
   .to-note-words .tx:focus {
