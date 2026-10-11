@@ -29,7 +29,7 @@ problem.
 ## What counts
 
 In scope: the site at tinylittleoffice.com and everything in this repository: the codec and the link
-format, the password (`src/kit/crypt.ts`), signing (`src/kit/sign.ts`, `src/kit/envelope.ts`), short links
+format, the password (`src/kit/crypt.ts`), short links
 (`src/kit/short.ts`, `tinier/`), the picture proxy (`media/`), the Content-Security-Policy
 (`public/_headers`), the link guard, the offline copy (`src/sw.ts`), and any request the site makes that
 docs/network.md does not list.

@@ -15,12 +15,12 @@
  * page's; on the home page itself the rows are the page, so the drawer has none: Paul, 2026-10-10),
  * so a template is reachable from inside any app; Private or Saved; Language;
  * Theme; Keyboard shortcuts; Add to home screen where the browser offers it (install.ts)
- * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; says what the site does not protect against, limits(); and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * (on an iPhone, the line that says how); Privacy (<to-privacy>: what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; says what the site does not protect against, limits(); and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt, a zip of them: kit/open.ts) and Compare… (this document beside another link:
  * kit/compare.ts) sit above the switches.
  *
- * The drawer is a menu: a row that opens a dialog (Share…, an app's templates, Privacy and keys, Keyboard shortcuts,
+ * The drawer is a menu: a row that opens a dialog (Share…, an app's templates, Privacy, Keyboard shortcuts,
  * About, a command) closes the drawer first and opens it, one modal at a time, and when that dialog closes the focus is
  * on the hamburger, where the drawer was opened from (handOver; Paul, 2026-10-10: "the outer one hands over"). The
  * dialogs it opens are drawn beside its own <dialog>, not in it: an app's templates in one <to-templates bare>.
@@ -165,10 +165,7 @@ export class ToDrawer extends LitElement {
 
   private async togglePrivate(e: Event) {
     const box = e.target as HTMLInputElement;
-    if (
-      keeping() &&
-      !confirm(t('Save nothing on this device from now on? Your preferences, the list of your documents and your signing key are forgotten (the documents themselves live in their links).'))
-    ) {
+    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences and the list of your documents are forgotten (the documents themselves live in their links).'))) {
       // The browser flipped the switch before the question was asked: Cancel puts it back.
       box.checked = true;
       this.requestUpdate();
@@ -295,7 +292,7 @@ export class ToDrawer extends LitElement {
                     ${THEMES.map((th) => html`<option value=${th} ?selected=${th === theme()}>${themeName(th)}</option>`)}
                   </select>
                 </label>
-                <button type="button" class="to-btn to-drawer-privacy" @click=${() => this.handOver(() => this.querySelector<ToPrivacy>('to-privacy')?.show())}>${icon(UI.key, 18)}<span>${t('Privacy and keys')}</span></button>
+                <button type="button" class="to-btn to-drawer-privacy" @click=${() => this.handOver(() => this.querySelector<ToPrivacy>('to-privacy')?.show())}>${icon(UI.private, 18)}<span>${t('Privacy')}</span></button>
                 <button type="button" class="to-btn to-drawer-keys" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-keys', { bubbles: true })))}>${icon(UI.keys, 18)}<span>${t('Keyboard shortcuts')}</span></button>
                 ${
                   canInstall()
@@ -312,7 +309,7 @@ export class ToDrawer extends LitElement {
     </dialog>
     <to-privacy></to-privacy>
     ${this.templatesOf ? html`<to-templates class="to-drawer-templates" bare .app=${this.templatesOf}></to-templates>` : nothing}
-    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.')}</p><p class="to-hint">${t('Private, the default:')} ${t('This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.')} ${t('Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what that key signed; the name it is signed under is the signer’s own word. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><button type="button" class="to-about-threats" @click=${() => this.showLimits()}>${t('What this protects against, and what it does not')}</button></p><section class="to-about-limits" aria-labelledby="to-about-limits-h"><h3 id="to-about-limits-h" tabindex="-1">${t('What it does not protect against')}</h3><ul class="to-hint">${limits().map((s) => html`<li>${s}</li>`)}</ul></section>${
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.')}</p><p class="to-hint">${t('Private, the default:')} ${t('This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.')} ${t('Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. Privacy, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><button type="button" class="to-about-threats" @click=${() => this.showLimits()}>${t('What this protects against, and what it does not')}</button></p><section class="to-about-limits" aria-labelledby="to-about-limits-h"><h3 id="to-about-limits-h" tabindex="-1">${t('What it does not protect against')}</h3><ul class="to-hint">${limits().map((s) => html`<li>${s}</li>`)}</ul></section>${
       this.version
         ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
         : nothing

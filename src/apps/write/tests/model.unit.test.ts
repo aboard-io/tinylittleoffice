@@ -5,6 +5,7 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { expect, test } from 'vitest';
 import { applyAll, evaluate, firstTable, formatCell, parse, write } from '../../../doc/index.ts';
 import write_ from '../def.ts';
+import { lint } from '../../../lint.ts';
 // The registry, so a document held in the text is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
 import {
@@ -55,9 +56,17 @@ test('every template is canonical and parses as the kernel wrote it', () => {
     expect(t.doc.endsWith('\n')).toBe(true);
     expect(write_.view(t.doc).length).toBeGreaterThan(0);
   }
-  const contract = parse(write_.templates.find((t) => t.id === 'contract')!.doc);
-  const last = contract.blocks[contract.blocks.length - 1];
-  expect(last.k === 'fence' && last.lang).toBe('signatures');
+});
+
+test('signatures are gone (Paul, 2026-10-11): no template holds a signatures fence, and the contract lints clean', () => {
+  for (const t of write_.templates)
+    expect(
+      parse(t.doc).blocks.some((b) => b.k === 'fence' && b.lang === 'signatures'),
+      t.id,
+    ).toBe(false);
+  const contract = write_.templates.find((t) => t.id === 'contract')!.doc;
+  expect(contract).not.toMatch(/sign/i);
+  expect(lint('write', contract)).toEqual([]);
 });
 
 test('the invoice adds up in place: Amount is Qty × Price and locked, the totals are formulas', () => {

@@ -8,6 +8,9 @@ Status key: **present**; **partial** (some of it is there); **missing**; **dropp
 
 ## 1. Privacy, trust, signing (the gaps Paul named)
 
+The signing rows below are **dropped** since round seventeen (Paul, 2026-10-11: "Get rid of signatures everywhere,
+including templates"); passwords stay.
+
 | Feature | Old file(s) | What it did | Status | What porting it means |
 |---|---|---|---|---|
 | Password protection (sealed links) | src/lib/crypt.ts, lib/privacy.ts, widgets/privacy.ts (password prompt), app.ts (sealed state) | AES-256-GCM over the packed document, with the key derived from a password by PBKDF2-SHA-256 (600k iterations). The link carries `E<salt\|iv\|ct>`. Opening it asks for the password, the key is derived once per session and each edit gets a fresh IV. A sealed link downloads its files once unlocked, and an embed of one says it is locked. | **missing** (no PBKDF2 or `E` payload anywhere in next) | Port the pure code: crypt.ts (87 lines, WebCrypto only) into `src/kit/crypt.ts`. Teach `kit/codec.ts` and `route.ts` the sealed payload. In the kit, rebuild the unlock prompt (a `<to-dialog>`), a "Password" item, the locked state in the header and the re-seal on every change in `shell.change()`. It belongs to every app (shell level). Bring over test/crypt.test.ts. |

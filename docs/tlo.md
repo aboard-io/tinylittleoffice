@@ -74,7 +74,7 @@ title: The document's name
 ---
 ```
 
-The shell's keys are `title`, `by`, `created`, `key` and `sig` (and `app` in a `.tlo` file). A table's `lock:` and
+The shell's keys are `title`, `by` and `created` (and `app` in a `.tlo` file). A table's `lock:` and
 `chart:` ride on the head for a sheet and on the table's attributes anywhere else.
 
 ### Fences the kit knows
@@ -83,7 +83,6 @@ The shell's keys are `title`, `by`, `created`, `key` and `sig` (and `app` in a `
   by its app where it sits. Under an outline item it says its depth: ```` ```sheet {depth=2} ````.
 - ```` ```qr ```` with nothing in it: the QR code of this document's own link, drawn afresh as the document
   changes; with an address in it, that address's code (Insert ▾ → QR code of this document).
-- ```` ```signatures ````: a contract's signatures, a table `Name | Key | Signature` that signing fills.
 - ```` ```locked ```` holding a link's fragment, `#/v1/write/E…`: a document locked with a password, kept sealed. It is
   drawn as a locked card (its app and nothing more can be read) until its password is given in an editor.
 

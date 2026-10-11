@@ -4,17 +4,11 @@
  *   - Private or Saved: whether the device keeps anything. Private (the default) writes nothing of the site's
  *     but the language chosen in the menu (kit/i18n.ts): no cookies, no storage. The browser's own history still
  *     holds every link opened, and a link is the document; that is not ours to clear. Saved keeps the preferences, the documents
- *     opened here (kit/library.ts), the short links' owner links (kit/links.ts) and the signing
- *     key. Turned back to Private, all of it goes from the device, the key from the visit too. Forget everything
- *     forgets the language chosen as well.
+ *     opened here (kit/library.ts) and the short links' owner links (kit/links.ts). Turned back to
+ *     Private, all of it goes from the device. Forget everything forgets the language chosen as well.
  *   - The password: a document sealed (kit/crypt.ts) and opened, here. A password is never kept, under
  *     Saved or not: the key that opened a document stays in memory for the visit, so it opens again
  *     without asking.
- *   - The signature: this device's key made, shown, exported, imported and forgotten (kit/sign.ts, kept
- *     through kit/store.ts, so under Private it lives for the visit); a document signed, and checked.
- *   - The keys this device knows: under Saved alone, a name and the key the reader said is that name's ("I know
- *     this key"), so a signature by it is green and the same name under another key is amber. Trust on first
- *     use, nothing more: no key server, no network. Under Private every key is unknown.
  *   - What the device holds, item by item, and everything kept in one zip.
  *
  * The shell and <to-privacy> (kit/privacy-dialog.ts) only call this.
@@ -22,9 +16,6 @@
 import { keeping, setKeeping, store } from './store.ts';
 import { decodeDoc, encodeDoc, isSealed, packDoc, unpackDoc } from './codec.ts';
 import { newLocker, PBKDF2_ITERATIONS, seal, unseal, unsealWith, type Locker } from './crypt.ts';
-import { canCheck, createSigner, fingerprintOf, verify } from './sign.ts';
-import { isoMinute, messageOf, readEnvelope } from './envelope.ts';
-import { withHead } from '../doc/tlo.ts';
 import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './links.ts';
 import { parseHash } from './route.ts';
@@ -32,12 +23,9 @@ import { slug } from './draw.ts';
 import { forgetLanguage } from './i18n.ts';
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
-/** Where the key, the signer's name and the owner links are kept. */
-const KEY = 'tinyoffice.key';
-const NAME = 'tinyoffice.name';
+export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.size'];
+/** Where the owner links are kept. */
 const LINKS = 'tinyoffice.links';
-const KNOWN = 'tinyoffice.known';
 
 const listeners = new Set<() => void>();
 export function onPrivacy(cb: () => void): () => void {
@@ -50,13 +38,9 @@ const changed = () => {
 
 export { keeping };
 
-/** The switch, turned: keep things from now on, or forget all of it (the signing key with it) and keep nothing. */
+/** The switch, turned: keep things from now on, or forget all of it and keep nothing. */
 export async function setPrivate(privately: boolean) {
   setKeeping(!privately);
-  if (privately) {
-    store.remove(KEY);
-    store.remove(KNOWN);
-  }
   changed();
 }
 
@@ -98,141 +82,19 @@ export async function reopen(payload: string): Promise<{ text: string; locker: L
 /** A locker made here (a password set) opens its document again this visit too. */
 export const remember = (locker: Locker) => void (opened.includes(locker) || opened.push(locker));
 
-/* ---------- the signature ---------- */
-
-const signer = createSigner({ get: () => store.get(KEY), set: (v) => store.set(KEY, v), remove: () => store.remove(KEY) });
-
-/**
- * A document's signature as checked against its text now: none; valid; stale (this device's key signed it
- * and it has changed since: sign again); invalid (it was checked and does not match what is here, whoever
- * signed it); unchecked (this browser cannot check this kind of signature: an Ed25519 one without Ed25519).
- */
-export type SigState = 'none' | 'valid' | 'stale' | 'invalid' | 'unchecked';
-export interface Signature {
-  state: SigState;
-  /** The name it was signed under, if any. */
-  by?: string;
-  /** The signing key's fingerprint. */
-  fingerprint?: string;
-  /** Signed with this device's key. */
-  mine?: boolean;
-  /** A key this device knows as the name's (under Saved). */
-  known?: boolean;
-  /** The name is known here with another key: not the key it used before. */
-  other?: boolean;
-}
-
-/* ---------- the keys this device knows ---------- */
-
-/** A name as the known keys hold it: one space between words, case and width set aside. */
-const nameKey = (name: string) => name.normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
-
-/** The names and the keys' fingerprints this device knows; none under Private. */
-export function knownKeys(): Record<string, string> {
-  if (!keeping()) return {};
-  try {
-    const map = JSON.parse(store.get(KNOWN) ?? '{}');
-    return map && typeof map === 'object' ? map : {};
-  } catch {
-    return {};
-  }
-}
-/** The key this device knows as the name's, if any. */
-const knownAs = (name: string): string | undefined => {
-  const map = knownKeys();
-  const v = Object.hasOwn(map, nameKey(name)) ? map[nameKey(name)] : undefined;
-  return typeof v === 'string' ? v : undefined;
-};
-/** "I know this key": the name's key from now on, under Saved; under Private nothing is written. */
-export function knowKey(name: string, fingerprint: string) {
-  const who = nameKey(name);
-  if (!keeping() || !who || !fingerprint) return;
-  store.set(KNOWN, JSON.stringify({ ...knownKeys(), [who]: fingerprint }));
-  changed();
-}
-export function forgetKnown() {
-  store.remove(KNOWN);
-  changed();
-}
-
-export async function checkSignature(app: string, text: string): Promise<Signature> {
-  const env = readEnvelope(text);
-  if (!env.key || !env.sig) return { state: 'none' };
-  const [ok, can, fingerprint, me] = await Promise.all([verify(env.key, env.sig, messageOf(app, text)), canCheck(env.key), fingerprintOf(env.key), signer.publicKey()]);
-  const mine = me === env.key;
-  const was = env.by ? knownAs(env.by) : undefined;
-  const known = !mine && !!was && was === fingerprint;
-  const other = !mine && !!was && was !== fingerprint;
-  return { state: ok ? 'valid' : !can ? 'unchecked' : mine ? 'stale' : 'invalid', ...(env.by ? { by: env.by } : {}), fingerprint, mine, known, other };
-}
-
-/** The name signatures are made under, as given last; '' until one is. */
-export const signerName = (): string => store.get(NAME) ?? '';
-
-/**
- * The envelope's keys that sign this text with this device's key (made now if there is none): the name, the
- * creation time (now, if it has none), the public key and the signature, for the shell to put in the head.
- */
-export async function signText(app: string, text: string, by: string, now = Date.now()): Promise<{ by: string; created: string; key: string; sig: string }> {
-  const name = by.replace(/\s+/g, ' ').trim();
-  if (name) store.set(NAME, name);
-  const created = isoMinute(readEnvelope(text).created ?? now);
-  const unsigned = withHead(text, { by: name, created, key: '', sig: '' });
-  const { key, sig } = await signer.sign(messageOf(app, unsigned));
-  changed();
-  return { by: name, created, key, sig };
-}
-
-/** This device's public key, or null when it has none yet: whose row in a contract is this device's. */
-export const myKey = (): Promise<string | null> => signer.publicKey();
-
-/** Words signed with this device's key (made now if there is none) under a name, kept as the name to sign under next time: a contract's signature. */
-export async function signWords(message: string, name: string): Promise<{ key: string; sig: string }> {
-  const who = name.replace(/\s+/g, ' ').trim();
-  if (who) store.set(NAME, who);
-  const out = await signer.sign(message);
-  changed();
-  return out;
-}
-
-/* ---------- the key ---------- */
-
-/** This device's key's fingerprint, or null when it has none. */
-export const myFingerprint = (): Promise<string | null> => signer.fingerprint();
-/** The key as text, to keep somewhere safe or take to another device (made now if there is none). */
-export async function exportKey(): Promise<string> {
-  const text = await signer.exportKey();
-  changed();
-  return text;
-}
-/** A key exported from another device, used here from now on: its fingerprint. Throws for anything that is not one. */
-export async function importKey(text: string): Promise<string> {
-  const fp = await signer.importKey(text.trim());
-  changed();
-  return fp;
-}
-export function forgetKey() {
-  signer.forget();
-  changed();
-}
-
 /* ---------- what the device holds ---------- */
 
 export interface Holdings {
-  /** Preferences set (theme, language, the name signatures go under…). */
+  /** Preferences set (theme, language…). */
   prefs: number;
   /** Documents in the library. */
   documents: number;
   /** Short links' owner links. */
   links: number;
-  /** The signing key's fingerprint, or null. */
-  key: string | null;
-  /** Keys this device knows by name. */
-  known: number;
 }
 
 export async function holdings(): Promise<Holdings> {
-  return { prefs: prefsKept(), documents: library().length, links: keptLinks().length, key: await myFingerprint(), known: Object.keys(knownKeys()).length };
+  return { prefs: prefsKept(), documents: library().length, links: keptLinks().length };
 }
 
 export function forgetPrefs() {
@@ -253,9 +115,8 @@ export function forgetLinks() {
   store.remove(LINKS);
   changed();
 }
-/** Forget everything this site keeps here, the key and the language chosen with it, and keep nothing from now on. */
+/** Forget everything this site keeps here, the language chosen with it, and keep nothing from now on. */
 export async function forgetEverything() {
-  signer.forget();
   for (const k of store.keys()) store.remove(k);
   forgetLanguage();
   await setPrivate(true);
@@ -263,10 +124,9 @@ export async function forgetEverything() {
 
 /**
  * Every document kept here as a file, in a folder by app: its text as .tlo; one under a password as its link
- * in a .txt (its text is not to be had without the password). With `withKey`, the signing key too. `base`
- * is the address a link starts with.
+ * in a .txt (its text is not to be had without the password). `base` is the address a link starts with.
  */
-export async function everything(withKey: boolean, base: string): Promise<Record<string, string>> {
+export async function everything(base: string): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
   const name = (dir: string, stem: string, ext: string) => {
     let path = `${dir}/${stem}.${ext}`;
@@ -281,6 +141,5 @@ export async function everything(withKey: boolean, base: string): Promise<Record
       if (text) files[name(k.app, slug(k.title) || 'untitled', 'tlo')] = text;
     }
   }
-  if (withKey && (await myFingerprint())) files['signing-key.json'] = await exportKey();
   return files;
 }

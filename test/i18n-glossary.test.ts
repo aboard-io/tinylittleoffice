@@ -37,9 +37,7 @@ export const TERMS: Term[] = [
   { term: 'Private' },
   { term: 'Saved' },
   { term: 'password' },
-  // A neon sign is a sign; a sign-up is a subscription.
-  { term: 'sign', not: [/neon sign|sign-up/i] },
-  // The signing key. The Calculator's keys are keys of a keyboard; an animation's key is a keyframe.
+  // The Calculator's keys are keys of a keyboard; an animation's key is a keyframe.
   { term: 'key', not: ['Keys', /arrow keys|add a key here|key at \{s\}|remove this key/i] },
   // "Present" is to show a deck; "a present" is a gift.
   { term: 'Present', not: [/a present\b/i] },
@@ -53,7 +51,6 @@ export const TERMS: Term[] = [
   { term: 'Paste' },
   // The page's theme (light, dark); "the theme" of a document's colours is its look.
   { term: 'Theme', not: [/theme's colour|as the theme is/i] },
-  { term: 'signature' },
   { term: 'footnote' },
   // An org chart and a seating chart are diagrams of their own; "to chart" is to draw.
   { term: 'chart', not: [/org chart|seating chart|nothing to chart/i] },
@@ -78,9 +75,6 @@ const ALLOW: { lang: string; term: string; key?: string; why: string }[] = [
   { lang: 'pt-br', term: 'Insert', key: 'Insert a place by name.', why: 'the imperative of inserir is insira' },
   { lang: 'nl', term: 'Print', key: 'See the sheets to print', why: 'afdrukken is a separable verb: "af te drukken"' },
   { lang: 'fr', term: 'chart', key: 'Chart, scrolls sideways', why: 'a Gantt chart: in French a diagramme de Gantt' },
-  { lang: 'ar', term: 'sign', key: 'Sign this contract', why: 'وقّع is the imperative of the verb whose noun is توقيع' },
-  { lang: 'zh-hans', term: 'sign', key: 'Sign this contract', why: 'a contract is 签署, signed as a party; 签名 is a signature' },
-  { lang: 'bn', term: 'sign', key: 'Could not sign', why: 'the verb is করুন in the button (সই করুন) and করা in a sentence: সই করা যায়নি' },
   // Counted things: Japanese counts cards with 枚 and does not say the word.
   { lang: 'ja', term: 'card', key: '{n} cards, limit {limit}', why: 'counted with the counter 枚, the word left out' },
   { lang: 'ja', term: 'card', key: '{n} cards, over the limit of {limit}', why: 'counted with the counter 枚, the word left out' },

@@ -95,7 +95,7 @@ the key, none of it opens.
 Everyone who arrives by a short link is told how long it has left: the service's page adds
 `?s=<id>&x=<expires>` to the fragment it hands on, and the site shows "This link expires in 12 days" under
 the header (`timeLeft` and `expiresSentence` in short.ts), coloured by how soon: a week or more, within a
-week, and the last day. It offers "Copy into a new document", which opens a copy (unsigned, under a long link of its own, which
+week, and the last day. It offers "Copy into a new document", which opens a copy (under a long link of its own, which
 no service holds and so nothing expires); the owner also gets Extend.
 
 ## What its logs hold

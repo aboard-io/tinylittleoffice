@@ -4,9 +4,7 @@
  * drawn by the sheet's renderer and worked out in place, another document as a picture of its first page,
  * a thing from the web as a card, and the footnotes small at the end; and the same text as a web page, as
  * Word (.docx), as RTF and as Markdown. A rule (`hr`) is a page break: the next page on paper, in print
- * and in .docx and .rtf; `---` in Markdown. A contract's signatures are a signature block: a line for each
- * party with their name under it, the day, the key's fingerprint and whether it was verified when drawn
- * (contract.ts). The look (look.ts) sets the type in each: its faces, justified lines, indented paragraphs,
+ * and in .docx and .rtf; `---` in Markdown. The look (look.ts) sets the type in each: its faces, justified lines, indented paragraphs,
  * small capitals, two columns on paper. (Ported from the old tree's write.def.ts onto runs.)
  */
 import { encodeDoc } from '../../kit/codec.ts';
@@ -38,7 +36,6 @@ import {
 import { currencyAt } from '../sheet/model.ts';
 import { tablePage } from '../sheet/view.ts';
 import { PAPERS, fenceTitle, fieldsOf, paperOf, tableView, titleBlock } from './model.ts';
-import { printedSignatures } from './contract.ts';
 import { lookOf, NAMED, STACKS, WIDTH, type Look } from './look.ts';
 
 /* ---------- words on a page ---------- */
@@ -226,34 +223,6 @@ function fieldBits(doc: Doc, M: number, W: number, font?: string): Bit[] {
   return bits.map((b) => ({ ...b, wide: true }));
 }
 
-/** A contract's signatures as a block on paper: two to a row, each a line to sign on with the name under it and what the check found. */
-function signatureBits(doc: Doc, at: number, M: number, inner: number): Bit[] {
-  const rows = printedSignatures(doc, at);
-  const colW = (inner - 32) / 2;
-  const bits: Bit[] = [];
-  for (let i = 0; i < rows.length; i += 2) {
-    const pair = rows.slice(i, i + 2).map((p) => ({ ...p, lines: wrapSpans([{ t: p.detail }], colW, 11) }));
-    const h = 40 + 20 + Math.max(...pair.map((p) => p.lines.length)) * 15 + 16;
-    bits.push({
-      h,
-      first: h,
-      svg: (y) =>
-        pair
-          .map((p, j) => {
-            const x = M + j * (colW + 32);
-            const red = p.verdict === 'mismatch' ? '#b91c1c' : undefined;
-            return (
-              `<line x1="${r(x)}" y1="${y + 36}" x2="${r(x + colW)}" y2="${y + 36}" stroke="${red ?? INK}" stroke-width="1.5"/>` +
-              svgText(x, y + 56, p.name, { px: 14, bold: true }) +
-              p.lines.map((ln, n) => lineSvg(x, y + 74 + n * 15, ln, 11, { fill: red ?? MUTED })).join('')
-            );
-          })
-          .join(''),
-    });
-  }
-  return bits;
-}
-
 /** The text laid out on pages of its paper, in its look's type. `still`: drawn where nothing can move (print, a picture, a thumbnail), so a document placed in it is too. */
 export function pages(textOrDoc: string | Doc, small = false, still = false): Page[] {
   const doc = typeof textOrDoc === 'string' ? parse(textOrDoc) : textOrDoc;
@@ -290,10 +259,6 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
     }
     if (b.k === 'fence') {
       const lang = b.lang;
-      if (lang === 'signatures') {
-        bits.push(...signatureBits(doc, doc.blocks.indexOf(b), M, cw));
-        continue;
-      }
       if (lang) {
         // Another document: its own app draws it small; an app not here yet shows its first lines.
         const def = appOfLazy(lang);
@@ -592,10 +557,6 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
           return `<p>${xml(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}</p>`;
         case 'fence': {
           if (!b.lang) return `<pre>${xml(b.body)}</pre>`;
-          if (b.lang === 'signatures') {
-            const rows = printedSignatures(doc, doc.blocks.indexOf(b));
-            return rows.length ? `<div class="signed">${rows.map((p) => `<div class="${p.verdict}"><strong>${xml(p.name)}</strong><small>${xml(p.detail)}</small></div>`).join('')}</div>` : '';
-          }
           const def = appOfLazy(b.lang);
           const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
           const page = def?.view(b.body, { small: true })[0];
@@ -658,7 +619,6 @@ table{border-collapse:collapse;margin:0 0 1em;font-size:.95em}th{background:${SH
 figure{margin:1em 0}figure.embed svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figure img{max-width:100%;height:auto}figcaption,figure.embed{color:${MUTED};font-size:.9em}figure.embed.web{padding:.8em 1em;border:1px solid ${LINE};border-radius:8px}
 mark{background:#fde68a}pre{padding:.8em 1em;background:${SHADE};border-radius:8px;overflow:auto;font-size:.85em}
 a{color:${ACCENT}}.fn a{text-decoration:none}.fn-notes{margin-top:2em;font-size:.8em;color:${MUTED}}.fn-notes hr{width:72px;margin:0 0 .6em;border:0;border-top:1px solid ${LINE}}.fn-notes ol{padding-left:1.6em}
-.signed{margin:2em 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:1.5em}.signed div{margin-top:2em;border-top:1.5px solid ${INK};padding-top:.4em}.signed .mismatch{border-top-color:#b91c1c}.signed strong,.signed small{display:block}.signed small{color:${MUTED};font-size:.82em;overflow-wrap:anywhere}.signed .mismatch small{color:#b91c1c}
 hr.page-break{margin:2em 0;border:0;border-top:1px dashed ${LINE}}@media print{hr.page-break{break-after:page;margin:0;border:0}}
 footer{margin-top:3em;color:${MUTED};font-size:.85em}
 ${lookCss(look)}
@@ -690,7 +650,7 @@ function rtfText(s: string): string {
     else if (ch === '\n') out += '\\line ';
     else if (code < 32) continue;
     else if (code < 128) out += ch;
-    // \uN takes a signed 16-bit number; astral characters go out as two surrogates.
+    // \uN takes a 16-bit number, negative past 32767; astral characters go out as two surrogates.
     else out += `\\u${code > 32767 ? code - 65536 : code}?`;
   }
   return out;
@@ -751,11 +711,6 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
     if (b.k === 'fence') {
       if (!b.lang) {
         out.push(`{\\pard\\sa160\\f0\\fs20 ${b.body.split('\n').map(rtfText).join('\\line ')}\\par}`);
-        continue;
-      }
-      if (b.lang === 'signatures') {
-        for (const p of printedSignatures(doc, doc.blocks.indexOf(b)))
-          out.push(`{\\pard\\sb480\\sa120\\brdrt\\brdrs\\brdrw15\\brsp60 {\\b ${rtfText(p.name)}}\\line {\\fs18\\cf2 ${rtfText(p.detail)}}\\par}`);
         continue;
       }
       const def = appOfLazy(b.lang);
@@ -904,13 +859,6 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
             .map((l) => plain(l, '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="18"/>'))
             .join('<w:r><w:br/></w:r>')}</w:p>`,
         );
-        continue;
-      }
-      if (b.lang === 'signatures') {
-        for (const p of printedSignatures(doc, doc.blocks.indexOf(b)))
-          paras.push(
-            `<w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="8" w:space="4" w:color="${p.verdict === 'mismatch' ? 'B91C1C' : '18181B'}"/></w:pBdr><w:spacing w:before="600" w:after="120"/></w:pPr>${plain(p.name, '<w:b/>')}<w:r><w:br/></w:r>${plain(p.detail, `<w:sz w:val="18"/><w:color w:val="${p.verdict === 'mismatch' ? 'B91C1C' : '52525B'}"/>`)}</w:p>`,
-          );
         continue;
       }
       const def = appOfLazy(b.lang);

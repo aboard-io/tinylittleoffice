@@ -6,7 +6,7 @@ import { test, expect, afterEach, beforeAll, vi } from 'vitest';
 import { mount, said, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { keep, library, forgetAll } from '../../src/kit/library.ts';
-import { setKeeping, store } from '../../src/kit/store.ts';
+import { setKeeping } from '../../src/kit/store.ts';
 import { keeping, lockCost, lockWith, pack } from '../../src/kit/privacy.ts';
 import { zip } from '../../src/kit/zip.ts';
 import { toast as say } from '../../src/kit/toast.ts';
@@ -76,13 +76,11 @@ test('Download everything, then the zip opened on an empty device: the same libr
   });
   // An empty device.
   forgetAll();
-  store.remove('tinyoffice.key');
   shell = await mount('');
   expect(shell.querySelector('.to-home')!.textContent).not.toContain('Launch notes');
   await openFromDrawer(shell, new File([file!], 'tiny-little-office.zip', { type: 'application/zip' }));
   await until(() => toast() === '4 documents kept');
   expect(shape()).toEqual(before);
-  expect(store.get('tinyoffice.key')).toBeNull();
   // The home page has them, nothing reloaded.
   await until(() => shell.querySelector('.to-home')!.textContent!.includes('Launch notes'));
   // The same zip again: nothing doubled.
@@ -97,7 +95,7 @@ test('under Private a zip lists its documents by app and name: Open the first, a
     'write/plan.tlo': '---\ntitle: Plan\n---\nFirst.\n',
     'sheet/costs.tlo': '---\ntitle: Costs\n---\na | b\n--- | ---\n1 | 2\n',
     'write/memo.md': 'Just words.\n',
-    'signing-key.json': '{}',
+    'notes.json': '{}',
   };
   const shell = await mount('');
   await openFromDrawer(shell, zipFile(docs));

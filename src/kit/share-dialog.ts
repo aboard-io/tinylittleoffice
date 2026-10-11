@@ -2,13 +2,13 @@
  * <to-share>: the Share dialog (Paul, 2026-10-09: "The short link function modal needs to be redesigned"). When the
  * document was first written and by whom; the head line, where the link fits, red past the link's limit, with Copy,
  * opening a table of the rooms it fits in (kit/limits.ts) on a hover or a tap; Copy link and Copy display link, and
- * the device's share sheet; Password and signature (drawn by <to-privacy>, renderProtect, handed in as `protect`);
+ * the device's share sheet; Password (drawn by <to-privacy>, renderProtect, handed in as `protect`);
  * a short link that expires (the lifetimes as one row, Make, then the link with Copy; its owner's Update, Extend and
  * Forget); posting the link to a service's compose box (through the link guard), a deck's show link; the QR code;
  * the embed code; the short links kept here.
  *
- * It gets the document through properties (`app`, `doc`, `heading`, `locked`, `owned`, `expires`, `changed`, `payloadLength`,
- * `signature`, and `linkTo`, the link the shell projects, made current first) and says back what changes the
+ * It gets the document through properties (`app`, `doc`, `heading`, `locked`, `owned`, `expires`, `changed`, `payloadLength`
+ * and `linkTo`, the link the shell projects, made current first) and says back what changes the
  * document's link: `to-owned` (detail: the short link this document now owns, or null, and when it expires), and
  * `to-link-copied` when the link (or the Display Link) is on the clipboard, so the document lives somewhere now. It is
  * drawn only while open. (Until round eight all of this was the shell's own.)
@@ -28,7 +28,7 @@ import { parseHash, routeHash, type Owned } from './route.ts';
 import { fitLine, roomFor } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, forget, ownerLink, shorten, shortLink, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
-import { keeping, pack, type Signature } from './privacy.ts';
+import { keeping, pack } from './privacy.ts';
 import { store } from './store.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from './share.ts';
@@ -56,9 +56,9 @@ export function siteDir(): string {
   return last && (appOf(last) || last === 'embed') ? dir.slice(0, -(last.length + 1)) : dir;
 }
 
-/** A document as a fresh plain link in a new tab: "Copy of …", no owner, not signed, not yet written; sealed with the same password if it has one. */
+/** A document as a fresh plain link in a new tab: "Copy of …", no owner, no maker or time, not yet written; sealed with the same password if it has one. */
 export function openCopy(def: AppDef, doc: string, title: string, locker: Locker | null) {
-  const copy = withHead(def.retitle(doc, t('Copy of {title}', { title })), { by: '', created: '', key: '', sig: '' });
+  const copy = withHead(def.retitle(doc, t('Copy of {title}', { title })), { by: '', created: '' });
   const open = (payload: string) => {
     const u = new URL(location.href);
     u.hash = routeHash(def.id, payload);
@@ -80,7 +80,6 @@ export class ToShare extends LitElement {
     expires: { attribute: false },
     changed: { attribute: false },
     payloadLength: { attribute: false },
-    signature: { attribute: false },
     protect: { attribute: false },
     displayOwner: { attribute: false },
     short: { state: true },
@@ -104,8 +103,7 @@ export class ToShare extends LitElement {
   /** Edited since the short link last had this document. */
   declare changed: boolean;
   declare payloadLength: number;
-  declare signature: Signature;
-  /** The Password and signature part, drawn by <to-privacy>. */
+  /** The Password part, drawn by <to-privacy>. */
   declare protect: TemplateResult | typeof nothing;
   /** The owner of a short link that opens the pages arrived with "?d": the short link goes on opening them. */
   declare displayOwner: boolean;
@@ -132,7 +130,6 @@ export class ToShare extends LitElement {
     this.expires = 0;
     this.changed = false;
     this.payloadLength = 0;
-    this.signature = { state: 'none' };
     this.protect = nothing;
     this.displayOwner = false;
     this.short = null;
@@ -245,7 +242,7 @@ export class ToShare extends LitElement {
       env.created === null
         ? ''
         : t('Created {date}', { date: new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(env.created) });
-    const by = env.by ? (this.signature.state === 'valid' ? t('by {name}', { name: env.by }) : t('by {name} (unsigned)', { name: env.by })) : '';
+    const by = env.by ? t('by {name}', { name: env.by }) : '';
     return [when, by].filter(Boolean).join(' · ');
   }
 

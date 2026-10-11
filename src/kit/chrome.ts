@@ -44,7 +44,7 @@
  * document. A document that lives nowhere but its link is asked about before it is left: the shell's (kit/shell.ts).
  *
  * The shell hands it what to draw: `doc`, the document the header names (none: the home page's name), with its
- * title, its signed state and how much of the link it uses (Share and Download are the drawer's, kit/drawer.ts: Paul,
+ * title, the lock while it has a password and how much of the link it uses (Share and Download are the drawer's, kit/drawer.ts: Paul,
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
@@ -71,8 +71,8 @@ export interface DocHead {
   value: string;
   /** Locked: the name alone (said as locked), no box, no Share. */
   locked: boolean;
-  /** The signed state (kit/privacy-dialog.ts trustButton). */
-  trust: TemplateResult;
+  /** The lock while it has a password (kit/privacy-dialog.ts trustButton). */
+  trust: TemplateResult | typeof nothing;
   /** How much of the link the document uses. */
   used: number;
 }
@@ -83,7 +83,7 @@ export interface Plain {
   href: string;
   /** A deck's show link: the reader can present it without editing (Paul, 2026-10-10: on a phone there was no way to play a deck from its link). */
   present?: string;
-  trust?: TemplateResult;
+  trust?: TemplateResult | typeof nothing;
   locked?: boolean;
 }
 
@@ -400,7 +400,7 @@ export class ToChrome extends LitElement {
     </div>`;
   }
 
-  /** The header's words for a document: the way home (the app's icon), the title (which has the room), the signed state, the room left in the link (a tap: Share). */
+  /** The header's words for a document: the way home (the app's icon), the title (which has the room), the lock, the room left in the link (a tap: Share). */
   private renderDoc(d: DocHead) {
     const home = t('Home');
     const here = html`<a class="to-here" href="#/" title=${home} aria-label=${home}>${icon(d.def.icon, 24)}</a>`;

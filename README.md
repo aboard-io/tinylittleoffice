@@ -62,7 +62,7 @@ Three layers, each small enough to read.
 - **The kit** (`src/kit/`): the shell (thin: the route and the document, with the chrome, the Share dialog and
   privacy as elements of their own; the page is the visible window and the document scrolls in a column,
   docs/kernel.md §9), the bar, Insert ▾, the menu, dialogs, the router, the codec, the
-  store, privacy (passwords, signatures, what the device holds), short links, exports, strings, icons; and
+  store, privacy (passwords, what the device holds), short links, exports, strings, icons; and
   the one rich-text editor, `<to-text>`, over the kernel: every `beforeinput` becomes operations, and only
   the blocks that changed are drawn again. There is no contenteditable anywhere else.
 - **The apps** (`src/apps/<id>/`): definitions on the kit. Each is a view of the kernel's document and the
@@ -110,9 +110,8 @@ this repository, tagged `v0-before-rebuild`.
 src/doc/        the document kernel (docs/kernel.md, src/doc/README.md)
 src/kit/        the kit: shell, chrome (<to-chrome>: the header and the column), share-dialog (<to-share>),
                 scroll (every scroll-to), bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
-                privacy (Private or Saved, the password, the signature, the key, what the device holds),
-                privacy-dialog (<to-privacy>), crypt (a password: PBKDF2 to AES-GCM), sign (Ed25519, P-256 where
-                there is none), envelope (by, created, key, sig, and the signed message), link-guard (links
+                privacy (Private or Saved, the password, what the device holds), privacy-dialog (<to-privacy>),
+                crypt (a password: PBKDF2 to AES-GCM), envelope (by and created), link-guard (links
                 that leave ask first), pictures (web pictures asked for first), media (the picture proxy's
                 address, the whitelist, an export's picture bytes), preview (a kept document's first page,
                 small), mark (the Office mark), install (Add to home screen), search (the library, by its
@@ -177,24 +176,17 @@ this visit shows at once; under Saved a switch in the menu shows them always; a 
 hold the pictures' bytes, fetched through the proxy; every `<img>` sends no referrer. `VITE_MEDIA_URL` names a
 self-hoster's own proxy; empty, pictures load directly and every host asks first.
 
-Password and signature, for every app (the shell's, `src/kit/privacy.ts`). Share holds **Password…**: the text is
+A password, for every app (the shell's, `src/kit/privacy.ts`). Share holds **Password…**: the text is
 encrypted in the browser (AES-256-GCM under a key PBKDF2-SHA-256 derives from the password, 600,000 iterations,
 `src/kit/crypt.ts`) and the link carries `E<salt | iv | ciphertext>`; while a password is set every change is sealed
 again before it reaches the address bar, so the link, the library and a short link only ever hold ciphertext. A
 sealed link opens with the unlock dialog and nothing of the document, not even its title; a wrong password is said
-so; the password is never kept, but what opened a document opens it again for the rest of the visit. Share also
-holds **Sign**: the document is signed with this browser's key (Ed25519, ECDSA P-256 where Ed25519 is missing,
-`src/kit/sign.ts`), made the first time and kept through `src/kit/store.ts` (under Private for the visit, under Saved
-on the device); the name asked once and kept. The head carries `by`, `created` (stamped to the minute at the first
-change), `key` and `sig` (`src/kit/envelope.ts`, docs/kernel.md §1); the signature is checked on open and after every
-change. Beside the title, the state: Unsigned (quiet), Signed by a name (green for this device's key or one it knows,
-the key's fingerprint on hover), Signed as a name with the key (neutral, for a key nobody here knows: anyone can
-sign under any name), a different key from the one a known name used before (amber),
-Changed since signed or Signature does not match (red), Locked; it opens the Privacy dialog
-(`src/kit/privacy-dialog.ts`, also "Privacy and keys" in the menu): the document's state, the key with Export
-(a file and the text), Import and Forget, what this device holds item by item with Forget and Forget everything,
-and Download everything, every kept document as its .tlo text in one zip (a locked one as its link), the key
-if asked. A signature proves who holds the key and that nothing changed; the name and the time are the signer's word.
+so; the password is never kept, but what opened a document opens it again for the rest of the visit. The head
+carries `by` and `created` (stamped to the minute at the first change; `src/kit/envelope.ts`, docs/kernel.md §1).
+Beside the title, while there is a password, a lock (Locked, or Protected by a password); it opens the Privacy
+dialog (`src/kit/privacy-dialog.ts`, also "Privacy" in the menu): the document's password, what this device holds
+item by item with Forget and Forget everything, and Download everything, every kept document as its .tlo text in
+one zip (a locked one as its link).
 A locked document placed inside another goes in as its sealed link (a ```` ```locked ```` fence, `src/kit/locked.ts`)
 and is drawn everywhere as a locked card: the lock, "Locked with a password", its app; in an editor a tap asks for the
 password and the card draws the document for the rest of the visit, while the outer link goes on holding only the

@@ -6,7 +6,7 @@
  * raw cells, and anything else as what it is: a rule, an edge, an image,
  * a fence holding another document.
  */
-/** The header: lowercase keys, string values (title, by, created, key, sig; an app's own settings). */
+/** The header: lowercase keys, string values (title, by, created; an app's own settings). */
 export type Head = Record<string, string>;
 
 /** A document: its header and its blocks. */

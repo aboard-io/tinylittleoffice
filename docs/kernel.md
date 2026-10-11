@@ -28,7 +28,7 @@ The short version. Today `src/lib/tlo.ts` already holds the kernel in embryo: `T
 
 ```ts
 // src/doc/model.ts
-export type Head = Record<string, string>;            // the header: lowercase keys, string values (the shell's own: title, by, created, key, sig; app in a .tlo file)
+export type Head = Record<string, string>;            // the header: lowercase keys, string values (the shell's own: title, by, created; app in a .tlo file)
 
 export interface Doc {
   head: Head;
@@ -71,20 +71,11 @@ export const plainText = (runs: Run[]) => runs.map((r) => r.t).join('');
 export const text = (s: string): Run[] => parseInline(s);                 // the one way a string becomes runs
 ```
 
-**The envelope** (`src/kit/envelope.ts`). Five head keys belong to the document rather than its app: `title` (the
-editor's), and `by`, `created`, `key`, `sig`, which the shell holds and puts into every change the editor makes, so
-an edit never drops them. `created` is stamped at the first change, to the minute, as `2026-10-05T14:32Z`; `by` is
-the name a signer gave; `key` and `sig` are base64url (an Ed25519 key is 43 characters, a P-256 one 87), written, as every payload in a link is (`src/kit/codec.ts`), with `~` for 62 where RFC 4648 has `-`, because a hyphen is where a pasted link breaks a line; `-` is still read as 62. A signature
-covers exactly the old tree's message, so its signed documents verify:
-
-```
-tinyoffice\n<app>\n<created as base-36 minutes since 2020-01-01, or empty>\n<the text without the five keys>\0<title>\0<by>
-```
-
-The text without the five keys is `takeHead(text, SHELL_KEYS)[1]`: the app's own head keys stay, in their order. A key
-without a signature is no signature. Checked against the text as it is, a signature is valid, stale (this device's
-key signed it and the text has changed since) or invalid. A document under a password is not a head field: its whole
-payload is sealed (`E…`, `src/kit/crypt.ts`), so nothing of it, the title included, is readable without the password.
+**The envelope** (`src/kit/envelope.ts`). Three head keys belong to the document rather than its app: `title` (the
+editor's), and `by` and `created`, which the shell holds and puts into every change the editor makes, so an edit never
+drops them. `created` is stamped at the first change, to the minute, as `2026-10-05T14:32Z`; `by` is who made it, in
+the maker's own word. A document under a password is not a head field: its whole payload is sealed (`E…`,
+`src/kit/crypt.ts`), so nothing of it, the title included, is readable without the password.
 
 Nine block kinds, as today; the two changes are `runs` in place of `text` on the four text kinds and `cols: Column[]` in place of `head: string[]` on tables. There is no `embed` kind: an embedded document is a `fence` whose `lang` is an app id (as now, `refFence`/`fenceRef`); a thing from the web is a `p` whose only run is its address, or an `img` (as `richtext.parseDoc` and `deckmodel.slideOf` already decide with `embedOf`). `isEmbed(b)` in model.ts names that rule once. A lock and a chart are not fields of the table block: they ride on the head for a sheet document and on the table's attrs anywhere else (see `tableAt` in §5), which is exactly what the format does today and keeps every sheet example byte-identical.
 
@@ -95,7 +86,6 @@ Why runs in the model rather than text with runs derived: every view already par
 | app | blocks | head | cannot be expressed today (decide: drop, or add) |
 |---|---|---|---|
 | write | `h` (level 1 `.title`; 1, 2), `p` (`<br>` for an empty one; a lone web address, or a lone link `[title](address)`, is a web embed (`webOf`); `.center/.right/.justify`), `li` (ul/ol, depth ≤ 3), `fence` (another document), `table` (an embedded sheet), `img` (web picture) | `paper` | `li.done` is folded into the words as a `☐`/`☑` glyph by `richtext.parseDoc` (lossy: `- [x] a` is written back as `- ☑ a`); `quote` and `edge` are flattened to `p`; `h3+` becomes `h2`; a fence with no app (` ```js `) becomes an embed of an unknown app. The kernel keeps all four; Write's view decides what to draw. |
-| contract | write's blocks + a trailing `fence` `signatures` holding a `table` Name\|Key\|Signature | — | — |
 | outline, mind, family, org | `li` (depth; `.to/.from/.both`, `label=`), `fence` (`{depth=N}`), `edge` | — | an item is one line (`\n` → space); a fence under an item needs `depth=` because a list restarts after it (no nesting of blocks); org's `Name \| Role` is a convention in the run text |
 | deck, zine, booklet, brochure, poster, badges, comic | `hr` between pages; `h` level 2 (`.title/.two/.icon`; the icon a leading `ic` run), `li` (bullets, `ord` steps), `p` (prose on print pages; `\|` alone is the column break; a web address or a titled link alone is the slide's sub-document), `quote` (speaker notes), `fence`/`table`(+`{chart=}`)/`img`(TLO link) as the sub-document | `theme transition color qr`; `sides pages` | words and a sub-document cannot show together (the sub takes the slide); comic panel `said \| caption` is a convention |
 | sheet | one `table` | `chart lock` | rows past 1000 and columns past Z are dropped (a limit, not a format) |
@@ -205,7 +195,7 @@ abstract class DocElement<V> extends LitElement {
 
 `commit(T)`/`serialize` go. The `docchange` contract with the shell (text in `value`, text out in the event; the shell's `History` of texts) is unchanged, so `test/dom/helpers.ts#mount` and every shell test keep passing.
 
-A keystroke costs only what it changed (round six): `docchange` still fires with the text on every edit, but the shell projects it into the link (pack, `replaceState`, the library's keep, the tab's title, the signature) only when typing pauses (150 ms), and flushes that projection at once before anything reads the link as the document (the window's blur, the focus leaving the editor, leaving the page, Share and every copy of the link, exports, the password, the title box; `currentHash()` in kit/route.ts outside the shell). A host never parses its own echo: `ours(value)` says the shell handed back the text it last wrote. A host draws again for a `text-select` only when `selectionMoved(key)` says its bar would show something else.
+A keystroke costs only what it changed (round six): `docchange` still fires with the text on every edit, but the shell projects it into the link (pack, `replaceState`, the library's keep, the tab's title) only when typing pauses (150 ms), and flushes that projection at once before anything reads the link as the document (the window's blur, the focus leaving the editor, leaving the page, Share and every copy of the link, exports, the password, the title box; `currentHash()` in kit/route.ts outside the shell). A host never parses its own echo: `ours(value)` says the shell handed back the text it last wrote. A host draws again for a `text-select` only when `selectionMoved(key)` says its bar would show something else.
 
 ### Each app: the view, and its commands as ops
 
@@ -449,7 +439,7 @@ The shell is thin. `<to-shell>` (kit/shell.ts) keeps the route, the document, it
 |---|---|---|---|
 | `<to-chrome>` | kit/chrome.ts | where things sit: the header and its words, the menu button, the banners (a short link's time left, another version kept here), the column and the bar's place in it | `to-drawer-open`, `to-share-open`, `to-retitle`, `to-copy-new`, `to-arrival-close`, `to-other-close` |
 | `<to-share>` | kit/share-dialog.ts | the Share dialog: the link and where it fits, the short link, posting, the QR code, the embed code | `to-owned` |
-| `<to-privacy>` | kit/privacy-dialog.ts | unlock, the password, signing, the signed state beside the title (`trustButton`), the Share dialog's Password and signature part (`renderProtect`), the Privacy dialog | `to-unlock`, `to-lock`, `to-signed`, `to-share-open` |
+| `<to-privacy>` | kit/privacy-dialog.ts | unlock, the password, the lock beside the title (`trustButton`), the Share dialog's Password part (`renderProtect`), the Privacy dialog | `to-unlock`, `to-lock`, `to-share-open` |
 
 and, as before, the editor, `<to-drawer>` (which, with a document open, begins with This document: Share… and Download), `<to-find>`, `<to-toast>` and the shortcuts dialog. The page's keys are kit/keys.ts `pageKey`.
 

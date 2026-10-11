@@ -104,7 +104,7 @@ export interface InZip {
  * The documents in a zip's files (kit/zip.ts unzip), in the zip's order: what Download everything writes (a folder
  * by app; the folder names the app where the head does not, else `fallback`), or any zip of .tlo and .md files. A
  * .txt that is one link to a document (a locked one, as Download everything writes it) is that document; anything
- * else (the signing key, a README, a picture, the dot files an archiver adds) is left alone. The name Download
+ * else (a README, a picture, the dot files an archiver adds) is left alone. The name Download
  * everything gives a document with none ("untitled", "locked") is no name.
  */
 export function readZip(files: Record<string, Uint8Array>, fallback: string, known: (id: string) => boolean): InZip[] {

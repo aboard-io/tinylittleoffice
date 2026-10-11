@@ -6,13 +6,13 @@
  * its projection to the link, the library's keep (kit/library.ts Keeper), the title and the editor's mounting, and
  * draws round them elements that take their state as properties and speak back by events: <to-chrome> (kit/chrome.ts:
  * the header, the menu button, the banners, the column that scrolls and the bar's place in it), <to-share>
- * (kit/share-dialog.ts), <to-privacy> (kit/privacy-dialog.ts: unlock, the password, the signature), and the editor,
+ * (kit/share-dialog.ts), <to-privacy> (kit/privacy-dialog.ts: unlock, the password), and the editor,
  * <to-drawer>, <to-find>, <to-toast> and the shortcuts dialog. (Until round eight all of it was this one element,
  * 1,400 lines, the window scrolled and the bar measured into place over a phone's keyboard: kit/chrome.ts says why.)
  *
  * A sealed link ("E…", kit/crypt.ts) shows nothing of the document, its title included, until the password is given;
  * while a password is set every change is sealed again before it reaches the address bar, so the link, the library
- * and a short link only ever hold ciphertext. The envelope's keys (kit/envelope.ts: by, created, key, sig) are the
+ * and a short link only ever hold ciphertext. The envelope's keys (kit/envelope.ts: by, created) are the
  * shell's: `created` is stamped with the first change, and every change keeps them. A new document is named at once
  * (library.ts newName), shown in the title box and written with the first change, so a blank page left alone writes
  * nothing. A Display Link ("?d") shows the pages, to read or print, with Edit; ".embed" the pages alone, for another
@@ -46,7 +46,7 @@ import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportItems, printDoc, viewAs } from './exports.ts';
 import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
-import { checkSignature, keeping, onPrivacy, pack, reopen, setPrivate, type Signature } from './privacy.ts';
+import { keeping, onPrivacy, pack, reopen, setPrivate } from './privacy.ts';
 import { copyText } from './share.ts';
 import { trustButton, type ToPrivacy } from './privacy-dialog.ts';
 import { openCopy, siteDir, type ToShare } from './share-dialog.ts';
@@ -102,7 +102,6 @@ export class ToShell extends LitElement {
     arrived: { state: true },
     sealed: { state: true },
     locker: { state: true },
-    signature: { state: true },
     comparing: { state: true },
     embed: { state: true },
     other: { state: true },
@@ -120,14 +119,12 @@ export class ToShell extends LitElement {
   declare arrived: boolean; // arrived by a short link this visit, its banner not closed
   declare sealed: string; // the sealed payload waiting for its password; '' once opened, or with none
   declare locker: Locker | null; // the password's key while this document has one; memory only
-  declare signature: Signature; // as last checked against the document
   declare comparing: [Side | null, Side | null] | null; // "#/compare/…": the two sides
   declare embed: boolean; // the pages alone, for another site's frame
   declare other: Kept | null; // another version of this document kept here (the same app and name, another link)
   declare newer: boolean; // the link was made by a newer Tiny Little Office
   private envelope: Head = {}; // the envelope's keys (an empty value: taken out), put into every change
   private sealRun = 0; // the newest seal and check under way: an older one finishing late is dropped
-  private checkRun = 0;
   private presentSoon = false; // a deck's show link: presenting starts once the editor is up
   private focusSoon = false; // just opened for editing: once drawn, the focus goes where a person starts
   /** The reader's pages zoomed in place by a pinch: their width over the column's, 1 to 4. */
@@ -161,7 +158,6 @@ export class ToShell extends LitElement {
       arrived: false,
       sealed: '',
       locker: null,
-      signature: { state: 'none' },
       comparing: null,
       embed: false,
       other: null,
@@ -219,14 +215,13 @@ export class ToShell extends LitElement {
         this.querySelector<HTMLElement>('main.to-display > .to-display-pages')?.style.setProperty('--to-view-zoom', String(this.viewZoom));
       },
     });
-    // The rest of Lucide joined (an icon outside the starter set): the editor is drawn again; a key imported or
-    // forgotten changes whose signature this is.
+    // The rest of Lucide joined (an icon outside the starter set): the editor is drawn again.
     const redraw = () => this.requestUpdate();
     this.offs.push(
       onLanguage(() => (this.setTitle(), redraw())),
       onPictures(redraw),
       onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())),
-      onPrivacy(() => (void this.checkSignature(), this.guard())),
+      onPrivacy(() => this.guard()),
     );
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
     installLinkGuard();
@@ -285,7 +280,6 @@ export class ToShell extends LitElement {
     this.doc = def ? (sealed ? '' : payload ? decodeDoc(payload) : def.blank()) : '';
     this.edited = this.doc;
     this.envelope = takeHead(this.doc, ENVELOPE_KEYS)[0];
-    this.signature = { state: 'none' };
     // An icon the starter set lacks: the rest of Lucide is fetched, and everything is drawn again when it joins (onIcons).
     void ensureIcons(iconNames(this.doc));
     // Show pictures from the web is remembered for this document, as it arrived, for the visit.
@@ -315,13 +309,10 @@ export class ToShell extends LitElement {
       });
     }
     if (this.sealed) void this.reopen(this.sealed);
-    else {
-      void this.checkSignature();
-      if (def && view) void this.updateComplete.then(() => this.doView());
-    }
+    else if (def && view) void this.updateComplete.then(() => this.doView());
   };
 
-  /* ---------- the password and the signature (the work is <to-privacy>'s) ---------- */
+  /* ---------- the password (the work is <to-privacy>'s) ---------- */
 
   /** A sealed link: opened by a password already given this visit, or the unlock dialog. */
   private async reopen(payload: string) {
@@ -335,7 +326,7 @@ export class ToShell extends LitElement {
     await this.updateComplete;
     await this.privacy?.askPassword();
   };
-  /** The document behind the password, open: shown, checked, and a view asked for in the link done. */
+  /** The document behind the password, open: shown, and a view asked for in the link done. */
   private opened(text: string, locker: Locker) {
     this.sealed = '';
     this.locker = locker;
@@ -344,26 +335,17 @@ export class ToShell extends LitElement {
     void ensureIcons(iconNames(text));
     this.envelope = takeHead(text, ENVELOPE_KEYS)[0];
     this.setTitle();
-    void this.checkSignature();
     this.focusSoon = !this.display && !this.pendingView;
     if (this.pendingView) void this.updateComplete.then(() => this.doView());
-  }
-  /** The signature checked against the document as it is now. */
-  private async checkSignature() {
-    const run = ++this.checkRun;
-    const sig: Signature = this.app && !this.sealed ? await checkSignature(this.app, this.doc) : { state: 'none' };
-    if (run === this.checkRun) this.signature = sig;
   }
   /** A text with the envelope's keys put in its head: the time it was first written, stamped now if it has none. */
   private envelopeOn(doc: Doc): Doc {
     if (!this.envelope.created) this.envelope = { ...this.envelope, created: isoMinute(Date.now()) };
     return withHead(doc, this.envelope);
   }
-  /** What <to-privacy> says back: the document opened, a password set or taken off, signed or the signature taken off. */
+  /** What <to-privacy> says back: the document opened, a password set or taken off. */
   private onUnlock = (e: CustomEvent<{ text: string; locker: Locker }>) => this.opened(e.detail.text, e.detail.locker);
   private onLock = (e: CustomEvent<Locker | null>) => (this.flushLink(), (this.locker = e.detail), this.change(this.doc));
-  private onSigned = (e: CustomEvent<Head>) => (this.flushLink(), (this.envelope = { ...this.envelope, ...e.detail }), this.change(this.doc));
-  private signable = () => (this.flushLink(), this.envelopeOn(this.doc));
 
   /** A ".<ext>" link: the document shown behind, at its own link, and the file downloaded or printed (exports.ts viewAs). */
   private async doView() {
@@ -397,17 +379,16 @@ export class ToShell extends LitElement {
 
   /**
    * The document is now `doc`: the envelope's keys put in (a blank page, still blank, is left as it is), into
-   * the link with it, sealed first while it has a password, and its signature checked again.
+   * the link with it, sealed first while it has a password.
    */
   private change(doc: Doc) {
     const app = this.app;
     if (!app || this.sealed) return;
-    const blank = doc === this.def!.blank() && !this.envelope.sig;
+    const blank = doc === this.def!.blank();
     this.doc = blank ? doc : this.envelopeOn(doc);
     this.changed = true;
     this.copied = false;
     this.setTitle();
-    void this.checkSignature();
     const run = ++this.sealRun;
     if (!this.locker) return this.writeLink(app, encodeDoc(this.doc));
     void pack(this.doc, this.locker).then((payload) => run === this.sealRun && app === this.app && this.writeLink(app, payload));
@@ -671,7 +652,7 @@ export class ToShell extends LitElement {
 
   /* ---------- drawing ---------- */
 
-  private trust = () => trustButton(this.signature, !!this.sealed, !!this.locker, () => (this.sealed ? void this.askPassword() : void this.privacy?.show()));
+  private trust = () => trustButton(!!this.sealed, !!this.locker, () => (this.sealed ? void this.askPassword() : void this.privacy?.show()));
 
   /**
    * A link out of the website the Display Link shows: its page cannot leave the sandbox, so it says where the link
@@ -749,8 +730,8 @@ export class ToShell extends LitElement {
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands} .def=${def ?? null}></to-drawer><to-palette></to-palette>`}<to-toast></to-toast>
       ${
         def
-          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.outerTitle} .locked=${!!this.locker} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
-            <to-privacy doc .app=${def.id} .sealed=${this.sealed} .signature=${this.signature} ?protected=${!!this.locker} .by=${this.envelope.by ?? ''} ?signed=${!!this.envelope.sig} .signable=${this.signable} @to-unlock=${this.onUnlock} @to-lock=${this.onLock} @to-signed=${this.onSigned}></to-privacy>`
+          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.outerTitle} .locked=${!!this.locker} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .protect=${this.privacy?.renderProtect(!!this.locker) ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
+            <to-privacy doc .sealed=${this.sealed} ?protected=${!!this.locker} @to-unlock=${this.onUnlock} @to-lock=${this.onLock}></to-privacy>`
           : nothing
       }
       <to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>

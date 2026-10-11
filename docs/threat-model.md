@@ -43,18 +43,10 @@ ciphertext is. Details: `docs/crypto/short-links.md`. The same condition applies
 random bytes that exist only in the owner's link (`#<key>.<o>`); the service keeps only `sha256(o)`. A wrong
 `o` and an unknown id get the same answer in the same time.
 
-**A shared link altered on the way.** Two different protections, for two different cases:
-- A document with a password is authenticated by AES-GCM's tag: a changed byte, a cut-short link or a
-  forged payload does not open, and says nothing about why. Someone who knows the password can of course
-  write a new sealed document.
-- A signed document carries a public key and a signature over its app, creation time, words, title and the
-  name it was signed under (`docs/crypto/signing.md`). Any change to those shows the signature as not
-  matching. A forger can remove the signature, or sign the altered document with their own key under the
-  same name; what tells the reader is the key. A key this device does not know is never shown green: it
-  reads "Signed as “name” · key …" in a neutral tone, with the advice to check the key with the person
-  another way. A name the reader has marked as known ("I know this key", under Saved) that comes with another
-  key reads in amber: "A different key from the one name used before". A document with neither a password nor a signature has no protection against alteration: anyone who
-  passes it on can change it.
+**A shared link altered on the way.** A document with a password is authenticated by AES-GCM's tag: a
+changed byte, a cut-short link or a forged payload does not open, and says nothing about why. Someone who knows
+the password can of course write a new sealed document. A document without a password has no protection
+against alteration: anyone who passes it on can change it.
 
 **A scam link inside a document.** Words in a document can say one address and link to another. No link that
 leaves the site opens without first showing, large, the site it goes to and the whole address, with Cancel
@@ -82,7 +74,7 @@ exported file fetches nothing.
 that say nothing of a document: the language (`tinyoffice.lang`), the size of everything (`tinyoffice.size`) and
 the theme (`to-theme`), all three cleared by Forget everything. With Saved on, the
 device keeps the preferences, the documents opened there (`src/kit/library.ts`),
-the owner links of short links made there, and the signing key. A document under a password is kept as its
+the owner links of short links made there. A document under a password is kept as its
 ciphertext with no title and no first words, so the library does not give away even its name. Nothing else
 is encrypted by Tiny Little Office: the rest is as safe as the phone's lock and the operating system's own
 storage encryption. See the next section for what that leaves open.
@@ -106,7 +98,7 @@ and so does its sync service if that is on. An owner arriving by an owner link h
 history too (`?s=…&k=…&o=…` in the fragment). Private does not change what the browser itself records.
 
 **A compromised device, browser or extension.** An extension allowed to read the site's pages reads the
-document as it is shown, the password as it is typed, and the signing key from storage. So does malware on
+document as it is shown, and the password as it is typed. So does malware on
 the device. Nothing in a web page can defend against the browser it runs in.
 
 **A weak password.** The link carries everything needed to try passwords offline, at the attacker's own
@@ -119,20 +111,12 @@ but a short or common password falls anyway. `docs/crypto/password.md` gives the
 link's are as long as the compressed document plus a fixed overhead.
 
 **Which app a document is.** The app's name is in the path (`/text/`), which the host sees, and in the
-route (`#/v1/text/…`). A signature covers the app; a password's tag does not. Someone who changes a sealed
+route (`#/v1/text/…`). A password's tag does not cover it: someone who changes a sealed
 link's app name changes what opens it, not what it says.
 
 **A lost phone, in full.** With Saved on, a person holding the unlocked phone can read every document in the
-library that has no password, use the owner links to change or delete those short links, and sign as you
-with your key. There is no remote wipe and no way to revoke a signing key: a key's fingerprint is all a
-reader checks, and a stolen key makes a signature that checks. Turning Saved off (from the phone) removes
-all of it.
-
-**A determined forger matching a fingerprint.** The fingerprint is 100 bits of the key's SHA-256, twenty base32
-characters in four groups, short enough to read out. Finding a different key with the same fingerprint takes
-about 2^100 key generations: out of reach (at 40 bits, as it was until round sixteen, one rented GPU found a
-match in hours). A forger's way in is not a matching key but a reader who never checks one: hence the neutral
-"Signed as" words for a key the device does not know.
+library that has no password, and use the owner links to change or delete those short links. There is no
+remote wipe. Turning Saved off (from the phone) removes all of it.
 
 **After a tap, the provider.** An embed (a video, a post, a song) loads from its provider once the reader
 taps it, and the map's tiles and place search go to OpenStreetMap directly while a map is shown
@@ -151,7 +135,6 @@ taps it, and the map's tiles and place search go to OpenStreetMap directly while
 | A password never stored; the key held in memory for the visit, non-extractable | A device or a backup giving the password away |
 | A sealed document kept in the library with no title or first words | The library telling what a sealed document is |
 | A locked document's title reaches nothing but its own page: not the tab title or history, the library, a kept short link, a post, the embed, the QR file, or the share sheet (which gets no picture either) | History, tab sync and the apps a link is shared to telling what a sealed document is |
-| Ed25519 signatures over app, time, words, title and name; P-256 where Ed25519 is missing | A shared document altered, or its name or date changed, without the reader being able to tell |
 | Short link: AES-256-GCM, the key only in the fragment | The short-link service reading documents |
 | Owner key: the service keeps only its SHA-256; wrong key and no row answered alike, in the same time | Others changing or deleting a short link; probing for which ids have owners |
 | Short links expire (an hour to a year), are swept hourly, extend only on purpose | Ciphertext kept indefinitely by a service |
@@ -167,7 +150,7 @@ The site, the shortener and the proxy run on Cloudflare, on one account. Cloudfl
 whatever reaches any of them, Cloudflare and the account's operator could see.
 
 - **The site.** Requests for the static files: the reader's IP address, the time, the user agent, the
-  path (which names the app: `/sheet/`), and the files the page then loads. Not the fragment, so never the document, its title, its password or its signature.
+  path (which names the app: `/sheet/`), and the files the page then loads. Not the fragment, so never the document, its title or its password.
   Cloudflare keeps its own aggregate traffic counts for the account, as for any site it serves; per-request
   Worker logs are off (`wrangler.jsonc`, held by `test/tinier.test.ts`).
 - **The shortener.** For each short link: the ciphertext, its IV, its expiry, its version count, when it
@@ -181,7 +164,7 @@ whatever reaches any of them, Cloudflare and the account's operator could see.
   length of the request; the picture itself, cached at the edge for a week. Nothing written down. A picture's
   address can itself say something about the document it is in.
 
-What none of them can see: a document's words, a password, a signing key, who a link was sent to, or that a
+What none of them can see: a document's words, a password, who a link was sent to, or that a
 given person opened a given document, beyond the timing and address of requests that a person could try to
 match up.
 

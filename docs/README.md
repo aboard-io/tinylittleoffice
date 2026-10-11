@@ -6,7 +6,7 @@ start here for how it is made and why.
 ## What it is, and what it promises
 
 - [transparency.md](transparency.md): the pre-launch list for opening the code, and the words used to say what this is.
-- [threat-model.md](threat-model.md): what the passwords, signatures and short links protect against, and what they do not.
+- [threat-model.md](threat-model.md): what the passwords and short links protect against, and what they do not.
 - [network.md](network.md): what leaves your browser: every request the site can make, when, what it carries, what stops it.
 - [dependencies.md](dependencies.md): every package, its version and licence, the native API it beat, and the bytes it adds (generated).
 - [self-host.md](self-host.md): running your own copy on your own Cloudflare account, in about thirty minutes.
