@@ -139,7 +139,7 @@ Turning Saved off (from the phone) removes all of it.
 | Choice | Threat |
 |---|---|
 | The document in the fragment, not the path or a query | The host, its logs and every proxy on the way learning the document |
-| No accounts, no server storage of documents | A breach, a subpoena or a leak of stored documents: there are none to give |
+| No accounts, no server storage of documents, except a short link's encrypted document, which the server cannot read and forgets when the link expires | A breach, a subpoena or a leak of stored documents: there are none to give but the ciphertext of short links not yet expired, without their keys |
 | Private by default; Saved only when switched on, and switched off erases | A shared or lost device holding what was done on it |
 | Password: PBKDF2-SHA-256, 600,000 rounds, random salt; AES-256-GCM with a fresh IV per edit | The link's holders, and anything it passes through, reading a document they were not told the password of; alteration of a sealed document |
 | A password never stored; the key held in memory for the visit, non-extractable | A device or a backup giving the password away |

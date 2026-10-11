@@ -411,7 +411,7 @@ In the old tree (tagged `v0-before-rebuild`):
 
 The rebuild went greenfield, on a branch of its own that became main (docs/history/rebuild.md). So:
 
-- §6 is not a migration; it is the **order of building** `src/doc/` and the apps on it: model + tlo + notes (steps 1–2 as one: port `src/lib/tlo.ts` and the helpers of `richtext.ts` from the old tree with runs and columns in the blocks from the start, byte-stable writer, `foldNotes` in parse), then `ops.ts`, `table.ts`, `formula.ts`; then `<to-text>`; then the apps in the order of docs/rebuild.md.
+- §6 is not a migration; it is the **order of building** `src/doc/` and the apps on it: model + tlo + notes (steps 1–2 as one: port `src/lib/tlo.ts` and the helpers of `richtext.ts` from the old tree with runs and columns in the blocks from the start, byte-stable writer, `foldNotes` in parse), then `ops.ts`, `table.ts`, `formula.ts`; then `<to-text>`; then the apps in the order of docs/history/rebuild.md.
 - The byte-stability gate is a property test over every template and every example in the old tree's docs/tlo.md and skill/tinyoffice/SKILL.md: `write(parse(x)) === x`.
 - The editor's tests run in **Vitest browser mode** from the first commit (risk 2 is gone); `Pos↔offset`, ops, paste fitting are node tests.
 - There is no `to-rich`, no `pageedit.ts`, no `execCommand`, no contenteditable outside `<to-text>`, ever.

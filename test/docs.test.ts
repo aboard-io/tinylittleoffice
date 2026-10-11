@@ -85,6 +85,13 @@ test('the README says the truth about saving, and the About and the page say it 
   const tagline = 'A tiny office suite where the link is the document. No accounts. Nothing is saved anywhere unless you choose to keep it on this device.';
   expect(read('src/i18n/en.ts')).toContain(`'${tagline}': '${tagline}'`);
   expect(read('index.html')).toContain(tagline);
+  const about = read('src/kit/drawer.ts');
+  expect(about).toContain(`t('${tagline}')`);
+  expect(about).toContain("t('A short link is the one thing a server holds: the document, encrypted with a key the server never sees, until the link expires.')");
+});
+
+test('nothing a reader meets points at the record as if it were current', () => {
+  expect(hits(['docs/rebuild.md', 'docs/gap-analysis.md', 'docs/directives', 'docs/reviews'])).toEqual([]);
 });
 
 /** The Markdown links of a file that lead into the tree: not a web address, an anchor or an email. */

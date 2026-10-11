@@ -35,7 +35,8 @@ in one file.
 
 - **Not collaborative.** Every link is a copy. The person who opens a link you sent has their own document: what
   they change is in their link, not in yours, and nothing changed in one copy ever reaches another.
-- **Not a cloud.** No server keeps your documents, so there is nothing there to sign in to, lose or leak.
+- **Not a cloud.** No server keeps your documents, apart from a short link you make, encrypted with a key the server
+  never sees, until it expires. There is no account to sign in to.
 - **Not a place where anything of yours is kept,** unless you choose Saved, and then only on your own device.
 
 ## Privacy and security
