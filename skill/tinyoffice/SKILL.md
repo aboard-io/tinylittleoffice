@@ -36,7 +36,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 
 | Write | Means |
 | --- | --- |
-| `---` / `key: value` lines / `---` at the very top | The head: the document's settings (`chart: bar`, `zone: Europe/London`, `theme: midnight`) and its `title` and `by` |
+| `---` / `key: value` lines / `---` at the very top | The head: the document's settings (`chart: bar`, `zone: America/New_York`, `theme: midnight`) and its `title` and `by` |
 | `{#id .class key=value}` at the end of a line | Attributes: a layout (`{.title}`, `{.two}`), a setting for that line (`{due=2027-03-01}`) |
 | `Price:money` in a table's header | A typed column: `text number money percent date time check url rich long icon name option` |
 | `~ A -> B: label` | A connection between two things (`->`, `<-`, `<->`, `--`) |
@@ -52,15 +52,15 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | App | Name | For |
 | --- | --- | --- |
 | `write` | Word Processor | Words on a page: headings, lists, links and notes, a table that adds up, printed on letter or A4. |
-| `outline` | Outliner | An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same tree a deck or a mind map reads. |
+| `outline` | Outliner | An outliner: ideas under ideas, folded and unfolded, moved around and joined; the same tree a deck or a mind map reads. |
 | `deck` | Presentation Builder | Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold. |
 | `sheet` | Spreadsheet | A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them. |
-| `calc` | Calculator | A calculator that keeps its working: names, units and conversions, and graphs of y = f(x). |
+| `calc` | Calculator | A calculator that shows its work: names, units and conversions, and graphs of y = f(x). |
 | `draw` | Drawing Tool | Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile. |
 | `diagram` | Diagram Maker | Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines. |
 | `anim` | Animator | Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes. |
 | `board` | Kanban Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
-| `todo` | To-Do List | Tasks to tick off, with stars and due dates. |
+| `todo` | To-Do List | Tasks to check off, with stars and due dates. |
 | `cal` | Calendar | Days and times on a month, a year or a schedule, in any time zone. |
 | `trip` | Trip Planner | A route on a map: stops in order, each with a note, and how far between them. |
 
@@ -109,16 +109,16 @@ Launch plan:
 ---
 title: Fieldnote 2.0 launch
 ---
-- Fieldnote 2.0, out on Thursday 12 November
+- Fieldnote 2.0, out on Thursday, November 12
   - Product
     - Pricing {.from label=sets}
-      - £4 a month or £36 a year; free for students^[Three rivals checked in September: £3 to £6 a month.]
+      - $4 a month or $36 a year; free for students^[Three rivals checked in September: $3 to $6 a month.]
     - Onboarding
       - Three screens, then straight to the first note
-    - Freeze the build on Monday 2 November
+    - Freeze the build on Monday, November 2
   - Marketing
     - Press
-      - Review copies to six writers on 5 November, embargoed to the 12th
+      - Review copies to six writers on November 5, embargoed to the 12th
     - Newsletter
       - To 4,200 readers at 8 am on launch day
     - A ninety-second film of a note being made
@@ -131,7 +131,7 @@ title: Fieldnote 2.0 launch
 ~ Help pages -> Newsletter: linked from
 ```
 
-As a link: <https://tinylittleoffice.com/outline/#doc=---%0Atitle%3A+Fieldnote+2.0+launch%0A---%0A-+Fieldnote+2.0%2C+out+on+Thursday+12+November%0A++-+Product%0A++++-+Pricing+%7B.from+label%3Dsets%7D%0A++++++-+%C2%A34+a+month+or+%C2%A336+a+year%3B+free+for+students%5E%5BThree+rivals+checked+in+September%3A+%C2%A33+to+%C2%A36+a+month.%5D%0A++++-+Onboarding%0A++++++-+Three+screens%2C+then+straight+to+the+first+note%0A++++-+Freeze+the+build+on+Monday+2+November%0A++-+Marketing%0A++++-+Press%0A++++++-+Review+copies+to+six+writers+on+5+November%2C+embargoed+to+the+12th%0A++++-+Newsletter%0A++++++-+To+4%2C200+readers+at+8+am+on+launch+day%0A++++-+A+ninety-second+film+of+a+note+being+made%0A++-+Support%0A++++-+Help+pages%0A++++++-+Twelve+of+them%2C+the+five+most+asked+about+first%0A++++-+A+reply+within+a+day%2C+Priya+and+Tom+taking+turns%0A%0A~+Pricing+-%3E+Press%3A+informs%0A~+Help+pages+-%3E+Newsletter%3A+linked+from>
+As a link: <https://tinylittleoffice.com/outline/#doc=---%0Atitle%3A+Fieldnote+2.0+launch%0A---%0A-+Fieldnote+2.0%2C+out+on+Thursday%2C+November+12%0A++-+Product%0A++++-+Pricing+%7B.from+label%3Dsets%7D%0A++++++-+%244+a+month+or+%2436+a+year%3B+free+for+students%5E%5BThree+rivals+checked+in+September%3A+%243+to+%246+a+month.%5D%0A++++-+Onboarding%0A++++++-+Three+screens%2C+then+straight+to+the+first+note%0A++++-+Freeze+the+build+on+Monday%2C+November+2%0A++-+Marketing%0A++++-+Press%0A++++++-+Review+copies+to+six+writers+on+November+5%2C+embargoed+to+the+12th%0A++++-+Newsletter%0A++++++-+To+4%2C200+readers+at+8+am+on+launch+day%0A++++-+A+ninety-second+film+of+a+note+being+made%0A++-+Support%0A++++-+Help+pages%0A++++++-+Twelve+of+them%2C+the+five+most+asked+about+first%0A++++-+A+reply+within+a+day%2C+Priya+and+Tom+taking+turns%0A%0A~+Pricing+-%3E+Press%3A+informs%0A~+Help+pages+-%3E+Newsletter%3A+linked+from>
 
 Templates: Packing list, A decision, Launch plan, A talk, A speech, An essay plan, A research plan, A syllabus, A novel, A book, A company, A family, A decision tree, Troubleshooting. Its own files: `.opml`, `.md`, `.pdf`, `.txt`. (the `.pdf` is the outline's words as sections and bullets, selectable and bookmarked)
 
@@ -151,9 +151,9 @@ Status update:
 ---
 theme: boardroom
 ---
-## :calendar: Acme Ltd site: status {.title}
+## :calendar: Acme Inc. site: status {.title}
 
-- Week of 2 November 2026 · Harbor Studio
+- Week of November 2, 2026 · Harbor Studio
 
 ---
 
@@ -167,7 +167,7 @@ theme: boardroom
 
 - Next: words for work, prices and news
 - Next: photographs on Thursday morning, weather allowing
-- Next: first build shown on Friday 13 November
+- Next: first build shown on Friday, November 13
 
 > Left, what shipped; right, what is planned. Keep it to the facts.
 
@@ -182,11 +182,11 @@ theme: boardroom
 
 ## :help: Asks
 
-- Dee Okafor to send the final prices by Wednesday 11 November
+- Dee Okafor to send the final prices by Wednesday, November 11
 - Someone from Acme at the Friday read-through, an hour
 ```
 
-As a link: <https://tinylittleoffice.com/deck/#doc=---%0Atheme%3A+boardroom%0A---%0A%23%23+%3Acalendar%3A+Acme+Ltd+site%3A+status+%7B.title%7D%0A%0A-+Week+of+2+November+2026+%C2%B7+Harbor+Studio%0A%0A---%0A%0A%23%23+This+week+and+next+%7B.two%7D%0A%0A-+Done%3A+the+six+pages+sketched+and+agreed%0A-+Done%3A+words+for+home%2C+about+and+contact%0A-+Done%3A+hosting+set+up%2C+the+old+address+kept%0A%0A%7C%0A%0A-+Next%3A+words+for+work%2C+prices+and+news%0A-+Next%3A+photographs+on+Thursday+morning%2C+weather+allowing%0A-+Next%3A+first+build+shown+on+Friday+13+November%0A%0A%3E+Left%2C+what+shipped%3B+right%2C+what+is+planned.+Keep+it+to+the+facts.%0A%0A---%0A%0A%23%23+%3Awarning%3A+Risks%0A%0A-+The+price+list+is+still+being+decided+by+Acme%3A+the+prices+page+waits+on+it%0A-+Thursday+may+rain%3A+Saturday+is+the+fallback+for+photographs%0A%0A---%0A%0A%23%23+%3Ahelp%3A+Asks%0A%0A-+Dee+Okafor+to+send+the+final+prices+by+Wednesday+11+November%0A-+Someone+from+Acme+at+the+Friday+read-through%2C+an+hour>
+As a link: <https://tinylittleoffice.com/deck/#doc=---%0Atheme%3A+boardroom%0A---%0A%23%23+%3Acalendar%3A+Acme+Inc.+site%3A+status+%7B.title%7D%0A%0A-+Week+of+November+2%2C+2026+%C2%B7+Harbor+Studio%0A%0A---%0A%0A%23%23+This+week+and+next+%7B.two%7D%0A%0A-+Done%3A+the+six+pages+sketched+and+agreed%0A-+Done%3A+words+for+home%2C+about+and+contact%0A-+Done%3A+hosting+set+up%2C+the+old+address+kept%0A%0A%7C%0A%0A-+Next%3A+words+for+work%2C+prices+and+news%0A-+Next%3A+photographs+on+Thursday+morning%2C+weather+allowing%0A-+Next%3A+first+build+shown+on+Friday%2C+November+13%0A%0A%3E+Left%2C+what+shipped%3B+right%2C+what+is+planned.+Keep+it+to+the+facts.%0A%0A---%0A%0A%23%23+%3Awarning%3A+Risks%0A%0A-+The+price+list+is+still+being+decided+by+Acme%3A+the+prices+page+waits+on+it%0A-+Thursday+may+rain%3A+Saturday+is+the+fallback+for+photographs%0A%0A---%0A%0A%23%23+%3Ahelp%3A+Asks%0A%0A-+Dee+Okafor+to+send+the+final+prices+by+Wednesday%2C+November+11%0A-+Someone+from+Acme+at+the+Friday+read-through%2C+an+hour>
 
 Poster:
 
@@ -196,14 +196,14 @@ format: poster
 ---
 ## :music: Open mic night {.title}
 
-- Friday 13 November, 8pm
+- Friday, November 13, 8 pm
 - The Anchor, 14 Quay Street
 - Free. Bring a song, a poem, or just your ears.
 ```
 
-As a link: <https://tinylittleoffice.com/deck/#doc=---%0Aformat%3A+poster%0A---%0A%23%23+%3Amusic%3A+Open+mic+night+%7B.title%7D%0A%0A-+Friday+13+November%2C+8pm%0A-+The+Anchor%2C+14+Quay+Street%0A-+Free.+Bring+a+song%2C+a+poem%2C+or+just+your+ears.>
+As a link: <https://tinylittleoffice.com/deck/#doc=---%0Aformat%3A+poster%0A---%0A%23%23+%3Amusic%3A+Open+mic+night+%7B.title%7D%0A%0A-+Friday%2C+November+13%2C+8+pm%0A-+The+Anchor%2C+14+Quay+Street%0A-+Free.+Bring+a+song%2C+a+poem%2C+or+just+your+ears.>
 
-Templates: A talk, Status update, A proposal, A pitch, A lesson, Conference talk, Quarterly review, Workshop agenda, Product launch, Town-hall notice, Trivia night, Wedding slideshow, Zine, Recipe zine, Booklet, Concert programme, Brochure, Farm brochure, Comic, Comic: the umbrella, Poster, Lost cat poster, Name badges, Conference badges. Its own files: `.pptx`, `.html`, `.zip`, `.gif`.
+Templates: A talk, Status update, A proposal, A pitch, A lesson, Conference talk, Quarterly review, Workshop agenda, Product launch, Town-hall notice, Trivia night, Wedding slideshow, Zine, Recipe zine, Booklet, Concert program, Brochure, Farm brochure, Comic, Comic: the umbrella, Poster, Lost cat poster, Name badges, Conference badges. Its own files: `.pptx`, `.html`, `.zip`, `.gif`.
 
 ## Numbers
 
@@ -283,7 +283,7 @@ Templates: Splitting the bill, A shopping total, Tax on a price, Percentage chan
 
 ### draw: a drawing, or pixel art
 
-A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid of 8px squares. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `i` icon (its label is the icon's name), `l` line, `a` arrow (X, Y the start; W, H the distance to the end). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid), then a colour letter (`r o g b p`) and a text size (`1` to `4`); a text (`t`) may end it with `=` to centre its words or `>` to set them right. `alt:` in the head describes the drawing for people who cannot see it. Prefer a diagram when one fits: it lays itself out.
+A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid of 8px squares. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `i` icon (its label is the icon's name), `l` line, `a` arrow (X, Y the start; W, H the distance to the end). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid), then a color letter (`r o g b p`) and a text size (`1` to `4`); a text (`t`) may end it with `=` to center its words or `>` to set them right. `alt:` in the head describes the drawing for people who cannot see it. Prefer a diagram when one fits: it lays itself out.
 
 Request flow:
 
@@ -333,7 +333,7 @@ Templates: Flowchart, Birthday card, Event map, Floor plan, Room plan, Wireframe
 
 `kind:` in the head says which, and each is a list:
 
-- `mind`: a nested list, the centre then its branches.
+- `mind`: a nested list, the center then its branches.
 - `org`: a nested list of `Name | Role`; a dotted line between two people is `~ Ben -- Eve: advises`.
 - `family`: a nested list, a person or a couple each, `Rose + Albert Hale | m. 1948`.
 - `lanes`: `- Who: what they do`, in order; a step ending in `?` is a decision.
@@ -373,14 +373,14 @@ Cats and dogs:
 title: Cats and dogs
 kind: venn
 ---
-- Cats: purr, climb curtains, use a litter tray
+- Cats: purr, climb curtains, use a litter box
 - Dogs: fetch, need walks, guard the house
 - Cats & Dogs: shed on the sofa, love a warm spot, wake you at six
 ```
 
-As a link: <https://tinylittleoffice.com/diagram/#doc=---%0Atitle%3A+Cats+and+dogs%0Akind%3A+venn%0A---%0A-+Cats%3A+purr%2C+climb+curtains%2C+use+a+litter+tray%0A-+Dogs%3A+fetch%2C+need+walks%2C+guard+the+house%0A-+Cats+%26+Dogs%3A+shed+on+the+sofa%2C+love+a+warm+spot%2C+wake+you+at+six>
+As a link: <https://tinylittleoffice.com/diagram/#doc=---%0Atitle%3A+Cats+and+dogs%0Akind%3A+venn%0A---%0A-+Cats%3A+purr%2C+climb+curtains%2C+use+a+litter+box%0A-+Dogs%3A+fetch%2C+need+walks%2C+guard+the+house%0A-+Cats+%26+Dogs%3A+shed+on+the+sofa%2C+love+a+warm+spot%2C+wake+you+at+six>
 
-Templates: Mind map, Launch plan, The garden this year, Moving abroad, Revising for an exam, Org chart, A small company, A primary school, A restaurant kitchen, Family tree, Three generations, The Brontës, A family with a godmother, Swimlanes, From order to doorstep, Hiring someone, An expenses claim, Timeline, Computing, briefly, A building project, Apollo 11, Venn, Fast, cheap, good, Cats and dogs, Who can do what, Seating chart, A wedding dinner, Board game night, A classroom, Network, How an app hangs together, The water cycle, The house network. Its own files: `.svg`.
+Templates: Mind map, Launch plan, The garden this year, Moving abroad, Studying for an exam, Org chart, A small company, An elementary school, A restaurant kitchen, Family tree, Three generations, The Brontës, A family with a godmother, Swimlanes, From order to doorstep, Hiring someone, An expense report, Timeline, Computing, briefly, A building project, Apollo 11, Venn, Fast, cheap, good, Cats and dogs, Who can do what, Seating chart, A wedding dinner, Board game night, A classroom, Network, How an app hangs together, The water cycle, The house network. Its own files: `.svg`.
 
 ### anim: a drawing that moves
 
@@ -414,13 +414,13 @@ Templates: Lift off, Bouncing ball, Loading spinner, Title card, Birthday card, 
 
 ### board: a kanban board
 
-`## Stage` headings (`## Doing {limit=2 color=g}` holds two cards at most and colours the stage), each followed by a `- card` list; a task list indented under a card (`  - [ ] step`) is its checklist.
+`## Stage` headings (`## Doing {limit=2 color=g}` holds two cards at most and colors the stage), each followed by a `- card` list; a task list indented under a card (`  - [ ] step`) is its checklist.
 
 A project:
 
 ```
 ---
-title: The Harbour Studio website
+title: The Harbor Studio website
 ---
 ## To do {color=b}
 
@@ -437,7 +437,7 @@ title: The Harbour Studio website
   - [x] Layout
   - [x] Header and footer
   - [ ] The gallery of twelve projects
-- Choose the typeface: a serif or a grotesque
+- Choose the typeface: a serif or a sans
 
 ## Waiting on {color=y}
 
@@ -446,12 +446,12 @@ title: The Harbour Studio website
 ## Done {color=p}
 
 - Pick the domain name
-- Sign off the budget: £4,800, live by Monday 2 November
+- Sign off on the budget: $4,800, live by Monday, November 2
 ```
 
-As a link: <https://tinylittleoffice.com/board/#doc=---%0Atitle%3A+The+Harbour+Studio+website%0A---%0A%23%23+To+do+%7Bcolor%3Db%7D%0A%0A-+Write+the+words+for+the+%2A%2AAbout%2A%2A+page%0A++-+%5Bx%5D+Interview+Mara+about+the+first+ten+years%0A++-+%5B+%5D+First+draft%2C+about+400+words%0A++-+%5B+%5D+Dee+reads+it%0A-+Photograph+the+studio+on+a+bright+morning%0A-+Set+up+the+contact+form%0A%0A%23%23+Doing+%7Blimit%3D2+color%3Dg%7D%0A%0A-+Build+the+home+page%0A++-+%5Bx%5D+Layout%0A++-+%5Bx%5D+Header+and+footer%0A++-+%5B+%5D+The+gallery+of+twelve+projects%0A-+Choose+the+typeface%3A+a+serif+or+a+grotesque%0A%0A%23%23+Waiting+on+%7Bcolor%3Dy%7D%0A%0A-+Pellow+%26+Sons+to+send+the+logo+as+a+vector+file%0A%0A%23%23+Done+%7Bcolor%3Dp%7D%0A%0A-+Pick+the+domain+name%0A-+Sign+off+the+budget%3A+%C2%A34%2C800%2C+live+by+Monday+2+November>
+As a link: <https://tinylittleoffice.com/board/#doc=---%0Atitle%3A+The+Harbor+Studio+website%0A---%0A%23%23+To+do+%7Bcolor%3Db%7D%0A%0A-+Write+the+words+for+the+%2A%2AAbout%2A%2A+page%0A++-+%5Bx%5D+Interview+Mara+about+the+first+ten+years%0A++-+%5B+%5D+First+draft%2C+about+400+words%0A++-+%5B+%5D+Dee+reads+it%0A-+Photograph+the+studio+on+a+bright+morning%0A-+Set+up+the+contact+form%0A%0A%23%23+Doing+%7Blimit%3D2+color%3Dg%7D%0A%0A-+Build+the+home+page%0A++-+%5Bx%5D+Layout%0A++-+%5Bx%5D+Header+and+footer%0A++-+%5B+%5D+The+gallery+of+twelve+projects%0A-+Choose+the+typeface%3A+a+serif+or+a+sans%0A%0A%23%23+Waiting+on+%7Bcolor%3Dy%7D%0A%0A-+Pellow+%26+Sons+to+send+the+logo+as+a+vector+file%0A%0A%23%23+Done+%7Bcolor%3Dp%7D%0A%0A-+Pick+the+domain+name%0A-+Sign+off+on+the+budget%3A+%244%2C800%2C+live+by+Monday%2C+November+2>
 
-Templates: A project, A week, Moving house, Hiring, Content calendar, Editorial board, Sales pipeline, Bug triage, Class projects, Mutual aid. Its own files: `.csv`.
+Templates: A project, A week, A move, Hiring, Content calendar, Editorial board, Sales pipeline, Bug triage, Class projects, Mutual aid. Its own files: `.csv`.
 
 ### todo: a to-do list
 
@@ -479,30 +479,30 @@ Templates: This week, Daily routine, Shopping, Groceries by aisle, Reading list,
 
 ### cal: a calendar, or a schedule
 
-A list item per thing: `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`. Attributes give a colour and a repeat: `{color=green every=week times=6}` (or `until=2027-06-01`). The head holds the time zone, `zone: Europe/London`, and may say what a colour stands for: `green: Sam`. `view: gantt` in the head draws the same items as a schedule: an item nested under another is part of it, `{done=40%}` is how far along it is, `- [x]` that it is done.
+A list item per thing: `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`. Attributes give a color and a repeat: `{color=green every=week times=6}` (or `until=2027-06-01`). The head may hold a time zone, `zone: America/New_York`; without one the times are read in the reader's own zone. It may say what a color stands for: `green: Sam`. `view: gantt` in the head draws the same items as a schedule: an item nested under another is part of it, `{done=40%}` is how far along it is, `- [x]` that it is done.
 
 Family calendar:
 
 ```
 ---
 title: The Okafor family
-zone: Europe/London
 green: Sam
 orange: Ana
 blue: Everyone
 ---
-- 2026-11-03 16:30-17:15: Swimming lesson, Sam {color=green every=week times=10}
-- 2026-11-04: Bins out, garden waste too {every=week}
-- 2026-11-05 18:30-20:00: Bonfire night at Victoria Park, bring gloves {color=blue}
-- 2026-11-07 10:00-11:30: Football, under-10s home game {color=green every=week until=2026-12-12}
+- 2026-11-03 16:30-17:15: Swim lesson, Sam {color=green every=week times=10}
+- 2026-11-04: Trash and recycling out tonight {every=week}
+- 2026-11-05 18:30-20:00: Parent-teacher night, bring the reading log {color=blue}
+- 2026-11-07 10:00-11:30: Soccer, under-10s home game {color=green every=week until=2026-12-12}
 - 2026-11-09: Ana's birthday {color=orange every=year}
-- 2026-11-12 08:40-09:20: Dentist, Dr Patel, both children {color=blue}
-- 2026-11-21 to 2026-11-22: Grandma visits from Leeds {color=blue}
-- 2026-11-26 19:30-22:00: Book club at Jo's {color=orange every=month}
-- 2026-12-19 to 2027-01-04: Christmas holidays {color=green}
+- 2026-11-12 08:40-09:20: Dentist, Dr. Patel, both kids {color=blue}
+- 2026-11-21 to 2026-11-22: Grandma visits from Philadelphia {color=blue}
+- 2026-11-26: Thanksgiving at Aunt Jo's, bring the pies {color=blue every=year}
+- 2026-12-03 19:30-22:00: Book club at Jo's {color=orange every=month}
+- 2026-12-23 to 2027-01-01: Winter break {color=green}
 ```
 
-As a link: <https://tinylittleoffice.com/cal/#doc=---%0Atitle%3A+The+Okafor+family%0Azone%3A+Europe%2FLondon%0Agreen%3A+Sam%0Aorange%3A+Ana%0Ablue%3A+Everyone%0A---%0A-+2026-11-03+16%3A30-17%3A15%3A+Swimming+lesson%2C+Sam+%7Bcolor%3Dgreen+every%3Dweek+times%3D10%7D%0A-+2026-11-04%3A+Bins+out%2C+garden+waste+too+%7Bevery%3Dweek%7D%0A-+2026-11-05+18%3A30-20%3A00%3A+Bonfire+night+at+Victoria+Park%2C+bring+gloves+%7Bcolor%3Dblue%7D%0A-+2026-11-07+10%3A00-11%3A30%3A+Football%2C+under-10s+home+game+%7Bcolor%3Dgreen+every%3Dweek+until%3D2026-12-12%7D%0A-+2026-11-09%3A+Ana%27s+birthday+%7Bcolor%3Dorange+every%3Dyear%7D%0A-+2026-11-12+08%3A40-09%3A20%3A+Dentist%2C+Dr+Patel%2C+both+children+%7Bcolor%3Dblue%7D%0A-+2026-11-21+to+2026-11-22%3A+Grandma+visits+from+Leeds+%7Bcolor%3Dblue%7D%0A-+2026-11-26+19%3A30-22%3A00%3A+Book+club+at+Jo%27s+%7Bcolor%3Dorange+every%3Dmonth%7D%0A-+2026-12-19+to+2027-01-04%3A+Christmas+holidays+%7Bcolor%3Dgreen%7D>
+As a link: <https://tinylittleoffice.com/cal/#doc=---%0Atitle%3A+The+Okafor+family%0Agreen%3A+Sam%0Aorange%3A+Ana%0Ablue%3A+Everyone%0A---%0A-+2026-11-03+16%3A30-17%3A15%3A+Swim+lesson%2C+Sam+%7Bcolor%3Dgreen+every%3Dweek+times%3D10%7D%0A-+2026-11-04%3A+Trash+and+recycling+out+tonight+%7Bevery%3Dweek%7D%0A-+2026-11-05+18%3A30-20%3A00%3A+Parent-teacher+night%2C+bring+the+reading+log+%7Bcolor%3Dblue%7D%0A-+2026-11-07+10%3A00-11%3A30%3A+Soccer%2C+under-10s+home+game+%7Bcolor%3Dgreen+every%3Dweek+until%3D2026-12-12%7D%0A-+2026-11-09%3A+Ana%27s+birthday+%7Bcolor%3Dorange+every%3Dyear%7D%0A-+2026-11-12+08%3A40-09%3A20%3A+Dentist%2C+Dr.+Patel%2C+both+kids+%7Bcolor%3Dblue%7D%0A-+2026-11-21+to+2026-11-22%3A+Grandma+visits+from+Philadelphia+%7Bcolor%3Dblue%7D%0A-+2026-11-26%3A+Thanksgiving+at+Aunt+Jo%27s%2C+bring+the+pies+%7Bcolor%3Dblue+every%3Dyear%7D%0A-+2026-12-03+19%3A30-22%3A00%3A+Book+club+at+Jo%27s+%7Bcolor%3Dorange+every%3Dmonth%7D%0A-+2026-12-23+to+2027-01-01%3A+Winter+break+%7Bcolor%3Dgreen%7D>
 
 Project plan:
 
@@ -528,7 +528,7 @@ view: gantt
 
 As a link: <https://tinylittleoffice.com/cal/#doc=---%0Atitle%3A+A+website+for+Hollow+Pine+Coffee%0Aview%3A+gantt%0A---%0A-+2026-09-28+to+2026-10-09%3A+Discovery%0A++-+%5Bx%5D+2026-09-28+to+2026-09-30%3A+Interviews+with+the+staff+and+six+regulars%0A++-+%5Bx%5D+2026-10-01+to+2026-10-02%3A+Analytics+review%0A++-+2026-10-05+to+2026-10-09%3A+Content+audit+%7Bdone%3D80%25%7D%0A-+2026-10-12+to+2026-10-30%3A+Design%0A++-+2026-10-12+to+2026-10-16%3A+Wireframes%0A++-+2026-10-16%3A+The+logo+chosen+%7Bcolor%3Dred%7D%0A++-+2026-10-19+to+2026-10-30%3A+Visual+design%0A-+2026-11-02+to+2026-11-20%3A+Build%0A++-+2026-11-02+to+2026-11-13%3A+Pages+and+the+menu+%7Bcolor%3Dblue%7D%0A++-+2026-11-09+to+2026-11-13%3A+Ordering+ahead+%7Bcolor%3Dblue%7D%0A++-+2026-11-16+to+2026-11-20%3A+Testing+on+phones+%7Bcolor%3Dblue%7D%0A-+2026-11-24%3A+Launch+%7Bcolor%3Dred%7D>
 
-Templates: Family calendar, School term, Bills and renewals, Volunteer rota, Holiday planner, League fixtures, Garden calendar, Content schedule, Editorial calendar, Training plan, Project plan, Conference agenda, Festival weekend. Its own files: `.ics`, `.csv`.
+Templates: Family calendar, School term, Bills and renewals, Volunteer schedule, Vacation planner, League schedule, Garden calendar, Content schedule, Editorial calendar, Training plan, Project plan, Conference agenda, Festival weekend. Its own files: `.ics`, `.csv`.
 
 ### trip: a route on a map
 
@@ -543,15 +543,15 @@ units: km
 Place | Lat:number | Lon:number | Note
 --- | --- | --- | ---
 Lisbon | 38.7223 | -9.1393 | Pastéis de nata in Belém, then the 28 tram up to Graça
-Sintra | 38.8029 | -9.3817 | Pena Palace first thing, before the coaches
+Sintra | 38.8029 | -9.3817 | Pena Palace first thing, before the tour buses
 Óbidos | 39.3606 | -9.1571 | Walk the town walls; ginjinha in a chocolate cup
-Coimbra | 40.2033 | -8.4103 | The Joanina Library: book the 10:00 slot
+Coimbra | 40.2033 | -8.4103 | The Joanina Library: book the 10 am slot
 Porto | 41.1579 | -8.6291 | Port cellars across the river in Gaia
 ```
 
-As a link: <https://tinylittleoffice.com/trip/#doc=---%0Aunits%3A+km%0A---%0APlace+%7C+Lat%3Anumber+%7C+Lon%3Anumber+%7C+Note%0A---+%7C+---+%7C+---+%7C+---%0ALisbon+%7C+38.7223+%7C+-9.1393+%7C+Past%C3%A9is+de+nata+in+Bel%C3%A9m%2C+then+the+28+tram+up+to+Gra%C3%A7a%0ASintra+%7C+38.8029+%7C+-9.3817+%7C+Pena+Palace+first+thing%2C+before+the+coaches%0A%C3%93bidos+%7C+39.3606+%7C+-9.1571+%7C+Walk+the+town+walls%3B+ginjinha+in+a+chocolate+cup%0ACoimbra+%7C+40.2033+%7C+-8.4103+%7C+The+Joanina+Library%3A+book+the+10%3A00+slot%0APorto+%7C+41.1579+%7C+-8.6291+%7C+Port+cellars+across+the+river+in+Gaia>
+As a link: <https://tinylittleoffice.com/trip/#doc=---%0Aunits%3A+km%0A---%0APlace+%7C+Lat%3Anumber+%7C+Lon%3Anumber+%7C+Note%0A---+%7C+---+%7C+---+%7C+---%0ALisbon+%7C+38.7223+%7C+-9.1393+%7C+Past%C3%A9is+de+nata+in+Bel%C3%A9m%2C+then+the+28+tram+up+to+Gra%C3%A7a%0ASintra+%7C+38.8029+%7C+-9.3817+%7C+Pena+Palace+first+thing%2C+before+the+tour+buses%0A%C3%93bidos+%7C+39.3606+%7C+-9.1571+%7C+Walk+the+town+walls%3B+ginjinha+in+a+chocolate+cup%0ACoimbra+%7C+40.2033+%7C+-8.4103+%7C+The+Joanina+Library%3A+book+the+10+am+slot%0APorto+%7C+41.1579+%7C+-8.6291+%7C+Port+cellars+across+the+river+in+Gaia>
 
-Templates: A weekend in Copenhagen, Iceland’s Ring Road, A Dublin pub crawl, Yosemite’s Mist Trail loop, The Loire by bike, A college tour, A week in Portugal, Down the Pacific coast, The Scottish Highlands, Rome, the places to see, Japan by rail, The last 100 km of the Camino, New York in the movies, A wedding on Lake Como. Its own files: `.gpx`, `.geojson`.
+Templates: A weekend in Copenhagen, Iceland’s Ring Road, A Dublin food crawl, Yosemite’s Mist Trail loop, The Loire by bike, A college tour, A week in Portugal, Down the Pacific coast, The Scottish Highlands, Rome, the places to see, Japan by rail, The last 100 km of the Camino, New York in the movies, A wedding on Lake Como. Its own files: `.gpx`, `.geojson`.
 
 ## Every app's files
 
@@ -611,19 +611,19 @@ A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <li
 For an agent working in the editors in a browser: the keys each app answers, written from the apps' command registry (`Mod` is ⌘ on a Mac and Ctrl elsewhere; `at:` places are inside the app). Every command in force is also in the command palette, Mod+K (outside words) or the button at the end of the bar.
 
 - **Everywhere (the page)**: `Mod+Z` Undo; `Mod+Shift+Z`/`Mod+Y` Redo; `Mod+F` Find in this document; `Mod+S` Keep this document on the device; `Mod+Shift+S` Share; `Mod+Shift+D` Download; `Mod+P` Print, or save as PDF; `Mod+/` Show these shortcuts; `Mod+K` All commands.
-- **Words (wherever words are typed)**: `Mod+X` Cut; `Mod+C` Copy; `Mod+V` Paste; `Mod+B` Bold; `Mod+I` Italic; `Mod+U` Underline; `Mod+Shift+X` Strikethrough; `Mod+Shift+H` Highlight; `Mod+K` Link; `Tab` Indent; `Shift+Tab` Bring out; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Enter` Tick or untick a task; `Mod+A` Select all: the words of the box, then everything.
+- **Words (wherever words are typed)**: `Mod+X` Cut; `Mod+C` Copy; `Mod+V` Paste; `Mod+B` Bold; `Mod+I` Italic; `Mod+U` Underline; `Mod+Shift+X` Strikethrough; `Mod+Shift+H` Highlight; `Mod+K` Link; `Tab` Indent; `Shift+Tab` Bring out; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Enter` Check or uncheck a task; `Mod+A` Select all: the words of the box, then everything.
 - **Rows chosen whole**: `Enter` Edit; `Escape` Step out: close, collapse, let go; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Tab` Indent; `Shift+Tab` Bring out; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Shift+ArrowUp`/`Shift+ArrowDown` Extend the selection; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` Back to the words; `Mod+A` Select all: the words of the box, then everything.
-- **Word Processor**: `Mod+Shift+Enter` Page break; `Mod+Shift+L` Align left; `Mod+Shift+E` Centre; `Mod+Shift+R` Align right; `Mod+Shift+J` Justify; `Enter` Edit; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Escape`/`ArrowDown`/`ArrowRight` Back to the words; `ArrowUp`/`ArrowLeft` Back to the words.
+- **Word Processor**: `Mod+Shift+Enter` Page break; `Mod+Shift+L` Align left; `Mod+Shift+E` Center; `Mod+Shift+R` Align right; `Mod+Shift+J` Justify; `Enter` Edit; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Escape`/`ArrowDown`/`ArrowRight` Back to the words; `ArrowUp`/`ArrowLeft` Back to the words.
 - **Outliner**: `Tab` Indent; `Shift+Tab` Bring out; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Shift+,` Zoom out; `Mod+Shift+.` Zoom in; `Mod+Alt+ArrowUp`/`Mod+Alt+ArrowDown` Fold, unfold; `Mod+D` Duplicate; `Delete`/`Backspace` Delete; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before.
 - **Presentation Builder**: `Mod+Alt+Enter` Present; `Alt+ArrowUp` Move slide up; `Alt+ArrowDown` Move slide down; `Mod+Shift+Enter` A new slide; `Mod+Enter` Done; `Mod+D` Duplicate; `PageUp`/`PageDown` The slide before, the slide after (on the rail); `ArrowRight`/`Space`/`PageDown`/`Enter` Presenting: the next line or slide; `ArrowLeft`/`PageUp`/`Backspace` Presenting: back; `End` Presenting: the whole slide; `N`/`Shift+N` Notes; `Escape` Stop presenting.
-- **Spreadsheet**: `Mod+Alt+=` Row above; `Mod+D` Fill down from the top row; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Clear these cells; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Alt+-` Delete ; `Mod+A` Select all: the words of the box, then everything; `Mod+Enter` Done; `Tab`/`Shift+Tab` Indent or bring out in a list; the next cell in a grid; `F2` Edit the cell, the caret at its end; `Shift+ArrowUp`/`Shift+ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight` Extend the selection; `Space` Tick or untick a task; `Escape` Step out: close, collapse, let go; `Escape` Put back what the cell held; `Enter`/`Shift+Enter`/`ArrowDown`/`ArrowUp`/`ArrowLeft`/`ArrowRight` The next or the one before.
+- **Spreadsheet**: `Mod+Alt+=` Row above; `Mod+D` Fill down from the top row; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Clear these cells; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Alt+-` Delete ; `Mod+A` Select all: the words of the box, then everything; `Mod+Enter` Done; `Tab`/`Shift+Tab` Indent or bring out in a list; the next cell in a grid; `F2` Edit the cell, the caret at its end; `Shift+ArrowUp`/`Shift+ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight` Extend the selection; `Space` Check or uncheck a task; `Escape` Step out: close, collapse, let go; `Escape` Put back what the cell held; `Enter`/`Shift+Enter`/`ArrowDown`/`ArrowUp`/`ArrowLeft`/`ArrowRight` The next or the one before.
 - **Calculator**: `Enter` Done; `ArrowUp`/`ArrowDown` The next or the one before; `Escape` Clear the line; `Mod+A` Select all: the words of the box, then everything; `Enter` Done; `Escape` Step out: close, collapse, let go; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `Shift+ArrowUp`/`Shift+ArrowDown` Extend the selection; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+A` Select all: the words of the box, then everything; `Backspace` Delete.
-- **Drawing Tool**: `V` Select; `R` Rectangle; `E` Ellipse; `D` Diamond; `L` Line; `A` Arrow; `T` Text; `K`/`Shift+K` Join two shapes; `P` Pen; `F` Freehand; `[` Rotate left; `]` Rotate right; `Enter` Edit the words; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter` Done; `Escape` Step out: close, collapse, let go; `Backspace` Delete; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Enter` Join two shapes; `Mod+A` Select all: the words of the box, then everything; `Mod+Shift+L` Align: left; `Mod+Shift+E` Align: centre; `Mod+Shift+R` Align: right; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge the shapes in hand; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` Tap or drag to paint; the arrow keys move, Enter paints.; `Enter`/`Space` Tap or drag to paint; the arrow keys move, Enter paints..
+- **Drawing Tool**: `V` Select; `R` Rectangle; `E` Ellipse; `D` Diamond; `L` Line; `A` Arrow; `T` Text; `K`/`Shift+K` Join two shapes; `P` Pen; `F` Freehand; `[` Rotate left; `]` Rotate right; `Enter` Edit the words; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter` Done; `Escape` Step out: close, collapse, let go; `Backspace` Delete; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Enter` Join two shapes; `Mod+A` Select all: the words of the box, then everything; `Mod+Shift+L` Align: left; `Mod+Shift+E` Align: center; `Mod+Shift+R` Align: right; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge the shapes in hand; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` Tap or drag to paint; the arrow keys move, Enter paints.; `Enter`/`Space` Tap or drag to paint; the arrow keys move, Enter paints..
 - **Diagram Maker**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Tab` Indent; `Shift+Tab` Bring out; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter`/`Space` Edit; `Mod+Alt+ArrowLeft` Move left; `Mod+Alt+ArrowRight` Move right; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before; `ArrowDown`/`ArrowRight` The next or the one before; `Escape` Step out: close, collapse, let go; `Mod+Enter` Done.
 - **Animator**: `Space` Play; `K` Add a key here; `Enter` Edit the words; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `,`/`.` A frame back, a frame on; `Home`/`End` The first frame, the last; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge the shapes in hand; with none, step a frame; `Mod+A` Select all: the words of the box, then everything; `Escape` Step out: close, collapse, let go.
-- **Kanban Board**: `Mod+Alt+ArrowLeft` Move to the stage before; `Mod+Alt+ArrowRight` Move to the stage after; `Mod+Alt+ArrowLeft`/`Mod+Alt+ArrowRight` Move the cards to the stage before or after; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task.
-- **To-Do List**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before.
-- **Calendar**: `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Tab`/`Shift+Tab` Indent or bring out in a list; the next cell in a grid; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Tick or untick a task; `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Enter` Event; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Home`/`End`/`PageUp`/`PageDown` The next or the one before; `Delete`/`Backspace` Delete; `Mod+D` Duplicate.
+- **Kanban Board**: `Mod+Alt+ArrowLeft` Move to the stage before; `Mod+Alt+ArrowRight` Move to the stage after; `Mod+Alt+ArrowLeft`/`Mod+Alt+ArrowRight` Move the cards to the stage before or after; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Check or uncheck a task.
+- **To-Do List**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+D` Duplicate; `Mod+Enter` Check or uncheck a task; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` The next or the one before.
+- **Calendar**: `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Tab`/`Shift+Tab` Indent or bring out in a list; the next cell in a grid; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` The next or the one before; `Mod+D` Duplicate; `Mod+Enter` Check or uncheck a task; `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Dates; `Enter` Event; `Escape` Step out: close, collapse, let go; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Home`/`End`/`PageUp`/`PageDown` The next or the one before; `Delete`/`Backspace` Delete; `Mod+D` Duplicate.
 - **Trip Planner**: `Mod+Alt+Enter` Present; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `Mod+D` Duplicate; `ArrowUp`/`ArrowDown` The next or the one before; `ArrowRight`/`Space`/`PageDown`/`Enter` Presenting: the next stop; `ArrowLeft`/`PageUp`/`Backspace` Presenting: the stop before; `Home`/`End` The first, the last; `Escape` Stop presenting; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown` Nudge the shapes in hand; `Delete`/`Backspace` Delete; `Escape` Step out: close, collapse, let go.
 
 ## Choosing an app

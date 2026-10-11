@@ -252,7 +252,7 @@ test('the tile: its field, its pattern, one tile as SVG and CSS', () => {
 test('describing a drawing from its shapes', () => {
   expect(describeDrawing(readDrawing(parse(DRAWING)).shapes)).toBe('A drawing of Browser, Server. Browser leads to Server (asks).');
   expect(describeDrawing(readDrawing(parse('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 4 | 4 | 0 |\n')).shapes)).toBe(
-    'A drawing of one unlabelled shape.',
+    'A drawing of one unlabeled shape.',
   );
   expect(describeDrawing([])).toBe('');
 });

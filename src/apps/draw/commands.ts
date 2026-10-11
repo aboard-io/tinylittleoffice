@@ -100,7 +100,7 @@ const SIZES: { z: TextSize; name: string; letter: string }[] = [
 /** A text's three alignments: the bar's one button shows the one it has and goes on to the next; Mod+Shift+L, E and R set each (the Word Processor's keys, and every word processor's). */
 export const ALIGNS: { al: Align | ''; name: string; icon: Icon; key: string }[] = [
   { al: '', name: 'Align: left', icon: UI.alignLeft, key: 'L' },
-  { al: 'c', name: 'Align: centre', icon: UI.alignCenter, key: 'E' },
+  { al: 'c', name: 'Align: center', icon: UI.alignCenter, key: 'E' },
   { al: 'r', name: 'Align: right', icon: UI.alignRight, key: 'R' },
 ];
 /** The pixel inks, by letter, named. */
@@ -144,7 +144,7 @@ const STYLES: Command<Dr>[] = [
   ].map((x) => cmd(`line.${x.f}`, x.label, { icon: x.icon, where: ['context'], group: 'style', when: styleShown(true), pressed: (d) => sameFill(d, x.f), does: (d) => d.patchSel({ f: x.f }) })),
   ...[
     { f: 0 as Fill, label: 'No fill', icon: Square },
-    { f: 1 as Fill, label: 'Grey fill', icon: Blend },
+    { f: 1 as Fill, label: 'Gray fill', icon: Blend },
     { f: 2 as Fill, label: 'Solid fill', icon: PaintBucket },
   ].map((x) => cmd(`fill.${x.f}`, x.label, { icon: x.icon, where: ['context'], group: 'style', when: styleShown(false), pressed: (d) => sameFill(d, x.f), does: (d) => d.patchSel({ f: x.f }) })),
 ];

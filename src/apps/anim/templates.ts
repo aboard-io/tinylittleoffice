@@ -24,8 +24,8 @@ const motion = (head: Doc['head'], shapes: string[][], keys: Record<number, stri
   });
 
 /**
- * The loading spinner's ring: eight dots round a centre, clockwise from the top, and the keys that swell each
- * in turn and let it shrink back over six frames, so a bright dot runs round the ring once in 16 frames.
+ * The loading spinner's ring: eight dots around a center, clockwise from the top, and the keys that swell each
+ * in turn and let it shrink back over six frames, so a bright dot runs around the ring once in 16 frames.
  */
 const RING = 8;
 const ringDots = Array.from({ length: RING }, (_, i) => {
@@ -61,7 +61,7 @@ export const templates = (): Template[] => [
   {
     id: 'bounce',
     name: t('Bouncing ball'),
-    blurb: t('A ball falls faster and faster to the floor as its shadow grows under it; played forward and back, it bounces for ever.'),
+    blurb: t('A ball falls faster and faster to the floor as its shadow grows under it; played forward and back, it bounces forever.'),
     doc: motion(
       { title: 'Bouncing ball', frames: '12', fps: '12', loop: 'bounce', alt: 'A red ball falls to the floor, gathering speed, and bounces back up, its shadow growing as it nears the ground.' },
       [
@@ -78,9 +78,9 @@ export const templates = (): Template[] => [
   {
     id: 'spinner',
     name: t('Loading spinner'),
-    blurb: t('Eight dots in a ring, each swelling in turn, so a bright spot runs round while a page saves.'),
+    blurb: t('Eight dots in a ring, each swelling in turn, so a bright spot runs around while a page saves.'),
     doc: motion(
-      { title: 'Saving', frames: '16', fps: '16', alt: 'A ring of eight blue dots, each growing and shrinking in turn so the largest runs round clockwise, over the words Saving your changes.' },
+      { title: 'Saving', frames: '16', fps: '16', alt: 'A ring of eight blue dots, each growing and shrinking in turn so the largest runs around clockwise, over the words Saving your changes.' },
       [...ringDots, ['t', '16', '36', '48', '4', '03=', 'Saving your changes']],
       ringKeys,
     ),
@@ -91,14 +91,14 @@ export const templates = (): Template[] => [
     blurb: t('Red curtains part on opening night and the festival’s name comes forward: played once, it rests on the title.'),
     doc: motion(
       {
-        title: 'Harbour Lights opening night',
+        title: 'Hudson Lights opening night',
         frames: '30',
         fps: '12',
         loop: 'once',
-        alt: 'Red curtains reading Opening night part to show the title Harbour Lights Film Festival, Halifax waterfront, 14 to 18 October 2026.',
+        alt: 'Red curtains reading Opening night part to show the title Hudson Lights Film Festival, Pier 57, October 14 to 18, 2026.',
       },
       [
-        ['o', '12', '14', '56', '20', '1b4', 'Harbour Lights Film Festival | Halifax waterfront · 14 to 18 October 2026'],
+        ['o', '12', '14', '56', '20', '1b4', 'Hudson Lights Film Festival | Pier 57 · October 14 to 18, 2026'],
         ['r', '0', '0', '40', '50', '2r4', 'Opening'],
         ['r', '40', '0', '40', '50', '2r4', 'night'],
       ],
@@ -112,13 +112,13 @@ export const templates = (): Template[] => [
   {
     id: 'birthday',
     name: t('Birthday card'),
-    blurb: t('A present hops, stars and hearts sway round it, and the greeting shines in rainbow letters.'),
+    blurb: t('A present hops, stars and hearts sway around it, and the greeting shines in rainbow letters.'),
     doc: motion(
       {
         title: 'Happy birthday, Maya',
         frames: '16',
         fps: '8',
-        alt: 'A birthday card: the words Happy birthday, Maya in rainbow colours over a red present that hops, with stars and hearts swaying round it.',
+        alt: 'A birthday card: the words Happy birthday, Maya in rainbow colors over a red present that hops, with stars and hearts swaying around it.',
       },
       [
         ['t', '4', '4', '72', '8', '0p4=', 'Happy birthday, Maya!'],
@@ -127,7 +127,7 @@ export const templates = (): Template[] => [
         ['i', '60', '14', '6', '6', '0r', 'heart'],
         ['i', '20', '32', '5', '5', '0p', 'heart'],
         ['i', '56', '30', '5', '5', '0b', 'star'],
-        ['t', '4', '42', '72', '4', '0=', 'With love from everyone on the fourth floor · 12 November 2026'],
+        ['t', '4', '42', '72', '4', '0=', 'With love from everyone on the fourth floor · November 12, 2026'],
       ],
       {
         0: '0,0,0,0,1,0,g',
@@ -239,7 +239,7 @@ export const templates = (): Template[] => [
         ['t', '4', '20', '72', '8', '0p4=', 'Happy 2027!'],
         ['i', '10', '34', '6', '6', '0o', 'star'],
         ['i', '64', '34', '6', '6', '0b', 'star'],
-        ['t', '4', '44', '72', '3', '0=', 'Thursday 31 December 2026 · doors at nine'],
+        ['t', '4', '44', '72', '3', '0=', 'Thursday, December 31, 2026 · doors at nine'],
       ],
       {
         1: '0,0,0,0,3,0; 3,0,0,0,3.4,0; 4,0,-600,0,3,0',
@@ -254,20 +254,20 @@ export const templates = (): Template[] => [
   {
     id: 'flight',
     name: t('Flight path'),
-    blurb: t('A plane crosses a dotted route from London to Lisbon, climbing as it goes, with the flight’s times above.'),
+    blurb: t('A plane crosses a dotted route from New York to Lisbon, climbing as it goes, with the flight’s times above.'),
     doc: motion(
       {
-        title: 'London to Lisbon, 24 October',
+        title: 'New York to Lisbon, October 24',
         frames: '24',
         fps: '8',
-        alt: 'A plane flies along a dotted line from a pin at London to a pin at Lisbon, growing as it climbs and shrinking as it lands.',
+        alt: 'A plane flies along a dotted line from a pin at New York to a pin at Lisbon, growing as it climbs and shrinking as it lands.',
       },
       [
-        ['t', '4', '2', '72', '6', '03=', 'Saturday 24 October 2026 | Heathrow 09:05, Lisbon 11:45'],
+        ['t', '4', '2', '72', '6', '03=', 'Saturday, October 24, 2026 | JFK 6:30 pm, Lisbon 6:40 am'],
         ['l', '11', '24', '56', '12', '1', ''],
         ['i', '8', '16', '6', '6', '0r', 'map-pin'],
         ['i', '64', '28', '6', '6', '0r', 'map-pin'],
-        ['t', '3', '25', '16', '3', '0=', 'London'],
+        ['t', '3', '25', '16', '3', '0=', 'New York'],
         ['t', '59', '37', '16', '3', '0=', 'Lisbon'],
         ['i', '7', '20', '8', '8', '0b', 'plane'],
       ],

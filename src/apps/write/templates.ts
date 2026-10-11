@@ -17,7 +17,7 @@ import { t } from '../../kit/i18n.ts';
 
 const LETTER = `*Your name*
 *Street and number*
-*Town and postcode*
+*City, state and ZIP code*
 *you@example.com* {.right}
 
 *The date*
@@ -30,7 +30,7 @@ Dear …,
 
 *What happens next, and by when.*
 
-Yours sincerely,
+Sincerely,
 
 <br>
 
@@ -97,8 +97,8 @@ Name | Key | Signature | Signed
 `;
 
 const INVOICE = `---
-from: Your name | Street and number | Town and postcode
-to: Who pays | Street and number | Town and postcode
+from: Your name | Street and number | City, state and ZIP code
+to: Who pays | Street and number | City, state and ZIP code
 number: 0042
 date: 2026-10-02
 due: 2026-11-01
@@ -168,7 +168,7 @@ Dear …,
 
 *What you enclose, and when you can talk.*
 
-Yours faithfully,
+Sincerely,
 
 <br>
 
@@ -180,7 +180,7 @@ look: mono
 ---
 # *Your name* {.title}
 
-*Town · email · phone*
+*City · email · phone*
 
 ## Now
 
@@ -205,7 +205,7 @@ const PRESS = `# *The news, as a headline* {.title}
 
 **FOR IMMEDIATE RELEASE** · *The date*
 
-**Town.** *The news in one sentence: who, what, when.*
+**City.** *The news in one sentence: who, what, when.*
 
 *The detail and the numbers.*
 
@@ -232,7 +232,7 @@ const MINUTES = `# Minutes {.title}
 *The date · where*
 
 **Present:** *Who came*
-**Apologies:** *Who sent them*
+**Absent:** *Who sent regrets*
 
 ## 1. The last minutes
 
@@ -247,7 +247,7 @@ Item | Amount:money
 Balance on 1 September | 1240
 Dues received | 315
 Printing and postage | -62
-Hall hire | -40
+Hall rental | -40
 Balance on 30 September | =SUM(B1:B4)
 {lock=B5}
 
@@ -283,13 +283,13 @@ Ingredient | For 4:number | Unit | For 6:number
 --- | --- | --- | ---
 Olive oil | 3 | tbsp | =B1*1.5
 Onion, sliced | 1 | large | =B2*1.5
-Red peppers, sliced | 2 |  | =B3*1.5
+Red bell peppers, sliced | 2 |  | =B3*1.5
 Garlic, crushed | 3 | cloves | =B4*1.5
 Ground cumin | 1 | tsp | =B5*1.5
 Smoked paprika | 2 | tsp | =B6*1.5
-Chopped tomatoes | 800 | g | =B7*1.5
+Crushed tomatoes | 28 | oz | =B7*1.5
 Eggs | 6 |  | =B8*1.5
-Feta | 100 | g | =B9*1.5
+Feta | 4 | oz | =B9*1.5
 {lock=D1:D9}
 
 ## How
@@ -330,7 +330,7 @@ const TERMS = `# Terms of service for *your business* {.title}
 
 *The service, and its limits.*
 
-## 2. Booking and cancelling
+## 2. Booking and canceling
 
 1. *How to book, and by when.*
 2. *How to cancel, and what it costs.*
@@ -551,7 +551,7 @@ look: inverse
 
 const COMPLAINT = `*Your name*
 *Street and number*
-*Town and postcode* {.right}
+*City, state and ZIP code* {.right}
 
 *The date*
 
@@ -577,7 +577,7 @@ Dear …,
 
 *What you enclose, and when you want a reply.*
 
-Yours faithfully,
+Sincerely,
 
 <br>
 
@@ -589,7 +589,7 @@ look: serif
 ---
 *Your name*
 *Street and number*
-*Town and postcode* {.right}
+*City, state and ZIP code* {.right}
 
 *The date*
 
@@ -609,7 +609,7 @@ Dear …,
 
 *The question: how will they vote?*
 
-Yours sincerely,
+Sincerely,
 
 <br>
 
@@ -659,14 +659,14 @@ look: mixed
 
 ## The budget
 
-Item | Cost:money(£)
+Item | Cost:money($)
 --- | ---
-Room hire, 12 sessions at £60 | 720
+Room rental, 12 sessions at $60 | 720
 Tools and spare parts | 1600
 Electrical safety tester and training | 1250
 Insurance for the year | 480
 Publicity and printing | 350
-Tea, coffee and biscuits | 400
+Coffee, tea and cookies | 400
 Total | =SUM(B1:B6)
 {lock=B7}
 
@@ -684,7 +684,7 @@ look: mixed
 ---
 # *The course: its name* {.title}
 
-*Term · days · room*
+*Semester · days · room*
 
 **Instructor:** *Name · email*
 **Office hours:** *When, where*
@@ -807,7 +807,7 @@ const PETITION = `# *What you want, as a headline* {.title}
 
 ## Signatures
 
-Name | Postcode | Date:date
+Name | ZIP code | Date:date
 --- | --- | ---
 
 *When you will hand it in.*
@@ -816,7 +816,7 @@ Name | Postcode | Date:date
 export const templates = (): Template[] => [
   // The everyday ones.
   { id: 'letter', name: t('A letter'), blurb: t('Your address, the date, the greeting, the point, the sign-off.'), doc: LETTER },
-  { id: 'cover', name: t('Cover letter'), blurb: t('Applying for a job: the post, what you have done, why them, in four short paragraphs.'), doc: COVER },
+  { id: 'cover', name: t('Cover letter'), blurb: t('Applying for a job: the position, what you have done, why them, in four short paragraphs.'), doc: COVER },
   { id: 'memo', name: t('Memo'), blurb: t('To, from, date and subject; the change in a sentence, why, and what you need back.'), doc: MEMO },
   { id: 'meeting', name: t('Meeting notes'), blurb: t('Agenda, what was said, what was decided, who does what.'), doc: MEETING },
   { id: 'minutes', name: t('Minutes'), blurb: t("A formal meeting: who came, the treasurer's sums, a motion and its vote, the actions."), doc: MINUTES },

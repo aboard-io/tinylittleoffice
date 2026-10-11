@@ -489,8 +489,8 @@ test('a seating chart’s place cards: one a guest, the name large and the table
   expect(sheets.map((s) => (s.svg.match(/stroke-dasharray="6 5"/g) ?? []).length)).toEqual([8, 8, 5]);
   expect(sheets[0].svg).toContain(`width="${CARD.w}" height="${CARD.h}"`);
   expect(sheets[0].svg).toContain('>Jo</text>');
-  expect(sheets[0].svg).toContain('>Top table</text>');
-  expect(sheets[0].alt!.split('; ')[0]).toBe('Jo, Top table');
+  expect(sheets[0].svg).toContain('>Head table</text>');
+  expect(sheets[0].alt!.split('; ')[0]).toBe('Jo, Head table');
   // Centred on the sheet: two across, four down.
   expect(sheets[0].svg).toContain(`<svg x="${(LETTER.w - 2 * CARD.w) / 2}" y="${(LETTER.h - 4 * CARD.h) / 2}"`);
   // A chart with nobody seated: one blank sheet.

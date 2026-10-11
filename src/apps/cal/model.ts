@@ -3,16 +3,17 @@
  * what, the words rich text (ported from the old tree's lib/calmodel.ts and lib/ganttmodel.ts):
  *
  *   ---
- *   zone: Europe/London
+ *   zone: America/New_York
  *   green: Sam
  *   ---
  *   - 2027-03-01: Launch                                a day: a floating date, the same everywhere
  *   - 2027-03-01 to 2027-03-03: Offsite {color=green}   several days
- *   - 2027-03-10 09:00-10:30: Retro {every=week}        a time, in the head's zone (UTC without one)
+ *   - 2027-03-10 09:00-10:30: Retro {every=week}        a time, in the head's zone (the reader's without one)
  *   - 2027-03-10 22:00 to 2027-03-11 01:00: Party       a time that runs past midnight
  *
  * A timed span is an instant: written as the clock reads in the document's zone, read back to the same
- * instant, shown in whichever zone the viewer picks. A span may have a colour (`color=green`; the head says
+ * instant, shown in whichever zone the viewer picks. A document that names no zone is read in its reader's: a
+ * template's 17:30 is half past five in the evening wherever it is opened. A span may have a colour (`color=green`; the head says
  * what a colour stands for, "green: Sam", "indigo: Paul" for the default) and may repeat: `every=day`,
  * `week`, `month` or `year`, with `times=9` or `until=2027-06-01`, else for ever. A timed repeat keeps its
  * time of day in the document's zone across a clock change.
@@ -45,7 +46,7 @@ import {
 } from '../../doc/index.ts';
 import { ACCENT } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { clockString, dayString, isValidZone, partsToUtc, utcToParts } from './tz.ts';
+import { clockString, dayString, isValidZone, localZone, partsToUtc, utcToParts } from './tz.ts';
 
 export type Li = Extract<Block, { k: 'li' }>;
 export type Every = 'd' | 'w' | 'm' | 'y';
@@ -86,8 +87,10 @@ export interface Item extends Draft {
 }
 
 export interface CalView {
-  /** The document's zone, '' when it has none (its times are then UTC). */
+  /** The document's zone, '' when it has none. */
   zone: string;
+  /** The zone its times are read and written in: the document's own, else its reader's. */
+  tz: string;
   /** What each colour stands for, by key. */
   legend: Record<string, string>;
   items: Item[];
@@ -212,10 +215,14 @@ function readItem(b: Li, at: number, zone: string): Item | null {
   return { ...span, color: colorKey(attr(b, 'color')) ?? '', ...(repeat ? { repeat } : {}), label, done, at, block: b, depth: b.depth, words: plainText(label).replace(/\n/g, ' ').trim() };
 }
 
-/** The spans of a document: its list items that start with a date, in order; every other block is left alone. */
-export function readCal(doc: Doc): CalView {
+/**
+ * The spans of a document: its list items that start with a date, in order; every other block is left alone. A
+ * document with no zone of its own is read in `reader`'s, this device's unless another is named.
+ */
+export function readCal(doc: Doc, reader = localZone()): CalView {
   const named = doc.head.zone?.trim() ?? '';
   const zone = isValidZone(named) ? named : '';
+  const tz = zone || (isValidZone(reader) ? reader : 'UTC');
   const legend: Record<string, string> = {};
   for (const [k, c] of Object.entries(CAL_COLORS)) {
     const name = doc.head[c.word]?.trim();
@@ -224,10 +231,10 @@ export function readCal(doc: Doc): CalView {
   const items: Item[] = [];
   doc.blocks.forEach((b, at) => {
     if (b.k !== 'li') return;
-    const item = readItem(b, at, zone || 'UTC');
+    const item = readItem(b, at, tz);
     if (item) items.push(item);
   });
-  return { zone, legend, items, gantt: doc.head.view?.trim().toLowerCase() === 'gantt' };
+  return { zone, tz, legend, items, gantt: doc.head.view?.trim().toLowerCase() === 'gantt' };
 }
 
 /* ---------- repeats ---------- */
@@ -274,11 +281,14 @@ export function openingDay(v: CalView, zone: string, nowMs = Date.now()): number
 
 /* ---------- commands, as operations ---------- */
 
-/** The zone an edit writes its times in: the document's; else, when nothing in it is timed yet, the viewer's (and the head says so). */
+/**
+ * The zone an edit writes its times in: the document's; else, when nothing in it is timed yet, the viewer's (and the
+ * head says so); else, its times being its reader's, the reader's.
+ */
 export function writeZone(v: CalView, viewer: string, except?: Item): { zone: string; ops: Op[] } {
   if (v.zone) return { zone: v.zone, ops: [] };
   const timed = v.items.some((i) => i !== except && i.kind === 't');
-  if (timed || !isValidZone(viewer) || viewer === 'UTC') return { zone: 'UTC', ops: [] };
+  if (timed || !isValidZone(viewer) || viewer === 'UTC') return { zone: v.tz, ops: [] };
   return { zone: viewer, ops: [{ op: 'head', key: 'zone', value: viewer }] };
 }
 
@@ -321,7 +331,7 @@ function placeOf(doc: Doc, v: CalView, d: Draft): number {
  */
 export function putItem(doc: Doc, v: CalView, item: Item | null, d: Draft, viewer: string, after?: Item): Op[] {
   // A span of days is the same everywhere: only a time needs a zone.
-  const w = d.kind === 't' ? writeZone(v, viewer, item ?? undefined) : { zone: v.zone || 'UTC', ops: [] };
+  const w = d.kind === 't' ? writeZone(v, viewer, item ?? undefined) : { zone: v.tz, ops: [] };
   if (item) return [...w.ops, { op: 'splice', at: item.at, n: 1, blocks: [itemBlock(d, w.zone, item.block)] }];
   const at = after ? family(doc, after.at) : placeOf(doc, v, d);
   return [...w.ops, { op: 'splice', at, n: 0, blocks: [itemBlock(d, w.zone, undefined, after?.depth ?? 0)] }];
@@ -340,12 +350,12 @@ export const resizeDraft = (i: Draft, days: number): Draft => (i.kind === 'd' ? 
 /** An item moved by days (dragged on the schedule), or made a number of days long. */
 export function moveItem(v: CalView, i: Item, days: number): Op[] {
   if (!days) return [];
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   return [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock(shiftDraft(draftOf(i), days, zone), zone, i.block)] }];
 }
 export function resizeItem(v: CalView, i: Item, days: number): Op[] {
   if (i.kind !== 'd' || Math.max(1, Math.round(days)) === i.dur) return [];
-  return [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock(resizeDraft(draftOf(i), days), v.zone || 'UTC', i.block)] }];
+  return [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock(resizeDraft(draftOf(i), days), v.tz, i.block)] }];
 }
 
 /** An item taken out; the parts under it (on a schedule) come out a level. */
@@ -371,7 +381,7 @@ export interface Bar {
 
 /** Each task's bar as drawn: a task with parts under it covers them all, and counts as done as far as they are. */
 export function ganttBars(v: CalView): Bar[] {
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   const own = v.items.map((i) => {
     const [a, b] = spanDays(i, zone);
     return { start: a, days: b - a + 1 };
@@ -466,14 +476,14 @@ export function copyTasks(doc: Doc, s: BlockSpan): Block[] {
 
 /** An item's words replaced (typed in place), its "when" and attributes kept. */
 export function setLabel(v: CalView, i: Item, label: Run[]): Op[] {
-  return [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock({ ...draftOf(i), label }, v.zone || 'UTC', i.block)] }];
+  return [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock({ ...draftOf(i), label }, v.tz, i.block)] }];
 }
 
 /** Ticked when it is not done, else not done at all: Mod+Enter and the tick on the row. */
-export const toggleDone = (v: CalView, i: Item): Op[] => [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock({ ...draftOf(i), done: i.done >= 100 ? 0 : 100 }, v.zone || 'UTC', i.block)] }];
+export const toggleDone = (v: CalView, i: Item): Op[] => [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock({ ...draftOf(i), done: i.done >= 100 ? 0 : 100 }, v.tz, i.block)] }];
 
 /** A task over the same days as `i`, with these words and nothing done. */
-const sibling = (v: CalView, i: Item, label: Run[], depth: number): Li => itemBlock({ ...draftOf(i), repeat: undefined, done: 0, label }, v.zone || 'UTC', undefined, depth);
+const sibling = (v: CalView, i: Item, label: Run[], depth: number): Li => itemBlock({ ...draftOf(i), repeat: undefined, done: 0, label }, v.tz, undefined, depth);
 
 /**
  * Enter in a task's words (§3): at the start a new empty task above (the task is pushed down); at the end the next task
@@ -486,7 +496,7 @@ export function enterTask(doc: Doc, v: CalView, i: Item, offset: number): { ops:
     const kids = family(doc, i.at) > i.at + 1;
     return { ops: [{ op: 'splice', at: i.at + 1, n: 0, blocks: [sibling(v, i, [], kids ? i.depth + 1 : i.depth)] }], at: i.at + 1, offset: 0 };
   }
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   const left = itemBlock({ ...draftOf(i), label: sliceRuns(i.label, 0, offset) }, zone, i.block);
   return { ops: [{ op: 'splice', at: i.at, n: 1, blocks: [left, sibling(v, i, sliceRuns(i.label, offset, len), i.depth)] }], at: i.at + 1, offset: 0 };
 }
@@ -509,7 +519,7 @@ export function joinTask(doc: Doc, v: CalView, i: Item, dir: 'back' | 'forward')
   }
   const [a, b] = dir === 'back' ? [v.items[k - 1], i] : [i, v.items[k + 1]];
   if (!a || !b) return null;
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   const offset = runLength(a.label);
   const first: Op[] = [{ op: 'splice', at: a.at, n: 1, blocks: [itemBlock({ ...draftOf(a), label: normalRuns([...a.label, ...b.label]) }, zone, a.block)] }];
   // The joined task's parts stay where they are, under the task the words went into.
@@ -537,7 +547,7 @@ function linesOf(b: Texty): Texty[] {
  * (`target` given) they go in place of the span at its depth (or `depth`), in their order; on a calendar each goes in date order.
  */
 export function pasteItems(doc: Doc, v: CalView, blocks: Block[], target: BlockSpan | null, fallback: number, day?: number, depth?: number): { ops: Op[]; from: number; to: number } | null {
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   // A paragraph's lines are a line each (plain text pasted is one paragraph of lines).
   const lines = blocks.flatMap((b) => ('runs' in b ? linesOf(b) : [])).filter((b) => plainText(b.runs).trim() || b.k === 'li');
   if (!lines.length) return null;

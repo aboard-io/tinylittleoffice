@@ -106,6 +106,6 @@ export const TEXT_COMMANDS = register([
   OUTDENT,
   cmd('up', 'Move up', { keys: 'Alt+ArrowUp', where: ['keys-only'], when: (x) => x.shape !== 'line', does: (x) => x.moveItem(-1) }),
   cmd('down', 'Move down', { keys: 'Alt+ArrowDown', where: ['keys-only'], when: (x) => x.shape !== 'line', does: (x) => x.moveItem(1) }),
-  cmd('tick', 'Tick or untick a task', { keys: 'Mod+Enter', where: ['keys-only'], when: (x) => x.shape !== 'line', does: (x, e) => x.tick(e) }),
+  cmd('tick', 'Check or uncheck a task', { keys: 'Mod+Enter', where: ['keys-only'], when: (x) => x.shape !== 'line', does: (x, e) => x.tick(e) }),
   cmd('all', 'Select all: the words of the box, then everything', { keys: 'Mod+A', where: ['keys-only'], does: (x) => x.selectAllKey() }),
 ]) as Command<ToText>[];

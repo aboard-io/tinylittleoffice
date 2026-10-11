@@ -545,7 +545,7 @@ test('a trip with no stops opens on where the device is: asked once, 5 s at most
     expect(geo.asks).toHaveLength(1);
     expect(geo.asks[0].timeout).toBe(5000);
     expect(changes).toEqual([]);
-    expect(el.querySelector('.trip-privacy')!.textContent).toContain('Your location is asked for only to centre the map, and is never written anywhere.');
+    expect(el.querySelector('.trip-privacy')!.textContent).toContain('Your location is asked for only to center the map, and is never written anywhere.');
     // The map off and on again: not asked a second time.
     bar(el, 'Map').click();
     await settle(el);

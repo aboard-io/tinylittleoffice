@@ -13,7 +13,7 @@ named lines to the parent, joins between branches, and a sheet under an item.
 - **A speech**: a five-minute retirement toast, its parts timed on their lines and its three stories numbered.
 - **An essay plan**: a thesis, two arguments with their evidence (a citation in a footnote), the objection and the answer, joined.
 - **A research plan**: a question, a numbered method, a budget as a sheet under its item that adds itself up, a timeline, risks and reading.
-- **A syllabus**: a ten-week course, a numbered topic a week, the marking and the reading.
+- **A syllabus**: a ten-week course, a numbered topic a week, the grading and the reading.
 - **A novel**: the people and three acts of chapters, joined where a person turns a chapter.
 - **A book**: parts and chapters of a book of ideas, a line under each for what it argues.
 - **A company**: a bakery of nine as "Name (role)"; "Draw as an org chart" gives each box its name over its role.

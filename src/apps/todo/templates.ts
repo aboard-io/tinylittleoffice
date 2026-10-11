@@ -7,14 +7,14 @@ import type { Template } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
 
 const WEEK = `---
-title: The week of 12 October
+title: The week of October 12
 ---
 - [x] Send the October invoice to Harlow & Finch
 - [ ] Call Pressworks about the proofs {.star due=2026-10-12}
 - [ ] Reply to Dee about the launch call {due=2026-10-13}
-- [ ] Renew the studio insurance, £214 with Ashby Mutual {.star due=2026-10-15}
-- [ ] Book the van in for its MOT {due=2026-10-16}
-- [ ] Order paper samples: Munken Pure in 120 and 150 gsm
+- [ ] Renew the studio insurance, $214 with Ashby Mutual {.star due=2026-10-15}
+- [ ] Get the van inspected {due=2026-10-16}
+- [ ] Order paper samples: Munken Pure in 80 and 100 lb
 - [ ] Water the plants
 `;
 
@@ -23,13 +23,13 @@ title: Every day
 ---
 - [x] A glass of water before the coffee
 - [x] Ten minutes of stretching
-- [ ] Walk Juno round Victoria Park, twenty minutes {.star}
+- [ ] Walk Juno around Prospect Park, twenty minutes {.star}
 - [ ] Look at the calendar and pick the one thing that matters today {.star}
 - [ ] Email done by 10, then closed till 4
 - [ ] Lunch away from the desk
 - [ ] Thirty pages of the book
 - [ ] Lay out tomorrow's clothes
-- [ ] Phone on the charger in the hall by 10.30 pm
+- [ ] Phone on the charger in the hall by 10:30 pm
 `;
 
 const SHOPPING = `---
@@ -46,23 +46,23 @@ title: Shopping
 `;
 
 const GROCERIES = `---
-title: The big shop
+title: The big grocery run
 ---
-- [x] **Fruit and veg:** 6 lemons and a bag of spinach
-- [x] **Fruit and veg:** bananas, a bulb of garlic, 3 red onions
-- [ ] **Fruit and veg:** 2 kg of potatoes
+- [x] **Produce:** 6 lemons and a bag of spinach
+- [x] **Produce:** bananas, a head of garlic, 3 red onions
+- [ ] **Produce:** a 5 lb bag of potatoes
 - [ ] **Bakery:** a sourdough loaf and 6 bagels
-- [ ] **Dairy:** 2 litres of whole milk, butter, Greek yoghurt
-- [ ] **Dairy:** a block of mature cheddar {.star}
+- [ ] **Dairy:** a half gallon of whole milk, butter, Greek yogurt
+- [ ] **Dairy:** a block of sharp cheddar {.star}
 - [ ] **Fish:** 2 salmon fillets for Thursday
-- [ ] **Tins and jars:** chickpeas ×3, chopped tomatoes ×4, peanut butter
-- [ ] **Pasta and rice:** 1 kg of basmati, rigatoni
+- [ ] **Cans and jars:** chickpeas ×3, diced tomatoes ×4, peanut butter
+- [ ] **Pasta and rice:** 2 lb of basmati, rigatoni
 - [ ] **Frozen:** peas and a tub of vanilla ice cream
-- [ ] **Household:** washing-up liquid and bin bags {.star}
+- [ ] **Household:** dish soap and trash bags {.star}
 `;
 
 const READING = `---
-title: Reading, autumn 2026
+title: Reading, fall 2026
 ---
 - [x] *Tomorrow, and Tomorrow, and Tomorrow*, Gabrielle Zevin
 - [x] *The Remains of the Day*, Kazuo Ishiguro {.star}
@@ -75,37 +75,37 @@ title: Reading, autumn 2026
 `;
 
 const TRIP = `---
-title: Lisbon, 23 to 27 October
+title: Lisbon, October 23 to 27
 ---
 - [x] Passport, good until 2031 {.star}
 - [x] Boarding passes, on the phone and on paper
 - [ ] Charger and the European adapter
 - [ ] Rain jacket
 - [ ] Walking shoes for the hills of Alfama
-- [ ] Medicines and plasters
+- [ ] Medicines and Band-Aids
 - [ ] Ask Ana next door to feed Miso {due=2026-10-21}
-- [ ] Put the bins out {due=2026-10-22}
-- [ ] Taxi to the airport at 5.15 am {.star due=2026-10-23}
+- [ ] Put the trash out {due=2026-10-22}
+- [ ] Taxi to the airport at 5:15 am {.star due=2026-10-23}
 `;
 
 const GARDEN = `---
 title: The garden, by season
 ---
-- [x] **Autumn:** lift the dahlias and store them in the shed
-- [ ] **Autumn:** plant 40 tulip bulbs along the front path {due=2026-10-25}
-- [ ] **Autumn:** sow Aquadulce broad beans in bed 2 {due=2026-11-01}
-- [ ] **Autumn:** rake the leaves into the leaf-mould cage
+- [x] **Fall:** dig up the dahlias and store them in the shed
+- [ ] **Fall:** plant 40 tulip bulbs along the front path {due=2026-10-25}
+- [ ] **Fall:** plant garlic in bed 2 {due=2026-11-01}
+- [ ] **Fall:** rake the leaves into the leaf-mold bin
 - [ ] **Winter:** prune the apple tree while it sleeps {.star due=2027-01-16}
-- [ ] **Winter:** order seed potatoes, Charlotte and Pink Fir Apple {due=2027-01-31}
-- [ ] **Spring:** chit the potatoes on the kitchen sill {due=2027-02-20}
+- [ ] **Winter:** order seed potatoes, Yukon Gold and fingerlings {due=2027-01-31}
+- [ ] **Spring:** sprout the potatoes on the kitchen windowsill {due=2027-02-20}
 - [ ] **Spring:** sow Sungold tomatoes indoors {.star due=2027-03-14}
-- [ ] **Spring:** mulch every bed with a barrow of compost {due=2027-04-04}
-- [ ] **Summer:** water in the evening, from the butts first
+- [ ] **Spring:** mulch every bed with a wheelbarrow of compost {due=2027-04-04}
+- [ ] **Summer:** water in the evening, from the rain barrels first
 - [ ] **Summer:** pick the beans every other day
 `;
 
 const LAUNCH = `---
-title: Fieldnotes launch, 3 November
+title: Fieldnotes launch, November 3
 ---
 - [x] Freeze the features
 - [x] App Store screenshots in all six sizes
@@ -128,28 +128,28 @@ title: Priya's first two weeks
 - [ ] Read the handbook, the parts on leave and expenses first {due=2026-11-03}
 - [ ] Coffee with Sam, your buddy for the first month {due=2026-11-04}
 - [ ] Sit in on two support calls {due=2026-11-05}
-- [ ] Payroll and pension forms to Jo in HR {.star due=2026-11-06}
-- [ ] Fire safety walk-round with Kofi {due=2026-11-10}
-- [ ] First one-to-one with Alex {.star due=2026-11-13}
+- [ ] Payroll and 401(k) forms to Jo in HR {.star due=2026-11-06}
+- [ ] Fire safety walk-through with Kofi {due=2026-11-10}
+- [ ] First one-on-one with Alex {.star due=2026-11-13}
 `;
 
 const MOVEOUT = `---
-title: Moving out of 18 Albion Road
+title: Moving out of 18 Albion Street, apartment 3B
 ---
-- [x] A month's notice to the landlord, in writing
-- [x] Book the van for Saturday 28 November
-- [ ] Redirect the post to Elm Street {due=2026-11-20}
-- [ ] New address to the council, the bank and the surgery
+- [x] Thirty days' notice to the landlord, in writing
+- [x] Book the truck for Saturday, November 28
+- [ ] Forward the mail to Elm Street {due=2026-11-20}
+- [ ] New address to the DMV, the bank and the doctor's office
 - [ ] Defrost the freezer {due=2026-11-26}
 - [ ] Clean the oven and the fridge {due=2026-11-27}
 - [ ] Fill the picture-hook holes and touch up the hall
 - [ ] Meter readings and a photo of every room {.star due=2026-11-29}
 - [ ] Hand back both keys and the fob {.star due=2026-11-30}
-- [ ] Ask for the £1,150 deposit back {due=2026-12-01}
+- [ ] Ask for the $2,150 security deposit back {due=2026-12-01}
 `;
 
 const WEDDING = `---
-title: Ines and Tom, 19 December
+title: Ines and Tom, December 19
 ---
 - [x] Book Hartwell Barn
 - [x] Save-the-dates to everyone on the list
@@ -158,21 +158,21 @@ title: Ines and Tom, 19 December
 - [ ] The second dress fitting {due=2026-11-14}
 - [ ] Collect the rings from Abbott's {due=2026-11-28}
 - [ ] Final numbers to the barn^[Two weeks before, with every dietary need and the children's meals.] {.star due=2026-12-04}
-- [ ] The seating plan, with Gran near the fire
+- [ ] The seating chart, with Grandma near the fire
 - [ ] The first dance, and the playlist for after
-- [ ] The photographer's balance, £900 {due=2026-12-12}
+- [ ] The photographer's balance, $900 {due=2026-12-12}
 `;
 
 export const templates = (): Template[] => [
   { id: 'week', name: t('This week'), blurb: t('A few things to do by a day, the important ones starred, one already done.'), doc: WEEK },
   { id: 'daily', name: t('Daily routine'), blurb: t('The habits that hold a day together, from the first glass of water to the phone put away.'), doc: DAILY },
-  { id: 'shopping', name: t('Shopping'), blurb: t('What to buy, ticked off in the shop.'), doc: SHOPPING },
-  { id: 'groceries', name: t('Groceries by aisle'), blurb: t('The weekly shop in the order of the aisles, so nothing means walking back.'), doc: GROCERIES },
-  { id: 'reading', name: t('Reading list'), blurb: t('Books to read, the favourites starred and the book-club one dated.'), doc: READING },
+  { id: 'shopping', name: t('Shopping'), blurb: t('What to buy, checked off at the store.'), doc: SHOPPING },
+  { id: 'groceries', name: t('Groceries by aisle'), blurb: t('The weekly grocery run in the order of the aisles, so nothing means walking back.'), doc: GROCERIES },
+  { id: 'reading', name: t('Reading list'), blurb: t('Books to read, the favorites starred and the book-club one dated.'), doc: READING },
   { id: 'trip', name: t('Packing for a trip'), blurb: t('What to take and what to do before you go.'), doc: TRIP },
-  { id: 'garden', name: t('Garden by season'), blurb: t('A year in the garden from autumn on, each job dated to its season.'), doc: GARDEN },
+  { id: 'garden', name: t('Garden by season'), blurb: t('A year in the garden from fall on, each job dated to its season.'), doc: GARDEN },
   { id: 'launch', name: t('Project launch'), blurb: t('Everything between the feature freeze and launch day, in the order it falls due.'), doc: LAUNCH },
-  { id: 'onboarding', name: t('Onboarding'), blurb: t("A new starter's first two weeks, from the door code to the first one-to-one."), doc: ONBOARDING },
-  { id: 'moveout', name: t('Moving out'), blurb: t('From notice to the keys handed back: the van, the post, the cleaning and the deposit.'), doc: MOVEOUT },
+  { id: 'onboarding', name: t('Onboarding'), blurb: t("A new hire's first two weeks, from the door code to the first one-on-one."), doc: ONBOARDING },
+  { id: 'moveout', name: t('Moving out'), blurb: t('From notice to the keys handed back: the truck, the mail, the cleaning and the deposit.'), doc: MOVEOUT },
   { id: 'wedding', name: t('Wedding checklist'), blurb: t('The last months before a December wedding, the deadlines starred.'), doc: WEDDING },
 ];

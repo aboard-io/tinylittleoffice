@@ -15,6 +15,12 @@ keyboard, and its screen reader. This is the plan; nothing here is built yet.
 - `Intl` does the rest: `PluralRules` chooses the plural form, `NumberFormat` writes numbers,
   `DateTimeFormat`/`RelativeTimeFormat` dates, `DisplayNames` names the languages in themselves, `Locale`
   says the direction, and `document.documentElement` gets `lang` and `dir`.
+- The English is American (Paul, 2026-10-11): color, center, organize, favorite, gray, program, license, ZIP
+  code, cell phone, a period and parentheses, and the Letter paper that is the default. It is the key, so a
+  spelling changed in en.ts is changed as a key in every language file, the translations' words kept. The
+  templates are American too, and set in New York where they are set anywhere: phone numbers in the 555
+  range, ZIP codes, dollars where a currency shows, a calendar with no `zone:` (read in its reader's own).
+  test/american.test.ts holds en.ts and every template to a list of British spellings and sample words.
 - Templates and sample data are English prose inside `templates.ts` files, not under `t()`.
 
 ## 2. The strings: one structured file per language, made by an LLM, checked by people

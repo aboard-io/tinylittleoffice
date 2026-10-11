@@ -79,7 +79,7 @@ export function chooseIcon(opts: IconChoice = {}): Promise<string | null> {
           : [{ name: '', items: icons, emoji: false }]
         : set === 'emoji'
           ? EMOJI_GROUPS.map((_, i) => ({ name: groupNames()[i], items: emojiIn(i), emoji: true }))
-          : [{ name: t('Favourites'), items: searchIcons(''), emoji: false }, ...iconCategories().map((c) => ({ name: c.name, items: iconsIn(c.id), emoji: false }))];
+          : [{ name: t('Favorites'), items: searchIcons(''), emoji: false }, ...iconCategories().map((c) => ({ name: c.name, items: iconsIn(c.id), emoji: false }))];
       const first = sections.find((x) => x.items.length)?.items[0];
       const label = withEmoji ? t('Search icons and emoji') : t('Search icons');
       return html`<input class="to-icons-search" type="search" placeholder=${label} aria-label=${label} autocomplete="off" .value=${query} @input=${(e: Event) => ((query = (e.target as HTMLInputElement).value), draw())} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && first && pick(first)} />

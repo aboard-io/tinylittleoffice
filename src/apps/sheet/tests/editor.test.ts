@@ -605,7 +605,7 @@ test('a rich cell is edited in its words, never in Markdown: the bubble marks th
 
 test('a checkbox is a 24px box with a 2px ink border, empty or holding a thick accent check; a tap or Space ticks it, the keyboard never comes up', async () => {
   const { el, last } = await editor('Task | Done:check\n--- | ---\nWrite | \nRead | x\n');
-  const tickB1 = button(el, 'Tick B1');
+  const tickB1 = button(el, 'Check B1');
   expect(tickB1.getAttribute('aria-pressed')).toBe('false');
   const box = tickB1.querySelector<HTMLElement>('.box')!;
   const look = getComputedStyle(box);
@@ -621,7 +621,7 @@ test('a checkbox is a 24px box with a 2px ink border, empty or holding a thick a
   probe.remove();
   expect(box.querySelector('svg')).toBeNull();
   // The ticked one holds the check, thick, in the accent.
-  const check = button(el, 'Tick B2').querySelector<SVGElement>('.box svg')!;
+  const check = button(el, 'Check B2').querySelector<SVGElement>('.box svg')!;
   expect(getComputedStyle(check).strokeWidth).toBe('4px');
   // The whole cell is the button; nothing of the value shows through.
   expect(tickB1.getBoundingClientRect().height).toBeCloseTo(tickB1.closest('td')!.clientHeight, 0);
@@ -632,7 +632,7 @@ test('a checkbox is a 24px box with a 2px ink border, empty or holding a thick a
   tickB1.click();
   await el.updateComplete;
   expect(last()).toContain('Write | x');
-  expect(button(el, 'Tick B1').getAttribute('aria-pressed')).toBe('true');
+  expect(button(el, 'Check B1').getAttribute('aria-pressed')).toBe('true');
   expect(document.activeElement).not.toBe(cell(el, 'B1'));
   // Space on the cell ticks and unticks; what is written stays as it was ("x", or nothing).
   cell(el, 'B2').focus();

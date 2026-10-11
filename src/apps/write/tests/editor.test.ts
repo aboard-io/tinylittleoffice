@@ -196,7 +196,7 @@ test("the invoice: money in the head's currency, Amount locked, a quantity chang
   await until(() => !!cell(el, 'E7'));
   expect(cell(el, 'E7').value).toBe('€5,486.40');
   expect(cell(el, 'E1').readOnly).toBe(true);
-  expect(el.querySelector<HTMLTextAreaElement>('#write-field-from')!.value).toBe('Your name\nStreet and number\nTown and postcode');
+  expect(el.querySelector<HTMLTextAreaElement>('#write-field-from')!.value).toBe('Your name\nStreet and number\nCity, state and ZIP code');
   await typeCell(el, cell(el, 'B1'), '20');
   await until(() => cell(el, 'E7').value === '€6,782.40');
   const before = last();
@@ -763,7 +763,7 @@ test('§7 Align is a keep menu: chosen by a pointer, the words keep the focus; t
   btn.click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
   expect(el.text.hasFocus()).toBe(true);
-  const centre = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].find((x) => x.textContent!.includes('Centre'))!;
+  const centre = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].find((x) => x.textContent!.includes('Center'))!;
   centre.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
   centre.click();
   await until(() => (el.value ?? '').startsWith('Some words {.center}'));

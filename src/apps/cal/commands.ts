@@ -34,7 +34,7 @@ const CAL: Command<C>[] = [
   cmd('insert', 'Insert', { icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
   cmd('insert.event', 'Event', { icon: UI.plus, where: ['menu:insert'], when: (c) => !gantt(c), does: (c) => c.createEvent() }),
   cmd('insert.task', 'Task', { icon: UI.plus, where: ['menu:insert'], when: gantt, does: (c) => c.createTask() }),
-  cmd('ink', (c) => t('Colour for new: {colour}', { colour: c ? (c.view.legend[c.ink] ?? CAL_COLORS[c.ink].name()) : '' }), { menu: 'ink', where: ['bar'], takesFocus: true, does: () => undefined }),
+  cmd('ink', (c) => t('Color for new: {color}', { color: c ? (c.view.legend[c.ink] ?? CAL_COLORS[c.ink].name()) : '' }), { menu: 'ink', where: ['bar'], takesFocus: true, does: () => undefined }),
   ...Object.entries(CAL_COLORS).map(([k, ink]) =>
     cmd(`ink.${k}`, (c) => (c?.view.legend[k] ? `${ink.name()}: ${c.view.legend[k]}` : ink.name()), {
       data: true,
@@ -71,7 +71,7 @@ const CAL: Command<C>[] = [
   }),
   cmd('task.step', 'The next or the one before', { at: 'words', keys: 'ArrowUp / ArrowDown', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('step', e) }),
   cmd('task.duplicate', 'Duplicate', { at: 'words', keys: 'Mod+D', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('duplicate', e) }),
-  cmd('task.tick', 'Tick or untick a task', { at: 'words', keys: 'Mod+Enter', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('tick', e) }),
+  cmd('task.tick', 'Check or uncheck a task', { at: 'words', keys: 'Mod+Enter', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('tick', e) }),
   cmd('task.earlier', 'A day earlier', { at: 'words', keys: 'Mod+Alt+ArrowLeft', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('earlier', e) }),
   cmd('task.later', 'A day later', { at: 'words', keys: 'Mod+Alt+ArrowRight', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('later', e) }),
   cmd('task.dates', 'Dates…', { at: 'words', keys: 'Alt+Enter', when: (c) => c.here?.at !== undefined, where: ['keys-only'], does: (c, e) => c.taskKey('dates', e) }),

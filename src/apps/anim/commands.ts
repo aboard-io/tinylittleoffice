@@ -19,7 +19,7 @@ const cmd = commandsOf<A>('anim');
 /** The numbers of times the repeat menu offers (the motion's own, if another, is offered too). */
 const TIMES = [2, 3, 5, 10];
 /** A repeat, named. */
-export const loopName = (l: Loop): string => (l === 'forever' ? t('Loop for ever') : l === 'once' ? t('Play once') : l === 'bounce' ? t('Back and forth') : t('{n} times', { n: l }));
+export const loopName = (l: Loop): string => (l === 'forever' ? t('Loop forever') : l === 'once' ? t('Play once') : l === 'bounce' ? t('Back and forth') : t('{n} times', { n: l }));
 /** The effects' names, by letter. */
 const FX_NAMES: Record<string, string> = {
   i: 'Impact',

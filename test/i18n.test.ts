@@ -2,8 +2,10 @@
 import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { t, register, setLanguage, browserLanguage, directionOf, languages } from '../src/kit/i18n.ts';
-import { commandKeys, definedKeys, placeholders, usedKeys, withMissing, MARK } from '../scripts/i18n-extract.ts';
+import { commandKeys, definedKeys, languageFiles, placeholders, usedKeys, withMissing, MARK } from '../scripts/i18n-extract.ts';
+import { british } from './british.ts';
 import en from '../src/i18n/en.ts';
 
 const root = join(import.meta.dirname, '..');
@@ -102,4 +104,18 @@ test('the extractor reads t() calls, and appends what is new at the end under th
   expect(twice.split(MARK).length).toBe(2);
   expect(definedKeys(twice).map((l) => l.key)).toEqual(['A', "it's", 'B', 'C']);
   expect(withMissing(file, [])).toBe(file);
+});
+
+test('every language file has every key en.ts has, and no English string is British (Paul, 2026-10-11: "American English")', async () => {
+  const keys = Object.keys(en).sort();
+  for (const [code, path] of languageFiles(root)) {
+    const have = new Set(Object.keys((await import(pathToFileURL(path).href)).default as Record<string, string>));
+    expect(
+      keys.filter((k) => !have.has(k)),
+      code,
+    ).toEqual([]);
+  }
+  expect(Object.values(en).flatMap((s, i) => british(s, `en ${i}`))).toEqual([]);
+  // And the list knows a British string when it sees one.
+  expect(british('Colour for new: {colour}', 'x')).toHaveLength(1);
 });

@@ -67,13 +67,13 @@ test('the Word Processor’s words, as a screen reader is given them', async ({ 
   };
   await expect(await open(write.templates[0].doc)).toMatchAriaSnapshot(`
     - textbox "Document":
-      - paragraph: Your name Street and number Town and postcode you@example.com
+      - paragraph: Your name Street and number City, state and ZIP code you@example.com
       - paragraph: The date
       - paragraph: Dear …,
       - paragraph: Why you are writing, in a sentence.
       - paragraph: What you have to say, in order.
       - paragraph: What happens next, and by when.
-      - paragraph: Yours sincerely,
+      - paragraph: Sincerely,
       - paragraph
       - paragraph: Your name
   `);

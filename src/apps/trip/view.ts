@@ -28,7 +28,7 @@ function mapSvg(v: TripView, w: number, h: number, upTo = Infinity): string {
   const ys = s.map((p) => my(p.lat));
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   // As close as fits every stop with room for its name: one stop alone is a town's width; several, never closer
-  // than a few streets, so a walk or a pub crawl fills the map as a road trip does.
+  // than a few streets, so a walk or a food crawl fills the map as a road trip does.
   const span = Math.max(x1 - x0, ((y1 - y0) * w) / h, s.length > 1 ? MIN_SPAN : 0.0004);
   const scale = (w - 160) / span;
   const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];

@@ -144,7 +144,7 @@ export function askEmbed(now = ''): Promise<string | null> {
       html`${urlRow({ label: t('Address of a video, a post, a song, a place, a page'), placeholder: 'https://', value: url, ok, input: (v) => ((url = v), f.draw()) })}
         <ul class="to-ask-sources" aria-label=${t('What it can show')}>
           ${EMBED_SOURCES.map((s) => html`<li class=${known?.provider === s.name ? 'on' : ''}>${icon(KIND_ICON[s.kind], 18)}<span>${s.name}</span></li>`)}
-          <li class=${known?.file ? 'on' : ''}>${icon(FileIcon, 18)}<span>${t('A film, a sound, a PDF or a picture')}</span></li>
+          <li class=${known?.file ? 'on' : ''}>${icon(FileIcon, 18)}<span>${t('A video, a sound, a PDF or a picture')}</span></li>
         </ul>
         <div class="to-ask-preview" aria-live="polite">
           ${ok ? html`<to-embed url=${url.trim()}></to-embed>${known ? nothing : html`<p class="to-hint">${t('Not one of these: it goes in as a link to the page.')}</p>`}` : nothing}

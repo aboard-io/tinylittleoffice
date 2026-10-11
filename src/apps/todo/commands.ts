@@ -54,7 +54,7 @@ const TODO: Command<T>[] = [
   }),
   cmd('task.duplicate', 'Duplicate', { at: 'words', icon: CopyPlus, keys: 'Mod+D', when: (d) => !!(d.here ?? menuTask(d)), where: ['menu:task'], does: (d) => d.duplicateOne(d.here ?? menuTask(d)!) }),
   cmd('task.delete', 'Delete task', { icon: UI.trash, when: (d) => !!(d.here ?? menuTask(d)), where: ['menu:task'], does: (d) => d.deleteTasks([menuTask(d)!.at]) }),
-  cmd('tick', 'Tick or untick a task', { at: 'words', keys: 'Mod+Enter', where: ['keys-only'], when: (d) => !!d.here, does: (d) => d.edit(setDone(d.here!, !d.here!.done)) }),
+  cmd('tick', 'Check or uncheck a task', { at: 'words', keys: 'Mod+Enter', where: ['keys-only'], when: (d) => !!d.here, does: (d) => d.edit(setDone(d.here!, !d.here!.done)) }),
   cmd('step', 'The next or the one before', {
     at: 'words',
     keys: 'ArrowUp / ArrowDown / ArrowLeft / ArrowRight',

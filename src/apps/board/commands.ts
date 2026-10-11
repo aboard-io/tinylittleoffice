@@ -60,12 +60,12 @@ const BOARD: Command<B>[] = [
   ),
   stageMenu('auto', 'Automatic', {
     swatch: (b) => STAGE_COLORS[autoHue(b ? Math.max(0, menuStage(b).i) : 0)].hex,
-    heading: 'Colour',
+    heading: 'Color',
     pressed: (b) => !menuStage(b).s?.color,
     does: (b) => b.edit(setStage(menuStage(b).s, { color: '' })),
   }),
   ...Object.entries(STAGE_COLORS).map(([k, c]) =>
-    stageMenu(`color.${k}`, c.name, { data: true, swatch: () => c.hex, heading: 'Colour', pressed: (b) => menuStage(b).s?.color === k, does: (b) => b.edit(setStage(menuStage(b).s, { color: k })) }),
+    stageMenu(`color.${k}`, c.name, { data: true, swatch: () => c.hex, heading: 'Color', pressed: (b) => menuStage(b).s?.color === k, does: (b) => b.edit(setStage(menuStage(b).s, { color: k })) }),
   ),
   stageMenu('delete', 'Delete stage', { icon: UI.trash, heading: 'Stage', does: (b) => b.edit(removeStage(menuStage(b).s)) }),
   cmd('before', (b) => (b && beside(b, -1) ? t('Move to {stage}', { stage: beside(b, -1)!.name || t('Stage') }) : t('Move to the stage before')), {
@@ -106,7 +106,7 @@ const BOARD: Command<B>[] = [
     does: (b, e) => b.lineKey(e instanceof KeyboardEvent && e.key === 'ArrowUp'),
   }),
   cmd('duplicate', 'Duplicate', { at: 'words', keys: 'Mod+D', when: (b) => !!b.here, where: ['keys-only'], does: (b) => b.duplicateKey() }),
-  cmd('tick', 'Tick or untick a task', { at: 'words', keys: 'Mod+Enter', when: (b) => !!b.here, where: ['keys-only'], does: (b) => b.tickKey() }),
+  cmd('tick', 'Check or uncheck a task', { at: 'words', keys: 'Mod+Enter', when: (b) => !!b.here, where: ['keys-only'], does: (b) => b.tickKey() }),
 ];
 export const CHOSEN = BOARD.filter((c) => c.at === 'rows');
 export const WORDS = BOARD.filter((c) => c.at === 'words');

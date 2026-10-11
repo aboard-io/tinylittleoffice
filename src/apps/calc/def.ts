@@ -27,7 +27,7 @@ export default defineApp({
   },
   icon: Calculator,
   get blurb() {
-    return t('A calculator that keeps its working: names, units and conversions, and graphs of y = f(x).');
+    return t('A calculator that shows its work: names, units and conversions, and graphs of y = f(x).');
   },
   blank: () => '',
   get templates() {

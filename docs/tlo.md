@@ -164,7 +164,7 @@ the task items one level under it. `look: rows` in the head draws the stages as 
 
 **cal** (Calendar): an item a span. `- 2027-03-01: Launch`, `- 2027-03-01 to 2027-03-03: Offsite`,
 `- 2027-03-10 09:00-10:30: Retro {color=green every=week times=9}` (or `until=2027-06-01`),
-`- 2027-03-10 22:00 to 2027-03-11 01:00: Party`. Head: `zone: Europe/London`, the colours' names
+`- 2027-03-10 22:00 to 2027-03-11 01:00: Party`. Head: `zone: America/New_York` (without one, the times are read in the reader's own zone, so a 17:30 is half past five wherever it is opened), the colors' names
 (`green: Sam`), and `view: gantt` for a schedule, where an item's depth nests it under the one above,
 `{done=40%}` says how far along it is and `- [x]` that it is done.
 

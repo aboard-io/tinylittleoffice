@@ -33,7 +33,7 @@ export default defineApp({
   },
   icon: ListTodo,
   get blurb() {
-    return t('Tasks to tick off, with stars and due dates.');
+    return t('Tasks to check off, with stars and due dates.');
   },
   // One empty task to type into.
   blank: () => '- [ ]\n',

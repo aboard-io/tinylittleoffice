@@ -100,7 +100,7 @@ test('commands are ops: a slide added, removed, moved; a layout, an icon, a docu
   // Moved: slide 1 (Tonight) after slide 2, and back; every block the same object.
   const before = doc.blocks;
   doc = applyAll(doc, moveSlide(doc, 1, 2));
-  expect(slidesOf(doc).map((s) => plainText(s.title))).toEqual(['Small sites, made by hand', 'The right size', 'Tonight', 'The fortnight', 'What goes wrong', 'To close']);
+  expect(slidesOf(doc).map((s) => plainText(s.title))).toEqual(['Small sites, made by hand', 'The right size', 'Tonight', 'The two weeks', 'What goes wrong', 'To close']);
   expect(doc.blocks.every((b) => b.k === 'hr' || before.includes(b))).toBe(true);
   doc = applyAll(doc, moveSlide(doc, 2, 1));
   expect(write(doc)).toBe(TALK);
@@ -303,7 +303,7 @@ test('every template is canonical, has a name, and draws', () => {
     'zine',
     'soups',
     'booklet',
-    'programme',
+    'program',
     'brochure',
     'farm',
     'comic',

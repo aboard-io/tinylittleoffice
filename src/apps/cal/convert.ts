@@ -10,6 +10,6 @@ import { readCal, spanDays } from './model.ts';
 export function calToTodo(text: string): string {
   const doc = parse(text);
   const v = readCal(doc);
-  const blocks: Block[] = v.items.map((i) => ({ k: 'li', depth: 0, done: i.done >= 100, runs: i.label, a: { kv: { due: dayString(spanDays(i, v.zone || 'UTC')[0]) } } }));
+  const blocks: Block[] = v.items.map((i) => ({ k: 'li', depth: 0, done: i.done >= 100, runs: i.label, a: { kv: { due: dayString(spanDays(i, v.tz)[0]) } } }));
   return write({ head: doc.head.title ? { title: doc.head.title } : {}, blocks });
 }

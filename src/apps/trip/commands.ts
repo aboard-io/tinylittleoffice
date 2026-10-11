@@ -26,7 +26,7 @@ const TRIP: Command<R>[] = [
   cmd('units', 'Measure in', { icon: Ruler, menu: 'units', where: ['bar'], document: true, takesFocus: true, does: () => undefined }),
   unit('h', 'Hours of driving'),
   unit('m', 'Miles'),
-  unit('k', 'Kilometres'),
+  unit('k', 'Kilometers'),
   cmd('linked', 'Join the stops in order', { icon: Spline, where: ['bar'], document: true, pressed: (r) => r.view.linked, does: (r) => r.edit(setLinked(r.doc, !r.view.linked)) }),
   cmd('fit', 'Show the whole route', { icon: Scan, where: ['bar'], document: true, disabled: (r) => !r.view.stops.length || !r.showMap, does: (r) => r.fit() }),
   cmd('map', 'Map', { icon: MapIcon, where: ['bar'], document: true, pressed: (r) => r.showMap, does: (r) => (r.showMap = !r.showMap) }),

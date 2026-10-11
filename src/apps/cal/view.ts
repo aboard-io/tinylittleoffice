@@ -9,7 +9,7 @@ import { csv } from '../../kit/csv.ts';
 import { ACCENT, FAINT, INK, LINE, MUTED, SHADE, clip, r, rect, text } from '../../kit/draw.ts';
 import { language, t } from '../../kit/i18n.ts';
 import { icsDate, icsStamp, icsText, vcalendar } from '../../kit/ics.ts';
-import { CAL_COLORS, clockMinutes, ganttBars, ganttRange, occurrences, readCal, repeatText, spanDays, spanEndMs, spanStartMs, type CalView, type Every, type Item } from './model.ts';
+import { CAL_COLORS, clockMinutes, ganttBars, ganttRange, occurrences, readCal, repeatText, spanDays, spanEndMs, spanStartMs, type CalView, type Every } from './model.ts';
 import { clockString, dayString, pad2, utcToParts } from './tz.ts';
 
 const CW = 100;
@@ -17,19 +17,12 @@ const CH = 84;
 const monthName = (y: number, m: number) => new Intl.DateTimeFormat(language(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(y, m - 1, 1));
 const weekday = (wd: number) => new Intl.DateTimeFormat(language(), { weekday: 'short', timeZone: 'UTC' }).format(Date.UTC(2023, 0, 1 + wd));
 
-/** When an item happens, in words: dates as they are, a time in the calendar's own zone. */
-export function whenWords(s: Item, zone: string): string {
-  if (s.kind === 'd') return s.dur > 1 ? `${dayString(s.start)} – ${dayString(s.start + s.dur - 1)}` : dayString(s.start);
-  const p = utcToParts(spanStartMs(s), zone || 'UTC');
-  return `${dayString(ymdToDay(p.y, p.m, p.d))} ${clockString(p)}${zone ? '' : ' UTC'}`;
-}
-
 /**
  * The calendar as months: a page for each month that has something in it (`max` at most), every span on the
  * days it covers, a repeating span on every day it comes round to; what the colours stand for at the foot.
  */
 export function monthPages(v: CalView, max = 3, now = new Date()): Page[] {
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   // The months with something in them: a repeat counts for its first hundred days, so the ones shown stay near its start.
   const days = v.items.flatMap((s) => {
     const [a] = spanDays(s, zone);
@@ -133,7 +126,7 @@ const FREQ: Record<Every, string> = { d: 'DAILY', w: 'WEEKLY', m: 'MONTHLY', y: 
 /** The calendar as events: an all-day span over floating dates (DTEND the day after), a timed one as UTC instants, a repeat as its RRULE, how far along in the description. */
 export function calToIcs(doc: Doc, stampMs: number): string {
   const v = readCal(doc);
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   const stamp = icsStamp(stampMs);
   const events = v.items.map((s, i) => {
     const lines = ['BEGIN:VEVENT', `UID:${s.kind}${s.start.toString(36)}-${s.dur.toString(36)}-${i}@tinylittleoffice`, `DTSTAMP:${stamp}`];
@@ -156,7 +149,7 @@ export function calToIcs(doc: Doc, stampMs: number): string {
 /** The calendar as rows for a spreadsheet: a schedule as its tasks (level, start, end, days, done), a calendar as its spans. */
 export function calToCsv(doc: Doc, sep = ','): string {
   const v = readCal(doc);
-  const zone = v.zone || 'UTC';
+  const zone = v.tz;
   if (v.gantt) {
     const bars = ganttBars(v);
     return csv(
@@ -173,7 +166,7 @@ export function calToCsv(doc: Doc, sep = ','): string {
   };
   return csv(
     [
-      [t('What'), t('Start'), t('End'), t('Repeats'), t('Colour')],
+      [t('What'), t('Start'), t('End'), t('Repeats'), t('Color')],
       ...v.items.map((s) => [
         s.words,
         s.kind === 'd' ? dayString(s.start) : at(spanStartMs(s)),
