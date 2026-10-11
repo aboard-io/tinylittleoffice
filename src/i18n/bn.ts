@@ -213,7 +213,7 @@ export default {
   'The two passwords differ': 'দুটি পাসওয়ার্ড মিলছে না',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'লেখা, শিরোনাম, নাম বা সময় সই করা অবস্থার মতো নেই: কেউ বদলেছে, অথবা অন্য কিছুতে সই করা হয়েছিল।',
   'Their names and links, for the home page.': 'হোম পাতাের জন্য এগুলোর নাম ও লিংক।',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'থিম, ভাষা, সই করার নাম, ছোট লিংকের মেয়াদ।',
+  'Theme, the name you sign with, the lifetime of short links.': 'থিম, সই করার নাম, ছোট লিংকের মেয়াদ।',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'এই নথিতে পাসওয়ার্ড আছে। লিংকে এবং এর থেকে বানানো ছোট লিংকে শুধু এনক্রিপ্ট করা লেখা থাকে।',
   'This document is locked': 'এই নথিতে তালা দেওয়া',
   'This document is locked with a password.': 'এই নথিতে পাসওয়ার্ডের তালা দেওয়া।',

@@ -227,7 +227,7 @@ export default {
   'The two passwords differ': 'दोनों पासवर्ड अलग हैं',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'शब्द, शीर्षक, नाम या समय वैसे नहीं हैं जैसे साइन किए गए थे: किसी ने उन्हें बदल दिया, या कुछ और साइन किया।',
   'Their names and links, for the home page.': 'उनके नाम और लिंक, होम पेज के लिए।',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'थीम, भाषा, साइन करने का नाम, शॉर्ट लिंक की उम्र।',
+  'Theme, the name you sign with, the lifetime of short links.': 'थीम, साइन करने का नाम, शॉर्ट लिंक की उम्र।',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'इस दस्तावेज़ पर पासवर्ड है। इसका लिंक, और इससे बना कोई भी शॉर्ट लिंक, सिर्फ़ एन्क्रिप्टेड रूप रखता है।',
   'This document is locked': 'यह दस्तावेज़ लॉक है',
   'This document is locked with a password.': 'यह दस्तावेज़ पासवर्ड से लॉक है।',

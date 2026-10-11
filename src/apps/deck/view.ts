@@ -11,7 +11,7 @@ import { encodeDoc } from '../../kit/codec.ts';
 import { FAINT, FONT, INK, LINE, MUTED, PAPER, pageSvg, r, rect, textWidth, xml } from '../../kit/draw.ts';
 import { embedCaption, embedOf, kindGlyph, playsKind } from '../../kit/embeds.ts';
 import { glyphNamed, iconGlyph, iconNamed } from '../../kit/icons.ts';
-import { t } from '../../kit/i18n.ts';
+import { chosenLanguage, t } from '../../kit/i18n.ts';
 import { MOTION_JS } from '../../kit/motion.ts';
 import { pageScript } from '../../kit/page.ts';
 import { QR_MAX_BYTES, qrSvg } from '../../kit/qr.ts';
@@ -885,11 +885,12 @@ export function sheetsOf(doc: Doc, s: Settings = settingsOf(doc), still = false)
 
 /**
  * The deck the room takes home: its slides as the Display Link, every speaker note cut (the quotes at each slide's
- * end are the speaker's, never the room's), on the site it is shown from (in a browser), else the fragment alone.
+ * end are the speaker's, never the room's), on the site it is shown from (in a browser), else the fragment alone; in the
+ * language the deck is shown in, when one was chosen.
  */
-export function takeHomeLink(doc: Doc, site = typeof location !== 'undefined' ? location.origin + location.pathname : ''): string {
+export function takeHomeLink(doc: Doc, site = typeof location !== 'undefined' ? location.origin + location.pathname : '', lang = chosenLanguage()): string {
   const notes = new Set(slidesOf(doc).flatMap((s) => Array.from({ length: s.notes[1] - s.notes[0] }, (_, i) => s.notes[0] + i)));
-  return site + routeHash('deck', encodeDoc(write({ ...doc, blocks: doc.blocks.filter((_, i) => !notes.has(i)) })), '', null, true);
+  return site + routeHash('deck', encodeDoc(write({ ...doc, blocks: doc.blocks.filter((_, i) => !notes.has(i)) })), '', null, true, null, lang);
 }
 
 /** Whether the deck ends with its code: not a printed thing, not an empty deck, not when the header says "qr: no". */

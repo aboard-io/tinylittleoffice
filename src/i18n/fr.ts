@@ -229,7 +229,7 @@ export default {
   'The two passwords differ': 'Les deux mots de passe diffèrent',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'Les mots, le titre, le nom ou l’heure ne sont pas ceux qui ont été signés : quelqu’un l’a modifié, ou a signé autre chose.',
   'Their names and links, for the home page.': 'Leurs noms et leurs liens, pour la page d’accueil.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'Le thème, la langue, le nom avec lequel vous signez, la durée de vie des liens courts.',
+  'Theme, the name you sign with, the lifetime of short links.': 'Le thème, le nom avec lequel vous signez, la durée de vie des liens courts.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'Ce document a un mot de passe. Le lien, et tout lien court qui en est tiré, ne contient que du texte chiffré.',
   'This document is locked': 'Ce document est verrouillé',
   'This document is locked with a password.': 'Ce document est verrouillé par un mot de passe.',

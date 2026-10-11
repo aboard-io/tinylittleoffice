@@ -2,11 +2,11 @@
  * Privacy, in one place: everything that protects a document or touches what the device keeps.
  *
  *   - Private or Saved: whether the device keeps anything. Private (the default) writes nothing of the site's
- *     but the language chosen in the menu (kit/i18n.ts): no cookies, no storage. The browser's own history still
+ *     but the size of everything and the theme (kit/store.ts): no cookies. The language is in the link, never on the
+ *     device (kit/i18n.ts). The browser's own history still
  *     holds every link opened, and a link is the document; that is not ours to clear. Saved keeps the preferences, the documents
  *     opened here (kit/library.ts), the short links' owner links (kit/links.ts) and the signing
- *     key. Turned back to Private, all of it goes from the device, the key from the visit too. Forget everything
- *     forgets the language chosen as well.
+ *     key. Turned back to Private, all of it goes from the device, the key from the visit too.
  *   - The password: a document sealed (kit/crypt.ts) and opened, here. A password is never kept, under
  *     Saved or not: the key that opened a document stays in memory for the visit, so it opens again
  *     without asking.
@@ -29,10 +29,9 @@ import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './links.ts';
 import { parseHash } from './route.ts';
 import { slug } from './draw.ts';
-import { forgetLanguage } from './i18n.ts';
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
+export const PREFS = ['to-theme', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
 /** Where the key, the signer's name and the owner links are kept. */
 const KEY = 'tinyoffice.key';
 const NAME = 'tinyoffice.name';
@@ -253,11 +252,10 @@ export function forgetLinks() {
   store.remove(LINKS);
   changed();
 }
-/** Forget everything this site keeps here, the key and the language chosen with it, and keep nothing from now on. */
+/** Forget everything this site keeps here, the key with it, and keep nothing from now on. */
 export async function forgetEverything() {
   signer.forget();
   for (const k of store.keys()) store.remove(k);
-  forgetLanguage();
   await setPrivate(true);
 }
 

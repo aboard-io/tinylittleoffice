@@ -43,9 +43,9 @@ import type { Head } from '../doc/model.ts';
 import type { Locker } from './crypt.ts';
 import { ENVELOPE_KEYS, isoMinute } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
-import { onLanguage, t } from './i18n.ts';
+import { chosenLanguage, languagePending, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { exportItems, printDoc, viewAs } from './exports.ts';
-import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash, withLang, type Owned } from './route.ts';
 import { checkSignature, keeping, onPrivacy, pack, reopen, setPrivate, type Signature } from './privacy.ts';
 import { copyText } from './share.ts';
 import { trustButton, type ToPrivacy } from './privacy-dialog.ts';
@@ -105,6 +105,7 @@ export class ToShell extends LitElement {
     embed: { state: true },
     other: { state: true },
     newer: { state: true },
+    wording: { state: true },
   };
   declare app: string | null;
   declare doc: Doc;
@@ -123,6 +124,7 @@ export class ToShell extends LitElement {
   declare embed: boolean; // the pages alone, for another site's frame
   declare other: Kept | null; // another version of this document kept here (the same app and name, another link)
   declare newer: boolean; // the link was made by a newer Tiny Little Office
+  declare wording: boolean; // the language the link asks for is on its way: nothing is drawn until it is, so no English flashes first
   private envelope: Head = {}; // the envelope's keys (an empty value: taken out), put into every change
   private sealRun = 0; // the newest seal and check under way: an older one finishing late is dropped
   private checkRun = 0;
@@ -164,6 +166,7 @@ export class ToShell extends LitElement {
       embed: false,
       other: null,
       newer: false,
+      wording: false,
     });
   }
   createRenderRoot() {
@@ -220,7 +223,7 @@ export class ToShell extends LitElement {
     // forgotten changes whose signature this is.
     const redraw = () => this.requestUpdate();
     this.offs.push(
-      onLanguage(() => (this.setTitle(), redraw())),
+      onLanguage(() => (this.relang(this.app), this.setTitle(), redraw())),
       onPictures(redraw),
       onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())),
       onPrivacy(() => (void this.checkSignature(), this.guard())),
@@ -264,6 +267,15 @@ export class ToShell extends LitElement {
     // Something of the page had the focus (the way home, a link, a field): what replaces it is given the focus once drawn.
     this.refocus = !!document.activeElement && document.activeElement !== document.body && this.contains(document.activeElement);
     unplain(this.pageApp());
+    // The language: the link's, when it names one the site has; else the one this visit chose, kept in the address.
+    const asks = parseHash(location.hash).lang;
+    if (asks && asks !== chosenLanguage() && languages().includes(asks)) void setLanguage(asks);
+    const pending = languagePending();
+    if (pending && !this.wording) {
+      this.wording = true;
+      void pending.finally(() => (this.wording = false));
+    }
+    this.relang(!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     this.comparing = parseCompare(location.hash);
     const { app, payload, view: asked, owned, display, arrived, sealed, show, version } = parseHash(location.hash);
     const view = asked === 'embed' ? '' : asked;
@@ -318,6 +330,17 @@ export class ToShell extends LitElement {
     }
   };
 
+  /**
+   * The address carries the language chosen (kit/route.ts withLang), or none when the page follows the browser's: a
+   * link opened from here, the library or a template keeps the page's language. `app` is the page's own app when its
+   * address is empty ("/sheet/"), so the language joins a link to it and not to the home page.
+   */
+  private relang(app: string | null) {
+    const lang = chosenLanguage();
+    const next = withLang(location.hash || (lang && app ? routeHash(app) : ''), lang);
+    if (next !== location.hash) history.replaceState(history.state, '', next || location.pathname + location.search);
+  }
+
   /* ---------- the password and the signature (the work is <to-privacy>'s) ---------- */
 
   /** A sealed link: opened by a password already given this visit, or the unlock dialog. */
@@ -367,7 +390,7 @@ export class ToShell extends LitElement {
     const [view, def] = [this.pendingView, this.def];
     this.pendingView = '';
     if (!view || !def) return;
-    history.replaceState(this.state(), '', routeHash(def.id, parseHash(location.hash).payload, '', this.owned, false, this.tie));
+    history.replaceState(this.state(), '', routeHash(def.id, parseHash(location.hash).payload, '', this.owned, false, this.tie, chosenLanguage()));
     await viewAs(view, this.current);
   }
 
@@ -412,7 +435,7 @@ export class ToShell extends LitElement {
   private writeLink(app: string, payload: string) {
     this.payloadLength = payload.length;
     this.keepSoon(payload);
-    history.replaceState(this.state(), '', routeHash(app, payload, '', this.owned, false, this.tie));
+    history.replaceState(this.state(), '', routeHash(app, payload, '', this.owned, false, this.tie, chosenLanguage()));
     this.setTitle();
   }
   /** The editor's change: the text kept, the link left until typing pauses (one timer a burst); nothing drawn (`edited` is not reactive). */
@@ -553,7 +576,7 @@ export class ToShell extends LitElement {
   private get outerTitle(): string {
     return this.def && (this.locker || this.sealed) ? t('Locked document') : this.docTitle;
   }
-  /** The link to share, the editing one: the address without the owner's query (that stays in the address bar alone) or the display flag. */
+  /** The link to share, the editing one: the address without the owner's query (that stays in the address bar alone) or the display flag; with the language chosen. */
   get link(): string {
     return this.linkTo(false);
   }
@@ -565,7 +588,7 @@ export class ToShell extends LitElement {
     this.flushLink();
     if (!this.app) return location.href;
     const u = new URL(location.href);
-    u.hash = routeHash(this.app, parseHash(location.hash).payload, '', null, display);
+    u.hash = routeHash(this.app, parseHash(location.hash).payload, '', null, display, null, chosenLanguage());
     return u.href;
   };
   /** The short link this document owns and its expiry, as the address carries them beside the owner's query; null unless both are known. */
@@ -653,7 +676,7 @@ export class ToShell extends LitElement {
   /** A short link made, updated or forgotten: the address carries the owner's tie to it, or no longer. */
   private onOwned = (e: CustomEvent<{ owned: Owned | null; expires: number }>) => {
     Object.assign(this, { ...e.detail, changed: false, arrived: this.arrived && !!e.detail.owned });
-    if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned, false, this.tie));
+    if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned, false, this.tie, chosenLanguage()));
   };
   /** This document, as a fresh plain link in a new tab (share-dialog.ts openCopy). */
   copyIntoNew = () => void (this.def && !this.sealed && (this.flushLink(), openCopy(this.def, this.doc, this.docTitle, this.locker)));
@@ -685,13 +708,13 @@ export class ToShell extends LitElement {
     if (this.embed) {
       const u = new URL(location.href);
       u.pathname = siteDir();
-      u.hash = routeHash(def.id, payload);
+      u.hash = routeHash(def.id, payload, '', null, false, null, chosenLanguage());
       const main = this.sealed
         ? html`<div class="to-display-page" role="group" aria-label=${t('Locked document')}>${unsafeSVG(pageSvg(lockedCard(def)))}</div><button type="button" class="to-btn primary to-unlock-open" @click=${this.askPassword}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button>`
         : this.pages(def);
       return html`<to-chrome .plain=${{ kind: 'embed', title: this.docTitle, href: u.href, locked: !!this.sealed }} .main=${main}></to-chrome>`;
     }
-    const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null);
+    const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null, chosenLanguage());
     const main = this.pages(def);
     // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
     const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;
@@ -720,6 +743,7 @@ export class ToShell extends LitElement {
   };
 
   render() {
+    if (this.wording) return nothing;
     const def = this.def;
     const plain = def && !this.unreadable && (this.embed || (this.display && !this.sealed));
     const downloads = def && !this.sealed && !plain ? exportItems(this.current) : null;

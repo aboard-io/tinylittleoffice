@@ -6,8 +6,9 @@
 import { test, expect, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
 import { mount, tick, until, openShare } from './helpers.ts';
+import { parseHash } from '../../src/kit/route.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
-import { directionOf, languages, missed, register, setLanguage, type Strings } from '../../src/kit/i18n.ts';
+import { chosenLanguage, directionOf, languages, missed, register, setLanguage, type Strings } from '../../src/kit/i18n.ts';
 import { pseudo } from '../pseudo.ts';
 import en from '../../src/i18n/en.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -152,4 +153,38 @@ test('at the largest size (200%), the drawer, the bar and the skip link laid out
     all.push(...(await check(code === 'en' ? en : pseudo(code, en))).map((p) => `${code}: ${p}`));
   }
   expect(all).toEqual([]);
+});
+
+test('the language is in the link, not on the device: chosen in the drawer it joins the address and Share’s link, the browser’s takes it out, and a link with it opens in it', async () => {
+  const stored = () => Object.keys(localStorage).filter((k) => /lang/i.test(k));
+  const shell = await mount(`#/v1/write/${encodeDoc('Bonjou\n')}`);
+  await until(() => !!shell.querySelector('to-write-editor'));
+  await choose(shell, 'ht');
+  await until(() => parseHash(location.hash).lang === 'ht');
+  expect(parseHash(location.hash)).toMatchObject({ app: 'write', lang: 'ht' });
+  expect(parseHash(new URL(shell.link).hash).lang).toBe('ht');
+  expect(parseHash(new URL(shell.displayLink).hash)).toMatchObject({ display: true, lang: 'ht' });
+  expect(stored()).toEqual([]);
+  expect(document.cookie).toBe('');
+  // Typing keeps it in the address.
+  shell.querySelector<HTMLElement>('to-write-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'Bonjou tout moun\n', bubbles: true }));
+  shell.flushLink();
+  expect(parseHash(location.hash).lang).toBe('ht');
+  // Another page of the site, reached by a link without it, keeps the page's language.
+  location.hash = '#/';
+  await until(() => location.hash === '#/?lang=ht');
+  expect(document.documentElement.lang).toBe('ht');
+  // The browser's language again: out of the address and of every link made.
+  const select = shell.querySelector<HTMLSelectElement>('.to-drawer-lang select')!;
+  select.value = '';
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  await until(() => location.hash === '#/' && document.documentElement.lang === 'en');
+  expect(chosenLanguage()).toBeNull();
+  expect(stored()).toEqual([]);
+  // A reload of a link in Kreyòl (the visit's memory gone, as a new page has none) opens in Kreyòl.
+  const again = await mount('#/?lang=ht');
+  await until(() => document.documentElement.lang === 'ht');
+  expect(again.querySelector('.to-burger')!.getAttribute('aria-label')).not.toBe('Menu');
+  expect(location.hash).toBe('#/?lang=ht');
+  expect(stored()).toEqual([]);
 });

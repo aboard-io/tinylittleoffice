@@ -227,7 +227,7 @@ export default {
   'The two passwords differ': 'Пароли не совпадают',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'Текст, название, имя или время не такие, как при подписи: кто-то изменил документ или подписал другой.',
   'Their names and links, for the home page.': 'Их названия и ссылки для главной страницы.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'Тема, язык, имя для подписи, срок жизни коротких ссылок.',
+  'Theme, the name you sign with, the lifetime of short links.': 'Тема, имя для подписи, срок жизни коротких ссылок.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'У этого документа есть пароль. В ссылке и в любой короткой ссылке из неё только зашифрованный текст.',
   'This document is locked': 'Этот документ заблокирован',
   'This document is locked with a password.': 'Этот документ заблокирован паролем.',

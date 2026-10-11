@@ -34,20 +34,3 @@ test('an in-memory Spanish dictionary takes over the shell when chosen', async (
   await until(() => document.documentElement.lang === 'en');
   expect(shell.querySelector('.to-app-name')!.textContent).toBe('Word Processor');
 });
-
-test('the language chosen is kept on the device through Private and Saved alike, and is no cookie', async () => {
-  const { chosenLanguage, LANG_KEY } = await import('../../src/kit/i18n.ts');
-  const { keeping, setKeeping } = await import('../../src/kit/store.ts');
-  expect(keeping()).toBe(false);
-  await setLanguage('es');
-  expect(localStorage.getItem(LANG_KEY)).toBe('es');
-  expect(chosenLanguage()).toBe('es');
-  expect(document.cookie).toBe('');
-  // Saved, then Private again: Private forgets every key of ours but this one.
-  setKeeping(true);
-  setKeeping(false);
-  expect(localStorage.getItem(LANG_KEY)).toBe('es');
-  expect(localStorage.getItem('tinyoffice.keep')).toBeNull();
-  await setLanguage(null);
-  expect(localStorage.getItem(LANG_KEY)).toBeNull();
-});

@@ -228,7 +228,7 @@ export default {
   'The two passwords differ': 'Hasła się różnią',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'Treść, tytuł, nazwa albo czas nie są tym, co podpisano: ktoś to zmienił albo podpisał coś innego.',
   'Their names and links, for the home page.': 'Ich nazwy i linki, na stronę główną.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'Motyw, język, imię, którym się podpisujesz, czas życia krótkich linków.',
+  'Theme, the name you sign with, the lifetime of short links.': 'Motyw, imię, którym się podpisujesz, czas życia krótkich linków.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'Ten dokument ma hasło. Link i każdy krótki link z niego zawierają tylko szyfrogram.',
   'This document is locked': 'Ten dokument jest zablokowany',
   'This document is locked with a password.': 'Ten dokument jest zablokowany hasłem.',

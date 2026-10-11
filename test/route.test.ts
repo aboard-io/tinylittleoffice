@@ -95,3 +95,29 @@ test('a compare fragment and a link to compare take payloads with "~" or "-"', a
   expect(sideOf(`https://tinylittleoffice.com/write/#/v1/write/${payload}`)).toEqual({ app: 'write', payload });
   expect(sideOf(`https://tinylittleoffice.com/write/#/v1/write/${payload.replace(/~/g, '-')}`)).toEqual({ app: 'write', payload: payload.replace(/~/g, '-') });
 });
+
+test('the language rides in the link as "lang", beside every other parameter, and is absent when none was chosen', async () => {
+  const { withLang } = await import('../src/kit/route.ts');
+  expect(routeHash('write', 'yABC', '', null, false, null, 'ht')).toBe('#/v1/write/yABC?lang=ht');
+  expect(parseHash('#/v1/write/yABC?lang=ht')).toEqual({ app: 'write', payload: 'yABC', version: 1, view: '', owned: null, display: false, arrived: null, sealed: false, lang: 'ht' });
+  expect(parseHash(routeHash('write', 'yABC'))).not.toHaveProperty('lang');
+  expect(routeHash('write', 'yABC', '', null, false, null, null)).toBe('#/v1/write/yABC');
+  // Beside the Display Link, the owner's query and the expiry, each round-trips.
+  const owned = { id: 'abcdefg', key: 'K'.repeat(43), o: 'O'.repeat(43) };
+  const all = routeHash('write', 'yABC', '', owned, true, { id: 'abcdefg', expires: 1791000000000 }, 'pt-br');
+  expect(all).toBe(`#/v1/write/yABC?d&s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}&x=1791000000000&lang=pt-br`);
+  expect(parseHash(all)).toMatchObject({ display: true, owned, arrived: { id: 'abcdefg', expires: 1791000000000 }, lang: 'pt-br' });
+  expect(parseHash('#/v1/deck/yABC?show&lang=ar')).toMatchObject({ show: true, lang: 'ar' });
+  expect(parseHash(routeHash('write', 'yABC', 'embed', null, false, null, 'ht'))).toMatchObject({ view: 'embed', lang: 'ht' });
+  // The home page carries it too; a code that is no language tag is not read.
+  expect(parseHash('#/?lang=ht')).toMatchObject({ app: null, lang: 'ht' });
+  expect(parseHash('#/?lang=<b>')).not.toHaveProperty('lang');
+  // Any address: the language put in, changed, or taken out, the rest as it was.
+  expect(withLang('#/', 'ht')).toBe('#/?lang=ht');
+  expect(withLang('', 'ht')).toBe('#/?lang=ht');
+  expect(withLang('', null)).toBe('');
+  expect(withLang('#/?lang=ht', null)).toBe('#/');
+  expect(withLang('#/v1/write/yABC?d&lang=ht', 'fr')).toBe('#/v1/write/yABC?d&lang=fr');
+  expect(withLang('#/v1/write/yABC?lang=ht&d', null)).toBe('#/v1/write/yABC?d');
+  expect(withLang('#/v1/write/yABC', 'ht')).toBe('#/v1/write/yABC?lang=ht');
+});

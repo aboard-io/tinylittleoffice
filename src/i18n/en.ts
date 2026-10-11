@@ -246,7 +246,7 @@ export default {
   'The two passwords differ': 'The two passwords differ',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.',
   'Their names and links, for the home page.': 'Their names and links, for the home page.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'Theme, language, the name you sign with, the lifetime of short links.',
+  'Theme, the name you sign with, the lifetime of short links.': 'Theme, the name you sign with, the lifetime of short links.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'This document has a password. The link, and any short link made from it, holds only ciphertext.',
   'This document is locked': 'This document is locked',
   'This document is locked with a password.': 'This document is locked with a password.',

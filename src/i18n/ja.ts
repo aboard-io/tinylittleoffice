@@ -226,7 +226,7 @@ export default {
   'The two passwords differ': '2つのパスワードが一致しません',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': '本文、タイトル、名前、時刻のどれかが署名したときと違います。誰かが変更したか、別のものに署名したかです。',
   'Their names and links, for the home page.': '名前とリンクです。ホームページに使います。',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'テーマ、言語、署名に使う名前、短縮リンクの有効期間です。',
+  'Theme, the name you sign with, the lifetime of short links.': 'テーマ、署名に使う名前、短縮リンクの有効期間です。',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'このドキュメントにはパスワードがあります。リンクも、そこから作った短縮リンクも、中身は暗号文だけです。',
   'This document is locked': 'このドキュメントはロックされています',
   'This document is locked with a password.': 'このドキュメントはパスワードでロックされています。',

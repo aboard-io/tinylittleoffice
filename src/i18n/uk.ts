@@ -229,7 +229,7 @@ export default {
   'The two passwords differ': 'Паролі не збігаються',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'Слова, заголовок, ім’я чи час не ті, що були підписані: хтось їх змінив, або підписано щось інше.',
   'Their names and links, for the home page.': 'Їхні назви та посилання — для головної сторінки.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'Тема, мова, ім’я, яким ви підписуєте, термін дії коротких посилань.',
+  'Theme, the name you sign with, the lifetime of short links.': 'Тема, ім’я, яким ви підписуєте, термін дії коротких посилань.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'У цього документа є пароль. У посиланні на нього, і в будь-якому коротшому посиланні, лише шифротекст.',
   'This document is locked': 'Цей документ заблоковано',
   'This document is locked with a password.': 'Цей документ заблоковано паролем.',

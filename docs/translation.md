@@ -11,7 +11,13 @@ keyboard, and its screen reader. This is the plan; nothing here is built yet.
   is the list of every key, by section, hand-edited; `npm run i18n:check` fails on a key that is missing or
   unused. About 1,100 keys today, with placeholders (`{name}`) and plurals (`{n|one slide|# slides}`).
 - A language is one file, `src/i18n/<code>.ts`, loaded lazily when chosen; the browser's language picks the
-  nearest at first visit, the hamburger's Language menu overrides, and the choice is kept under Saved.
+  nearest; a link may name one instead with the parameter `lang` (`#/v1/write/<payload>?lang=ht`, and
+  `#/?lang=ht` on the home page), and opens in it. The hamburger's Language menu puts its choice into the
+  address with `replaceState`, so every link the page makes from then on carries it (Share's link, the
+  Display Link, the embed, the show link, the QR); choosing the browser's language takes it out. Nothing is
+  written to the device for the language, in any state (Paul, 2026-10-11: "Why are we writing language at all
+  instead of encoding the parameter in the link?"); the visit holds it in memory from page to page. The API's
+  `link(app, text, { lang })` and the command line's `--lang` make a link that opens in a language.
 - `Intl` does the rest: `PluralRules` chooses the plural form, `NumberFormat` writes numbers,
   `DateTimeFormat`/`RelativeTimeFormat` dates, `DisplayNames` names the languages in themselves, `Locale`
   says the direction, and `document.documentElement` gets `lang` and `dir`.

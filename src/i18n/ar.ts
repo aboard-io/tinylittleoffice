@@ -228,7 +228,7 @@ export default {
   'The two passwords differ': 'كلمتا المرور مختلفتان',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'الكلمات أو العنوان أو الاسم أو الوقت ليست ما وُقّع عليه: غيّرها أحدهم، أو وقّع على شيء آخر.',
   'Their names and links, for the home page.': 'أسماؤها وروابطها، للصفحة الرئيسية.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'المظهر واللغة والاسم الذي توقّع به ومدة بقاء الروابط القصيرة.',
+  'Theme, the name you sign with, the lifetime of short links.': 'المظهر والاسم الذي توقّع به ومدة بقاء الروابط القصيرة.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'لهذا المستند كلمة مرور. الرابط، وأي رابط قصير يُصنع منه، لا يحمل إلا نصًا مشفرًا.',
   'This document is locked': 'هذا المستند مقفل',
   'This document is locked with a password.': 'هذا المستند مقفل بكلمة مرور.',

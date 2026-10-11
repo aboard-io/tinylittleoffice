@@ -44,6 +44,8 @@ export interface LinkOptions {
   display?: boolean;
   /** A deck's show link: open presenting. */
   show?: boolean;
+  /** The language the link opens in, as src/i18n names it ('ht', 'pt-br'); the reader's browser's when absent. */
+  lang?: string;
   /** The site the link opens on; this one by default. */
   site?: string;
 }
@@ -57,8 +59,10 @@ export function link(app: string, text: string, opts: LinkOptions = {}): string 
   if (opts.title) head.title = opts.title.replace(/\s+/g, ' ').trim();
   if (opts.by) head.by = opts.by.replace(/\s+/g, ' ').trim();
   const doc = Object.keys(head).length ? withHead(text, head) : text;
+  if (opts.lang && !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(opts.lang)) throw new Error(`Not a language code: "${opts.lang}" (as src/i18n names them: ht, pt-br, zh-hant)`);
   const site = (opts.site ?? SITE).replace(/\/?$/, '/');
-  return `${site}${app}/${routeHash(app, encodeDoc(doc), opts.view ?? '', null, !!opts.display)}${opts.show ? (opts.display ? '&show' : '?show') : ''}`;
+  const hash = routeHash(app, encodeDoc(doc), opts.view ?? '', null, !!opts.display, null, opts.lang || null);
+  return `${site}${app}/${hash}${opts.show ? (hash.includes('?') ? '&show' : '?show') : ''}`;
 }
 
 /** The plain-parameter link for a document ("<site><app>/#title=…&doc=…"): longer, but readable and writable by hand. */
@@ -75,6 +79,8 @@ export interface Read {
   /** The head's by, '' when it names no one. */
   by: string;
   display: boolean;
+  /** The language the link opens in, when it names one. */
+  lang?: string;
 }
 
 /** Read a link (packed or plain, or only its fragment): the app, the view, and the document. Throws when it is not one. */
@@ -96,7 +102,7 @@ export function read(url: string): Read {
     text = p.title ? withHead(p.text, { title: p.title }) : p.text;
   }
   const head = parseText(text).head;
-  return { app, view, text, title: head.title ?? '', by: head.by ?? '', display: route.display };
+  return { app, view, text, title: head.title ?? '', by: head.by ?? '', display: route.display, ...(route.lang ? { lang: route.lang } : {}) };
 }
 
 /** A document as a .tlo file's text (its app in its head); and a .tlo file's text as the app and the document. */

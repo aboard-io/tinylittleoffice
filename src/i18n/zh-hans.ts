@@ -227,7 +227,7 @@ export default {
   'The two passwords differ': '两次输入的密码不一致',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': '文字、标题、姓名或时间与签名时不同：有人改动了它，或者签的是别的内容。',
   'Their names and links, for the home page.': '它们的名称和链接，用于主页。',
-  'Theme, language, the name you sign with, the lifetime of short links.': '主题、语言、签名时用的姓名、短链接的有效期。',
+  'Theme, the name you sign with, the lifetime of short links.': '主题、签名时用的姓名、短链接的有效期。',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': '此文档设有密码。链接以及由它生成的任何短链接里都只有密文。',
   'This document is locked': '此文档已锁定',
   'This document is locked with a password.': '此文档已用密码锁定。',

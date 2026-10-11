@@ -227,7 +227,7 @@ export default {
   'The two passwords differ': '두 비밀번호가 달라요',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': '글, 제목, 이름, 시간이 서명한 내용과 달라요. 누군가 고쳤거나 다른 것에 서명했어요.',
   'Their names and links, for the home page.': '홈 화면에 보여 줄 이름과 링크예요.',
-  'Theme, language, the name you sign with, the lifetime of short links.': '테마, 언어, 서명에 쓰는 이름, 짧은 링크의 유효 기간이에요.',
+  'Theme, the name you sign with, the lifetime of short links.': '테마, 서명에 쓰는 이름, 짧은 링크의 유효 기간이에요.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': '이 문서에는 비밀번호가 있어요. 링크와 거기서 만든 짧은 링크에는 암호문만 들어 있어요.',
   'This document is locked': '이 문서는 잠겨 있어요',
   'This document is locked with a password.': '이 문서는 비밀번호로 잠겨 있어요.',

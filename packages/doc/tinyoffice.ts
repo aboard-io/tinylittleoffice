@@ -8,7 +8,7 @@
  *   tinyoffice template <app> <id>                    a template's document (TLO)
  *   tinyoffice link <app> [file]                      a link for a document (a file, or stdin)
  *   tinyoffice link <file.tlo>                        a link for a .tlo file (its app is in its head)
- *        --title T  --by B  --view pdf|show|embed|…  --display  --plain  --site URL
+ *        --title T  --by B  --view pdf|show|embed|…  --display  --lang ht  --plain  --site URL
  *   tinyoffice read <link>                            the document's TLO text (--json: app, view, title, by too)
  *   tinyoffice file <link> [--as tlo|md|csv|…] [--out path|-]
  *                                                     the document as a file, named after its title (.tlo by default)
@@ -80,7 +80,7 @@ async function main() {
       return out(
         flags.plain
           ? plain(app, text, { title: str('title'), by: str('by'), view, site })
-          : link(app, text, { title: str('title'), by: str('by'), view: view === 'show' ? '' : view, show: view === 'show', display: !!flags.display, site }),
+          : link(app, text, { title: str('title'), by: str('by'), view: view === 'show' ? '' : view, show: view === 'show', display: !!flags.display, lang: str('lang'), site }),
       );
     }
     case 'read': {

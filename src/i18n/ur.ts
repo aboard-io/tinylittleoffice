@@ -228,7 +228,7 @@ export default {
     'The two passwords differ': 'دونوں پاس ورڈ مختلف ہیں',
     'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'الفاظ، عنوان، نام یا وقت وہ نہیں رہے جن پر دستخط ہوئے تھے: کسی نے انہیں بدلا ہے، یا کسی اور چیز پر دستخط کیے ہیں۔',
     'Their names and links, for the home page.': 'ان کے نام اور لنکس، ہوم پیج کے لیے۔',
-    'Theme, language, the name you sign with, the lifetime of short links.': 'تھیم، زبان، وہ نام جس سے آپ دستخط کرتے ہیں، مختصر لنکس کی میعاد۔',
+    'Theme, the name you sign with, the lifetime of short links.': 'تھیم، وہ نام جس سے آپ دستخط کرتے ہیں، مختصر لنکس کی میعاد۔',
     'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'اس دستاویز پر پاس ورڈ ہے۔ لنک میں، اور اس سے بنے ہر مختصر لنک میں، صرف انکرپٹڈ متن ہے۔',
     'This document is locked': 'یہ دستاویز مقفل ہے',
     'This document is locked with a password.': 'یہ دستاویز پاس ورڈ سے مقفل ہے۔',

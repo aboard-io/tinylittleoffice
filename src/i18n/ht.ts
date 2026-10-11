@@ -229,7 +229,7 @@ export default {
   'The two passwords differ': 'De modpas yo pa menm',
   'The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.': 'Mo yo, tit la, non an oswa lè a pa sa yo te siyen: yon moun chanje l, oswa siyen yon lòt bagay.',
   'Their names and links, for the home page.': 'Non yo ak lyen yo, pou paj akèy la.',
-  'Theme, language, the name you sign with, the lifetime of short links.': 'Tèm, lang, non w siyen ak li a, dire lyen kout yo.',
+  'Theme, the name you sign with, the lifetime of short links.': 'Tèm, non w siyen ak li a, dire lyen kout yo.',
   'This document has a password. The link, and any short link made from it, holds only ciphertext.': 'Dokiman sa a gen yon modpas. Lyen an, ak nenpòt lyen kout yo fè ak li, kenbe sèlman tèks chifre.',
   'This document is locked': 'Dokiman sa a bloke',
   'This document is locked with a password.': 'Dokiman sa a bloke ak yon modpas.',
