@@ -422,6 +422,29 @@ test("§1/§6 a card in hand: a tap takes it, the bar under it is in the standar
   document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
 });
 
+test('§6 a new address for a thing from the web keeps the title its author gave the old one; a bare address stays bare', async () => {
+  const OLD = 'https://www.youtube.com/watch?v=eRVYwDtI2E8';
+  const NEW = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+  const readdress = async (value: string) => {
+    const { el, last } = await editor(value);
+    await until(() => !!card(el, 1)?.classList.contains('tx-card'));
+    card(el, 1).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await until(() => document.activeElement === card(el, 1));
+    expect(key(card(el, 1), 'Enter').defaultPrevented).toBe(true);
+    await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
+    const box = document.querySelector<HTMLInputElement>('.to-ask-embed .to-ask-url')!;
+    expect(box.value).toBe(OLD);
+    box.value = NEW;
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.click();
+    await until(() => (last() ?? '').includes(NEW));
+    return parse(last()!).blocks[1];
+  };
+  expect(await readdress(`One\n\n[The neighbourhood the road replaced](${OLD})\n\nTwo\n`)).toEqual({ k: 'p', runs: [{ t: 'The neighbourhood the road replaced', href: NEW }] });
+  expect(await readdress(`One\n\n${OLD}\n\nTwo\n`)).toEqual({ k: 'p', runs: [{ t: NEW }] });
+});
+
 test('§1 Mod+C, Mod+X, Mod+V on a card in hand: TLO and our HTML; a cut takes it out, a paste puts it in after the card in hand', async () => {
   const { el, last } = await editor(`One\n\n${PIC}\n\nTwo\n`);
   await until(() => !!card(el, 1));

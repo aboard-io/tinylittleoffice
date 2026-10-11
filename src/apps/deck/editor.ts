@@ -94,8 +94,18 @@ interface Mark {
   /** The footnote whose words were typed: an undo puts the caret back in it. */
   note?: number;
 }
-/** What answers a tap on the live card itself (embeds.ts): its buttons, its links, the thing once loaded. */
-const LIVE = 'to-embed button, to-embed a, to-embed iframe, to-embed video, to-embed audio, to-embed img';
+/** What answers a tap on the live card itself (<to-embed>, embeds.ts): its buttons, its links, the thing once loaded. */
+const LIVE = 'button, a, iframe, video, audio, img';
+/**
+ * Whether an event began on the live card's own controls. Read from the path the event took, not from its target:
+ * a real tap or key lets the card redraw between listeners (a tap on Load swaps the button for the frame), and a
+ * target taken out of the page is inside nothing by the time the slide hears it.
+ */
+const onLive = (e: Event): boolean => {
+  const path = e.composedPath();
+  const card = path.findIndex((n) => n instanceof Element && n.localName === 'to-embed');
+  return card > 0 && path.slice(0, card).some((n) => n instanceof Element && n.matches(LIVE));
+};
 
 /** Two clicks closer together than this are a double click: show the whole slide. */
 const FAST = 350;
@@ -629,7 +639,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private onOpened = () => this.requestUpdate();
   private openSubMenu = (e: Event) => {
     // The live card's own controls (load, open on the provider, the frame) are its own, not the menu's.
-    if ((e.target as Element).closest?.(LIVE)) return;
+    if (onLive(e)) return;
     // A locked document not yet opened: a tap asks for its password (kit/locked-doc.ts); opened, the menu.
     const b = this.slide.sub >= 0 ? this.doc.blocks[this.slide.sub] : null;
     if (b?.k === 'fence' && b.lang === LOCKED_LANG && !isOpened(b.body)) return void openPlaced(b.body);
@@ -734,7 +744,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   }
   private onShowClick = (e: Event) => {
     // A tap on the live card's controls is the card's; a tap anywhere else turns the slide.
-    if ((e.target as Element).closest?.(LIVE)) return;
+    if (onLive(e)) return;
     const now = performance.now();
     // Two fingers zoom; they never turn a slide, nor does a tap they leave as they lift.
     if (now - this.pinched < 300) return;

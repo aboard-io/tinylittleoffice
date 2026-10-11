@@ -4,7 +4,7 @@
 // phone width, not its Markdown; and a link in a slide's words is followed through the link guard, in the reader
 // and in the show ("I also need to be able to click on links in an offered deck"), turning no slide.
 import { afterEach, expect, test, vi } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import '../../../styles.css';
 import '../editor.ts';
 import type { ToDeckEditor } from '../editor.ts';
@@ -62,6 +62,46 @@ test('in the editor, a thing from the web on a slide is the live card: the title
   expect(document.querySelector('to-menu.deck-submenu [popover]:popover-open')).toBeNull();
   expect(fetches).not.toHaveBeenCalled();
   fetches.mockRestore();
+});
+
+test("in the editor, Enter on the live card's button is the button's: it loads the card and opens no menu", async () => {
+  const el = await editor(DECK);
+  const card = el.querySelector<HTMLElement & { updateComplete: Promise<unknown> }>('.deck-sub.web to-embed')!;
+  await card.updateComplete;
+  const load = card.querySelector<HTMLButtonElement>('button.to-embed-load')!;
+  load.focus();
+  await userEvent.keyboard('{Enter}');
+  await until(() => !!card.querySelector('iframe'));
+  await tick(30);
+  expect(document.querySelector('to-menu.deck-submenu [popover]:popover-open')).toBeNull();
+});
+
+/** The slide's menu, Change the address…, a new address given and OK: the Markdown written. */
+async function readdress(value: string, url: string): Promise<string> {
+  const el = await editor(value);
+  const changes: string[] = [];
+  el.addEventListener('docchange', (e) => changes.push((e as CustomEvent<string>).detail));
+  el.querySelector<HTMLElement>('figure.deck-sub')!.click();
+  await until(() => !!document.querySelector('to-menu.deck-submenu [popover]:popover-open [role^=menuitem]'));
+  const items = [...document.querySelectorAll<HTMLElement>('to-menu.deck-submenu [popover]:popover-open [role^=menuitem]')];
+  expect(items[0].textContent!.trim()).toBe('Change the address…');
+  items[0].click();
+  await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
+  const box = document.querySelector<HTMLInputElement>('.to-ask-embed .to-ask-url')!;
+  box.value = url;
+  box.dispatchEvent(new Event('input', { bubbles: true }));
+  await tick();
+  document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.click();
+  await until(() => changes.length > 0);
+  return changes.at(-1)!;
+}
+const OTHER = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+test('a new address for a titled thing from the web keeps the title its author gave the old one; a bare address stays bare', async () => {
+  const titled = parse(await readdress(DECK, OTHER)).blocks.find((b) => b.k === 'p');
+  expect(titled).toEqual({ k: 'p', runs: [{ t: 'The neighbourhood the road replaced', href: OTHER }] });
+  const bare = parse(await readdress(`## The road\n\n${FILM}\n`, OTHER)).blocks.find((b) => b.k === 'p');
+  expect(bare).toEqual({ k: 'p', runs: [{ t: OTHER }] });
 });
 
 test('presenting, the live card is over the slide: a tap loads it and turns no slide, the arrows still turn', async () => {
