@@ -21,8 +21,9 @@ export default {
   'This document lives in its link': 'Dokiman sa a rete nan lyen li a',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Pa gen anyen ki anrejistre sou aparèy sa a. Kopye lyen an pou kenbe l, oswa kenbe l sou aparèy sa a; bouton Retounen an ap ramene l tou.',
   'Copy the link and go': 'Kopye lyen an epi ale',
-  'Keep on this device and go': 'Kenbe sou aparèy sa a epi ale',
+  'Turn on Saved and keep it here': 'Limen Anrejistre epi kenbe l isit la',
   'Go without': 'Ale san sa',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': 'Anrejistre limen: aparèy sa a kenbe dokiman ou louvri yo. Etenn li nan meni an.',
 
   // ---- the home page ----
   'Blank': 'Vid',
@@ -41,7 +42,7 @@ export default {
   'Close': 'Fèmen',
   'Private': 'Prive',
   'Private: nothing saved': 'Prive: anyen pa anrejistre',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Anyen pa anrejistre sou aparèy sa a: pa gen cookie, pa gen tras, sèlman lang ou te chwazi a.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'Sit sa a pa kenbe anyen sou aparèy sa a. Men istwa navigatè ou a toujou kenbe chak lyen ki louvri isit la, epi yon lyen se dokiman an: sèvi ak yon fenèt prive, oswa ba li yon modpas.',
   'Saved on this device': 'Anrejistre sou aparèy sa a',
   'Saved on this device from now on': 'Anrejistre sou aparèy sa a depi kounye a',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Preferans ou yo ak dokiman ou louvri yo rete isit la. Fèmen l pou bliye tout.',
@@ -56,7 +57,9 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Apwopo Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Yon ti ansanm zouti biwo ki viv nèt nan URL la. Pa gen sèvè, pa gen kont, pa gen anrejistreman: lyen an se dokiman an.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. Kat yon vwayaj se sèl bagay ki mande entènèt pou kont li: foto li yo soti nan OpenStreetMap pandan l ap parèt. Prive nòmalman: anyen pa kenbe. Anrejistre, ba nan meni sa a, kenbe paramèt ou yo ak dokiman ou louvri yo sou aparèy sa a.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Anyen ou ekri pa kite navigatè ou a sof si ou pataje lyen an. De bagay mande entènèt pou kont yo: kat yon vwayaj, foto li yo soti nan OpenStreetMap pandan l ap parèt, ak yon foto ki soti nan yon sit ki sou lis konfyans lan, sèvis foto sit sa a al chèche l lè dokiman li a louvri.',
+  'Private, the default:': 'Prive, nòmalman:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Anrejistre, ba nan meni sa a, kenbe paramèt ou yo ak dokiman ou louvri yo sou aparèy sa a.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Yon dokiman ka gen yon modpas: yo chifre l isit la, nan navigatè a, epi lyen an pa kenbe anyen sof tèks chifre. Yo ka siyen l ak yon kle navigatè sa a fè, konsa nenpòt moun ka verifye se egzakteman sa ou te siyen, ak ki non. Vi prive ak kle, nan meni sa a, montre sa aparèy sa a kenbe.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -75,6 +78,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': 'Yon foto ki soti nan {host}',
   'Show pictures from the web': 'Montre foto ki soti sou entènèt',
+  'Showing them tells their site this document was opened, and when.': 'Montre yo fè sit yo konnen dokiman sa a te louvri, ak kilè.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Yon foto sou entènèt ap tann|# foto sou entènèt ap tann} pou ou mande l.',
   'Always show pictures from the web': 'Toujou montre foto ki soti sou entènèt',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Si l etenn, yon foto yon lòt sit kenbe ap tann ou mande l: lè w rale l, sit sa a konnen ki moun k ap li.',
@@ -82,6 +86,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Pa gen analitik, pa gen rapò erè, pa gen font ni script ki soti yon lòt kote: sit la pa mande entènèt anyen ou pa t lakòz.',
   'What leaves your browser': 'Sa ki kite navigatè w la',
   'What this protects against, and what it does not': 'Sa sa pwoteje w kont li, ak sa li pa pwoteje w kont li',
+  'What it does not protect against': 'Sa li pa pwoteje w kont li',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'Istwa navigatè a, ak senkronizasyon li si li limen: ba adrès la gen dokiman an ladan l, kidonk yo genyen l tou. Prive pa chanje sa navigatè a anrejistre.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Nenpòt moun ou bay lyen an, ak tout kote li pase (yon chat, yon imèl, yon apèsi lyen): yon lyen se yon kopi, ou pa ka rele l tounen.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Yon kapti ekran, yon foto ekran an, yon enprime oswa yon ekspòtasyon: sa ki parèt deja parèt.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'Yon modpas ki fèb: lyen an gen tout sa yon moun bezwen pou l eseye devine l, osi vit li vle. Yon modpas long, oswa youn ki fèt isit la, kenbe.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Moun ki bay kòd la, ak navigatè kote l ap mache a: sit la, yon ekstansyon oswa yon pwogram malveyan sou aparèy la ka li sa ki parèt ak sa w tape.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Kòmit k ap mache: {commit}',
 
@@ -148,7 +158,7 @@ export default {
   'Updating…': 'Ap mete ajou…',
   'Updated · version {n}': 'Mete ajou · vèsyon {n}',
   'Extend': 'Pwolonje',
-  'Forget this short link? Anyone who has it will find nothing there.': 'Bliye lyen kout sa a? Tout moun ki genyen l p ap jwenn anyen la.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'Bliye lyen kout sa a? Moun ki louvri l depi kounye a p ap jwenn anyen. Moun ki te deja louvri l toujou gen dokiman an.',
   'Forgotten': 'Bliye',
   'Link': 'Lyen',
   'Short link': 'Lyen kout',
@@ -181,7 +191,7 @@ export default {
   'No password': 'Pa gen modpas',
   'None': 'Okenn',
   'None yet: one is made the first time you sign.': 'Poko gen: y ap fè youn premye fwa w siyen.',
-  'Nothing is kept here to download.': 'Pa gen anyen ki kenbe isit la pou telechaje.',
+  'There is nothing here to download.': 'Pa gen anyen isit la pou telechaje.',
   'Opening…': 'Ap louvri…',
   'Password': 'Modpas',
   'Password and signature': 'Modpas ak siyati',
@@ -232,6 +242,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': 'Kle ou, an tèks: kenbe l sekrè, li siyen kòm ou',
   'Your name': 'Non ou',
   'Your signing key': 'Kle siyati ou',
+  'Your browser’s history': 'Istwa navigatè ou a',
+  'Every document opened here, in full, unless it has a password.': 'Chak dokiman ki louvri isit la, an antye, sof si li gen yon modpas.',
+  'Not ours to clear': 'Se pa nou ki ka efase l',
   'by {name}': 'pa {name}',
   'by {name} (unsigned)': 'pa {name} (pa siyen)',
   'yours': 'pa w',
@@ -1767,7 +1780,7 @@ export default {
   'Presenting: the stop before': 'Prezante: arè anvan an',
   'Print place cards': 'Enprime kat plas',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Enprime kat plas: yon kat pa envite, uit pa fèy letter, pou koupe',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Prive: anyen pa kenbe sou aparèy sa a. Limen Anrejistre nan meni an pou kenbe dokiman ou yo isit la.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'Prive: sit sa a pa kenbe okenn dokiman sou aparèy sa a. Limen Anrejistre nan meni an pou kenbe yo isit la.',
   'Put back what the cell held': 'Remèt sa selil la te genyen',
   'Put the dated rows on a calendar': 'Mete ranje ki gen dat yo sou yon kalandriye',
   'Put the dated tasks on a calendar': 'Mete travay ki gen dat yo sou yon kalandriye',

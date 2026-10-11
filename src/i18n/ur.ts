@@ -20,8 +20,9 @@ export default {
     'This document lives in its link': 'یہ دستاویز اپنے لنک میں رہتی ہے',
     'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'اس ڈیوائس پر کچھ محفوظ نہیں ہے۔ لنک کاپی کر لیں تاکہ دستاویز رہے، یا اسے اس ڈیوائس پر رکھ لیں؛ واپس جانے سے بھی یہ مل جاتی ہے۔',
     'Copy the link and go': 'لنک کاپی کریں اور جائیں',
-    'Keep on this device and go': 'اس ڈیوائس پر رکھیں اور جائیں',
+    'Turn on Saved and keep it here': '"محفوظ" آن کریں اور اسے یہاں رکھیں',
     'Go without': 'ایسے ہی جائیں',
+    'Saved is on: this device keeps the documents you open. Turn it off in the menu.': '"محفوظ" آن ہے: یہ ڈیوائس آپ کی کھولی ہوئی دستاویزات رکھتی ہے۔ اسے مینو میں بند کریں۔',
 
   // ---- the home page ----
     'Blank': 'خالی',
@@ -40,7 +41,7 @@ export default {
     'Close': 'بند کریں',
     'Private': 'نجی',
     'Private: nothing saved': 'نجی: کچھ محفوظ نہیں',
-    'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'اس ڈیوائس پر کچھ محفوظ نہیں ہوتا: نہ کوکیز، نہ کوئی نشان، صرف وہ زبان جو آپ نے چنی۔',
+    'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'یہ سائٹ اس ڈیوائس پر کچھ نہیں رکھتی۔ پھر بھی آپ کے براؤزر کی ہسٹری میں یہاں کھولا گیا ہر لنک رہتا ہے، اور لنک ہی دستاویز ہے: پرائیویٹ ونڈو استعمال کریں، یا اسے پاس ورڈ دیں۔',
     'Saved on this device': 'اس ڈیوائس پر محفوظ',
     'Saved on this device from now on': 'اب سے اس ڈیوائس پر محفوظ',
     'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'آپ کی ترجیحات اور جو دستاویزات آپ کھولتے ہیں وہ یہیں رہتی ہیں۔ سب کچھ بھلانے کے لیے بند کر دیں۔',
@@ -55,7 +56,9 @@ export default {
     'Tiny Little Office': 'Tiny Little Office', // same
     'About Tiny Little Office': 'Tiny Little Office کا تعارف',
     'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'ایک چھوٹا سا آفس سویٹ جو پورا URL میں رہتا ہے۔ نہ سرور، نہ اکاؤنٹ، نہ محفوظ کرنے کا جھنجھٹ: لنک ہی دستاویز ہے۔',
-    'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ صرف سفر کا نقشہ خود ویب سے کچھ مانگتا ہے: جب تک وہ دکھایا جاتا ہے اس کی تصویریں OpenStreetMap سے آتی ہیں۔ پہلے سے نجی: کچھ رکھا نہیں جاتا۔ اس مینو میں "محفوظ" کا سوئچ آپ کی سیٹنگز اور کھولی ہوئی دستاویزات کو اس ڈیوائس پر رکھتا ہے۔',
+    'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'آپ جو لکھتے ہیں وہ آپ کے براؤزر سے باہر نہیں جاتا جب تک آپ لنک شیئر نہ کریں۔ دو چیزیں خود ویب سے کچھ مانگتی ہیں: سفر کا نقشہ، جس کی تصویریں دکھائے جانے تک OpenStreetMap سے آتی ہیں، اور بھروسے کی فہرست والی کسی سائٹ کی تصویر، جسے اس سائٹ کی تصویری سروس اس کی دستاویز کھلتے ہی لاتی ہے۔',
+    'Private, the default:': 'نجی، پہلے سے:',
+    'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'اس مینو میں "محفوظ" کا سوئچ آپ کی سیٹنگز اور کھولی ہوئی دستاویزات کو اس ڈیوائس پر رکھتا ہے۔',
     'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'دستاویز پر پاس ورڈ لگایا جا سکتا ہے: وہ یہیں، براؤزر میں انکرپٹ ہوتی ہے اور لنک میں صرف انکرپٹڈ متن ہوتا ہے۔ اس پر اس کلید سے دستخط بھی ہو سکتے ہیں جو یہ براؤزر بناتا ہے، تاکہ کوئی بھی جانچ سکے کہ وہ بالکل وہی ہے جس پر آپ نے دستخط کیے، اور کس نام سے۔ اس مینو میں "رازداری اور کلیدیں" بتاتا ہے کہ اس ڈیوائس میں کیا ہے۔',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -74,6 +77,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
     'A picture from {host}': '{host} کی ایک تصویر',
     'Show pictures from the web': 'ویب کی تصویریں دکھائیں',
+    'Showing them tells their site this document was opened, and when.': 'انہیں دکھانے سے ان کی سائٹ کو پتا چلتا ہے کہ یہ دستاویز کھولی گئی، اور کب۔',
     '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|ویب کی ایک تصویر آپ کے کہنے کا انتظار کر رہی ہے|ویب کی # تصویریں آپ کے کہنے کا انتظار کر رہی ہیں}۔',
     'Always show pictures from the web': 'ویب کی تصویریں ہمیشہ دکھائیں',
     'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'بند ہو تو دوسری سائٹ کی تصویر آپ کے کہنے کا انتظار کرتی ہے: اسے لانے سے اس سائٹ کو پتہ چل جاتا ہے کہ کون پڑھ رہا ہے۔',
@@ -81,6 +85,12 @@ export default {
     'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'نہ اینالیٹکس، نہ ایرر رپورٹس، نہ کہیں اور سے فونٹس یا اسکرپٹس: سائٹ ویب سے ایسا کچھ نہیں مانگتی جو آپ نے نہ کروایا ہو۔',
     'What leaves your browser': 'آپ کے براؤزر سے کیا باہر جاتا ہے',
     'What this protects against, and what it does not': 'یہ کس سے بچاتا ہے، اور کس سے نہیں',
+    'What it does not protect against': 'یہ کس سے نہیں بچاتا',
+    'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'براؤزر کی ہسٹری، اور اگر آن ہو تو اس کی سنک: ایڈریس بار میں دستاویز ہوتی ہے، اس لیے ان میں بھی ہوتی ہے۔ نجی موڈ براؤزر کے ریکارڈ کو نہیں بدلتا۔',
+    'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'جسے بھی آپ لنک دیں، اور راستے میں وہ جہاں سے بھی گزرے (چیٹ، ای میل، لنک کا پیش منظر): لنک ایک کاپی ہے، اور اسے واپس نہیں لیا جا سکتا۔',
+    'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'اسکرین شاٹ، اسکرین کی تصویر، پرنٹ یا ایکسپورٹ: ایک بار دکھ گیا تو دکھ گیا۔',
+    'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'کمزور پاس ورڈ: لنک میں وہ سب کچھ ہے جس سے کوئی جتنی تیزی سے چاہے اندازے لگا کر آزما سکے۔ لمبا پاس ورڈ، یا یہاں بنایا گیا پاس ورڈ، ٹکتا ہے۔',
+    'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'جو کوڈ دیتا ہے، اور وہ براؤزر جس میں وہ چلتا ہے: سائٹ، کوئی ایکسٹینشن یا ڈیوائس پر میلویئر، جو دکھایا جاتا ہے اور جو ٹائپ ہوتا ہے، پڑھ سکتے ہیں۔',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
     'Running commit {commit}': 'چل رہا کمٹ {commit}',
 
@@ -147,7 +157,7 @@ export default {
     'Updating…': 'اپڈیٹ ہو رہا ہے…',
     'Updated · version {n}': 'اپڈیٹ ہو گیا · ورژن {n}',
     'Extend': 'بڑھائیں',
-    'Forget this short link? Anyone who has it will find nothing there.': 'یہ مختصر لنک بھلا دیں؟ جس کے پاس بھی یہ ہے اسے وہاں کچھ نہیں ملے گا۔',
+    'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'یہ مختصر لنک بھلا دیں؟ اب سے جو بھی اسے کھولے گا اسے کچھ نہیں ملے گا۔ جس نے اسے پہلے ہی کھول لیا، اس کے پاس دستاویز اب بھی ہے۔',
     'Forgotten': 'بھلا دیا گیا',
     'Link': 'لنک',
     'Short link': 'مختصر لنک',
@@ -180,7 +190,7 @@ export default {
     'No password': 'پاس ورڈ نہیں',
     'None': 'کوئی نہیں',
     'None yet: one is made the first time you sign.': 'ابھی کوئی نہیں: پہلی بار دستخط کرنے پر ایک بن جاتی ہے۔',
-    'Nothing is kept here to download.': 'یہاں ڈاؤن لوڈ کرنے کو کچھ نہیں رکھا۔',
+    'There is nothing here to download.': 'یہاں ڈاؤن لوڈ کرنے کو کچھ نہیں۔',
     'Opening…': 'کھل رہا ہے…',
     'Password': 'پاس ورڈ',
     'Password and signature': 'پاس ورڈ اور دستخط',
@@ -231,6 +241,9 @@ export default {
     'Your key, as text: keep it secret, it signs as you': 'آپ کی کلید، متن کی صورت میں: اسے خفیہ رکھیں، یہ آپ کی طرف سے دستخط کرتی ہے',
     'Your name': 'آپ کا نام',
     'Your signing key': 'آپ کے دستخط کی کلید',
+    'Your browser’s history': 'آپ کے براؤزر کی ہسٹری',
+    'Every document opened here, in full, unless it has a password.': 'یہاں کھولی گئی ہر دستاویز، پوری کی پوری، جب تک اس پر پاس ورڈ نہ ہو۔',
+    'Not ours to clear': 'اسے مٹانا ہمارے بس میں نہیں',
     'by {name}': '{name} کی طرف سے',
     'by {name} (unsigned)': '{name} کی طرف سے (بغیر دستخط)',
     'yours': 'آپ کی',
@@ -1766,7 +1779,7 @@ export default {
     'Presenting: the stop before': 'پیش کرنا: پچھلا پڑاؤ',
     'Print place cards': 'پلیس کارڈ پرنٹ کریں',
     'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'پلیس کارڈ پرنٹ کریں: ہر مہمان کا ایک کارڈ، ایک لیٹر شیٹ پر آٹھ، کاٹنے کے لیے',
-    'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'نجی: اس ڈیوائس پر کچھ نہیں رکھا جاتا۔ اپنی دستاویزات یہاں رکھنے کے لیے مینو میں "محفوظ" آن کریں۔',
+    'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'نجی: یہ سائٹ اس ڈیوائس پر کوئی دستاویز نہیں رکھتی۔ انہیں یہاں رکھنے کے لیے مینو میں "محفوظ" آن کریں۔',
     'Put back what the cell held': 'خانے میں جو تھا وہ واپس رکھیں',
     'Put the dated rows on a calendar': 'تاریخ والی قطاریں کیلنڈر پر رکھیں',
     'Put the dated tasks on a calendar': 'تاریخ والے کام کیلنڈر پر رکھیں',

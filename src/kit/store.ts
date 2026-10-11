@@ -4,7 +4,8 @@
  * instead, and the preferences and what comes later follow. Private
  * again, every trace goes. The one key written in either state is the choice itself, and only when it is
  * "keep": a private visit writes nothing at all, but the language chosen in the menu (kit/i18n.ts, its own key),
- * which stays through Private and Saved alike and is the one thing a private visit leaves.
+ * which stays through Private and Saved alike and is the one thing a private visit leaves, until Forget everything
+ * (kit/privacy.ts) forgets it too.
  */
 const KEEP = 'tinyoffice.keep';
 const memory = new Map<string, string>();

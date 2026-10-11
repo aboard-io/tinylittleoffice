@@ -19,8 +19,9 @@ export default {
   'This document lives in its link': 'Этот документ живёт в ссылке',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'На этом устройстве ничего не сохранено. Скопируйте ссылку, чтобы не потерять документ, или храните его на устройстве; «Назад» тоже вернёт его.',
   'Copy the link and go': 'Скопировать ссылку и уйти',
-  'Keep on this device and go': 'Хранить на устройстве и уйти',
+  'Turn on Saved and keep it here': 'Включить «Сохранено» и хранить здесь',
   'Go without': 'Уйти так',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': '«Сохранено» включено: это устройство хранит открытые вами документы. Выключить можно в меню.',
 
   // ---- the home page ----
   'Blank': 'Пустой',
@@ -39,7 +40,7 @@ export default {
   'Close': 'Закрыть',
   'Private': 'Приватно',
   'Private: nothing saved': 'Приватно: ничего не сохраняется',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'На этом устройстве ничего не сохраняется: ни cookies, ни следов, только выбранный вами язык.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'Этот сайт ничего не хранит на этом устройстве. Но история вашего браузера хранит каждую открытую здесь ссылку, а ссылка — это и есть документ: откройте приватное окно или задайте пароль.',
   'Saved on this device': 'Сохранено на этом устройстве',
   'Saved on this device from now on': 'Сохранять на этом устройстве',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Ваши настройки и открытые вами документы останутся здесь. Выключите, чтобы всё забыть.',
@@ -54,7 +55,9 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'О Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крошечный офисный набор, который целиком живёт в адресе страницы. Без сервера, без аккаунтов, без сохранения: документ — это ссылка.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Только карта поездки сама обращается к интернету: её картинки приходят из OpenStreetMap, пока карта на экране. По умолчанию приватно: ничего не хранится. Режим «Сохранено» (переключатель в этом меню) хранит ваши настройки и открытые документы на этом устройстве.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Всё, что вы пишете, остаётся в вашем браузере, пока вы не поделитесь ссылкой. Сами обращаются к интернету только две вещи: карта поездки, чьи картинки приходят из OpenStreetMap, пока карта на экране, и картинка с сайта из списка доверенных, которую сервис картинок этого сайта загружает, когда открывается её документ.',
+  'Private, the default:': 'Приватно, по умолчанию:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Режим «Сохранено» (переключатель в этом меню) хранит ваши настройки и открытые документы на этом устройстве.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'У документа может быть пароль: он шифруется здесь, в браузере, и в ссылке остаётся только зашифрованный текст. Документ можно подписать ключом, который создаёт ваш браузер, и тогда любой проверит, что это ровно то, что вы подписали, и под каким именем. «Приватность и ключи» в этом меню покажет, что хранит это устройство.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -73,6 +76,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': 'Картинка с {host}',
   'Show pictures from the web': 'Показать картинки из интернета',
+  'Showing them tells their site this document was opened, and when.': 'Если их показать, их сайт узнает, что этот документ открыли, и когда.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Картинка из интернета ждёт|# картинки из интернета ждут|# картинок из интернета ждут|# картинки из интернета ждут} вашего запроса.',
   'Always show pictures from the web': 'Всегда показывать картинки из интернета',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Выключено: картинка с другого сайта ждёт, пока вы её запросите, потому что при загрузке тот сайт узнаёт, кто читает.',
@@ -80,6 +84,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Ни аналитики, ни отчётов об ошибках, ни шрифтов или скриптов со стороны: сайт не обращается к интернету ни за чем, что вы не вызвали сами.',
   'What leaves your browser': 'Что уходит из вашего браузера',
   'What this protects against, and what it does not': 'От чего это защищает, а от чего нет',
+  'What it does not protect against': 'От чего это не защищает',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'История браузера и её синхронизация, если она включена: в адресной строке — документ, значит, и в них тоже. Режим «Приватно» не меняет того, что записывает браузер.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Любой, кому вы дали ссылку, и всё, через что она проходит (чат, письмо, предпросмотр ссылки): ссылка — это копия, и её не вернуть.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Снимок экрана, фото экрана, распечатка или экспорт: что показано, то показано.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'Слабый пароль: в ссылке есть всё, чтобы подбирать его с любой скоростью. Длинный пароль или созданный здесь выдержит.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Тот, кто отдаёт код, и браузер, в котором он работает: сайт, расширение или вредоносная программа на устройстве могут прочесть то, что показано и что набрано.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Версия сборки: {commit}',
 
@@ -146,7 +156,7 @@ export default {
   'Updating…': 'Обновляем…',
   'Updated · version {n}': 'Обновлено · версия {n}',
   'Extend': 'Продлить',
-  'Forget this short link? Anyone who has it will find nothing there.': 'Забыть эту короткую ссылку? У всех, у кого она есть, по ней ничего не откроется.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'Забыть эту короткую ссылку? Кто откроет её теперь, ничего не найдёт. У тех, кто уже открыл её, документ остаётся.',
   'Forgotten': 'Забыто',
   'Link': 'Ссылка',
   'Short link': 'Короткая ссылка',
@@ -179,7 +189,7 @@ export default {
   'No password': 'Без пароля',
   'None': 'Нет',
   'None yet: one is made the first time you sign.': 'Пока нет: он создаётся при первой подписи.',
-  'Nothing is kept here to download.': 'Здесь нечего скачивать.',
+  'There is nothing here to download.': 'Здесь нечего скачивать.',
   'Opening…': 'Открываем…',
   'Password': 'Пароль',
   'Password and signature': 'Пароль и подпись',
@@ -230,6 +240,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': 'Ваш ключ текстом: держите его в секрете, им подписывают от вашего имени',
   'Your name': 'Ваше имя',
   'Your signing key': 'Ваш ключ для подписи',
+  'Your browser’s history': 'История вашего браузера',
+  'Every document opened here, in full, unless it has a password.': 'Каждый открытый здесь документ, целиком, если у него нет пароля.',
+  'Not ours to clear': 'Не нам её очищать',
   'by {name}': 'автор: {name}',
   'by {name} (unsigned)': 'автор: {name} (без подписи)',
   'yours': 'ваше',
@@ -1765,7 +1778,7 @@ export default {
   'Presenting: the stop before': 'Показ: предыдущая остановка',
   'Print place cards': 'Распечатать карточки гостей',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Распечатать карточки гостей: карточка на гостя, по восемь на листе Letter, чтобы вырезать',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Приватно: на этом устройстве ничего не хранится. Включите «Сохранено» в меню, чтобы хранить здесь документы.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'Приватно: этот сайт не хранит документы на этом устройстве. Включите «Сохранено» в меню, чтобы хранить их здесь.',
   'Put back what the cell held': 'Вернуть то, что было в ячейке',
   'Put the dated rows on a calendar': 'Поместить строки с датами в календарь',
   'Put the dated tasks on a calendar': 'Поместить задачи с датами в календарь',

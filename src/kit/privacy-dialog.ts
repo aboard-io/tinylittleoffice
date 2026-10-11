@@ -5,8 +5,8 @@
  * document sealed again at once); the Password and signature part of the Share dialog (renderProtect, drawn there by
  * <to-share>); the signed state beside the title (trustButton, drawn in the header); and the Privacy dialog, opened
  * from that state and from the menu: this document's signature and password; this device's signing key, with Export
- * (a file, and the text to copy), Import and Forget; what this device holds, item by item, each with Forget, and
- * Forget everything; and Download everything, every document kept here in one zip. The drawer's (no `doc`) is the
+ * (a file, and the text to copy), Import and Forget; what this device holds, item by item, each with Forget, the
+ * browser's own history last (every document opened here, and not ours to clear), and Forget everything; and Download everything, every document kept here in one zip. The drawer's (no `doc`) is the
  * Privacy dialog alone.
  *
  * It gets the document's state through properties (`app`, `sealed`, `signature`, `protected`, `by`, `signed`, and
@@ -281,7 +281,7 @@ export class ToPrivacy extends LitElement {
   }
   private async download() {
     const files = await everything(this.withKey, `${location.origin}${location.pathname}`);
-    if (!Object.keys(files).length) return toast(t('Nothing is kept here to download.'));
+    if (!Object.keys(files).length) return toast(t('There is nothing here to download.'));
     await saveFile('tiny-little-office.zip', 'application/zip', zip(files));
   }
 
@@ -341,6 +341,7 @@ export class ToPrivacy extends LitElement {
         ${row('to-held-docs', t('Your documents'), t('Their names and links, for the home page.'), t('{n|# document|# documents}', { n: held.documents }), held.documents ? () => forgetDocuments() : null)}
         ${row('to-held-links', t('Short links'), t('The owner links that update short links you made.'), t('{n|# link|# links}', { n: held.links }), held.links ? () => forgetLinks() : null)}
         ${row('to-held-key', t('Your signing key'), t('Says a signature is yours.'), held.key ?? t('None'), held.key ? () => this.forgetKey() : null)}
+        ${row('to-held-history', t('Your browser’s history'), t('Every document opened here, in full, unless it has a password.'), t('Not ours to clear'), null)}
       </ul>
       <button type="button" class="to-btn to-forget-all" @click=${() => void this.forgetAll()}>${icon(UI.trash, 16)}<span>${t('Forget everything')}</span></button>
     </section>

@@ -21,8 +21,9 @@ export default {
   'This document lives in its link': 'Dit document leeft in zijn link',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Er wordt niets op dit apparaat opgeslagen. Kopieer de link om het te bewaren, of bewaar het op dit apparaat; Terug brengt het ook terug.',
   'Copy the link and go': 'Link kopiëren en gaan',
-  'Keep on this device and go': 'Op dit apparaat bewaren en gaan',
+  'Turn on Saved and keep it here': 'Opgeslagen aanzetten en hier bewaren',
   'Go without': 'Gaan zonder',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': 'Opgeslagen staat aan: dit apparaat bewaart de documenten die je opent. Zet het uit in het menu.',
 
   // ---- the home page ----
   'Blank': 'Leeg',
@@ -41,7 +42,7 @@ export default {
   'Close': 'Sluiten',
   'Private': 'Privé',
   'Private: nothing saved': 'Privé: niets opgeslagen',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Er wordt niets op dit apparaat opgeslagen: geen cookies, geen sporen, alleen de taal die je koos.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'Deze site bewaart niets op dit apparaat. De geschiedenis van je browser bevat wel elke link die hier is geopend, en een link is het document: gebruik een privévenster, of geef het een wachtwoord.',
   'Saved on this device': 'Op dit apparaat opgeslagen',
   'Saved on this device from now on': 'Voortaan op dit apparaat opgeslagen',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Je voorkeuren en de documenten die je opent blijven hier. Zet uit om alles te vergeten.',
@@ -55,7 +56,9 @@ export default {
   'Tiny Little Office': 'Piepklein Kantoortje',
   'About Tiny Little Office': 'Over Piepklein Kantoortje',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Een piepklein kantoorpakket dat helemaal in de URL leeft. Geen server, geen accounts, niets opslaan: de link is het document.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Niets wat je schrijft verlaat je browser, tenzij je de link deelt. De kaart van een reis is het enige wat zelf het web aanroept: de kaartbeelden komen van OpenStreetMap zolang de kaart zichtbaar is. Standaard privé: niets wordt bewaard. Opgeslagen, de schakelaar in dit menu, bewaart je instellingen en de documenten die je opent op dit apparaat.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Niets wat je schrijft verlaat je browser, tenzij je de link deelt. Twee dingen roepen zelf het web aan: de kaart van een reis, waarvan de kaartbeelden van OpenStreetMap komen zolang de kaart zichtbaar is, en een afbeelding van een site op de vertrouwde lijst, opgehaald via de afbeeldingendienst van deze site wanneer het document opengaat.',
+  'Private, the default:': 'Privé, de standaard:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Opgeslagen, de schakelaar in dit menu, bewaart je instellingen en de documenten die je opent op dit apparaat.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Een document kan een wachtwoord hebben: het wordt hier in de browser versleuteld en de link bevat alleen versleutelde tekst. Het kan worden ondertekend met een sleutel die deze browser maakt, zodat iedereen kan nagaan dat het precies is wat je ondertekende, en onder welke naam. Privacy en sleutels, in dit menu, laat zien wat dit apparaat bewaart.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -74,6 +77,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': 'Een afbeelding van {host}',
   'Show pictures from the web': 'Afbeeldingen van het web tonen',
+  'Showing them tells their site this document was opened, and when.': 'Ze tonen vertelt hun site dat dit document is geopend, en wanneer.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Een afbeelding van het web wacht|# afbeeldingen van het web wachten} tot je erom vraagt.',
   'Always show pictures from the web': 'Afbeeldingen van het web altijd tonen',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Uit: een afbeelding op een andere site wacht tot je erom vraagt, want ophalen laat die site weten wie er leest.',
@@ -81,6 +85,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Geen analyse, geen foutrapporten, geen lettertypen of scripts van elders: de site vraagt het web om niets wat jij niet hebt veroorzaakt.',
   'What leaves your browser': 'Wat je browser verlaat',
   'What this protects against, and what it does not': 'Waartegen dit beschermt, en waartegen niet',
+  'What it does not protect against': 'Waartegen het niet beschermt',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'De geschiedenis van de browser, en de synchronisatie ervan als die aanstaat: de adresbalk bevat het document, dus zij ook. Privé verandert niets aan wat de browser bijhoudt.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Iedereen aan wie je de link geeft, en alles waar die onderweg langskomt (een chat, een e-mail, een linkvoorbeeld): een link is een kopie, en die haal je niet terug.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Een schermafbeelding, een foto van het scherm, een afdruk of een export: wat getoond is, is getoond.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'Een zwak wachtwoord: de link bevat alles wat iemand nodig heeft om het te raden, zo snel als hij wil. Een lang wachtwoord, of een dat hier is gemaakt, houdt stand.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Wie de code levert, en de browser waarin die draait: de site, een extensie of malware op het apparaat kan lezen wat er wordt getoond en wat er wordt getypt.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Versie {commit} in gebruik',
 
@@ -147,7 +157,7 @@ export default {
   'Updating…': 'Bijwerken…',
   'Updated · version {n}': 'Bijgewerkt · versie {n}',
   'Extend': 'Verlengen',
-  'Forget this short link? Anyone who has it will find nothing there.': 'Deze korte link vergeten? Wie hem heeft, vindt er niets meer.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'Deze korte link vergeten? Wie hem vanaf nu opent, vindt niets. Wie hem al heeft geopend, heeft het document nog.',
   'Forgotten': 'Vergeten',
   'Link': 'Link', // same
   'Short link': 'Korte link',
@@ -180,7 +190,7 @@ export default {
   'No password': 'Geen wachtwoord',
   'None': 'Geen',
   'None yet: one is made the first time you sign.': 'Nog geen: de eerste keer dat je ondertekent wordt er een gemaakt.',
-  'Nothing is kept here to download.': 'Er is hier niets om te downloaden.',
+  'There is nothing here to download.': 'Er is hier niets om te downloaden.',
   'Opening…': 'Openen…',
   'Password': 'Wachtwoord',
   'Password and signature': 'Wachtwoord en handtekening',
@@ -231,6 +241,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': 'Je sleutel, als tekst: houd hem geheim, hij ondertekent als jij',
   'Your name': 'Je naam',
   'Your signing key': 'Je ondertekeningssleutel',
+  'Your browser’s history': 'De geschiedenis van je browser',
+  'Every document opened here, in full, unless it has a password.': 'Elk document dat hier is geopend, volledig, tenzij het een wachtwoord heeft.',
+  'Not ours to clear': 'Niet aan ons om te wissen',
   'by {name}': 'door {name}',
   'by {name} (unsigned)': 'door {name} (niet ondertekend)',
   'yours': 'van jou',
@@ -1772,7 +1785,7 @@ export default {
   'Presenting: the stop before': 'Presenteren: de vorige stop',
   'Print place cards': 'Plaatskaartjes afdrukken',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Plaatskaartjes afdrukken: een kaartje per gast, acht op een vel letter, om uit te knippen',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Privé: er wordt niets op dit apparaat bewaard. Zet Opgeslagen aan in het menu om je documenten hier te bewaren.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'Privé: deze site bewaart geen documenten op dit apparaat. Zet Opgeslagen aan in het menu om ze hier te bewaren.',
   'Put back what the cell held': 'Terugzetten wat de cel bevatte',
   'Put the dated rows on a calendar': 'De rijen met een datum op een kalender zetten',
   'Put the dated tasks on a calendar': 'De taken met een datum op een kalender zetten',

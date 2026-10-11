@@ -123,6 +123,8 @@ test('a web picture is a quiet card until asked for; Show shows every one of thi
   expect(card).not.toBeNull();
   expect(card.textContent).toContain('pictures.example');
   expect(card.textContent).toContain('A cat on a mat');
+  // What showing it does, said where it is asked.
+  expect(card.querySelector('.to-webpic-why')!.textContent).toBe('Showing them tells their site this document was opened, and when.');
   expect(shell.querySelector(`img[src="${VIA}"]`)).toBeNull();
   card.querySelector<HTMLButtonElement>('.to-webpic-show')!.click();
   await until(() => !!shell.querySelector(`to-text img[src="${VIA}"]`));

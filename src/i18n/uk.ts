@@ -21,8 +21,9 @@ export default {
   'This document lives in its link': 'Цей документ живе у своєму посиланні',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'На цьому пристрої нічого не збережено. Скопіюйте посилання, щоб не втратити документ, або залиште його на цьому пристрої; кнопка «Назад» теж поверне його.',
   'Copy the link and go': 'Скопіювати посилання й піти',
-  'Keep on this device and go': 'Залишити на пристрої й піти',
+  'Turn on Saved and keep it here': 'Увімкнути «Збереження» і залишити тут',
   'Go without': 'Піти без нього',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': '«Збереження» увімкнено: цей пристрій залишає документи, які ви відкриваєте. Вимкнути можна в меню.',
 
   // ---- the home page ----
   'Blank': 'Порожній',
@@ -41,7 +42,7 @@ export default {
   'Close': 'Закрити',
   'Private': 'Приватно',
   'Private: nothing saved': 'Приватно: нічого не збережено',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'На цьому пристрої нічого не зберігається: ні файлів cookie, ні слідів, лише мова, яку ви обрали.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'Цей сайт нічого не зберігає на цьому пристрої. Але історія вашого браузера зберігає кожне відкрите тут посилання, а посилання — це і є документ: відкрийте приватне вікно або задайте пароль.',
   'Saved on this device': 'Збереження на цьому пристрої',
   'Saved on this device from now on': 'Збереження на цьому пристрої відтепер',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Ваші налаштування й документи, які ви відкриваєте, залишаються тут. Вимкніть, щоб усе це забути.',
@@ -56,7 +57,9 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Про Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Крихітний офісний пакет, що повністю живе в URL. Без сервера, без облікових записів, без збереження: посилання і є документом.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Усе, що ви пишете, залишається у вашому браузері, доки ви не поділитеся посиланням. Лише карта подорожі сама звертається до інтернету: її картинки беруться з OpenStreetMap, поки карту показано. За замовчуванням — приватно: нічого не зберігається. «Збереження», перемикач у цьому меню, залишає ваші налаштування й документи, які ви відкриваєте, на цьому пристрої.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Усе, що ви пишете, залишається у вашому браузері, доки ви не поділитеся посиланням. Самі звертаються до інтернету лише дві речі: карта подорожі, чиї картинки беруться з OpenStreetMap, поки карту показано, і картинка із сайту з довіреного списку, яку сервіс картинок цього сайту завантажує, коли відкривається її документ.',
+  'Private, the default:': 'Приватно, за замовчуванням:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '«Збереження», перемикач у цьому меню, залишає ваші налаштування й документи, які ви відкриваєте, на цьому пристрої.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Документ можна захистити паролем: його шифрують тут, у браузері, і в посиланні лишається тільки шифротекст. Його можна підписати ключем, який створює цей браузер, і тоді кожен зможе перевірити, що це саме те, що ви підписали, і під яким іменем. «Приватність і ключі» в цьому меню показує, що зберігає цей пристрій.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -75,6 +78,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': 'Картинка з {host}',
   'Show pictures from the web': 'Показати картинки з інтернету',
+  'Showing them tells their site this document was opened, and when.': 'Якщо їх показати, їхній сайт дізнається, що цей документ відкрили, і коли.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|# картинка з інтернету чекає|# картинки з інтернету чекають|# картинок з інтернету чекають|# картинки з інтернету чекають} на ваш запит.',
   'Always show pictures from the web': 'Завжди показувати картинки з інтернету',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Вимкнено: картинка, що лежить на іншому сайті, чекає, поки ви її попросите, бо завантаження каже тому сайту, хто читає.',
@@ -82,6 +86,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Жодної аналітики, жодних звітів про помилки, жодних шрифтів чи скриптів з чужих сайтів: сайт нічого не просить в інтернету без вашої дії.',
   'What leaves your browser': 'Що залишає ваш браузер',
   'What this protects against, and what it does not': 'Від чого це захищає, а від чого ні',
+  'What it does not protect against': 'Від чого це не захищає',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'Історія браузера та її синхронізація, якщо вона ввімкнена: в адресному рядку — документ, тож і в них теж. Режим «Приватно» не змінює того, що записує браузер.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Будь-хто, кому ви дали посилання, і все, через що воно проходить (чат, лист, попередній перегляд посилання): посилання — це копія, і його не повернути.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Знімок екрана, фото екрана, роздруківка чи експорт: що показано, те показано.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'Слабкий пароль: у посиланні є все, щоб підбирати його з будь-якою швидкістю. Довгий пароль або створений тут витримає.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Той, хто віддає код, і браузер, у якому він працює: сайт, розширення чи шкідлива програма на пристрої можуть прочитати те, що показано і що набрано.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Працює коміт {commit}',
 
@@ -148,7 +158,7 @@ export default {
   'Updating…': 'Оновлення…',
   'Updated · version {n}': 'Оновлено · версія {n}',
   'Extend': 'Продовжити',
-  'Forget this short link? Anyone who has it will find nothing there.': 'Забути це коротке посилання? Ті, у кого воно є, нічого там не знайдуть.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'Забути це коротке посилання? Хто відкриє його відтепер, нічого не знайде. У тих, хто вже відкрив його, документ залишився.',
   'Forgotten': 'Забуто',
   'Link': 'Посилання',
   'Short link': 'Коротке посилання',
@@ -181,7 +191,7 @@ export default {
   'No password': 'Без пароля',
   'None': 'Немає',
   'None yet: one is made the first time you sign.': 'Поки немає: його створюють, коли ви вперше підписуєте.',
-  'Nothing is kept here to download.': 'Тут нічого завантажувати.',
+  'There is nothing here to download.': 'Тут нічого завантажувати.',
   'Opening…': 'Відкриття…',
   'Password': 'Пароль',
   'Password and signature': 'Пароль і підпис',
@@ -232,6 +242,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': 'Ваш ключ текстом: тримайте його в таємниці, він підписує від вашого імені',
   'Your name': 'Ваше ім’я',
   'Your signing key': 'Ваш ключ підпису',
+  'Your browser’s history': 'Історія вашого браузера',
+  'Every document opened here, in full, unless it has a password.': 'Кожен відкритий тут документ, повністю, якщо в нього немає пароля.',
+  'Not ours to clear': 'Не нам її очищати',
   'by {name}': 'від {name}',
   'by {name} (unsigned)': 'від {name} (не підписано)',
   'yours': 'ваш',
@@ -1767,7 +1780,7 @@ export default {
   'Presenting: the stop before': 'Показ: попередня зупинка',
   'Print place cards': 'Друкувати картки місць',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Друкувати картки місць: картка на гостя, вісім на аркуші Letter, щоб вирізати',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Приватно: на цьому пристрої нічого не залишається. Увімкніть «Збереження» в меню, щоб залишати тут документи.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'Приватно: цей сайт не залишає документів на цьому пристрої. Увімкніть «Збереження» в меню, щоб залишати їх тут.',
   'Put back what the cell held': 'Повернути те, що було в клітинці',
   'Put the dated rows on a calendar': 'Покласти рядки з датами в календар',
   'Put the dated tasks on a calendar': 'Покласти завдання з датами в календар',

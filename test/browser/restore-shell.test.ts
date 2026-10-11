@@ -205,7 +205,7 @@ test('Mod+S keeps the document under Saved, and says why not under Private', asy
   const shell = await mount(`#/v1/write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   expect(key('s')).toBe(false);
-  await until(() => toastSays(shell).startsWith('Private: nothing is kept'));
+  await until(() => toastSays(shell).startsWith('Private: this site keeps no documents'));
   await saved(async () => {
     const again = await mount(`#/v1/write/${NOTES}`);
     await until(() => !!again.querySelector('to-write-editor'));

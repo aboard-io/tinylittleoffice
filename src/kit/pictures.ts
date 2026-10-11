@@ -1,7 +1,8 @@
 /**
  * Pictures from the web, asked for first. A picture held by its address on another site is fetched from
  * that site by whoever reads the document, and so tells it who read it and when: a tracking pixel. So a web
- * picture is drawn as a quiet card (its site, its words, and "Show pictures from the web") until the reader
+ * picture is drawn as a quiet card (its site, its words, what showing it tells that site, and "Show pictures from the
+ * web") until the reader
  * asks; one tap shows every web picture of this document for the rest of the visit (in memory, by the
  * document the shell has open: setPictureDoc). A picture inserted in this visit is the author's own choice
  * and shows at once (authored). Saved on this device, a switch in the menu shows them always. data: and
@@ -76,7 +77,7 @@ export function picture(url: string, alt: string, cls = ''): TemplateResult {
   if (mayShow(url)) return html`<img class=${cls} src=${pictureSrc(url)} alt=${alt} referrerpolicy="no-referrer" />`;
   return html`<span class="to-webpic ${cls}" role="group" aria-label=${t('A picture from {host}', { host: hostOf(url) })}>
     ${icon(UI.image, 22)}
-    <span class="to-webpic-words"><b>${hostOf(url)}</b>${alt ? html`<small>${alt}</small>` : ''}</span>
+    <span class="to-webpic-words"><b>${hostOf(url)}</b>${alt ? html`<small>${alt}</small>` : ''}<small class="to-webpic-why">${t('Showing them tells their site this document was opened, and when.')}</small></span>
     <button type="button" class="to-btn to-webpic-show" @click=${(e: Event) => (e.stopPropagation(), showPictures())}>${t('Show pictures from the web')}</button>
   </span>`;
 }

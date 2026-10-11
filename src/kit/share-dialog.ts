@@ -207,7 +207,7 @@ export class ToShare extends LitElement {
       if (isKept(ownerLink(owned))) keepLink({ owner: ownerLink(owned), title: this.heading, made: Date.now(), expires });
     });
   private forgetShort = () => {
-    if (!confirm(t('Forget this short link? Anyone who has it will find nothing there.'))) return;
+    if (!confirm(t('Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.'))) return;
     return this.shortDo(async () => {
       const owned = this.owned!;
       await forget(owned);

@@ -20,8 +20,9 @@ export default {
   'This document lives in its link': 'Ten dokument żyje w swoim linku',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Na tym urządzeniu nic nie jest zapisane. Skopiuj link, żeby go zachować, albo zachowaj dokument na tym urządzeniu. „Wstecz” też go przywróci.',
   'Copy the link and go': 'Skopiuj link i wyjdź',
-  'Keep on this device and go': 'Zachowaj na urządzeniu i wyjdź',
+  'Turn on Saved and keep it here': 'Włącz „Zapisywane” i zachowaj tutaj',
   'Go without': 'Wyjdź bez zapisu',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': '„Zapisywane” jest włączone: to urządzenie zachowuje otwierane dokumenty. Wyłączysz to w menu.',
 
   // ---- the home page ----
   'Blank': 'Pusty',
@@ -40,7 +41,7 @@ export default {
   'Close': 'Zamknij',
   'Private': 'Prywatnie',
   'Private: nothing saved': 'Prywatnie: nic nie jest zapisywane',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Na tym urządzeniu nic się nie zapisuje: bez ciasteczek, bez śladu, tylko wybrany język.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'Ta strona nic nie zachowuje na tym urządzeniu. Historia Twojej przeglądarki wciąż przechowuje każdy otwarty tu link, a link to dokument: użyj okna prywatnego albo nadaj mu hasło.',
   'Saved on this device': 'Zapisywane na tym urządzeniu',
   'Saved on this device from now on': 'Odtąd zapisywane na tym urządzeniu',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Twoje ustawienia i otwierane dokumenty zostają tutaj. Wyłącz, żeby to wszystko zapomnieć.',
@@ -55,7 +56,9 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'O Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Malutkie biuro, które mieszka w całości w adresie URL. Bez serwera, bez kont, bez zapisywania: link jest dokumentem.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Nic, co piszesz, nie opuszcza Twojej przeglądarki, dopóki nie udostępnisz linku. Tylko mapa podróży sama pyta sieć: jej kafelki pochodzą z OpenStreetMap, gdy mapa jest widoczna. Domyślnie prywatnie: nic nie jest zachowywane. Przełącznik „Zapisywane” w tym menu zachowuje na tym urządzeniu Twoje ustawienia i otwierane dokumenty.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nic, co piszesz, nie opuszcza Twojej przeglądarki, dopóki nie udostępnisz linku. Dwie rzeczy same pytają sieć: mapa podróży, której kafelki pochodzą z OpenStreetMap, gdy mapa jest widoczna, oraz obraz ze strony z listy zaufanych, pobierany przez usługę obrazów tej strony, gdy otwiera się jego dokument.',
+  'Private, the default:': 'Prywatnie, domyślnie:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Przełącznik „Zapisywane” w tym menu zachowuje na tym urządzeniu Twoje ustawienia i otwierane dokumenty.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Dokument może mieć hasło: jest szyfrowany tutaj, w przeglądarce, a link zawiera tylko szyfrogram. Można go podpisać kluczem, który tworzy ta przeglądarka, żeby każdy mógł sprawdzić, że jest dokładnie taki, jak podpisany, i pod jakim nazwiskiem. „Prywatność i klucze” w tym menu pokazuje, co przechowuje to urządzenie.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -74,6 +77,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': 'Obraz z {host}',
   'Show pictures from the web': 'Pokaż obrazy z internetu',
+  'Showing them tells their site this document was opened, and when.': 'Pokazanie ich mówi ich stronie, że ten dokument został otwarty, i kiedy.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|# obraz z internetu czeka|# obrazy z internetu czekają|# obrazów z internetu czeka|# obrazu z internetu czeka} na Twoją zgodę.',
   'Always show pictures from the web': 'Zawsze pokazuj obrazy z internetu',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Gdy wyłączone, obraz z innej strony czeka na Twoją zgodę: pobranie go zdradza tej stronie, kto czyta.',
@@ -81,6 +85,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Bez analityki, bez raportów o błędach, bez czcionek i skryptów z zewnątrz: strona nie pyta sieci o nic, czego sam nie wywołasz.',
   'What leaves your browser': 'Co opuszcza Twoją przeglądarkę',
   'What this protects against, and what it does not': 'Przed czym to chroni, a przed czym nie',
+  'What it does not protect against': 'Przed czym nie chroni',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'Historia przeglądarki i jej synchronizacja, jeśli jest włączona: pasek adresu zawiera dokument, więc one też. Tryb „Prywatnie” nie zmienia tego, co zapisuje przeglądarka.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Każdy, komu dasz link, i wszystko, przez co po drodze przechodzi (czat, e-mail, podgląd linku): link to kopia i nie da się go cofnąć.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Zrzut ekranu, zdjęcie ekranu, wydruk albo eksport: co zostało pokazane, zostało pokazane.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'Słabe hasło: link zawiera wszystko, czego trzeba, by próbować je zgadnąć, tak szybko, jak ktoś chce. Długie hasło albo wygenerowane tutaj wytrzyma.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Ten, kto dostarcza kod, i przeglądarka, w której działa: strona, rozszerzenie albo złośliwe oprogramowanie na urządzeniu mogą czytać to, co jest pokazane i co jest wpisywane.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Działa commit {commit}',
 
@@ -147,7 +157,7 @@ export default {
   'Updating…': 'Aktualizuję…',
   'Updated · version {n}': 'Zaktualizowano · wersja {n}',
   'Extend': 'Przedłuż',
-  'Forget this short link? Anyone who has it will find nothing there.': 'Zapomnieć ten krótki link? Każdy, kto go ma, znajdzie tam pustkę.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'Zapomnieć ten krótki link? Kto otworzy go od teraz, nic nie znajdzie. Kto już go otworzył, wciąż ma dokument.',
   'Forgotten': 'Zapomniany',
   'Link': 'Link', // same
   'Short link': 'Krótki link',
@@ -180,7 +190,7 @@ export default {
   'No password': 'Bez hasła',
   'None': 'Brak',
   'None yet: one is made the first time you sign.': 'Jeszcze brak: powstaje przy pierwszym podpisie.',
-  'Nothing is kept here to download.': 'Nie ma tu nic do pobrania.',
+  'There is nothing here to download.': 'Nie ma tu nic do pobrania.',
   'Opening…': 'Otwieram…',
   'Password': 'Hasło',
   'Password and signature': 'Hasło i podpis',
@@ -231,6 +241,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': 'Twój klucz jako tekst: trzymaj go w tajemnicy, podpisuje jako Ty',
   'Your name': 'Twoje imię',
   'Your signing key': 'Twój klucz do podpisywania',
+  'Your browser’s history': 'Historia Twojej przeglądarki',
+  'Every document opened here, in full, unless it has a password.': 'Każdy otwarty tu dokument, w całości, chyba że ma hasło.',
+  'Not ours to clear': 'Nie nam ją czyścić',
   'by {name}': 'autor: {name}',
   'by {name} (unsigned)': 'autor: {name} (niepodpisany)',
   'yours': 'Twój',
@@ -1766,7 +1779,7 @@ export default {
   'Presenting: the stop before': 'Prezentowanie: poprzedni przystanek',
   'Print place cards': 'Drukuj winietki',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Drukuj winietki: winietka na gościa, osiem na arkusz letter, do wycięcia',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Prywatnie: nic nie jest zachowywane na tym urządzeniu. Włącz „Zapisywane” w menu, żeby trzymać tu swoje dokumenty.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'Prywatnie: ta strona nie zachowuje dokumentów na tym urządzeniu. Włącz „Zapisywane” w menu, żeby trzymać je tutaj.',
   'Put back what the cell held': 'Przywróć to, co miała komórka',
   'Put the dated rows on a calendar': 'Wstaw wiersze z datami do kalendarza',
   'Put the dated tasks on a calendar': 'Wstaw zadania z datami do kalendarza',

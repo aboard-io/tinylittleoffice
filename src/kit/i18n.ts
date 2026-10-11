@@ -20,7 +20,9 @@ type Loader = () => Promise<{ default: Strings }>;
  * The language chosen in the menu is kept on the device in every state, Private or Saved, in localStorage and never a
  * cookie (Paul, 2026-10-10: "Language change should be persistent across reloads. But no cookies!"): it says nothing
  * about the person or their documents, and a page that comes back in the wrong words is a wall. kit/store.ts leaves
- * this one key alone when Private forgets the rest.
+ * this one key alone when Private forgets the rest. Forget everything (kit/privacy.ts) forgets it too, since for some
+ * the language is itself a trace (the review of 2026-10-11): the choice stays in memory for the visit, so the page
+ * does not change its words under the person (forgetLanguage).
  */
 export const LANG_KEY = 'tinyoffice.lang';
 const device = (): Storage | null => {
@@ -162,14 +164,23 @@ async function use(code: string) {
   for (const cb of listeners) cb();
 }
 
+/** The choice as this visit holds it once the device has forgotten it (forgetLanguage). */
+let visit: string | null = null;
 /** The language chosen in the menu, or null to follow the browser. */
-export const chosenLanguage = (): string | null => device()?.getItem(LANG_KEY) ?? null;
+export const chosenLanguage = (): string | null => device()?.getItem(LANG_KEY) ?? visit;
 
 /** Choose a language (null: the browser's), from now on. */
 export async function setLanguage(code: string | null) {
+  visit = null;
   if (code) device()?.setItem(LANG_KEY, code);
   else device()?.removeItem(LANG_KEY);
   await use(code ?? browserLanguage());
+}
+
+/** The device forgets the language chosen; this visit keeps it in memory, its words unchanged. */
+export function forgetLanguage() {
+  visit = chosenLanguage();
+  device()?.removeItem(LANG_KEY);
 }
 
 /**

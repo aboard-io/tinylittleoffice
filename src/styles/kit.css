@@ -75,6 +75,24 @@
   a {
     color: var(--to-accent);
   }
+  /* About's link to its own section (kit/drawer.ts): a button that reads as a link. */
+  .to-about-threats {
+    padding: 0;
+    font: inherit;
+    color: var(--to-accent);
+    text-decoration: underline;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .to-about-limits h3 {
+    margin: 1em 0 0.25em;
+    font-size: 1em;
+  }
+  .to-about-limits ul {
+    margin: 0;
+    padding-inline-start: 1.25em;
+  }
   [hidden] {
     display: none !important;
   }

@@ -19,8 +19,9 @@ export default {
   'This document lives in its link': '이 문서는 링크 안에만 있어요',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': '이 기기에는 아무것도 저장되어 있지 않아요. 링크를 복사해 두거나 이 기기에 보관하세요. 뒤로 가기를 눌러도 다시 열 수 있어요.',
   'Copy the link and go': '링크를 복사하고 이동',
-  'Keep on this device and go': '이 기기에 보관하고 이동',
+  'Turn on Saved and keep it here': '저장을 켜고 여기에 보관',
   'Go without': '그냥 이동',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': '저장이 켜졌어요. 이 기기가 연 문서를 남겨요. 끄려면 메뉴에서 끄세요.',
 
   // ---- the home page ----
   'Blank': '빈 문서',
@@ -39,7 +40,7 @@ export default {
   'Close': '닫기',
   'Private': '비공개',
   'Private: nothing saved': '비공개: 저장 안 함',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': '이 기기에는 아무것도 저장하지 않아요. 쿠키도, 흔적도 없고 고른 언어만 남아요.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': '이 사이트는 이 기기에 아무것도 저장하지 않아요. 하지만 브라우저 기록에는 여기서 연 모든 링크가 남고, 링크가 곧 문서예요. 시크릿 창을 쓰거나 비밀번호를 걸어 두세요.',
   'Saved on this device': '이 기기에 저장',
   'Saved on this device from now on': '지금부터 이 기기에 저장',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': '설정과 연 문서가 여기에 남아요. 끄면 모두 지워져요.',
@@ -54,7 +55,9 @@ export default {
   'Tiny Little Office': 'Tiny Little Office', // same
   'About Tiny Little Office': 'Tiny Little Office 정보',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'URL 안에 통째로 들어 있는 작은 오피스 모음이에요. 서버도, 계정도, 저장도 없어요. 링크가 곧 문서예요.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 여행 지도만 스스로 웹에 요청해요. 지도가 보이는 동안 OpenStreetMap에서 사진을 가져와요. 기본은 비공개라서 아무것도 남기지 않아요. 이 메뉴의 스위치인 저장을 켜면 설정과 연 문서가 이 기기에 남아요.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': '링크를 공유하지 않는 한 쓴 내용은 브라우저 밖으로 나가지 않아요. 스스로 웹에 요청하는 건 두 가지예요. 여행 지도는 보이는 동안 OpenStreetMap에서 사진을 가져오고, 신뢰 목록에 있는 사이트의 사진은 문서가 열릴 때 이 사이트의 사진 서비스를 거쳐 가져와요.',
+  'Private, the default:': '비공개, 기본값:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '이 메뉴의 스위치인 저장을 켜면 설정과 연 문서가 이 기기에 남아요.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': '문서에는 비밀번호를 걸 수 있어요. 브라우저에서 바로 암호화되고 링크에는 암호문만 들어 있어요. 이 브라우저가 만든 키로 서명할 수도 있어서, 서명한 그대로인지, 어떤 이름으로 서명했는지 누구나 확인할 수 있어요. 이 메뉴의 개인정보와 키에서 이 기기에 있는 것을 볼 수 있어요.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -73,6 +76,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': '{host}의 사진',
   'Show pictures from the web': '웹 사진 보기',
+  'Showing them tells their site this document was opened, and when.': '보여 주면 그 사이트가 이 문서가 열렸다는 것과 그 시각을 알게 돼요.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '웹 사진 {n}장이 불러오기를 기다리고 있어요.',
   'Always show pictures from the web': '웹 사진 항상 보기',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': '끄면 다른 사이트에 있는 사진은 요청할 때까지 기다려요. 사진을 가져오면 그 사이트에 누가 읽는지 알려지기 때문이에요.',
@@ -80,6 +84,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': '분석도, 오류 보고도 없고 다른 곳의 글꼴이나 스크립트도 가져오지 않아요. 직접 하지 않은 일로는 웹에 아무것도 요청하지 않아요.',
   'What leaves your browser': '브라우저 밖으로 나가는 것',
   'What this protects against, and what it does not': '무엇을 막아 주고 무엇은 못 막는지',
+  'What it does not protect against': '막아 주지 못하는 것',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': '브라우저 기록과, 켜져 있다면 그 동기화. 주소창에 문서가 있으니 거기에도 남아요. 비공개여도 브라우저가 기록하는 내용은 그대로예요.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': '링크를 준 사람, 그리고 링크가 지나가는 모든 곳(채팅, 이메일, 링크 미리보기). 링크는 사본이라 되돌릴 수 없어요.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': '스크린샷, 화면을 찍은 사진, 인쇄물, 내보낸 파일. 한 번 보인 것은 보인 거예요.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': '약한 비밀번호. 링크에는 추측에 필요한 것이 모두 들어 있어서 원하는 만큼 빨리 시도할 수 있어요. 긴 비밀번호나 여기서 만든 비밀번호는 버텨요.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': '코드를 보내 주는 쪽과 코드가 도는 브라우저. 사이트, 확장 프로그램, 기기의 악성 코드는 보이는 내용과 입력하는 내용을 읽을 수 있어요.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': '실행 중인 커밋 {commit}',
 
@@ -146,7 +156,7 @@ export default {
   'Updating…': '업데이트하는 중…',
   'Updated · version {n}': '업데이트됨 · 버전 {n}',
   'Extend': '연장',
-  'Forget this short link? Anyone who has it will find nothing there.': '이 짧은 링크를 지울까요? 링크를 가진 사람은 아무것도 볼 수 없게 돼요.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': '이 짧은 링크를 지울까요? 이제부터 여는 사람은 아무것도 볼 수 없어요. 이미 연 사람에게는 문서가 남아 있어요.',
   'Forgotten': '지웠어요',
   'Link': '링크',
   'Short link': '짧은 링크',
@@ -179,7 +189,7 @@ export default {
   'No password': '비밀번호 없음',
   'None': '없음',
   'None yet: one is made the first time you sign.': '아직 없어요. 처음 서명할 때 만들어져요.',
-  'Nothing is kept here to download.': '여기 다운로드할 보관본이 없어요.',
+  'There is nothing here to download.': '여기에는 다운로드할 것이 없어요.',
   'Opening…': '여는 중…',
   'Password': '비밀번호',
   'Password and signature': '비밀번호와 서명',
@@ -230,6 +240,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': '텍스트로 된 내 키예요. 비밀로 하세요. 이 키로 내 이름으로 서명돼요',
   'Your name': '내 이름',
   'Your signing key': '내 서명 키',
+  'Your browser’s history': '브라우저 기록',
+  'Every document opened here, in full, unless it has a password.': '여기서 연 모든 문서의 전체 내용. 비밀번호가 걸린 문서는 빼고요.',
+  'Not ours to clear': '저희가 지울 수 없어요',
   'by {name}': '{name}',
   'by {name} (unsigned)': '{name} (서명 안 됨)',
   'yours': '내 것',
@@ -1765,7 +1778,7 @@ export default {
   'Presenting: the stop before': '발표: 이전 경유지',
   'Print place cards': '자리 카드 인쇄',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': '자리 카드 인쇄: 손님마다 카드 하나, Letter 용지 한 장에 여덟 장, 오려서 써요',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': '비공개: 이 기기에는 아무것도 보관하지 않아요. 문서를 여기에 보관하려면 메뉴에서 저장을 켜세요.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': '비공개: 이 사이트는 이 기기에 문서를 보관하지 않아요. 여기에 보관하려면 메뉴에서 저장을 켜세요.',
   'Put back what the cell held': '셀에 있던 내용 되돌리기',
   'Put the dated rows on a calendar': '날짜가 있는 행을 캘린더에 넣기',
   'Put the dated tasks on a calendar': '날짜가 있는 작업을 캘린더에 넣기',

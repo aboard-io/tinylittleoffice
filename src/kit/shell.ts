@@ -25,7 +25,8 @@
  * since) is asked about once before the shell leaves it (Paul, 2026-10-10: "if I've entered data it should tell me
  * that I need to copy the link if I don't want to lose data"): a link to another place in the site that a person
  * follows (the header's icon home, a drawer row, a kept document) and the kit's go() (a template, a file opened, a
- * hand-off) open one dialog, Copy the link and go, Keep on this device and go, Go without; Escape stays. The browser's
+ * hand-off) open one dialog, Copy the link and go, Turn on Saved and keep it here (the toast then says Saved is on, and
+ * where it is turned off), Go without; Escape stays. The browser's
  * Back is not asked about: it is how the link comes back. Closing the tab in that state gets the browser's own warning
  * (beforeunload), and only then. A link copied through Share lives somewhere now: neither the dialog nor the warning
  * comes again until the document changes. Under Saved the library has it, and an unchanged document is in the link
@@ -488,7 +489,7 @@ export class ToShell extends LitElement {
     if (how === 'copy' && !(await copyText(this.link))) return;
     if (how === 'keep') {
       await setPrivate(false);
-      this.keepNow();
+      this.keepNow(t('Saved is on: this device keeps the documents you open. Turn it off in the menu.'));
     }
     this.leaveDialog?.close();
     this.leaving = '';
@@ -498,7 +499,7 @@ export class ToShell extends LitElement {
     return html`<p>${t('Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.')}</p>
       <div class="to-leave-acts">
         <button type="button" class="to-btn primary to-leave-copy" @click=${() => void this.leave('copy')}>${icon(UI.copy, 16)}<span>${t('Copy the link and go')}</span></button>
-        <button type="button" class="to-btn to-leave-keep" @click=${() => void this.leave('keep')}>${icon(UI.device, 16)}<span>${t('Keep on this device and go')}</span></button>
+        <button type="button" class="to-btn to-leave-keep" @click=${() => void this.leave('keep')}>${icon(UI.device, 16)}<span>${t('Turn on Saved and keep it here')}</span></button>
         <button type="button" class="to-btn to-leave-go" @click=${() => void this.leave('go')}><span>${t('Go without')}</span></button>
       </div>`;
   }
@@ -514,19 +515,19 @@ export class ToShell extends LitElement {
     // Under a password the library keeps the ciphertext alone: no name, no first words.
     this.kept.soon({ app: def.id, title: this.locker ? '' : def.title(this.doc) || firstWords(this.doc), hash: routeHash(def.id, payload) });
   }
-  /** Mod+S: kept on the device now, under Saved; else said why not. */
-  keepNow() {
+  /** Mod+S: kept on the device now, under Saved; else said why not. `said`: what the toast says once it is kept. */
+  keepNow(said = t('Kept on this device')) {
     const def = this.def;
     if (!def) return;
     this.flushLink();
-    if (!keeping()) return void toast(t('Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.'));
+    if (!keeping()) return void toast(t('Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.'));
     if (!this.doc.trim() || this.doc === def.blank()) return void toast(t('Nothing to keep yet'));
     const payload = parseHash(location.hash).payload || encodeDoc(this.doc);
     this.kept.soon({ app: def.id, title: def.title(this.doc) || this.fresh || firstWords(this.doc), hash: routeHash(def.id, payload) });
     this.kept.flush();
     history.replaceState(this.state(), '', location.href);
     this.other = null;
-    toast(t('Kept on this device'));
+    toast(said);
   }
   /** The shortcuts dialog, open. */
   showKeys = () => void this.querySelector<ToDialog>('to-dialog.to-keys-dialog')?.show();

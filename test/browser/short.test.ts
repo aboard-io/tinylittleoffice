@@ -96,8 +96,11 @@ test('opened from an owner link, the document can update its short link; the sha
   await until(() => /^Expires in /.test(document.querySelector('[role=status]')!.textContent ?? ''));
 
   // Forget asks first.
-  vi.stubGlobal('confirm', () => false);
+  // Asked in words that are true: those who come later find nothing, those who already opened it still have it.
+  const asked: string[] = [];
+  vi.stubGlobal('confirm', (q: string) => (asked.push(q), false));
   section(shell).querySelector<HTMLButtonElement>('.to-forget')!.click();
+  expect(asked).toEqual(['Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.']);
   await shell.updateComplete;
   expect(sent.length).toBe(2);
   expect(shell.owned).not.toBeNull();

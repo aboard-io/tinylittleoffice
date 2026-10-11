@@ -13,6 +13,7 @@ import { keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
 import { BASE } from '../../src/kit/zoom.ts';
+import { chosenLanguage, language, setLanguage } from '../../src/kit/i18n.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
@@ -385,6 +386,46 @@ test('what this device holds, item by item with Forget, and Download everything:
   await until(() => now('to-held-key') === 'None' && now('to-held-prefs') === 'None');
   expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
   await tick();
+});
+
+test('Forget everything forgets the language chosen too, and the page keeps its words for the visit', async () => {
+  try {
+    setKeeping(true);
+    store.set('to-theme', 'dark');
+    store.set('tinyoffice.size', '1.2');
+    await setLanguage('de');
+    expect(localStorage.getItem('tinyoffice.lang')).toBe('de');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const shell = await mount('');
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    await until(() => !!shell.querySelector('.to-drawer-privacy'));
+    shell.querySelector<HTMLButtonElement>('.to-drawer-privacy')!.click();
+    const privacy = shell.querySelector<ToPrivacy>('to-drawer to-privacy')!;
+    await until(() => !!privacy.querySelector('.to-forget-all'));
+    privacy.querySelector<HTMLButtonElement>('.to-forget-all')!.click();
+    await until(() => localStorage.getItem('tinyoffice.lang') === null);
+    expect(Object.keys(localStorage).filter((k) => k.startsWith('tinyoffice.') || k === 'to-theme')).toEqual([]);
+    // The page does not change language under the person: German for the rest of the visit, and the menu says so.
+    expect(language()).toBe('de');
+    expect(document.documentElement.lang).toBe('de');
+    expect(chosenLanguage()).toBe('de');
+  } finally {
+    await setLanguage(null);
+  }
+});
+
+test("What this device holds names the browser's history: not ours to clear, every document opened here", async () => {
+  const shell = await mount('');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => !!shell.querySelector('.to-drawer-privacy'));
+  shell.querySelector<HTMLButtonElement>('.to-drawer-privacy')!.click();
+  const privacy = shell.querySelector<ToPrivacy>('to-drawer to-privacy')!;
+  await until(() => !!privacy.querySelector('.to-held'));
+  const row = privacy.querySelector('.to-held-history')!;
+  expect(row.querySelector('b')!.textContent).toBe('Your browser’s history');
+  expect(row.querySelector('small')!.textContent).toBe('Every document opened here, in full, unless it has a password.');
+  expect(row.querySelector('.to-held-now')!.textContent).toBe('Not ours to clear');
+  expect(row.querySelector('.to-held-forget')).toBeNull();
 });
 
 test("words signed with this device's key under a name (a contract's signature): the key is this device's, the name kept to sign under next time", async () => {

@@ -144,17 +144,35 @@ test('About says nothing is asked that you did not cause, and links the page of 
   expect(a.closest('p')!.textContent).toContain('No analytics, no error reports');
 });
 
-test('About links the threat model, a link that leaves and so is asked about', async () => {
-  const { THREAT_MODEL } = await import('../../src/kit/drawer.ts');
+test('About says what it does not protect against in its own section, in the language of the page, and its link goes there', async () => {
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
   shell.querySelector<HTMLButtonElement>('.to-drawer-about')!.click();
-  await until(() => !!shell.querySelector('.to-about-dialog a.to-about-threats'));
-  const a = shell.querySelector<HTMLAnchorElement>('.to-about-dialog a.to-about-threats')!;
-  expect(a.textContent).toBe('What this protects against, and what it does not');
-  expect(a.href).toBe(THREAT_MODEL);
-  expect(THREAT_MODEL).toMatch(/\/docs\/threat-model\.md$/);
+  await until(() => !!shell.querySelector('.to-about-dialog .to-about-threats'));
+  const go = shell.querySelector<HTMLButtonElement>('.to-about-dialog .to-about-threats')!;
+  expect(go.textContent).toBe('What this protects against, and what it does not');
+  // Not a link off the site (the threat model on GitHub, private and in English): a section of About itself.
+  expect(go.tagName).toBe('BUTTON');
+  const limits = shell.querySelector<HTMLElement>('.to-about-dialog .to-about-limits')!;
+  expect(limits.querySelector('h3')!.textContent).toBe('What it does not protect against');
+  const said = limits.textContent!;
+  for (const w of ['history', 'screenshot', 'weak password', 'serves the code']) expect(said).toContain(w);
+  go.click();
+  await until(() => document.activeElement === limits.querySelector('h3'));
+  // About's words are true: the browser's history is named, nothing promises "no trace".
+  const about = shell.querySelector('.to-about-dialog')!.textContent!;
+  expect(about).toContain('Your browser’s history still holds every link opened here');
+  expect(about).not.toMatch(/nothing is kept|no trace/i);
+});
+
+test("the Private switch says what is true: this site keeps nothing, the browser's history holds every link", async () => {
+  const shell = await mount('');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => !!shell.querySelector('.to-switch small'));
+  expect(shell.querySelector('.to-switch small')!.textContent).toBe(
+    'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.',
+  );
 });
 
 test('About names the commit the site runs, from /version.json, asked when it opens, with a link to its source', async () => {

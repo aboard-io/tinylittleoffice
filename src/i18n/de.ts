@@ -19,8 +19,9 @@ export default {
   'This document lives in its link': 'Dieses Dokument lebt in seinem Link',
   'Nothing is saved on this device. Copy the link to keep it, or keep it on this device; Back brings it too.': 'Auf diesem Gerät wird nichts gespeichert. Kopier den Link, um es zu behalten, oder behalte es auf diesem Gerät; „Zurück“ bringt es auch wieder.',
   'Copy the link and go': 'Link kopieren und gehen',
-  'Keep on this device and go': 'Auf diesem Gerät behalten und gehen',
+  'Turn on Saved and keep it here': '„Gespeichert“ einschalten und hier behalten',
   'Go without': 'Ohne gehen',
+  'Saved is on: this device keeps the documents you open. Turn it off in the menu.': '„Gespeichert“ ist an: Dieses Gerät behält die Dokumente, die du öffnest. Ausschalten kannst du es im Menü.',
 
   // ---- the home page ----
   'Blank': 'Leer',
@@ -39,7 +40,7 @@ export default {
   'Close': 'Schließen',
   'Private': 'Privat',
   'Private: nothing saved': 'Privat: nichts gespeichert',
-  'Nothing is saved on this device: no cookies, no trace, only the language you chose.': 'Auf diesem Gerät wird nichts gespeichert: keine Cookies, keine Spur, nur die gewählte Sprache.',
+  'This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.': 'Diese Seite speichert nichts auf diesem Gerät. Der Verlauf deines Browsers enthält trotzdem jeden Link, der hier geöffnet wurde, und ein Link ist das Dokument: Nutze ein privates Fenster oder gib ihm ein Passwort.',
   'Saved on this device': 'Auf diesem Gerät gespeichert',
   'Saved on this device from now on': 'Ab jetzt auf diesem Gerät gespeichert',
   'Your preferences and the documents you open stay here. Turn off to forget all of it.': 'Deine Einstellungen und die Dokumente, die du öffnest, bleiben hier. Schalte aus, um alles zu vergessen.',
@@ -53,7 +54,9 @@ export default {
   'Tiny Little Office': 'Winzig Kleines Büro',
   'About Tiny Little Office': 'Über Winzig Kleines Büro',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'Ein winziges Office-Paket, das ganz in der URL lebt. Kein Server, keine Konten, kein Speichern: Der Link ist das Dokument.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Nichts, was du schreibst, verlässt deinen Browser, solange du den Link nicht teilst. Nur die Karte einer Reise fragt von sich aus das Web: Ihre Bilder kommen von OpenStreetMap, solange sie angezeigt wird. Standardmäßig privat: nichts wird behalten. „Gespeichert“, der Schalter in diesem Menü, behält deine Einstellungen und die Dokumente, die du öffnest, auf diesem Gerät.',
+  'Nothing you write leaves your browser unless you share the link. Two things ask the web by themselves: a trip’s map, whose pictures come from OpenStreetMap while it is shown, and a picture from a site on the trusted list, fetched through this site’s picture service when its document opens.': 'Nichts, was du schreibst, verlässt deinen Browser, solange du den Link nicht teilst. Zwei Dinge fragen von sich aus das Web: die Karte einer Reise, deren Bilder von OpenStreetMap kommen, solange sie angezeigt wird, und ein Bild von einer Seite auf der vertrauenswürdigen Liste, das über den Bilderdienst dieser Seite geholt wird, wenn sein Dokument geöffnet wird.',
+  'Private, the default:': 'Privat, die Voreinstellung:',
+  'Saved, the switch in this menu, keeps your settings and the documents you open on this device.': '„Gespeichert“, der Schalter in diesem Menü, behält deine Einstellungen und die Dokumente, die du öffnest, auf diesem Gerät.',
   'A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.': 'Ein Dokument kann ein Passwort haben: Es wird hier im Browser verschlüsselt, und der Link enthält nur Geheimtext. Es lässt sich mit einem Schlüssel signieren, den dieser Browser erzeugt, sodass jeder prüfen kann, dass es genau das ist, was du signiert hast, und unter welchem Namen. „Datenschutz und Schlüssel“ in diesem Menü zeigt, was dieses Gerät enthält.',
 
   // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
@@ -72,6 +75,7 @@ export default {
   // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
   'A picture from {host}': 'Ein Bild von {host}',
   'Show pictures from the web': 'Bilder aus dem Web zeigen',
+  'Showing them tells their site this document was opened, and when.': 'Sie zu zeigen verrät ihrer Seite, dass dieses Dokument geöffnet wurde, und wann.',
   '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|Ein Bild aus dem Web wartet|# Bilder aus dem Web warten} darauf, angefordert zu werden.',
   'Always show pictures from the web': 'Bilder aus dem Web immer zeigen',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Ausgeschaltet wartet ein Bild, das eine andere Seite hält, auf deine Anfrage: Es zu laden verrät dieser Seite, wer liest.',
@@ -79,6 +83,12 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'Keine Analysen, keine Fehlerberichte, keine Schriften oder Skripte von anderswo: Die Seite fragt das Web nach nichts, was du nicht ausgelöst hast.',
   'What leaves your browser': 'Was deinen Browser verlässt',
   'What this protects against, and what it does not': 'Wovor das schützt und wovor nicht',
+  'What it does not protect against': 'Wovor es nicht schützt',
+  'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'Der Verlauf des Browsers und seine Synchronisierung, falls sie an ist: Die Adresszeile enthält das Dokument, also enthalten sie es auch. Privat ändert nichts daran, was der Browser aufzeichnet.',
+  'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Jeder, dem du den Link gibst, und alles, was er unterwegs passiert (ein Chat, eine E-Mail, eine Linkvorschau): Ein Link ist eine Kopie und lässt sich nicht zurückholen.',
+  'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Ein Screenshot, ein Foto des Bildschirms, ein Ausdruck oder ein Export: Was gezeigt wurde, ist gezeigt.',
+  'A weak password: the link holds all anyone needs to guess at it, as fast as they like. A long one, or one Generate makes, holds.': 'Ein schwaches Passwort: Der Link enthält alles, was jemand braucht, um es zu erraten, so schnell er will. Ein langes Passwort hält, oder eines, das hier erzeugt wurde.',
+  'Whoever serves the code, and the browser it runs in: the site, an extension or malware on the device can read what is shown and what is typed.': 'Wer den Code ausliefert, und der Browser, in dem er läuft: Die Seite, eine Erweiterung oder Schadsoftware auf dem Gerät kann lesen, was angezeigt und was getippt wird.',
   // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
   'Running commit {commit}': 'Läuft mit Commit {commit}',
 
@@ -145,7 +155,7 @@ export default {
   'Updating…': 'Aktualisiere …',
   'Updated · version {n}': 'Aktualisiert · Version {n}',
   'Extend': 'Verlängern',
-  'Forget this short link? Anyone who has it will find nothing there.': 'Diesen Kurzlink vergessen? Wer ihn hat, findet dort nichts mehr.',
+  'Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.': 'Diesen Kurzlink vergessen? Wer ihn ab jetzt öffnet, findet nichts. Wer ihn schon geöffnet hat, hat das Dokument noch.',
   'Forgotten': 'Vergessen',
   'Link': 'Link', // same
   'Short link': 'Kurzlink',
@@ -178,7 +188,7 @@ export default {
   'No password': 'Kein Passwort',
   'None': 'Keiner',
   'None yet: one is made the first time you sign.': 'Noch keiner: Beim ersten Signieren wird einer erzeugt.',
-  'Nothing is kept here to download.': 'Hier ist nichts zum Herunterladen behalten.',
+  'There is nothing here to download.': 'Hier gibt es nichts zum Herunterladen.',
   'Opening…': 'Öffne …',
   'Password': 'Passwort',
   'Password and signature': 'Passwort und Signatur',
@@ -229,6 +239,9 @@ export default {
   'Your key, as text: keep it secret, it signs as you': 'Dein Schlüssel als Text: Halte ihn geheim, er signiert als du',
   'Your name': 'Dein Name',
   'Your signing key': 'Dein Signaturschlüssel',
+  'Your browser’s history': 'Der Verlauf deines Browsers',
+  'Every document opened here, in full, unless it has a password.': 'Jedes hier geöffnete Dokument, vollständig, außer es hat ein Passwort.',
+  'Not ours to clear': 'Nicht von uns zu löschen',
   'by {name}': 'von {name}',
   'by {name} (unsigned)': 'von {name} (nicht signiert)',
   'yours': 'deins',
@@ -1770,7 +1783,7 @@ export default {
   'Presenting: the stop before': 'Vortrag: der vorherige Stopp',
   'Print place cards': 'Tischkarten drucken',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Tischkarten drucken: eine Karte pro Gast, acht pro Letter-Bogen, zum Ausschneiden',
-  'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Privat: Auf diesem Gerät wird nichts behalten. Schalte im Menü „Gespeichert“ ein, um deine Dokumente hier zu behalten.',
+  'Private: this site keeps no documents on this device. Turn on Saved in the menu to keep them here.': 'Privat: Diese Seite behält keine Dokumente auf diesem Gerät. Schalte im Menü „Gespeichert“ ein, um sie hier zu behalten.',
   'Put back what the cell held': 'Wiederherstellen, was die Zelle enthielt',
   'Put the dated rows on a calendar': 'Die Zeilen mit Datum in einen Kalender setzen',
   'Put the dated tasks on a calendar': 'Die Aufgaben mit Datum in einen Kalender setzen',
