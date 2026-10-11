@@ -23,10 +23,10 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 1. **The document kernel** — `src/doc/`: one typed model of a document — head fields and blocks (heading,
    paragraph of runs, list item, table with typed/named/locked columns, embed, image, edge, fence) — with TLO as its
    one serialisation and the only parser. Every app model (sheet grid, outline, slides, site, trip, diagram
-   shapes, board) becomes a *view* over this model: a pure function from Doc to what the app draws, and edits as
+   shapes) becomes a *view* over this model: a pure function from Doc to what the app draws, and edits as
    operations on Doc. Rich text (runs: bold, italic, link, icon, footnote, embed) lives here once.
 2. **One editor** — `<to-text>`: model-driven, `beforeinput` + selection in the model + DOM reconciliation; no
-   raw contenteditable mutation anywhere. Write first, then Outline, Deck slides, Board cards, Page sections.
+   raw contenteditable mutation anywhere. Write first, then Outline, Deck slides, Page sections.
    Footnote chips, embeds, icons are runs the editor knows.
 3. **Sheets as the data model** — the kernel's table block carries types, names and locks; the formula engine
    evaluates a table block. Apps that are sheets wearing costumes (log, models, budgets, invoice lines, the
@@ -61,8 +61,6 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 | Motion | time | — (kept separate by earlier decision) |
 | Diagram | shapes with meaning | org, mind, lanes, venn, net, timeline, seating, family (kinds) |
 | Calendar | dates | gantt (a span view of the same dated items) |
-| Todo | the simplest list | — |
-| Board | columns of cards | — |
 | Map | places | trip |
 | Page | a web page | website, quick links, invoice, contract? |
 | Calculator | a tape | — |
@@ -74,7 +72,7 @@ no compatibility code).
 The names people read, by app id (Paul, 2026-10-09: "We need to rename the apps to be very generic"; the ids,
 folders and routes do not change): write, the Word Processor; sheet, the Spreadsheet; calc, the Calculator; deck,
 the Presentation Builder; outline, the Outliner; draw, the Drawing Tool; diagram, the Diagram Maker; anim, the
-Animator; board, the Kanban Board; todo, the To-Do List; cal, the Calendar; trip, the Trip Planner; site, the
+Animator; cal, the Calendar; trip, the Trip Planner; site, the
 Website Builder. The names in the table above and in docs/kernel.md are the working names of the plan.
 
 Round four (Paul, 2026-10-09): every link that leaves the site asks first (src/kit/link-guard.ts: the site's name

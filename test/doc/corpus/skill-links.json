@@ -62,14 +62,6 @@
    "text": "Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2027-03-01 | 10 | 50%\n- Wireframes | 2027-03-01 | 4 | 100%\n- Visual design | 2027-03-05 | 6 | 50%\nBuild | 2027-03-11 | 15 | 0%"
   },
   {
-   "name": "board: Sprint",
-   "text": "## To do {limit=2}\n\n- Write the brief\n- Design the page\n\n## Doing\n\n- Build the form\n\n## Done\n\n- Choose a name"
-  },
-  {
-   "name": "todo: Trip prep",
-   "text": "- [ ] Renew passport {.star due=2027-03-01}\n- [ ] Book flights\n- [x] Choose dates"
-  },
-  {
    "name": "cal: March",
    "text": "---\nzone: Europe/London\n---\n- 2027-03-01 to 2027-03-03: Offsite {color=green}\n- 2027-03-08: Launch day\n- 2027-03-10 09:00-10:30: Retro"
   },
