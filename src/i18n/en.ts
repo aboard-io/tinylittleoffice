@@ -50,6 +50,10 @@ export default {
   'Forget {title}': 'Forget {title}',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n} more',
+  // The home page's foot: {aboard} is the name Aboard, a link to aboard.com, said as it is in every language
+  'Made with respect by {aboard}': 'Made with respect by {aboard}',
+  // The foot's link to the repository on GitHub
+  'Open source': 'Open source',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Apps',
@@ -100,6 +104,8 @@ export default {
   'What leaves your browser': 'What leaves your browser',
   'What this protects against, and what it does not': 'What this protects against, and what it does not',
   'What it does not protect against': 'What it does not protect against',
+  // Under About's list, the link to the threat model itself, a document in English on GitHub
+  'The whole threat model, in English': 'The whole threat model, in English',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.',

@@ -25,7 +25,7 @@ unless you mean to change what your copy knows about its readers.
 ## 1. The code
 
 ```sh
-git clone https://github.com/<you>/tinyoffice.git && cd tinyoffice   # your fork, so your copy is your commits
+git clone https://github.com/<you>/tinylittleoffice.git && cd tinylittleoffice   # your fork of aboard-io/tinylittleoffice, so your copy is your commits
 npm ci
 npx wrangler login
 ```

@@ -34,6 +34,8 @@ export default {
   'Forget {title}': '{title}を消去',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': 'ほか{n}件',
+  'Made with respect by {aboard}': '{aboard} が敬意をこめて制作',
+  'Open source': 'オープンソース',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'アプリ',
@@ -83,6 +85,7 @@ export default {
   'What leaves your browser': 'ブラウザから外に出るもの',
   'What this protects against, and what it does not': '守れること、守れないこと',
   'What it does not protect against': '守れないこと',
+  'The whole threat model, in English': '脅威モデルの全文（英語）',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'ブラウザの履歴と、オンならその同期。アドレスバーにドキュメントがあるので、そこにも残ります。プライベートでも、ブラウザが記録する内容は変わりません。',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'リンクを渡した相手と、リンクが通るすべての場所（チャット、メール、リンクのプレビュー）。リンクはコピーなので、取り消せません。',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'スクリーンショット、画面の写真、印刷、書き出し。一度表示したものは、表示されたままです。',

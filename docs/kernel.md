@@ -413,11 +413,13 @@ Tests that must be rewritten: `tlo.test` (literals), `richtext.test` (folded), t
 
 ### Critical files for implementation
 
-- `/home/exedev/workspace/tinyoffice/src/lib/tlo.ts` — becomes `src/doc/tlo.ts` + `src/doc/model.ts`; the parser and writer, and where runs and columns are added
-- `/home/exedev/workspace/tinyoffice/src/lib/richtext.ts` — its helpers become `src/doc/notes.ts`; its `Block`/`parseDoc`/`serializeDoc` are what the kernel replaces
-- `/home/exedev/workspace/tinyoffice/src/lib/formula.ts` — `Grid`/`Sheet`, remaps and locks become `src/doc/table.ts`; the evaluator becomes `src/doc/formula.ts#evaluate(doc, at)`
-- `/home/exedev/workspace/tinyoffice/src/apps/write.ts` — the contentEditable editor `<to-text>` replaces, and the one `to-rich` element its hosts (`outline.ts`, `board.ts`, `pages.ts`) depend on
-- `/home/exedev/workspace/tinyoffice/src/lib/lines.ts` — `readLines`/`writeLines` and the family-moving helpers that become `rowsOf(doc)`/`blocksOf(rows)` and `src/doc/ops.ts`
+In the old tree (tagged `v0-before-rebuild`):
+
+- `src/lib/tlo.ts` — becomes `src/doc/tlo.ts` + `src/doc/model.ts`; the parser and writer, and where runs and columns are added
+- `src/lib/richtext.ts` — its helpers become `src/doc/notes.ts`; its `Block`/`parseDoc`/`serializeDoc` are what the kernel replaces
+- `src/lib/formula.ts` — `Grid`/`Sheet`, remaps and locks become `src/doc/table.ts`; the evaluator becomes `src/doc/formula.ts#evaluate(doc, at)`
+- `src/apps/write.ts` — the contentEditable editor `<to-text>` replaces, and the one `to-rich` element its hosts (`outline.ts`, `board.ts`, `pages.ts`) depend on
+- `src/lib/lines.ts` — `readLines`/`writeLines` and the family-moving helpers that become `rowsOf(doc)`/`blocksOf(rows)` and `src/doc/ops.ts`
 
 
 ---

@@ -1,9 +1,18 @@
 {
-  "name": "tinyoffice",
+  "name": "tinylittleoffice",
   "version": "1.0.0-next",
   "private": true,
   "type": "module",
   "description": "A tiny office suite that lives entirely in the URL.",
+  "homepage": "https://tinylittleoffice.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aboard-io/tinylittleoffice"
+  },
+  "bugs": {
+    "url": "https://github.com/aboard-io/tinylittleoffice/issues"
+  },
+  "license": "MIT",
   "engines": {
     "node": ">=24"
   },

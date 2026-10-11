@@ -36,6 +36,8 @@ export default {
   'Forget {title}': 'نسيان {title}',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n} أخرى',
+  'Made with respect by {aboard}': 'صُنع باحترام بواسطة {aboard}',
+  'Open source': 'مفتوح المصدر',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'التطبيقات',
@@ -85,6 +87,7 @@ export default {
   'What leaves your browser': 'ما يغادر متصفحك',
   'What this protects against, and what it does not': 'ما يحميك منه هذا، وما لا يحميك منه',
   'What it does not protect against': 'ما لا يحميك منه',
+  'The whole threat model, in English': 'نموذج التهديدات كاملًا، بالإنجليزية',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'سجل المتصفح، ومزامنته إن كانت مفعّلة: شريط العنوان يحمل المستند، فهما يحملانه أيضًا. الوضع الخاص لا يغيّر ما يسجّله المتصفح.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'كل من تعطيه الرابط، وكل ما يمر به في الطريق (محادثة، بريد إلكتروني، معاينة رابط): الرابط نسخة، ولا يمكن استرجاعه.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'لقطة شاشة، أو صورة للشاشة، أو نسخة مطبوعة، أو تصدير: ما ظهر قد ظهر.',

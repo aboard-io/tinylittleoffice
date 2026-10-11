@@ -36,6 +36,8 @@ export default {
   'Forget {title}': 'Bliye {title}',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n} lòt',
+  'Made with respect by {aboard}': 'Fèt avèk respè pa {aboard}',
+  'Open source': 'Sous louvri',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Aplikasyon',
@@ -86,6 +88,7 @@ export default {
   'What leaves your browser': 'Sa ki kite navigatè w la',
   'What this protects against, and what it does not': 'Sa sa pwoteje w kont li, ak sa li pa pwoteje w kont li',
   'What it does not protect against': 'Sa li pa pwoteje w kont li',
+  'The whole threat model, in English': 'Tout modèl menas la, an angle',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'Istwa navigatè a, ak senkronizasyon li si li limen: ba adrès la gen dokiman an ladan l, kidonk yo genyen l tou. Prive pa chanje sa navigatè a anrejistre.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'Nenpòt moun ou bay lyen an, ak tout kote li pase (yon chat, yon imèl, yon apèsi lyen): yon lyen se yon kopi, ou pa ka rele l tounen.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'Yon kapti ekran, yon foto ekran an, yon enprime oswa yon ekspòtasyon: sa ki parèt deja parèt.',

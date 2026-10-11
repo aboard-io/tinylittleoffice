@@ -34,6 +34,8 @@ export default {
   'Forget {title}': '{title} 지우기',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '{n}개 더',
+  'Made with respect by {aboard}': '{aboard}가 존중을 담아 만들었습니다',
+  'Open source': '오픈 소스',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': '앱',
@@ -84,6 +86,7 @@ export default {
   'What leaves your browser': '브라우저 밖으로 나가는 것',
   'What this protects against, and what it does not': '무엇을 막아 주고 무엇은 못 막는지',
   'What it does not protect against': '막아 주지 못하는 것',
+  'The whole threat model, in English': '위협 모델 전문(영어)',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': '브라우저 기록과, 켜져 있다면 그 동기화. 주소창에 문서가 있으니 거기에도 남아요. 비공개여도 브라우저가 기록하는 내용은 그대로예요.',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': '링크를 준 사람, 그리고 링크가 지나가는 모든 곳(채팅, 이메일, 링크 미리보기). 링크는 사본이라 되돌릴 수 없어요.',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': '스크린샷, 화면을 찍은 사진, 인쇄물, 내보낸 파일. 한 번 보인 것은 보인 거예요.',

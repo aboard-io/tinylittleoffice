@@ -2,7 +2,7 @@
 import { test, expect } from 'vitest';
 import { join } from 'node:path';
 import { gitFacts, versionJson, versionOf } from '../scripts/version.ts';
-import { commitUrl, isVersion } from '../src/kit/version.ts';
+import { commitUrl, isVersion, repoUrl, sourceFile } from '../src/kit/version.ts';
 
 const root = join(import.meta.dirname, '..');
 
@@ -32,8 +32,10 @@ test('outside a checkout there are no facts, and no error', () => {
   expect(gitFacts('/')).toEqual({ commit: '', tag: '', built: '' });
 });
 
-test('a commit links to its page in the published source', () => {
-  expect(commitUrl('abc')).toBe('https://github.com/ftrain/tinyoffice/commit/abc');
+test('a commit, a file and the repository itself link to their pages in the published source', () => {
+  expect(commitUrl('abc')).toBe('https://github.com/aboard-io/tinylittleoffice/commit/abc');
+  expect(sourceFile('docs/threat-model.md')).toBe('https://github.com/aboard-io/tinylittleoffice/blob/main/docs/threat-model.md');
+  expect(repoUrl()).toBe('https://github.com/aboard-io/tinylittleoffice');
 });
 
 test('a release’s notes name the tag, the commit and every script hash, and how to check them', async () => {
@@ -41,6 +43,6 @@ test('a release’s notes name the tag, the commit and every script hash, and ho
   const notes = releaseNotes({ commit: 'b'.repeat(40), tag: 'v1.0.0', built: '2026-10-10T09:00:00Z', csp: { scripts: ['sha256-abc=', 'sha256-def='] } }, 'tinylittleoffice-v1.0.0.tar.gz');
   expect(notes).toContain(`Tiny Little Office v1.0.0: the site's files as built from commit ${'b'.repeat(40)}`);
   expect(notes).toContain('- `sha256-abc=`\n- `sha256-def=`');
-  expect(notes).toContain('gh attestation verify tinylittleoffice-v1.0.0.tar.gz -R ftrain/tinyoffice');
+  expect(notes).toContain('gh attestation verify tinylittleoffice-v1.0.0.tar.gz -R aboard-io/tinylittleoffice');
   expect(notes).toContain('npm run verify-deploy -- https://tinylittleoffice.com/ v1.0.0');
 });

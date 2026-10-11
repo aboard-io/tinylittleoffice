@@ -9,7 +9,8 @@
  * auxclick (a middle click), so every link in every app, the display mode, a card's "open on the site", a
  * footnote's link, Mod+click and Enter on a focused link (the browser's own click) are all asked about. Links
  * that stay here pass: this origin (the apps' own routes, "Open in a new tab" of a document held in another),
- * and a file this page made (blob:).
+ * and a file this page made (blob:), and the chrome's own links (`data-to-chrome`: the home page's foot), which the code
+ * draws to the site's maker and its source and which pass only to those (kit/network.ts `maker`, `source`).
  * openLink(href) is the same question for a link followed from code (the link bubble's Open).
  * (Ported from the old tree's src/widgets/link-guard.ts; the dialog is the kit's <to-dialog>.)
  */
@@ -19,6 +20,7 @@ import { t } from './i18n.ts';
 import { toast } from './toast.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
+import { origin } from './network.ts';
 
 const OPENS = ['http:', 'https:', 'mailto:', 'tel:'];
 
@@ -119,6 +121,9 @@ export function openLink(href: string) {
 /** The address an anchor (in HTML or SVG) points at, as written. */
 const hrefOf = (a: Element) => a.getAttribute('href') ?? a.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? '';
 
+/** Where the chrome's own links may go without asking. */
+const CHROME = [origin('maker'), origin('source')];
+
 const guarded = new WeakSet<Document>();
 /** Every click on a link that leaves the site, anywhere on the page, asks first. */
 export function installLinkGuard(root: Document = document) {
@@ -131,6 +136,8 @@ export function installLinkGuard(root: Document = document) {
     if (!a || a.closest('.to-link-guard')) return;
     // In words being written a click puts the caret in the link (the bubble shows where it goes); Mod+click follows it.
     if (a.closest('[contenteditable="true"]') && !(e.metaKey || e.ctrlKey) && e.type === 'click') return void e.preventDefault();
+    // The chrome's own link, to where the code says, is the site speaking, not a document: it opens as it is.
+    if (a.hasAttribute('data-to-chrome') && CHROME.includes(new URL(hrefOf(a), location.href).origin)) return;
     // A download the page is saving is not a link out.
     if (a.hasAttribute('download') && /^(blob|data):/.test(hrefOf(a))) return;
     const url = leaving(hrefOf(a));

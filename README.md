@@ -91,11 +91,12 @@ picture proxy, the same code as ours. docs/self-host.md takes about thirty minut
 
 ## Reporting a security problem
 
-Write to security@tinylittleoffice.com, not an issue. SECURITY.md says what happens next.
+Report it privately on GitHub (the Security tab, "Report a vulnerability"), not as an issue. SECURITY.md says
+what happens next.
 
-## Licence
+## License
 
-MIT (LICENSE). Contributors keep the code of conduct (CODE_OF_CONDUCT.md).
+The MIT License (LICENSE), Copyright (c) 2026 Paul Ford. Contributors keep the code of conduct (CODE_OF_CONDUCT.md).
 
 ## History
 

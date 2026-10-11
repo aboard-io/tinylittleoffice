@@ -112,8 +112,9 @@ test('the home page has no copy: every app, in order, its icon, its name and its
   const h1 = shell.querySelector('to-home h1')!;
   expect(h1.textContent).toBe('Tiny Little Office');
   expect(h1.classList.contains('sr-only')).toBe(true);
-  // (A templates dialog's own heading is not the page's copy.)
-  expect(shell.querySelector('to-home p, to-home h2:not(.to-dialog h2), .to-app-open small')).toBeNull();
+  // (A templates dialog's own heading is not the page's copy, and the foot, who made it and where its source is, comes
+  // after everything: test/browser/home.test.ts.)
+  expect(shell.querySelector('to-home p:not(.to-home-foot p), to-home h2:not(.to-dialog h2), .to-app-open small')).toBeNull();
   for (const a of apps()) expect(shell.textContent).not.toContain(a.blurb);
   const tiles = [...shell.querySelectorAll('.to-app')];
   expect(tiles.map((t) => t.querySelector('.to-app-open .to-app-name')!.textContent)).toEqual(apps().map((a) => a.name));

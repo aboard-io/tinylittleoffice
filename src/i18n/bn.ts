@@ -28,6 +28,8 @@ export default {
   'Forget': 'বাদ দিন',
   'Forget {title}': '“{title}” বাদ দিন',
   '{n} more': 'আরও {n}টি',
+  'Made with respect by {aboard}': '{aboard} সম্মানের সঙ্গে তৈরি করেছে',
+  'Open source': 'ওপেন সোর্স',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'অ্যাপ',
@@ -74,6 +76,7 @@ export default {
   'What leaves your browser': 'ব্রাউজার থেকে কী বের হয়',
   'What this protects against, and what it does not': 'এটি কীসের বিরুদ্ধে সুরক্ষা দেয়, আর কীসের বিরুদ্ধে দেয় না',
   'What it does not protect against': 'এটি কীসের বিরুদ্ধে সুরক্ষা দেয় না',
+  'The whole threat model, in English': 'পুরো হুমকি-মডেল, ইংরেজিতে',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': 'ব্রাউজারের হিস্ট্রি, আর চালু থাকলে তার সিঙ্ক: ঠিকানা বারে নথিটি থাকে, তাই এগুলোতেও থাকে। ব্যক্তিগত মোড ব্রাউজার যা রেকর্ড করে তা বদলায় না।',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': 'আপনি যাকে লিংক দেন, আর পথে লিংকটি যেখান দিয়ে যায় (চ্যাট, ইমেল, লিংক প্রিভিউ): লিংক একটি কপি, একে আর ফেরানো যায় না।',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': 'স্ক্রিনশট, স্ক্রিনের ছবি, প্রিন্ট বা এক্সপোর্ট: একবার দেখানো হলে তা দেখানো হয়েই গেল।',

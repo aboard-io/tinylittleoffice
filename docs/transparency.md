@@ -4,6 +4,10 @@ Paul, 2026-10-09: the platform will be open-sourced; people concerned about secu
 themselves. This is the pre-launch list for that, and the words we use for everyone else. Each item below is a
 piece of work with a check; the launch waits for the checks marked **gate**.
 
+**Reread on 2026-10-11, the day the repository opened** at https://github.com/aboard-io/tinylittleoffice: every
+gate below (items 1, 2, 3 and 5) is built, and so is everything §2 asked for before the repository went public,
+but for what §2 now strikes. What is left is marked *Not yet*.
+
 ## 1. Verifiable, not claimed
 
 The strongest fact is architectural: no server holds documents, so there is nothing to breach, subpoena or
@@ -44,7 +48,8 @@ leak. Everything here makes that checkable by a stranger.
    the list), a table of each design choice and its threat, what the Cloudflare host can see (the static
    files' requests, the shortener's ciphertext rows and D1's own history, the proxy's fetches), and "If you
    find a hole" pointing at `SECURITY.md` (item 8). It says plainly that whoever serves the code could read
-   the fragment, and that item 3 is the answer, not yet built. About links it.
+   the fragment, and that item 3 is the answer, not yet built. About links it. *2026-10-11:* About says the
+   list in the page's language itself, and links the whole document in the public repository, said to be in English.
 3. **Reproducible, attested builds** (gate). `npm run build` from a tag gives byte-identical `dist/`;
    `scripts/verify-deploy.ts` fetches the live site, hashes every file and compares with the tag's build;
    the live site serves `/version.json` (commit, tag, build time, the CSP hashes) and a build attestation
@@ -97,17 +102,18 @@ leak. Everything here makes that checkable by a stranger.
    bounty yet, a thanks list); signed release tags; a changelog naming security-relevant changes;
    `LICENSE` (MIT); `CODE_OF_CONDUCT.md`; `CONTRIBUTING.md` that points at the standards (docs/editing.md,
    the kit's rules) so contributions keep them.
-   *Built, 2026-10-10:* `SECURITY.md` (security@tinylittleoffice.com, which Paul makes before the repo is
-   public), `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`. Signed tags and the changelog wait for the
-   first release.
+   *Built, 2026-10-10:* `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`. *2026-10-11:* a hole
+   is reported through GitHub's private vulnerability reporting, not to an address; the code of conduct is the
+   Contributor Covenant 2.1 as written. *Not yet:* signed tags and the changelog wait for the first release.
 9. **Later:** an independent audit of the crypto and the shortener, published in full; a public test
    dashboard; a signed SBOM with each release.
 
 ## 2. The GitHub repository, set up for visibility
 
-Done once, before the repo goes public (the visibility change itself is Paul's click):
+Done once, before the repo went public; Paul renamed it, moved it to the aboard-io organization and opened it on
+2026-10-11. The settings set by hand are docs/github-setup.md.
 
-- Name `tinylittleoffice` (or keep `tinyoffice` with the full name in the description); description "A free
+- Name `tinylittleoffice` (*met*: aboard-io/tinylittleoffice); description "A free
   office suite where your document is the link. No account, nothing stored, the code open."; the website
   field; topics: `office-suite`, `privacy`, `local-first`, `no-backend`, `pwa`, `web-components`, `lit`,
   `cloudflare-workers`, `typescript`, `url-as-document`, `markdown`.
@@ -115,10 +121,13 @@ Done once, before the repo goes public (the visibility change itself is Paul's c
   account, no telemetry), how to run it (`npm ci && npm run dev`), how it is built (the kernel, the kit,
   the apps), the standards it keeps, how to self-host, how to report a security issue, licence.
 - Social preview image from the Office mark; the per-app share cards in `public/og/`.
-- Discussions on (Announcements, Ideas, Q&A, Show and tell), Issues with three templates (bug, idea,
-  security → the SECURITY.md address, not an issue), labels for the apps and the kit.
-- Branch protection on `main`: CI green required (typecheck, strings, unit, DOM, build, the network test),
-  signed commits recommended, no force-push; releases from tags with the attestation and the CSP hashes.
+- ~~Discussions on~~ (*struck*, 2026-10-11: Discussions are off; issues are the one place). Issues with two
+  templates (a bug, with the link that shows it, redacted of anything private; a feature) and the chooser's
+  security link to the private vulnerability report; labels for the apps and the kit.
+- Branch protection on `main`: CI green required (every check a deploy runs: types, strings, unit, browser,
+  build with its budgets, the smoke run in Chromium and WebKit; then the lints, `npm audit` and the build made
+  twice), signed commits recommended, no force-push; releases from tags with the attestation and the CSP hashes.
+  Dependabot asks for npm updates weekly, grouped (`.github/dependabot.yml`).
 - `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `.github/` with the CI workflow, the
   release workflow (build, attest, publish `dist/` as the release's artifact), and the issue templates.
 - The old tree's history is in the same repo (tagged `v0-before-rebuild`): keep it; the README says what
@@ -129,8 +138,10 @@ Done once, before the repo goes public (the visibility change itself is Paul's c
 (the index, held to the folder by `test/docs-index.test.ts`), `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`,
 `CONTRIBUTING.md`, and `.github/`: the CI workflow, the bug and idea templates, the chooser's Security link to
 SECURITY.md (no security template), the pull request template. The settings (description, topics,
-Discussions, labels, the ruleset on `main`) are a checklist in `docs/github-setup.md`. Not yet: the release
-workflow, which is §1 item 3.
+Discussions, labels, the ruleset on `main`) are a checklist in `docs/github-setup.md`. The release workflow
+followed (§1 item 3). *2026-10-11:* CONTRIBUTING made short (the suite, the house rules), the feature template
+in the idea's place, the pull request template three lines, CI running every check the deploy runs
+(`test/repository.test.ts` compares them), Dependabot, and the package's metadata naming the repository.
 
 ## 3. How to explain it
 

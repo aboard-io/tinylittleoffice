@@ -36,6 +36,8 @@ export default {
   'Forget {title}': '清除「{title}」',
   // Under an app's documents, the rest folded away: "3 more"
   '{n} more': '還有 {n} 個',
+  'Made with respect by {aboard}': '由 {aboard} 懷著敬意打造',
+  'Open source': '開放原始碼',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': '應用程式',
@@ -86,6 +88,7 @@ export default {
   'What leaves your browser': '哪些內容會離開你的瀏覽器',
   'What this protects against, and what it does not': '這能防範什麼，又不能防範什麼',
   'What it does not protect against': '它無法防範的',
+  'The whole threat model, in English': '完整的威脅模型（英文）',
   'The browser’s history, and its sync if that is on: the address bar holds the document, so they hold it too. Private does not change what the browser records.': '瀏覽器的瀏覽紀錄，以及開啟時的同步：網址列裡就是文件，所以它們也存著文件。私密模式不會改變瀏覽器記錄的內容。',
   'Anyone you give the link to, and everything it passes through on the way (a chat, an email, a link preview): a link is a copy, and it cannot be called back.': '你把連結交給的任何人，以及連結途經的一切（聊天、電子郵件、連結預覽）：連結是一份副本，無法收回。',
   'A screenshot, a photo of the screen, a printout or an export: once shown, it is shown.': '螢幕截圖、對著螢幕拍的照片、列印出來的紙本或匯出的檔案：一旦顯示，就已經顯示了。',
