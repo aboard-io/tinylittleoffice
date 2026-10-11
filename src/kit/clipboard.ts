@@ -533,3 +533,36 @@ export function pasteFrom(data: { text: string; html: string }, shape: Shape): P
   if (b.k === 'p' && plainText(b.runs) !== plain.trim()) return { runs: b.runs };
   return { runs: [{ t: plain }] };
 }
+
+const plainly = new WeakSet<Document>();
+/**
+ * A copy our editors did not take (the reader's pages, a slide's words, anything drawn rather than edited) is the
+ * browser's own, and the browser writes what it sees: the words with the colours they were drawn in, so a copy from a
+ * midnight slide pasted into Google Docs is white on white (Paul, 2026-10-11: "you're giving me white text"). Taken
+ * here instead, after every editor's handler has had its say: the words as text, and as paragraphs with no colour,
+ * no style and no font, one per line of what was selected.
+ */
+export function installPlainCopy(root: Document = document) {
+  if (plainly.has(root)) return;
+  plainly.add(root);
+  root.addEventListener('copy', (e) => {
+    if (e.defaultPrevented || !e.clipboardData) return;
+    const sel = root.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const at = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
+    // A box the person types in copies as the browser does: its own handler, or the browser's plain text.
+    if (at?.closest('input, textarea, [contenteditable="true"], [contenteditable=""]')) return;
+    const text = sel.toString();
+    if (!text.trim()) return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', text);
+    e.clipboardData.setData(
+      'text/html',
+      text
+        .split(/\r?\n/)
+        .filter((l) => l.trim())
+        .map((l) => `<p>${esc(l)}</p>`)
+        .join('\n'),
+    );
+  });
+}

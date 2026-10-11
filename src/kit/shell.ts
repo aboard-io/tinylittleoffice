@@ -69,6 +69,7 @@ import { TEXT_COMMANDS } from './text-commands.ts';
 import type { ToText } from './text.ts';
 import type { Offer, ToPalette } from './palette.ts';
 import './palette.ts';
+import { installPlainCopy } from './clipboard.ts';
 import { pinchSizes, pinchZoom } from './pinch.ts';
 import { applySize } from './zoom.ts';
 import './chrome.ts';
@@ -226,6 +227,7 @@ export class ToShell extends LitElement {
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
     installLinkGuard();
     installPictures();
+    installPlainCopy();
     this.onHash();
   }
   disconnectedCallback() {
