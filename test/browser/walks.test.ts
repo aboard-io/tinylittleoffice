@@ -784,9 +784,15 @@ test('on a phone, every app’s Undo is on screen wherever its bar is scrolled',
     const bar = [...editorOf(real).querySelectorAll('to-bar')].find((b) => visible(b as Element) && !(b as Element).closest('dialog, [popover]')) as HTMLElement;
     expect(bar, app).toBeTruthy();
     // The focus in the bar (the document's, so the bar is shown): words a page opens with chosen (the Website Builder's) would make the context bar the row.
-    bar.querySelector<HTMLElement>('button:not([disabled])')!.focus();
+    // The bar is shown first: while it is away (reading, or under a docked context row) it is inert (kit/chrome.ts), and an
+    // inert button takes no focus; so the thing a page holds (the Website Builder's) is let go, its context row with it.
+    (editorOf(real) as HTMLElement & { release?: () => void }).release?.();
+    for (const c of document.querySelectorAll<HTMLElement & { hide(): void }>('to-context')) c.hide();
     chrome.indoc = true;
     await settle(real);
+    bar.querySelector<HTMLElement>('button:not([disabled])')!.focus();
+    await settle(real);
+    expect(bar.contains(document.activeElement), app).toBe(true);
     expect(document.documentElement.hasAttribute('data-context-row'), app).toBe(false);
     // Shown, so the rule looks (it passes over a bar slid away).
     await until(() => getComputedStyle(bar).opacity === '1' && getComputedStyle(bar).transform === 'none').catch(() => undefined);

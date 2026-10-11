@@ -49,3 +49,14 @@ test('a toast said while a modal dialog is open is said inside it, where a scree
   await until(() => document.querySelector('to-toast [role=status]')?.textContent === 'Downloaded');
   expect(d.querySelector('[role=status]')!.textContent).toBe('');
 });
+
+test('a toast said by a dialog that closes at once (the leave dialog’s Turn on Saved) is said by the page, where the person is', async () => {
+  document.body.innerHTML = '<to-toast></to-toast><to-dialog heading="Leave"></to-dialog>';
+  const d = document.querySelector<ToDialog>('to-dialog')!;
+  await d.updateComplete;
+  await d.show();
+  toast('Saved is on');
+  d.close();
+  await until(() => document.querySelector('to-toast [role=status]')?.textContent === 'Saved is on');
+  expect(d.querySelector('[role=status]')?.textContent ?? '').toBe('');
+});

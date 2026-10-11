@@ -2,7 +2,7 @@
 // and a document that lives nowhere but its link (Private, changed) asks once before it is left; closing the tab then
 // gets the browser's own warning.
 import { test, expect, afterEach } from 'vitest';
-import { mount, until, openDrawerDoc } from './helpers.ts';
+import { mount, until, openDrawerDoc, said } from './helpers.ts';
 import { keeping } from '../../src/kit/store.ts';
 import { setPrivate } from '../../src/kit/privacy.ts';
 import { library } from '../../src/kit/library.ts';
@@ -187,7 +187,8 @@ test('Turn on Saved and keep it here: Saved turned on, the document kept, then h
   expect(keeping()).toBe(true);
   expect(library().map((k) => k.hash)).toContain(hash);
   await until(() => !!shell.querySelector('.to-toast.shown'));
-  expect(shell.querySelector('to-toast [role=status]')!.textContent).toBe('Saved is on: this device keeps the documents you open. Turn it off in the menu.');
+  // Said on the next frame (kit/toast.ts), so a repeat is said again.
+  await until(() => said() === 'Saved is on: this device keeps the documents you open. Turn it off in the menu.');
 });
 
 test('Go without goes home; so does a drawer row and a hand-off, asked the same way', async () => {
