@@ -1,125 +1,118 @@
 # Short links
 
 `src/kit/short.ts` (the browser's side), `tinier/` (the service: `tinier.ts` is the whole of its logic,
-`worker.ts` puts it on Cloudflare with D1, `schema.sql` is its one table, `page.html` the page that opens a
-short link). WebCrypto alone: no crypto library. Test vectors: `test/vectors/short-links.json`, checked by
-`test/crypto-vectors.test.ts`.
+`d1.ts` its rows in Cloudflare D1, `worker.ts` puts it on Cloudflare, `schema.sql` and `migrations/` its two
+tables, `page.html` the page that opens a short link). WebCrypto alone: no crypto library. Test vectors:
+`test/vectors/short-links.json`, checked by `test/crypto-vectors.test.ts`.
+
+A short link cannot be changed or recalled once made; it expires on its own (Paul, 2026-10-11: "Let's just
+make the short link immutable for now"). There is no update, no delete, no owner and no owner key. (The
+living short link of round nine, with its owner key, is in git history.)
 
 ## The cipher
 
 | | |
 |---|---|
 | Cipher | AES-256-GCM |
-| Key | 32 bytes from `crypto.getRandomValues`, made with the short link, never changed |
-| IV | 12 bytes from `crypto.getRandomValues`, fresh for every version |
+| Key | 32 bytes from `crypto.getRandomValues`, made with the short link |
+| IV | 12 bytes from `crypto.getRandomValues`, made with the short link |
 | Tag | 16 bytes, at the end of the ciphertext |
 | Additional data | none |
 | Plaintext | the UTF-8 of the long link (`https://tinylittleoffice.com/<app>/#/v1/…`) |
 
-`c`, `iv`, the key and the owner key all travel as base64url without padding, written with `~` for 62 where
-RFC 4648 has `-` (a hyphen is where a pasted link breaks a line); `-` is read as 62 too, by the site, the
-landing page and the service, which compares an owner hash in either form. The ciphertext is the long
-link's length plus 16 bytes, so the service knows roughly how long the document is. It may be at most 16,384
-base64url characters (`SHORT_MAX` in short.ts, `MAX_BYTES` in tinier.ts; a test holds them equal).
+Each short link has its own key and IV, used once. `c`, `iv` and the key travel as base64url without padding,
+written with `~` for 62 where RFC 4648 has `-` (a hyphen is where a pasted link breaks a line); `-` is read as
+62 too. The ciphertext is the long link's length plus 16 bytes, so the service knows roughly how long the
+document is. It may be at most 16,384 base64url characters (`SHORT_MAX` in short.ts, `MAX_BYTES` in
+tinier.ts; a test holds them equal).
 
 ## The key in the fragment
 
-Two links come out of making a short link:
-
 ```
-public:  https://tinier.tinylittleoffice.com/<id>#<key>
-owner:   https://tinier.tinylittleoffice.com/<id>#<key>.<o>
+https://tinier.tinylittleoffice.com/<id>#<key>
 ```
 
-Both carry the key after `#`, which a browser never sends. Opening either loads the service's page, which
-asks `GET /api/<id>` for `c` and `iv`, decrypts in the browser with the key from its own fragment, checks
-that the result is a link to the site (it refuses anything else), and goes there. The service never has the
-key, so it never has the long link, so it never has the document.
+The key is after `#`, which a browser never sends. Opening the link loads the service's page, which asks
+`GET /api/<id>` for `c`, `iv` and `exp`, decrypts in the browser with the key from its own fragment, checks that
+the result is a link to the site (it refuses anything else), and goes there with `?s=<id>&x=<expires>` after
+it. The service never has the key, so it never has the long link, so it never has the document.
 
-The key is the same for every version, which is why the public link always opens the latest one; only the IV
-and the ciphertext change. Random 12-byte IVs under one key are safe for about 2^32 versions.
+## The API
 
-## The owner capability
+```
+POST /api        {c, iv, ttl}   → 201 {id, exp}
+GET  /api/<id>                  → {c, iv, exp}      (404 once gone)
+```
 
-`o` is 32 random bytes made beside the key. The service is given `owner = base64url(SHA-256(o))` when the
-link is made, and keeps only that. To put a new version (`PUT /api/<id>` with `c`, `iv`, `o`, and optionally
-a new lifetime) or to delete the link (`DELETE /api/<id>` with `o`), the owner sends `o` itself, in the body,
-over TLS: the one request that needs it. The service hashes what it is sent and compares it with the stored
-hash in constant time.
-
-- A wrong `o` (403) and an id that is not there (404) carry the same body, and the hash is computed and
-  compared either way, so neither tells an outsider which ids exist or which have owners.
-- `o` is never in the public link, never in a log, never in any other request.
-- The site keeps the owner link only on the device that made it: in memory for the visit under Private,
-  under Saved in the list of short links kept here (`src/kit/links.ts`), which Privacy and keys shows and can
-  empty. Arriving by the owner link, the service's page hands the key and `o` to the site in the fragment's
-  query (`?s=<id>&k=<key>&o=<o>`), never to a server; the site strips that query from every link it shares.
-  It does stay in the browser's history.
-- Whoever has the owner link can change or delete the short link. There is no other proof of ownership and
-  no account to recover one with.
+Anything else under `/api` answers 405. `ttl` is 3600, 86400, 604800 or 2592000 seconds; any other is refused.
 
 ## What tinier stores
 
-One row per short link, in Cloudflare D1 (`tinier/schema.sql`):
+One row per short link (`tinier/schema.sql`):
 
 | Column | What | Size |
 |---|---|---|
-| `id` | the short link's name: 7 characters from `abcdefghijkmnpqrstuvwxyz23456789` (no `l`, `1`, `o`, `0`), random | 7 characters, about 35 bits |
+| `id` | 7 characters from `abcdefghijkmnpqrstuvwxyz23456789` (no `l`, `1`, `o`, `0`), random | about 35 bits |
 | `c` | the ciphertext, base64url, as the site sent it | at most 16,384 characters |
 | `iv` | its IV, base64url | 16 characters (at most 32 accepted) |
 | `exp` | when to forget it, milliseconds since 1970 | an integer |
-| `owner` | base64url of SHA-256 of `o`; null for a row made without one, which can never be updated | 43 characters |
-| `ver` | 1 when made, one more with each update | an integer |
-| `updated` | when it was last updated, milliseconds since 1970; null until then | an integer |
 
-Nothing else: no IP address, no user agent, no count of opens, no record of who made it. Anyone may ask
-`GET /api/<id>` for any id and get back `c`, `iv`, `exp`, `ver` and `updated` (or a 404), so whether an id
-exists, how many times it was updated and when, is public to anyone who guesses or is given the id. Without
-the key, none of it opens.
+And one row per address per UTC day that made a link (`tinier/migrations/0001-brakes.sql`):
+
+| Column | What |
+|---|---|
+| `h` | base64url(SHA-256(`BRAKE_KEY` ‖ `\n` ‖ day ‖ `\n` ‖ address)) |
+| `n` | how many links that address made that day |
+| `day` | the UTC day number, days since 1970 |
+
+`BRAKE_KEY` is a secret of the deployment (`wrangler secret put BRAKE_KEY`; `tinier/.dev.vars` on a
+development machine, never in the repository; without it the Worker serves nothing and says why). Without the
+key a row says nothing of the address; with it, only that the address made links that day, and how many. The
+count is one statement (`INSERT … ON CONFLICT DO UPDATE SET n = n + 1 RETURNING n`), and the 101st request of a
+day is refused with 429 and `Retry-After` to the next UTC day. A refused request is not a link; a malformed one
+is not counted.
+
+Nothing else: no address in the clear, no user agent, no count of opens. Anyone may ask `GET /api/<id>` for any
+id; without the key, what comes back does not open.
 
 ## For how long
 
-- **Lifetimes.** An hour, a day, a week, a month or a year, chosen in Share (a week unless the person chose
-  otherwise, and Saved remembers the choice). The service accepts those five and no other.
-- **Extending.** An update may carry a lifetime, and the expiry becomes the later of the current one and now
-  plus that lifetime: an update never cuts a link short. The owner sees Extend in Share, and on the banner.
-- **Forgetting.** A row past its expiry is deleted the moment it is asked for, and every hour (a cron at
-  minute 17) deletes every row past its time. Delete, by the owner, removes the row at once.
+- **Links.** An hour, a day, a week or a month (Paul, 2026-10-11: "Make the max expire a month"), chosen in
+  Share; a week unless the person chose otherwise. A row past its time is deleted the moment it is asked for,
+  and every hour (a cron at minute 17) deletes every row past its time.
+- **Counts.** The same hourly sweep deletes the counts of every day but today and yesterday: a count lives at
+  most two days.
 - **D1's own history.** Cloudflare D1 keeps a point-in-time history of each database (Time Travel) for a
-  limited window, as a platform feature that cannot be turned off. A deleted row is gone from the table but
-  could be restored from that history by the account's operator until the window passes. It is still
-  ciphertext.
+  limited window, which cannot be turned off. A deleted row could be restored from it by the account's
+  operator until the window passes. The links are still ciphertext; the counts are still hashes.
+
+## What the service is to a stranger
+
+A store of up to 16 KB of opaque bytes per link, a hundred links a day per address, kept up to a month,
+readable by whoever has the id, and never opened anywhere but the site: its page decrypts only a link to Tiny
+Little Office and goes nowhere else. It cannot tell a document from any other ciphertext, so someone could
+keep other bytes there. The limits are what bound it.
 
 ## The expiry banner
 
-Everyone who arrives by a short link is told how long it has left: the service's page adds
-`?s=<id>&x=<expires>` to the fragment it hands on, and the site shows "This link expires in 12 days" under
-the header (`timeLeft` and `expiresSentence` in short.ts), coloured by how soon: a week or more, within a
-week, and the last day. It offers "Copy into a new document", which opens a copy (under a long link of its own, which
-no service holds and so nothing expires); the owner also gets Extend.
+Everyone who arrives by a short link is told how long it has left: the site shows "This link expires in 12
+days" under the header (`timeLeft` and `expiresSentence` in short.ts), colored by how soon, with "Copy into a
+new document", which opens a copy under a long link of its own that nothing expires.
 
 ## What its logs hold
 
-Nothing. That is enforced in three places, each held by a test (`test/tinier.test.ts`):
-
-- `tinier/wrangler.jsonc` sets `"observability": { "enabled": false }`, so Cloudflare writes no Worker logs or
-  traces for it;
-- no file in `tinier/` makes a console call, so there is nothing to log even if logging were on;
-- the site's own `wrangler.jsonc` sets the same.
-
-The rate limit (60 writes an hour per address in each instance's memory, and the platform's limiter of 10 a
-minute per address) counts addresses in memory and writes nothing down. Cloudflare, which terminates TLS,
-sees each request's address and path as it does for any site it serves, and keeps its own aggregate counts
-for the account. The threat model (`docs/threat-model.md`) says what that leaves.
+Nothing, held by `test/tinier.test.ts`: `tinier/wrangler.jsonc` sets `"observability": { "enabled": false }`,
+no file in `tinier/` makes a console call, and the site's own `wrangler.jsonc` sets the same. Cloudflare, which
+terminates TLS, sees each request's address and path as it does for any site it serves. The threat model
+(`docs/threat-model.md`) says what that leaves.
 
 ## Checking it yourself
 
-`test/vectors/short-links.json` gives a fixed key, IV, long link and owner key, with the ciphertext, the
-owner hash and the two links. With any AES-GCM and SHA-256:
+`test/vectors/short-links.json` gives a fixed key, IV and long link, with the ciphertext and the link. With
+any AES-GCM:
 
 ```
-c     = base64url(AES-256-GCM-encrypt(keyHex, ivHex, UTF-8(link), no AAD))   == c
-owner = base64url(SHA-256(oHex))                                              == ownerHash
+c = base64url(AES-256-GCM-encrypt(keyHex, ivHex, UTF-8(link), no AAD))   == c
 ```
 
 The fixed key and IV exist only in the vectors; `sealShortAt` in short.ts, which takes an IV, is marked for

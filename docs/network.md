@@ -15,7 +15,7 @@ not on this list is refused by the browser itself.
 | `tile.openstreetmap.org` | The map’s pictures (tiles) in the Trip Planner, asked directly as OpenStreetMap’s policy asks | while shown | Which squares of the map are on the screen; no referrer | Map, in the Trip Planner’s bar, turned off | apps/trip/editor.ts | `img-src` |
 | `nominatim.openstreetmap.org` | Place search in the Trip Planner | after a tap | The words searched for; no referrer | Not searching: typing a stop’s place by hand asks no one | apps/trip/editor.ts | `connect-src` |
 | `www.openstreetmap.org` | The Trip Planner’s credit to OpenStreetMap under its map, a link | after a tap | Nothing of the document: it opens OpenStreetMap’s copyright page in a new tab | Not following the link | apps/trip/editor.ts | none: it opens in a new tab |
-| `tinier.tinylittleoffice.com` | Short links: made, opened, updated or forgotten | after a tap | The long link encrypted here, which the service cannot read, and how long to keep it; the owner’s secret to update or forget it | Not making a short link: the long link needs no one | kit/short.ts | `connect-src` |
+| `tinier.tinylittleoffice.com` | Short links: made or opened | after a tap | The long link encrypted here, which the service cannot read, and how long to keep it | Not making a short link: the long link needs no one | kit/short.ts | `connect-src` |
 | `github.com` | The site’s source: the repository, “Open source” at the home page’s foot; the commit this copy was built from and the threat model in full, in About; links | after a tap | Which page of the source; it opens in a new tab, and nothing of the document goes with it | Not following the link: the commit’s name comes from the site’s own /version.json | kit/home.ts, kit/drawer.ts, kit/version.ts | none: it opens in a new tab |
 | `aboard.com` | Aboard, who made the site, named at the home page’s foot, a link | after a tap | Nothing: it opens in a new tab, from the home page, where no document is open | Not following the link | kit/home.ts | none: it opens in a new tab |
 | `bsky.app` | Bluesky’s compose box | on share | The document’s title and its link, which is the whole document (it is in the link) | Not choosing that service in Share; it opens in a new tab, which you then post from or close | kit/share.ts | none: it opens in a new tab |
@@ -32,7 +32,7 @@ follows them; nothing in a document is drawn from another site's address.
   They are asked directly: OpenStreetMap's usage policies are written for the browser that shows the map
   asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people
   not to make. The site sends no referrer.
-- **Short links.** Only when a short link is made, opened, updated or forgotten; the service holds
+- **Short links.** Only when a short link is made or opened; the service holds
   ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send
   (tinier/tinier.ts).
 - **Sharing to a service.** Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in

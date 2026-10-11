@@ -183,7 +183,7 @@ export class ToPrivacy extends LitElement {
       <ul class="to-held">
         ${row('to-held-prefs', t('Preferences'), t('Theme, language, the lifetime of short links.'), held.prefs ? t('{n} set', { n: held.prefs }) : t('None'), held.prefs ? () => forgetPrefs() : null)}
         ${row('to-held-docs', t('Your documents'), t('Their names and links, for the home page.'), t('{n|# document|# documents}', { n: held.documents }), held.documents ? () => forgetDocuments() : null)}
-        ${row('to-held-links', t('Short links'), t('The owner links that update short links you made.'), t('{n|# link|# links}', { n: held.links }), held.links ? () => forgetLinks() : null)}
+        ${row('to-held-links', t('Short links'), t('The short links made here, until they expire.'), t('{n|# link|# links}', { n: held.links }), held.links ? () => forgetLinks() : null)}
         ${row('to-held-history', t('Your browser’s history'), t('Every document opened here, in full, unless it has a password.'), t('Not ours to clear'), null)}
       </ul>
       <button type="button" class="to-btn to-forget-all" @click=${() => void this.forgetAll()}>${icon(UI.trash, 16)}<span>${t('Forget everything')}</span></button>

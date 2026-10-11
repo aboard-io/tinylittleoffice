@@ -58,7 +58,7 @@ export function link(app: string, text: string, opts: LinkOptions = {}): string 
   if (opts.by) head.by = opts.by.replace(/\s+/g, ' ').trim();
   const doc = Object.keys(head).length ? withHead(text, head) : text;
   const site = (opts.site ?? SITE).replace(/\/?$/, '/');
-  return `${site}${app}/${routeHash(app, encodeDoc(doc), opts.view ?? '', null, !!opts.display)}${opts.show ? (opts.display ? '&show' : '?show') : ''}`;
+  return `${site}${app}/${routeHash(app, encodeDoc(doc), opts.view ?? '', !!opts.display)}${opts.show ? (opts.display ? '&show' : '?show') : ''}`;
 }
 
 /** The plain-parameter link for a document ("<site><app>/#title=…&doc=…"): longer, but readable and writable by hand. */

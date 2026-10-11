@@ -40,7 +40,7 @@ Since round seventeen (Paul, 2026-10-11) the document carries no key and no proo
 | Copy a link that downloads .ext | app.ts doc dialog "Download" row | Per format, a button that copies `#/v0/<app>.<ext>/…`. | **restored** (RS-3): Download's "Copy a link that downloads" group | In the kit: rows in the `to-doc` dialog. |
 | Per-app OG share cards | public/og/*.png (33), scripts/make-icons.mjs, vite.config og:image per app | Each app page previews with its own sketch card. | **restored** (RS-3): scripts/make-cards.ts, public/og/<app>.png, og:image per app page | Port make-icons.mjs's card sketches for the 13 apps. Set og:image per app in `afterBuild()`. |
 | Shortener: TTL choices | lib/short.ts, tinier/ | An hour, a day, a week or a month. | **present** (plus a year) | — |
-| Shortener: owner links, update, extend, delete, kept owner links | — (new) | — | **present** (new in next: tinier PUT/DELETE, kit/short.ts, kit/links.ts) | — |
+| Shortener: short links that expire, kept in a list here | — (new) | — | **present** (immutable since round seventeen: no owner, update or delete; kit/short.ts, kit/links.ts) | — |
 | Shortener worker, D1, rate limit, cron, no logs | tinier/* | — | **present** (superset) | — |
 
 ## 3. Shell and kit

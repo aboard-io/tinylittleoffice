@@ -82,10 +82,10 @@ dd{margin:0}
 </section>
 <section class="reach">
 <h3><code>tinier.tinylittleoffice.com</code></h3>
-<p>Short links: made, opened, updated or forgotten.</p>
+<p>Short links: made or opened.</p>
 <dl>
 <dt>When</dt><dd>after a tap</dd>
-<dt>Carries</dt><dd>The long link encrypted here, which the service cannot read, and how long to keep it; the owner’s secret to update or forget it</dd>
+<dt>Carries</dt><dd>The long link encrypted here, which the service cannot read, and how long to keep it</dd>
 <dt>Stopped by</dt><dd>Not making a short link: the long link needs no one</dd>
 <dt>Made by</dt><dd><code>kit/short.ts</code></dd>
 <dt>Allowed by</dt><dd><code>connect-src</code></dd>
@@ -161,7 +161,7 @@ dd{margin:0}
 <h2>Why each of these is asked directly</h2>
 <ul>
 <li><strong>The map.</strong> Map tiles only while a map is on the screen; place search only when a search is tapped. They are asked directly: OpenStreetMap's usage policies are written for the browser that shows the map asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people not to make. The site sends no referrer.</li>
-<li><strong>Short links.</strong> Only when a short link is made, opened, updated or forgotten; the service holds ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send (tinier/tinier.ts).</li>
+<li><strong>Short links.</strong> Only when a short link is made or opened; the service holds ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send (tinier/tinier.ts).</li>
 <li><strong>Sharing to a service.</strong> Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so whoever reads the post can read it. &quot;Any https address&quot; there is the Mastodon server the person names.</li>
 <li><strong>Fonts and icons.</strong> Self-hosted, from the site itself; the full icon set is a chunk of the site's own, loaded when the icon picker opens.</li>
 <li><strong>Links.</strong> A link in a document that leaves the site opens only after the reader is shown where it goes and says Go (kit/link-guard.ts), in a new tab with no referrer.</li>

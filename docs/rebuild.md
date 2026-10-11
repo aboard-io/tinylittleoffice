@@ -45,7 +45,8 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 9. **Living short links** — a short link may be updated by whoever holds its owner key (a capability in the
    fragment, never sent as plaintext); tinier stores a new ciphertext under the same id. The latest version of a
    document without the service ever reading it. (Built ahead of its turn, on the skeleton: `tinier/`,
-   `src/kit/short.ts`, `src/kit/links.ts`, the router's `?s=&k=&o=`; the README's "Living short links".)
+   `src/kit/short.ts`, `src/kit/links.ts`, the router's `?s=&k=&o=`. Made immutable in round seventeen, Paul,
+   2026-10-11: no update, no owner, a month at most; `docs/crypto/short-links.md`.)
 10. **The tour deck** — every feature, real sample data per insert, an architecture diagram, tested in several
     scripts and every export, as a short link.
 

@@ -10,7 +10,7 @@ any copy reads it). This takes about thirty minutes, most of it waiting for a do
 | Worker | Config | What it is | Storage |
 | --- | --- | --- | --- |
 | the site | `wrangler.jsonc` | `dist/` as static assets, with `dist/_headers` (the Content-Security-Policy). No script runs on the server. | none |
-| tinier | `tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out (README, "Living short links") | D1: one table, swept hourly by a cron trigger |
+| tinier | `tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out, a hundred links a day per address (README, "Short links") | D1: two tables, swept hourly by a cron trigger |
 
 Each has `observability` off and `workers_dev` off: no logs, and no `*.workers.dev` copy. Keep it that way
 unless you mean to change what your copy knows about its readers.
@@ -50,8 +50,8 @@ ours to yours, in five places:
 
 4. **The policy.** In `public/_headers`, the `connect-src` names `https://tinier.tinylittleoffice.com`:
    change it to your tinier's address, or the browser will refuse every short link.
-5. **The rate limit.** `tinier/wrangler.jsonc` names a `ratelimits` `namespace_id` ("1"); any number not
-   used by another Worker on your account will do.
+5. **The brake.** tinier counts its own, a hundred links a day per address, in D1, under a keyed hash: set the
+   Worker secret `BRAKE_KEY` (tinier/wrangler.jsonc says how).
 
 ## 3. The short links' database
 
@@ -60,11 +60,26 @@ npx wrangler d1 create tinier
 ```
 
 Put the `database_id` it prints into `tinier/wrangler.jsonc` (it is not a secret, but it is your account's,
-so a fork that is public will show it), then make the table:
+so a fork that is public will show it), then make the tables:
 
 ```sh
-npm run tinier:schema      # tinier/schema.sql, on the remote database; safe to run again
+npm run tinier:schema      # tinier/schema.sql and tinier/migrations/, on the remote database; safe to run again
 ```
+
+A copy made before the daily count was added has the links table already; apply the migration alone:
+
+```sh
+npx wrangler d1 execute tinier -c tinier/wrangler.jsonc --remote --file=tinier/migrations/0001-brakes.sql
+```
+
+Then give tinier the secret its daily counts are kept under: any long random string, kept nowhere else.
+
+```sh
+openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY -c tinier/wrangler.jsonc
+```
+
+Without it tinier answers nothing and says why. On a development machine, put `BRAKE_KEY=<any string>` in
+`tinier/.dev.vars` (ignored by git) for `npm run tinier:dev`.
 
 ## 4. Deploy
 

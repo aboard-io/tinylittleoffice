@@ -197,7 +197,7 @@ test('what this device holds, item by item with Forget, and Download everything:
   keep({ id: 'a', app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc('---\ntitle: Launch notes\n---\nGo.\n')}`, at: Date.now() });
   keep({ id: 'b', app: 'sheet', title: '', hash: `#/v1/sheet/${encodeDoc('a | b\n--- | ---\n1 | 2\n')}`, at: Date.now() - 1 });
   keep({ id: 'c', app: 'write', title: '', hash: `#/v1/write/${await pack('secret', await lockWith('pw'))}`, at: Date.now() - 2 });
-  keepLink({ owner: 'https://tinier.example/abcdefg#k.o', title: 'Launch notes', made: Date.now(), expires: Date.now() + 86_400_000 });
+  keepLink({ link: 'https://tinier.example/abcdefg#k', title: 'Launch notes', made: Date.now(), expires: Date.now() + 86_400_000 });
   // The preferences other test files on this origin left on the device are not this test's: gone, then the one it sets.
   for (const k of PREFS) (store.remove(k), localStorage.removeItem(k));
   store.set('to-theme', 'dark');

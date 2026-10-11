@@ -45,7 +45,7 @@ import { ENVELOPE_KEYS, isoMinute } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportItems, printDoc, viewAs } from './exports.ts';
-import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash } from './route.ts';
 import { keeping, onPrivacy, pack, reopen, setPrivate } from './privacy.ts';
 import { copyText } from './share.ts';
 import { trustButton, type ToPrivacy } from './privacy-dialog.ts';
@@ -91,7 +91,6 @@ export class ToShell extends LitElement {
     doc: { state: true },
     tag: { state: true },
     unreadable: { state: true },
-    owned: { state: true },
     changed: { state: true },
     display: { state: true },
     fresh: { state: true },
@@ -108,11 +107,10 @@ export class ToShell extends LitElement {
   declare doc: Doc;
   declare tag: string; // the editor element's tag, once its chunk has arrived
   declare unreadable: boolean; // the link holds something that cannot be read (cut short when copied, most often)
-  declare owned: Owned | null; // the short link this document may update; rides in the hash (kit/route.ts), never in a shared link
-  declare changed: boolean; // edited since the short link last had this document
   declare display: boolean; // shown as its pages (the Display Link), not in the editor
   declare fresh: string; // a new document's name, until it is given one: "New Spreadsheet 2026-10-09 #1"
-  declare expires: number; // when the short link this document is tied to expires, ms since the epoch; 0 when none is known
+  declare changed: boolean; // edited since it was opened
+  declare expires: number; // when the short link this document arrived by expires, ms since the epoch; 0 when it did not
   declare arrived: boolean; // arrived by a short link this visit, its banner not closed
   declare sealed: string; // the sealed payload waiting for its password; '' once opened, or with none
   declare locker: Locker | null; // the password's key while this document has one; memory only
@@ -128,7 +126,6 @@ export class ToShell extends LitElement {
   private viewZoom = 1;
   private unpinch = () => {};
   private refocus = false; // the address changed under the focus: a page with no editor puts it in its column once drawn
-  private displayOwner = false; // a short link's owner arrived with "?d": the short link goes on opening the pages
   private edited: Doc = ''; // what the editor was last given or gave: without the new name the link carries for it
   private offs: (() => void)[] = [];
   private pendingView = ''; // a view asked for in the link ("text.png/…"): done once the editor is up
@@ -147,10 +144,9 @@ export class ToShell extends LitElement {
       doc: '',
       tag: '',
       unreadable: false,
-      owned: null,
-      changed: false,
       display: false,
       fresh: '',
+      changed: false,
       expires: 0,
       arrived: false,
       sealed: '',
@@ -183,7 +179,7 @@ export class ToShell extends LitElement {
     on(document, 'visibilitychange', this.onVisibility);
     on(this, 'focusout', this.flushLink);
     on(this, 'to-keys', this.showKeys);
-    on(this, 'to-share-open', ((e: CustomEvent<{ short?: boolean } | null>) => void this.openShare(!!e.detail?.short)) as EventListener);
+    on(this, 'to-share-open', () => void this.openShare());
     on(this, 'to-link-copied', () => ((this.copied = true), this.guard()));
     on(this, 'click', this.onFollow as EventListener);
     on(window, 'to-leave', this.onGo);
@@ -257,14 +253,13 @@ export class ToShell extends LitElement {
     this.refocus = !!document.activeElement && document.activeElement !== document.body && this.contains(document.activeElement);
     unplain(this.pageApp());
     this.comparing = parseCompare(location.hash);
-    const { app, payload, view: asked, owned, display, arrived, sealed, show, version } = parseHash(location.hash);
+    const { app, payload, view: asked, display, arrived, sealed, show, version } = parseHash(location.hash);
     const view = asked === 'embed' ? '' : asked;
     this.querySelector<ToFind>('to-find')?.close();
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     const def = id ? appOf(id) : undefined;
     this.app = def ? id : null;
     this.pendingView = view;
-    this.owned = def ? owned : null;
     this.changed = false;
     this.copied = false;
     this.payloadLength = payload.length;
@@ -280,8 +275,6 @@ export class ToShell extends LitElement {
     this.embed = !!def && asked === 'embed' && !!payload;
     this.presentSoon = !!def && !!show && !display && !this.embed;
     this.focusSoon = !!def && !this.display && !this.embed && !this.presentSoon && !this.unreadable && !this.sealed && !view;
-    // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
-    this.displayOwner = !!owned && display;
     this.expires = def && arrived ? arrived.expires : 0;
     this.arrived = !!def && !!arrived;
     this.fresh = def && !payload ? newName(def) : '';
@@ -344,7 +337,7 @@ export class ToShell extends LitElement {
     const [view, def] = [this.pendingView, this.def];
     this.pendingView = '';
     if (!view || !def) return;
-    history.replaceState(this.state(), '', routeHash(def.id, parseHash(location.hash).payload, '', this.owned, false, this.tie));
+    history.replaceState(this.state(), '', routeHash(def.id, parseHash(location.hash).payload));
     await viewAs(view, this.current);
   }
 
@@ -388,7 +381,7 @@ export class ToShell extends LitElement {
   private writeLink(app: string, payload: string) {
     this.payloadLength = payload.length;
     this.keepSoon(payload);
-    history.replaceState(this.state(), '', routeHash(app, payload, '', this.owned, false, this.tie));
+    history.replaceState(this.state(), '', routeHash(app, payload));
     this.setTitle();
   }
   /** The editor's change: the text kept, the link left until typing pauses (one timer a burst); nothing drawn (`edited` is not reactive). */
@@ -529,7 +522,7 @@ export class ToShell extends LitElement {
   private get outerTitle(): string {
     return this.def && (this.locker || this.sealed) ? t('Locked document') : this.docTitle;
   }
-  /** The link to share, the editing one: the address without the owner's query (that stays in the address bar alone) or the display flag. */
+  /** The link to share, the editing one: the address without the short link's query or the display flag. */
   get link(): string {
     return this.linkTo(false);
   }
@@ -541,13 +534,9 @@ export class ToShell extends LitElement {
     this.flushLink();
     if (!this.app) return location.href;
     const u = new URL(location.href);
-    u.hash = routeHash(this.app, parseHash(location.hash).payload, '', null, display);
+    u.hash = routeHash(this.app, parseHash(location.hash).payload, '', display);
     return u.href;
   };
-  /** The short link this document owns and its expiry, as the address carries them beside the owner's query; null unless both are known. */
-  private get tie() {
-    return this.owned && this.expires ? { id: this.owned.id, expires: this.expires } : null;
-  }
   private current = () => (this.flushLink(), { doc: this.doc, ctx: { def: this.def!, title: this.def!.title(this.doc) || this.fresh, link: this.link } });
 
   /** What the page's commands act on (kit/keys.ts): print, the shortcuts, find, keep, share, download, the palette, and undo passed to the editor. */
@@ -611,13 +600,13 @@ export class ToShell extends LitElement {
 
   /* ---------- sharing (the dialog is <to-share>'s) ---------- */
 
-  /** The Share dialog, open; `short` scrolls it to the short link's section (the banner's Extend). */
-  async openShare(short = false) {
+  /** The Share dialog, open. */
+  async openShare() {
     this.flushLink();
     // Drawn again first, so the dialog has <to-privacy>'s part as it is now.
     this.requestUpdate();
     await this.updateComplete;
-    await this.querySelector<ToShare>('to-share')?.show(short);
+    await this.querySelector<ToShare>('to-share')?.show();
   }
   /** Download, by its key: the drawer, its table open (the drawer's This document holds it, the header being the title). */
   private async openDownload() {
@@ -626,11 +615,6 @@ export class ToShell extends LitElement {
     await drawer.show();
     drawer.querySelector<ToMenu>('to-menu.to-drawer-download')?.open();
   }
-  /** A short link made, updated or forgotten: the address carries the owner's tie to it, or no longer. */
-  private onOwned = (e: CustomEvent<{ owned: Owned | null; expires: number }>) => {
-    Object.assign(this, { ...e.detail, changed: false, arrived: this.arrived && !!e.detail.owned });
-    if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned, false, this.tie));
-  };
   /** This document, as a fresh plain link in a new tab (share-dialog.ts openCopy). */
   copyIntoNew = () => void (this.def && !this.sealed && (this.flushLink(), openCopy(this.def, this.doc, this.docTitle, this.locker)));
   /** The title box: the name given, in the head (and to the editor); a new document's own name is spent. */
@@ -667,7 +651,7 @@ export class ToShell extends LitElement {
         : this.pages(def);
       return html`<to-chrome .plain=${{ kind: 'embed', title: this.docTitle, href: u.href, locked: !!this.sealed }} .main=${main}></to-chrome>`;
     }
-    const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null);
+    const href = routeHash(def.id, payload, '', false, this.arrived && arrived ? arrived : null);
     const main = this.pages(def);
     // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
     const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;
@@ -704,12 +688,12 @@ export class ToShell extends LitElement {
       ? this.renderPlain(def)
       : html`<button type="button" class="to-btn to-skip" @click=${this.skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>
           <to-chrome .doc=${def ? { def, title: this.docTitle, value: def.title(this.doc) || this.fresh, locked: !!this.sealed, trust: this.trust(), used: this.payloadLength } : null} .main=${this.renderMain(def)} .mainClass=${`to-main ${editing ? 'to-wide' : ''}`} .label=${def?.name ?? ''} ?barred=${editing} .fresh=${this.fresh && !def?.title(this.doc) ? this.fresh : ''}
-            .expires=${this.arrived ? this.expires : 0} ?extend=${!!this.owned} .other=${this.other} ?newer=${this.newer && !this.unreadable}
+            .expires=${this.arrived ? this.expires : 0} .other=${this.other} ?newer=${this.newer && !this.unreadable}
             @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-palette-open=${() => void this.showPalette()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands} .def=${def ?? null}></to-drawer><to-palette></to-palette>`}<to-toast></to-toast>
       ${
         def
-          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.outerTitle} .locked=${!!this.locker} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .protect=${this.privacy?.renderProtect(!!this.locker) ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
+          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.outerTitle} .locked=${!!this.locker} .payloadLength=${this.payloadLength} .protect=${this.privacy?.renderProtect(!!this.locker) ?? nothing} .linkTo=${this.linkTo}></to-share>
             <to-privacy doc .sealed=${this.sealed} ?protected=${!!this.locker} @to-unlock=${this.onUnlock} @to-lock=${this.onLock}></to-privacy>`
           : nothing
       }

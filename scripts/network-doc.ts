@@ -37,7 +37,7 @@ follows them; nothing in a document is drawn from another site's address.
   They are asked directly: OpenStreetMap's usage policies are written for the browser that shows the map
   asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people
   not to make. The site sends no referrer.
-- **Short links.** Only when a short link is made, opened, updated or forgotten; the service holds
+- **Short links.** Only when a short link is made or opened; the service holds
   ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send
   (tinier/tinier.ts).
 - **Sharing to a service.** Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in

@@ -20,7 +20,7 @@
 <main>
   <div class="mark">t</div>
   <h1 id="h">Opening…</h1>
-  <p id="p">A shorter link to a <a href="https://tinylittleoffice.com/">Tiny Little Office</a> document. The document is in the long link, encrypted here with a key this page alone has; the server keeps only the ciphertext, until the link expires.</p>
+  <p id="p">A shorter link to a <a href="https://tinylittleoffice.com/">Tiny Little Office</a> document. The document is in the long link, encrypted here with a key this page alone has; the server keeps only the ciphertext, until the link expires. A short link cannot be changed or recalled once made, and one address may make up to a hundred links a day.</p>
   <p id="err" hidden></p>
   <p id="go" hidden><a id="a" href="#">Go to the document</a></p>
 </main>
@@ -30,23 +30,21 @@
   const h = document.getElementById('h'), p = document.getElementById('p'), err = document.getElementById('err'), go = document.getElementById('go'), a = document.getElementById('a');
   const fail = (m) => { h.textContent = 'tinier'; err.textContent = m; err.hidden = false; };
   if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Make a short link from Share in Tiny Little Office.'); }
-  // "#<key>" opens the latest version; "#<key>.<o>" is the owner's, whose o is handed on to the site (never to this server).
-  const [key, o] = location.hash.slice(1).split('.');
+  const key = location.hash.slice(1);
   if (!key) return fail('This link is missing its key (the part after #). Ask for it again.');
   try {
     const r = await fetch('api/' + id);
     if (!r.ok) return fail('No such link, or it has expired.');
-    const { c, iv, exp, ver } = await r.json();
+    const { c, iv, exp } = await r.json();
     const un = (s) => Uint8Array.from(atob(s.replace(/[-~]/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
     const site = '{{site}}';
     if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to Tiny Little Office.');
-    // Everyone arrives knowing how long the link has left (s, x); the owner arrives able to update it too (k, o). All of it rides in the fragment's query, which the site strips from every link it shares.
-    const owner = o && /^[A-Za-z0-9_~-]{43}$/.test(o) ? '&k=' + key + '&o=' + o : '';
-    const to = plain.includes('#') ? plain + '?s=' + id + owner + '&x=' + exp : plain;
+    // Everyone arrives knowing how long the link has left (s, x), in the fragment's query, which the site strips from every link it shares.
+    const to = plain.includes('#') ? plain + '?s=' + id + '&x=' + exp : plain;
     a.href = to; go.hidden = false;
-    p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + (ver > 1 ? ' (version ' + ver + ')' : '') + '.';
+    p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + '.';
     location.replace(to);
   } catch (e) { fail('The key does not fit this link.'); }
 })();

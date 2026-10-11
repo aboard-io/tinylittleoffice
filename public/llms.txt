@@ -487,13 +487,13 @@ Every document downloads as a `.pdf` (its pages as pictures; Print in the browse
 
 The API below is this site's. Make a short link at the shortener of the site the link opens on, `tinier.<the site's host>`: the shortener opens only links to its own site. An agent on a development machine running its own copy of the site uses that site's `/tinier/` (the shortener started with `SITE` set to the site's address, `npm run tinier:dev`), and the link it makes opens there; production's shortener accepts only links to production.
 
-A long link can be shortened at tinier.tinylittleoffice.com for an hour, a day, a week, a month or a year. The link is encrypted where it is made (AES-256-GCM, a random key); only the ciphertext goes to the service, and the key travels in the short link's fragment, which browsers never send. A program can do the same:
+A long link can be shortened at tinier.tinylittleoffice.com for an hour, a day, a week or a month. The link is encrypted where it is made (AES-256-GCM, a random key); only the ciphertext goes to the service, and the key travels in the short link's fragment, which browsers never send. A program can do the same:
 
 ```
-POST https://tinier.tinylittleoffice.com/api   {c, iv, ttl, owner}   → 201 {id, exp}
+POST https://tinier.tinylittleoffice.com/api   {c, iv, ttl}   → 201 {id, exp}
 ```
 
-`c` and `iv` are the AES-GCM ciphertext of the long link and its 12-byte IV, base64url; `ttl` is 3600, 86400, 604800, 2592000 or 31536000 seconds; `owner` is base64url(sha256(o)) for 32 random bytes `o` you keep. The short link is `https://tinier.tinylittleoffice.com/<id>#<key>` (the key as base64url); `…#<key>.<o>` is the owner's link, which can update (`PUT /api/<id> {c, iv, o, ttl?}`: a new version under the same link) or forget it (`DELETE /api/<id> {o}`). The ciphertext may be 16 KiB at most.
+`c` and `iv` are the AES-GCM ciphertext of the long link and its 12-byte IV, base64url; `ttl` is 3600, 86400, 604800 or 2592000 seconds (a month at most). The short link is `https://tinier.tinylittleoffice.com/<id>#<key>` (the key as base64url). A short link cannot be changed or recalled once made; it expires on its own, so make a new one for a new version. The ciphertext may be 16 KiB at most, and one address may make a hundred links a day (the 101st is 429, with `Retry-After`).
 
 ## Who made it
 

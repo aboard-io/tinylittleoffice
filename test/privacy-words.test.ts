@@ -11,8 +11,8 @@ const source = readFileSync(join(import.meta.dirname, '..', 'src', 'i18n', 'en.t
 test("no string promises what the browser's history makes untrue", () => {
   expect(source).not.toMatch(/no trace/i);
   expect(source).not.toMatch(/nothing is kept/i);
-  // A forgotten short link is gone for those who come later, not for those who already opened it.
-  expect(source).not.toMatch(/Anyone who has it will find nothing/i);
+  // A short link cannot be forgotten or recalled, so nothing may offer to.
+  expect(source).not.toMatch(/Anyone who has it will find nothing|Forget this short link/i);
   // No picture is fetched for a document (round seventeen): the map is the one thing that asks the web by itself.
   expect(source).not.toMatch(/picture service|trusted list/i);
 });
@@ -22,7 +22,8 @@ test('the words that say what is true are there', () => {
   expect(keys).toContain('This site keeps nothing on this device. Your browser’s history still holds every link opened here, and a link is the document: use a private window, or give it a password.');
   expect(keys).toContain('Your browser’s history');
   expect(keys).toContain('Every document opened here, in full, unless it has a password.');
-  expect(keys).toContain('Forget this short link? Anyone who opens it from now on finds nothing. Anyone who already opened it still has the document.');
+  // A short link is not promised to be recallable: it cannot be (round seventeen), and the Share dialog says so.
+  expect(keys).toContain('A short link cannot be changed or recalled once made; it expires on its own.');
   expect(keys).toContain('Nothing you write leaves your browser unless you share the link. One thing asks the web by itself: a trip’s map, whose pictures come from OpenStreetMap while it is shown.');
   expect(keys).toContain('Turn on Saved and keep it here');
 });

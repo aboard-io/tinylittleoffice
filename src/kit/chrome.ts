@@ -48,7 +48,7 @@
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
- * events: `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter, a short link's Extend: detail.short),
+ * events: `to-drawer-open` (the menu button), `to-palette-open` (the command palette's button, at the bar's end), `to-share-open` (the meter),
  * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -146,7 +146,6 @@ export class ToChrome extends LitElement {
     editing: { type: Boolean, reflect: true },
     indoc: { type: Boolean, reflect: true },
     expires: { type: Number },
-    extend: { type: Boolean },
     inDisplay: { type: Boolean },
     other: { attribute: false },
     newer: { type: Boolean },
@@ -172,8 +171,6 @@ export class ToChrome extends LitElement {
   declare indoc: boolean;
   /** Arrived by a short link that expires then (ms since the epoch); 0: no banner. */
   declare expires: number;
-  /** The banner offers Extend (the owner's link). */
-  declare extend: boolean;
   declare inDisplay: boolean;
   /** Another version of this document kept here, offered in a quiet line; `newer`: the link is from a newer Tiny Little Office. */
   declare other: Kept | null;
@@ -193,7 +190,6 @@ export class ToChrome extends LitElement {
     this.editing = false;
     this.indoc = false;
     this.expires = 0;
-    this.extend = false;
     this.inDisplay = false;
     this.other = null;
     this.newer = false;
@@ -382,7 +378,6 @@ export class ToChrome extends LitElement {
       <p class="to-arrival-words">${expiresSentence(this.expires)}</p>
       <div class="to-arrival-acts">
         <button type="button" class="to-btn to-arrival-copy" @click=${() => this.say('to-copy-new')}>${icon(UI.copy, 16)}<span>${t('Copy into a new document')}</span></button>
-        ${this.extend ? html`<button type="button" class="to-btn to-arrival-extend" @click=${() => this.say('to-share-open', { short: true })}>${icon(UI.calendar, 16)}<span>${t('Extend')}</span></button>` : nothing}
       </div>
       <button type="button" class="to-btn to-tool to-arrival-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.say('to-arrival-close')}>${icon(UI.close, 20)}</button>
     </div>`;

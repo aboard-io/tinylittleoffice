@@ -6,8 +6,7 @@ import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fromBase64Url, toBase64Url } from '../src/kit/codec.ts';
 import { deriveKey, PBKDF2_ITERATIONS, sealAt, unseal } from '../src/kit/crypt.ts';
-import { ownerHash, ownerLink, publicLink, sealShortAt, shortLink, unshorten } from '../src/kit/short.ts';
-import { ownerHash as serverHash } from '../tinier/tinier.ts';
+import { sealShortAt, shortLink, unshorten } from '../src/kit/short.ts';
 
 const read = (name: string) => JSON.parse(readFileSync(new URL(`vectors/${name}`, import.meta.url), 'utf8'));
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
@@ -49,7 +48,7 @@ for (const [i, v] of (read('password.json').vectors as Record<string, string>[])
   });
 }
 
-test('short links: the ciphertext, the owner hash on both sides, the two links', async () => {
+test('short links: the ciphertext and the link', async () => {
   for (const v of read('short-links.json').vectors as Record<string, string>[]) {
     expect(toBase64Url(unhex(v.keyHex))).toBe(v.key);
     expect(await sealShortAt(v.link, unhex(v.keyHex), unhex(v.ivHex))).toEqual({ c: v.c, iv: v.iv });
@@ -57,15 +56,7 @@ test('short links: the ciphertext, the owner hash on both sides, the two links',
     const k = await subtle.importKey('raw', unhex(v.keyHex), 'AES-GCM', false, ['decrypt']);
     expect(new TextDecoder().decode(await subtle.decrypt({ name: 'AES-GCM', iv: unhex(v.ivHex) }, k, b64(v.c)))).toBe(v.link);
     expect(b64(v.c).length).toBe(utf8(v.link).length + 16);
-    expect(hex(b64(v.o))).toBe(v.oHex);
-    expect(await ownerHash(v.o)).toBe(v.ownerHash);
-    expect(await serverHash(v.o)).toBe(v.ownerHash);
-    expect(toBase64Url(new Uint8Array(await subtle.digest('SHA-256', unhex(v.oHex))))).toBe(v.ownerHash);
-    const owned = { id: v.id, key: v.key, o: v.o },
-      at = 'https://tinier.tinylittleoffice.com/';
-    expect(shortLink(owned, at)).toBe(v.short);
-    expect(ownerLink(owned, at)).toBe(v.owner);
-    expect(publicLink(v.owner)).toBe(v.short);
+    expect(shortLink(v.id, v.key, 'https://tinier.tinylittleoffice.com/')).toBe(v.short);
   }
 });
 
@@ -85,7 +76,7 @@ test("the entry points that take an IV are the tests' alone: nothing in the site
 test('the vectors\' text is written with "~" for 62, and the same text with "-" (as written before) is the same bytes', () => {
   const texts = [
     ...(read('password.json').vectors as Record<string, string>[]).map((v) => v.sealed.slice(1)),
-    ...(read('short-links.json').vectors as Record<string, string>[]).flatMap((v) => [v.key, v.iv, v.c, v.o, v.ownerHash]),
+    ...(read('short-links.json').vectors as Record<string, string>[]).flatMap((v) => [v.key, v.iv, v.c]),
   ];
   expect(texts.join('')).toContain('~');
   for (const s of texts) {
