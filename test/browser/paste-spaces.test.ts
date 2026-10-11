@@ -3,7 +3,6 @@
 // cut and paste before trying to copy one sentence multiple times."). The format says them: "\ " at a line's ends.
 import { expect, test } from 'vitest';
 import { parse, plainText, write, type Block } from '../../src/doc/index.ts';
-import { appOf } from '../../src/kit/apps.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -81,7 +80,8 @@ test('a paragraph that ends in a line break, and one that is only spaces, come b
 
 test("the walks' replay: Enter where the letter's words leave a space or a break at a block's end, and the link is written back as it is read", async () => {
   // (VITE_WALK_SEED=1891995401, text at a desktop: "Portland,  {.right}" once lost its space in the link.)
-  const letter = appOf('write')!.templates.find((x) => x.id === 'letter')!.doc;
+  // The letter as its template was then, its address written out (the template is hints since 2026-10-11).
+  const letter = 'Mara Quill\nHarbor Studio, 14 Quay Street\nPortland, ME 04101\nmara@harborstudio.example {.right}\n\n2 October 2026\n\nDear Ms Okafor,\n';
   const { shell, text } = await open(letter);
   const first = () => plainText((text.blocks[0] as Extract<Block, { runs: unknown }>).runs);
   // After "Portland, ", at the end of "Mara Quill" (before its line break), and at the very start.

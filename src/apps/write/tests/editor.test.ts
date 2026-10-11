@@ -196,7 +196,7 @@ test("the invoice: money in the head's currency, Amount locked, a quantity chang
   await until(() => !!cell(el, 'E7'));
   expect(cell(el, 'E7').value).toBe('€5,486.40');
   expect(cell(el, 'E1').readOnly).toBe(true);
-  expect(el.querySelector<HTMLTextAreaElement>('#write-field-from')!.value).toBe('Harbor Studio\n14 Quay Street\nPortland, ME 04101');
+  expect(el.querySelector<HTMLTextAreaElement>('#write-field-from')!.value).toBe('Your name\nStreet and number\nTown and postcode');
   await typeCell(el, cell(el, 'B1'), '20');
   await until(() => cell(el, 'E7').value === '€6,782.40');
   const before = last();

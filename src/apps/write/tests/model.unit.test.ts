@@ -160,7 +160,7 @@ test('pages draw the table worked out, the head fields, a footnote, a web card a
   const p = { svg: all.map((x) => x.svg).join('') };
   expect(all[0].svg).toContain('$5,486.40');
   expect(p.svg).toContain('FROM');
-  expect(p.svg).toContain('Harbor Studio');
+  expect(p.svg).toContain('Street and number');
   expect(p.svg).toContain('Said in passing');
   expect(p.svg).toContain('YouTube');
   expect(p.svg).toContain(appOf('sheet')!.name);
@@ -236,7 +236,7 @@ test('every template is a whole document: a name and a blurb, no placeholder wor
   for (const t of write_.templates) {
     expect(t.name, t.id).toBeTruthy();
     expect(t.blurb, t.id).toMatch(/\.$/);
-    expect(t.doc, t.id).not.toMatch(/[Ll]orem ipsum|TODO|Your name|Day Month Year/);
+    expect(t.doc, t.id).not.toMatch(/[Ll]orem ipsum|TODO|Day Month Year|[Ii]nsert here/);
     const look = parse(t.doc).head.look;
     if (look) expect(LOOK_IDS, t.id).toContain(look);
   }
@@ -247,6 +247,60 @@ test('every template is a whole document: a name and a blurb, no placeholder wor
   expect(tables('syllabus')[1].values[4][1]).toBeCloseTo(1);
   expect(tables('recipe')[0].values[7][3]).toBe(9);
   expect(tables('minutes')[0].values[4][1]).toBe(1453);
+});
+
+/** Each template's words before they were lightened (2026-10-11), the prose its sample story carried. */
+const BEFORE: Record<string, number> = {
+  letter: 121,
+  cover: 175,
+  memo: 158,
+  meeting: 94,
+  minutes: 153,
+  resume: 50,
+  cv: 103,
+  invoice: 6,
+  contract: 45,
+  newsletter: 130,
+  recipe: 150,
+  faq: 192,
+  press: 148,
+  news: 243,
+  interview: 274,
+  'book-review': 258,
+  'music-review': 197,
+  thesis: 436,
+  grant: 207,
+  syllabus: 148,
+  complaint: 263,
+  politician: 203,
+  love: 197,
+  wedding: 228,
+  eulogy: 229,
+  zine: 230,
+  petition: 156,
+  terms: 234,
+};
+
+test('every template is its shape and a hint at each part, not a story: a third of its words, the prose in italics (Paul, 2026-10-11)', () => {
+  for (const t of write_.templates) {
+    const doc = parse(t.doc);
+    const n = wordCount(doc);
+    // Under a third of what it carried; the three that carried a heading's worth (the invoice, the contract, the résumé) no more than they did.
+    expect(n, t.id).toBeLessThan(BEFORE[t.id] < 60 ? BEFORE[t.id] + 1 : BEFORE[t.id] / 3);
+    expect(n, t.id).toBeLessThan(90);
+    expect(t.doc, t.id).not.toMatch(/Mara|Harbor Studio|Okafor|Lovelace|Biscuit|Reyes|Ferreira|Raman|Casco|Westgate|Middlemarch|Daniel|Hannah/);
+    for (const b of doc.blocks) {
+      if (b.k !== 'p' && b.k !== 'li' && b.k !== 'quote') continue;
+      for (const r of b.runs as { t: string; i?: boolean; b?: boolean; fn?: string }[]) {
+        const words = (r.t.match(/\S+/g) ?? []).length;
+        // Words that are not a hint (italic) nor a label (bold) are the shape's own: a greeting, a sign-off, a line's name.
+        if (!r.i && !r.b) expect(words, `${t.id}: ${r.t}`).toBeLessThanOrEqual(4);
+        // A hint is a sentence or two, at most about fifteen words.
+        if (r.i) expect(words, `${t.id}: ${r.t}`).toBeLessThanOrEqual(18);
+      }
+    }
+    expect(t.doc, t.id).toMatch(/\*[^*\s][^*\n]*\*/);
+  }
 });
 
 test("the look is a head field, absent for sans, never one of the document's own fields, and stable through parse and write", () => {

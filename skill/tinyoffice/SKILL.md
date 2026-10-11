@@ -73,33 +73,29 @@ Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` 
 Meeting notes:
 
 ```
-# Launch meeting {.title}
+# Meeting {.title}
 
-*Monday 5 October 2026 · The studio · Mara, Sam, Dee*
+*The date · where · who came*
 
 ## Agenda
 
-1. Where the site stands
-2. The words for the pages
-3. Launch day
+1. *First item*
+2. *Second item*
 
 ## Notes
 
-The build is on time: four of the six pages are done. Sam has the words for the home page; the other five are still with Acme.
+*What was said, briefly.*
 
 ## Decisions
 
-- We launch on Friday 4 December at ten in the morning.
-- Dee owns the launch checklist.
+- *What was decided.*
 
 ## Actions
 
-- [ ] Sam: chase Acme for the five pages by 16 October
-- [ ] Mara: send the invoice for the first half
-- [x] Dee: book the launch call
+- [ ] *Who does what, by when*
 ```
 
-As a link: <https://tinylittleoffice.com/write/#doc=%23+Launch+meeting+%7B.title%7D%0A%0A%2AMonday+5+October+2026+%C2%B7+The+studio+%C2%B7+Mara%2C+Sam%2C+Dee%2A%0A%0A%23%23+Agenda%0A%0A1.+Where+the+site+stands%0A2.+The+words+for+the+pages%0A3.+Launch+day%0A%0A%23%23+Notes%0A%0AThe+build+is+on+time%3A+four+of+the+six+pages+are+done.+Sam+has+the+words+for+the+home+page%3B+the+other+five+are+still+with+Acme.%0A%0A%23%23+Decisions%0A%0A-+We+launch+on+Friday+4+December+at+ten+in+the+morning.%0A-+Dee+owns+the+launch+checklist.%0A%0A%23%23+Actions%0A%0A-+%5B+%5D+Sam%3A+chase+Acme+for+the+five+pages+by+16+October%0A-+%5B+%5D+Mara%3A+send+the+invoice+for+the+first+half%0A-+%5Bx%5D+Dee%3A+book+the+launch+call>
+As a link: <https://tinylittleoffice.com/write/#doc=%23+Meeting+%7B.title%7D%0A%0A%2AThe+date+%C2%B7+where+%C2%B7+who+came%2A%0A%0A%23%23+Agenda%0A%0A1.+%2AFirst+item%2A%0A2.+%2ASecond+item%2A%0A%0A%23%23+Notes%0A%0A%2AWhat+was+said%2C+briefly.%2A%0A%0A%23%23+Decisions%0A%0A-+%2AWhat+was+decided.%2A%0A%0A%23%23+Actions%0A%0A-+%5B+%5D+%2AWho+does+what%2C+by+when%2A>
 
 Templates: A letter, Cover letter, Memo, Meeting notes, Minutes, Résumé, One-page CV, Invoice, Contract, Newsletter, Recipe, Questions and answers, Press release, News article, Interview, Book review, Music review, Thesis, Grant proposal, Syllabus, Formal complaint, Letter to a politician, Love letter, Wedding speech, Eulogy, Zine essay, Petition, Terms of service. Its own files: `.docx`, `.md`, `.rtf`, `.html`.
 
