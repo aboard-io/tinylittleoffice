@@ -3,7 +3,8 @@
  * server. "#/v1/<app>.<view>/<payload>" opens the document as a view: a file to download on arrival
  * ("text.pdf"), or a way of showing it.
  * "…?d" is the Display Link: the same document shown as its pages, to read or print, with an Edit button
- * (never inside the payload, so the document is the same bytes either way). Everyone who arrives by a short
+ * (never inside the payload, so the document is the same bytes either way); "…?d&text" opens it as its words, reflowed,
+ * rather than its pages (the Text button puts "text" in and takes it out: withText). Everyone who arrives by a short
  * link (kit/short.ts) arrives with "?s=<id>&x=<expires>" (ms since the epoch) after the payload: the shell
  * shows how long the link has left (Paul, 2026-10-09); every link the shell shares is written without it.
  * tinier adds "?s=…" to whatever link it held, so "?d?s=…" reads as "?d&s=…".
@@ -42,6 +43,8 @@ export interface Route {
   show?: true;
   /** The language the link opens in, when its maker chose one. (Absent when none was.) */
   lang?: string;
+  /** A Display Link shown as its text layer, not its pages (kit/text-view.ts). (Absent when it is not.) */
+  text?: true;
 }
 
 const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?(?:\?(.*))?$/;
@@ -85,6 +88,7 @@ export function parseHash(hash: string): Route {
     sealed: isSealed(m[4] ?? ''),
     ...(q.has('show') ? { show: true as const } : {}),
     ...langOf(q),
+    ...(q.has('text') ? { text: true as const } : {}),
   };
 }
 
@@ -93,6 +97,15 @@ export function routeHash(app: string, payload = '', view = '', display = false,
   const parts = [...(display ? ['d'] : []), ...(arrived ? [`s=${arrived.id}`, `x=${arrived.expires}`] : []), ...(lang ? [`lang=${lang}`] : [])];
   const query = parts.length ? `?${parts.join('&')}` : '';
   return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + payload : ''}${query}`;
+}
+
+/** The address with "text" in its query or taken out, the rest as it was ("?d?s=…" read as "?d&s=…"). */
+export function withText(hash: string, on: boolean): string {
+  const at = hash.indexOf('?');
+  const base = at < 0 ? hash : hash.slice(0, at);
+  const params = (at < 0 ? '' : hash.slice(at + 1)).split(/[?&]/).filter((p) => p && p !== 'text');
+  if (on) params.push('text');
+  return params.length ? `${base}?${params.join('&')}` : base;
 }
 
 /**

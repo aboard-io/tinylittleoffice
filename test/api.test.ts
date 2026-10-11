@@ -1,6 +1,6 @@
 // The API (src/api.ts, served at /api.js): links made and read over the kernel, without a browser.
 import { test, expect } from 'vitest';
-import { apps, compare, decode, encode, file, formats, fromTlo, link, parse, plain, read, templates, tlo, write } from '../src/api.ts';
+import { apps, compare, decode, encode, file, formats, fromTlo, link, markdown, parse, plain, read, templates, text, tlo, write } from '../src/api.ts';
 
 test('encode and decode are the codec; parse and write the kernel', () => {
   const text = '# Hello\n\nWorld\n';
@@ -66,4 +66,12 @@ test('the apps, their templates and the files they make without a browser', asyn
   expect(await file('outline', '- [ ] Milk\n', 'tlo')).toBe('---\napp: outline\n---\n- [ ] Milk\n');
   expect(await file('sheet', 'A^[a note]\n', 'md')).toBe('A[^1]\n\n[^1]: a note\n');
   await expect(file('sheet', 'x', 'pptx')).rejects.toThrow(/makes no \.pptx/);
+});
+
+test('text(link): the document as what it says, in Markdown, its title first; markdown(app, text) for one in hand', async () => {
+  const url = link('write', '# Minutes\n\nWe met.^[On Tuesday.]\n', { title: 'Minutes' });
+  // The title is the document's first heading already: said once.
+  expect(await text(url)).toBe('# Minutes\n\nWe met.[^1]\n\n[^1]: On Tuesday.\n');
+  expect(await text(link('todo', '- [x] Milk\n- [ ] Eggs\n', { title: 'Shop' }))).toBe('# Shop\n\n- [x] Milk\n- [ ] Eggs\n');
+  expect(await markdown('calc', 'a = 2\na * 3\n')).toBe('a = 2\na * 3\n');
 });

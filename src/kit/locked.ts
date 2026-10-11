@@ -139,4 +139,6 @@ export const lockedDoc: AppDef = {
   title: () => '',
   retitle: (doc) => doc,
   view: (body, opts) => [lockedPage(body, opts)],
+  // Nothing of what it holds: that it is locked.
+  text: () => [{ k: 'p', runs: [{ t: t('Locked document') }] }],
 };

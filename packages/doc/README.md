@@ -13,6 +13,7 @@ tinyoffice link plan.tlo                         # a .tlo file names its app in 
 tinyoffice link deck talk.md --view show         # a deck that opens presenting
 tinyoffice link sheet budget.md --plain          # the readable form: /sheet/#title=…&doc=…
 tinyoffice read <link>                           # the document's TLO text (--json for app, title, by)
+tinyoffice read --text <link>                    # what it says, as Markdown: what a screen reader reads on its Display Link
 tinyoffice file <link>                           # <title>.tlo; --as md|csv|ics|docx|… for the app's own formats
 tinyoffice diff <old link> <new link>            # what the second changed, block by block; exit 1 when they differ
 tinyoffice lint talk.tlo                         # what the eye would have seen, a line a finding; exit 1 on one
@@ -31,15 +32,16 @@ drawn by a browser: open the link with `view=pdf` (or `#/v1/<app>.pdf/…`) to h
 ## In code
 
 ```js
-import { link, plain, read, compare, encode, decode, parse, write, apps, templates, file, lint, measure } from 'https://tinylittleoffice.com/api.js';
+import { link, plain, read, text, compare, encode, decode, parse, write, apps, templates, file, lint, measure } from 'https://tinylittleoffice.com/api.js';
 
 const url = link('sheet', 'Item | Cost:money\n--- | ---\nRent | 1200\n', { title: 'Budget', by: 'planner-agent' });
 read(url);               // { app: 'sheet', view: '', text: '---\ntitle: Budget\nby: planner-agent\n---\n…', title, by, display }
 compare(url, revised);   // { same, removed, added, changes: [{ kind: ' ' | '-' | '+', line }…] }
 parse(read(url).text);   // the kernel's document: { head, blocks }; write() gives the text back
+await text(url);         // '# Budget\n\nItem | Cost\n--- | ---\nRent | $1,200.00\n': what it says, as Markdown
 await templates('deck'); // [{ id, name, blurb, text }…]
 await lint('deck', text); // [{ app, at: 'slide 3', block, kind, words, fix }…]; [] when clean
-await measure('deck', text); // { app, length, slides: [{ slide, title: { px, lines, cut }, body: { px, over }, hidden }…] }
+await measure('deck', text); // { app, length, words, headings, slides: [{ slide, title: { px, lines, cut }, body: { px, over }, hidden }…] }
 ```
 
 The guide to every app's format is the skill, `skill/tinyoffice/SKILL.md`, served as `/llms.txt`.

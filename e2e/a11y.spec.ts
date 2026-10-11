@@ -98,3 +98,83 @@ test('the Word Processor’s words, as a screen reader is given them', async ({ 
   const items = page.locator('to-write-editor to-text .tx li');
   expect(await items.evaluateAll((li) => li.map((l) => `${l.getAttribute('aria-posinset')}/${l.getAttribute('aria-setsize')}`))).toEqual(['1/2', '2/2', '1/1', '1/1']);
 });
+
+// What VoiceOver is given for a Display Link (WebKit, phone size): the document's words, its headings, its table and
+// its list, not pictures of its pages (Paul, 2026-10-11: "Deal with the Display Link"); the pages are hidden from it.
+test('a Display Link, as a screen reader is given it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'WebKit at phone size');
+  const minutes = (
+    await apps()
+      .find((a) => a.id === 'write')!
+      .templates()
+  ).find((tp) => tp.id === 'minutes')!.doc;
+  await page.goto(`/${routeHash('write', encodeDoc(minutes), '', true)}`);
+  await expect(page.locator('.to-display-page svg').first()).toBeVisible();
+  await expect(page.locator('main.to-display')).toMatchAriaSnapshot(`
+    - main "Minutes":
+      - heading "Minutes" [level=1]
+      - paragraph:
+        - emphasis: The date · where
+      - paragraph:
+        - strong: "Present:"
+        - emphasis: Who came
+        - strong: "Apologies:"
+        - emphasis: Who sent them
+      - heading "1. The last minutes" [level=2]
+      - paragraph:
+        - emphasis: Agreed, or changed.
+      - heading "2. Treasurer's report" [level=2]
+      - paragraph:
+        - emphasis: What the treasurer reported.
+      - table:
+        - rowgroup:
+          - row "Item Amount":
+            - columnheader "Item"
+            - columnheader "Amount"
+        - rowgroup:
+          - row "Balance on 1 September $1,240.00":
+            - cell "Balance on 1 September"
+            - cell "$1,240.00"
+          - row "Dues received $315.00":
+            - cell "Dues received"
+            - cell "$315.00"
+          - row "Printing and postage -$62.00":
+            - cell "Printing and postage"
+            - cell "-$62.00"
+          - row "Hall hire -$40.00":
+            - cell "Hall hire"
+            - cell "-$40.00"
+          - row "Balance on 30 September $1,453.00":
+            - cell "Balance on 30 September"
+            - cell "$1,453.00"
+      - heading "3. An item" [level=2]:
+        - text: "3."
+        - emphasis: An item
+      - paragraph:
+        - strong: "Motion:"
+        - emphasis: What it asks; who proposed it.
+      - table:
+        - rowgroup:
+          - row "For Against Abstained":
+            - columnheader "For"
+            - columnheader "Against"
+            - columnheader "Abstained"
+        - rowgroup:
+          - row "22 1 3":
+            - cell "22"
+            - cell "1"
+            - cell "3"
+      - paragraph:
+        - emphasis: Carried or lost.
+      - heading "4. Actions" [level=2]
+      - list:
+        - listitem:
+          - text: not done
+          - emphasis: Who does what, by when
+      - paragraph:
+        - strong: "Next meeting:"
+        - emphasis: When, where
+  `);
+  expect(await page.locator('main.to-display > .to-display-pages').getAttribute('aria-hidden')).toBe('true');
+  expect((await axe(page)).violations.map(said)).toEqual([]);
+});

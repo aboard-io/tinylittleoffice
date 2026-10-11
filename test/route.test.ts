@@ -1,6 +1,6 @@
 // The link's shape: "#/v1/<app>[.<view>][/<payload>][?d][&s=&x=]".
 import { test, expect } from 'vitest';
-import { LINK, parseHash, routeHash } from '../src/kit/route.ts';
+import { LINK, parseHash, routeHash, withText } from '../src/kit/route.ts';
 
 test('a document link is read and written the same way', () => {
   expect(LINK).toBe('#/v1/');
@@ -101,4 +101,15 @@ test('the language rides in the link as "lang", beside every other parameter, an
   expect(withLang('#/v1/write/yABC?d&lang=ht', 'fr')).toBe('#/v1/write/yABC?d&lang=fr');
   expect(withLang('#/v1/write/yABC?lang=ht&d', null)).toBe('#/v1/write/yABC?d');
   expect(withLang('#/v1/write/yABC', 'ht')).toBe('#/v1/write/yABC?lang=ht');
+});
+
+test('a Display Link read as text is "&text" beside "?d": read, and put in or taken out without touching the rest', () => {
+  expect(parseHash('#/v1/write/yABC?d&text').text).toBe(true);
+  expect(parseHash('#/v1/write/yABC?d')).not.toHaveProperty('text');
+  expect(withText('#/v1/write/yABC?d', true)).toBe('#/v1/write/yABC?d&text');
+  expect(withText('#/v1/write/yABC?d&text', false)).toBe('#/v1/write/yABC?d');
+  expect(withText('#/v1/write/yABC?d&s=abcdefg&x=123', true)).toBe('#/v1/write/yABC?d&s=abcdefg&x=123&text');
+  expect(withText('#/v1/write/yABC?d&text&s=abcdefg&x=123', false)).toBe('#/v1/write/yABC?d&s=abcdefg&x=123');
+  expect(withText('#/v1/write/yABC?d?s=abcdefg', true)).toBe('#/v1/write/yABC?d&s=abcdefg&text');
+  expect(withText('#/v1/write/yABC', false)).toBe('#/v1/write/yABC');
 });

@@ -10,7 +10,7 @@ import { pageSvg, utf8 } from '../../kit/draw.ts';
 import { encodeGif, type GifFrame } from '../../kit/gif.ts';
 import { t } from '../../kit/i18n.ts';
 import { pixels } from '../../kit/raster.ts';
-import { H, W } from '../draw/model.ts';
+import { drawingText, H, W } from '../draw/model.ts';
 import { gifLoop, readAnim } from './model.ts';
 import { altOf, animFrames, animPage, animToSvg, frameSvg } from './view.ts';
 
@@ -51,6 +51,8 @@ export default defineApp({
   // Where nothing can move, one frame: a thumbnail the first moment (something is on the stage then), print, a
   // PDF or a PNG the resting one (where a once-through ends). Anywhere else the motion plays, on its own or placed
   // in another document (`small`), repeating as its loop says.
+  // Its alt and each layer's label, as a drawing's.
+  text: (doc) => drawingText(readAnim(parse(doc)).draw),
   view: (doc, opts) => {
     const anim = readAnim(parse(doc));
     if (!isStill(opts)) return [animPage(anim)];

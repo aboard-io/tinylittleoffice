@@ -9,6 +9,7 @@
  */
 import type { IconNode } from 'lucide';
 import type { Command } from './commands.ts';
+import type { TextNode } from '../doc/index.ts';
 
 /** A document: its TLO text. (The kernel's parse/write will sit at either end of this string.) */
 export type Doc = string;
@@ -145,6 +146,12 @@ export interface AppDef {
    * own beside the editor (commands.ts), which the editor imports too, so the home page carries none of it.
    */
   commands?: () => Promise<{ default: readonly Command[] }>;
+  /**
+   * The document as what it says, for a screen reader, the Display Link's Text, a web page and the API
+   * (src/doc/text.ts): given by an app whose model is spatial (a diagram's things and connections, a board's
+   * columns and cards); absent, the kernel's from the document's blocks (kit/text-layer.ts).
+   */
+  text?(doc: Doc): TextNode[];
   /** How many steps the document builds up in when presented (a list an item a step, a trip a stop a step); `view(doc, { upTo })` draws a part of it. Absent or 0: shown whole. */
   steps?(doc: Doc): number;
 }

@@ -10,6 +10,7 @@
  *   tinyoffice link <file.tlo>                        a link for a .tlo file (its app is in its head)
  *        --title T  --by B  --view pdf|show|embed|…  --display  --lang ht  --plain  --site URL
  *   tinyoffice read <link>                            the document's TLO text (--json: app, view, title, by too)
+ *   tinyoffice read --text <link|file.tlo>            what it says, as Markdown: what a screen reader reads
  *   tinyoffice file <link> [--as tlo|md|csv|…] [--out path|-]
  *                                                     the document as a file, named after its title (.tlo by default)
  *   tinyoffice diff <link> <link>                     what the second changed, block by block (exit 1 when they differ)
@@ -17,10 +18,10 @@
  *                                                     app · slide or block · the finding · what to do (exit 1 on one)
  *   tinyoffice measure <link|file.tlo>                the sizes the layouts chose, page by page, and each table's
  *                                                     failing formulas, as JSON
- *        (lint and measure also take <app> <file>, or <app> and stdin)
+ *        (read --text, lint and measure also take <app> <file>, or <app> and stdin)
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { apps, compare, file, fromTlo, lint, link, measure, plain, read, templates } from '../../src/api.ts';
+import { apps, compare, file, fromTlo, lint, link, markdown, measure, plain, read, templates } from '../../src/api.ts';
 import { slug } from '../../src/kit/draw.ts';
 
 const USAGE = readFileSync(new URL(import.meta.url), 'utf8')
@@ -35,7 +36,7 @@ const flags: Record<string, string | true> = {};
 const args: string[] = [];
 for (let i = 0; i < rest.length; i++) {
   const a = rest[i];
-  if (a.startsWith('--')) flags[a.slice(2)] = i + 1 < rest.length && !rest[i + 1].startsWith('--') && !['display', 'plain', 'json'].includes(a.slice(2)) ? rest[++i] : true;
+  if (a.startsWith('--')) flags[a.slice(2)] = i + 1 < rest.length && !rest[i + 1].startsWith('--') && !['display', 'plain', 'json', 'text'].includes(a.slice(2)) ? rest[++i] : true;
   else args.push(a);
 }
 const str = (k: string) => (typeof flags[k] === 'string' ? (flags[k] as string) : undefined);
@@ -84,6 +85,10 @@ async function main() {
       );
     }
     case 'read': {
+      if (flags.text) {
+        const { app, text } = documentOf();
+        return out(await markdown(app, text));
+      }
       const r = read(args[0] ?? die('which link?'));
       return out(flags.json ? JSON.stringify(r, null, 2) : r.text);
     }
