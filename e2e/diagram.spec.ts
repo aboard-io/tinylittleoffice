@@ -82,16 +82,20 @@ test('diagram: on a phone, a tap on a thing opens its words with the context bar
   await bar.getByRole('button', { name: 'Bring out' }).tap();
   await expect.poll(value).toBe('- Launch\n  - Pricing\n  - Pricing\n  - Launch\n    - Pricing\n  - Pricing\n');
   await expect(line).toBeFocused();
-  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.dg-pic')!).touchAction)).toBe('manipulation');
+  // A finger pans the picture and the browser never zooms it (a pinch there is the picture's own zoom, kit/pinch.ts).
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.dg-pic')!).touchAction)).toBe('pan-x pan-y');
   expect(errors).toEqual([]);
 });
 
-test('diagram: on a phone, Join in the bar joins the thing open to the next one tapped', async ({ page }, info) => {
+test("diagram: on a phone, the thing's own Join joins the thing open to the next one tapped", async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/diagram');
-  await page.locator('.dg-kind > button').tap();
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc), and the kind needs nothing in hand: it is a row of the
+  // drawer's This document while reading (kit/drawer.ts).
+  await page.getByRole('button', { name: 'Menu' }).tap();
+  await page.getByRole('region', { name: 'This document' }).getByRole('button', { name: 'Mind map' }).tap();
   await page.locator('[popover]:popover-open [role^=menuitem]').getByText('Network').tap();
   await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
   const line = page.locator('to-text.dg-words .tx');
@@ -103,10 +107,13 @@ test('diagram: on a phone, Join in the bar joins the thing open to the next one 
   await page.locator('.dg-hint').tap();
   await expect(page.locator('to-text.dg-words')).toBeHidden();
   await page.locator('.dg-pic g.dg-thing[aria-label="Web"]').tap();
-  const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
-  const r = (await join.boundingBox())!;
+  // On a phone the thing's own bar is the bottom row while it is open, and the app's bar steps aside under it
+  // (kit/context.ts docked): its Join is the one in reach; armed, the thing closes and the app's Join says so.
+  const own = page.locator('to-context.dg-context .to-context').getByRole('button', { name: 'Join' });
+  const r = (await own.boundingBox())!;
   expect(r.height).toBeGreaterThanOrEqual(44);
-  await join.tap();
+  await own.tap();
+  const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
   await expect(join).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.dg-pic g.dg-thing[aria-label="API"]').tap();
   const value = () => page.evaluate(() => (document.querySelector('to-diagram-editor') as HTMLElement & { value: string }).value);
@@ -130,8 +137,9 @@ test('diagram: on a phone, a mind map joins two ideas across the tree, and a fin
   await page.locator('.dg-hint').tap();
   await expect(page.locator('to-text.dg-words')).toBeHidden();
   await page.locator('.dg-pic g.dg-thing[aria-label="Left"]').tap();
+  // The thing's own Join, in its bottom row (the app's bar steps aside under it on a phone).
+  await page.locator('to-context.dg-context .to-context').getByRole('button', { name: 'Join' }).tap();
   const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
-  await join.tap();
   await expect(join).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.dg-pic g.dg-thing[aria-label="Right"]').tap();
   const value = () => page.evaluate(() => (document.querySelector('to-diagram-editor') as HTMLElement & { value: string }).value);

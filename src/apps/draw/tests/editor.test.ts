@@ -472,6 +472,28 @@ test('pixel mode: the menu sets the grid, taps paint squares, fill floods, Use a
   expect(last()).not.toContain('tile:');
 });
 
+test("a mode chosen from the bar's menu draws another bar and surface: the focus goes to the new surface, never to the body (on a phone the bar would go with it)", async () => {
+  const { el } = await editor();
+  const surface = () => el.querySelector<HTMLElement>('.draw-wrap')!;
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8×8');
+  await until(() => document.activeElement !== document.body);
+  expect(surface().classList.contains('draw-pixel-wrap')).toBe(true);
+  expect(document.activeElement).toBe(surface());
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, 'Shapes');
+  await until(() => document.activeElement !== document.body);
+  expect(document.activeElement).toBe(surface());
+  // Use as background goes back to shapes the same way.
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8×8');
+  button(el, 'Red').click();
+  key(el, 'Enter');
+  await el.updateComplete;
+  byWords(el, 'Background').click();
+  await el.updateComplete;
+  await until(() => document.activeElement !== document.body);
+  expect(document.activeElement).toBe(surface());
+  expect(el.querySelector('svg.draw-canvas')).not.toBeNull();
+});
+
 test('at phone width: the bar is one row of 44px buttons, the words typed on a shape are 16px, nothing is wider than the screen', async () => {
   await page.viewport(390, 844);
   try {

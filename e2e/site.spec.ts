@@ -10,7 +10,8 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('website: the name typed in the page, a page and a button from Insert, the nav goes to it, Preview and back', async ({ page }) => {
+test('website: the name typed in the page, a page and a button from Insert, the nav goes to it, Preview and back', async ({ page }, info) => {
+  test.skip(info.project.name === 'phone', 'desktop only, as its head says: Insert at the top left is a wide screen’s; e2e/site-phone.spec.ts is the phone’s');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/site');
@@ -58,6 +59,8 @@ test('website: the name typed in the page, a page and a button from Insert, the 
   const button = site.getByRole('link', { name: 'Button' });
   await expect(button).toBeVisible();
   await button.click();
+  // (Its words are open once they have the focus: only then is Mod+A theirs.)
+  await expect(site.locator('a to-text .tx')).toBeFocused();
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('Call us');
   const bar = page.locator('to-site-editor to-context.site-context .to-context');

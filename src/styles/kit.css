@@ -1676,14 +1676,14 @@
     color: var(--to-accent);
   }
   /* A header too narrow for all of it (a phone with the nav at its limit) keeps one row: the meter goes while the link
-     is far from full (Share says how full) and the trust while it has nothing to say (unsigned), so the title keeps a
-     little room and Share and Download stay at the right rather than wrapping under the rest. */
+     is far from full (Share says how full) and the trust while it has nothing to say (unsigned, and no password's lock),
+     so the title keeps a little room and Share and Download stay at the right rather than wrapping under the rest. */
   .to-header {
     container: to-header / inline-size;
   }
   @container to-header (width < 18.75em) {
     .to-meter:not(.warn, .over),
-    .to-trust.quiet {
+    .to-trust.quiet:not(:has(.to-trust-lock)) {
       display: none;
     }
   }

@@ -37,18 +37,24 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   await expect(row(1)).toBeFocused();
   await page.keyboard.type('Product');
   await page.keyboard.press('Tab');
+  // (Tab draws the row again under its parent and the caret lands in it a frame later, as after Enter: waited for likewise.)
+  const value = () => page.evaluate(() => (document.querySelector('to-outline-editor') as HTMLElement & { value: string }).value);
+  await expect.poll(value).toBe('- Launch\n  - Product\n');
+  await expect(row(1)).toBeFocused();
   seen.push(await measure());
   await page.keyboard.press('Enter');
   await expect(row(2)).toBeFocused();
   await page.keyboard.type('Pricing');
   await page.keyboard.press('Tab');
+  await expect.poll(value).toBe('- Launch\n  - Product\n    - Pricing\n');
+  await expect(row(2)).toBeFocused();
   seen.push(await measure());
   await page.keyboard.press('Enter');
   await expect(row(3)).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.type('Marketing');
   seen.push(await measure());
-  const doc = await page.evaluate(() => (document.querySelector('to-outline-editor') as HTMLElement & { value: string }).value);
+  const doc = await value();
   expect(doc).toBe('- Launch\n  - Product\n    - Pricing\n  - Marketing\n');
   // Tapping another row, and the bar's Indent on it.
   await row(1).tap();
@@ -142,7 +148,8 @@ test('outline: on a phone, a finger drags a row by its handle (pointer events, n
       rows: getComputedStyle(document.querySelector('.ol')!).touchAction,
     };
   });
-  expect(hit).toMatchObject({ coarse: true, w: '44px', h: '44px', touch: 'none', rows: 'manipulation' });
+  // (44px at least: 2.75rem, drawn 57.2px at the size of 100%, kit/zoom.ts BASE.)
+  expect({ ...hit, w: parseFloat(hit.w) >= 44, h: parseFloat(hit.h) >= 44 }).toMatchObject({ coarse: true, w: true, h: true, touch: 'none', rows: 'manipulation' });
   expect(hit.drawn).toBeLessThan(44);
   expect(hit.above).toBe(true);
   // A finger's drag, as WebKit's pointer events carry it: down on A's handle, along to C's left half, up.
@@ -167,11 +174,13 @@ test('outline: on a phone, a finger drags a row by its handle (pointer events, n
   });
   await expect.poll(() => page.locator('to-outline-editor').evaluate((el) => (el as HTMLElement & { value: string }).value)).toBe('- B\n- C\n- A\n');
   await expect(page.locator('.to-rows-target')).toHaveCount(0);
-  // A finger's tap on a handle chooses; a second tap on another extends (the bar sits above the range, clear of the rows below).
+  // A finger's tap on a handle chooses; a second tap on another extends (the bar is the bottom row on a phone,
+  // kit/context.ts docked: clear of the rows, inside the screen).
   await page.locator('.ol-row[data-at="1"] .ol-handle').tap();
   await expect(page.locator('.ol-row[data-at="1"]')).toHaveClass(/\branged\b/);
   const bar = (await page.locator('.ol-context .to-context').boundingBox())!;
-  expect(bar.y + bar.height).toBeLessThanOrEqual((await page.locator('.ol-row[data-at="1"]').boundingBox())!.y);
+  expect(bar.y).toBeGreaterThanOrEqual((await page.locator('.ol-row[data-at="2"]').boundingBox())!.y + (await page.locator('.ol-row[data-at="2"]').boundingBox())!.height);
+  expect(bar.y + bar.height).toBeLessThanOrEqual(await page.evaluate(() => window.visualViewport!.height + 0.5));
   await page.locator('.ol-row[data-at="2"] .ol-handle').tap();
   await expect(page.locator('.ol-row.ranged')).toHaveCount(2);
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0);

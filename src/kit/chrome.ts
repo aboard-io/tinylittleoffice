@@ -305,7 +305,10 @@ export class ToChrome extends LitElement {
       // its bar comes with it. The focus a document opens with is not theirs (they are reading), as for `editing`.
       const main = this.column;
       const inside = !!at && !!main && main !== at && main.contains(at);
-      const indoc = inside && (this.indoc || typed || performance.now() - this.touched < 1000);
+      // A hop to a menu or a dialog of the page's own outside the column (one on the body, as kit/doc-dialog.ts puts
+      // its own) and back is neither: the bar stays as it was, so the focus closing it gives back is not inert.
+      const aside = !inside && !!at && at !== document.body && !!at.closest(ASIDE);
+      const indoc = aside ? this.indoc : inside && (this.indoc || typed || performance.now() - this.touched < 1000);
       if (indoc !== this.indoc) {
         this.indoc = indoc;
         // The bar arriving or leaving changes the column's room: the same glide as a keyboard's, the caret kept in sight once it settles.

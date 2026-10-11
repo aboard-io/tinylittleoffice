@@ -13,6 +13,8 @@ import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToDrawer } from '../../src/kit/drawer.ts';
 import type { ToChrome } from '../../src/kit/chrome.ts';
+import { render, html } from 'lit';
+import { trustButton } from '../../src/kit/privacy-dialog.ts';
 
 const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 const BIG = `---\ntitle: Long\n---\n${Array.from({ length: 300 }, (_, i) => `Paragraph ${i + 1}, long enough to take a line or two of the page when it is drawn.`).join('\n\n')}\n`;
@@ -625,4 +627,40 @@ test('390×844 with a finger: the bar and the palette’s button slid away are i
   await page.viewport(1440, 900);
   const desk = await write();
   expect(desk.shell.querySelector<HTMLElement>('to-write-editor to-bar')!.inert).toBe(false);
+});
+
+test('390×844 with a finger: a dialog opened from the bar (a drawing from Insert, made over the page) keeps the bar, and closed it gives the focus back to the bar’s button, never the body', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { shell, text, chrome } = await write();
+  await tapWords(text);
+  const button = shell.querySelector<HTMLElement>('to-write-editor to-bar button')!;
+  button.focus();
+  // A modal of the page's own, put on the body as kit/doc-dialog.ts puts its own: a hop out of the column and back.
+  const dialog = document.createElement('dialog');
+  dialog.innerHTML = '<button type="button">Done</button>';
+  document.body.append(dialog);
+  dialog.showModal();
+  dialog.querySelector('button')!.focus();
+  await frame();
+  expect(chrome.hasAttribute('indoc')).toBe(true);
+  expect(shell.querySelector<HTMLElement>('to-write-editor to-bar')!.inert).toBe(false);
+  dialog.close();
+  dialog.remove();
+  await frame();
+  expect(document.activeElement).toBe(button);
+  expect(chrome.hasAttribute('indoc')).toBe(true);
+});
+
+test('a header too narrow for all of it keeps a password’s lock beside the title, and leaves out only the unsigned state that has nothing to say', async () => {
+  await mount('#/');
+  const header = document.createElement('div');
+  header.className = 'to-header';
+  header.style.width = '280px';
+  document.body.append(header);
+  render(html`${trustButton({ state: 'none' }, false, true, () => {})}${trustButton({ state: 'none' }, false, false, () => {})}`, header);
+  const [locked, plain] = header.querySelectorAll<HTMLElement>('.to-trust');
+  expect(locked.offsetWidth).toBeGreaterThan(0);
+  expect(plain.offsetWidth).toBe(0);
+  header.remove();
 });

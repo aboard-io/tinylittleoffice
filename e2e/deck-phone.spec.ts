@@ -127,6 +127,8 @@ test("deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/deck');
   await expect(page.locator('to-deck-editor to-text.deck-title .tx')).toBeVisible();
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the words are tapped before Insert.
+  await page.locator('to-deck-editor to-text.deck-title .tx').tap();
   await page.getByRole('button', { name: 'Insert', exact: true }).tap();
   await page.getByRole('menuitem', { name: 'Drawing Tool' }).tap();
   const dialog = page.locator('to-doc-dialog dialog[open]');

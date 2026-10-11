@@ -1,6 +1,7 @@
 // Menus on the Popover API: open, walk with the arrows, choose, and Escape returns focus to the button; the keys every
 // menu and the templates list keep (roving focus, wrapping arrows, type-ahead), stray modifiers or not.
 import { test, expect } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { render, html } from 'lit';
 import '../../src/kit/insert.ts';
 import type { ToInsert } from '../../src/kit/insert.ts';
@@ -311,4 +312,27 @@ test("an item's keys are written at its end as the device writes them, and type-
   await until(() => named() === 'Align left');
   press('c');
   expect(named()).toBe('Centre');
+});
+
+test('opened by a pointer from a button that never takes the focus (a row’s bullet), Escape gives the focus back to the words that had it, not to the button', async () => {
+  const el = await insert();
+  const words = document.createElement('div');
+  words.contentEditable = 'true';
+  words.textContent = 'Pricing';
+  const bullet = document.createElement('button');
+  bullet.textContent = '•';
+  bullet.tabIndex = -1;
+  // As the Outliner's bullet: a press never moves the focus, and the click opens the menu beside it.
+  bullet.addEventListener('mousedown', (e) => e.preventDefault());
+  bullet.addEventListener('click', () => el.openAt(bullet));
+  document.body.append(words, bullet);
+  words.focus();
+  await userEvent.click(bullet);
+  await until(() => el.isOpen);
+  await userEvent.keyboard('{Escape}');
+  await until(() => !el.isOpen);
+  await new Promise((r) => requestAnimationFrame(r));
+  expect(document.activeElement).toBe(words);
+  words.remove();
+  bullet.remove();
 });

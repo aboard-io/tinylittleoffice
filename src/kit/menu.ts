@@ -201,6 +201,8 @@ export class ToMenu extends LitElement {
   private kept = false;
   /** The menu is closing by a key (see closeByKey). */
   private byKey = false;
+  /** Opened by a pointer: what had the focus then (the words a row's bullet acts on), where a key's close gives it back. */
+  private cameFrom: HTMLElement | null = null;
   readonly uid = `to-menu-${++n}`;
 
   constructor() {
@@ -253,6 +255,7 @@ export class ToMenu extends LitElement {
     if (open) {
       place(this.menu, from);
       // Opened by a key, the first item has the focus; by a pointer, the menu itself (a `keep` menu leaves it where it is, and its arrows still come here).
+      this.cameFrom = byPointer && !this.kept ? (document.activeElement as HTMLElement | null) : null;
       if (this.kept) document.addEventListener('keydown', this.onKeptKey, true);
       else if (byPointer) this.menu.focus({ preventScroll: true });
       else this.menuItems()[0]?.focus({ preventScroll: true });
@@ -263,9 +266,13 @@ export class ToMenu extends LitElement {
       this.query = '';
       // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere. Closed
       // by a key (Escape, Tab), always: the browser gives the focus back to what had it before the menu opened, which in
-      // the drawer is its search box, not the button that the key opened the menu from.
-      if (this.byKey || document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
+      // the drawer is its search box, not the button that the key opened the menu from; but a menu a pointer opened
+      // gives it back to what had it then (a row's words, whose bullet opened it and never takes the focus).
+      const back = this.cameFrom?.isConnected && this.cameFrom !== document.body && !this.menu.contains(this.cameFrom) ? this.cameFrom : from;
+      if (this.byKey) back.focus();
+      else if (document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
       this.byKey = false;
+      this.cameFrom = null;
       this.anchor = null;
       this.kept = false;
     }

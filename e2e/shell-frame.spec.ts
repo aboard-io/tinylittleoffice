@@ -43,8 +43,8 @@ test('phone: the paper edge to edge, the column scrolls under the header and the
   expect(await page.evaluate(() => [window.scrollY, document.querySelector('.to-main')!.scrollTop > 1000])).toEqual([0, true]);
   const header = (await page.locator('.to-header').boundingBox())!;
   expect(header.y).toBe(0);
-  const bar = (await page.locator('to-write-editor to-bar').boundingBox())!;
-  expect(Math.round(bar.y + bar.height)).toBe(await page.evaluate(() => Math.round(window.visualViewport!.height)));
+  // While reading the bar is away under the column's foot (on a phone it comes with the focus, kit/chrome.ts indoc).
+  expect(await page.locator('to-write-editor to-bar').evaluate((el) => (el as HTMLElement).inert)).toBe(true);
   const burger = page.locator('.to-burger');
   await expect(burger).toBeInViewport();
   const r = (await burger.boundingBox())!;
@@ -58,6 +58,8 @@ test('phone: the paper edge to edge, the column scrolls under the header and the
   expect(b.y).toBeLessThan(20);
   expect(b.x + b.width).toBeGreaterThan(390 - 30);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const bar = page.locator('to-write-editor to-bar');
+  await expect.poll(async () => Math.round((await bar.boundingBox())!.y + (await bar.boundingBox())!.height)).toBe(await page.evaluate(() => Math.round(window.visualViewport!.height)));
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await expect(page.locator('.to-header')).toBeVisible();
 

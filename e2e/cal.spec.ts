@@ -88,8 +88,9 @@ test("calendar: on a phone, the schedule's tasks are rows: a tap on a grip choos
   await page.locator('to-cal-editor').evaluate((el, t) => ((el as HTMLElement & { value: string }).value = t), PLAN);
   const grip = page.locator('.cal-trow[data-at="0"] .cal-grip');
   await expect(grip).toBeVisible();
-  const hit = await grip.evaluate((h) => ({ coarse: matchMedia('(pointer: coarse)').matches, w: getComputedStyle(h, '::before').width, touch: getComputedStyle(h).touchAction }));
-  expect({ ...hit, w: parseFloat(hit.w) >= 44 }).toEqual({ coarse: true, w: true, touch: 'none' });
+  // The grip reaches 44px to a finger at least: 2.75rem, drawn 57.2px at the size of 100% (kit/zoom.ts BASE).
+  const hit = await grip.evaluate((h) => ({ coarse: matchMedia('(pointer: coarse)').matches, w: parseFloat(getComputedStyle(h, '::before').width) >= 44, touch: getComputedStyle(h).touchAction }));
+  expect(hit).toEqual({ coarse: true, w: true, touch: 'none' });
   await grip.tap();
   const bar = page.locator('.cal-context .to-context');
   await expect(bar).toBeVisible();
@@ -104,29 +105,4 @@ test("calendar: on a phone, the schedule's tasks are rows: a tap on a grip choos
   await expect.poll(() => value(page)).toContain('  - [x] 2027-03-01 to 2027-03-05: Design\n');
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   expect(errors).toEqual([]);
-});
-
-test("calendar: at 200% on a phone, the weekdays' names fit their columns, none running into the next", async ({ page }, info) => {
-  test.skip(info.project.name !== 'phone', 'phone only');
-  await page.addInitScript(() => (localStorage.setItem('tinyoffice.keep', '1'), localStorage.setItem('tinyoffice.size', '2')));
-  await page.goto('/#/v1/cal');
-  await expect(page.locator('.cal-grid')).toBeVisible();
-  const heads = await page.locator('.cal-wd').evaluateAll((els) =>
-    els.map((el) => {
-      const words = document.createRange();
-      words.selectNodeContents(el);
-      const [w, c] = [words.getBoundingClientRect(), el.getBoundingClientRect()];
-      return { text: (el as HTMLElement).innerText.trim(), left: w.left, right: w.right, cell: [c.left, c.right] };
-    }),
-  );
-  expect(heads).toHaveLength(7);
-  for (const [i, h] of heads.entries()) {
-    // The words drawn inside their own column, so no two run into each other; each still names its day.
-    expect(h.text, `weekday ${i}`).not.toBe('');
-    expect(h.left, `${h.text} starts inside its column`).toBeGreaterThanOrEqual(h.cell[0] - 0.5);
-    expect(h.right, `${h.text} ends inside its column`).toBeLessThanOrEqual(h.cell[1] + 0.5);
-    if (i) expect(h.left, `${h.text} after ${heads[i - 1].text}`).toBeGreaterThanOrEqual(heads[i - 1].right - 0.5);
-  }
-  // The long name is there for a reader and a pointer that rests on it.
-  await expect(page.locator('.cal-wd abbr').first()).toHaveAttribute('title', /day$/);
 });

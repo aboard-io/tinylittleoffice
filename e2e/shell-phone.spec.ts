@@ -37,6 +37,8 @@ test('a tap opens where the link fits; the size steps; Insert narrows; a trip pr
   await expect(page.locator('.to-size-now')).toHaveText('100%');
   await page.keyboard.press('Escape');
 
+  // On a phone the bar comes with the focus (kit/chrome.ts indoc): the words are tapped before Insert.
+  await page.locator('to-write-editor to-text .tx').tap();
   await page.locator('to-write-editor to-insert > button').tap();
   await page.keyboard.type('ta');
   await expect(page.locator('to-write-editor to-insert [role=menuitem]')).toHaveCount(1);
@@ -45,7 +47,9 @@ test('a tap opens where the link fits; the size steps; Insert narrows; a trip pr
 
   const trip = 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Nata\nPorto | 41.1579 | -8.6291 |\n';
   await page.goto(`/#/v1/trip/${encodeDoc(trip)}`);
-  await page.locator('to-bar button[aria-label="Present"]').tap();
+  // Present needs nothing in hand: while reading it is a row of the drawer's This document (kit/drawer.ts).
+  await page.locator('.to-burger').tap();
+  await page.getByRole('region', { name: 'This document' }).getByRole('button', { name: 'Present' }).tap();
   await expect(page.locator('.trip-present b')).toHaveText('1 of 2 · Lisbon');
   await page.locator('.trip-present button[aria-label="The next stop"]').tap();
   await expect(page.locator('.trip-present b')).toHaveText('2 of 2 · Porto');
