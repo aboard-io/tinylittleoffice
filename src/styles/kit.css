@@ -501,13 +501,18 @@
     grid-auto-rows: max-content; /* a row is as tall as its words and preview, never the touch minimum alone */
     align-items: start;
     gap: 0.25em;
-    padding: 0.5em;
+    padding: 0.5em 0;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-  /* A row never widens its column: a long name is cut with an ellipsis (a grid item's least width is its content unless told otherwise). */
+  /* A row never widens its column: a long name is cut with an ellipsis (a grid item's least width is its content unless
+     told otherwise). The row's padding is the gutter, the head's (0.5em), so each preview is flush with the heading's
+     edge and its highlight reaches the dialog's; the preview and the words at the row's top, so the preview sits
+     beside the template's name however long the blurb under it (Paul, 2026-10-11: "Align the previews to the far left"). */
   .to-listbox > .to-option {
     min-width: 0;
+    align-items: start;
+    padding-inline: 0.5em;
   }
   /* The list takes what the head leaves and scrolls inside it (a phone's whole screen: responsive.css). */
   /* The heading leads with the app's name, at the logotype's size but in the sans and not bold, and on one line: on a
@@ -1302,6 +1307,7 @@
   }
   .to-drawer-apps .to-app-open {
     flex: 1;
+    align-items: flex-start;
   }
   .to-found-words {
     display: flex;
@@ -1377,6 +1383,11 @@
   }
   .to-field > span {
     flex: 1;
+  }
+  .to-field-words {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
   }
   .to-field select {
     max-width: 60%;
@@ -2032,7 +2043,8 @@
     flex-wrap: wrap;
     flex: 1 1 8em;
     min-width: 0;
-    align-items: center;
+    align-items: flex-start;
+    align-content: center;
     gap: 0.625em;
     min-height: var(--to-touch);
     padding: 0 0.5em;
@@ -2045,6 +2057,16 @@
   }
   .to-app-open .to-icon {
     color: var(--to-accent);
+  }
+  /* An icon before words that can wrap (an app's row here and in the drawer; the drawer's Theme and size of everything,
+     whose icon and words are one .to-field-words) stays beside their first line (Paul, 2026-10-11: "Align the icons in
+     the main menu to the top so they stay there when we zoom"): the row's items at its top, and the icon in the middle
+     of the first line, moved down by half of what the line has over it and taking no more room for it, so a row of one
+     line is as tall as it was and drawn where it was (its line in the middle of the row: align-content). A button's
+     words never wrap (.to-btn). */
+  :is(.to-app-open, .to-field-words) > .to-icon:first-child {
+    --to-drop: max(0em, (1lh - var(--i, 1.25) * var(--to-scale)) / 2);
+    margin-block: var(--to-drop) calc(-1 * var(--to-drop));
   }
   /* The name is plain, not bold (Paul, 2026-10-10). At a large size the row wraps before a word breaks: the templates
      button goes under the name, at the end, and the name under its icon; a word wider than the screen breaks. */

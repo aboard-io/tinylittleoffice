@@ -6,6 +6,9 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { apps } from '../../src/kit/apps.ts';
 import { running } from '../../src/kit/version.ts';
 import { siteRoot } from '../../src/kit/apps.ts';
+import { page } from 'vitest/browser';
+import { keepSize, SIZE_MAX } from '../../src/kit/zoom.ts';
+import { firstLines } from './firstline.ts';
 
 test("the hamburger opens the drawer, the home page's drawer has no app rows, Find narrows what there is, Escape closes it", async () => {
   const shell = await mount('');
@@ -294,3 +297,31 @@ test('under a finger with no keyboard the drawer, its menus and the palette writ
     await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: false });
   }
 });
+
+// Every row of the drawer that is an icon before its words keeps the icon beside the words' first line when they wrap
+// (Paul, 2026-10-11: "Align the icons in the main menu to the top so they stay there when we zoom"): This document's
+// rows, the apps', Open a file, Compare, Theme, Privacy, the size of everything. At the largest size the apps' names
+// wrap on a phone, and the size's label beside its stepper on a wide screen.
+for (const [w, h] of [
+  [390, 844],
+  [1100, 800],
+] as const)
+  test(`at the largest size at ${w}px, a drawer row whose words wrap has its icon beside their first line`, async () => {
+    await page.viewport(w, h);
+    keepSize(SIZE_MAX);
+    try {
+      const shell = await mount(`#/v1/write/${encodeDoc('# Hi\n\nThere')}`);
+      await until(() => !!shell.querySelector('to-write-editor'));
+      const doc = await openDrawerDoc(shell);
+      const dialog = doc.closest('dialog')!;
+      await until(() => !!dialog.querySelector('.to-drawer-apps .to-app-head'));
+      const rows = firstLines(dialog);
+      expect(rows.filter((r) => r.wraps && r.beside).length).toBeGreaterThan(0);
+      expect(rows.filter((r) => !r.beside && !r.under)).toEqual([]);
+      dialog.close();
+    } finally {
+      keepSize(1);
+      await page.viewport(1100, 800);
+      history.replaceState(null, '', location.pathname);
+    }
+  });
