@@ -74,6 +74,10 @@ Base64url throughout Tiny Little Office is RFC 4648's URL alphabet with `~` for 
 (`src/kit/core/codec.ts`): a hyphen is a place a line may break, so a long link full of them was cut when pasted.
 Reading takes `-` as 62 too; a link made before is the same bytes.
 
+The link writes a `+` after every 300 characters of any payload, sealed or not (`withBreaks` in codec.ts, written by
+`routeHash`): iMessage and Signal do not make a link of a run of more than 301 letters and digits. The breaks are
+outside the payload: reading takes them out before anything else, and a link without them is read the same.
+
 So a sealed payload is `E` and at least 60 characters (16 + 12 + 1 + 16 = 45 bytes for an empty document).
 Anything shorter, or not base64url, is not a sealed payload.
 

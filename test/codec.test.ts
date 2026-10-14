@@ -1,7 +1,7 @@
 // The link codec: round trips, the dictionary's gain, and a refusal to unpack a mountain.
 import { test, expect } from 'vitest';
 import { deflateSync, strToU8 } from 'fflate';
-import { encodeDoc, decodeDoc, toBase64Url, fromBase64Url, budgetFor, unpackDoc, DICTIONARY, MAX_DOC_BYTES, URL_LIMIT } from '../src/kit/core/codec.ts';
+import { encodeDoc, decodeDoc, toBase64Url, fromBase64Url, budgetFor, unpackDoc, withBreaks, withoutBreaks, BREAK, BREAK_EVERY, DICTIONARY, MAX_DOC_BYTES, URL_LIMIT } from '../src/kit/core/codec.ts';
 
 test('base64url round trip', () => {
   for (const len of [0, 1, 2, 3, 4, 5, 31, 100]) {
@@ -95,4 +95,29 @@ test('a link written by encodeDoc holds no hyphen, even for a document of noise'
     expect(link).not.toContain('-');
     expect(decodeDoc(link)).toBe(doc);
   }
+});
+
+test('a link breaks its payload with "+" every 300 characters, so iMessage makes a link of it; a payload without breaks reads the same', () => {
+  const run = (s: string) => Math.max(0, ...(s.match(/[A-Za-z0-9]+/g) ?? []).map((m) => m.length));
+  // A raw payload of plain words is letters and digits throughout: the run iMessage will not link.
+  const doc = 'This line of text is the whole document. '.repeat(40);
+  const bare = 'r' + toBase64Url(new TextEncoder().encode(doc));
+  expect(run(bare)).toBe(bare.length);
+  expect(bare.length).toBeGreaterThan(2 * BREAK_EVERY);
+  const broken = withBreaks(bare);
+  const parts = broken.split(BREAK);
+  expect(parts.slice(0, -1).every((p) => p.length === BREAK_EVERY)).toBe(true);
+  expect(parts.at(-1)!.length).toBeGreaterThan(0);
+  expect(parts.at(-1)!.length).toBeLessThanOrEqual(BREAK_EVERY);
+  expect(run(broken)).toBe(BREAK_EVERY);
+  expect(broken.endsWith(BREAK)).toBe(false);
+  expect(withoutBreaks(broken)).toBe(bare);
+  expect(withBreaks(broken)).toBe(broken);
+  expect(withoutBreaks(broken.replace(/\+/g, '%2B'))).toBe(bare);
+  // The codec reads it with or without them.
+  expect(decodeDoc(broken)).toBe(doc);
+  expect(decodeDoc(bare)).toBe(doc);
+  // A payload of 300 or fewer is written as it is.
+  expect(withBreaks('y' + 'A'.repeat(299))).toBe('y' + 'A'.repeat(299));
+  expect(withBreaks('y' + 'A'.repeat(300))).toBe('y' + 'A'.repeat(299) + '+A');
 });

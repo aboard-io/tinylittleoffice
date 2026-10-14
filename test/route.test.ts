@@ -113,3 +113,17 @@ test('a Display Link read as text is "&text" beside "?d": read, and put in or ta
   expect(withText('#/v1/write/yABC?d?s=abcdefg', true)).toBe('#/v1/write/yABC?d&s=abcdefg&text');
   expect(withText('#/v1/write/yABC', false)).toBe('#/v1/write/yABC');
 });
+
+test('a long payload is written with a "+" every 300 characters, for iMessage, and read without them; a link from before reads the same', () => {
+  const payload = 'y' + 'AbC9'.repeat(200);
+  const hash = routeHash('write', payload, '', true);
+  expect(hash).toBe(`#/v1/write/${payload.slice(0, 300)}+${payload.slice(300, 600)}+${payload.slice(600)}?d`);
+  expect(parseHash(hash)).toEqual({ app: 'write', payload, version: 1, view: '', display: true, arrived: null, sealed: false });
+  expect(parseHash(`#/v1/write/${payload}?d`)).toEqual(parseHash(hash));
+  // Written again, a link keeps one break in each place.
+  expect(routeHash('write', parseHash(hash).payload, '', true)).toBe(hash);
+  // A sealed payload is broken and read the same way.
+  const sealed = 'E' + 'x'.repeat(400);
+  expect(parseHash(routeHash('write', sealed))).toMatchObject({ payload: sealed, sealed: true });
+  expect(routeHash('write', 'yABC')).toBe('#/v1/write/yABC');
+});

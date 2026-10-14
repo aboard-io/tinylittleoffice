@@ -9,7 +9,7 @@
  */
 import { LitElement, html, nothing } from 'lit';
 import { appOf } from '../core/apps.ts';
-import { decodeDoc } from '../core/codec.ts';
+import { decodeDoc, withBreaks, withoutBreaks } from '../core/codec.ts';
 import { diff, tally, type Change } from '../text/diff.ts';
 import { icon, UI } from '../draw/icons.ts';
 import { t } from '../core/i18n.ts';
@@ -20,22 +20,22 @@ export interface Side {
   payload: string;
 }
 
-const LINKED = /#\/v\d+\/([a-z][a-z0-9-]*)(?:\.[A-Za-z0-9.]+)?\/([A-Za-z0-9_~-]+)/;
+const LINKED = /#\/v\d+\/([a-z][a-z0-9-]*)(?:\.[A-Za-z0-9.]+)?\/([A-Za-z0-9_~+-]+)/;
 
 /** The app and payload in a link (or a fragment), or null when it is not a document of ours. */
 export function sideOf(link: string): Side | null {
   const m = LINKED.exec(link.trim());
-  return m && appOf(m[1]) && decodeDoc(m[2]) ? { app: m[1], payload: m[2] } : null;
+  return m && appOf(m[1]) && decodeDoc(m[2]) ? { app: m[1], payload: withoutBreaks(m[2]) } : null;
 }
 
 /** "#/compare/<app>/<payload>[/<app>/<payload>]". */
-const compareHash = (a: Side | null, b: Side | null = null): string => `#/compare${[a, b].map((s) => (s ? `/${s.app}/${s.payload}` : '')).join('')}`;
+const compareHash = (a: Side | null, b: Side | null = null): string => `#/compare${[a, b].map((s) => (s ? `/${s.app}/${withBreaks(s.payload)}` : '')).join('')}`;
 
 /** The two sides a compare fragment names; null when the fragment is not one. */
 export function parseCompare(hash: string): [Side | null, Side | null] | null {
-  const m = /^#\/compare(?:\/([a-z][a-z0-9-]*)\/([A-Za-z0-9_~-]+)(?:\/([a-z][a-z0-9-]*)\/([A-Za-z0-9_~-]+))?)?\/?(?:\?.*)?$/.exec(hash);
+  const m = /^#\/compare(?:\/([a-z][a-z0-9-]*)\/([A-Za-z0-9_~+-]+)(?:\/([a-z][a-z0-9-]*)\/([A-Za-z0-9_~+-]+))?)?\/?(?:\?.*)?$/.exec(hash);
   if (!m) return null;
-  return [m[1] ? { app: m[1], payload: m[2] } : null, m[3] ? { app: m[3], payload: m[4] } : null];
+  return [m[1] ? { app: m[1], payload: withoutBreaks(m[2]) } : null, m[3] ? { app: m[3], payload: withoutBreaks(m[4]) } : null];
 }
 
 /** Changes as rows of two cells: kept on both sides; a run taken out paired with the run put in after it; the rest alone. */

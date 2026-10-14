@@ -11,6 +11,13 @@
  * may break (UAX #14), so a long link full of them was cut wherever a mail client or a chat wrapped it, and "~"
  * is unreserved in a URL and breaks nowhere. Reading is lenient: "-" is 62 too, so every link made before opens.
  *
+ * A link carries its payload with a "+" after every 300 characters (withBreaks; kit/core/route.ts routeHash writes
+ * it, parseHash takes it out): iMessage and Signal do not make a link of one whose run of letters and digits is
+ * longer than 301 characters (https://www.patrickweaver.net/blog/imessage-mystery/), and "~" and "_" fall where
+ * the bytes put them, so a long payload could hold such a run. "+" is not in the alphabet, is allowed in a URL's
+ * fragment, iMessage takes it as a break, and it is no place a line may break. A payload is the same without its
+ * breaks: a link made before them opens, and fromBase64Url passes over them.
+ *
  * fflate rather than the browser's CompressionStream: the native API has no dictionary, is asynchronous,
  * and is absent under node for the tests; the dictionary is what makes short documents 20 to 35 percent
  * smaller. The dictionary's bytes never change: a link made under them opens only under them.
@@ -23,6 +30,22 @@ export const URL_LIMIT = 2048;
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~_';
 const B64_REV: Record<string, number> = { '-': 62 };
 for (let i = 0; i < B64.length; i++) B64_REV[B64[i]] = i;
+
+/** What a link puts in its payload so no run of letters and digits is longer than BREAK_EVERY. */
+export const BREAK = '+';
+/** iMessage and Signal take a run of up to 301; 300 leaves the payload's breaks on round numbers. */
+export const BREAK_EVERY = 300;
+
+/** A payload as a link carries it: a BREAK after every BREAK_EVERY characters (never at its end). */
+export function withBreaks(payload: string): string {
+  const bare = withoutBreaks(payload);
+  const parts: string[] = [];
+  for (let i = 0; i < bare.length; i += BREAK_EVERY) parts.push(bare.slice(i, i + BREAK_EVERY));
+  return parts.join(BREAK);
+}
+
+/** A payload without its breaks: what the codec and the seal read. "%2B" too, a "+" something on the way percent-encoded. */
+export const withoutBreaks = (payload: string): string => payload.replace(/\+|%2B/gi, '');
 
 export function toBase64Url(bytes: Uint8Array): string {
   let out = '';
@@ -44,6 +67,7 @@ export function fromBase64Url(s: string): Uint8Array {
   let buf = 0;
   let bits = 0;
   for (const ch of s) {
+    if (ch === BREAK) continue;
     const v = B64_REV[ch];
     if (v === undefined) throw new Error('bad base64url');
     buf = (buf << 6) | v;
