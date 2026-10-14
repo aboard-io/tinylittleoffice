@@ -3,8 +3,9 @@
  * and title; a .md or .txt opens in the app open now, else the Word Processor, called by its file name when
  * it names nothing itself. Reached by a file dropped anywhere on the page (the shell); the menu's Open a file… is
  * gone (Paul, 2026-10-12). A .json (Download → Data (JSON): the kernel's document, src/doc/json.ts)
- * opens as its .tlo would, when it fits the schema; one that does not is said so. The document goes into a link and the link is followed: no
- * file is kept, nothing is sent.
+ * opens as its .tlo would, when it fits the schema; one that does not is said so. A .png (Download → Icon: the
+ * document inside the picture, kit/file/png.ts) opens the document it carries; a picture that carries none is said so.
+ * The document goes into a link and the link is followed: no file is kept, nothing is sent.
  *
  * A zip goes in too (Paul, 2026-10-11: "Let me download all my docs as a single zip file and upload them too"):
  * its .tlo and .md files are documents (kit/core/plain.ts readZip), the rest of it (a README, a picture) left alone. Under Saved they are kept (kit/share/library.ts keepAll),
@@ -54,6 +55,15 @@ async function jsonHash(name: string, json: string, fallback: string): Promise<s
 
 const isZip = (file: File) => /\.zip$/i.test(file.name) || /^application\/(?:x-)?zip/.test(file.type);
 
+const isPng = (file: File) => /\.png$/i.test(file.name) || file.type === 'image/png';
+
+/** A .png's document (the words it carries under "tlo", kit/file/png.ts) as a link's hash; '' when it carries none. */
+async function pngHash(file: File, fallback: string): Promise<string> {
+  const { KEYWORD, textOf } = await import('./png.ts');
+  const text = textOf(new Uint8Array(await file.arrayBuffer()), KEYWORD);
+  return text ? hashFor(file.name.replace(/\.icon\.png$/i, '.png'), text, fallback) : '';
+}
+
 /** Open a file: its document, in its app, as a new entry in the tab's history (Back returns); a zip's documents, kept or offered. */
 export async function openFile(file: File, fallback: string): Promise<boolean> {
   if (isZip(file)) return openZip(file, fallback);
@@ -61,10 +71,9 @@ export async function openFile(file: File, fallback: string): Promise<boolean> {
     toast(t('That file is too large to be a document here.'));
     return false;
   }
-  const words = await file.text();
-  const hash = isJson(file) ? await jsonHash(file.name, words, fallback) : hashFor(file.name, words, fallback);
+  const hash = isPng(file) ? await pngHash(file, fallback) : isJson(file) ? await jsonHash(file.name, await file.text(), fallback) : hashFor(file.name, await file.text(), fallback);
   if (!hash) {
-    toast(t('That file is not words Tiny Little Office can read.'));
+    toast(isPng(file) ? t('That picture carries no document.') : t('That file is not words Tiny Little Office can read.'));
     return false;
   }
   if (go(hash)) toast(t('Opened {name}', { name: file.name }));

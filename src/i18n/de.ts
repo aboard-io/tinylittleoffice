@@ -222,6 +222,7 @@ export default {
   'Print': 'Drucken',
   'Print, or save as PDF': 'Drucken oder als PDF sichern',
   'Picture (PNG)': 'Bild (PNG)',
+  'Icon (PNG with the document inside)': 'Symbol (PNG mit dem Dokument darin)',
   'Web page (HTML)': 'Webseite (HTML)',
   'Text (TLO)': 'Text (TLO)', // same
   'Data (JSON)': 'Daten (JSON)',
@@ -1479,6 +1480,7 @@ export default {
   'Swap': 'Tauschen',
   'Taken out:': 'Entfernt:',
   'That file is not words Tiny Little Office can read.': 'Diese Datei besteht nicht aus Text, den Winzig Kleines Büro lesen kann.',
+  'That picture carries no document.': 'Dieses Bild enthält kein Dokument.',
   'That file is too large to be a document here.': 'Diese Datei ist zu groß, um hier ein Dokument zu sein.',
   'The first link': 'Der erste Link',
   'The pages, in a frame on another site, with a link to open them here.': 'Die Seiten, in einem Rahmen auf einer anderen Website, mit einem Link, um sie hier zu öffnen.',

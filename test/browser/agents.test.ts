@@ -111,11 +111,16 @@ test('a .tlo dropped on the page opens as its own app and title; a .md dropped o
   await until(() => docNow().includes('Tent'));
   expect(parseHash(location.hash).app).toBe('outline');
   expect(docNow()).toBe('---\ntitle: camping\n---\n- [ ] Tent\n');
-  // Something that is not words does not open.
+  // Something that is not words does not open; a picture that carries no document (kit/file/png.ts) is said so in its own words.
   const before = location.hash;
   const bad = new DataTransfer();
   bad.items.add(new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 1, 2])], 'cat.png', { type: 'image/png' }));
   shell.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: bad }));
+  await until(() => said() === 'That picture carries no document.');
+  expect(location.hash).toBe(before);
+  const odd = new DataTransfer();
+  odd.items.add(new File([new Uint8Array([0, 1, 2, 3])], 'cat.bin', { type: 'application/octet-stream' }));
+  shell.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: odd }));
   await until(() => said() === 'That file is not words Tiny Little Office can read.');
   expect(location.hash).toBe(before);
 });

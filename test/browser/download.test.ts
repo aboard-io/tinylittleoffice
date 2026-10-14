@@ -102,7 +102,17 @@ test("the Word Processor's Download menu is a row per format, each with view, do
   await openDownload(shell);
   const items = [...menu(shell).children].map((el) => el.getAttribute('aria-label') ?? el.textContent!.trim());
   expect(items[0]).toContain('Print, or save as PDF');
-  expect(rows(shell).map((r) => r.getAttribute('aria-label'))).toEqual(['PDF file', 'Picture (PNG)', 'Text (TLO)', 'Data (JSON)', 'Word (DOCX)', 'Markdown', 'Rich Text (RTF)', 'Web page (HTML)']);
+  expect(rows(shell).map((r) => r.getAttribute('aria-label'))).toEqual([
+    'PDF file',
+    'Picture (PNG)',
+    'Icon (PNG with the document inside)',
+    'Text (TLO)',
+    'Data (JSON)',
+    'Word (DOCX)',
+    'Markdown',
+    'Rich Text (RTF)',
+    'Web page (HTML)',
+  ]);
   // No share sheet here (a desktop browser): three actions; a .docx the browser cannot show has no View.
   expect(acts(row(shell, 'PDF file')).map((b) => b.getAttribute('aria-label'))).toEqual(['View the .pdf', 'Download the .pdf', 'Copy a link that downloads the .pdf']);
   expect(acts(row(shell, 'Word (DOCX)')).map((b) => b.getAttribute('aria-label'))).toEqual(['Download the .docx', 'Copy a link that downloads the .docx']);
@@ -304,6 +314,7 @@ test('the table reads each format: View where the browser shows the file, Share 
     expect(rows(shell).map((r) => r.getAttribute('aria-label'))).toEqual([
       'PDF file',
       'Picture (PNG)',
+      'Icon (PNG with the document inside)',
       'Web page (HTML)',
       'Markdown',
       'Text (TLO)',

@@ -16,6 +16,7 @@ definitions by `node scripts/exports-doc.ts`; a test fails when it is out of dat
 | Print, or save as PDF | The browser's own print dialog, which saves a PDF: a page per page the app draws, at its own size, the words in the SVG still text. Mod+P. |
 | `.pdf` | PDF file: its pages as pictures, a page of the file each. |
 | `.png` | Picture (PNG): the whole document as one picture, its pages stacked. |
+| `.icon.png` | Icon (PNG with the document inside): a square, the first page as a thumbnail, with the document itself inside the file (an uncompressed iTXt chunk, keyword "tlo", kit/file/png.ts); a picture anywhere, and dropped on the page, it opens again. |
 | `.html` | Web page (HTML): a web page of its pages as pictures (an app with its own web page lists it below, and that one is used). |
 | `.md` | Markdown: the document exactly as its link holds it (docs/tlo.md). |
 | `.tlo` | Text (TLO): the document exactly as its link holds it (docs/tlo.md). |

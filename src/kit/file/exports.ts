@@ -13,7 +13,7 @@
  * <a download> everywhere else.
  */
 import type { AppDef, Doc, Export, ExportContext, Page } from '../core/app.ts';
-import { INK, MUTED, FONT, pageSvg, stack, fileName, slug, xml } from '../draw/draw.ts';
+import { INK, MUTED, FONT, PAPER, pageSvg, stack, fileName, slug, xml } from '../draw/draw.ts';
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from '../ui/menu.ts';
 import { appOf } from '../core/apps.ts';
@@ -32,6 +32,8 @@ import { textHtml } from '../text/text-view.ts';
 export { slug, utf8 } from '../draw/draw.ts';
 export { raster } from '../draw/raster.ts';
 import { drawn, jpeg, raster } from '../draw/raster.ts';
+import { GROUND } from '../draw/card.ts';
+import { KEYWORD, withText } from './png.ts';
 
 /* ---------- handing a file over ---------- */
 
@@ -84,6 +86,25 @@ const sharp = (p: Page) => Math.max(1, Math.min(2, 4096 / Math.max(p.w, p.h)));
 export function picture(pages: Page[]): Promise<Uint8Array | null> {
   const page = stack(pages);
   return raster(pageSvg(page), page.w, page.h, sharp(page));
+}
+
+/** The icon's side in CSS pixels (drawn at twice that), and the ground around the page. */
+const ICON = 512;
+const ICON_PAD = 40;
+
+/**
+ * The document as an icon: a square, the first page as a thumbnail (ViewOpts.thumb, the gist) fitted whole in it on the
+ * cards' ground, with the document itself inside the file (kit/file/png.ts): a picture anywhere, and dropped here, the
+ * document again. The page's own PNG does not carry the document: a picture shared is only what it shows (a deck's
+ * speaker notes are not on its slides), and a file that carries the document says so in its name.
+ */
+async function iconPicture(page: Page, tlo: string): Promise<Uint8Array | null> {
+  const k = Math.min((ICON - 2 * ICON_PAD) / page.w, (ICON - 2 * ICON_PAD) / page.h);
+  const [w, h] = [page.w * k, page.h * k];
+  const [x, y] = [(ICON - w) / 2, (ICON - h) / 2];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ICON} ${ICON}" width="${ICON}" height="${ICON}" font-family="${FONT}"><rect width="${ICON}" height="${ICON}" fill="${GROUND}"/><rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${PAPER}" stroke="${MUTED}" stroke-opacity="0.35"/><svg x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" viewBox="0 0 ${page.w} ${page.h}">${page.svg}</svg></svg>`;
+  const png = await raster(svg, ICON, ICON, 2, GROUND);
+  return png && withText(png, KEYWORD, tlo);
 }
 
 /** The pages as a .pdf file: each drawn as a JPEG, as sharp as the page size allows (kit/file/pdf.ts says why raster). */
@@ -195,14 +216,22 @@ const titleOf = (doc: Doc, { def, title }: ExportContext) => title || def.title(
 const pagesOf = (doc: Doc, ctx: ExportContext, still?: boolean) => ctx.def.view(doc, still ? STILL : undefined);
 
 /**
- * The formats every app has: the .pdf file, a picture, a web page, Markdown, the text, the JSON. Each builds its own bytes
- * through the pages (pdfOf, picture, htmlOf). Markdown is the document's own text (TLO is Markdown), its footnotes in
+ * The formats every app has: the .pdf file, a picture, an icon that carries the document, a web page, Markdown, the text,
+ * the JSON. Each builds its own bytes through the pages (pdfOf, picture, iconPicture, htmlOf). Markdown is the document's own text (TLO is Markdown), its footnotes in
  * the reference form other readers know; a .tlo carries its app (kit/core/plain.ts), and so does a .json, the kernel's
  * document as JSON (src/doc/json.ts; its schema is packages/doc/schema/tlo.schema.json).
  */
 export const KIT_FORMATS: readonly Export[] = [
   { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', shows: 'own', still: true, build: async (doc, ctx) => drawn(await pdfOf(pagesOf(doc, ctx, true), titleOf(doc, ctx))) },
   { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', shows: 'own', still: true, build: async (doc, ctx) => drawn(await picture(pagesOf(doc, ctx, true))) },
+  {
+    ext: 'icon.png',
+    label: () => t('Icon (PNG with the document inside)'),
+    mime: 'image/png',
+    shows: 'own',
+    still: true,
+    build: async (doc, ctx) => drawn(await iconPicture(ctx.def.view(doc, { small: true, thumb: true, still: true })[0], tloText(ctx.def.id, doc))),
+  },
   {
     ext: 'html',
     label: () => t('Web page (HTML)'),
