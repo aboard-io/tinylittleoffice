@@ -25,7 +25,7 @@ const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve
  * commit, its tag and date, those hashes: scripts/version.ts).
  * For agents, /.well-known/llms.txt is /llms.txt again and /examples/<app>.json each app's examples.
  */
-function afterBuild(site: string): Plugin {
+function afterBuild(site: string, tinier: string): Plugin {
   return {
     name: 'tinyoffice-after-build',
     apply: 'build',
@@ -49,7 +49,7 @@ function afterBuild(site: string): Plugin {
       // the shell, the same on every page), read as scripts/check-build.ts reads them (scripts/headers.ts).
       const inline = inlineScripts(readFileSync(resolve(dist, 'index.html'), 'utf8'));
       const hashes = [...new Set([...pageScripts(), ...inline].map(scriptHash))];
-      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes }));
+      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, tinier }));
       writeFileSync(resolve(dist, 'version.json'), versionJson(versionOf(facts, hashes)));
     },
   };
@@ -134,7 +134,7 @@ export default defineConfig(({ mode }) => ({
       '/card': { target: 'http://127.0.0.1:8789' },
     },
   },
-  plugins: [ftlBare(), afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? ''), previewCache()],
+  plugins: [ftlBare(), afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '', loadEnv(mode, import.meta.dirname).VITE_TINIER ?? ''), previewCache()],
   build: {
     target: 'es2022',
     outDir: 'dist',

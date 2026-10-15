@@ -3,7 +3,8 @@
 import { test, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { D1Store, type SQL } from '../tinier/d1.ts';
+import { D1Store } from '../tinier/d1.ts';
+import { MIGRATIONS, migrate, sqlite } from '../selfhost/sqlite.ts';
 import { brakeHash, brakeKey, DAILY, dayOf } from '../tinier/brake.ts';
 import { newId } from '../tinier/cards.ts';
 import { handle, MAX_BYTES, TTLS } from '../tinier/tinier.ts';
@@ -147,29 +148,9 @@ test('tinier: the sweep forgets expired links and the counts of any day but toda
   expect([...store.brakes.keys()]).toEqual([`h${today - 1}`, `h${today}`]);
 });
 
-/** Cloudflare D1's few calls the Worker makes, over node's SQLite: enough to run the D1Store's own SQL. */
-function d1(db: DatabaseSync) {
-  const prepare = (sql: string) => {
-    let args: (string | number | Uint8Array)[] = [];
-    const stmt = {
-      bind: (...a: (string | number | Uint8Array)[]) => ((args = a), stmt),
-      first: async <T>() => (db.prepare(sql).get(...args) as T) ?? null,
-      run: async () => {
-        const r = db.prepare(sql).run(...args);
-        return { meta: { changes: Number(r.changes) } };
-      },
-    };
-    return stmt;
-  };
-  return { prepare } as SQL;
-}
-/** tinier/migrations/, in the order `wrangler d1 migrations apply` takes them (by name: NNNN_name.sql). */
-const MIGRATIONS = new URL('../tinier/migrations/', import.meta.url);
+// D1's few calls over node's SQLite, and the migrations in order: the self-hosted process's own store (selfhost/sqlite.ts),
+// so these tests hold the SQL the Workers run on D1 and the store the process runs on one SQLite file alike.
 const migrations = () => readdirSync(MIGRATIONS).sort();
-const migrate = (db: DatabaseSync) => {
-  for (const f of migrations()) db.exec(readFileSync(new URL(f, MIGRATIONS), 'utf8'));
-  return db;
-};
 const schema = () => migrate(new DatabaseSync(':memory:'));
 const columns = (db: DatabaseSync, table: string) => (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
 
@@ -204,7 +185,7 @@ test("tinier on D1: production's four columns and the brakes table, and the Work
   const db = schema();
   expect(columns(db, 'links')).toEqual(['id', 'c', 'iv', 'exp']);
   expect(columns(db, 'brakes')).toEqual(['h', 'n', 'day']);
-  const store = new D1Store(d1(db));
+  const store = new D1Store(sqlite(db));
   const noon = Date.UTC(2026, 9, 11, 12);
   for (let i = 0; i < 100; i++) expect((await handle(post(LINK), store, KEY, PAGE, noon)).status).toBe(201);
   expect((await handle(post(LINK), store, KEY, PAGE, noon)).status).toBe(429);
@@ -224,7 +205,7 @@ test("tinier on D1: production's four columns and the brakes table, and the Work
 
 test('cards on D1: kept as they came, the picture a BLOB handed back byte for byte, and swept a month on', async () => {
   const db = schema();
-  const store = new D1Store(d1(db));
+  const store = new D1Store(sqlite(db));
   const png = Uint8Array.from({ length: 3000 }, (_, i) => (i * 7) % 256);
   expect(await store.putCard('abcdefg', { app: 'deck', title: 'Talk', text: 'Slides.', png, exp: NOW + 30 * DAY })).toBe(true);
   expect(await store.putCard('abcdefg', { app: 'deck', title: 'Other', text: '', png, exp: NOW })).toBe(false);

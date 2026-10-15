@@ -1,0 +1,23 @@
+# Tiny Little Office on your own machine (docs/self-host.md, "Without Cloudflare"): npm run selfhost:build, then
+# npm run selfhost:up. The site on port 8000, the short links on 8001, every link and card in one SQLite file on the
+# volume `data` (the one thing to back up). BRAKE_KEY comes from the environment or the checkout's .env.
+services:
+  office:
+    build:
+      context: .
+      args:
+        SITE: ${SITE:-http://localhost:8000}
+        TINIER: ${TINIER:-http://localhost:8001}
+    image: tinylittleoffice
+    environment:
+      BRAKE_KEY: ${BRAKE_KEY:?set BRAKE_KEY in .env or the environment (openssl rand -base64 32)}
+      SITE: ${SITE:-http://localhost:8000}
+      IP_HEADER: ${IP_HEADER:-}
+    ports:
+      - '8000:8000'
+      - '8001:8001'
+    volumes:
+      - data:/data
+    restart: unless-stopped
+volumes:
+  data:

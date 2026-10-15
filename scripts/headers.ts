@@ -6,7 +6,7 @@
  * docs/network.md lists and nothing else.
  */
 import { createHash } from 'node:crypto';
-import { reaches, type Directive } from '../src/kit/core/network.ts';
+import { origin, reaches, type Directive } from '../src/kit/core/network.ts';
 
 /** A script's hash as the policy names it: 'sha256-…'. */
 export const scriptHash = (code: string) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`;
@@ -27,9 +27,15 @@ export function sources(directive: Directive): string[] {
     .filter((s, i, all) => all.indexOf(s) === i);
 }
 
-/** The headers file with its placeholders filled. */
-export function fillHeaders(text: string, { scripts }: { scripts: string[] }): string {
-  return text.replaceAll('{{scripts}}', scripts.join(' ')).replaceAll('{{img}}', sources('img').join(' ')).replaceAll('{{connect}}', sources('connect').join(' '));
+/**
+ * The headers file with its placeholders filled. `tinier` is the build's own short-link service (VITE_TINIER), when it
+ * is an address of its own: the policy lets the pages reach it in place of tinier.tinylittleoffice.com, so a copy that
+ * runs its own shortener (docs/self-host.md) needs no change to the list.
+ */
+export function fillHeaders(text: string, { scripts, tinier }: { scripts: string[]; tinier?: string }): string {
+  const own = tinier && /^https?:\/\//.test(tinier) ? new URL(tinier).origin : '';
+  const connect = sources('connect').map((s) => (own && s === origin('tinier') ? own : s));
+  return text.replaceAll('{{scripts}}', scripts.join(' ')).replaceAll('{{img}}', sources('img').join(' ')).replaceAll('{{connect}}', connect.join(' '));
 }
 
 /**
