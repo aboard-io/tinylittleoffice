@@ -94,8 +94,8 @@ let loaded: L | null = null;
 const maplibre = (): Promise<L> => (loading ??= Promise.all([import('maplibre-gl'), import('./maplibre.css')]).then(([m]) => (m.setWorkerUrl(mapWorker), (loaded = m))));
 /** The map's style: OpenFreeMap's Liberty, its tiles, sprites and fonts all on the one host (kit/core/network.ts). */
 const MAP_STYLE = `${origin('openfreemap')}/styles/liberty`;
-/** What the map says under itself: OpenFreeMap asks for OpenMapTiles' and OpenStreetMap's names, its own optional. */
-const CREDIT = `<a href="${origin('openfreemap')}" target="_blank" rel="noopener">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">&copy; OpenMapTiles</a> <a href="${origin('osm')}/copyright" target="_blank" rel="noopener">&copy; OpenStreetMap contributors</a>`;
+// (What the map says under itself, OpenFreeMap's, OpenMapTiles' and OpenStreetMap's names, comes with the tiles' own
+// description, as OpenFreeMap asks; written here too it would show twice.)
 /** MapLibre's tiles are 512px to Leaflet's 256: one level out shows the same ground, so a zoom written for Leaflet (home.ts) is one less here. */
 const Z = (zoom: number) => zoom - 1;
 
@@ -288,7 +288,7 @@ export class ToTripEditor extends DocElement<TripView> {
         center: [home.lon, home.lat],
         zoom: Z(home.zoom),
         renderWorldCopies: true,
-        attributionControl: { compact: false, customAttribution: CREDIT },
+        attributionControl: { compact: false },
       });
     } catch {
       // No WebGL here (a browser without it, a device that lost it): the map stays a blank box, the stops are the list's.
