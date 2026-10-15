@@ -274,10 +274,12 @@ share-a-short-link = 短連結
 share-small-nfc-sticker = 小型 NFC 貼紙
 # en: 7be07ec57c401332cca2718a0d4a6a516b77527f
 share-text-message = 簡訊
+# en: 1efc6b2c2c837a8ce7a9054983d97158307b3c0e
+share-chrome-and-edge = Chrome 與 Edge
 # en: 777a1e3310cf18433544371b9f5422bf0ba0ac80
 share-nfc-sticker = NFC 貼紙
-# en: 0e7ed081eb6eba862861027efbb6bd2957fd7028
-share-some-browsers = 部分瀏覽器
+# en: 219dd04dbbbc2c0867d0f2c748fdc25f6aba89f2
+share-some-browsers = 舊版瀏覽器
 # en: 77437a6dfcf7562798d4a066e19fd698b357c1a8
 share-n-short-links-kept-here = { $n ->
        *[other] { $n } 個短連結保留在此
@@ -373,18 +375,38 @@ share-server-refused-picture = 伺服器拒絕了這張圖片
 share-pages-in-frame-on-another = 頁面放在其他網站的框架裡，並附一個連結可在這裡開啟。
 # en: 9377de06278eacbdf4a297a82b8eb9aa3d4220c0
 share-your-mastodon-server = 你的 Mastodon 伺服器
-# en: 8ae1c34bd37fad49cc5f8e02da648a78e89c3ed8
-share-left = 剩餘
-# en: 62be4731dedfbbc70aa7fa30d6649d816af8ca4b
-share-uses = 已用
+# en: fccb3597262f866e1c1f6a9f20bdd2439a0370b8
+share-this-link-n-characters-n-bytes = 此連結：{ $n ->
+       *[other] { $n } 個字元
+    }，{ $bytes ->
+       *[other] { $bytes } 位元組
+    }
 # en: 525f61b6729229b1a8854a9e50bcaa52ea96b131
 share-where = 位置
 # en: cdbfed741d905515df704d9585fc74781801a24d
 share-where-link-fits = 這個連結放得下嗎？
-# en: ddba25b7aa2e43ef1c94a2a8cfb8b839fb723ca2
-share-any-length = 任何長度
-# en: 23fd8ecdbffd82e04305d3cea5eae9cdb85ac9bf
-share-n-over = 超出 { $n }
+# en: 24d948e4bdbe5b8224bbc0dfbab1923fab00b98e
+share-limit = 上限
+# en: f9f775ef8d81d0adcdb54a1de51a58a5ab9d24f6
+share-fits = 放得下嗎
+# en: 0e1a1a74c78e1f4b6e8efcb92b18aea677212d76
+share-n-characters = { $n ->
+       *[other] { $n } 個字元
+    }
+# en: 1991ca167949231900aa143e63134d2584d8de83
+share-n-bytes = { $n ->
+       *[other] { $n } 位元組
+    }
+# en: 36f6b0318377bb84249e4845275fa2c4e63ebb37
+share-no-published-limit = 未公布
+# en: 5397e0583f14f6c88de06b1ef28f460a1fb5b0ae
+share-yes = 可以
+# en: f37d6e1b1ff2eeb01d7bee0aadef337300b9db53
+share-yes-n-left = 可以，剩餘 { $n }
+# en: 63dfcadd40126551301f363efd454c7d2c610b94
+share-no-n-over = 不行，超出 { $n }
+# en: 0d4737c5b6ea7847f57ff786490b8632c0b65994
+share-yes-link-counts-as-n = 可以，連結以 { $n } 計
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

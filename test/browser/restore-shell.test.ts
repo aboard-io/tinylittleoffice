@@ -362,10 +362,10 @@ test('the Share dialog’s head line: where the link fits with Copy, the rooms i
   fit.querySelector<HTMLButtonElement>('.to-fit-words')!.click();
   await until(() => rooms.matches(':popover-open'));
   const rows = [...rooms.querySelectorAll('tbody tr')];
-  expect(rows.length).toBe(12);
+  expect(rows.length).toBe(15);
   expect(rows.map((r) => r.querySelector('th')!.textContent)).toContain('a QR code');
   expect(rows.map((r) => r.querySelector('th')!.textContent)).toContain('a link in Google Docs');
-  expect(rooms.textContent).toContain('any length');
+  expect(rooms.textContent).toContain('Yes, a link counts as 23');
   rooms.hidePopover();
   // A document past the link's limit: the line in red, said in characters over.
   const big = Array.from({ length: 3000 }, (_, i) => `${(i * 7919) % 10007}`).join(' ');

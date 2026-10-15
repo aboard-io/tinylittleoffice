@@ -975,16 +975,18 @@
     color: var(--to-danger);
     font-weight: 600;
   }
+  /* Each limit beside whether the link fits it (Paul, 2026-10-15, issue #8): wider than a menu where the page has the
+     room; on a phone the words wrap, a number never breaks. */
   .to-rooms {
     padding: 0.6154em 0.9231em;
     font-size: calc(0.8125 * var(--to-scale));
+    max-width: min(44em, calc(100vw - 1em));
   }
   /* (A .to-table, compact, its numbers lined up.) */
   .to-rooms th,
   .to-rooms td {
     padding: 0.1875em 0.5em;
     border-top: 0;
-    white-space: nowrap;
   }
   .to-rooms td {
     font-variant-numeric: tabular-nums;
@@ -992,6 +994,39 @@
   .to-rooms tr.over td,
   .to-rooms tr.over th {
     color: var(--to-danger);
+  }
+  /* On a phone the three columns do not fit: each place is a line of its own, its limit and the answer on the line
+     under it, the heads kept for a screen reader. */
+  @media (max-width: 640px) {
+    .to-rooms thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .to-rooms tbody tr {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: space-between;
+      column-gap: 1em;
+      padding: 0.25em 0;
+      border-top: 1px solid var(--to-border);
+    }
+    .to-rooms tbody tr:first-child {
+      border-top: 0;
+    }
+    .to-rooms tbody th {
+      grid-column: 1 / -1;
+      font-weight: 600;
+    }
+    .to-rooms tbody th,
+    .to-rooms tbody td {
+      padding: 0;
+    }
+    .to-rooms tbody td:last-child {
+      text-align: end;
+    }
   }
   /* Edit link and Present link side by side where a column holds a name on one line, and one under the other where it
      cannot (a phone, a large size): the pair was uneven when one name wrapped and the other sat centred against it

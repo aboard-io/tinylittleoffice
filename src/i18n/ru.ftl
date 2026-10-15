@@ -296,10 +296,12 @@ share-a-short-link = короткой ссылки
 share-small-nfc-sticker = маленькой NFC-наклейки
 # en: 7be07ec57c401332cca2718a0d4a6a516b77527f
 share-text-message = SMS
+# en: 1efc6b2c2c837a8ce7a9054983d97158307b3c0e
+share-chrome-and-edge = Chrome и Edge
 # en: 777a1e3310cf18433544371b9f5422bf0ba0ac80
 share-nfc-sticker = NFC-наклейки
-# en: 0e7ed081eb6eba862861027efbb6bd2957fd7028
-share-some-browsers = некоторых браузеров
+# en: 219dd04dbbbc2c0867d0f2c748fdc25f6aba89f2
+share-some-browsers = старых браузеров
 # en: 77437a6dfcf7562798d4a066e19fd698b357c1a8
 share-n-short-links-kept-here = { $n ->
         [one] { $n } короткая ссылка хранится здесь
@@ -398,18 +400,50 @@ share-server-refused-picture = сервер отклонил картинку
 share-pages-in-frame-on-another = Страницы во фрейме на другом сайте со ссылкой, чтобы открыть их здесь.
 # en: 9377de06278eacbdf4a297a82b8eb9aa3d4220c0
 share-your-mastodon-server = Ваш сервер Mastodon
-# en: 8ae1c34bd37fad49cc5f8e02da648a78e89c3ed8
-share-left = Осталось
-# en: 62be4731dedfbbc70aa7fa30d6649d816af8ca4b
-share-uses = Занято
+# en: fccb3597262f866e1c1f6a9f20bdd2439a0370b8
+share-this-link-n-characters-n-bytes = Эта ссылка: { $n ->
+        [one] { $n } символ
+        [few] { $n } символа
+        [many] { $n } символов
+       *[other] { $n } символа
+    }, { $bytes ->
+        [one] { $bytes } байт
+        [few] { $bytes } байта
+        [many] { $bytes } байт
+       *[other] { $bytes } байта
+    }
 # en: 525f61b6729229b1a8854a9e50bcaa52ea96b131
 share-where = Где
 # en: cdbfed741d905515df704d9585fc74781801a24d
 share-where-link-fits = Поместится ли эта ссылка?
-# en: ddba25b7aa2e43ef1c94a2a8cfb8b839fb723ca2
-share-any-length = без ограничений
-# en: 23fd8ecdbffd82e04305d3cea5eae9cdb85ac9bf
-share-n-over = Лишних: { $n }
+# en: 24d948e4bdbe5b8224bbc0dfbab1923fab00b98e
+share-limit = Лимит
+# en: f9f775ef8d81d0adcdb54a1de51a58a5ab9d24f6
+share-fits = Поместится?
+# en: 0e1a1a74c78e1f4b6e8efcb92b18aea677212d76
+share-n-characters = { $n ->
+        [one] { $n } символ
+        [few] { $n } символа
+        [many] { $n } символов
+       *[other] { $n } символа
+    }
+# en: 1991ca167949231900aa143e63134d2584d8de83
+share-n-bytes = { $n ->
+        [one] { $n } байт
+        [few] { $n } байта
+        [many] { $n } байт
+       *[other] { $n } байта
+    }
+# en: 36f6b0318377bb84249e4845275fa2c4e63ebb37
+share-no-published-limit = Не опубликован
+# en: 5397e0583f14f6c88de06b1ef28f460a1fb5b0ae
+share-yes = Да
+# en: f37d6e1b1ff2eeb01d7bee0aadef337300b9db53
+share-yes-n-left = Да, осталось { $n }
+# en: 63dfcadd40126551301f363efd454c7d2c610b94
+share-no-n-over = Нет, лишних { $n }
+# en: 0d4737c5b6ea7847f57ff786490b8632c0b65994
+share-yes-link-counts-as-n = Да, ссылка считается за { $n }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

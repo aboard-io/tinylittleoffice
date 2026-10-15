@@ -26,7 +26,7 @@ import { chosenLanguage, t } from '../core/i18n.ts';
 import { dateWords } from '../core/dates.ts';
 import { picture, raster, saveFile, slug, utf8 } from '../file/exports.ts';
 import { parseHash, routeHash } from '../core/route.ts';
-import { fitLine, roomFor } from '../share/limits.ts';
+import { fitLine, fitWords, limitWords, roomFor } from '../share/limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from '../share/short.ts';
 import { dropKept, keepLink, keptLinks } from '../share/kept-links.ts';
 import { cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
@@ -359,8 +359,6 @@ export class ToShare extends LitElement {
       if (show && !pop?.matches(':popover-open')) (pop?.showPopover(), pop && place(pop, btn));
       else if (!show && !pop?.matches(':hover')) pop?.hidePopover();
     };
-    const lang = document.documentElement.lang || undefined;
-    const n = (x: number) => x.toLocaleString(lang);
     return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
       <button type="button" class="to-btn to-fit-words" popovertarget="to-rooms" aria-haspopup="dialog" @pointerenter=${hover(true)} @pointerleave=${hover(false)} @click=${(e: Event) => {
         const btn = e.currentTarget as HTMLElement;
@@ -369,10 +367,10 @@ export class ToShare extends LitElement {
       <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('share-copy-link')} title=${t('share-copy-link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
       <div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('share-where-link-fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
         <table class="to-table">
-          <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-uses')}</th><th scope="col">${t('share-left')}</th></tr></thead>
+          <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
+          <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
           <tbody>${roomFor(this.link).map(
-            (r) =>
-              html`<tr class=${r.left < 0 ? 'over' : ''}><th scope="row">${r.target.where()}</th><td>${n(r.used)} / ${n(r.target.max)}</td><td>${r.target.flat ? t('share-any-length') : r.left < 0 ? t('share-n-over', { n: -r.left }) : n(r.left)}</td></tr>`,
+            (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
           )}</tbody>
         </table>
       </div>
