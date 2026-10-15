@@ -609,3 +609,25 @@ test("§1 opens with the focus in the first stop's name, the caret at its end, e
   await blank.focusFirst();
   expect(document.activeElement).toBe(blank.querySelector('to-insert button'));
 });
+
+// A tap on a stop's row outside its words chooses it, as a tap on its number does (Paul, 2026-10-15: otherwise it is
+// confusing how to change or delete a stop); a tap in the words is the caret's, and chooses nothing.
+test('a tap on a stop’s row outside its words chooses it, with the bar; in its words it is the caret’s', async () => {
+  const { el } = await editor();
+  expect(ranged(el)).toEqual([]);
+  const row = stops(el)[1];
+  row.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  expect(ranged(el)).toEqual([1]);
+  expect(el.querySelector('.to-context button[aria-label="Delete"]')).not.toBeNull();
+  // Shift+tap on another row extends the range.
+  stops(el)[2].dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey: true }));
+  await el.updateComplete;
+  expect(ranged(el)).toEqual([1, 2]);
+  // In the words: the caret's, the range let go.
+  box(el, 0).focus();
+  await el.updateComplete;
+  box(el, 0).tx.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  expect(ranged(el)).toEqual([]);
+});

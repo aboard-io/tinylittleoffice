@@ -864,11 +864,22 @@ export class ToTripEditor extends DocElement<TripView> {
       @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}
     ></to-text>`;
   }
+  /**
+   * A tap on a stop's row outside its words (the leg, the space around the boxes) chooses the stop, as a tap on its number
+   * does (Paul, 2026-10-15: "When I click outside of a text area in a location in the map view it should be the same as if I
+   * clicked on the location number. Otherwise it's confusing as to how to change or delete a location"): the bar with
+   * Delete and the rest comes. The number's own tap is the rows controller's; the words' is the caret's.
+   */
+  private rowTap(i: number, e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (target.closest?.('to-text, button, input, a, [popover], dialog')) return;
+    this.rows.choose(i, e.shiftKey);
+  }
   private row(s: Stop, i: number) {
     const n = i + 1;
     const ranged = this.rows.has(i);
     const label = t('Stop {n}: a tap chooses it, a drag moves it', { n });
-    return html`<li class="trip-stop ${i === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}" data-i=${i} @focusin=${() => (this.cur = i)}>
+    return html`<li class="trip-stop ${i === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}" data-i=${i} @focusin=${() => (this.cur = i)} @click=${(e: MouseEvent) => this.rowTap(i, e)}>
       ${this.leg(i)}
       <button type="button" class="trip-n to-rows-handle" aria-pressed=${String(ranged)} aria-label=${label} title=${label}>${n}</button>
       <div class="trip-fields">${this.wordsBox(s, i, 'name')}${this.wordsBox(s, i, 'note')}</div>
