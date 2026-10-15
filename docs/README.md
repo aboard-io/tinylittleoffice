@@ -24,6 +24,7 @@ siblings, one an app; the kit's and the kernel's files each begin by saying what
 
 ## Running it
 
+- [phone-checks.md](phone-checks.md): ten minutes on an iPhone before a tag: what to tap in each app, and what right looks like.
 - [self-host.md](self-host.md): running your own copy on your own Cloudflare account, in about thirty minutes, and deploying it from GitHub on a tag.
 
 ## History
