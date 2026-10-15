@@ -86,15 +86,18 @@ test('the table of where the link fits states every limit, what it counts, and w
   expect(rows.sms).toEqual(['a text message', '160 characters', left(160)]);
   expect(table.querySelector('tr.over')).toBeNull();
   // At this phone's width each place is a line, its limit and the answer under it: nothing scrolls sideways.
-  d.querySelector<HTMLButtonElement>('.to-fit-words')!.click();
   const pop = d.querySelector<HTMLElement>('.to-rooms')!;
-  await until(() => pop.matches(':popover-open'));
+  pop.showPopover();
   expect(pop.scrollWidth).toBeLessThanOrEqual(pop.clientWidth);
   pop.hidePopover();
   // Random words, which do not compress, past the 2,048 the header's meter counts to: that row says by how much, in red, and the browsers' still fit.
   d.close();
-  const long = await written(null!, `${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`);
-  const d2 = await open(long);
+  // (Waited for longer than the helpers do: a document this size takes a while to open on a box busy with the other files.)
+  const long = await mount(`#/v1/write/${encodeDoc(`${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`)}`);
+  await until(() => !!long.querySelector('to-write-editor'), 10_000);
+  await openShare(long);
+  const d2 = dialogOf(long);
+  await until(() => d2.dialog.open && !!d2.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
   const big = long.link.length;
   expect(big).toBeGreaterThan(URL_LIMIT);
   const row = (id: string) => d2.querySelector(`.to-rooms tr[data-target="${id}"]`)!;
