@@ -252,7 +252,9 @@ makes the rest checkable by a stranger, and a test holds each.
   `short-links.json`, checked by `test/crypto-vectors.test.ts` against the kit and against WebCrypto called by
   hand. "Logs nothing" for tinier is held by `test/tinier.test.ts`.
 - **A copy of your own.** `docs/self-host.md` deploys the same code to anyone's Cloudflare account, the shortener
-  included, and About names the commit a copy runs, so a self-hoster's copy is distinguishable.
+  included, and About names the commit a copy runs, so a self-hoster's copy is distinguishable. Or it runs the same
+  code on one machine, as one Node process over one SQLite file (`selfhost/`), where whoever runs the machine sees
+  what Cloudflare would: the file holds what D1 holds, and a swept row is overwritten in it (`secure_delete`).
 
 Later: an independent audit of the crypto and the shortener, published in full; a public test dashboard; a signed
 SBOM with each release.

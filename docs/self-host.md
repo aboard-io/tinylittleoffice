@@ -1,7 +1,8 @@
 # Running your own copy
 
 Tiny Little Office runs on anyone's Cloudflare account exactly as it runs at tinylittleoffice.com: the same
-code, the same two Workers, nothing of ours in between. A document is its link, so a copy of your own
+code, the same two Workers, nothing of ours in between. Or it runs on any machine with Node or Docker, as one process
+over one SQLite file ([Without Cloudflare](#without-cloudflare-one-process-and-sqlite), below). A document is its link, so a copy of your own
 needs no data from ours; a link made on one copy opens on another (the part after `#` is the document, and
 any copy reads it). This takes about thirty minutes, most of it waiting for a domain's certificate.
 
@@ -49,8 +50,8 @@ ours to yours, in six places:
    ```
 
 4. **The policy.** The build writes the `connect-src` of `dist/_headers` from `src/kit/core/network.ts`, whose
-   `tinier` entry names `tinier.tinylittleoffice.com`: change its `host` to your tinier's, or the browser will
-   refuse every short link.
+   `tinier` entry names `tinier.tinylittleoffice.com`; a build with `VITE_TINIER` set to an address of its own writes
+   that address there instead, so the browser lets the pages reach your tinier and no other.
 5. **The brake.** tinier counts its own, a hundred links a day per address, in D1, under a keyed hash: set the
    Worker secret `BRAKE_KEY` (tinier/wrangler.jsonc says how). The site's own Worker (`site/`, which keeps the
    preview cards a person sends with a link to a network) counts cards the same way under its own `BRAKE_KEY`.
@@ -183,3 +184,56 @@ migration: the format is read leniently and written the same way on every copy.
 
 It is optional. Without tinier, the short link is the one thing that does not work: Share still copies
 the Edit link and the Present link, draws the QR code and hands the link to the device's share sheet.
+
+## Without Cloudflare: one process and SQLite
+
+The same code runs on one machine as one Node process, with nothing in front of it and nothing to install beyond
+Node 24 (Paul, issue #7: "ideally it would just all be JS + sqlite instead of something heavy like nginx"):
+`selfhost/server.ts`, on two ports, built on `node:http` and `node:sqlite`, which Node has built in.
+
+| Port | What | The code it runs |
+| --- | --- | --- |
+| 8000 | the site: `dist/`, each file with the headers `dist/_headers` gives it (the Content-Security-Policy reaches the browser as the file says it), and the preview cards (`/c/<id>`, `/card`) | `site/site.ts`, as the site's Worker runs it |
+| 8001 | the short links | `tinier/tinier.ts`, as tinier's Worker runs it |
+
+Both keep their rows in one SQLite file, through the same statements the Workers run on D1 (`tinier/d1.ts`, over
+`selfhost/sqlite.ts`); the tables are `tinier/migrations/`, applied each time it starts. The hourly sweep runs in the
+process. Nothing is logged but the addresses it listens on, and it fetches nothing.
+
+**What works:** everything: every app, Share, short links, preview cards, the offline copy.
+
+**What differs:** there is no edge cache, so every card page is read from the file and every request reaches your
+machine; the card pages and the short links are on your box, not ours, and a short link made on it opens only while it
+runs; the backup is the one SQLite file (`data/tinier.sqlite`, or the Docker volume `data`); and the commit a Docker
+build was made from is not named in About, since the image is built from the files without their history. A
+browser keeps short links, passwords and the offline copy to a secure page: `https://`, or `http://localhost`.
+On any other address, put the two ports behind TLS (a tunnel, or a proxy that ends TLS) and give the `https://`
+addresses below.
+
+With Docker, from a checkout:
+
+```sh
+echo "BRAKE_KEY=$(openssl rand -base64 32)" >> .env
+npm run selfhost:build   # docker compose build: npm ci and the build in one image, then a small one with node and dist/ alone
+npm run selfhost:up      # docker compose up -d: the site on :8000, the short links on :8001, the file on the volume data
+```
+
+Without Docker, the build and the process:
+
+```sh
+VITE_SITE_URL=http://localhost:8000/ VITE_TINIER=http://localhost:8001/ npm run build
+BRAKE_KEY=… npm run selfhost   # node selfhost/server.ts, reading .env if there is one
+```
+
+The settings (`.env.example` lists them; compose reads the checkout's `.env`):
+
+| Name | Default | What |
+| --- | --- | --- |
+| `BRAKE_KEY` | none: it will not start without one | the secret the daily counts are kept under (a hundred links and a hundred cards a day per address); any long random string, kept nowhere else |
+| `SITE` | `http://localhost:8000` | the site's address as a browser reaches it: the one origin the shortener answers, and where a short link leads; Docker builds the pages for it too |
+| `TINIER` | `http://localhost:8001` | the shortener's address as a browser reaches it, which Docker builds into the pages and their policy (`VITE_TINIER` to a build without Docker) |
+| `PORT`, `TINIER_PORT` | `8000`, `8001` | the two ports (in Docker, the ports on the host) |
+| `DB` | `data/tinier.sqlite` | the SQLite file (in Docker, `/data/tinier.sqlite` on the volume) |
+| `IP_HEADER` | none | behind a proxy, the header that names the reader's address (`x-forwarded-for`), so the brake counts each reader and not the proxy |
+
+`SITE` and `TINIER` are written into the build: change them and build again.

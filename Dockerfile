@@ -12,10 +12,17 @@ ENV VITE_SITE_URL=${SITE}/ VITE_TINIER=${TINIER}/
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build
+# The build without the checks before it (npm run build is the lint, then this): they read the tree through git, and
+# the image is made from the files alone. A commit is checked where it is made (CI, npm run deploy); so the copy names
+# no commit in About and /version.json.
+RUN npm run build:site
 
-# Only what the process runs: the build, the server, and the Workers' code it runs (site/, tinier/, the headers' reading).
-FROM node:24-alpine
+# Only what the process runs: node itself (no npm, no yarn), the build, the server, and the Workers' code it runs (site/,
+# tinier/, the headers' reading).
+FROM node:24-alpine AS node
+FROM alpine:3.24
+RUN apk add --no-cache libstdc++ && adduser -D -u 1000 node
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 ENV NODE_ENV=production DB=/data/tinier.sqlite PORT=8000 TINIER_PORT=8001
 COPY --from=build /src/package.json ./

@@ -66,7 +66,10 @@ const WORKER_FIRST = /^\/(c\/|card$|card\/)/;
 /** Both listeners, started; `close()` stops them and closes the database. A port of 0 takes any free one. */
 export async function start(o: Options): Promise<{ site: Server; tinier: Server; close(): Promise<void> }> {
   if (o.db !== ':memory:') mkdirSync(dirname(o.db), { recursive: true });
-  const db = migrate(new DatabaseSync(o.db));
+  const db = new DatabaseSync(o.db);
+  // A row the sweep deletes is overwritten in the file, not left in its free pages for whoever copies it.
+  db.exec('PRAGMA secure_delete = ON');
+  migrate(db);
   const store = new D1Store(sqlite(db));
   const files = assets(o.dist);
   const page = readFileSync(resolve(ROOT, 'tinier/page.html'), 'utf8');

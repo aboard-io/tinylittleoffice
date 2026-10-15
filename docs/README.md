@@ -24,7 +24,7 @@ siblings, one an app; the kit's and the kernel's files each begin by saying what
 
 ## Running it
 
-- [self-host.md](self-host.md): running your own copy on your own Cloudflare account, in about thirty minutes, and deploying it from GitHub on a tag.
+- [self-host.md](self-host.md): running your own copy on your own Cloudflare account, in about thirty minutes, and deploying it from GitHub on a tag; or on one machine, as one Node process over one SQLite file, with Docker or without.
 
 ## History
 
