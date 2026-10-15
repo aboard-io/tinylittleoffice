@@ -1282,7 +1282,7 @@ export default {
     'Where I am': 'میں کہاں ہوں',
     'Map': 'نقشہ',
     'Map: tap to add a stop': 'نقشہ: پڑاؤ شامل کرنے کے لیے ٹیپ کریں',
-    'The map’s pictures come from OpenStreetMap while it is shown.': 'نقشے کی تصویریں OpenStreetMap سے آتی ہیں جب تک وہ دکھایا جاتا ہے۔',
+  'The map comes from OpenFreeMap while it is shown.': 'نقشہ دکھائے جانے کے دوران OpenFreeMap سے آتا ہے۔',
     'Your location is asked for only to center the map, and is never written anywhere.': 'آپ کی لوکیشن صرف نقشے کو بیچ میں لانے کے لیے مانگی جاتی ہے، اور کہیں لکھی نہیں جاتی۔',
     '{n|one stop|# stops}': '{n|ایک پڑاؤ|# پڑاؤ}',
     'Stop {n}': 'پڑاؤ {n}',

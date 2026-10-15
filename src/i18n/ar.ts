@@ -1282,7 +1282,7 @@ export default {
   'Where I am': 'أين أنا',
   'Map': 'خريطة',
   'Map: tap to add a stop': 'الخريطة: انقر لإضافة محطة',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'تأتي صور الخريطة من OpenStreetMap ما دامت معروضة.',
+  'The map comes from OpenFreeMap while it is shown.': 'تأتي الخريطة من OpenFreeMap أثناء عرضها.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'يُطلب موقعك لتوسيط الخريطة فقط، ولا يُكتب في أي مكان.',
   '{n|one stop|# stops}': '{n|لا محطات|محطة واحدة|محطتان|# محطات|# محطة|# محطة}',
   'Stop {n}': 'المحطة {n}',

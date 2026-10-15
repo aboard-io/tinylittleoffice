@@ -135,17 +135,21 @@ export function shapeOf(dist: string, { apps, langs } = sourceFiles()): string[]
     [/^app-[\w-]{8}\.css$/, 'the stylesheet'],
     ...apps.map((a): [RegExp, string] => [new RegExp(`^templates-${a}-[\\w-]{8}\\.js$`), `${a}’s templates`]),
     ...langs.map((l): [RegExp, string] => [new RegExp(`^lang-${l}-[\\w-]{8}\\.js$`), `the language ${l}`]),
+    // The Trip Planner's map (MapLibre on OpenFreeMap, vite.config.ts MAP), fetched with the first map, and its worker.
+    [/^map-[\w-]{8}\.js$/, 'the map'],
+    [/^maplibre-gl-worker-[\w-]{8}\.js$/, 'the map’s worker'],
   ];
   for (const [re, what] of wanted) {
     const n = assets.filter((f) => re.test(f)).length;
     if (n !== 1) out.push(`assets/ holds ${n} files for ${what}, not one`);
   }
-  for (const f of assets) if (!wanted.some(([re]) => re.test(f))) out.push(`assets/${f}: a file the design does not have (one app file, one stylesheet, the templates and the languages)`);
+  for (const f of assets)
+    if (!wanted.some(([re]) => re.test(f))) out.push(`assets/${f}: a file the design does not have (one app file, one stylesheet, the templates, the languages, the map and its worker)`);
   const app = assets.find((f) => /^app-[\w-]{8}\.js$/.test(f));
   const css = assets.find((f) => /^app-[\w-]{8}\.css$/.test(f));
   if (app)
     for (const f of lazyImports(readFileSync(join(dist, 'assets', app), 'utf8')))
-      if (!/^(templates-[a-z]+|lang-[\w-]+)-[\w-]{8}\.js$/.test(f)) out.push(`assets/${app} imports ${f} lazily: only a templates file or a language may be`);
+      if (!/^(templates-[a-z]+|lang-[\w-]+|map)-[\w-]{8}\.js$/.test(f)) out.push(`assets/${app} imports ${f} lazily: only a templates file, a language or the map may be`);
   const api = filesIn(join(dist, 'api'));
   if (api.length > 1) out.push(`api/ holds ${api.length} files, not one`);
   for (const f of ['api.js', ...api.map((x) => `api/${x}`)].filter((x) => existsSync(join(dist, x))))

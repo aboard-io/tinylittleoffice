@@ -14,7 +14,7 @@ import { distanceKm, formatLeg, readTrip, routeKm, routeName, type TripView } fr
 import type { Doc } from '../../doc/index.ts';
 
 /** Where the map's pictures come from: the editor's map and the drawn one alike. */
-export const TILES = `${origin('tiles')}/{z}/{x}/{y}.png`;
+const TILES = `${origin('tiles')}/{z}/{x}/{y}.png`;
 /** The Map switch (the Trip Planner's bar): whether a map anywhere asks OpenStreetMap for its tiles. Kept as the other settings are (under Saved; for the visit under Private): '0' off, on by default. */
 const MAP_KEY = 'tinyoffice.map';
 export const mapOn = () => store.get(MAP_KEY) !== '0';

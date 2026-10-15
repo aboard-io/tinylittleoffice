@@ -402,8 +402,10 @@ describe('the build’s budgets and shape: the built site within budgets.json, i
     expect(lazyImports('a.import({ ln }); import(`./lang-fr-AAAAAAAA.js`); import(name)')).toStrictEqual(['lang-fr-AAAAAAAA.js', '?']);
     expect(shapeOf(built, { apps: ['write', 'sheet'], langs: ['fr'] })).toStrictEqual([
       'assets/ holds 0 files for sheet’s templates, not one',
-      'assets/write-editor-AAAAAAAA.js: a file the design does not have (one app file, one stylesheet, the templates and the languages)',
-      'assets/app-AAAAAAAA.js imports write-editor-AAAAAAAA.js lazily: only a templates file or a language may be',
+      'assets/ holds 0 files for the map, not one',
+      'assets/ holds 0 files for the map’s worker, not one',
+      'assets/write-editor-AAAAAAAA.js: a file the design does not have (one app file, one stylesheet, the templates, the languages, the map and its worker)',
+      'assets/app-AAAAAAAA.js imports write-editor-AAAAAAAA.js lazily: only a templates file, a language or the map may be',
       'api/ holds 2 files, not one',
       'api/editor-AAAAAAAA.js holds an element of the page (customElements.define or LitElement): the API carries no editor and no chrome',
       'write/index.html does not name assets/app-AAAAAAAA.css in its head',

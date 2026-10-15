@@ -1237,7 +1237,7 @@ export default {
   'Where I am': 'আমি কোথায়',
   'Map': 'ম্যাপ',
   'Map: tap to add a stop': 'ম্যাপ: বিরতি যোগ করতে ট্যাপ করুন',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'ম্যাপ দেখানোর সময় এর ছবি OpenStreetMap থেকে আসে।',
+  'The map comes from OpenFreeMap while it is shown.': 'মানচিত্রটি দেখানোর সময় OpenFreeMap থেকে আসে।',
   'Your location is asked for only to center the map, and is never written anywhere.': 'আপনার অবস্থান শুধু ম্যাপ মাঝে আনতে চাওয়া হয়, কোথাও লেখা হয় না।',
   '{n|one stop|# stops}': '{n|#|#}টি বিরতি',
   'Stop {n}': 'বিরতি {n}',

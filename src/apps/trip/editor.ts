@@ -1,5 +1,5 @@
 /**
- * <to-trip-editor>: the Trip app. A map (Leaflet, imported lazily) above the stops, beside them when
+ * <to-trip-editor>: the Trip app. A map (MapLibre on OpenFreeMap, imported lazily) above the stops, beside them when
  * there is room. A tap on the map adds a stop there (after the stop in hand); a pin dragged moves its stop, and a
  * focused pin is nudged by the arrows; Insert ▾ finds a place by name (OpenStreetMap's Nominatim, asked only when
  * Search is tapped) or puts a stop at the map's middle. Each stop is a row: its number (the handle: a tap chooses
@@ -27,7 +27,8 @@
  * the document's table (model.ts).
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
-import type * as Leaflet from 'leaflet';
+import type * as ML from 'maplibre-gl';
+import mapWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { cmdMenu, cmdTool } from '../../kit/ui/bar.ts';
 import { drawnIn, runKey } from '../../kit/core/commands.ts';
@@ -60,7 +61,7 @@ import {
   type Stop,
   type TripView,
 } from './model.ts';
-import { mapOn, setMapOn, TILES } from './view.ts';
+import { mapOn, setMapOn } from './view.ts';
 import '../../kit/ui/bar.ts';
 import '../../kit/ui/insert.ts';
 import '../../kit/ui/menu.ts';
@@ -79,11 +80,24 @@ const DOUBLE = 300;
 /** A focused pin's nudge, in screen pixels (Shift: five times). */
 const NUDGE = 10;
 
-type L = typeof Leaflet;
-// The map library is the one large thing only this app needs: imported with the first map (in the built site it is
-// part of the app file and its sheet of the stylesheet, so the import is at once).
+type L = typeof ML;
+/**
+ * The map is MapLibre GL drawing OpenFreeMap's vector tiles (Paul, 2026-10-15, on issue #4, OpenFreeMap being made for
+ * this where OpenStreetMap's tile servers are not: "It's fine to put the openfreemap renderer in, as long as we hot-load
+ * it for that path"): the one large thing only this app needs, a file of its own in the build, fetched with the first
+ * map and never part of the app file, with its stylesheet and its worker (a file of the site's own, as the policy's
+ * worker-src asks; MapLibre would make one from a blob otherwise). A trip drawn on a page, a slide or a card is still
+ * OpenStreetMap's raster tiles (view.ts): a picture needs pictures.
+ */
 let loading: Promise<L> | null = null;
-const leaflet = (): Promise<L> => (loading ??= Promise.all([import('leaflet'), import('./leaflet.css')]).then(([m]) => m));
+let loaded: L | null = null;
+const maplibre = (): Promise<L> => (loading ??= Promise.all([import('maplibre-gl'), import('./maplibre.css')]).then(([m]) => (m.setWorkerUrl(mapWorker), (loaded = m))));
+/** The map's style: OpenFreeMap's Liberty, its tiles, sprites and fonts all on the one host (kit/core/network.ts). */
+const MAP_STYLE = `${origin('openfreemap')}/styles/liberty`;
+/** What the map says under itself: OpenFreeMap asks for OpenMapTiles' and OpenStreetMap's names, its own optional. */
+const CREDIT = `<a href="${origin('openfreemap')}" target="_blank" rel="noopener">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">&copy; OpenMapTiles</a> <a href="${origin('osm')}/copyright" target="_blank" rel="noopener">&copy; OpenStreetMap contributors</a>`;
+/** MapLibre's tiles are 512px to Leaflet's 256: one level out shows the same ground, so a zoom written for Leaflet (home.ts) is one less here. */
+const Z = (zoom: number) => zoom - 1;
 
 export interface Place {
   name: string;
@@ -103,7 +117,7 @@ const plainBlock = (s: string): Block => ({ k: 'p', runs: s ? [{ t: s }] : [] })
 
 export class ToTripEditor extends DocElement<TripView> {
   static properties: PropertyDeclarations = {
-    tiles: { attribute: false },
+    mapStyle: { attribute: false },
     cur: { state: true },
     showMap: { state: true },
     query: { state: true },
@@ -111,8 +125,8 @@ export class ToTripEditor extends DocElement<TripView> {
     searching: { state: true },
     presenting: { state: true },
   };
-  /** Where the map's pictures come from; '' draws none (a test, or a map with no network). */
-  declare tiles: string;
+  /** The map's style, by its address (MAP_STYLE); '' draws an empty map (a test, or a map with no network). */
+  declare mapStyle: string;
   /** The stop in hand (the caret's, or the last picked), by its place in the route; -1 for none. */
   declare cur: number;
   declare showMap: boolean;
@@ -122,16 +136,14 @@ export class ToTripEditor extends DocElement<TripView> {
   declare searching: boolean;
   /** Presenting (Present in the bar): the stop the map has flown to, by its place in the route; -1 when not presenting. */
   declare presenting: number;
-  private map: Leaflet.Map | null = null;
-  private layer: Leaflet.LayerGroup | null = null;
+  private map: ML.Map | null = null;
+  /** The stops' pins on the map, in the stops' order. */
+  private pins: ML.Marker[] = [];
   private mapEl: HTMLElement | null = null;
-  private watch: ResizeObserver | null = null;
   /** What the pins were last drawn from, so a render that changed nothing else leaves the map alone. */
   private drawn: { view: TripView; sel: string } | null = null;
   /** Fit the map to the stops at the next drawing: a new document, or a new map. */
   private refit = true;
-  /** A zoom is on its way (Leaflet animates it). */
-  private zooming = false;
   /** A tap on the map waiting out a double tap. */
   private tapping = 0;
   /** The pin to give the focus back to once the pins are drawn again (a nudge, by the keys). */
@@ -164,7 +176,7 @@ export class ToTripEditor extends DocElement<TripView> {
 
   constructor() {
     super();
-    this.tiles = TILES;
+    this.mapStyle = MAP_STYLE;
     this.cur = -1;
     this.showMap = mapOn();
     this.query = '';
@@ -209,7 +221,7 @@ export class ToTripEditor extends DocElement<TripView> {
     if (f !== this.panned) {
       this.panned = f;
       const s = this.view.stops[f];
-      if (s && this.map && !this.map.getBounds().contains([s.lat, s.lon])) this.map.panTo([s.lat, s.lon]);
+      if (s && this.map && !this.map.getBounds().contains([s.lon, s.lat])) this.map.panTo([s.lon, s.lat]);
     }
   }
 
@@ -264,33 +276,35 @@ export class ToTripEditor extends DocElement<TripView> {
     if (this.map && (this.drawn?.view !== this.view || this.drawn.sel !== this.selKey())) void this.drawPins();
   }
   private async makeMap(el: HTMLElement) {
-    const L = await leaflet();
+    const ml = await maplibre();
     if (this.mapEl !== el || !el.isConnected) return;
     // Where the person likely is, until the stops are fitted (a trip with stops never stays there).
     const home = homeView(language(), navigator.languages ?? []);
-    const map = L.map(el, { worldCopyJump: true, attributionControl: true }).setView([home.lat, home.lon], home.zoom);
-    // OpenStreetMap's tile policy asks that a web page's tiles carry a referrer, and may refuse referrer-stripped traffic: each
-    // tile names the site, the origin alone (never the page's path or anything after its "#"), as the place search does.
-    if (this.tiles) L.tileLayer(this.tiles, { maxZoom: 19, referrerPolicy: 'strict-origin', attribution: `&copy; <a href="${origin('osm')}/copyright">OpenStreetMap</a>` }).addTo(map);
-    map.attributionControl.setPrefix('');
-    this.layer = L.layerGroup().addTo(map);
+    let map: ML.Map;
+    try {
+      map = new ml.Map({
+        container: el,
+        style: this.mapStyle || { version: 8, sources: {}, layers: [] },
+        center: [home.lon, home.lat],
+        zoom: Z(home.zoom),
+        renderWorldCopies: true,
+        attributionControl: { compact: false, customAttribution: CREDIT },
+      });
+    } catch {
+      // No WebGL here (a browser without it, a device that lost it): the map stays a blank box, the stops are the list's.
+      return;
+    }
     // A tap adds a stop once it is sure not to be the first of a double tap, which zooms (§8): never two stops.
-    map.on('click', (e: Leaflet.LeafletMouseEvent) => {
+    map.on('click', (e) => {
       clearTimeout(this.tapping);
-      const p = e.latlng.wrap();
+      const p = e.lngLat.wrap();
       this.tapping = window.setTimeout(() => this.add(p.lat, p.lng), DOUBLE);
     });
     map.on('dblclick', () => clearTimeout(this.tapping));
-    map.on('zoomanim', (e: Leaflet.ZoomAnimEvent) => {
-      this.zooming = true;
-      // Where the zoom will leave the pins, before it gets there: a pin on its way out of the map is out of reach at once.
-      this.hidePins(e);
-    });
-    map.on('zoomend', () => (this.zooming = false));
-    map.on('move zoomend resize', () => this.hidePins());
+    // The pins move with the map; one that moves out of its box is out of reach (hidePins), checked as the map moves.
+    map.on('move', () => this.hidePins());
+    map.on('resize', () => this.hidePins());
     this.map = map;
-    this.watch = new ResizeObserver(() => map.invalidateSize());
-    this.watch.observe(el);
     this.refit = true;
     void this.drawPins();
     this.dispatchEvent(new Event('trip-map'));
@@ -306,12 +320,12 @@ export class ToTripEditor extends DocElement<TripView> {
     const home = () => {
       if (this.map !== map) return;
       const h = homeView(language(), navigator.languages ?? []);
-      map.setView([h.lat, h.lon], h.zoom, { animate: false });
+      map.jumpTo({ center: [h.lon, h.lat], zoom: Z(h.zoom) });
     };
     const geo = navigator.geolocation;
     if (!geo) return home();
     try {
-      geo.getCurrentPosition((p) => this.map === map && map.setView([p.coords.latitude, p.coords.longitude], CITY, { animate: false }), home, {
+      geo.getCurrentPosition((p) => this.map === map && map.jumpTo({ center: [p.coords.longitude, p.coords.latitude], zoom: Z(CITY) }), home, {
         timeout: 5000,
         maximumAge: 600000,
         enableHighAccuracy: false,
@@ -322,16 +336,10 @@ export class ToTripEditor extends DocElement<TripView> {
     }
   }
   private dropMap() {
-    this.watch?.disconnect();
-    this.watch = null;
-    // A map taken away in the middle of a zoom would be asked for its panes when the zoom ends: it goes then.
-    const map = this.map;
-    if (map && this.zooming) map.once('zoomend', () => map.remove());
-    else map?.remove();
+    this.map?.remove();
     this.map = null;
-    this.layer = null;
+    this.pins = [];
     this.drawn = null;
-    this.zooming = false;
   }
   /** Whether a stop is in hand (the caret's) or chosen: its pin is drawn picked. */
   private isSel(i: number): boolean {
@@ -342,75 +350,96 @@ export class ToTripEditor extends DocElement<TripView> {
   }
   /** The pins and the line between them, drawn again. */
   private async drawPins() {
-    const L = await leaflet();
-    const { map, layer } = this;
-    if (!map || !layer) return;
+    const ml = await maplibre();
+    const { map } = this;
+    if (!map) return;
     const v = this.view;
     this.drawn = { view: v, sel: this.selKey() };
     // A pin that has the focus has it again once drawn anew.
     const had = [...(this.mapEl?.querySelectorAll('.trip-pin') ?? [])].indexOf(document.activeElement as Element);
     if (had >= 0) this.pinFocus = had;
-    layer.clearLayers();
-    const pts = v.stops.map((s) => L.latLng(s.lat, s.lon));
-    if (pts.length > 1 && v.linked) L.polyline(pts, { color: '#4f46e5', weight: 4, opacity: 0.85, interactive: false }).addTo(layer);
-    v.stops.forEach((s, i) => {
-      // The pin is a finger wide to hit (44px), its dot drawn smaller inside.
-      const pin = L.marker(pts[i], {
-        draggable: true,
-        keyboard: true,
-        title: s.name || t('Stop {n}', { n: i + 1 }),
-        icon: L.divIcon({ className: `trip-pin${this.isSel(i) ? ' sel' : ''}`, html: `<span>${i + 1}</span>`, iconSize: [44, 44], iconAnchor: [22, 22] }),
-      });
-      pin.on('click', () => this.pick(i, false));
+    for (const pin of this.pins) pin.remove();
+    this.pins = v.stops.map((s, i) => {
+      // The pin is a finger wide to hit (44px, style.css), its dot drawn smaller inside; a tab stop, with its name.
+      const el = document.createElement('div');
+      el.className = `trip-pin${this.isSel(i) ? ' sel' : ''}`;
+      el.setAttribute('role', 'button');
+      el.tabIndex = 0;
+      el.setAttribute('aria-label', s.name || t('Stop {n}', { n: i + 1 }));
+      el.innerHTML = `<span>${i + 1}</span>`;
+      const pin = new ml.Marker({ element: el, draggable: true }).setLngLat([s.lon, s.lat]).addTo(map);
+      let dragged = false;
+      pin.on('dragstart', () => (dragged = true));
       pin.on('dragend', () => {
-        const p = pin.getLatLng().wrap();
+        const p = pin.getLngLat().wrap();
         this.edit(setPlace(this.view, this.view.stops[i], p.lat, p.lng));
         this.cur = i;
       });
-      pin.addTo(layer);
-      const el = pin.getElement();
-      el?.addEventListener('keydown', (e) => this.onPinKey(e, i));
-      if (this.pinFocus === i) el?.focus({ preventScroll: true });
+      // A tap picks the stop; the tap that ends a drag does not.
+      el.addEventListener('click', () => (dragged ? (dragged = false) : this.pick(i, false)));
+      el.addEventListener('keydown', (e) => this.onPinKey(e, i));
+      if (this.pinFocus === i) el.focus({ preventScroll: true });
+      return pin;
     });
     this.pinFocus = -1;
+    this.drawRoute(v);
     if (this.refit) {
       this.refit = false;
       this.fit(false);
     }
     this.hidePins();
   }
+  /** The line between the stops, in order: a GeoJSON source and a line layer, added once the style has loaded. */
+  private drawRoute(v: TripView) {
+    const map = this.map;
+    if (!map) return;
+    const data = {
+      type: 'Feature' as const,
+      properties: {},
+      geometry: { type: 'LineString' as const, coordinates: v.stops.length > 1 && v.linked ? v.stops.map((s) => [s.lon, s.lat]) : [] },
+    };
+    if (!map.isStyleLoaded()) return void map.once('load', () => this.map === map && this.drawRoute(this.view));
+    const source = map.getSource('trip-route') as ML.GeoJSONSource | undefined;
+    if (source) return source.setData(data);
+    map.addSource('trip-route', { type: 'geojson', data });
+    map.addLayer({
+      id: 'trip-route',
+      type: 'line',
+      source: 'trip-route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#4f46e5', 'line-width': 4, 'line-opacity': 0.85 },
+    });
+  }
   /**
    * A pin the map has panned out of its own box is out of reach, as it is out of sight: inert, so neither Tab nor a
-   * screen reader's swipe finds it (Leaflet gives every pin a tab stop). The pin with the focus keeps it. While the trip
-   * is presented every pin is (the map is a show then, and the keys are the show's). `to`: where a zoom on its way will
-   * leave the map.
+   * screen reader's swipe finds it (every pin is a tab stop). The pin with the focus keeps it. While the trip is
+   * presented every pin is (the map is a show then, and the keys are the show's).
    */
-  private hidePins(to?: { center: Leaflet.LatLng; zoom: number }) {
+  private hidePins() {
     const map = this.map;
     const box = this.mapEl;
     if (!map || !box) return;
-    const size = map.getSize();
-    const v = this.view.stops;
-    const middle = to && map.project(to.center, to.zoom);
-    [...box.querySelectorAll<HTMLElement>('.trip-pin')].forEach((pin, i) => {
-      const s = v[i];
-      if (!s) return;
-      const p = to && middle ? map.project([s.lat, s.lon], to.zoom).subtract(middle).add(size.divideBy(2)) : map.latLngToContainerPoint([s.lat, s.lon]);
-      const out = p.x < 0 || p.y < 0 || p.x > size.x || p.y > size.y;
-      pin.inert = this.presenting >= 0 || (out && pin !== document.activeElement);
-    });
+    const w = box.clientWidth;
+    const h = box.clientHeight;
+    for (const pin of this.pins) {
+      const el = pin.getElement();
+      const p = map.project(pin.getLngLat());
+      const out = p.x < 0 || p.y < 0 || p.x > w || p.y > h;
+      el.inert = this.presenting >= 0 || (out && el !== document.activeElement);
+    }
   }
   /** The whole route in view. */
   fit(animate = true) {
     const map = this.map;
     const s = this.view.stops;
     if (!map || !s.length) return;
-    if (s.length === 1) map.setView([s[0].lat, s[0].lon], 12, { animate });
-    else
-      map.fitBounds(
-        s.map((p) => [p.lat, p.lon] as [number, number]),
-        { padding: [36, 36], animate },
-      );
+    if (s.length === 1) return void map[animate ? 'easeTo' : 'jumpTo']({ center: [s[0].lon, s[0].lat], zoom: Z(12) });
+    const bounds = s.reduce((b, p) => b.extend([p.lon, p.lat]), new (this.ml()!.LngLatBounds)());
+    map.fitBounds(bounds, { padding: 36, animate });
+  }
+  /** The map library, once it has loaded (every call that draws comes after the map, which needed it). */
+  private ml(): L | null {
+    return loaded;
   }
   /* ---------- presenting: the map flies stop to stop ---------- */
 
@@ -420,9 +449,9 @@ export class ToTripEditor extends DocElement<TripView> {
     this.showMap = true;
     this.presenting = 0;
     await this.updateComplete;
-    // The map may still be on its way (Leaflet is imported lazily, and made after the next frame).
+    // The map may still be on its way (MapLibre is imported lazily, and made after the next frame).
     for (let n = 0; !this.map && this.mapEl && n < 100; n++) await new Promise((r) => setTimeout(r, 20));
-    this.map?.invalidateSize();
+    this.map?.resize();
     this.goStop(0);
     this.querySelector<HTMLElement>('.trip-present')?.focus({ preventScroll: true });
   }
@@ -433,15 +462,15 @@ export class ToTripEditor extends DocElement<TripView> {
     this.presenting = Math.max(0, Math.min(stops.length - 1, i));
     const s = stops[this.presenting];
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const zoom = Math.max(this.map?.getZoom() ?? 0, 10);
-    if (still) this.map?.setView([s.lat, s.lon], zoom, { animate: false });
-    else this.map?.flyTo([s.lat, s.lon], zoom, { duration: 1.6 });
+    const zoom = Math.max(this.map?.getZoom() ?? 0, Z(10));
+    if (still) this.map?.jumpTo({ center: [s.lon, s.lat], zoom });
+    else this.map?.flyTo({ center: [s.lon, s.lat], zoom, duration: 1600 });
   }
   endPresenting() {
     if (this.presenting < 0) return;
     this.presenting = -1;
     void this.updateComplete.then(() => {
-      this.map?.invalidateSize();
+      this.map?.resize();
       this.fit(false);
       this.querySelector<HTMLElement>('.trip-bar .trip-present-btn')?.focus();
     });
@@ -474,7 +503,7 @@ export class ToTripEditor extends DocElement<TripView> {
     const s = this.view.stops[i];
     if (!s) return;
     this.cur = i;
-    if (toMap && this.map) this.map.setView([s.lat, s.lon], Math.max(this.map.getZoom(), 11));
+    if (toMap && this.map) this.map.jumpTo({ center: [s.lon, s.lat], zoom: Math.max(this.map.getZoom(), Z(11)) });
     if (!toMap) {
       this.panned = i;
       this.rows.choose(i);
@@ -488,7 +517,7 @@ export class ToTripEditor extends DocElement<TripView> {
     if (!this.map || !this.view.stops[i]) return;
     this.pinAt = i;
     try {
-      // Not the map's own keys (Leaflet pans on the arrows): the pin's.
+      // Not the map's own keys (the map pans on the arrows): the pin's.
       if (runKey(e, AT('pin'), this)) e.stopPropagation();
     } finally {
       this.pinAt = -1;
@@ -503,8 +532,8 @@ export class ToTripEditor extends DocElement<TripView> {
     const k = e.key;
     const d = k === 'ArrowLeft' ? [-by, 0] : k === 'ArrowRight' ? [by, 0] : k === 'ArrowUp' ? [0, -by] : k === 'ArrowDown' ? [0, by] : null;
     if (!d) return false;
-    const p = map.latLngToContainerPoint([s.lat, s.lon]);
-    const to = map.containerPointToLatLng([p.x + d[0], p.y + d[1]]).wrap();
+    const p = map.project([s.lon, s.lat]);
+    const to = map.unproject([p.x + d[0], p.y + d[1]]).wrap();
     this.cur = i;
     this.pinFocus = i;
     this.edit(setPlace(this.view, s, to.lat, to.lng), `place:${s.row}`);
@@ -554,9 +583,12 @@ export class ToTripEditor extends DocElement<TripView> {
     await this.updateComplete;
     const x = this.view.stops.length ? this.textOf(0, 'name') : null;
     if (!x) {
-      // The map takes the focus once Leaflet has made it (its import is lazy); with the map off, Insert (never the page).
-      if (this.showMap) await leaflet();
-      return (this.querySelector<HTMLElement>('.trip-map') ?? this.querySelector<HTMLElement>('to-insert button'))?.focus({ preventScroll: true });
+      // The map takes the focus once MapLibre has made it (its import is lazy); with the map off, Insert (never the page).
+      if (this.showMap) await maplibre();
+      // (The map's canvas is its tab stop: MapLibre's keys listen there.)
+      return (this.querySelector<HTMLElement>('.trip-map .maplibregl-canvas') ?? this.querySelector<HTMLElement>('.trip-map') ?? this.querySelector<HTMLElement>('to-insert button'))?.focus({
+        preventScroll: true,
+      });
     }
     this.cur = 0;
     await x.updateComplete;
@@ -783,13 +815,13 @@ export class ToTripEditor extends DocElement<TripView> {
     this.query = '';
     this.found = null;
     this.add(p.lat, p.lon, p.name, this.findAfter);
-    this.map?.setView([p.lat, p.lon], Math.max(this.map.getZoom(), 11));
+    this.map?.jumpTo({ center: [p.lon, p.lat], zoom: Math.max(this.map.getZoom(), Z(11)) });
     if (this.view.stops[this.cur]) void this.focusField(this.cur, 'note', 0);
   }
 
   /* ---------- the bar ---------- */
 
-  /** Whether the map is drawn (Leaflet loaded and shown). */
+  /** Whether the map is drawn (MapLibre loaded and shown). */
   get hasMap(): boolean {
     return !!this.map;
   }
@@ -877,7 +909,7 @@ export class ToTripEditor extends DocElement<TripView> {
           this.showMap
             ? html`<div class="trip-side">
               <div class="trip-map" data-spatial role="region" aria-label=${t('Map: tap to add a stop')}></div>
-              <p class="to-hint trip-privacy">${t('The map’s pictures come from OpenStreetMap while it is shown.')} ${n ? nothing : t('Your location is asked for only to center the map, and is never written anywhere.')}</p>
+              <p class="to-hint trip-privacy">${t('The map comes from OpenFreeMap while it is shown.')} ${n ? nothing : t('Your location is asked for only to center the map, and is never written anywhere.')}</p>
             </div>`
             : nothing
         }

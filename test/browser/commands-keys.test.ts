@@ -172,7 +172,7 @@ const PLACES: Record<string, Record<string, Place[]>> = {
   trip: {
     words: [{ tpl: 'trip:weekend', at: (ed) => nth(ed, '.trip-stop to-text.trip-name', 1) }],
     show: [{ tpl: 'trip:weekend', set: async (ed) => ((ed.presenting = 0), await ed.updateComplete), at: (ed) => ed.querySelector('.trip-present') }],
-    pin: [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.leaflet-marker-icon') }],
+    pin: [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.trip-pin') }],
     '': [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.trip-stops') ?? ed }],
   },
 };

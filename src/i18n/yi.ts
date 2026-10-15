@@ -1294,7 +1294,7 @@ export default {
   'Where I am': 'וואו איך בין',
   'Map': 'מאפע',
   'Map: tap to add a stop': 'מאפע: דריקט צוצולייגן א סטאפ',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'די מאפע\'ס בילדער קומען פון OpenStreetMap בשעת זי ווערט געוויזן.',
+  'The map comes from OpenFreeMap while it is shown.': 'די מאַפּע קומט פֿון OpenFreeMap בשעת זי ווערט געוויזן.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'מען פרעגט אייער לאקאציע נאר כדי צו צענטרירן די מאפע, און מען שרייבט זי קיינמאל נישט אן ערגעץ.',
   '{n|one stop|# stops}': '{n|איין סטאפ|# סטאפס}',
   'Stop {n}': 'סטאפ {n}',

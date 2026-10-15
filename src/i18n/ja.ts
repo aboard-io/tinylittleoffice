@@ -1280,7 +1280,7 @@ export default {
   'Where I am': '現在地',
   'Map': '地図',
   'Map: tap to add a stop': '地図：タップして立ち寄り先を追加',
-  'The map’s pictures come from OpenStreetMap while it is shown.': '地図の画像は、表示するあいだOpenStreetMapから取得します。',
+  'The map comes from OpenFreeMap while it is shown.': '地図は表示中、OpenFreeMap から取得されます。',
   'Your location is asked for only to center the map, and is never written anywhere.': '現在地は地図の中心を決めるためだけに尋ね、どこにも書き込みません。',
   '{n|one stop|# stops}': '{n|#か所}',
   'Stop {n}': '立ち寄り先{n}',

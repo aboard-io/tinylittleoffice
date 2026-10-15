@@ -1280,7 +1280,7 @@ export default {
   'Where I am': 'Wo ich bin',
   'Map': 'Karte',
   'Map: tap to add a stop': 'Karte: tippen, um einen Stopp hinzuzufügen',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Die Bilder der Karte kommen von OpenStreetMap, solange sie angezeigt wird.',
+  'The map comes from OpenFreeMap while it is shown.': 'Die Karte kommt von OpenFreeMap, solange sie angezeigt wird.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Dein Standort wird nur erfragt, um die Karte zu zentrieren, und nirgends gespeichert.',
   '{n|one stop|# stops}': '{n|ein Stopp|# Stopps}',
   'Stop {n}': 'Stopp {n}',

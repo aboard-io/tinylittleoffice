@@ -15,15 +15,16 @@ async function editor(value = ROUTE) {
   main.className = 'to-main';
   document.body.append(main);
   const el = document.createElement('to-trip-editor') as ToTripEditor;
-  el.tiles = '';
+  el.mapStyle = '';
   el.value = value;
   main.append(el);
   await el.updateComplete;
-  await until(() => !!el.querySelector('.trip-map.leaflet-container'), 8000);
+  await until(() => !!el.querySelector('.trip-map.maplibregl-map'), 8000);
   // The map's flights, recorded instead of flown.
-  const map = (el as unknown as { map: { flyTo: (...a: unknown[]) => unknown; setView: (...a: unknown[]) => unknown } }).map;
+  const map = (el as unknown as { map: { flyTo: (...a: unknown[]) => unknown } }).map;
   const flights: [number, number][] = [];
-  map.flyTo = (at: unknown) => (flights.push(at as [number, number]), map);
+  // (Each flight as [lat, lon], from MapLibre's { center: [lon, lat] }.)
+  map.flyTo = (o: unknown) => (flights.push([(o as { center: [number, number] }).center[1], (o as { center: [number, number] }).center[0]]), map);
   return { el, flights };
 }
 const key = (on: Element, k: string, o: KeyboardEventInit = {}) => on.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...o }));

@@ -1283,7 +1283,7 @@ export default {
   'Where I am': 'Où je suis',
   'Map': 'Carte',
   'Map: tap to add a stop': 'Carte : touchez pour ajouter un arrêt',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Les images de la carte viennent d’OpenStreetMap tant qu’elle est affichée.',
+  'The map comes from OpenFreeMap while it is shown.': 'La carte vient d’OpenFreeMap tant qu’elle est affichée.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Votre position n’est demandée que pour centrer la carte, et n’est écrite nulle part.',
   '{n|one stop|# stops}': '{n|# arrêt|# d’arrêts|# arrêts}',
   'Stop {n}': 'Arrêt {n}',

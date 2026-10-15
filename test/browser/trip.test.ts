@@ -1,3 +1,4 @@
+// (Zooms are one less than home.ts writes them: MapLibre's tiles are 512px to Leaflet's 256.)
 // The Trip Planner's map where it opens (src/apps/trip/home.ts) and what it keeps out of reach: a blank trip opens on
 // the country of the site's language (Japan for Japanese with no region), a trip with stops on its stops, and Where I
 // am refused leaves that country; no position is asked for until the button is tapped. A pin the map has panned out of
@@ -14,18 +15,17 @@ import { mount, openDrawerDoc, tick, until, settled } from './helpers.ts';
 type MapLike = {
   getCenter(): { lat: number; lng: number };
   getZoom(): number;
-  getSize(): { x: number; y: number };
-  setView(c: [number, number], z: number, o?: object): unknown;
-  latLngToContainerPoint(c: [number, number]): { x: number; y: number };
+  jumpTo(o: { center: [number, number]; zoom: number }): unknown;
+  easeTo(o: { center: [number, number]; zoom: number }): unknown;
 };
 const mapOf = (el: ToTripEditor) => (el as unknown as { map: MapLike | null }).map!;
-const mapReady = (el: ToTripEditor) => until(() => !!el.querySelector('.trip-map.leaflet-container') && !!mapOf(el), 8000);
+const mapReady = (el: ToTripEditor) => until(() => !!el.querySelector('.trip-map.maplibregl-map') && !!mapOf(el), 8000);
 const LISBON_PORTO = 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 |\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 |\n';
 
 async function editor(value = ''): Promise<ToTripEditor> {
   document.body.innerHTML = '';
   const el = document.createElement('to-trip-editor') as ToTripEditor;
-  el.tiles = '';
+  el.mapStyle = '';
   el.value = value;
   document.body.append(el);
   await el.updateComplete;
@@ -58,7 +58,7 @@ function fakeGeo(answer: { lat: number; lon: number } | 'refuse') {
 }
 const near = (el: ToTripEditor, code: string) => {
   const c = mapOf(el).getCenter();
-  return Math.abs(c.lat - COUNTRIES[code][0]) < 1 && Math.abs(c.lng - COUNTRIES[code][1]) < 1 && mapOf(el).getZoom() === COUNTRIES[code][2];
+  return Math.abs(c.lat - COUNTRIES[code][0]) < 1 && Math.abs(c.lng - COUNTRIES[code][1]) < 1 && mapOf(el).getZoom() === COUNTRIES[code][2] - 1;
 };
 const locate = (el: ToTripEditor) => el.querySelector<HTMLButtonElement>(`to-bar button[aria-label="${t('Where I am')}"]`)!;
 
@@ -81,7 +81,7 @@ test('a blank trip in Japanese with no region opens on Japan, asking nothing of 
   const ny = await editor();
   expect(mapOf(ny).getCenter().lat).toBeCloseTo(40.71, 1);
   expect(mapOf(ny).getCenter().lng).toBeCloseTo(-74.01, 1);
-  expect(mapOf(ny).getZoom()).toBe(12);
+  expect(mapOf(ny).getZoom()).toBe(11);
   // The browser's region wins: Spanish in Argentina.
   browserSays(['es-AR', 'en']);
   await setLanguage('es');
@@ -109,7 +109,7 @@ test('Where I am centers the map on the device at a city’s zoom; refused, the 
   expect(asks).toHaveLength(0);
   locate(el).click();
   await until(() => Math.abs(mapOf(el).getCenter().lat - 45.5019) < 0.01);
-  expect(mapOf(el).getZoom()).toBe(12);
+  expect(mapOf(el).getZoom()).toBe(11);
   expect(asks).toHaveLength(1);
   expect(asks[0].timeout).toBe(5000);
   fakeGeo('refuse');
@@ -117,7 +117,7 @@ test('Where I am centers the map on the device at a city’s zoom; refused, the 
   await until(() => near(el, 'CA'));
   // No geolocation at all: the country too.
   Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
-  mapOf(el).setView([0, 0], 3, { animate: false });
+  mapOf(el).jumpTo({ center: [0, 0], zoom: 3 });
   locate(el).click();
   await until(() => near(el, 'CA'));
 });
@@ -130,11 +130,11 @@ test('a pin panned out of the map’s box is inert, out of Tab’s reach, and re
   const reachable = () => pins().filter((p) => !p.closest('[inert]') && p.tabIndex >= 0);
   expect(reachable()).toHaveLength(3);
   // Far away: every pin is out of the map's box.
-  mapOf(el).setView([-30, 120], 6, { animate: false });
+  mapOf(el).jumpTo({ center: [120, -30], zoom: 6 });
   await tick(30);
   expect(reachable()).toHaveLength(0);
   // Lisbon alone in view, the others off its box at a street's zoom.
-  mapOf(el).setView([38.7223, -9.1393], 14, { animate: false });
+  mapOf(el).jumpTo({ center: [-9.1393, 38.7223], zoom: 14 });
   await tick(30);
   expect(reachable().map((p) => p.textContent)).toEqual(['1']);
   for (const p of pins()) {
@@ -146,8 +146,9 @@ test('a pin panned out of the map’s box is inert, out of Tab’s reach, and re
   el.fit(false);
   await tick(30);
   expect(reachable()).toHaveLength(3);
-  // A zoom on its way (the map's own +, animated): the pins it will leave outside are out of reach as it begins.
-  mapOf(el).setView([38.7223, -9.1393], 13, { animate: true });
+  // A zoom on its way (the map's own +, animated): the pins it leaves outside go out of reach as the map moves.
+  mapOf(el).easeTo({ center: [-9.1393, 38.7223], zoom: 13 });
+  await until(() => reachable().length === 1);
   expect(reachable().map((p) => p.textContent)).toEqual(['1']);
   // Presented, the map is a show: no pin is a stop to Tab to, until the show ends.
   await el.present();
@@ -167,14 +168,15 @@ test('390×844 with a finger: Blank chosen on a blank trip leaves the focus wher
   await coarse(true);
   try {
     const shell = await mount('#/v1/trip');
-    await until(() => !!shell.querySelector('.trip-map.leaflet-container'), 8000);
+    await until(() => !!shell.querySelector('.trip-map.maplibregl-map'), 8000);
     // The drawer lists no apps or templates (Paul, 2026-10-12): the blank trip from inside the trip is New trip, in This document.
     const drawer = await openDrawerDoc(shell);
     drawer.querySelector<HTMLAnchorElement>('.to-drawer-new')!.click();
-    await until(() => document.activeElement === shell.querySelector('.trip-map'), 'Blank never opened the trip with its map in hand');
+    // (The map's canvas is its tab stop: MapLibre's keys listen there.)
+    await until(() => document.activeElement === shell.querySelector('.trip-map .maplibregl-canvas'), 'Blank never opened the trip with its map in hand');
     expect(location.hash).toBe('#/v1/trip');
     expect(document.activeElement?.classList.contains('to-keyboard-hold')).toBe(false);
-    expect(document.activeElement).toBe(shell.querySelector('.trip-map'));
+    expect(document.activeElement).toBe(shell.querySelector('.trip-map .maplibregl-canvas'));
   } finally {
     await coarse(false);
     await page.viewport(1100, 800);

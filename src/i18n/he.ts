@@ -1293,7 +1293,7 @@ export default {
   'Where I am': 'איפה אני',
   'Map': 'מפה',
   'Map: tap to add a stop': 'מפה: הקשה מוסיפה עצירה',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'תמונות המפה מגיעות מ־OpenStreetMap כל עוד היא מוצגת.',
+  'The map comes from OpenFreeMap while it is shown.': 'המפה מגיעה מ-OpenFreeMap כל עוד היא מוצגת.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'המיקום שלך מתבקש רק כדי למרכז את המפה, והוא אף פעם לא נכתב בשום מקום.',
   '{n|one stop|# stops}': '{n|עצירה אחת|שתי עצירות|# עצירות}',
   'Stop {n}': 'עצירה {n}',

@@ -1,4 +1,0 @@
-/* Leaflet's own sheet, under the apps layer like every app's, so the tokens and the app's rules sit with it in
-   the cascade's order (an unlayered sheet would beat them all). Imported with the library; in the built site, part of
-   the one stylesheet. */
-@import 'leaflet/dist/leaflet.css' layer(apps);

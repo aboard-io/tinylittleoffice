@@ -1281,7 +1281,7 @@ export default {
   'Where I am': '我的位置',
   'Map': '地图',
   'Map: tap to add a stop': '地图：点按添加站点',
-  'The map’s pictures come from OpenStreetMap while it is shown.': '地图显示时，图片来自 OpenStreetMap。',
+  'The map comes from OpenFreeMap while it is shown.': '地图显示期间来自 OpenFreeMap。',
   'Your location is asked for only to center the map, and is never written anywhere.': '只为了让地图居中才会请求你的位置，而且不会写到任何地方。',
   '{n|one stop|# stops}': '{n|# 个站点}',
   'Stop {n}': '第 {n} 站',

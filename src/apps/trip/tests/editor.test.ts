@@ -1,5 +1,5 @@
 // The Trip editor in a real browser: the stops from the document, legs and the total; names and notes typed into
-// cells through one-line <to-text>s (a burst one undo, the caret back with it); the map (Leaflet, imported lazily; no
+// cells through one-line <to-text>s (a burst one undo, the caret back with it); the map (MapLibre on OpenFreeMap, imported lazily; no
 // pictures here) with a pin a stop, a tap adding one after the stop in hand and a double tap adding none; a focused
 // pin nudged and deleted by keys; the words' keys (Enter, Backspace, Up/Down, Alt+Up/Down, Mod+D); stops chosen whole
 // by the kit's rows (Escape, Shift+arrows, a tap on the number, Select All twice) with the bar under them, the
@@ -34,8 +34,8 @@ async function editor(value = ROUTE): Promise<{ el: ToTripEditor; changes: strin
   main.className = 'to-main';
   document.body.append(main);
   const el = document.createElement('to-trip-editor') as ToTripEditor;
-  // No pictures from OpenStreetMap in a test.
-  el.tiles = '';
+  // No map from OpenFreeMap in a test: an empty style.
+  el.mapStyle = '';
   el.value = value;
   const changes: string[] = [];
   el.addEventListener('docchange', (e) => changes.push((e as CustomEvent<string>).detail));
@@ -58,7 +58,7 @@ const list = (el: HTMLElement) => el.querySelector<HTMLElement>('.trip-stops')!;
 const ranged = (el: HTMLElement) => stops(el).flatMap((r, i) => (r.classList.contains('ranged') ? [i] : []));
 const num = (el: HTMLElement, i: number) => stops(el)[i].querySelector<HTMLElement>('.trip-n')!;
 const contextButton = (el: HTMLElement, label: string) => el.querySelector<HTMLButtonElement>(`.trip-context button[aria-label="${label}"]`)!;
-const mapReady = (el: ToTripEditor) => until(() => !!el.querySelector('.trip-map.leaflet-container'), 8000);
+const mapReady = (el: ToTripEditor) => until(() => !!el.querySelector('.trip-map.maplibregl-map'), 8000);
 const key = (on: HTMLElement, k: string, o: KeyboardEventInit = {}) => on.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o }));
 const input = (x: ToText, inputType: string, data: string | null = null) => x.tx.dispatchEvent(new InputEvent('beforeinput', { inputType, data, bubbles: true, cancelable: true, composed: true }));
 async function caretIn(el: ToTripEditor, i: number, field: 'name' | 'note', at = 99) {
@@ -105,10 +105,12 @@ const undo = async (el: ToTripEditor) => {
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
   await settle(el);
 };
+// (On the map's canvas: MapLibre listens there, and reads where in the map the tap was from the event's place on the screen.)
 const tapMap = (el: HTMLElement, x: number, y: number, type = 'click') => {
   const map = el.querySelector<HTMLElement>('.trip-map')!;
+  const on = map.querySelector<HTMLElement>('.maplibregl-canvas') ?? map;
   const b = map.getBoundingClientRect();
-  map.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: b.left + x, clientY: b.top + y }));
+  on.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: b.left + x, clientY: b.top + y }));
 };
 const realFetch = window.fetch;
 afterEach(() => {
@@ -148,15 +150,18 @@ test('typing a name writes its cell, a burst one undo, and the undo puts the car
   expect(offset(el, 1, 'name')).toBe(3);
 });
 
-test('the map: Leaflet arrives, a pin a stop (a finger wide), a tap adds a stop after the one in hand, a double tap adds none', async () => {
+test('the map: MapLibre arrives, a pin a stop (a finger wide), a tap adds a stop after the one in hand, a double tap adds none', async () => {
   const { el, last } = await editor();
   await mapReady(el);
   await until(() => pins(el).length === 3);
   expect(pins(el).map((p) => p.textContent)).toEqual(['1', '2', '3']);
   expect(Math.min(pins(el)[0].offsetWidth, pins(el)[0].offsetHeight)).toBeGreaterThanOrEqual(44);
-  expect(el.querySelector('.trip-map .leaflet-overlay-pane path')).not.toBeNull();
-  // No pictures were asked for.
-  expect(el.querySelector('.leaflet-tile')).toBeNull();
+  // The route between them: a line layer over its own source, there once the (empty) style has loaded.
+  const map = (el as unknown as { map: { getSource(id: string): { getData(): Promise<{ geometry: { coordinates: number[][] } }> } | undefined } }).map;
+  await until(() => !!map.getSource('trip-route'));
+  expect((await map.getSource('trip-route')!.getData()).geometry.coordinates).toHaveLength(3);
+  // No pictures were asked for: an empty style has no tiles.
+  expect(el.querySelector('.trip-map img')).toBeNull();
   // Nothing in hand: the route's end.
   tapMap(el, 30, 30);
   await until(() => names(el).length === 4);
@@ -432,7 +437,7 @@ test('the bar: units, dots and the map; it ends with Undo and Redo; Insert puts 
   // The switch is kept as a setting: a trip opened next, or drawn on a slide, has no map either (view.ts).
   expect(mapOn()).toBe(false);
   const next = document.createElement('to-trip-editor') as ToTripEditor;
-  next.tiles = '';
+  next.mapStyle = '';
   next.value = ROUTE;
   document.body.append(next);
   await next.updateComplete;
@@ -558,7 +563,7 @@ test('a trip with no stops asks nothing of the device as it opens; Where I am as
     bar(el, 'Where I am').click();
     await until(() => Math.abs(mapOf(el).getCenter().lat - 51.5072) < 0.01, 3000);
     expect(mapOf(el).getCenter().lng).toBeCloseTo(-0.1276, 2);
-    expect(mapOf(el).getZoom()).toBe(12);
+    expect(mapOf(el).getZoom()).toBe(11);
     expect(geo.asks).toHaveLength(1);
     expect(geo.asks[0].timeout).toBe(5000);
     expect(changes).toEqual([]);
@@ -596,7 +601,7 @@ test("§1 opens with the focus in the first stop's name, the caret at its end, e
   const { el: blank } = await editor('');
   await settle(blank);
   await blank.focusFirst();
-  expect(document.activeElement).toBe(blank.querySelector('.trip-map'));
+  expect(document.activeElement).toBe(blank.querySelector('.trip-map .maplibregl-canvas'));
   expect(document.scrollingElement!.scrollTop).toBe(0);
   // The map off, an empty trip starts at Insert: never the page.
   bar(blank, 'Map').click();

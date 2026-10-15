@@ -1283,7 +1283,7 @@ export default {
   'Where I am': '我的位置',
   'Map': '地圖',
   'Map: tap to add a stop': '地圖：點選以新增停靠點',
-  'The map’s pictures come from OpenStreetMap while it is shown.': '顯示時，地圖的圖片來自 OpenStreetMap。',
+  'The map comes from OpenFreeMap while it is shown.': '地圖顯示期間來自 OpenFreeMap。',
   'Your location is asked for only to center the map, and is never written anywhere.': '只有為了把地圖置中，才會詢問你的位置，而且絕不會寫到任何地方。',
   '{n|one stop|# stops}': '{n|# 個停靠點}',
   'Stop {n}': '停靠點 {n}',

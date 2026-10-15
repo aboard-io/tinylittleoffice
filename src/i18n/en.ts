@@ -1308,7 +1308,7 @@ export default {
   'Where I am': 'Where I am',
   'Map': 'Map',
   'Map: tap to add a stop': 'Map: tap to add a stop',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'The map’s pictures come from OpenStreetMap while it is shown.',
+  'The map comes from OpenFreeMap while it is shown.': 'The map comes from OpenFreeMap while it is shown.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Your location is asked for only to center the map, and is never written anywhere.',
   '{n|one stop|# stops}': '{n|one stop|# stops}',
   'Stop {n}': 'Stop {n}',

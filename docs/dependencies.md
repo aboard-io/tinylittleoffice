@@ -17,12 +17,12 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 
 | Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
-| `d3-sankey` | 0.12.3 | BSD-3-Clause | Sankey charts (src/kit/draw/chart.ts). SVG draws the picture, but no browser API lays out a flow: placing the nodes in columns and relaxing the links so they cross least is the library's whole job. | 10.0 KB (its own: 6.2 KB) |
-| `fflate` | 0.8.3 | MIT | The link codec and every zip (src/kit/core/codec.ts, src/kit/file/zip.ts). CompressionStream has no preset dictionary, which makes short documents 20 to 35 percent smaller, is asynchronous, and writes a gzip stream, not a zip archive (.docx, .xlsx, .pptx). | 14.6 KB |
-| `leaflet` | 1.9.4 | BSD-2-Clause | The Trip Planner's map (src/apps/trip/editor.ts). The browser has no map: panning and pinch-zooming a grid of OpenStreetMap tiles, with markers and a route, would be a library written here instead. Part of the one app file, run only by the Trip Planner. | 150.0 KB |
-| `lit` | 3.3.3 | BSD-3-Clause | Every element's drawing (the kit and the editors). Custom elements are native; lit adds the drawing of a template again with only its changed parts, which the browser does not do, and reactive properties that ask for it. | 16.5 KB (its own: none) |
-| `lucide` | 1.54.0 | ISC | The icons (src/kit/draw/icons.ts). The browser has no icon set and emoji draw differently on every system; Lucide is SVG paths, each a module, and the whole set is in the app file, so a document may name any icon, online or off. | 442.9 KB |
-| `mathjs` | 15.2.0 | Apache-2.0 | The Calculator's units, big numbers and algebra (src/apps/calc/math.ts). The browser's only expression reader is eval, which the page's policy forbids, and Intl formats units without converting them. A custom build, run only by the Calculator. | 430.1 KB (its own: 350.7 KB) |
+| `d3-sankey` | 0.12.3 | BSD-3-Clause | Sankey charts (src/kit/draw/chart.ts). SVG draws the picture, but no browser API lays out a flow: placing the nodes in columns and relaxing the links so they cross least is the library's whole job. | 10.8 KB (its own: 6.8 KB) |
+| `fflate` | 0.8.3 | MIT | The link codec and every zip (src/kit/core/codec.ts, src/kit/file/zip.ts). CompressionStream has no preset dictionary, which makes short documents 20 to 35 percent smaller, is asynchronous, and writes a gzip stream, not a zip archive (.docx, .xlsx, .pptx). | 16.1 KB |
+| `lit` | 3.3.3 | BSD-3-Clause | Every element's drawing (the kit and the editors). Custom elements are native; lit adds the drawing of a template again with only its changed parts, which the browser does not do, and reactive properties that ask for it. | 18.1 KB (its own: none) |
+| `lucide` | 1.54.0 | ISC | The icons (src/kit/draw/icons.ts). The browser has no icon set and emoji draw differently on every system; Lucide is SVG paths, each a module, and the whole set is in the app file, so a document may name any icon, online or off. | 461.5 KB |
+| `maplibre-gl` | 6.14.0 | BSD-3-Clause | The Trip Planner's map (src/apps/trip/editor.ts), drawn from OpenFreeMap's vector tiles. The browser has no map: laying out and drawing vector tiles in WebGL, panning and pinch-zooming them, with markers and a route, is the library's whole job. A file of its own in the build, with its worker and its stylesheet, fetched with the first map and never part of the app file (Paul, 2026-10-15: "hot-load it for that path"). | 900.3 KB |
+| `mathjs` | 15.2.0 | Apache-2.0 | The Calculator's units, big numbers and algebra (src/apps/calc/math.ts). The browser's only expression reader is eval, which the page's policy forbids, and Intl formats units without converting them. A custom build, run only by the Calculator. | 469.0 KB (its own: 381.9 KB) |
 
 ## What those bring with them
 
@@ -30,22 +30,46 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 | --- | --- | --- | --- | --- |
 | `@babel/runtime` | 7.29.10 | MIT | `mathjs` | 1.1 KB |
 | `@lit-labs/ssr-dom-shim` | 1.6.0 | BSD-3-Clause | `lit` | none |
-| `@lit/reactive-element` | 2.1.2 | BSD-3-Clause | `lit` | 5.6 KB |
+| `@lit/reactive-element` | 2.1.2 | BSD-3-Clause | `lit` | 6.2 KB |
+| `@mapbox/jsonlint-lines-primitives` | 2.0.3 | MIT | `maplibre-gl` | none |
+| `@mapbox/point-geometry` | 1.1.0 | ISC | `maplibre-gl` | none |
+| `@mapbox/tiny-sdf` | 2.3.0 | BSD-2-Clause | `maplibre-gl` | none |
+| `@mapbox/unitbezier` | 1.0.0 | BSD-2-Clause | `maplibre-gl` | none |
+| `@mapbox/vector-tile` | 3.0.0 | BSD-3-Clause | `maplibre-gl` | none |
+| `@maplibre/geojson-vt` | 6.2.0 | ISC | `maplibre-gl` | none |
+| `@maplibre/maplibre-gl-style-spec` | 26.4.4 | ISC | `maplibre-gl` | none |
+| `@maplibre/mlt` | 1.3.0 | (MIT OR Apache-2.0) | `maplibre-gl` | none |
+| `@maplibre/vt-pbf` | 4.3.2 | MIT | `maplibre-gl` | none |
+| `@types/geojson` | 7946.0.16 | MIT | `maplibre-gl` | none |
 | `@types/trusted-types` | 2.0.7 | MIT | `lit` | none |
-| `complex.js` | 2.4.3 | MIT | `mathjs` | 10.2 KB |
-| `d3-array` | 2.12.1 | BSD-3-Clause | `d3-sankey` | 800 B |
-| `d3-path` | 1.0.9 | BSD-3-Clause | `d3-sankey` | 1.9 KB |
-| `d3-shape` | 1.3.7 | BSD-3-Clause | `d3-sankey` | 1.1 KB |
-| `decimal.js` | 10.6.0 | MIT | `mathjs` | 34.3 KB |
-| `escape-latex` | 1.2.0 | MIT | `mathjs` | 1.3 KB |
-| `fraction.js` | 5.3.4 | MIT | `mathjs` | 8.6 KB |
+| `bidi-js` | 1.1.0 | MIT | `maplibre-gl` | none |
+| `complex.js` | 2.4.3 | MIT | `mathjs` | 11.2 KB |
+| `d3-array` | 2.12.1 | BSD-3-Clause | `d3-sankey` | 838 B |
+| `d3-path` | 1.0.9 | BSD-3-Clause | `d3-sankey` | 2.0 KB |
+| `d3-shape` | 1.3.7 | BSD-3-Clause | `d3-sankey` | 1.2 KB |
+| `decimal.js` | 10.6.0 | MIT | `mathjs` | 37.7 KB |
+| `earcut` | 3.2.4 | ISC | `maplibre-gl` | none |
+| `escape-latex` | 1.2.0 | MIT | `mathjs` | 1.4 KB |
+| `fraction.js` | 5.3.4 | MIT | `mathjs` | 9.4 KB |
+| `gl-matrix` | 3.4.4 | MIT | `maplibre-gl` | none |
 | `internmap` | 1.0.1 | ISC | `d3-sankey` | none |
 | `javascript-natural-sort` | 0.7.1 | MIT | `mathjs` | none |
-| `lit-element` | 4.2.2 | BSD-3-Clause | `lit` | 615 B |
-| `lit-html` | 3.3.3 | BSD-3-Clause | `lit` | 10.3 KB |
+| `json-stringify-pretty-compact` | 4.0.0 | MIT | `maplibre-gl` | none |
+| `kdbush` | 4.1.0 | ISC | `maplibre-gl` | none |
+| `lit-element` | 4.2.2 | BSD-3-Clause | `lit` | 665 B |
+| `lit-html` | 3.3.3 | BSD-3-Clause | `lit` | 11.3 KB |
+| `minimist` | 1.2.8 | MIT | `maplibre-gl` | none |
+| `murmurhash-js` | 1.0.0 | MIT | `maplibre-gl` | none |
+| `pbf` | 5.1.2 | BSD-3-Clause | `maplibre-gl` | none |
+| `potpack` | 2.1.0 | ISC | `maplibre-gl` | none |
+| `protocol-buffers-schema` | 3.6.1 | MIT | `maplibre-gl` | none |
+| `quickselect` | 3.0.0 | ISC | `maplibre-gl` | none |
+| `require-from-string` | 2.0.2 | MIT | `maplibre-gl` | none |
+| `resolve-protobuf-schema` | 2.1.0 | MIT | `maplibre-gl` | none |
 | `seedrandom` | 3.0.5 | MIT | `mathjs` | none |
-| `tiny-emitter` | 2.1.0 | MIT | `mathjs` | 811 B |
-| `typed-function` | 4.2.2 | MIT | `mathjs` | 23.1 KB |
+| `tiny-emitter` | 2.1.0 | MIT | `mathjs` | 877 B |
+| `tinyqueue` | 3.0.0 | ISC | `maplibre-gl` | none |
+| `typed-function` | 4.2.2 | MIT | `mathjs` | 25.4 KB |
 
 ## Type
 
@@ -81,14 +105,13 @@ the picker; neither source is a dependency.
 ## For building and testing
 
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile
-holds 198 packages for development.
+holds 196 packages for development.
 
 | Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
 | `@axe-core/playwright` | 4.13.0 | MPL-2.0 | The accessibility checks in e2e/a11y.spec.ts. Chromium exposes its accessibility tree but no rules to judge it by; axe is the rule set. Tests only. | not shipped |
 | `@playwright/test` | 1.64.0 | Apache-2.0 | The end-to-end runner (e2e/). node:test has no browser; WebDriver BiDi is a protocol, not a runner, and WebKit at phone size is what an iPhone gets. Tests only. | not shipped |
 | `@types/d3-sankey` | 0.12.5 | MIT | Types for d3-sankey, which ships none. Not built into the site. | not shipped |
-| `@types/leaflet` | 1.9.22 | MIT | Types for leaflet, which ships none. Not built into the site. | not shipped |
 | `@types/node` | 26.6.4 | MIT | Types for the scripts and tests that run under node. Not built into the site. | not shipped |
 | `@vitest/browser-playwright` | 5.0.3 | MIT | Lets Vitest run the DOM tests in a real Chromium through Playwright (test/browser/, src/apps/*/tests/). A simulated DOM would pass what a browser fails. Tests only. | not shipped |
 | `fast-check` | 4.10.2 | MIT | The properties fuzzed from TLO's grammar (test/doc/tlo-grammar.ts, test/doc/properties.test.ts): generators of documents, texts and operations, and shrinking a failure to its smallest case; and the random walks over the chrome (test/browser/walks.test.ts, its model-based testing: fc.commands and asyncModelRun). The native alternative is nothing: no browser or node API generates or shrinks test cases. Tests only. | not shipped |

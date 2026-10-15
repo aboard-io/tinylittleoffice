@@ -1282,7 +1282,7 @@ export default {
   'Where I am': 'Gdzie jestem',
   'Map': 'Mapa',
   'Map: tap to add a stop': 'Mapa: stuknij, by dodać przystanek',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Kafelki mapy pochodzą z OpenStreetMap, gdy mapa jest widoczna.',
+  'The map comes from OpenFreeMap while it is shown.': 'Mapa pochodzi z OpenFreeMap, dopóki jest wyświetlana.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'O Twoją lokalizację pytamy tylko po to, by wyśrodkować mapę, i nigdzie jej nie zapisujemy.',
   '{n|one stop|# stops}': '{n|# przystanek|# przystanki|# przystanków|# przystanku}',
   'Stop {n}': 'Przystanek {n}',

@@ -1281,7 +1281,7 @@ export default {
   'Where I am': 'मैं कहाँ हूँ',
   'Map': 'नक्शा',
   'Map: tap to add a stop': 'नक्शा: पड़ाव जोड़ने के लिए टैप करें',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'नक्शे की तस्वीरें दिखाए जाते समय OpenStreetMap से आती हैं।',
+  'The map comes from OpenFreeMap while it is shown.': 'नक्शा दिखाए जाने के दौरान OpenFreeMap से आता है।',
   'Your location is asked for only to center the map, and is never written anywhere.': 'आपकी जगह सिर्फ़ नक्शे को बीच में लाने के लिए पूछी जाती है, और कहीं लिखी नहीं जाती।',
   '{n|one stop|# stops}': '{n|एक पड़ाव|# पड़ाव}',
   'Stop {n}': 'पड़ाव {n}',

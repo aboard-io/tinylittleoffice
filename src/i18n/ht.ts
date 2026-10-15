@@ -1283,7 +1283,7 @@ export default {
   'Where I am': 'Kote mwen ye',
   'Map': 'Kat',
   'Map: tap to add a stop': 'Kat: tape pou ajoute yon arè',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Foto kat la soti nan OpenStreetMap pandan l ap parèt.',
+  'The map comes from OpenFreeMap while it is shown.': 'Kat la soti nan OpenFreeMap pandan li parèt.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Yo mande kote w ye sèlman pou santre kat la, epi yo pa janm ekri l okenn kote.',
   '{n|one stop|# stops}': '{n|yon arè|# arè}',
   'Stop {n}': 'Arè {n}',

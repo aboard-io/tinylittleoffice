@@ -1282,7 +1282,7 @@ export default {
   'Where I am': 'Waar ik ben',
   'Map': 'Kaart',
   'Map: tap to add a stop': 'Kaart: tik voor een stop',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'De kaartbeelden komen van OpenStreetMap zolang de kaart zichtbaar is.',
+  'The map comes from OpenFreeMap while it is shown.': 'De kaart komt van OpenFreeMap zolang hij wordt getoond.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Je locatie wordt alleen gevraagd om de kaart te centreren en wordt nergens opgeschreven.',
   '{n|one stop|# stops}': '{n|één stop|# stops}',
   'Stop {n}': 'Stop {n}', // same

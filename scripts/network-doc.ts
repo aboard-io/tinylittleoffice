@@ -28,14 +28,17 @@ not on this list is refused by the browser itself.
 
 {{requests}}
 
-A document fetches nothing from any other site but a trip's map tiles, by the Map switch. A link in it is
+A document fetches nothing from any other site but a trip's map (OpenFreeMap's in the Trip Planner, OpenStreetMap's
+tiles under a trip drawn anywhere else), by the Map switch. A link in it is
 words that go somewhere when the reader follows them; nothing else in a document is drawn from another site's
 address.
 
 ## Why each of these is asked directly
 
-- **The map.** Map tiles only while a map is on the screen; place search only when a search is tapped.
-  A trip drawn on a slide, a page, an outline's item, a card or in an export is drawn on the tiles too,
+- **The map.** The Trip Planner's map comes from OpenFreeMap only while it is on the screen (its style, its vector
+  tiles, its sprites and its fonts; MapLibre draws them here, fetched with the first map, never part of the app
+  file; OpenFreeMap is made for this, with no key and no limit, and asks for no referrer); place search only when a
+  search is tapped. A trip drawn on a slide, a page, an outline's item, a card or in an export is drawn on OpenStreetMap's tiles,
   at the zoom that fits its places: only the tiles its box needs (a handful, never a whole zoom level),
   nothing fetched ahead. A picture made of it (a card, a PDF, a PNG, a PowerPoint) fetches those tiles
   again to write them into the picture. The home page's pictures of the templates are drawn without them,

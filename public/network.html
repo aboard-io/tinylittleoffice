@@ -73,13 +73,24 @@ dd{margin:0}
 </dl>
 </section>
 <section class="reach">
+<h3><code>tiles.openfreemap.org</code></h3>
+<p>The Trip Planner’s map: its style, its vector tiles, its sprites and its fonts, from OpenFreeMap (made for this; no key, no limit), drawn here by MapLibre, which is fetched with the first map and is never part of the app file.</p>
+<dl>
+<dt>When</dt><dd>while shown</dd>
+<dt>Carries</dt><dd>Which squares of the map are on the screen, and no referrer (the site sends none, and OpenFreeMap asks for none); nothing of the document</dd>
+<dt>Stopped by</dt><dd>Map, in the Trip Planner’s bar, turned off: no map then asks for them; the home page’s pictures of the templates never do</dd>
+<dt>Made by</dt><dd><code>apps/trip/editor.ts</code></dd>
+<dt>Allowed by</dt><dd><code>connect-src</code></dd>
+</dl>
+</section>
+<section class="reach">
 <h3><code>tile.openstreetmap.org</code></h3>
-<p>The map’s pictures (tiles), asked directly as OpenStreetMap’s policy asks: in the Trip Planner, and under a trip’s map drawn anywhere (a slide, a page, an item, a card, an export), only the tiles its box needs; a picture made of that map (a card, a PDF, a PNG, a PowerPoint) asks them again to write them into it.</p>
+<p>The pictures (tiles) under a trip’s map drawn anywhere but the Trip Planner itself (a slide, a page, an item, a card, an export), asked directly as OpenStreetMap’s policy asks: only the tiles its box needs; a picture made of that map (a card, a PDF, a PNG, a PowerPoint) asks them again to write them into it.</p>
 <dl>
 <dt>When</dt><dd>while shown</dd>
 <dt>Carries</dt><dd>Which squares of the map are on the screen or in the picture, and the site’s name as the referrer (the origin alone, as OpenStreetMap’s tile policy asks of a web page; never the page’s path or anything of the document)</dd>
-<dt>Stopped by</dt><dd>Map, in the Trip Planner’s bar, turned off: no map then asks for them, in the Trip Planner or anywhere a trip is drawn; the home page’s pictures of the templates never do</dd>
-<dt>Made by</dt><dd><code>apps/trip/editor.ts, apps/trip/view.ts, kit/draw/raster.ts</code></dd>
+<dt>Stopped by</dt><dd>Map, in the Trip Planner’s bar, turned off: no map then asks for them, anywhere a trip is drawn; the home page’s pictures of the templates never do</dd>
+<dt>Made by</dt><dd><code>apps/trip/view.ts, kit/draw/raster.ts</code></dd>
 <dt>Allowed by</dt><dd><code>img-src</code>, <code>connect-src</code></dd>
 </dl>
 </section>
@@ -96,7 +107,7 @@ dd{margin:0}
 </section>
 <section class="reach">
 <h3><code>www.openstreetmap.org</code></h3>
-<p>The credit to OpenStreetMap under the Trip Planner’s map and in the corner of a trip’s map drawn on its tiles, a link.</p>
+<p>The credit to OpenStreetMap under the Trip Planner’s map (with OpenMapTiles’ and OpenFreeMap’s) and in the corner of a trip’s map drawn on its tiles, a link.</p>
 <dl>
 <dt>When</dt><dd>after a tap</dd>
 <dt>Carries</dt><dd>Nothing of the document: it opens OpenStreetMap’s copyright page in a new tab</dd>
@@ -182,10 +193,10 @@ dd{margin:0}
 <dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
 </dl>
 </section>
-<p>A document fetches nothing from any other site but a trip's map tiles, by the Map switch. A link in it is words that go somewhere when the reader follows them; nothing else in a document is drawn from another site's address.</p>
+<p>A document fetches nothing from any other site but a trip's map (OpenFreeMap's in the Trip Planner, OpenStreetMap's tiles under a trip drawn anywhere else), by the Map switch. A link in it is words that go somewhere when the reader follows them; nothing else in a document is drawn from another site's address.</p>
 <h2>Why each of these is asked directly</h2>
 <ul>
-<li><strong>The map.</strong> Map tiles only while a map is on the screen; place search only when a search is tapped. A trip drawn on a slide, a page, an outline's item, a card or in an export is drawn on the tiles too, at the zoom that fits its places: only the tiles its box needs (a handful, never a whole zoom level), nothing fetched ahead. A picture made of it (a card, a PDF, a PNG, a PowerPoint) fetches those tiles again to write them into the picture. The home page's pictures of the templates are drawn without them, so a visitor who has not opened a trip tells OpenStreetMap nothing, and Map in the Trip Planner's bar, turned off, turns them off everywhere. They are asked directly, by the browser with its own name: OpenStreetMap's usage policies are written for the browser that shows the map asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people not to make; nothing keeps them but the browser's own cache. The site sends no referrer.</li>
+<li><strong>The map.</strong> The Trip Planner's map comes from OpenFreeMap only while it is on the screen (its style, its vector tiles, its sprites and its fonts; MapLibre draws them here, fetched with the first map, never part of the app file; OpenFreeMap is made for this, with no key and no limit, and asks for no referrer); place search only when a search is tapped. A trip drawn on a slide, a page, an outline's item, a card or in an export is drawn on OpenStreetMap's tiles, at the zoom that fits its places: only the tiles its box needs (a handful, never a whole zoom level), nothing fetched ahead. A picture made of it (a card, a PDF, a PNG, a PowerPoint) fetches those tiles again to write them into the picture. The home page's pictures of the templates are drawn without them, so a visitor who has not opened a trip tells OpenStreetMap nothing, and Map in the Trip Planner's bar, turned off, turns them off everywhere. They are asked directly, by the browser with its own name: OpenStreetMap's usage policies are written for the browser that shows the map asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people not to make; nothing keeps them but the browser's own cache. The site sends no referrer.</li>
 <li><strong>Short links.</strong> Only when a short link is made or opened; the service holds ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send (tinier/tinier.ts).</li>
 <li><strong>A preview.</strong> Only when a person shares with a network from Share with &quot;Show a preview of the first page&quot; on: a picture of the first page, the title and the first words go to the site's own <code>/card</code>, and the link shared carries the card's id in its path (<code>/c/&lt;id&gt;</code>, before the &quot;#&quot;): the one page the site's Worker serves, the app's page with the card's tags, which the shell moves to the app's own address as it opens. The card is kept readable for a month, then forgotten (tinier/cards.ts); the document and its link are never sent.</li>
 <li><strong>Sharing to a service.</strong> Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so whoever reads the post can read it. &quot;Any https address&quot; there is the Mastodon server the person names.</li>

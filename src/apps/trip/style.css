@@ -32,7 +32,10 @@
   .trip-map .trip-pin {
     display: grid;
     place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: 50%;
+    cursor: pointer;
   }
   .trip-map .trip-pin > span {
     display: grid;

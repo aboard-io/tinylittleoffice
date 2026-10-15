@@ -1281,7 +1281,7 @@ export default {
   'Where I am': 'Где я',
   'Map': 'Карта',
   'Map: tap to add a stop': 'Карта: коснитесь, чтобы добавить остановку',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Картинки для карты приходят из OpenStreetMap, пока она на экране.',
+  'The map comes from OpenFreeMap while it is shown.': 'Карта загружается с OpenFreeMap, пока она показана.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Ваше местоположение запрашивается только чтобы отцентровать карту и нигде не записывается.',
   '{n|one stop|# stops}': '{n|# остановка|# остановки|# остановок|# остановки}',
   'Stop {n}': 'Остановка {n}',

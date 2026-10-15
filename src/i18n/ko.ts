@@ -1281,7 +1281,7 @@ export default {
   'Where I am': '내 위치',
   'Map': '지도',
   'Map: tap to add a stop': '지도: 탭해서 경유지 추가',
-  'The map’s pictures come from OpenStreetMap while it is shown.': '지도가 보이는 동안 지도 이미지는 OpenStreetMap에서 가져와요.',
+  'The map comes from OpenFreeMap while it is shown.': '지도는 표시되는 동안 OpenFreeMap에서 가져옵니다.',
   'Your location is asked for only to center the map, and is never written anywhere.': '위치는 지도를 가운데에 맞추려고만 묻고 어디에도 기록하지 않아요.',
   '{n|one stop|# stops}': '경유지 {n|#}곳',
   'Stop {n}': '경유지 {n}',

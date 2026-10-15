@@ -63,14 +63,23 @@ export const NETWORK = {
     stops: 'The switch “Show a preview of the first page” in Share, turned off; Edit link, Present link and Email never make one, nor does a document with a password',
     by: 'kit/share/card.ts',
   },
+  openfreemap: {
+    host: 'tiles.openfreemap.org',
+    what: 'The Trip Planner’s map: its style, its vector tiles, its sprites and its fonts, from OpenFreeMap (made for this; no key, no limit), drawn here by MapLibre, which is fetched with the first map and is never part of the app file',
+    when: 'while shown',
+    carries: 'Which squares of the map are on the screen, and no referrer (the site sends none, and OpenFreeMap asks for none); nothing of the document',
+    stops: 'Map, in the Trip Planner’s bar, turned off: no map then asks for them; the home page’s pictures of the templates never do',
+    by: 'apps/trip/editor.ts',
+    csp: ['connect'],
+  },
   tiles: {
     host: 'tile.openstreetmap.org',
-    what: 'The map’s pictures (tiles), asked directly as OpenStreetMap’s policy asks: in the Trip Planner, and under a trip’s map drawn anywhere (a slide, a page, an item, a card, an export), only the tiles its box needs; a picture made of that map (a card, a PDF, a PNG, a PowerPoint) asks them again to write them into it',
+    what: 'The pictures (tiles) under a trip’s map drawn anywhere but the Trip Planner itself (a slide, a page, an item, a card, an export), asked directly as OpenStreetMap’s policy asks: only the tiles its box needs; a picture made of that map (a card, a PDF, a PNG, a PowerPoint) asks them again to write them into it',
     when: 'while shown',
     carries:
       'Which squares of the map are on the screen or in the picture, and the site’s name as the referrer (the origin alone, as OpenStreetMap’s tile policy asks of a web page; never the page’s path or anything of the document)',
-    stops: 'Map, in the Trip Planner’s bar, turned off: no map then asks for them, in the Trip Planner or anywhere a trip is drawn; the home page’s pictures of the templates never do',
-    by: 'apps/trip/editor.ts, apps/trip/view.ts, kit/draw/raster.ts',
+    stops: 'Map, in the Trip Planner’s bar, turned off: no map then asks for them, anywhere a trip is drawn; the home page’s pictures of the templates never do',
+    by: 'apps/trip/view.ts, kit/draw/raster.ts',
     csp: ['img', 'connect'],
   },
   placeSearch: {
@@ -84,7 +93,7 @@ export const NETWORK = {
   },
   osm: {
     host: 'www.openstreetmap.org',
-    what: 'The credit to OpenStreetMap under the Trip Planner’s map and in the corner of a trip’s map drawn on its tiles, a link',
+    what: 'The credit to OpenStreetMap under the Trip Planner’s map (with OpenMapTiles’ and OpenFreeMap’s) and in the corner of a trip’s map drawn on its tiles, a link',
     when: 'after a tap',
     carries: 'Nothing of the document: it opens OpenStreetMap’s copyright page in a new tab',
     stops: 'Not following the link',

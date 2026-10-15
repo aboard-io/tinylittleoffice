@@ -1283,7 +1283,7 @@ export default {
   'Where I am': 'Де я',
   'Map': 'Карта',
   'Map: tap to add a stop': 'Карта: торкніться, щоб додати зупинку',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Картинки карти беруться з OpenStreetMap, поки її показано.',
+  'The map comes from OpenFreeMap while it is shown.': 'Карта завантажується з OpenFreeMap, поки вона показана.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Ваше місцезнаходження запитується лише щоб відцентрувати карту й ніде не записується.',
   '{n|one stop|# stops}': '{n|# зупинка|# зупинки|# зупинок|# зупинки}',
   'Stop {n}': 'Зупинка {n}',

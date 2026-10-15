@@ -1282,7 +1282,7 @@ export default {
   'Where I am': 'Dónde estoy',
   'Map': 'Mapa',
   'Map: tap to add a stop': 'Mapa: toca para añadir una parada',
-  'The map’s pictures come from OpenStreetMap while it is shown.': 'Las imágenes del mapa vienen de OpenStreetMap mientras se muestra.',
+  'The map comes from OpenFreeMap while it is shown.': 'El mapa viene de OpenFreeMap mientras se muestra.',
   'Your location is asked for only to center the map, and is never written anywhere.': 'Tu ubicación se pide solo para centrar el mapa, y nunca se escribe en ningún sitio.',
   '{n|one stop|# stops}': '{n|una parada|# de paradas|# paradas}',
   'Stop {n}': 'Parada {n}',

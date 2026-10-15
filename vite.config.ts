@@ -67,8 +67,28 @@ export function fileOf(id: string): string {
   if (tpl) return `templates-${tpl[1]}`;
   const lang = /\/src\/i18n\/([^/]+)\.ts$/.exec(path);
   if (lang && lang[1] !== 'en') return `lang-${lang[1]}`;
+  const pkg = /\/node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(path);
+  if (pkg && MAP.has(pkg[1])) return 'map';
+  // (The bundler's own runtime, a virtual module, is the app file's: never a file of its own between the two groups.)
   return /\/src\/sw\.ts$/.test(path) ? 'sw' : 'app';
 }
+
+/**
+ * The map's packages: maplibre-gl and everything it brings with it (the lockfile says), which the Trip Planner imports
+ * with its first map and nothing else needs. They are the one file the app file fetches lazily beyond the templates and
+ * the languages (Paul, 2026-10-15: "hot-load it for that path"); its worker is a file of its own too (?worker&url).
+ */
+const MAP = ((): Set<string> => {
+  const lock = JSON.parse(readFileSync(resolve(import.meta.dirname, 'package-lock.json'), 'utf8')) as { packages: Record<string, { dependencies?: Record<string, string> }> };
+  const out = new Set<string>();
+  const walk = (name: string) => {
+    if (out.has(name)) return;
+    out.add(name);
+    for (const dep of Object.keys(lock.packages[`node_modules/${name}`]?.dependencies ?? {})) walk(dep);
+  };
+  walk('maplibre-gl');
+  return out;
+})();
 
 /**
  * `npm run preview` serves the build with the cache's headers dist/_headers gives each file (scripts/headers.ts), so the
@@ -133,7 +153,10 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
         chunkFileNames: (chunk) => `assets/${chunk.facadeModuleId ? fileOf(chunk.facadeModuleId) : chunk.name}-[hash].js`,
         assetFileNames: (asset) => (asset.names.some((n) => n.endsWith('.css')) ? 'assets/app-[hash][extname]' : 'assets/[name]-[hash][extname]'),
-        // Every module fileOf puts in the app file is one group, so the bundler splits off only the templates and the languages.
+        // Every module fileOf puts in the app file is one group, so the bundler splits off only the templates, the languages and
+        // the map: the map's modules are left out of the group and become the chunk its dynamic import makes, named by
+        // fileOf (a group of their own would have the bundler's runtime helpers, shared by two groups, in a third file every
+        // page would fetch first).
         codeSplitting: { groups: [{ name: 'app', test: (id: string) => fileOf(id) === 'app' }] },
       },
     },

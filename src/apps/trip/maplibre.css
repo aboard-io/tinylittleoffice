@@ -1,0 +1,3 @@
+/* MapLibre's own stylesheet (the map's canvas, its controls, the credit), fetched with the map, in the apps' layer so the
+   kit's rules and the Trip Planner's (style.css) come after it. */
+@import 'maplibre-gl/dist/maplibre-gl.css' layer(apps);

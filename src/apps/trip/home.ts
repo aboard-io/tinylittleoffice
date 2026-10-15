@@ -10,6 +10,7 @@ import { COUNTRIES } from './countries.ts';
 
 /** The zoom of a city: New York City's, and where the map goes when the device says where it is. */
 export const CITY = 12;
+// (These zooms are written for 256px tiles, as Leaflet's were; the map, MapLibre on 512px tiles, takes one less: editor.ts Z.)
 /** New York City: City Hall. */
 export const NYC = { lat: 40.7128, lon: -74.006, zoom: CITY };
 
