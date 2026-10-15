@@ -148,7 +148,8 @@ test('a pin panned out of the map’s box is inert, out of Tab’s reach, and re
   expect(reachable()).toHaveLength(3);
   // A zoom on its way (the map's own +, animated): the pins it leaves outside go out of reach as the map moves.
   mapOf(el).easeTo({ center: [-9.1393, 38.7223], zoom: 13 });
-  await until(() => reachable().length === 1);
+  // (On its way the map passes places where another pin alone is in its box: the end is Lisbon's pin alone.)
+  await until(() => reachable().map((p) => p.textContent).join() === '1');
   expect(reachable().map((p) => p.textContent)).toEqual(['1']);
   // Presented, the map is a show: no pin is a stop to Tab to, until the show ends.
   await el.present();
