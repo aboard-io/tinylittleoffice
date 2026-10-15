@@ -37,7 +37,7 @@ import { CROPPED, pageSvg } from '../draw/draw.ts';
 import './preview.ts';
 import { startEditing } from './chrome.ts';
 import { go, parseHash, routeHash } from '../core/route.ts';
-import { ago, forget, library, type Kept } from '../share/library.ts';
+import { ago, forget, library, onLibrary, type Kept } from '../share/library.ts';
 import { keeping, onPrivacy } from '../share/privacy.ts';
 import { focusBack } from './dialog.ts';
 import { origin } from '../core/network.ts';
@@ -248,6 +248,9 @@ function keptLines(k: Kept): string[] {
   }
   return lines;
 }
+/** A kept document's name as a list says it: its title, else Locked document for a sealed one, else Untitled. */
+export const keptTitle = (k: Kept): string => k.title || (isSealed(parseHash(k.hash).payload) ? t('common-locked-document') : t('common-untitled'));
+
 /** Stretches of words, the found ones marked. */
 const segs = (s: Seg[]) => s.map((x) => (x.hit ? html`<mark>${x.t}</mark>` : x.t));
 
@@ -277,15 +280,17 @@ export class ToHome extends LitElement {
     void running(siteRoot()).then((v) => (this.version = v));
     window.addEventListener('pageshow', this.redraw);
     document.addEventListener('visibilitychange', this.onVisible);
-    this.offs = [onLanguage(this.redraw), onPrivacy(this.redraw), () => window.removeEventListener('pageshow', this.redraw), () => document.removeEventListener('visibilitychange', this.onVisible)];
+    this.offs = [
+      onLanguage(this.redraw),
+      onPrivacy(this.redraw),
+      onLibrary(this.redraw),
+      () => window.removeEventListener('pageshow', this.redraw),
+      () => document.removeEventListener('visibilitychange', this.onVisible),
+    ];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     for (const off of this.offs) off();
-  }
-  private forget(k: Kept) {
-    forget(k.id);
-    this.redraw();
   }
   /** An app's kept documents, newest first: five, then "n more". Nothing kept, nothing shown. */
   private drive(app: AppDef, kept: Kept[]) {
@@ -295,10 +300,10 @@ export class ToHome extends LitElement {
     const lang = document.documentElement.lang;
     return html`<ul class="to-drive" aria-label=${t('home-app-documents', { app: app.name })}>
         ${shown.map((k) => {
-          const title = k.title || (isSealed(parseHash(k.hash).payload) ? t('common-locked-document') : t('common-untitled'));
+          const title = keptTitle(k);
           return html`<li>
             <a class="to-drive-open" href=${k.hash}><to-preview hash=${k.hash}></to-preview><span class="to-drive-words"><span>${title}</span><small>${ago(k.at, lang)}</small></span></a>
-            <button type="button" class="to-btn to-tool" aria-label=${t('home-forget-title', { title })} title=${t('common-forget')} @click=${() => this.forget(k)}>${icon(UI.close, 16)}</button>
+            <button type="button" class="to-btn to-tool" aria-label=${t('home-forget-title', { title })} title=${t('common-forget')} @click=${() => forget(k.id)}>${icon(UI.close, 16)}</button>
           </li>`;
         })}
       </ul>

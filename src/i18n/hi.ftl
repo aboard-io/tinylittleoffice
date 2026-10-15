@@ -122,6 +122,10 @@ drawer-what-is-this = यह क्या है?
 drawer-turn-on-to-save-files = अपने ब्राउज़र में फ़ाइलें सेव करने के लिए चालू करें।
 # en: af191ab94c0b2f93d5e90820805b9c7f419ce80d
 drawer-turn-off-to-remove-all = सारी फ़ाइलें और सेटिंग्स हटाने के लिए बंद करें।
+# en: d0d345f50784d6824741e549ee71454543c78be3
+drawer-saved-documents = सेव किए गए दस्तावेज़
+# en: 554e6e19563b1e1ea4d41590fa05e816c744b38f
+drawer-nothing-saved-yet = अभी तक कुछ सेव नहीं किया गया।
 # en: db5f691e51583d80782a9c51e78f01c49ccefd02
 common-nothing-saved-in-this-browser = इस ब्राउज़र में कुछ सेव नहीं
 # en: 15f47f2fab9454be9fab70ba4bd89293fdc40c0a

@@ -121,6 +121,10 @@ drawer-what-is-this = 这是什么？
 drawer-turn-on-to-save-files = 打开后会在浏览器中保存文件。
 # en: af191ab94c0b2f93d5e90820805b9c7f419ce80d
 drawer-turn-off-to-remove-all = 关闭后会移除所有文件和设置。
+# en: d0d345f50784d6824741e549ee71454543c78be3
+drawer-saved-documents = 已保存的文档
+# en: 554e6e19563b1e1ea4d41590fa05e816c744b38f
+drawer-nothing-saved-yet = 还没有保存任何内容。
 # en: db5f691e51583d80782a9c51e78f01c49ccefd02
 common-nothing-saved-in-this-browser = 此浏览器中未保存任何内容
 # en: 15f47f2fab9454be9fab70ba4bd89293fdc40c0a
