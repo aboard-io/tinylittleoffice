@@ -47,7 +47,14 @@ test('every directive that reaches the web is the site and the registry’s host
   }
   // The Trip Planner's map (OpenFreeMap's style, tiles, sprites and fonts, fetched by MapLibre); OpenStreetMap's tiles are
   // fetched too, to be written into a picture of a map drawn elsewhere (kit/draw/raster.ts).
-  expect(directive(csp, 'connect-src')).toEqual(["'self'", 'data:', 'https://tiles.openfreemap.org', 'https://tile.openstreetmap.org', 'https://nominatim.openstreetmap.org', 'https://tinier.tinylittleoffice.com']);
+  expect(directive(csp, 'connect-src')).toEqual([
+    "'self'",
+    'data:',
+    'https://tiles.openfreemap.org',
+    'https://tile.openstreetmap.org',
+    'https://nominatim.openstreetmap.org',
+    'https://tinier.tinylittleoffice.com',
+  ]);
 });
 
 test('font-src: the site and nothing else; the type is IBM Plex, served by the site (public/fonts/)', () => {
