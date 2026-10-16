@@ -105,6 +105,19 @@ export function routeHash(app: string, payload = '', view = '', display = false,
   return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + withBreaks(payload) : ''}${query}`;
 }
 
+/**
+ * The site's own address, from any address of it: the page's folder, less an app's own page ("/sheet/") or the embed
+ * page's ("/embed/"). The site need not be at a host's root: "https://aboard-io.github.io/tinylittleoffice/sheet/#/v1/…"
+ * is a page of the site at "https://aboard-io.github.io/tinylittleoffice/", the mirror on GitHub Pages (docs/mirror.md).
+ * `isApp` says whether a folder's name is an app's.
+ */
+export function siteOf(href: string, isApp: (id: string) => boolean): string {
+  const u = new URL(href);
+  const dir = u.pathname.replace(/[^/]*$/, '');
+  const last = dir.split('/').slice(-2)[0];
+  return `${u.origin}${last && (isApp(last) || last === 'embed') ? dir.slice(0, -(last.length + 1)) : dir}`;
+}
+
 /** The address with "text" in its query or taken out, the rest as it was ("?d?s=…" read as "?d&s=…"). */
 export function withText(hash: string, on: boolean): string {
   const at = hash.indexOf('?');

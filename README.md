@@ -64,6 +64,8 @@ npm run build    # the site as it ships
 
 How it is made, what it protects against and how to run your own copy are in [docs/](docs/README.md): the
 [threat model](docs/threat-model.md), the [cryptography](docs/crypto/password.md), [self-hosting](docs/self-host.md).
+When tinylittleoffice.com is down, the same tag runs on GitHub Pages at https://aboard-io.github.io/tinylittleoffice/
+(the [mirror](docs/mirror.md)): put that before the `<app>/#…` of a link and it opens there.
 
 A security problem should be reported privately, through the repository's Security tab, never as an issue.
 

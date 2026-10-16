@@ -6,6 +6,8 @@
  *   - dist/_headers has the scripts' hashes in place of {{scripts}}: every script the apps' pages carry
  *     (src/kit/draw/page.ts) and every inline script of a built page (the theme script in the shell, index.html), or
  *     the browser would refuse to run it.
+ *   - in a build for a host that sends no headers (VITE_CSP_META=1, the mirror: scripts/mirror.ts), every page has the
+ *     policy _headers gives its path in a <meta>, less what a <meta> cannot carry.
  *   - dist/version.json has the shape of src/kit/core/version.ts and the same script hashes as the policy.
  *   - the guides for agents: llms.txt (and the same at .well-known/llms.txt), llms-full.txt, and each app's
  *     examples beside its page (examples/<app>.json for llms/<app>.txt).
@@ -20,7 +22,7 @@ import { existsSync, readFileSync, readdirSync, type Dirent } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isVersion } from '../src/kit/core/version.ts';
-import { inlineScripts, scriptHash } from './headers.ts';
+import { headersFor, inlineScripts, metaPolicy, pageMetaPolicy, pagePath, scriptHash } from './headers.ts';
 
 /** Every file of the build, relative to dist with forward slashes. */
 function builtFiles(dist: string): string[] {
@@ -62,10 +64,17 @@ export function checkBuild(dist: string, scripts: string[] = []): string[] {
       )
         problems.push('version.json’s script hashes are not the policy’s');
     }
-    for (const f of built.filter((b) => b.endsWith('.html'))) {
-      const page = readFileSync(at(f), 'utf8');
-      for (const code of inlineScripts(page)) if (!allowed(scriptHash(code))) problems.push(`${f} has an inline script the policy does not allow`);
-    }
+    const pages = built.filter((b) => b.endsWith('.html')).map((f) => ({ f, page: readFileSync(at(f), 'utf8') }));
+    for (const { f, page } of pages) for (const code of inlineScripts(page)) if (!allowed(scriptHash(code))) problems.push(`${f} has an inline script the policy does not allow`);
+    // A build for a host that sends no headers (the mirror: scripts/mirror.ts) has each page's policy in a <meta>: every
+    // page, each the one _headers gives its path less what a <meta> cannot carry.
+    if (pages.some(({ page }) => pageMetaPolicy(page) !== null))
+      for (const { f, page } of pages) {
+        const want = metaPolicy(headersFor(headers, pagePath(f))['Content-Security-Policy'] ?? '');
+        const got = pageMetaPolicy(page);
+        if (got === null) problems.push(`${f} has no policy in a <meta>, where the other pages have theirs`);
+        else if (got !== want) problems.push(`${f}: the policy in its <meta> is not the one _headers gives ${pagePath(f)}`);
+      }
   }
   // The guides for agents (scripts/make-skill.ts): the short one, also at /.well-known/llms.txt, the whole one, and for
   // each app's page its examples.

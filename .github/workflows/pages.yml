@@ -1,0 +1,96 @@
+# The mirror on GitHub Pages (docs/mirror.md; Paul, 2026-10-15, issue #13: "a link keeps opening when
+# tinylittleoffice.com is down or rate-limited"): once a deploy of tinylittleoffice.com has succeeded, the tag it
+# deployed is built again for https://aboard-io.github.io/tinylittleoffice/ (npm run build:mirror: the site's address
+# under a path, each page's policy in a <meta> since Pages sends no headers, no preview cards, the production
+# shortener) and published to Pages, the repository's default address, no custom domain. Then the mirror's
+# /version.json must name the tag. By hand, for a tag already deployed: Actions, Pages mirror, Run workflow.
+#
+# Pages is enabled for GitHub Actions as its source (Settings, Pages; or `gh api -X POST repos/<owner>/<repo>/pages
+# -f build_type=workflow`). Every action is pinned by its commit, the version beside it (test/deploy.test.ts).
+name: Pages mirror
+
+on:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to publish on the mirror, as v1.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One publish at a time, and the next waits for the one under way.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  MIRROR: https://aboard-io.github.io/tinylittleoffice/
+
+jobs:
+  mirror:
+    # After a deploy that succeeded, or by hand.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      # For deploy-pages: to publish, and the runner's identity it publishes with.
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: The tag deployed
+        id: tag
+        env:
+          ASKED: ${{ inputs.tag }}
+          RAN: ${{ github.event.workflow_run.head_branch }}
+        # By hand, the tag asked for; after a deploy, the tag it ran for (a tag push's run names it), or, for a deploy run
+        # by hand, the tag the site says it runs, which that deploy has just checked file by file.
+        run: |
+          tag="$ASKED"
+          [[ -z "$tag" && "$RAN" == v* ]] && tag="$RAN"
+          [[ -z "$tag" ]] && tag=$(curl -fsS https://tinylittleoffice.com/version.json | jq -r '.tag // empty')
+          [[ "$tag" == v* ]] || { echo "No tag v* to publish (asked '$ASKED', ran for '$RAN')." >&2; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+          # The whole history and the tags: version.json names the tag.
+          fetch-depth: 0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build for the mirror
+        run: npm run build:mirror
+      - name: The offline list, the worker and the policy, in every page
+        run: node scripts/check-build.ts
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+          # /.well-known/llms.txt, the guide where some agents look for it.
+          include-hidden-files: true
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: The mirror says it runs the tag
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        # Pages keeps a file ten minutes (max-age=600): asked by a new address each time, up to ten minutes for the new files.
+        run: |
+          for i in $(seq 1 20); do
+            got=$(curl -fsS -H 'Cache-Control: no-cache' "${MIRROR}version.json?run=$GITHUB_RUN_ID-$i" | jq -r '.tag // empty' || true)
+            [[ "$got" == "$TAG" ]] && { echo "${MIRROR} runs $TAG."; exit 0; }
+            echo "${MIRROR}version.json says '${got}', not $TAG; again in 30 seconds."
+            sleep 30
+          done
+          exit 1

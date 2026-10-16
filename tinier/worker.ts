@@ -7,10 +7,10 @@ import { brakeKey } from './brake.ts';
 import { D1Store } from './d1.ts';
 import { SITE, handle } from './tinier.ts';
 
+// SITE, the sites that may call it (tinier.ts), is wrangler.jsonc's var, which `wrangler types` declares; under
+// `wrangler dev` (npm run tinier:dev) it names a copy of the site on this machine instead.
 declare global {
   interface Env {
-    /** Set only under `wrangler dev` (npm run tinier:dev), for a copy of the site on this machine. */
-    SITE?: string;
     /**
      * The secret the daily counts are kept under: `wrangler secret put BRAKE_KEY` in production, tinier/.dev.vars on
      * this machine (where `wrangler types` reads it as a string too). Never in the repo; brakeKey() refuses without it.

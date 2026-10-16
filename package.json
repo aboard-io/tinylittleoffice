@@ -20,6 +20,7 @@
     "dev": "vite --host 0.0.0.0 --port 4178 --strictPort",
     "build": "node scripts/network-doc.ts && npm run -s lint && npm run -s build:site",
     "build:site": "vite build && vite build -c vite.api.config.ts --logLevel warn && node scripts/budgets.ts",
+    "build:mirror": "VITE_SITE_URL=https://aboard-io.github.io/tinylittleoffice/ VITE_CSP_META=1 VITE_CARDS=0 VITE_TINIER=https://tinier.tinylittleoffice.com/ npm run build",
     "build:verify": "node scripts/reproducible.ts",
     "build:cli": "vite build -c vite.cli.config.ts --mode api && vite build -c vite.cli.config.ts --mode cli",
     "verify-deploy": "node scripts/verify-deploy.ts",

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ftlBare } from './scripts/ftl-plugin.ts';
 import { fillHeaders, headersFor, inlineScripts, scriptHash } from './scripts/headers.ts';
+import { forHost, hostOf } from './scripts/mirror.ts';
 import { listed, writePages } from './scripts/seo.ts';
 import { writeWorker } from './scripts/sw-manifest.ts';
 import { gitFacts, versionJson, versionOf } from './scripts/version.ts';
@@ -21,11 +22,13 @@ const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve
  * the embed page, the JSON-LD on each, the sitemap and robots.txt's line naming it); the Content-Security-Policy's
  * script hashes (the apps' page scripts and the theme script in the page) and hosts written into _headers
  * (public/_headers has the placeholders, scripts/headers.ts fills them); the service worker's list of files and its
- * cache's name, written into dist/sw.js (scripts/sw-manifest.ts); and which build this is, dist/version.json (the
+ * cache's name, written into dist/sw.js (scripts/sw-manifest.ts); for a host other than Cloudflare's, the manifest's id
+ * under the site's path and each page's policy in its own <meta> (scripts/mirror.ts: the mirror on GitHub Pages,
+ * VITE_CSP_META=1); and which build this is, dist/version.json (the
  * commit, its tag and date, those hashes: scripts/version.ts).
  * For agents, /.well-known/llms.txt is /llms.txt again and /examples/<app>.json each app's examples.
  */
-function afterBuild(site: string, tinier: string): Plugin {
+function afterBuild(host: ReturnType<typeof hostOf>): Plugin {
   return {
     name: 'tinyoffice-after-build',
     apply: 'build',
@@ -34,7 +37,14 @@ function afterBuild(site: string, tinier: string): Plugin {
       const { pageScripts } = await fromSource<{ pageScripts(): string[] }>('src/kit/draw/page.ts');
       const dist = resolve(import.meta.dirname, 'dist');
       const facts = gitFacts(import.meta.dirname);
-      writePages(dist, { site, apps: await listed(apps()), built: facts.built });
+      writePages(dist, { site: host.site, apps: await listed(apps()), built: facts.built });
+      // The policy's script hashes: the apps' page scripts and the built pages' own inline scripts (the theme script in
+      // the shell, the same on every page), read as scripts/check-build.ts reads them (scripts/headers.ts).
+      const inline = inlineScripts(readFileSync(resolve(dist, 'index.html'), 'utf8'));
+      const hashes = [...new Set([...pageScripts(), ...inline].map(scriptHash))];
+      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, tinier: host.tinier }));
+      // A host other than Cloudflare's (the mirror: scripts/mirror.ts), before the worker's list is hashed from the pages.
+      forHost(dist, host);
       writeWorker(
         dist,
         apps().map((a) => a.id),
@@ -45,11 +55,6 @@ function afterBuild(site: string, tinier: string): Plugin {
       copyFileSync(resolve(dist, 'llms.txt'), resolve(dist, '.well-known', 'llms.txt'));
       mkdirSync(resolve(dist, 'examples'), { recursive: true });
       for (const app of apps()) copyFileSync(resolve(import.meta.dirname, 'packages/doc/examples', `${app.id}.json`), resolve(dist, 'examples', `${app.id}.json`));
-      // The policy's script hashes: the apps' page scripts and the built pages' own inline scripts (the theme script in
-      // the shell, the same on every page), read as scripts/check-build.ts reads them (scripts/headers.ts).
-      const inline = inlineScripts(readFileSync(resolve(dist, 'index.html'), 'utf8'));
-      const hashes = [...new Set([...pageScripts(), ...inline].map(scriptHash))];
-      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, tinier }));
       writeFileSync(resolve(dist, 'version.json'), versionJson(versionOf(facts, hashes)));
     },
   };
@@ -134,7 +139,7 @@ export default defineConfig(({ mode }) => ({
       '/card': { target: 'http://127.0.0.1:8789' },
     },
   },
-  plugins: [ftlBare(), afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '', loadEnv(mode, import.meta.dirname).VITE_TINIER ?? ''), previewCache()],
+  plugins: [ftlBare(), afterBuild(hostOf(loadEnv(mode, import.meta.dirname))), previewCache()],
   build: {
     target: 'es2022',
     outDir: 'dist',
