@@ -106,6 +106,26 @@ test('the title, focused, opens a wide row: the automatic name chosen whole, Ent
   expect((shell as unknown as { doc: string }).doc).toContain('title: Minutes');
 });
 
+test('on a wide page the title is edited where it is: no second row (Paul, 2026-10-16)', async () => {
+  await page.viewport(1280, 800);
+  const shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-write-editor'));
+  const header = shell.querySelector<HTMLElement>('.to-header')!;
+  const field = shell.querySelector<HTMLInputElement>('input.to-title')!;
+  const before = field.getBoundingClientRect();
+  const headerBefore = header.getBoundingClientRect().height;
+  field.focus();
+  await until(() => header.classList.contains('titling'));
+  await settled();
+  const after = field.getBoundingClientRect();
+  expect(after.top).toBeCloseTo(before.top, 0);
+  expect(after.height).toBeCloseTo(before.height, 0);
+  expect(header.getBoundingClientRect().height).toBeCloseTo(headerBefore, 0);
+  await userEvent.keyboard('{Escape}');
+  await until(() => !header.classList.contains('titling'));
+  await page.viewport(414, 896);
+});
+
 test('Escape puts back the title it had and closes the row; a tap elsewhere closes it too', async () => {
   const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nWords.\n')}`);
   await until(() => !!shell.querySelector('to-write-editor'));
