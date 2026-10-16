@@ -429,3 +429,52 @@ test('the foot ends with the build’s version once /version.json is read: its t
     vi.unstubAllGlobals();
   }
 });
+
+// Issue #6 (Paul, 2026-10-15): on the home page the drawer lists the documents saved under its switch too, and a
+// document deleted there is gone from its app's list on the page at once.
+test("the home page's drawer lists the documents saved under the switch; Delete there takes it from the app's list too; a tap opens one", async () => {
+  const { keep, forgetAll } = await import('../../src/kit/share/library.ts');
+  const { setKeeping } = await import('../../src/kit/core/store.ts');
+  setKeeping(true);
+  forgetAll();
+  const plans = `#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nGo.\n')}`;
+  try {
+    keep({ id: 'p', app: 'write', title: 'Plans', hash: plans, at: Date.now() });
+    keep({ id: 'b', app: 'sheet', title: 'Budget', hash: `#/v1/sheet/${encodeDoc('a,b\n1,2\n')}`, at: Date.now() - 1000 });
+    const shell = await mount('');
+    await until(() => shell.querySelectorAll('.to-drive li').length === 2);
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
+    await until(() => dialog.open && !!dialog.querySelector('.to-saved'));
+    const names = () => [...dialog.querySelectorAll('.to-saved .to-found-words > span')].map((s) => s.textContent);
+    expect(names()).toEqual(['Plans', 'Budget']);
+    dialog.querySelector<HTMLButtonElement>('.to-saved button[aria-label="Delete Budget"]')!.click();
+    await until(() => names().join() === 'Plans');
+    await until(() => shell.querySelectorAll('.to-drive li').length === 1);
+    dialog.querySelector<HTMLAnchorElement>('.to-saved a.to-saved-open')!.click();
+    await until(() => location.hash === plans);
+    await until(() => !dialog.open);
+    await until(() => !!shell.querySelector('to-write-editor'));
+  } finally {
+    forgetAll();
+    setKeeping(false);
+    history.replaceState(null, '', location.pathname);
+  }
+});
+
+test("the home page's drawer, Save in browser on and nothing saved: the line that says so", async () => {
+  const { forgetAll } = await import('../../src/kit/share/library.ts');
+  const { setKeeping } = await import('../../src/kit/core/store.ts');
+  setKeeping(true);
+  forgetAll();
+  try {
+    const shell = await mount('');
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
+    await until(() => dialog.open);
+    expect(dialog.querySelector('.to-drawer-save .to-saved-none')!.textContent).toBe('Nothing saved yet.');
+    dialog.close();
+  } finally {
+    setKeeping(false);
+  }
+});
