@@ -48,7 +48,7 @@
  * 2026-10-10, "Now the title has room to breathe"); `main` (the column's content) with its
  * `mainClass`, and `barred` when it holds an editor with a bar; or `plain`, the Display Link's line (the title and
  * Edit) or the embed's (the title and Open in Tiny Little Office), with no menu button and no bar. It speaks back by
- * events: `to-display-text` (the Display Link's Text or Pages), `to-drawer-open` (the menu button), `to-share-open` (the meter),
+ * events: `to-display-text` (the Display Link's Text or Pages), `to-drawer-open` (the menu button), `to-rooms-open` (the meter: Share with its table of where the link fits open),
  * `to-retitle` (detail: the name typed), `to-copy-new`, `to-arrival-close`, `to-other-close`, `to-copies-close` (the
  * Display Link's line that says a link is a copy, `plain.copies`).
  */
@@ -456,11 +456,12 @@ export class ToChrome extends LitElement {
         : left < 0
           ? t('shell-n-characters-over-link-limit-short-link-holds-max', { n: -left, max: SHORT_LINK_MAX })
           : t('shell-n-of-max-link-characters', { n: left, max: available });
-    const share = () => this.say('to-share-open');
+    // The meter opens Share with the table of where the link fits already open (Paul, 2026-10-16: "When I click on the circle… It brings up the share menu"): the circle is about the size.
+    const rooms = () => this.say('to-rooms-open');
     return html`${here}<h1 class="sr-only">${d.title}</h1>
       <input class="to-title" type="text" placeholder=${t('common-untitled-noun', { noun: d.def.noun })} aria-label=${t('common-title')} autocomplete="off" enterkeyhint="done" .value=${d.value} @change=${(e: Event) => this.say('to-retitle', (e.target as HTMLInputElement).value.trim())} />
       ${d.trust}
-      <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${room} title=${room} @click=${share}>
+      <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${room} title=${room} @click=${rooms}>
         <svg class="to-icon" width="24" height="24" style="--i:1.5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
       </button>`;
   }

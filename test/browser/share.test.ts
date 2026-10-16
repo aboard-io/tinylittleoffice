@@ -59,11 +59,12 @@ test('the head: the title, and where the link fits in one line', async () => {
   expect(d.querySelector('.to-share-fit .to-fit-words')!.textContent!.trim()).toMatch(/^This link: [\d,]+ characters, (fits in a text message|too long for .+)$/);
   // The rooms are a table in a popover off the head line, never in the dialog itself.
   expect([...d.querySelectorAll('table, dl')].every((x) => x.closest('.to-rooms'))).toBe(true);
-  // The meter in the header opens the same dialog.
+  // The meter in the header opens the same dialog with the table of where the link fits already open (Paul, 2026-10-16).
   d.close();
   await until(() => !shell.querySelector<ToShare>('to-share')!.sharing);
   shell.querySelector<HTMLButtonElement>('.to-meter')!.click();
   await until(() => d.dialog.open);
+  await until(() => !!d.querySelector('.to-rooms:popover-open'));
 });
 
 test('the table of where the link fits states every limit, what it counts, and whether this link fits (Paul, 2026-10-15, issue #8)', async () => {

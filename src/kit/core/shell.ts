@@ -236,6 +236,7 @@ export class ToShell extends LitElement {
     on(this, 'focusout', this.flushLink);
     on(this, 'focusin', this.noteText);
     on(this, 'to-share-open', () => void this.openShare());
+    on(this, 'to-rooms-open', () => void this.openShare(true));
     on(this, 'to-link-copied', () => ((this.copied = true), this.guard()));
     on(this, 'click', this.onFollow as EventListener);
     on(window, 'to-leave', this.onGo);
@@ -715,12 +716,14 @@ export class ToShell extends LitElement {
   /* ---------- sharing (the dialog is <to-share>'s) ---------- */
 
   /** The Share dialog, open. */
-  async openShare() {
+  /** Share; with `rooms`, its table of where the link fits open at once (the header's meter). */
+  async openShare(rooms = false) {
     this.flushLink();
     // Drawn again first, so the dialog has <to-privacy>'s part as it is now.
     this.requestUpdate();
     await this.updateComplete;
-    await this.querySelector<ToShare>('to-share')?.show();
+    const share = this.querySelector<ToShare>('to-share');
+    await (rooms ? share?.showRooms() : share?.show());
   }
   /** Download, by its key: the drawer, its table open (the drawer's This document holds it, the header being the title). */
   private async openDownload() {

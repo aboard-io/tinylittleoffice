@@ -162,6 +162,14 @@ export class ToShare extends LitElement {
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.show();
   }
+  /** Share with the table of where the link fits already open, placed under the head line (the header's meter opens it so). */
+  async showRooms() {
+    await this.show();
+    await this.updateComplete;
+    const pop = this.querySelector<HTMLElement>('.to-rooms');
+    const btn = this.querySelector<HTMLElement>('.to-fit-words');
+    if (pop && btn && !pop.matches(':popover-open')) (pop.showPopover(), place(pop, btn));
+  }
   close() {
     this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.close();
   }
