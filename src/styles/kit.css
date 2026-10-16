@@ -1680,22 +1680,26 @@
       opacity 0.2s ease,
       box-shadow 0.2s ease;
   }
-  /* The title edited wide (Paul: "The title is too small to edit"): the header opens a second row, the field across
-     it at 20px; the first row keeps the rest, pushed to the inline end. */
-  .to-header.titling {
-    height: calc(var(--to-header-h) + 0.5em + var(--to-touch));
-    overflow: hidden;
-  }
-  /* The second row runs under the menu button's room too, from one margin to the other. */
-  .to-header.titling .to-title {
-    order: 1;
-    flex: 0 0 calc(100% + var(--to-burger-w) + 0.375em - var(--to-gutter));
-    margin-inline-end: calc(var(--to-gutter) - var(--to-burger-w) - 0.375em);
-    height: var(--to-touch);
-    font-size: calc(1.25 * var(--to-scale));
-  }
-  .to-header.titling .to-title + * {
-    margin-inline-start: auto;
+  /* The title edited wide (Paul: "The title is too small to edit"): on a narrow page the header opens a second row,
+     the field across it at 20px, the first row keeping the rest, pushed to the inline end. On a wide page the field is
+     already wide, and it is edited where it is (Paul, 2026-10-16: "When the title bar is wide on desktop I don't need
+     you to push it down for me to edit"). */
+  @media (max-width: 47.9375rem) {
+    .to-header.titling {
+      height: calc(var(--to-header-h) + 0.5em + var(--to-touch));
+      overflow: hidden;
+    }
+    /* The second row runs under the menu button's room too, from one margin to the other. */
+    .to-header.titling .to-title {
+      order: 1;
+      flex: 0 0 calc(100% + var(--to-burger-w) + 0.375em - var(--to-gutter));
+      margin-inline-end: calc(var(--to-gutter) - var(--to-burger-w) - 0.375em);
+      height: var(--to-touch);
+      font-size: calc(1.25 * var(--to-scale));
+    }
+    .to-header.titling .to-title + * {
+      margin-inline-start: auto;
+    }
   }
   .to-header .to-tool,
   .to-header .to-btn {
