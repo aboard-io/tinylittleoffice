@@ -1,6 +1,6 @@
 // The link's shape: "#/v1/<app>[.<view>][/<payload>][?d][&s=&x=]".
 import { test, expect } from 'vitest';
-import { LINK, parseHash, routeHash, withText } from '../src/kit/core/route.ts';
+import { LINK, parseHash, routeHash, siteOf, withText } from '../src/kit/core/route.ts';
 
 test('a document link is read and written the same way', () => {
   expect(LINK).toBe('#/v1/');
@@ -140,4 +140,22 @@ test('the alphabet document’s link runs no more than 300 letters and digits, a
   expect(Math.max(...runs.map((p) => p.length))).toBeLessThanOrEqual(300);
   expect(hash.endsWith('+')).toBe(false);
   expect(decodeDoc(parseHash(hash).payload)).toBe(doc);
+});
+
+test('the site is found from any of its addresses, at a host’s root or under a path (the mirror on GitHub Pages: docs/mirror.md)', () => {
+  const isApp = (id: string) => ['write', 'outline', 'sheet'].includes(id);
+  const hash = routeHash('outline', 'yABC');
+  for (const site of ['https://tinylittleoffice.com/', 'https://aboard-io.github.io/tinylittleoffice/', 'http://localhost:4173/tinylittleoffice/']) {
+    expect(siteOf(site, isApp), site).toBe(site);
+    expect(siteOf(`${site}${hash}`, isApp), site).toBe(site);
+    expect(siteOf(`${site}outline/${hash}`, isApp), site).toBe(site);
+    expect(siteOf(`${site}outline/index.html${hash}`, isApp), site).toBe(site);
+    expect(siteOf(`${site}embed/${hash}`, isApp), site).toBe(site);
+    expect(siteOf(`${site}write/?lang=fr${hash}`, isApp), site).toBe(site);
+    // A document's link made on one copy opens on another by its fragment alone: the site, then "<app>/" and the hash.
+    expect(`${siteOf(`${site}outline/${hash}`, isApp)}outline/${hash}`).toBe(`${site}outline/${hash}`);
+  }
+  // A folder that is no app's is the site’s own: the mirror’s "/tinylittleoffice/" is never taken for an app page.
+  expect(siteOf('https://aboard-io.github.io/tinylittleoffice/', isApp)).toBe('https://aboard-io.github.io/tinylittleoffice/');
+  expect(siteOf('https://aboard-io.github.io/tinylittleoffice/network.html', isApp)).toBe('https://aboard-io.github.io/tinylittleoffice/');
 });

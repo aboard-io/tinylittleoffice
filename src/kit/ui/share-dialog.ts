@@ -15,7 +15,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { appOf } from '../core/apps.ts';
+import { appOf, siteRoot } from '../core/apps.ts';
 import { budgetFor, encodeDoc } from '../core/codec.ts';
 import type { AppDef } from '../core/app.ts';
 import type { Locker } from '../share/crypt.ts';
@@ -29,7 +29,7 @@ import { parseHash, routeHash } from '../core/route.ts';
 import { fitLine, fitWords, limitWords, roomFor } from '../share/limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from '../share/short.ts';
 import { dropKept, keepLink, keptLinks } from '../share/kept-links.ts';
-import { cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
+import { CARDS, cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
 import { pack } from '../share/privacy.ts';
 import { store } from '../core/store.ts';
 import { QR_MAX_BYTES, qrSvg } from '../draw/qr.ts';
@@ -51,11 +51,7 @@ const savedTtl = () => {
 };
 
 /** Where the site is served from: the page's folder, less an app's own page ("/sheet/") or the embed page's. */
-export function siteDir(): string {
-  const dir = location.pathname.replace(/[^/]*$/, '');
-  const last = dir.split('/').slice(-2)[0];
-  return last && (appOf(last) || last === 'embed') ? dir.slice(0, -(last.length + 1)) : dir;
-}
+export const siteDir = (): string => new URL(siteRoot()).pathname;
 
 /** A document as a fresh plain link in a new tab: "Copy of …", not yet written; sealed with the same password if it has one. */
 export function openCopy(def: AppDef, doc: string, title: string, locker: Locker | null) {
@@ -135,7 +131,7 @@ export class ToShare extends LitElement {
     this.shortDisplay = false;
     this.sharing = false;
     this.askMastodon = false;
-    this.preview = previewOn();
+    this.preview = CARDS && previewOn();
   }
   createRenderRoot() {
     return this;
@@ -306,7 +302,7 @@ export class ToShare extends LitElement {
     return html`<section class="to-share-section to-share-post" aria-labelledby="to-share-post-h">
       <h3 id="to-share-post-h">${t('share-post-link')}</h3>
       ${
-        this.locked
+        this.locked || !CARDS
           ? nothing
           : html`<label class="to-switch to-share-preview">
             <input type="checkbox" role="switch" .checked=${this.preview} @change=${(e: Event) => this.setPreview((e.target as HTMLInputElement).checked)} />

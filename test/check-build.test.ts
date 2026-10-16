@@ -104,6 +104,23 @@ test('the type: a font a stylesheet names or a page preloads is in the build, it
   expect(checkBuild(dist, [SCRIPT])).toEqual([]);
 });
 
+test('a build whose pages carry their policy (the mirror: scripts/mirror.ts): every page, each its path’s from _headers less frame-ancestors', () => {
+  build();
+  const meta = (policy: string) => `<meta http-equiv="Content-Security-Policy" content="${policy}" />`;
+  const hashes = hash(SCRIPT);
+  const index = readFileSync(join(dist, 'index.html'), 'utf8');
+  writeFileSync(join(dist, 'index.html'), index.replace('<!doctype html>', `<!doctype html>${meta(`default-src 'self'; script-src 'self' ${hashes}; object-src 'none'`)}`));
+  expect(checkBuild(dist, [SCRIPT])).toEqual(['write/index.html has no policy in a <meta>, where the other pages have theirs']);
+  writeFileSync(join(dist, 'write/index.html'), `<!doctype html>${meta(`default-src 'self'`)}<title>Word Processor</title>`);
+  expect(checkBuild(dist, [SCRIPT])).toEqual(['write/index.html: the policy in its <meta> is not the one _headers gives /write/']);
+  writeFileSync(join(dist, 'write/index.html'), `<!doctype html>${meta(`default-src 'self'; script-src 'self' ${hashes}; object-src 'none'`)}<title>Word Processor</title>`);
+  // The embed page's own policy, in place of the site's (as public/_headers writes it).
+  writeFileSync(join(dist, '_headers'), readFileSync(join(dist, '_headers'), 'utf8').replace('/embed/\n', '/embed/\n  ! Content-Security-Policy\n'));
+  mkdirSync(join(dist, 'embed'));
+  writeFileSync(join(dist, 'embed/index.html'), `<!doctype html>${meta(`script-src 'self' ${hashes}`)}`);
+  expect(checkBuild(dist, [SCRIPT])).toEqual([]);
+});
+
 // The build in dist/ (after `npm run build`): the policy and version.json both name the hash of the theme script the
 // pages carry, read from the built home page; no page names a theme file, and assets/ holds none.
 const built = join(import.meta.dirname, '../dist');

@@ -1,0 +1,14 @@
+# What the image is built from: the source, without what npm ci and the build make again, and no secrets.
+node_modules/
+dist/
+data/
+.vite/
+.wrangler/
+test-results/
+playwright-report/
+.git
+.env
+.env.*
+!.env.example
+.dev.vars
+**/.dev.vars

@@ -13,7 +13,7 @@ import { chosenLanguage, t } from '../../kit/core/i18n.ts';
 import { MOTION_JS } from '../../kit/draw/motion.ts';
 import { pageScript } from '../../kit/draw/page.ts';
 import { QR_MAX_BYTES, qrSvg } from '../../kit/draw/qr.ts';
-import { routeHash } from '../../kit/core/route.ts';
+import { routeHash, siteOf } from '../../kit/core/route.ts';
 import { placedLink } from '../../kit/share/locked.ts';
 import { attr, markNotes, noteNumbers, noteRuns, parse, plainText, runLinks, write, type Doc, type Run } from '../../doc/index.ts';
 import { iconHex, panelOf, settingsOf, slideNotes, slideText, slidesOf, type Format, type Item, type Settings, type Slide } from './model.ts';
@@ -233,7 +233,7 @@ export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still =
  */
 function moreLink(doc: Doc, s: Slide): string {
   const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
-  const site = typeof location !== 'undefined' && location.origin !== 'null' ? `${location.origin}/` : '';
+  const site = typeof location !== 'undefined' && location.origin !== 'null' ? siteOf(location.href, (id) => !!lookup.appOf(id)) : '';
   if (b?.k === 'fence' && b.lang && lookup.appOf(b.lang)?.long) return placedLink(b.lang, b.body, encodeDoc, site);
   return '';
 }
