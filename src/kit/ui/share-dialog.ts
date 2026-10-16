@@ -26,7 +26,7 @@ import { chosenLanguage, t } from '../core/i18n.ts';
 import { dateWords } from '../core/dates.ts';
 import { picture, raster, saveFile, slug, utf8 } from '../file/exports.ts';
 import { parseHash, routeHash } from '../core/route.ts';
-import { fitLine, roomFor } from '../share/limits.ts';
+import { fitLine, fitWords, limitWords, roomFor, shown } from '../share/limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from '../share/short.ts';
 import { dropKept, keepLink, keptLinks } from '../share/kept-links.ts';
 import { CARDS, cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
@@ -36,7 +36,6 @@ import { QR_MAX_BYTES, qrSvg } from '../draw/qr.ts';
 import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from '../share/share.ts';
 import { openLink } from './link-guard.ts';
 import { toast } from '../core/say.ts';
-import { place } from './menu.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
 
@@ -74,6 +73,7 @@ export class ToShare extends LitElement {
     heading: { attribute: false },
     locked: { attribute: false },
     payloadLength: { attribute: false },
+    sizing: { state: true },
     protect: { attribute: false },
     short: { state: true },
     shortTtl: { state: true },
@@ -92,6 +92,8 @@ export class ToShare extends LitElement {
   /** It has a password: nothing of it goes out but its ciphertext link, no picture, no title. */
   declare locked: boolean;
   declare payloadLength: number;
+  /** Max Link Sizes open: its table is drawn only then (the link it reads is asked of the shell, which writes the address when asked). */
+  declare sizing: boolean;
   /** The Password part, drawn by <to-privacy>. */
   declare protect: TemplateResult | typeof nothing;
   declare short: Shortened | null;
@@ -122,6 +124,7 @@ export class ToShare extends LitElement {
     this.heading = '';
     this.locked = false;
     this.payloadLength = 0;
+    this.sizing = false;
     this.protect = nothing;
     this.short = null;
     this.shortTtl = savedTtl();
@@ -158,9 +161,25 @@ export class ToShare extends LitElement {
 
   /** Open. */
   async show() {
+    this.querySelector<ToDialog>('to-dialog.to-rooms-dialog')?.close();
     this.sharing = true;
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.show();
+  }
+  /** Max Link Sizes, alone: Share, if open, is closed first, one dialog at a time (the header's meter). */
+  async showRooms() {
+    this.close();
+    this.sizing = true;
+    await this.updateComplete;
+    await this.querySelector<ToDialog>('to-dialog.to-rooms-dialog')?.show();
+  }
+  /** Max Link Sizes from Share's head line: Share steps aside for it and is back, as it was, when it closes (the kit's one modal at a time). */
+  private async handOverRooms(back: HTMLElement) {
+    const share = this.querySelector<ToDialog>('to-dialog.to-share-dialog');
+    const rooms = this.querySelector<ToDialog>('to-dialog.to-rooms-dialog');
+    this.sizing = true;
+    await this.updateComplete;
+    if (share && rooms) await share.handOver(rooms, back);
   }
   close() {
     this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.close();
@@ -342,36 +361,15 @@ export class ToShare extends LitElement {
   }
 
   /**
-   * The head line: where the link fits, red once it is past the link's limit, with Copy; a hover or a tap on
-   * the words opens the rooms it fits in, a small table in a popover (kit/share/limits.ts).
+   * The head line: where the link fits, red once it is past the link's limit, with Copy; a tap on the words opens
+   * Max Link Sizes (renderRooms) in Share's place.
    */
   private renderFit() {
     const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(this.app)}/`);
     const over = this.payloadLength - available;
-    const hover = (show: boolean) => (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return;
-      const pop = this.querySelector<HTMLElement>('.to-rooms');
-      const btn = e.currentTarget as HTMLElement;
-      if (show && !pop?.matches(':popover-open')) (pop?.showPopover(), pop && place(pop, btn));
-      else if (!show && !pop?.matches(':hover')) pop?.hidePopover();
-    };
-    const lang = document.documentElement.lang || undefined;
-    const n = (x: number) => x.toLocaleString(lang);
     return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
-      <button type="button" class="to-btn to-fit-words" popovertarget="to-rooms" aria-haspopup="dialog" @pointerenter=${hover(true)} @pointerleave=${hover(false)} @click=${(e: Event) => {
-        const btn = e.currentTarget as HTMLElement;
-        requestAnimationFrame(() => this.querySelector<HTMLElement>('.to-rooms:popover-open') && place(this.querySelector<HTMLElement>('.to-rooms')!, btn));
-      }}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
+      <button type="button" class="to-btn to-fit-words" aria-haspopup="dialog" @click=${(e: Event) => void this.handOverRooms(e.currentTarget as HTMLElement)}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
       <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('share-copy-link')} title=${t('share-copy-link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
-      <div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('share-where-link-fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
-        <table class="to-table">
-          <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-uses')}</th><th scope="col">${t('share-left')}</th></tr></thead>
-          <tbody>${roomFor(this.link).map(
-            (r) =>
-              html`<tr class=${r.left < 0 ? 'over' : ''}><th scope="row">${r.target.where()}</th><td>${n(r.used)} / ${n(r.target.max)}</td><td>${r.target.flat ? t('share-any-length') : r.left < 0 ? t('share-n-over', { n: -r.left }) : n(r.left)}</td></tr>`,
-          )}</tbody>
-        </table>
-      </div>
     </div>`;
   }
 
@@ -447,8 +445,29 @@ export class ToShare extends LitElement {
     </details>`;
   }
 
+  /**
+   * Max Link Sizes: the table of where the link fits, a dialog of its own beside Share, placed as Share is (Paul,
+   * 2026-10-16: "Make the sizing menu dismissable and give it a title: 'Max Link Sizes'… Position it exactly as you
+   * position the share menu. If one is invoked then hide the other one"): the header's meter opens it alone, Share's
+   * head line opens it in Share's place.
+   */
+  private renderRooms() {
+    return html`<to-dialog class="to-rooms-dialog" heading=${t('share-max-link-sizes')} @to-close=${() => (this.sizing = false)} .body=${
+      !this.sizing
+        ? nothing
+        : html`<div class="to-rooms">
+        <table class="to-table">
+          <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
+          <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
+          <tbody>${shown(roomFor(this.link)).map(
+            (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
+          )}</tbody>
+        </table>
+      </div>`
+    }></to-dialog>`;
+  }
   render() {
-    return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>`;
+    return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>${this.renderRooms()}`;
   }
 }
 customElements.define('to-share', ToShare);

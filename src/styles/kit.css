@@ -579,6 +579,11 @@
   /* The list takes what the head leaves and scrolls inside it (a phone's whole screen: responsive.css). */
   /* The heading leads with the app's name, at the logotype's size but in the sans and not bold, and on one line: on a
      phone it shrinks to fit beside the Close button rather than wrap (Paul, 2026-10-10). */
+  /* Its head keeps the half em: the previews under it sit at the far left of the list (Paul, 2026-10-11), and the
+     heading stays over them. */
+  .to-templates-dialog .to-dialog-head {
+    padding-inline-start: 0.5em;
+  }
   .to-templates-dialog .to-dialog-head h2 {
     font: 400 min(calc(1.875 * var(--to-scale)), 4.5vw) / 1.1 var(--to-font);
     white-space: nowrap;
@@ -666,6 +671,11 @@
   }
   .to-drawer-head .to-drawer-home {
     margin-inline-start: auto;
+  }
+  /* The heading starts where the body's words do, a dialog's padding in (Paul, 2026-10-16: "align the title in those menu
+     bars with the text below"); the close button keeps the head's own half em at the end. */
+  .to-dialog-head {
+    padding-inline-start: 1em;
   }
   .to-dialog-head h2 {
     margin: 0;
@@ -975,8 +985,12 @@
     color: var(--to-danger);
     font-weight: 600;
   }
+  /* Each limit beside whether the link fits it (Paul, 2026-10-15, issue #8): wider than a menu where the page has the
+     room; on a phone the words wrap, a number never breaks. */
+  .to-rooms-dialog .to-dialog {
+    max-width: min(44em, calc(100vw - 1em));
+  }
   .to-rooms {
-    padding: 0.6154em 0.9231em;
     font-size: calc(0.8125 * var(--to-scale));
   }
   /* (A .to-table, compact, its numbers lined up.) */
@@ -984,7 +998,6 @@
   .to-rooms td {
     padding: 0.1875em 0.5em;
     border-top: 0;
-    white-space: nowrap;
   }
   .to-rooms td {
     font-variant-numeric: tabular-nums;
@@ -992,6 +1005,39 @@
   .to-rooms tr.over td,
   .to-rooms tr.over th {
     color: var(--to-danger);
+  }
+  /* On a phone the three columns do not fit: each place is a line of its own, its limit and the answer on the line
+     under it, the heads kept for a screen reader. */
+  @media (max-width: 640px) {
+    .to-rooms thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .to-rooms tbody tr {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: space-between;
+      column-gap: 1em;
+      padding: 0.25em 0;
+      border-top: 1px solid var(--to-border);
+    }
+    .to-rooms tbody tr:first-child {
+      border-top: 0;
+    }
+    .to-rooms tbody th {
+      grid-column: 1 / -1;
+      font-weight: 600;
+    }
+    .to-rooms tbody th,
+    .to-rooms tbody td {
+      padding: 0;
+    }
+    .to-rooms tbody td:last-child {
+      text-align: end;
+    }
   }
   /* Edit link and Present link side by side where a column holds a name on one line, and one under the other where it
      cannot (a phone, a large size): the pair was uneven when one name wrapped and the other sat centred against it
@@ -1639,22 +1685,26 @@
       opacity 0.2s ease,
       box-shadow 0.2s ease;
   }
-  /* The title edited wide (Paul: "The title is too small to edit"): the header opens a second row, the field across
-     it at 20px; the first row keeps the rest, pushed to the inline end. */
-  .to-header.titling {
-    height: calc(var(--to-header-h) + 0.5em + var(--to-touch));
-    overflow: hidden;
-  }
-  /* The second row runs under the menu button's room too, from one margin to the other. */
-  .to-header.titling .to-title {
-    order: 1;
-    flex: 0 0 calc(100% + var(--to-burger-w) + 0.375em - var(--to-gutter));
-    margin-inline-end: calc(var(--to-gutter) - var(--to-burger-w) - 0.375em);
-    height: var(--to-touch);
-    font-size: calc(1.25 * var(--to-scale));
-  }
-  .to-header.titling .to-title + * {
-    margin-inline-start: auto;
+  /* The title edited wide (Paul: "The title is too small to edit"): on a narrow page the header opens a second row,
+     the field across it at 20px, the first row keeping the rest, pushed to the inline end. On a wide page the field is
+     already wide, and it is edited where it is (Paul, 2026-10-16: "When the title bar is wide on desktop I don't need
+     you to push it down for me to edit"). */
+  @media (max-width: 47.9375rem) {
+    .to-header.titling {
+      height: calc(var(--to-header-h) + 0.5em + var(--to-touch));
+      overflow: hidden;
+    }
+    /* The second row runs under the menu button's room too, from one margin to the other. */
+    .to-header.titling .to-title {
+      order: 1;
+      flex: 0 0 calc(100% + var(--to-burger-w) + 0.375em - var(--to-gutter));
+      margin-inline-end: calc(var(--to-gutter) - var(--to-burger-w) - 0.375em);
+      height: var(--to-touch);
+      font-size: calc(1.25 * var(--to-scale));
+    }
+    .to-header.titling .to-title + * {
+      margin-inline-start: auto;
+    }
   }
   .to-header .to-tool,
   .to-header .to-btn {

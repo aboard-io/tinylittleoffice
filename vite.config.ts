@@ -42,7 +42,7 @@ function afterBuild(host: ReturnType<typeof hostOf>): Plugin {
       // the shell, the same on every page), read as scripts/check-build.ts reads them (scripts/headers.ts).
       const inline = inlineScripts(readFileSync(resolve(dist, 'index.html'), 'utf8'));
       const hashes = [...new Set([...pageScripts(), ...inline].map(scriptHash))];
-      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes }));
+      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, tinier: host.tinier }));
       // A host other than Cloudflare's (the mirror: scripts/mirror.ts), before the worker's list is hashed from the pages.
       forHost(dist, host);
       writeWorker(

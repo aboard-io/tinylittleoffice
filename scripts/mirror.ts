@@ -17,7 +17,8 @@ import { relative, resolve } from 'node:path';
 import { headersFor, metaPolicy, pagePath } from './headers.ts';
 
 /** The settings a build reads, from the environment (vite.config.ts): where it is published, and whether its pages carry their policy. */
-export const hostOf = (env: Record<string, string | undefined>) => ({ site: env.VITE_SITE_URL ?? '', cspMeta: env.VITE_CSP_META === '1' });
+/** The build's host: the site's address, whether the policy goes into a meta, and the shortener's address (written into connect-src when absolute: a self-hosted copy's own, docs/self-host.md). */
+export const hostOf = (env: Record<string, string | undefined>) => ({ site: env.VITE_SITE_URL ?? '', cspMeta: env.VITE_CSP_META === '1', tinier: env.VITE_TINIER ?? '' });
 
 const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 

@@ -191,8 +191,11 @@ share-telegram-message = a Telegram message
 share-a-short-link = a short link
 share-small-nfc-sticker = a small NFC sticker
 share-text-message = a text message
+# A row of the table: Chrome, and Edge, which is built on it; the names are said as they are in every language.
+share-chrome-and-edge = Chrome and Edge
 share-nfc-sticker = an NFC sticker
-share-some-browsers = some browsers
+# A row of the table, and the end of "too long for …": browsers before today's, which stopped near 2,048 characters.
+share-some-browsers = older browsers
 share-n-short-links-kept-here = { $n ->
         [one] { $n } short link kept here
        *[other] { $n } short links kept here
@@ -243,12 +246,37 @@ share-hundred-previews-day-from-one = a hundred previews a day from one address
 share-server-refused-picture = the server refused the picture
 share-pages-in-frame-on-another = The pages, in a frame on another site, with a link to open them here.
 share-your-mastodon-server = Your Mastodon server
-share-left = Left
-share-uses = Uses
+# The table of where the link fits: its caption, the link's own size counted both ways ("This link: 1,240 characters, 1,240 bytes").
+share-this-link-n-characters-n-bytes = This link: { $n ->
+        [one] { $n } character
+       *[other] { $n } characters
+    }, { $bytes ->
+        [one] { $bytes } byte
+       *[other] { $bytes } bytes
+    }
 share-where = Where
-share-where-link-fits = Will this link fit?
-share-any-length = any length
-share-n-over = { $n } over
+# The dialog of every place's limit beside this link's size (the header's meter opens it; so does Share's head line).
+share-max-link-sizes = Max Link Sizes
+# The table's column heads: the most each place holds, and whether this link fits in it.
+share-limit = Limit
+share-fits = Fits?
+# A row's limit, counted in characters or in bytes as that place counts it: "2,097,152 characters", "2,953 bytes".
+share-n-characters = { $n ->
+        [one] { $n } character
+       *[other] { $n } characters
+    }
+share-n-bytes = { $n ->
+        [one] { $n } byte
+       *[other] { $n } bytes
+    }
+# Safari's limit: Apple states no longest link.
+share-no-published-limit = None published
+# The Fits? column: yes, and the room left; no, and how much too long; a site that counts any link as a set number of characters.
+share-yes = Yes
+share-yes-n-left = Yes, { $n } left
+share-no-n-over = No, { $n } over
+# At a post: what the link counts of the post's size, however long the link is (Mastodon and X count 23, Bluesky its host and 16 characters).
+share-yes-counts-as-n-of-max = Yes, counts as { $n } of { $max }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

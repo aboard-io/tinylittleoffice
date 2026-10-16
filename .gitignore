@@ -11,3 +11,4 @@ playwright-report/
 *.local
 tinier/worker-configuration.d.ts
 site/worker-configuration.d.ts
+/data/
