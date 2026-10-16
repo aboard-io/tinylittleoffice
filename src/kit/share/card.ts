@@ -20,6 +20,13 @@ import { raster } from '../draw/raster.ts';
 import { t } from '../core/i18n.ts';
 import { store } from '../core/store.ts';
 
+/**
+ * Whether this copy of the site makes cards at all: they need the site's Worker (/card and /c/<id>), which a copy on a
+ * static host has not. The mirror on GitHub Pages is built with VITE_CARDS=0 (docs/mirror.md): no switch, and a link
+ * goes to a network as itself.
+ */
+export const CARDS = import.meta.env?.VITE_CARDS !== '0';
+
 /** Where the switch's choice is kept (under Saved; for the visit under Private): '0' off, on by default. */
 const PREVIEW_KEY = 'tinyoffice.preview';
 export const previewOn = () => store.get(PREVIEW_KEY) !== '0';

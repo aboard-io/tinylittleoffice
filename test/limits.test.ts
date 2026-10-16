@@ -1,6 +1,8 @@
 // Where a link fits: the costs the services charge, and the one line the Share dialog says it in.
 import { test, expect } from 'vitest';
-import { blueskyCost, fitLine, roomFor, TARGETS } from '../src/kit/share/limits.ts';
+import { blueskyCost, CHROME_URL_MAX, FIREFOX_URL_MAX, fitLine, fitWords, limitWords, roomFor, shown, TARGETS } from '../src/kit/share/limits.ts';
+import { URL_LIMIT } from '../src/kit/core/codec.ts';
+import { QR_MAX_BYTES } from '../src/kit/draw/qr.ts';
 import { SHORT_LINK_MAX, SHORT_MAX, sealShortAt } from '../src/kit/share/short.ts';
 
 /** What a link costs at the shortener: its ciphertext, in base64url characters (AES-GCM adds a 16-byte tag). */
@@ -47,7 +49,7 @@ test('one line: fits in a text message, or too long for the first place, from th
   expect(fitLine(at(700))).toBe('This link: 700 characters, too long for a small NFC sticker');
   expect(fitLine(at(1240))).toBe('This link: 1,240 characters, too long for an NFC sticker');
   expect(fitLine(at(2010))).toBe('This link: 2,010 characters, too long for a Discord message');
-  expect(fitLine(at(2500))).toBe('This link: 2,500 characters, too long for some browsers');
+  expect(fitLine(at(2500))).toBe('This link: 2,500 characters, too long for older browsers');
   expect(fitLine(at(3500))).toBe('This link: 3,500 characters, too long for a QR code');
   expect(fitLine(at(5000))).toBe('This link: 5,000 characters, too long for a link in Google Docs');
   // What the shortener holds is the ciphertext, a third longer than the link: 12,273 characters is past it.
@@ -58,6 +60,62 @@ test('one line: fits in a text message, or too long for the first place, from th
     roomFor(at(5000))
       .filter((r) => r.left === 4096 - 5000)
       .map((r) => r.target.id),
-  ).toEqual(['gdocs', 'telegram']);
+  ).toEqual(['gdocs', 'telegram', 'x']);
   expect(fitLine(at(12_273))).toBe('This link: 12,273 characters, too long for a short link');
+});
+
+test('every limit is stated with its number and what it counts, beside whether the link fits (Paul, 2026-10-15, issue #8)', () => {
+  // The browsers' documented maximums: Chromium's kMaxURLChars and Firefox's network.standard-url.max-length.
+  expect(CHROME_URL_MAX).toBe(2_097_152);
+  expect(FIREFOX_URL_MAX).toBe(1_048_576);
+  const max = Object.fromEntries(TARGETS.map((x) => [x.id, x.max]));
+  // One source of truth: each number the file that enforces it holds.
+  expect(max).toMatchObject({ chrome: CHROME_URL_MAX, firefox: FIREFOX_URL_MAX, safari: Infinity, link: URL_LIMIT, qr: QR_MAX_BYTES, short: SHORT_LINK_MAX });
+  const url = 'https://tinylittleoffice.com/#/v1/text/'.padEnd(2500, 'y');
+  const words = Object.fromEntries(roomFor(url).map((r) => [r.target.id, [limitWords(r), fitWords(r)]]));
+  expect(words).toEqual({
+    chrome: ['2,097,152 characters', `Yes, ${(2_097_152 - 2500).toLocaleString('en')} left`],
+    firefox: ['1,048,576 characters', `Yes, ${(1_048_576 - 2500).toLocaleString('en')} left`],
+    safari: ['None published', 'Yes'],
+    short: ['12,272 bytes', 'Yes, 9,772 left'],
+    gdocs: ['4,096 characters', 'Yes, 1,596 left'],
+    telegram: ['4,096 characters', 'Yes, 1,596 left'],
+    qr: ['2,953 bytes', 'Yes, 453 left'],
+    link: ['2,048 characters', 'No, 452 over'],
+    discord: ['2,000 characters', 'No, 500 over'],
+    ntag216: ['888 bytes', 'No, 1,612 over'],
+    ntag215: ['504 bytes', 'No, 1,996 over'],
+    sms: ['160 characters', 'No, 2,340 over'],
+    // A post counts any link as a few characters, so the link's length is its own matter: Mastodon and Bluesky publish no
+    // longest link, X's t.co takes 4,096 (Paul, 2026-10-16: "Bluesky isn't 300 limit, because a URL counts as 23").
+    mastodon: ['None published', 'Yes, counts as 23 of 500'],
+    bluesky: ['None published', 'Yes, counts as 36 of 300'],
+    x: ['4,096 characters', 'Yes, counts as 23 of 280'],
+  });
+  // A link past t.co's ceiling does not fit X, whatever it counts.
+  expect(fitWords(roomFor('https://tinylittleoffice.com/#/v1/text/'.padEnd(5000, 'y')).find((r) => r.target.id === 'x')!)).toBe('No, 904 over');
+  // A browser counts the link as it holds it: a letter past ASCII is three characters, %XX.
+  const accented = 'https://tinylittleoffice.com/#/v1/text/é';
+  expect(roomFor(accented).find((r) => r.target.id === 'chrome')!.used).toBe(accented.length + 5);
+});
+
+test('the table runs from the tightest place up, the places with no published limit after them, the browsers last (Paul, 2026-10-16)', () => {
+  const url = 'https://tinylittleoffice.com/#/v1/text/'.padEnd(2500, 'y');
+  expect(shown(roomFor(url)).map((r) => r.target.id)).toEqual([
+    'sms',
+    'ntag215',
+    'ntag216',
+    'discord',
+    'link',
+    'qr',
+    'gdocs',
+    'telegram',
+    'x',
+    'short',
+    'mastodon',
+    'bluesky',
+    'firefox',
+    'chrome',
+    'safari',
+  ]);
 });

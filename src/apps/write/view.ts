@@ -9,6 +9,7 @@
  * each: its faces, justified lines, indented paragraphs, small capitals, two columns on paper.
  */
 import { encodeDoc } from '../../kit/core/codec.ts';
+import { siteOf } from '../../kit/core/route.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, monoWidth, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw/draw.ts';
 import { glyphNamed } from '../../kit/draw/icons.ts';
 import { LOCKED_LANG, placedLink } from '../../kit/share/locked.ts';
@@ -168,10 +169,10 @@ export function fenceLink(lang: string, body: string, site = ''): string {
 }
 /** A placed document's own name: none for a locked one, whose title is sealed with it (kit/share/locked.ts). */
 const placedTitle = (lang: string, body: string): string => (lang === LOCKED_LANG ? '' : fenceTitle(body));
-/** The site a link is on ("https://tinylittleoffice.com/"), or '' when there is none. */
-const siteOf = (link: string): string => {
+/** The site a link is on ("https://tinylittleoffice.com/", or the mirror's "https://aboard-io.github.io/tinylittleoffice/"), or '' when there is none. */
+const siteAt = (link: string): string => {
   try {
-    return link ? new URL(link).origin + '/' : '';
+    return link ? siteOf(link, (id) => !!lookup.appOf(id)) : '';
   } catch {
     return '';
   }
@@ -607,7 +608,7 @@ ${lookCss(look)}
 </head>
 <body>
 <main>
-${bodyHtml(doc, siteOf(ctx.link))}
+${bodyHtml(doc, siteAt(ctx.link))}
 </main>${ctx.link ? `\n<footer><p><a href="${xml(ctx.link)}">Open in Tiny Little Office</a></p></footer>` : ''}
 </body>
 </html>
@@ -664,7 +665,7 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
   ];
   const number = listNumbers();
   const next = noteNumbers();
-  const site = siteOf(ctx.link);
+  const site = siteAt(ctx.link);
   const title = titleBlock(doc);
   const fields = () =>
     fieldsOf(doc).map(
@@ -783,7 +784,7 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
     const i = rels.indexOf(url);
     return `rId${(i < 0 ? rels.push(url) : i + 1) + 2}`;
   };
-  const site = siteOf(ctx.link);
+  const site = siteAt(ctx.link);
   // Every numbered list is a numbering instance of its own, so each starts again at 1.
   const nums: string[] = [];
   let numbered = 0;

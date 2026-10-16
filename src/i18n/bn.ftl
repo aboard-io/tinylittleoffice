@@ -237,10 +237,12 @@ share-a-short-link = ছোট লিংক
 share-small-nfc-sticker = ছোট NFC স্টিকার
 # en: 7be07ec57c401332cca2718a0d4a6a516b77527f
 share-text-message = টেক্সট মেসেজ
+# en: 1efc6b2c2c837a8ce7a9054983d97158307b3c0e
+share-chrome-and-edge = Chrome ও Edge
 # en: 777a1e3310cf18433544371b9f5422bf0ba0ac80
 share-nfc-sticker = NFC স্টিকার
-# en: 0e7ed081eb6eba862861027efbb6bd2957fd7028
-share-some-browsers = কিছু ব্রাউজার
+# en: 219dd04dbbbc2c0867d0f2c748fdc25f6aba89f2
+share-some-browsers = পুরনো ব্রাউজার
 # en: 77437a6dfcf7562798d4a066e19fd698b357c1a8
 share-n-short-links-kept-here = এখানে { $n ->
         [one] { $n }
@@ -336,6 +338,14 @@ share-server-refused-picture = সার্ভার ছবিটি নেয�
 share-pages-in-frame-on-another = পাতাগুলো অন্য সাইটের ফ্রেমে, এখানে খোলার লিংকসহ।
 # en: 9377de06278eacbdf4a297a82b8eb9aa3d4220c0
 share-your-mastodon-server = আপনার Mastodon সার্ভার
+# en: fccb3597262f866e1c1f6a9f20bdd2439a0370b8
+share-this-link-n-characters-n-bytes = এই লিংক: { $n ->
+        [one] { $n }টি অক্ষর
+       *[other] { $n }টি অক্ষর
+    }, { $bytes ->
+        [one] { $bytes } বাইট
+       *[other] { $bytes } বাইট
+    }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
@@ -2926,8 +2936,6 @@ keys-keep-this-document-on-device = এই ডিভাইসে সংরক্
 shell-kept-on-this-device = এই ডিভাইসে সংরক্ষিত
 # en: 266695479a949eec44dea9db4e15fba00163f04e
 shell-keyboard-shortcuts = কীবোর্ড শর্টকাট
-# en: 8ae1c34bd37fad49cc5f8e02da648a78e89c3ed8
-share-left = বাকি
 # en: bf6e36633c2362cb7fa31a0e8f833388a49ba28c
 common-move-selected-items-up-or = বাছাই করা আইটেম ওপরে বা নিচে সরান
 # en: 5e46670f6fe68987a7e5c94f03e192aff635df77
@@ -3025,14 +3033,34 @@ common-check-or-uncheck-task = কাজে টিক দিন বা তুল
 drawer-to-add-tiny-little-office = ছোট্টমোট্ট অফিস হোম স্ক্রিনে যোগ করতে: শেয়ার, তারপর “Add to Home Screen”।
 # en: 0a4adf12f01d48ecdb89f5eddf5f19fd89d94522
 common-too-long-for-qr-code = QR কোডের জন্য অনেক বড়: ডকুমেন্ট ছোট করুন, বা ছোট লিংক শেয়ার করুন।
-# en: 62be4731dedfbbc70aa7fa30d6649d816af8ca4b
-share-uses = ব্যবহার
 # en: 525f61b6729229b1a8854a9e50bcaa52ea96b131
 share-where = কোথায়
-# en: cdbfed741d905515df704d9585fc74781801a24d
-share-where-link-fits = লিংকটি কি আঁটবে?
-# en: ddba25b7aa2e43ef1c94a2a8cfb8b839fb723ca2
-share-any-length = যেকোনো দৈর্ঘ্য
+# en: 55f653107f261dcc84be0568f5812694250f2e96
+share-max-link-sizes = লিংকের সর্বোচ্চ আকার
+# en: 24d948e4bdbe5b8224bbc0dfbab1923fab00b98e
+share-limit = সীমা
+# en: f9f775ef8d81d0adcdb54a1de51a58a5ab9d24f6
+share-fits = ধরবে?
+# en: 0e1a1a74c78e1f4b6e8efcb92b18aea677212d76
+share-n-characters = { $n ->
+        [one] { $n }টি অক্ষর
+       *[other] { $n }টি অক্ষর
+    }
+# en: 1991ca167949231900aa143e63134d2584d8de83
+share-n-bytes = { $n ->
+        [one] { $n } বাইট
+       *[other] { $n } বাইট
+    }
+# en: 36f6b0318377bb84249e4845275fa2c4e63ebb37
+share-no-published-limit = প্রকাশিত সীমা নেই
+# en: 5397e0583f14f6c88de06b1ef28f460a1fb5b0ae
+share-yes = হ্যাঁ
+# en: f37d6e1b1ff2eeb01d7bee0aadef337300b9db53
+share-yes-n-left = হ্যাঁ, { $n } বাকি
+# en: 63dfcadd40126551301f363efd454c7d2c610b94
+share-no-n-over = না, { $n } বেশি
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = হ্যাঁ, { $max }-এর মধ্যে { $n } ধরা হয়
 # en: 4f5fbd7fb6a16b16ebe3c347bf43c9a2455a1560
 home-n-documents-found = { $n ->
         [one] { $n }
@@ -3040,8 +3068,6 @@ home-n-documents-found = { $n ->
     }টি ডকুমেন্ট পাওয়া গেছে
 # en: 1e14a1c5e931f6ef8ce8378377366f3c68cef56c
 common-n-of-count = { $count }-এর মধ্যে { $n }
-# en: 23fd8ecdbffd82e04305d3cea5eae9cdb85ac9bf
-share-n-over = { $n } বেশি
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = পাসওয়ার্ড কপি হয়েছে
 # en: face83ee3014bdc8f98203cc94e2e89222452e90

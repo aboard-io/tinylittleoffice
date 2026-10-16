@@ -3,10 +3,11 @@
 import { test, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { D1Store, type SQL } from '../tinier/d1.ts';
+import { D1Store } from '../tinier/d1.ts';
+import { MIGRATIONS, migrate, sqlite } from '../selfhost/sqlite.ts';
 import { brakeHash, brakeKey, DAILY, dayOf } from '../tinier/brake.ts';
 import { newId } from '../tinier/cards.ts';
-import { handle, MAX_BYTES, TTLS } from '../tinier/tinier.ts';
+import { handle, MAX_BYTES, sitesOf, TTLS } from '../tinier/tinier.ts';
 import { MemStore } from './memstore.ts';
 import { EXPIRIES, SHORT_MAX } from '../src/kit/share/short.ts';
 
@@ -147,29 +148,9 @@ test('tinier: the sweep forgets expired links and the counts of any day but toda
   expect([...store.brakes.keys()]).toEqual([`h${today - 1}`, `h${today}`]);
 });
 
-/** Cloudflare D1's few calls the Worker makes, over node's SQLite: enough to run the D1Store's own SQL. */
-function d1(db: DatabaseSync) {
-  const prepare = (sql: string) => {
-    let args: (string | number | Uint8Array)[] = [];
-    const stmt = {
-      bind: (...a: (string | number | Uint8Array)[]) => ((args = a), stmt),
-      first: async <T>() => (db.prepare(sql).get(...args) as T) ?? null,
-      run: async () => {
-        const r = db.prepare(sql).run(...args);
-        return { meta: { changes: Number(r.changes) } };
-      },
-    };
-    return stmt;
-  };
-  return { prepare } as SQL;
-}
-/** tinier/migrations/, in the order `wrangler d1 migrations apply` takes them (by name: NNNN_name.sql). */
-const MIGRATIONS = new URL('../tinier/migrations/', import.meta.url);
+// D1's few calls over node's SQLite, and the migrations in order: the self-hosted process's own store (selfhost/sqlite.ts),
+// so these tests hold the SQL the Workers run on D1 and the store the process runs on one SQLite file alike.
 const migrations = () => readdirSync(MIGRATIONS).sort();
-const migrate = (db: DatabaseSync) => {
-  for (const f of migrations()) db.exec(readFileSync(new URL(f, MIGRATIONS), 'utf8'));
-  return db;
-};
 const schema = () => migrate(new DatabaseSync(':memory:'));
 const columns = (db: DatabaseSync, table: string) => (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
 
@@ -204,7 +185,7 @@ test("tinier on D1: production's four columns and the brakes table, and the Work
   const db = schema();
   expect(columns(db, 'links')).toEqual(['id', 'c', 'iv', 'exp']);
   expect(columns(db, 'brakes')).toEqual(['h', 'n', 'day']);
-  const store = new D1Store(d1(db));
+  const store = new D1Store(sqlite(db));
   const noon = Date.UTC(2026, 9, 11, 12);
   for (let i = 0; i < 100; i++) expect((await handle(post(LINK), store, KEY, PAGE, noon)).status).toBe(201);
   expect((await handle(post(LINK), store, KEY, PAGE, noon)).status).toBe(429);
@@ -224,7 +205,7 @@ test("tinier on D1: production's four columns and the brakes table, and the Work
 
 test('cards on D1: kept as they came, the picture a BLOB handed back byte for byte, and swept a month on', async () => {
   const db = schema();
-  const store = new D1Store(d1(db));
+  const store = new D1Store(sqlite(db));
   const png = Uint8Array.from({ length: 3000 }, (_, i) => (i * 7) % 256);
   expect(await store.putCard('abcdefg', { app: 'deck', title: 'Talk', text: 'Slides.', png, exp: NOW + 30 * DAY })).toBe(true);
   expect(await store.putCard('abcdefg', { app: 'deck', title: 'Other', text: '', png, exp: NOW })).toBe(false);
@@ -265,6 +246,64 @@ test('tinier: a copy of the site on this machine names itself, and its short lin
   expect(real).toMatch(/const site = 'https:\/\/tinylittleoffice\.com'/);
 });
 
+test('tinier: SITE may name the site and its mirror, comma-separated; the API answers each by its own origin, a short link may lead under either and nowhere else (docs/mirror.md)', async () => {
+  const both = 'https://tinylittleoffice.com, https://aboard-io.github.io/tinylittleoffice/';
+  expect(sitesOf(both)).toEqual(['https://tinylittleoffice.com', 'https://aboard-io.github.io/tinylittleoffice']);
+  // The production shortener's var names both (tinier/wrangler.jsonc).
+  expect(readFileSync(new URL('../tinier/wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"SITE": "https:\/\/tinylittleoffice\.com,https:\/\/aboard-io\.github\.io\/tinylittleoffice"/);
+  const from = (origin: string | null) => {
+    const r = post(LINK);
+    if (origin) r.headers.set('origin', origin);
+    return r;
+  };
+  for (const [origin, allowed] of [
+    ['https://aboard-io.github.io', 'https://aboard-io.github.io'],
+    ['https://tinylittleoffice.com', 'https://tinylittleoffice.com'],
+    ['https://elsewhere.example', 'https://tinylittleoffice.com'],
+    [null, 'https://tinylittleoffice.com'],
+  ] as const) {
+    const res = await handle(from(origin), new MemStore(), KEY, PAGE, NOW, both);
+    expect(res.status, String(origin)).toBe(201);
+    expect(res.headers.get('access-control-allow-origin'), String(origin)).toBe(allowed);
+    expect(res.headers.get('vary')).toBe('origin');
+  }
+  // One site, as before: its own origin, and no Vary.
+  const one = await handle(from('https://aboard-io.github.io'), new MemStore(), KEY, PAGE, NOW);
+  expect(one.headers.get('access-control-allow-origin')).toBe('https://tinylittleoffice.com');
+  expect(one.headers.get('vary')).toBeNull();
+  // The landing page: the site's own card, and every site a link may lead under.
+  const page = "<meta content='{{site}}/og.png'><script>const sites = '{{sites}}'.split(',');</script><p>{{id}}</p>";
+  const home = await (await handle(req('GET', '/'), new MemStore(), KEY, page, NOW, both)).text();
+  expect(home).toContain("content='https://tinylittleoffice.com/og.png'");
+  expect(home).toContain("const sites = 'https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice'.split(',');");
+  // The real landing page leads to a mirror link, and not to another page of the mirror's host.
+  const { sealShortAt } = await import('../src/kit/share/short.ts');
+  const { toBase64Url } = await import('../src/kit/core/codec.ts');
+  const real = readFileSync(new URL('../tinier/page.html', import.meta.url), 'utf8');
+  const script = /<script>([\s\S]*)<\/script>/
+    .exec(real)![1]
+    .replace("'{{id}}'", "'abcdefg'")
+    .replace("'{{sites}}'", `'${sitesOf(both).join(',')}'`);
+  const raw = Uint8Array.from({ length: 32 }, (_, i) => i);
+  const iv = Uint8Array.from({ length: 12 }, (_, i) => i);
+  for (const [long, goes] of [
+    ['https://aboard-io.github.io/tinylittleoffice/write/#/v1/write/yA', true],
+    ['https://tinylittleoffice.com/write/#/v1/write/yA', true],
+    ['https://aboard-io.github.io/another/#/v1/write/yA', false],
+  ] as const) {
+    const sealed = await sealShortAt(long, raw, iv);
+    let went = '';
+    const els: Record<string, { textContent: string; hidden: boolean; href: string }> = {};
+    const env = {
+      document: { getElementById: (n: string) => (els[n] ??= { textContent: '', hidden: true, href: '' }) },
+      location: { pathname: '/abcdefg', hash: `#${toBase64Url(raw)}`, replace: (to: string) => (went = to) },
+      fetch: async () => ({ ok: true, json: async () => ({ c: sealed.c, iv: sealed.iv, exp: 1 }) }),
+    };
+    await new Function('document', 'location', 'fetch', `return (async () => { await ${script.trim().replace(/;\s*$/, '')}; })();`)(env.document, env.location, env.fetch);
+    expect(went, long).toBe(goes ? `${long}?s=abcdefg&x=1` : '');
+  }
+});
+
 test('tinier: the folder logs nothing, and neither does the site', async () => {
   const { readdirSync } = await import('node:fs');
   const dir = new URL('../tinier/', import.meta.url);
@@ -277,7 +316,7 @@ test('tinier: the landing page opens a link whose key, IV and ciphertext are wri
   const { sealShortAt } = await import('../src/kit/share/short.ts');
   const { toBase64Url } = await import('../src/kit/core/codec.ts');
   const page = readFileSync(new URL('../tinier/page.html', import.meta.url), 'utf8');
-  const script = /<script>([\s\S]*)<\/script>/.exec(page)![1].replace("'{{id}}'", "'abcdefg'").replace("'{{site}}'", "'https://tinylittleoffice.com'");
+  const script = /<script>([\s\S]*)<\/script>/.exec(page)![1].replace("'{{id}}'", "'abcdefg'").replace("'{{sites}}'", "'https://tinylittleoffice.com'");
   const long = 'https://tinylittleoffice.com/text/#/v1/text/yA~b';
   // A key and an IV whose base64url holds 62 and 63 in several places.
   const raw = Uint8Array.from({ length: 32 }, (_, i) => (i % 3 ? 0xfb : 0xff));

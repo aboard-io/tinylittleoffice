@@ -103,7 +103,10 @@ storage encryption. See the next section for what that leaves open.
 Content-Security-Policy's `connect-src` and `img-src` name the only places the browser will let the site
 reach, and it has no `frame-src` or `media-src` of another site's (`public/_headers`, held by
 `test/csp.test.ts`), and the pages are served `no-transform` so Cloudflare does not add its analytics beacon
-(which the policy would block anyway).
+(which the policy would block anyway): the site's pages, its `/c/` card pages, and the short link's landing page on
+tinier. Two of Cloudflare's zone settings write scripts into pages no header stops, and both are kept off in the
+dashboard: Web Analytics, and Bot Fight Mode's JavaScript detections (Security → Bots), whose
+`/cdn-cgi/challenge-platform/` script was found on the short link's landing page on 2026-10-16.
 
 ## What it does not protect against
 
@@ -252,7 +255,9 @@ makes the rest checkable by a stranger, and a test holds each.
   `short-links.json`, checked by `test/crypto-vectors.test.ts` against the kit and against WebCrypto called by
   hand. "Logs nothing" for tinier is held by `test/tinier.test.ts`.
 - **A copy of your own.** `docs/self-host.md` deploys the same code to anyone's Cloudflare account, the shortener
-  included, and About names the commit a copy runs, so a self-hoster's copy is distinguishable.
+  included, and About names the commit a copy runs, so a self-hoster's copy is distinguishable. Or it runs the same
+  code on one machine, as one Node process over one SQLite file (`selfhost/`), where whoever runs the machine sees
+  what Cloudflare would: the file holds what D1 holds, and a swept row is overwritten in it (`secure_delete`).
 
 Later: an independent audit of the crypto and the shortener, published in full; a public test dashboard; a signed
 SBOM with each release.

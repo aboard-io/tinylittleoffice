@@ -264,10 +264,12 @@ share-a-short-link = 짧은 링크
 share-small-nfc-sticker = 작은 NFC 스티커
 # en: 7be07ec57c401332cca2718a0d4a6a516b77527f
 share-text-message = 문자 메시지
+# en: 1efc6b2c2c837a8ce7a9054983d97158307b3c0e
+share-chrome-and-edge = Chrome 및 Edge
 # en: 777a1e3310cf18433544371b9f5422bf0ba0ac80
 share-nfc-sticker = NFC 스티커
-# en: 0e7ed081eb6eba862861027efbb6bd2957fd7028
-share-some-browsers = 일부 브라우저
+# en: 219dd04dbbbc2c0867d0f2c748fdc25f6aba89f2
+share-some-browsers = 이전 브라우저
 # en: 77437a6dfcf7562798d4a066e19fd698b357c1a8
 share-n-short-links-kept-here = 여기 보관된 짧은 링크 { $n }개
 # en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
@@ -361,18 +363,38 @@ share-server-refused-picture = 서버가 이미지를 거부했습니다
 share-pages-in-frame-on-another = 다른 사이트의 프레임 안에 페이지를 표시하고, 여기서 열 수 있는 링크를 붙입니다.
 # en: 9377de06278eacbdf4a297a82b8eb9aa3d4220c0
 share-your-mastodon-server = 내 마스토돈 서버
-# en: 8ae1c34bd37fad49cc5f8e02da648a78e89c3ed8
-share-left = 남음
-# en: 62be4731dedfbbc70aa7fa30d6649d816af8ca4b
-share-uses = 사용량
+# en: fccb3597262f866e1c1f6a9f20bdd2439a0370b8
+share-this-link-n-characters-n-bytes = 이 링크: { $n ->
+       *[other] { $n }자
+    }, { $bytes ->
+       *[other] { $bytes }바이트
+    }
 # en: 525f61b6729229b1a8854a9e50bcaa52ea96b131
 share-where = 위치
-# en: cdbfed741d905515df704d9585fc74781801a24d
-share-where-link-fits = 이 링크가 들어갈까요?
-# en: ddba25b7aa2e43ef1c94a2a8cfb8b839fb723ca2
-share-any-length = 길이 제한 없음
-# en: 23fd8ecdbffd82e04305d3cea5eae9cdb85ac9bf
-share-n-over = { $n } 초과
+# en: 55f653107f261dcc84be0568f5812694250f2e96
+share-max-link-sizes = 링크 최대 크기
+# en: 24d948e4bdbe5b8224bbc0dfbab1923fab00b98e
+share-limit = 한도
+# en: f9f775ef8d81d0adcdb54a1de51a58a5ab9d24f6
+share-fits = 들어가나요?
+# en: 0e1a1a74c78e1f4b6e8efcb92b18aea677212d76
+share-n-characters = { $n ->
+       *[other] { $n }자
+    }
+# en: 1991ca167949231900aa143e63134d2584d8de83
+share-n-bytes = { $n ->
+       *[other] { $n }바이트
+    }
+# en: 36f6b0318377bb84249e4845275fa2c4e63ebb37
+share-no-published-limit = 공개된 한도 없음
+# en: 5397e0583f14f6c88de06b1ef28f460a1fb5b0ae
+share-yes = 예
+# en: f37d6e1b1ff2eeb01d7bee0aadef337300b9db53
+share-yes-n-left = 예, { $n } 남음
+# en: 63dfcadd40126551301f363efd454c7d2c610b94
+share-no-n-over = 아니요, { $n } 초과
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = 예, { $max } 중 { $n }로 계산됩니다
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

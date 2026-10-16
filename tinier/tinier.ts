@@ -48,8 +48,21 @@ export interface Store extends Counter, CardStore {
   sweep(now: number): Promise<void>;
 }
 
-/** The site that may call the API, and the only place a short link may lead (a local copy of the site, under `wrangler dev`, names itself). */
+/**
+ * The site that may call the API, and the only place a short link may lead (a local copy of the site, under `wrangler dev`,
+ * names itself). The Worker's var SITE may name more than one, comma-separated, the first the site's own: each an
+ * origin, or an origin and a path for a copy that is not at its host's root, as the mirror on GitHub Pages
+ * ("https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice": docs/mirror.md). Each may call the API,
+ * and a short link may lead only under one of them.
+ */
 export const SITE = 'https://tinylittleoffice.com';
+
+/** The sites a SITE names, each without a trailing "/". */
+export const sitesOf = (site: string): string[] =>
+  site
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
 /** The most ciphertext a link may hold, in base64url characters. src/kit/share/short.ts carries the same number; a test holds them together. */
 export const MAX_BYTES = 16 * 1024;
 /** The lifetimes on the menu, in seconds: an hour, a day, a week, a month (Paul, 2026-10-11: "Make the max expire a month"). */
@@ -67,7 +80,8 @@ const html = (page: string, status = 200) =>
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      'cache-control': 'no-store',
+      // no-transform: without it Cloudflare writes its analytics beacon into the page, which the policy below then blocks (seen on the mirror's short links, 2026-10-16), as the site's /c/ pages found before.
+      'cache-control': 'no-store, no-transform',
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
       'content-security-policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'",
@@ -107,7 +121,7 @@ Allow: /
 
 /**
  * Answer one request. `key` is the brake's secret (BRAKE_KEY). `page` is the landing page with "{{id}}" where the id
- * goes and "{{site}}" where the site does. `edge` keeps a landing page with a card (caches.default on Cloudflare).
+ * goes, "{{site}}" where the site does and "{{sites}}" where every site `site` names does (SITE). `edge` keeps a landing page with a card (caches.default on Cloudflare).
  * Every answer is marked noindex.
  */
 export async function handle(req: Request, store: Store, key: string, page: string, now = Date.now(), site = SITE, edge: Edge = noEdge): Promise<Response> {
@@ -116,9 +130,37 @@ export async function handle(req: Request, store: Store, key: string, page: stri
   return res;
 }
 
-async function answer(req: Request, store: Store, key: string, page: string, now: number, site: string, edge: Edge): Promise<Response> {
+async function answer(req: Request, store: Store, key: string, page: string, now: number, sites: string, edge: Edge): Promise<Response> {
   const url = new URL(req.url);
-  page = page.replaceAll('{{site}}', site);
+  const all = sitesOf(sites);
+  const site = all[0] ?? SITE;
+  page = page.replaceAll('{{sites}}', all.join(',')).replaceAll('{{site}}', site);
+  // The origin the API answers: the asking page's, when it is one of the sites; else the site's own.
+  const origins = all.map((s) => new URL(s).origin);
+  const asking = req.headers.get('origin');
+  const allow = asking && origins.includes(asking) ? asking : new URL(site).origin;
+  const res = await api(req, url, store, key, now, allow);
+  if (res) {
+    if (origins.length > 1) res.headers.set('vary', 'origin');
+    return res;
+  }
+  if (req.method === 'GET' && url.pathname === '/robots.txt') return new Response(ROBOTS, { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400' } });
+  if (req.method === 'GET' && url.pathname === '/') return html(page.replace('{{id}}', ''));
+  if (req.method === 'GET' && valid(url.pathname.slice(1))) {
+    const id = url.pathname.slice(1);
+    const landing = async () => {
+      const link = await read(store, id, now);
+      return html(page.replace('{{id}}', link ? id : ''), link ? 200 : 404);
+    };
+    // Shared with a network with its preview: the page's tags say the card, whose picture the site serves.
+    const card = cardId(url.searchParams.get('c'));
+    return card ? withCard(req, card, store, edge, now, `${site}/card/${card}.png`, landing) : landing();
+  }
+  return html(page.replace('{{id}}', ''), 404);
+}
+
+/** The API's answers (OPTIONS, and anything under /api), each letting `site` read it; null for any other request. */
+async function api(req: Request, url: URL, store: Store, key: string, now: number, site: string): Promise<Response | null> {
   if (req.method === 'OPTIONS')
     return new Response(null, {
       status: 204,
@@ -153,18 +195,5 @@ async function answer(req: Request, store: Store, key: string, page: string, now
     const link = req.method === 'GET' && valid(id) ? await read(store, id, now) : null;
     return link ? json({ c: link.c, iv: link.iv, exp: link.exp }, site) : gone(site);
   }
-
-  if (req.method === 'GET' && url.pathname === '/robots.txt') return new Response(ROBOTS, { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400' } });
-  if (req.method === 'GET' && url.pathname === '/') return html(page.replace('{{id}}', ''));
-  if (req.method === 'GET' && valid(url.pathname.slice(1))) {
-    const id = url.pathname.slice(1);
-    const landing = async () => {
-      const link = await read(store, id, now);
-      return html(page.replace('{{id}}', link ? id : ''), link ? 200 : 404);
-    };
-    // Shared with a network with its preview: the page's tags say the card, whose picture the site serves.
-    const card = cardId(url.searchParams.get('c'));
-    return card ? withCard(req, card, store, edge, now, `${site}/card/${card}.png`, landing) : landing();
-  }
-  return html(page.replace('{{id}}', ''), 404);
+  return null;
 }

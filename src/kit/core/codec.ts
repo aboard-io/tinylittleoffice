@@ -24,7 +24,11 @@
  */
 import { Inflate, deflateSync, strToU8, strFromU8 } from 'fflate';
 
-/** Hard ceiling for the full URL: 2 KB. */
+/**
+ * The link the header's meter counts to: 2,048 characters, the length a link was safe at everywhere when Internet
+ * Explorer stopped at 2,083, and that much software passing links on still keeps. No browser in use stops here (Chrome
+ * at 2,097,152, Firefox at 1,048,576): kit/share/limits.ts says every limit, and the Share dialog's table states them.
+ */
 export const URL_LIMIT = 2048;
 
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~_';

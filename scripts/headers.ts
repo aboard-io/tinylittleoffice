@@ -6,7 +6,7 @@
  * docs/network.md lists and nothing else.
  */
 import { createHash } from 'node:crypto';
-import { reaches, type Directive } from '../src/kit/core/network.ts';
+import { origin, reaches, type Directive } from '../src/kit/core/network.ts';
 
 /** A script's hash as the policy names it: 'sha256-…'. */
 export const scriptHash = (code: string) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`;
@@ -27,9 +27,15 @@ export function sources(directive: Directive): string[] {
     .filter((s, i, all) => all.indexOf(s) === i);
 }
 
-/** The headers file with its placeholders filled. */
-export function fillHeaders(text: string, { scripts }: { scripts: string[] }): string {
-  return text.replaceAll('{{scripts}}', scripts.join(' ')).replaceAll('{{img}}', sources('img').join(' ')).replaceAll('{{connect}}', sources('connect').join(' '));
+/**
+ * The headers file with its placeholders filled. `tinier` is the build's own short-link service (VITE_TINIER), when it
+ * is an address of its own: the policy lets the pages reach it in place of tinier.tinylittleoffice.com, so a copy that
+ * runs its own shortener (docs/self-host.md) needs no change to the list.
+ */
+export function fillHeaders(text: string, { scripts, tinier }: { scripts: string[]; tinier?: string }): string {
+  const own = tinier && /^https?:\/\//.test(tinier) ? new URL(tinier).origin : '';
+  const connect = sources('connect').map((s) => (own && s === origin('tinier') ? own : s));
+  return text.replaceAll('{{scripts}}', scripts.join(' ')).replaceAll('{{img}}', sources('img').join(' ')).replaceAll('{{connect}}', connect.join(' '));
 }
 
 /**
@@ -59,3 +65,24 @@ export function headersFor(text: string, path: string): Record<string, string> {
   }
   return out;
 }
+
+/** The directives a policy given in a page's <meta> cannot carry: the browser ignores them there (CSP Level 3, §3.3). */
+export const NOT_IN_META = ['frame-ancestors', 'report-uri', 'sandbox'];
+
+/** A policy as a <meta> may carry it: the same directives in the same order, less those (NOT_IN_META). */
+export const metaPolicy = (policy: string): string =>
+  policy
+    .split(';')
+    .map((d) => d.trim())
+    .filter((d) => d && !NOT_IN_META.includes(d.split(/\s+/)[0]))
+    .join('; ');
+
+/** The policy a page's own <meta http-equiv="Content-Security-Policy"> carries, or null when it has none. */
+export const pageMetaPolicy = (page: string): string | null =>
+  /<meta http-equiv="Content-Security-Policy" content="([^"]*)"/
+    .exec(page)?.[1]
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&') ?? null;
+
+/** The path a built page is served at, for its rules in _headers: "index.html" at "/", "write/index.html" at "/write/". */
+export const pagePath = (file: string): string => `/${file.replace(/(^|\/)index\.html$/, '$1')}`;

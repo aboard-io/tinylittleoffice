@@ -297,10 +297,12 @@ share-a-short-link = un link breve
 share-small-nfc-sticker = un piccolo adesivo NFC
 # en: 7be07ec57c401332cca2718a0d4a6a516b77527f
 share-text-message = un SMS
+# en: 1efc6b2c2c837a8ce7a9054983d97158307b3c0e
+share-chrome-and-edge = Chrome ed Edge
 # en: 777a1e3310cf18433544371b9f5422bf0ba0ac80
 share-nfc-sticker = un adesivo NFC
-# en: 0e7ed081eb6eba862861027efbb6bd2957fd7028
-share-some-browsers = alcuni browser
+# en: 219dd04dbbbc2c0867d0f2c748fdc25f6aba89f2
+share-some-browsers = i browser meno recenti
 # en: 77437a6dfcf7562798d4a066e19fd698b357c1a8
 share-n-short-links-kept-here = { $n ->
         [one] { $n } link breve conservato qui
@@ -399,18 +401,46 @@ share-server-refused-picture = il server ha rifiutato l’immagine
 share-pages-in-frame-on-another = Le pagine, in una cornice su un altro sito, con un link per aprirle qui.
 # en: 9377de06278eacbdf4a297a82b8eb9aa3d4220c0
 share-your-mastodon-server = Il tuo server Mastodon
-# en: 8ae1c34bd37fad49cc5f8e02da648a78e89c3ed8
-share-left = Restanti
-# en: 62be4731dedfbbc70aa7fa30d6649d816af8ca4b
-share-uses = Usa
+# en: fccb3597262f866e1c1f6a9f20bdd2439a0370b8
+share-this-link-n-characters-n-bytes = Questo link: { $n ->
+        [one] { $n } carattere
+        [many] { $n } di caratteri
+       *[other] { $n } caratteri
+    }, { $bytes ->
+        [one] { $bytes } byte
+        [many] { $bytes } di byte
+       *[other] { $bytes } byte
+    }
 # en: 525f61b6729229b1a8854a9e50bcaa52ea96b131
 share-where = Dove
-# en: cdbfed741d905515df704d9585fc74781801a24d
-share-where-link-fits = Questo link ci starà?
-# en: ddba25b7aa2e43ef1c94a2a8cfb8b839fb723ca2
-share-any-length = qualsiasi lunghezza
-# en: 23fd8ecdbffd82e04305d3cea5eae9cdb85ac9bf
-share-n-over = { $n } in più
+# en: 55f653107f261dcc84be0568f5812694250f2e96
+share-max-link-sizes = Dimensioni massime del link
+# en: 24d948e4bdbe5b8224bbc0dfbab1923fab00b98e
+share-limit = Limite
+# en: f9f775ef8d81d0adcdb54a1de51a58a5ab9d24f6
+share-fits = Ci sta?
+# en: 0e1a1a74c78e1f4b6e8efcb92b18aea677212d76
+share-n-characters = { $n ->
+        [one] { $n } carattere
+        [many] { $n } di caratteri
+       *[other] { $n } caratteri
+    }
+# en: 1991ca167949231900aa143e63134d2584d8de83
+share-n-bytes = { $n ->
+        [one] { $n } byte
+        [many] { $n } di byte
+       *[other] { $n } byte
+    }
+# en: 36f6b0318377bb84249e4845275fa2c4e63ebb37
+share-no-published-limit = Nessuno dichiarato
+# en: 5397e0583f14f6c88de06b1ef28f460a1fb5b0ae
+share-yes = Sì
+# en: f37d6e1b1ff2eeb01d7bee0aadef337300b9db53
+share-yes-n-left = Sì, ne restano { $n }
+# en: 63dfcadd40126551301f363efd454c7d2c610b94
+share-no-n-over = No, { $n } in più
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = Sì, conta come { $n } su { $max }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

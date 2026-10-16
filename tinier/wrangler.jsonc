@@ -17,6 +17,10 @@
       "migrations_dir": "migrations",
     },
   ],
+  // The sites that may call the API, and the only places a short link may lead (tinier.ts SITE), comma-separated, the
+  // first the site's own: tinylittleoffice.com and its mirror on GitHub Pages (docs/mirror.md). A copy of your own
+  // names its own (docs/self-host.md).
+  "vars": { "SITE": "https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice" },
   // A hundred links a day from one address, counted in D1 under a keyed hash (tinier.ts); the key is the secret
   // BRAKE_KEY (`wrangler secret put BRAKE_KEY`), never here. Expired links, and the counts of days before
   // yesterday, go every hour; a read of an expired link removes it sooner.
