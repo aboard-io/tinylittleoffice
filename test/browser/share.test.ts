@@ -59,12 +59,14 @@ test('the head: the title, and where the link fits in one line', async () => {
   expect(d.querySelector('.to-share-fit .to-fit-words')!.textContent!.trim()).toMatch(/^This link: [\d,]+ characters, (fits in a text message|too long for .+)$/);
   // The rooms are a table in a popover off the head line, never in the dialog itself.
   expect([...d.querySelectorAll('table, dl')].every((x) => x.closest('.to-rooms'))).toBe(true);
-  // The meter in the header opens the same dialog with the table of where the link fits already open (Paul, 2026-10-16).
+  // The meter in the header opens the table of where the link fits alone, no dialog behind it (Paul, 2026-10-16).
   d.close();
   await until(() => !shell.querySelector<ToShare>('to-share')!.sharing);
   shell.querySelector<HTMLButtonElement>('.to-meter')!.click();
-  await until(() => d.dialog.open);
-  await until(() => !!d.querySelector('.to-rooms:popover-open'));
+  await until(() => !!shell.querySelector('.to-rooms:popover-open'));
+  expect(d.dialog.open).toBe(false);
+  expect(shell.querySelectorAll('.to-rooms tbody tr').length).toBe(15);
+  shell.querySelector<HTMLElement>('.to-rooms')!.hidePopover();
 });
 
 test('the table of where the link fits states every limit, what it counts, and whether this link fits (Paul, 2026-10-15, issue #8)', async () => {
@@ -72,7 +74,7 @@ test('the table of where the link fits states every limit, what it counts, and w
   const d = await open(shell);
   const fmt = (x: number) => x.toLocaleString('en');
   const link = shell.link;
-  const table = d.querySelector('.to-rooms table')!;
+  const table = shell.querySelector('.to-rooms table')!;
   expect(table.querySelector('caption')!.textContent).toBe(`This link: ${fmt(link.length)} characters, ${fmt(new TextEncoder().encode(link).length)} bytes`);
   expect([...table.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual(['Where', 'Limit', 'Fits?']);
   const rows = Object.fromEntries([...table.querySelectorAll('tbody tr')].map((tr) => [tr.getAttribute('data-target'), [...tr.children].map((c) => c.textContent)]));
@@ -91,7 +93,7 @@ test('the table of where the link fits states every limit, what it counts, and w
   expect(rows.sms).toEqual(['a text message', '160 characters', left(160)]);
   expect(table.querySelector('tr.over')).toBeNull();
   // At this phone's width each place is a line, its limit and the answer under it: nothing scrolls sideways.
-  const pop = d.querySelector<HTMLElement>('.to-rooms')!;
+  const pop = shell.querySelector<HTMLElement>('.to-rooms')!;
   pop.showPopover();
   expect(pop.scrollWidth).toBeLessThanOrEqual(pop.clientWidth);
   pop.hidePopover();
@@ -102,10 +104,10 @@ test('the table of where the link fits states every limit, what it counts, and w
   await until(() => !!long.querySelector('to-write-editor'), 10_000);
   await openShare(long);
   const d2 = dialogOf(long);
-  await until(() => d2.dialog.open && !!d2.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
+  await until(() => d2.dialog.open && !!long.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
   const big = long.link.length;
   expect(big).toBeGreaterThan(URL_LIMIT);
-  const row = (id: string) => d2.querySelector(`.to-rooms tr[data-target="${id}"]`)!;
+  const row = (id: string) => long.querySelector(`.to-rooms tr[data-target="${id}"]`)!;
   expect(row('link').classList.contains('over')).toBe(true);
   expect(row('link').querySelector('td:last-child')!.textContent).toBe(`No, ${fmt(big - URL_LIMIT)} over`);
   expect(row('chrome').classList.contains('over')).toBe(false);
@@ -234,7 +236,7 @@ test('a short link says its limit before the press: over it, Make is disabled wi
     `This document is ${fmt(n)} characters; a short link holds ${fmt(SHORT_LINK_MAX)}. Shorten it by ${fmt(n - SHORT_LINK_MAX)} and it will fit.`,
   );
   // The table of rooms has the short link, over.
-  const row = [...d.querySelectorAll('.to-rooms tr')].find((r) => r.querySelector('th')?.textContent === 'a short link')!;
+  const row = [...shell.querySelectorAll('.to-rooms tr')].find((r) => r.querySelector('th')?.textContent === 'a short link')!;
   expect(row.classList.contains('over')).toBe(true);
   expect(row.querySelector('td:last-child')!.textContent).toBe(`No, ${fmt(n - SHORT_LINK_MAX)} over`);
   // The header's meter names the short link, the first place the link no longer fits from the roomiest down.

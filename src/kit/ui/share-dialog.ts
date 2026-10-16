@@ -162,13 +162,11 @@ export class ToShare extends LitElement {
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.show();
   }
-  /** Share with the table of where the link fits already open, placed under the head line (the header's meter opens it so). */
-  async showRooms() {
-    await this.show();
+  /** The table of where the link fits, alone, under `anchor` (the header's meter): no dialog behind it. */
+  async showRooms(anchor: HTMLElement) {
     await this.updateComplete;
     const pop = this.querySelector<HTMLElement>('.to-rooms');
-    const btn = this.querySelector<HTMLElement>('.to-fit-words');
-    if (pop && btn && !pop.matches(':popover-open')) (pop.showPopover(), place(pop, btn));
+    if (pop && !pop.matches(':popover-open')) (pop.showPopover(), place(pop, anchor));
   }
   close() {
     this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.close();
@@ -369,15 +367,6 @@ export class ToShare extends LitElement {
         requestAnimationFrame(() => this.querySelector<HTMLElement>('.to-rooms:popover-open') && place(this.querySelector<HTMLElement>('.to-rooms')!, btn));
       }}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
       <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('share-copy-link')} title=${t('share-copy-link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
-      <div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('share-where-link-fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
-        <table class="to-table">
-          <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
-          <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
-          <tbody>${shown(roomFor(this.link)).map(
-            (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
-          )}</tbody>
-        </table>
-      </div>
     </div>`;
   }
 
@@ -453,8 +442,24 @@ export class ToShare extends LitElement {
     </details>`;
   }
 
+  /**
+   * The table of where the link fits, a popover beside the dialog rather than inside it, so the header's meter can
+   * open it alone, with no dialog behind (Paul, 2026-10-16: "now it opens the sizing breakdown with the share menu
+   * BEHIND it"); from the dialog's head line it opens under the words, as before.
+   */
+  private renderRooms() {
+    return html`<div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('share-where-link-fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
+        <table class="to-table">
+          <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
+          <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
+          <tbody>${shown(roomFor(this.link)).map(
+            (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
+          )}</tbody>
+        </table>
+      </div>`;
+  }
   render() {
-    return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>`;
+    return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>${this.renderRooms()}`;
   }
 }
 customElements.define('to-share', ToShare);
