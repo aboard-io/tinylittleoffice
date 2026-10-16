@@ -308,6 +308,12 @@ const STALE_OK: Record<string, string> = {
   'src/kit/draw/icons-meta.ts': 'Lucide’s own tags for its icons ("signature", "kanban"), generated from its release',
   'src/i18n/fr.ftl': '"une signature" is French for a byline',
   'docs/self-host.md': '`npm audit signatures`, npm’s check of a package’s provenance',
+  'docs/groups.md': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/share/group-client.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/share/group-envelope.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/share/group-keys.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/share/group.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'test/groups.test.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
 };
 
 /**

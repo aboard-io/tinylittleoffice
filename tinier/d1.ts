@@ -4,12 +4,13 @@ import type { Card } from './cards.ts';
 import type { Link, Store } from './tinier.ts';
 
 type Value = string | number | Uint8Array;
-/** The few calls of D1's the store makes (a D1Database has them all; the tests give it node's SQLite). */
+/** The few calls of D1's the stores make, tinier's here and the group relay's (src/kit/share/group-store.ts): a D1Database has them all; the tests give them node's SQLite. */
 export interface SQL {
   prepare(query: string): {
     bind(...values: Value[]): {
       first<T>(): Promise<T | null>;
       run(): Promise<{ meta: { changes: number } }>;
+      all<T>(): Promise<{ results: T[] }>;
     };
   };
 }

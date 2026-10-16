@@ -458,7 +458,7 @@ folders, and nothing sits beside them. Every file begins by saying what it does;
 - [text/](../src/kit/text/): the editor's model and its commands: `<to-text>`, its operations, the clipboard, history, rows and columns, the diff, and a document's text layer.
 - [draw/](../src/kit/draw/): drawing pages and what is drawn on them: the page, charts, the icons and emoji, QR codes, the mark, a preview card's picture, motion and steps.
 - [file/](../src/kit/file/): a document as a file, in and out: every export, PDF, GIF, WebM, zip, XLSX, CSV, ICS, and opening a file dropped on the page.
-- [share/](../src/kit/share/): sharing, sealing and keeping: short links, preview cards, passwords and sealing, privacy, the library of kept documents and its search, and the site kept for offline (the service worker under Save in browser).
+- [share/](../src/kit/share/): sharing, sealing and keeping: short links, preview cards, passwords and sealing, privacy, the library of kept documents and its search, the site kept for offline (the service worker under Save in browser), and documents for small groups (`group-*.ts`, docs/groups.md).
 
 A new file goes in the folder whose line fits it. A file that fits none is a sign the design wants a word first, not a
 seventh folder or a file at the root.
