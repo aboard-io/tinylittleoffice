@@ -667,6 +667,11 @@
   .to-drawer-head .to-drawer-home {
     margin-inline-start: auto;
   }
+  /* The heading starts where the body's words do, a dialog's padding in (Paul, 2026-10-16: "align the title in those menu
+     bars with the text below"); the close button keeps the head's own half em at the end. */
+  .to-dialog-head {
+    padding-inline-start: 1em;
+  }
   .to-dialog-head h2 {
     margin: 0;
     font-size: calc(1.125 * var(--to-scale));
