@@ -76,7 +76,39 @@ test('a tag v* deploys: the checks and both Workers by npm run deploy with the t
   expect(release.steps.some((s) => s.uses?.startsWith('actions/attest-build-provenance@'))).toBe(true);
   expect(JSON.stringify(release)).not.toMatch(/secrets\.(CLOUDFLARE|NPM)/);
   // One workflow makes a release: the old release workflow is folded into this one.
-  expect(readdirSync(join(root, '.github/workflows')).sort()).toEqual(['ci.yml', 'deploy.yml']);
+  expect(readdirSync(join(root, '.github/workflows')).sort()).toEqual(['ci.yml', 'deploy.yml', 'pages.yml']);
+});
+
+test('the mirror (docs/mirror.md): after a deploy that succeeded, or by hand, the tag built for GitHub Pages and published there, then its version.json checked', () => {
+  const w = yaml(read('.github/workflows/pages.yml')) as Workflow & { env: Record<string, string> };
+  expect(Object.keys(w.on).sort()).toEqual(['workflow_dispatch', 'workflow_run']);
+  expect(w.on.workflow_run).toEqual({ workflows: ['Deploy'], types: ['completed'] });
+  expect((yaml(read('.github/workflows/deploy.yml')) as { name: string }).name).toBe('Deploy');
+  expect(w.permissions).toEqual({ contents: 'read' });
+  expect(w.env.MIRROR).toBe('https://aboard-io.github.io/tinylittleoffice/');
+  const job = w.jobs.mirror as Job & { if: string; environment: { name: string } };
+  expect(job.if).toContain("github.event.workflow_run.conclusion == 'success'");
+  expect(job.permissions).toEqual({ contents: 'read', pages: 'write', 'id-token': 'write' });
+  expect(job.environment.name).toBe('github-pages');
+  // No secret: the mirror holds nothing of Cloudflare's or npm's.
+  expect(read('.github/workflows/pages.yml')).not.toMatch(/secrets\./);
+  const at = (what: string) => job.steps.findIndex((s) => s.uses?.startsWith(what) || (s.run ?? '').includes(what));
+  const order = [
+    'actions/checkout@',
+    'npm ci',
+    'npm run build:mirror',
+    'node scripts/check-build.ts',
+    'actions/configure-pages@',
+    'actions/upload-pages-artifact@',
+    'actions/deploy-pages@',
+    'version.json?run=',
+  ];
+  order.forEach((what, i) => expect(at(what), what).toBeGreaterThan(i ? at(order[i - 1]) : -1));
+  expect(job.steps[at('actions/checkout@')].with?.ref).toBe('refs/tags/${{ steps.tag.outputs.tag }}');
+  expect(job.steps[at('actions/upload-pages-artifact@')].with).toEqual({ path: 'dist', 'include-hidden-files': true });
+  // The mirror's settings are one npm script's.
+  const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>;
+  expect(scripts['build:mirror']).toBe('VITE_SITE_URL=https://aboard-io.github.io/tinylittleoffice/ VITE_CSP_META=1 VITE_CARDS=0 VITE_TINIER=https://tinier.tinylittleoffice.com/ npm run build');
 });
 
 test('every action a workflow uses is pinned by its full commit hash, with its version beside it, never by a tag', () => {

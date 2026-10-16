@@ -37,10 +37,11 @@ ours to yours, in six places:
 1. **The routes.** In `wrangler.jsonc` and `tinier/wrangler.jsonc`, set each
    `routes` pattern to its address, keeping `"custom_domain": true`. Cloudflare makes the DNS record and
    the certificate the first time it deploys.
-2. **The site the Worker serves.** In `tinier/wrangler.jsonc`, add
-   `"vars": { "SITE": "https://office.example.org" }`. tinier lets only that site call it, and leads a
+2. **The site the Worker serves.** In `tinier/wrangler.jsonc`, set
+   `"vars": { "SITE": "https://office.example.org" }`, in place of ours. tinier lets only that site call it, and leads a
    short link nowhere else. (Without the var it falls back to `https://tinylittleoffice.com`, and your site
-   would be refused.)
+   would be refused.) The file names ours, tinylittleoffice.com and its mirror on GitHub Pages; the var may name
+   several, comma-separated, yours first (docs/mirror.md).
 3. **The build's settings,** in a file `.env.production` (not committed; `.env.example` lists them):
 
    ```sh
