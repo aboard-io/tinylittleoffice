@@ -57,16 +57,22 @@ test('the head: the title, and where the link fits in one line', async () => {
   const d = await open(shell);
   expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Notes');
   expect(d.querySelector('.to-share-fit .to-fit-words')!.textContent!.trim()).toMatch(/^This link: [\d,]+ characters, (fits in a text message|too long for .+)$/);
-  // The rooms are a table in a popover off the head line, never in the dialog itself.
-  expect([...d.querySelectorAll('table, dl')].every((x) => x.closest('.to-rooms'))).toBe(true);
-  // The meter in the header opens the table of where the link fits alone, no dialog behind it (Paul, 2026-10-16).
+  // The sizes are a dialog of their own, Max Link Sizes, never a table in Share itself.
+  expect(d.querySelectorAll('table, dl').length).toBe(0);
+  // The meter in the header opens Max Link Sizes alone, Share shut (Paul, 2026-10-16: "If one is invoked then hide the other one").
   d.close();
   await until(() => !shell.querySelector<ToShare>('to-share')!.sharing);
+  const sizes = shell.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!;
   shell.querySelector<HTMLButtonElement>('.to-meter')!.click();
-  await until(() => !!shell.querySelector('.to-rooms:popover-open'));
+  await until(() => sizes.dialog.open);
   expect(d.dialog.open).toBe(false);
-  expect(shell.querySelectorAll('.to-rooms tbody tr').length).toBe(15);
-  shell.querySelector<HTMLElement>('.to-rooms')!.hidePopover();
+  expect(sizes.querySelector('.to-dialog-head h2')!.textContent).toBe('Max Link Sizes');
+  expect(sizes.querySelectorAll('.to-rooms tbody tr').length).toBe(15);
+  // And Share, asked for, shuts the sizes.
+  await shell.openShare();
+  await until(() => d.dialog.open);
+  expect(sizes.dialog.open).toBe(false);
+  d.close();
 });
 
 test('the table of where the link fits states every limit, what it counts, and whether this link fits (Paul, 2026-10-15, issue #8)', async () => {
@@ -74,6 +80,10 @@ test('the table of where the link fits states every limit, what it counts, and w
   const d = await open(shell);
   const fmt = (x: number) => x.toLocaleString('en');
   const link = shell.link;
+  // The table lives in Max Link Sizes, a dialog of its own, drawn when it opens.
+  const sizes = shell.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!;
+  await sizes.show();
+  await until(() => !!shell.querySelector('.to-rooms table'));
   const table = shell.querySelector('.to-rooms table')!;
   expect(table.querySelector('caption')!.textContent).toBe(`This link: ${fmt(link.length)} characters, ${fmt(new TextEncoder().encode(link).length)} bytes`);
   expect([...table.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual(['Where', 'Limit', 'Fits?']);
@@ -94,17 +104,15 @@ test('the table of where the link fits states every limit, what it counts, and w
   expect(table.querySelector('tr.over')).toBeNull();
   // At this phone's width each place is a line, its limit and the answer under it: nothing scrolls sideways.
   const pop = shell.querySelector<HTMLElement>('.to-rooms')!;
-  pop.showPopover();
   expect(pop.scrollWidth).toBeLessThanOrEqual(pop.clientWidth);
-  pop.hidePopover();
+  sizes.close();
   // Random words, which do not compress, past the 2,048 the header's meter counts to: that row says by how much, in red, and the browsers' still fit.
   d.close();
   // (Waited for longer than the helpers do: a document this size takes a while to open on a box busy with the other files.)
   const long = await mount(`#/v1/write/${encodeDoc(`${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`)}`);
   await until(() => !!long.querySelector('to-write-editor'), 10_000);
-  await openShare(long);
-  const d2 = dialogOf(long);
-  await until(() => d2.dialog.open && !!long.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
+  await long.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!.show();
+  await until(() => !!long.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
   const big = long.link.length;
   expect(big).toBeGreaterThan(URL_LIMIT);
   const row = (id: string) => long.querySelector(`.to-rooms tr[data-target="${id}"]`)!;
@@ -235,7 +243,9 @@ test('a short link says its limit before the press: over it, Make is disabled wi
   expect(d.querySelector('.to-short-why')!.textContent).toBe(
     `This document is ${fmt(n)} characters; a short link holds ${fmt(SHORT_LINK_MAX)}. Shorten it by ${fmt(n - SHORT_LINK_MAX)} and it will fit.`,
   );
-  // The table of rooms has the short link, over.
+  // Max Link Sizes has the short link, over (opened from the head line, in Share's place).
+  d.querySelector<HTMLButtonElement>('.to-fit-words')!.click();
+  await until(() => !!shell.querySelector('.to-rooms tr'));
   const row = [...shell.querySelectorAll('.to-rooms tr')].find((r) => r.querySelector('th')?.textContent === 'a short link')!;
   expect(row.classList.contains('over')).toBe(true);
   expect(row.querySelector('td:last-child')!.textContent).toBe(`No, ${fmt(n - SHORT_LINK_MAX)} over`);

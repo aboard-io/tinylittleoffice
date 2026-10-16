@@ -255,7 +255,8 @@ share-this-link-n-characters-n-bytes = This link: { $n ->
        *[other] { $bytes } bytes
     }
 share-where = Where
-share-where-link-fits = Will this link fit?
+# The dialog of every place's limit beside this link's size (the header's meter opens it; so does Share's head line).
+share-max-link-sizes = Max Link Sizes
 # The table's column heads: the most each place holds, and whether this link fits in it.
 share-limit = Limit
 share-fits = Fits?

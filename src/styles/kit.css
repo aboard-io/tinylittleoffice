@@ -977,10 +977,11 @@
   }
   /* Each limit beside whether the link fits it (Paul, 2026-10-15, issue #8): wider than a menu where the page has the
      room; on a phone the words wrap, a number never breaks. */
-  .to-rooms {
-    padding: 0.6154em 0.9231em;
-    font-size: calc(0.8125 * var(--to-scale));
+  .to-rooms-dialog .to-dialog {
     max-width: min(44em, calc(100vw - 1em));
+  }
+  .to-rooms {
+    font-size: calc(0.8125 * var(--to-scale));
   }
   /* (A .to-table, compact, its numbers lined up.) */
   .to-rooms th,

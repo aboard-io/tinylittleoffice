@@ -1,6 +1,7 @@
 // What the shell holds round the document: search on the home page, Find in this document,
 // the shortcuts dialog, Mod+S, the skip link, the size of everything, another version kept here, the
 // Share dialog's head line with the rooms, the install line, and the Display Link's pages at paper width.
+import type { ToDialog } from '../../src/kit/ui/dialog.ts';
 import { test, expect, afterEach } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
@@ -349,7 +350,7 @@ test('a link from a newer Tiny Little Office says so', async () => {
   expect(shell.textContent).toContain('This link needs a newer version. Reload the page.');
 });
 
-test('the Share dialog’s head line: where the link fits with Copy, the rooms in a popover on a tap, red past the limit', async () => {
+test('the Share dialog’s head line: where the link fits with Copy, Max Link Sizes on a tap, red past the limit', async () => {
   const shell = await mount(`#/v1/write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   await shell.openShare();
@@ -357,16 +358,19 @@ test('the Share dialog’s head line: where the link fits with Copy, the rooms i
   expect(fit.classList.contains('over')).toBe(false);
   expect(fit.querySelector('.to-fit-words')!.textContent).toContain('fits in a text message');
   expect(fit.querySelector('.to-fit-copy')!.getAttribute('aria-label')).toBe('Copy link');
-  const rooms = fit.querySelector<HTMLElement>('.to-rooms')!;
-  expect(rooms.matches(':popover-open')).toBe(false);
+  // A tap on the words opens Max Link Sizes in Share's place (Paul, 2026-10-16).
+  const sizes = shell.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!;
+  expect(sizes.dialog.open).toBe(false);
   fit.querySelector<HTMLButtonElement>('.to-fit-words')!.click();
-  await until(() => rooms.matches(':popover-open'));
+  await until(() => sizes.dialog.open);
+  expect(shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!.dialog.open).toBe(false);
+  const rooms = sizes.querySelector<HTMLElement>('.to-rooms')!;
   const rows = [...rooms.querySelectorAll('tbody tr')];
   expect(rows.length).toBe(15);
   expect(rows.map((r) => r.querySelector('th')!.textContent)).toContain('a QR code');
   expect(rows.map((r) => r.querySelector('th')!.textContent)).toContain('a link in Google Docs');
-  expect(rooms.textContent).toContain('Yes, a link counts as 23');
-  rooms.hidePopover();
+  expect(rooms.textContent).toContain('Yes, counts as 23 of 500');
+  sizes.close();
   // A document past the link's limit: the line in red, said in characters over.
   const big = Array.from({ length: 3000 }, (_, i) => `${(i * 7919) % 10007}`).join(' ');
   const over = await mount(`#/v1/write/${encodeDoc(big)}`);

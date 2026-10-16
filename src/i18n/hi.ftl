@@ -392,8 +392,8 @@ share-this-link-n-characters-n-bytes = यह लिंक: { $n ->
     }
 # en: 525f61b6729229b1a8854a9e50bcaa52ea96b131
 share-where = कहाँ
-# en: cdbfed741d905515df704d9585fc74781801a24d
-share-where-link-fits = क्या यह लिंक आ पाएगा?
+# en: 55f653107f261dcc84be0568f5812694250f2e96
+share-max-link-sizes = लिंक की अधिकतम लंबाई
 # en: 24d948e4bdbe5b8224bbc0dfbab1923fab00b98e
 share-limit = सीमा
 # en: f9f775ef8d81d0adcdb54a1de51a58a5ab9d24f6

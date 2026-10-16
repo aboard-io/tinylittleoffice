@@ -716,15 +716,14 @@ export class ToShell extends LitElement {
   /* ---------- sharing (the dialog is <to-share>'s) ---------- */
 
   /** The Share dialog, open. */
-  /** Share; or, with `rooms`, only the table of where the link fits, under the header's meter. */
+  /** Share; or, with `rooms`, Max Link Sizes alone (the header's meter). */
   async openShare(rooms = false) {
     this.flushLink();
     // Drawn again first, so the dialog has <to-privacy>'s part as it is now.
     this.requestUpdate();
     await this.updateComplete;
     const share = this.querySelector<ToShare>('to-share');
-    const meter = this.querySelector<HTMLElement>('.to-meter');
-    await (rooms && meter ? share?.showRooms(meter) : share?.show());
+    await (rooms ? share?.showRooms() : share?.show());
   }
   /** Download, by its key: the drawer, its table open (the drawer's This document holds it, the header being the title). */
   private async openDownload() {

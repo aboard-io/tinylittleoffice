@@ -36,7 +36,6 @@ import { QR_MAX_BYTES, qrSvg } from '../draw/qr.ts';
 import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from '../share/share.ts';
 import { openLink } from './link-guard.ts';
 import { toast } from '../core/say.ts';
-import { place } from './menu.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
 
@@ -158,15 +157,16 @@ export class ToShare extends LitElement {
 
   /** Open. */
   async show() {
+    this.querySelector<ToDialog>('to-dialog.to-rooms-dialog')?.close();
     this.sharing = true;
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.show();
   }
-  /** The table of where the link fits, alone, under `anchor` (the header's meter): no dialog behind it. */
-  async showRooms(anchor: HTMLElement) {
+  /** Max Link Sizes, alone: Share, if open, is closed first, one dialog at a time. */
+  async showRooms() {
+    this.close();
     await this.updateComplete;
-    const pop = this.querySelector<HTMLElement>('.to-rooms');
-    if (pop && !pop.matches(':popover-open')) (pop.showPopover(), place(pop, anchor));
+    await this.querySelector<ToDialog>('to-dialog.to-rooms-dialog')?.show();
   }
   close() {
     this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.close();
@@ -348,24 +348,14 @@ export class ToShare extends LitElement {
   }
 
   /**
-   * The head line: where the link fits, red once it is past the link's limit, with Copy; a hover or a tap on
-   * the words opens the rooms it fits in, a small table in a popover (kit/share/limits.ts).
+   * The head line: where the link fits, red once it is past the link's limit, with Copy; a tap on the words opens
+   * Max Link Sizes (renderRooms) in Share's place.
    */
   private renderFit() {
     const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(this.app)}/`);
     const over = this.payloadLength - available;
-    const hover = (show: boolean) => (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return;
-      const pop = this.querySelector<HTMLElement>('.to-rooms');
-      const btn = e.currentTarget as HTMLElement;
-      if (show && !pop?.matches(':popover-open')) (pop?.showPopover(), pop && place(pop, btn));
-      else if (!show && !pop?.matches(':hover')) pop?.hidePopover();
-    };
     return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
-      <button type="button" class="to-btn to-fit-words" popovertarget="to-rooms" aria-haspopup="dialog" @pointerenter=${hover(true)} @pointerleave=${hover(false)} @click=${(e: Event) => {
-        const btn = e.currentTarget as HTMLElement;
-        requestAnimationFrame(() => this.querySelector<HTMLElement>('.to-rooms:popover-open') && place(this.querySelector<HTMLElement>('.to-rooms')!, btn));
-      }}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
+      <button type="button" class="to-btn to-fit-words" aria-haspopup="dialog" @click=${() => void this.showRooms()}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
       <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('share-copy-link')} title=${t('share-copy-link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
     </div>`;
   }
@@ -443,12 +433,13 @@ export class ToShare extends LitElement {
   }
 
   /**
-   * The table of where the link fits, a popover beside the dialog rather than inside it, so the header's meter can
-   * open it alone, with no dialog behind (Paul, 2026-10-16: "now it opens the sizing breakdown with the share menu
-   * BEHIND it"); from the dialog's head line it opens under the words, as before.
+   * Max Link Sizes: the table of where the link fits, a dialog of its own beside Share, placed as Share is (Paul,
+   * 2026-10-16: "Make the sizing menu dismissable and give it a title: 'Max Link Sizes'… Position it exactly as you
+   * position the share menu. If one is invoked then hide the other one"): the header's meter opens it alone, Share's
+   * head line opens it in Share's place.
    */
   private renderRooms() {
-    return html`<div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('share-where-link-fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
+    return html`<to-dialog class="to-rooms-dialog" heading=${t('share-max-link-sizes')} .body=${html`<div class="to-rooms">
         <table class="to-table">
           <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
           <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
@@ -456,7 +447,7 @@ export class ToShare extends LitElement {
             (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
           )}</tbody>
         </table>
-      </div>`;
+      </div>`}></to-dialog>`;
   }
   render() {
     return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>${this.renderRooms()}`;
