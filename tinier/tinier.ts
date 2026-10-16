@@ -80,7 +80,8 @@ const html = (page: string, status = 200) =>
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      'cache-control': 'no-store',
+      // no-transform: without it Cloudflare writes its analytics beacon into the page, which the policy below then blocks (seen on the mirror's short links, 2026-10-16), as the site's /c/ pages found before.
+      'cache-control': 'no-store, no-transform',
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
       'content-security-policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'",
