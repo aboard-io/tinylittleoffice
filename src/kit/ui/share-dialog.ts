@@ -73,6 +73,7 @@ export class ToShare extends LitElement {
     heading: { attribute: false },
     locked: { attribute: false },
     payloadLength: { attribute: false },
+    sizing: { state: true },
     protect: { attribute: false },
     short: { state: true },
     shortTtl: { state: true },
@@ -91,6 +92,8 @@ export class ToShare extends LitElement {
   /** It has a password: nothing of it goes out but its ciphertext link, no picture, no title. */
   declare locked: boolean;
   declare payloadLength: number;
+  /** Max Link Sizes open: its table is drawn only then (the link it reads is asked of the shell, which writes the address when asked). */
+  declare sizing: boolean;
   /** The Password part, drawn by <to-privacy>. */
   declare protect: TemplateResult | typeof nothing;
   declare short: Shortened | null;
@@ -121,6 +124,7 @@ export class ToShare extends LitElement {
     this.heading = '';
     this.locked = false;
     this.payloadLength = 0;
+    this.sizing = false;
     this.protect = nothing;
     this.short = null;
     this.shortTtl = savedTtl();
@@ -162,11 +166,20 @@ export class ToShare extends LitElement {
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.show();
   }
-  /** Max Link Sizes, alone: Share, if open, is closed first, one dialog at a time. */
+  /** Max Link Sizes, alone: Share, if open, is closed first, one dialog at a time (the header's meter). */
   async showRooms() {
     this.close();
+    this.sizing = true;
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-rooms-dialog')?.show();
+  }
+  /** Max Link Sizes from Share's head line: Share steps aside for it and is back, as it was, when it closes (the kit's one modal at a time). */
+  private async handOverRooms(back: HTMLElement) {
+    const share = this.querySelector<ToDialog>('to-dialog.to-share-dialog');
+    const rooms = this.querySelector<ToDialog>('to-dialog.to-rooms-dialog');
+    this.sizing = true;
+    await this.updateComplete;
+    if (share && rooms) await share.handOver(rooms, back);
   }
   close() {
     this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.close();
@@ -355,7 +368,7 @@ export class ToShare extends LitElement {
     const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(this.app)}/`);
     const over = this.payloadLength - available;
     return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
-      <button type="button" class="to-btn to-fit-words" aria-haspopup="dialog" @click=${() => void this.showRooms()}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
+      <button type="button" class="to-btn to-fit-words" aria-haspopup="dialog" @click=${(e: Event) => void this.handOverRooms(e.currentTarget as HTMLElement)}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
       <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('share-copy-link')} title=${t('share-copy-link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
     </div>`;
   }
@@ -439,7 +452,10 @@ export class ToShare extends LitElement {
    * head line opens it in Share's place.
    */
   private renderRooms() {
-    return html`<to-dialog class="to-rooms-dialog" heading=${t('share-max-link-sizes')} .body=${html`<div class="to-rooms">
+    return html`<to-dialog class="to-rooms-dialog" heading=${t('share-max-link-sizes')} @to-close=${() => (this.sizing = false)} .body=${
+      !this.sizing
+        ? nothing
+        : html`<div class="to-rooms">
         <table class="to-table">
           <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
           <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
@@ -447,7 +463,8 @@ export class ToShare extends LitElement {
             (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
           )}</tbody>
         </table>
-      </div>`}></to-dialog>`;
+      </div>`
+    }></to-dialog>`;
   }
   render() {
     return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>${this.renderRooms()}`;

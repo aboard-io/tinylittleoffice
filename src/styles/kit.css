@@ -579,6 +579,11 @@
   /* The list takes what the head leaves and scrolls inside it (a phone's whole screen: responsive.css). */
   /* The heading leads with the app's name, at the logotype's size but in the sans and not bold, and on one line: on a
      phone it shrinks to fit beside the Close button rather than wrap (Paul, 2026-10-10). */
+  /* Its head keeps the half em: the previews under it sit at the far left of the list (Paul, 2026-10-11), and the
+     heading stays over them. */
+  .to-templates-dialog .to-dialog-head {
+    padding-inline-start: 0.5em;
+  }
   .to-templates-dialog .to-dialog-head h2 {
     font: 400 min(calc(1.875 * var(--to-scale)), 4.5vw) / 1.1 var(--to-font);
     white-space: nowrap;

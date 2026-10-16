@@ -167,13 +167,14 @@ test('no dialog opens another while it is open: every drawer row and every Share
   }
   // Share's buttons that open a dialog of their own.
   await openShare(shell);
-  await only('to-share dialog');
-  for (const b of document.querySelectorAll<HTMLElement>('to-share dialog [aria-haspopup=dialog]')) {
+  await only('.to-share-dialog dialog');
+  for (const b of document.querySelectorAll<HTMLElement>('.to-share-dialog dialog [aria-haspopup=dialog]')) {
     if (b.getAttribute('popovertarget')) continue;
     b.click();
-    await until(() => modals().length > 0 && !modals().some((m) => m.closest('to-share')));
+    // (Max Link Sizes is <to-share>'s too, beside Share's own dialog: what counts is that Share's is shut.)
+    await until(() => modals().length > 0 && !modals().some((m) => m.closest('.to-share-dialog')));
     modals()[0].close();
-    await only('to-share dialog');
+    await only('.to-share-dialog dialog');
   }
   await closeAll();
   expect(stacked).toEqual([]);

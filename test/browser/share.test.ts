@@ -82,7 +82,7 @@ test('the table of where the link fits states every limit, what it counts, and w
   const link = shell.link;
   // The table lives in Max Link Sizes, a dialog of its own, drawn when it opens.
   const sizes = shell.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!;
-  await sizes.show();
+  await shell.querySelector<ToShare>('to-share')!.showRooms();
   await until(() => !!shell.querySelector('.to-rooms table'));
   const table = shell.querySelector('.to-rooms table')!;
   expect(table.querySelector('caption')!.textContent).toBe(`This link: ${fmt(link.length)} characters, ${fmt(new TextEncoder().encode(link).length)} bytes`);
@@ -111,7 +111,7 @@ test('the table of where the link fits states every limit, what it counts, and w
   // (Waited for longer than the helpers do: a document this size takes a while to open on a box busy with the other files.)
   const long = await mount(`#/v1/write/${encodeDoc(`${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`)}`);
   await until(() => !!long.querySelector('to-write-editor'), 10_000);
-  await long.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!.show();
+  await long.querySelector<ToShare>('to-share')!.showRooms();
   await until(() => !!long.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
   const big = long.link.length;
   expect(big).toBeGreaterThan(URL_LIMIT);
