@@ -52,8 +52,9 @@
     const un = (s) => Uint8Array.from(atob(s.replace(/[-~]/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
-    const site = '{{site}}';
-    if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to Tiny Little Office.');
+    // Every copy of the site this shortener serves (tinier.ts SITE: the site, and its mirror on GitHub Pages).
+    const sites = '{{sites}}'.split(',');
+    if (!sites.some((site) => [site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/')))) return fail('That link does not go to Tiny Little Office.');
     // Everyone arrives knowing how long the link has left (s, x), in the fragment's query, which the site strips from every link it shares.
     const to = plain.includes('#') ? plain + '?s=' + id + '&x=' + exp : plain;
     a.href = to; go.hidden = false;

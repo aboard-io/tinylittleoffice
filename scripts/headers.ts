@@ -59,3 +59,24 @@ export function headersFor(text: string, path: string): Record<string, string> {
   }
   return out;
 }
+
+/** The directives a policy given in a page's <meta> cannot carry: the browser ignores them there (CSP Level 3, §3.3). */
+export const NOT_IN_META = ['frame-ancestors', 'report-uri', 'sandbox'];
+
+/** A policy as a <meta> may carry it: the same directives in the same order, less those (NOT_IN_META). */
+export const metaPolicy = (policy: string): string =>
+  policy
+    .split(';')
+    .map((d) => d.trim())
+    .filter((d) => d && !NOT_IN_META.includes(d.split(/\s+/)[0]))
+    .join('; ');
+
+/** The policy a page's own <meta http-equiv="Content-Security-Policy"> carries, or null when it has none. */
+export const pageMetaPolicy = (page: string): string | null =>
+  /<meta http-equiv="Content-Security-Policy" content="([^"]*)"/
+    .exec(page)?.[1]
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&') ?? null;
+
+/** The path a built page is served at, for its rules in _headers: "index.html" at "/", "write/index.html" at "/write/". */
+export const pagePath = (file: string): string => `/${file.replace(/(^|\/)index\.html$/, '$1')}`;
