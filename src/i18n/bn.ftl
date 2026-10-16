@@ -3055,8 +3055,8 @@ share-yes = হ্যাঁ
 share-yes-n-left = হ্যাঁ, { $n } বাকি
 # en: 63dfcadd40126551301f363efd454c7d2c610b94
 share-no-n-over = না, { $n } বেশি
-# en: 0d4737c5b6ea7847f57ff786490b8632c0b65994
-share-yes-link-counts-as-n = হ্যাঁ, লিংক { $n } হিসেবে গোনা হয়
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = হ্যাঁ, { $max }-এর মধ্যে { $n } ধরা হয়
 # en: 4f5fbd7fb6a16b16ebe3c347bf43c9a2455a1560
 home-n-documents-found = { $n ->
         [one] { $n }

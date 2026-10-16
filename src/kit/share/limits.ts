@@ -1,8 +1,8 @@
 /**
- * How much room a link takes, and leaves, in the places links get pasted. Some services count every
- * character of a link, some charge a flat rate however long it is, and Bluesky's app shortens what it
- * shows. `cost` is what the link uses of `max`; the rest is room for your own words. The Share dialog says it
- * in one line (fitLine): the tightest place the link fits, or the first, from the roomiest down, it does not.
+ * How much room a link takes, and leaves, in the places links get pasted. Most places count every character or
+ * byte of a link against a limit; a post on Mastodon, Bluesky or X counts any link as a few characters, so there the
+ * link's length is its own matter (a published longest link, or none). `cost` is what the link uses; the Share dialog
+ * says it in one line (fitLine): the tightest place the link fits, or the first, from the roomiest down, it does not.
  *
  * Every limit's number lives here or is read from the file that enforces it (the link's 2,048, the QR code's and the
  * short link's), and the Share dialog's table says each beside the link's own size, in characters or in bytes as the
@@ -24,14 +24,20 @@ export const FIREFOX_URL_MAX = 1024 * 1024;
 
 export interface Target {
   id: string;
-  /** The size of one message, post or code. */
+  /** The longest link the place takes (Infinity where none is published): what the Limit column says. */
   max: number;
-  /** What a link costs against `max`. */
+  /** What a link costs against `max`, or, at a post, against `post`. */
   cost(url: string): number;
   /** Where, as the end of "too long for …": "a text message". */
   where: () => string;
-  /** The service charges the same for any link, however long: it never decides whether a link fits. */
-  flat?: boolean;
+  /**
+   * A post whose service counts any link as a few characters, however long (Paul, 2026-10-16: "Bluesky isn't 300
+   * limit, because a URL counts as 23. So it's the length of the URL that matters"): the post's size, which the
+   * link's length never fills; `max` is the link's own ceiling there, where one is published. Never decides fitLine.
+   */
+  post?: number;
+  /** A browser's own URL ceiling: shown last, after every place a link is pasted. */
+  browser?: boolean;
   /** What `max` and the cost count: characters, or the bytes of the link's UTF-8. */
   unit: 'characters' | 'bytes';
 }
@@ -58,12 +64,12 @@ export function blueskyCost(url: string): number {
   }
 }
 
-/** From the roomiest down; a target with no published limit has a max of Infinity. */
+/** Every place, in no order of its own (`shown` orders them for the table); a target with no published limit has a max of Infinity. */
 export const TARGETS: Target[] = [
-  { id: 'chrome', max: CHROME_URL_MAX, cost: parsed, where: () => t('share-chrome-and-edge'), unit: 'characters' },
-  { id: 'firefox', max: FIREFOX_URL_MAX, cost: parsed, where: () => 'Firefox', unit: 'characters' },
+  { id: 'chrome', max: CHROME_URL_MAX, cost: parsed, where: () => t('share-chrome-and-edge'), unit: 'characters', browser: true },
+  { id: 'firefox', max: FIREFOX_URL_MAX, cost: parsed, where: () => 'Firefox', unit: 'characters', browser: true },
   // Safari: WebKit publishes no longest URL, and its URL class (Source/WTF/wtf/URL.h) sets none.
-  { id: 'safari', max: Infinity, cost: parsed, where: () => 'Safari', unit: 'characters' },
+  { id: 'safari', max: Infinity, cost: parsed, where: () => 'Safari', unit: 'characters', browser: true },
   // The shortener keeps the link encrypted and holds 16 KiB of ciphertext: said as the longest link that encrypts to that.
   { id: 'short', max: SHORT_LINK_MAX, cost: bytes, where: () => t('share-a-short-link'), unit: 'bytes' },
   // Google Docs keeps the first 4,096 characters of a link put on words (Insert, Link); Paul, 2026-10-14: "Google Docs inline link cut my link."
@@ -79,10 +85,28 @@ export const TARGETS: Target[] = [
   { id: 'ntag216', max: 888, cost: (u) => bytes(u) - 7 + 7, where: () => t('share-nfc-sticker'), unit: 'bytes' },
   { id: 'ntag215', max: 504, cost: (u) => bytes(u) - 7 + 7, where: () => t('share-small-nfc-sticker'), unit: 'bytes' },
   { id: 'sms', max: 160, cost: full, where: () => t('share-text-message'), unit: 'characters' },
-  { id: 'mastodon', max: 500, cost: () => 23, where: () => 'Mastodon', flat: true, unit: 'characters' },
-  { id: 'bluesky', max: 300, cost: blueskyCost, where: () => 'Bluesky', flat: true, unit: 'characters' },
-  { id: 'x', max: 280, cost: () => 23, where: () => 'X', flat: true, unit: 'characters' },
+  // Posts: the service counts any link as a few characters of the post, and the link's length is its own matter.
+  // Mastodon counts a link as 23 and publishes no longest link; Bluesky's app shortens a link to its host and 16
+  // characters and counts that, the full address travelling in the post, with no longest published; X wraps every
+  // link in t.co, counting 23, and t.co takes a link of up to 4,096 characters (its documentation).
+  { id: 'mastodon', max: Infinity, post: 500, cost: () => 23, where: () => 'Mastodon', unit: 'characters' },
+  { id: 'bluesky', max: Infinity, post: 300, cost: blueskyCost, where: () => 'Bluesky', unit: 'characters' },
+  { id: 'x', max: 4096, post: 280, cost: () => 23, where: () => 'X', unit: 'characters' },
 ];
+
+/** The browsers, in the order the table ends with. */
+const BROWSERS = ['firefox', 'chrome', 'safari'];
+
+/**
+ * The table's order (Paul, 2026-10-16: "The sizes should be ascending in order of size, browsers last"): every place
+ * a link is pasted from the tightest up, those with no published limit after them, then the browsers from the
+ * tightest up. Two places with one limit keep the list's order.
+ */
+export function shown(rooms: Room[]): Room[] {
+  const rank = (r: Room) => (r.target.browser ? 2 : Number.isFinite(r.target.max) ? 0 : 1);
+  const by = (r: Room) => (r.target.browser ? BROWSERS.indexOf(r.target.id) : r.target.max);
+  return [...rooms].sort((a, b) => rank(a) - rank(b) || by(a) - by(b));
+}
 
 export interface Room {
   target: Target;
@@ -94,7 +118,8 @@ export interface Room {
 export function roomFor(url: string): Room[] {
   return TARGETS.map((target) => {
     const used = target.cost(url);
-    return { target, used, left: target.max - used };
+    // At a post the link's own length is what `max` is against; its cost is what it counts of the post.
+    return { target, used, left: target.max - (target.post ? (target.unit === 'bytes' ? bytes(url) : url.length) : used) };
   });
 }
 
@@ -105,11 +130,12 @@ export function limitWords(r: Room): string {
   return r.target.unit === 'bytes' ? t('share-n-bytes', { n: max }) : t('share-n-characters', { n: max });
 }
 
-/** Whether the link fits there, and by how much: "Yes, 848 left", "No, 300 over"; a flat-rate service, what a link counts as. */
+/** Whether the link fits there, and by how much: "Yes, 848 left", "No, 300 over"; at a post, what the link counts of it: "Yes, counts as 36 of 300". */
 export function fitWords(r: Room): string {
-  if (r.target.flat) return t('share-yes-link-counts-as-n', { n: r.used });
+  if (r.left < 0) return t('share-no-n-over', { n: -r.left });
+  if (r.target.post) return t('share-yes-counts-as-n-of-max', { n: r.used, max: r.target.post });
   if (!Number.isFinite(r.left)) return t('share-yes');
-  return r.left < 0 ? t('share-no-n-over', { n: -r.left }) : t('share-yes-n-left', { n: r.left });
+  return t('share-yes-n-left', { n: r.left });
 }
 
 /**
@@ -119,7 +145,7 @@ export function fitWords(r: Room): string {
 export function fitLine(url: string): string {
   const n = url.length;
   const over = roomFor(url)
-    .filter((r) => !r.target.flat)
+    .filter((r) => !r.target.post)
     .sort((a, b) => b.target.max - a.target.max)
     .find((r) => r.left < 0);
   return over ? t('share-this-link-n-characters-too', { n, where: over.target.where() }) : t('share-this-link-n-characters-fits', { n });

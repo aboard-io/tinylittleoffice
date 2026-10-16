@@ -26,7 +26,7 @@ import { chosenLanguage, t } from '../core/i18n.ts';
 import { dateWords } from '../core/dates.ts';
 import { picture, raster, saveFile, slug, utf8 } from '../file/exports.ts';
 import { parseHash, routeHash } from '../core/route.ts';
-import { fitLine, fitWords, limitWords, roomFor } from '../share/limits.ts';
+import { fitLine, fitWords, limitWords, roomFor, shown } from '../share/limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from '../share/short.ts';
 import { dropKept, keepLink, keptLinks } from '../share/kept-links.ts';
 import { CARDS, cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
@@ -365,7 +365,7 @@ export class ToShare extends LitElement {
         <table class="to-table">
           <caption>${t('share-this-link-n-characters-n-bytes', { n: this.link.length, bytes: utf8(this.link).length })}</caption>
           <thead><tr><th scope="col">${t('share-where')}</th><th scope="col">${t('share-limit')}</th><th scope="col">${t('share-fits')}</th></tr></thead>
-          <tbody>${roomFor(this.link).map(
+          <tbody>${shown(roomFor(this.link)).map(
             (r) => html`<tr class=${r.left < 0 ? 'over' : ''} data-target=${r.target.id}><th scope="row">${r.target.where()}</th><td>${limitWords(r)}</td><td>${fitWords(r)}</td></tr>`,
           )}</tbody>
         </table>

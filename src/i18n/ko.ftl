@@ -389,8 +389,8 @@ share-yes = 예
 share-yes-n-left = 예, { $n } 남음
 # en: 63dfcadd40126551301f363efd454c7d2c610b94
 share-no-n-over = 아니요, { $n } 초과
-# en: 0d4737c5b6ea7847f57ff786490b8632c0b65994
-share-yes-link-counts-as-n = 예, 링크는 { $n }자로 계산
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = 예, { $max } 중 { $n }로 계산됩니다
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

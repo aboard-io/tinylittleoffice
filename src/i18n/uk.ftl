@@ -444,8 +444,8 @@ share-yes = Так
 share-yes-n-left = Так, лишилося { $n }
 # en: 63dfcadd40126551301f363efd454c7d2c610b94
 share-no-n-over = Ні, понад ліміт { $n }
-# en: 0d4737c5b6ea7847f57ff786490b8632c0b65994
-share-yes-link-counts-as-n = Так, посилання рахується як { $n }
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = Так, рахується як { $n } із { $max }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

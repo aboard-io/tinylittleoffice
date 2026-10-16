@@ -274,7 +274,8 @@ share-no-published-limit = None published
 share-yes = Yes
 share-yes-n-left = Yes, { $n } left
 share-no-n-over = No, { $n } over
-share-yes-link-counts-as-n = Yes, a link counts as { $n }
+# At a post: what the link counts of the post's size, however long the link is (Mastodon and X count 23, Bluesky its host and 16 characters).
+share-yes-counts-as-n-of-max = Yes, counts as { $n } of { $max }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

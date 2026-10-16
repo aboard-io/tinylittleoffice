@@ -1,6 +1,6 @@
 // Where a link fits: the costs the services charge, and the one line the Share dialog says it in.
 import { test, expect } from 'vitest';
-import { blueskyCost, CHROME_URL_MAX, FIREFOX_URL_MAX, fitLine, fitWords, limitWords, roomFor, TARGETS } from '../src/kit/share/limits.ts';
+import { blueskyCost, CHROME_URL_MAX, FIREFOX_URL_MAX, fitLine, fitWords, limitWords, roomFor, shown, TARGETS } from '../src/kit/share/limits.ts';
 import { URL_LIMIT } from '../src/kit/core/codec.ts';
 import { QR_MAX_BYTES } from '../src/kit/draw/qr.ts';
 import { SHORT_LINK_MAX, SHORT_MAX, sealShortAt } from '../src/kit/share/short.ts';
@@ -60,7 +60,7 @@ test('one line: fits in a text message, or too long for the first place, from th
     roomFor(at(5000))
       .filter((r) => r.left === 4096 - 5000)
       .map((r) => r.target.id),
-  ).toEqual(['gdocs', 'telegram']);
+  ).toEqual(['gdocs', 'telegram', 'x']);
   expect(fitLine(at(12_273))).toBe('This link: 12,273 characters, too long for a short link');
 });
 
@@ -86,11 +86,36 @@ test('every limit is stated with its number and what it counts, beside whether t
     ntag216: ['888 bytes', 'No, 1,612 over'],
     ntag215: ['504 bytes', 'No, 1,996 over'],
     sms: ['160 characters', 'No, 2,340 over'],
-    mastodon: ['500 characters', 'Yes, a link counts as 23'],
-    bluesky: ['300 characters', 'Yes, a link counts as 36'],
-    x: ['280 characters', 'Yes, a link counts as 23'],
+    // A post counts any link as a few characters, so the link's length is its own matter: Mastodon and Bluesky publish no
+    // longest link, X's t.co takes 4,096 (Paul, 2026-10-16: "Bluesky isn't 300 limit, because a URL counts as 23").
+    mastodon: ['None published', 'Yes, counts as 23 of 500'],
+    bluesky: ['None published', 'Yes, counts as 36 of 300'],
+    x: ['4,096 characters', 'Yes, counts as 23 of 280'],
   });
+  // A link past t.co's ceiling does not fit X, whatever it counts.
+  expect(fitWords(roomFor('https://tinylittleoffice.com/#/v1/text/'.padEnd(5000, 'y')).find((r) => r.target.id === 'x')!)).toBe('No, 904 over');
   // A browser counts the link as it holds it: a letter past ASCII is three characters, %XX.
   const accented = 'https://tinylittleoffice.com/#/v1/text/é';
   expect(roomFor(accented).find((r) => r.target.id === 'chrome')!.used).toBe(accented.length + 5);
+});
+
+test('the table runs from the tightest place up, the places with no published limit after them, the browsers last (Paul, 2026-10-16)', () => {
+  const url = 'https://tinylittleoffice.com/#/v1/text/'.padEnd(2500, 'y');
+  expect(shown(roomFor(url)).map((r) => r.target.id)).toEqual([
+    'sms',
+    'ntag215',
+    'ntag216',
+    'discord',
+    'link',
+    'qr',
+    'gdocs',
+    'telegram',
+    'x',
+    'short',
+    'mastodon',
+    'bluesky',
+    'firefox',
+    'chrome',
+    'safari',
+  ]);
 });

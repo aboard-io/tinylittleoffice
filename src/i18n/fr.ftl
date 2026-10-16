@@ -437,8 +437,8 @@ share-yes = Oui
 share-yes-n-left = Oui, { $n } de marge
 # en: 63dfcadd40126551301f363efd454c7d2c610b94
 share-no-n-over = Non, { $n } en trop
-# en: 0d4737c5b6ea7847f57ff786490b8632c0b65994
-share-yes-link-counts-as-n = Oui, un lien compte pour { $n }
+# en: d2857acb2857d3f0021e0ffbcfc8730c9a6e2548
+share-yes-counts-as-n-of-max = Oui, compte pour { $n } sur { $max }
 
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 

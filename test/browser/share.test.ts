@@ -82,7 +82,11 @@ test('the table of where the link fits states every limit, what it counts, and w
   expect(rows.short).toEqual(['a short link', `${fmt(SHORT_LINK_MAX)} bytes`, left(SHORT_LINK_MAX)]);
   expect(rows.qr).toEqual(['a QR code', `${fmt(QR_MAX_BYTES)} bytes`, left(QR_MAX_BYTES)]);
   expect(rows.link).toEqual(['older browsers', `${fmt(URL_LIMIT)} characters`, left(URL_LIMIT)]);
-  expect(rows.mastodon).toEqual(['Mastodon', '500 characters', 'Yes, a link counts as 23']);
+  expect(rows.mastodon).toEqual(['Mastodon', 'None published', 'Yes, counts as 23 of 500']);
+  // Tightest first, the posts with no published limit after, the browsers last.
+  const order = [...table.querySelectorAll('tbody tr')].map((tr) => tr.getAttribute('data-target'));
+  expect(order.slice(0, 3)).toEqual(['sms', 'ntag215', 'ntag216']);
+  expect(order.slice(-3)).toEqual(['firefox', 'chrome', 'safari']);
   expect(rows.sms).toEqual(['a text message', '160 characters', left(160)]);
   expect(table.querySelector('tr.over')).toBeNull();
   // At this phone's width each place is a line, its limit and the answer under it: nothing scrolls sideways.
