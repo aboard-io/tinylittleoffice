@@ -103,6 +103,39 @@ editor's alone.
 Edits are applied in the relay's order as they were written: two people editing the same place at once is not merged
 (an edit that no longer applies is refused as `bad-ops`), which live edits will need to answer.
 
+## Where it runs
+
+Paul, 2026-10-16: "This should probably have its own mini domain like group.tinylittleoffice.com right? Maybe each
+group gets its own db? Sort of multi tenant and that will map to d1 on Cloudflare."
+
+**Its own domain: yes, `group.tinylittleoffice.com`.** A browser keeps a site's storage by origin, so a device's private
+keys, held in IndexedDB, live under `group.` alone: nothing served at `tinylittleoffice.com` (a page, a preview card, a
+template) can reach them. Its Content-Security-Policy can be stricter than the main site's (no map tiles, no
+geocoder, `connect-src` its own relay alone), and its Worker and its data are apart from the main site's, so a fault
+or a free tier's limit in one never stops the other. A plain document opened there is still a plain link; only a
+group's address (`group.tinylittleoffice.com/g/<id>`) needs the relay.
+
+**A database per group: yes, as a Durable Object rather than a D1 database.** Each group having its own store is the
+right shape: one group's messages never sit beside another's, a group is deleted by deleting its store, and nothing
+one group does slows another. On Cloudflare that is a Durable Object with SQLite storage, one object per group,
+found by name (`idFromName(groupId)`) and made the first time it is asked for:
+
+- it is a SQLite database of its own (the same `SQL` surface `store.ts` already uses), created on demand, with no
+  binding to add or deploy to make per group;
+- one object runs one request at a time, so the relay's order of messages (`seq`) is the object's, with no race;
+- it holds the group's WebSockets (with hibernation, so an idle group costs nothing), which is what live edits and
+  presence need;
+- it lives near its first user, and moves nowhere it is not asked.
+
+D1 databases per group would work on paper, but a Worker reaches a D1 database through a binding fixed at deploy, so a
+new group's database could only be queried through Cloudflare's REST API, slowly and with an account token in the
+Worker. D1 stays the right place for what is shared across groups: the directory cache of device keys, and the daily
+brakes against abuse.
+
+**Self-hosting keeps the same shape:** one SQLite file per group in a directory (`data/groups/<id>.sqlite`), opened on
+first use and closed when idle, behind the same Node process as the rest (`selfhost/server.ts`), on a third port or a
+path.
+
 ## The threat model, in plain words
 
 - **What the relay sees.** Ciphertext and its size, when each thing came, which DID and device wrote it, who is in
@@ -125,7 +158,10 @@ Edits are applied in the relay's order as they were written: two people editing 
 ## TODO
 
 - [ ] atproto OAuth sign-in, and publishing device keys to a real repository (`com.tinylittleoffice.deviceKey`)
-- [ ] the relay over HTTP and WebSocket: a Worker, and the self-host process
+- [ ] `group.tinylittleoffice.com`: its own Worker and policy, the client's keys kept under that origin alone
+- [ ] the relay as a Durable Object per group (SQLite storage, WebSockets with hibernation), and the self-host
+      process with a SQLite file per group
+- [ ] D1 for what crosses groups: the device-key directory's cache and the daily brakes
 - [ ] the Share dialog's Invite by handle, and the member list
 - [ ] live edits and presence
 - [ ] comments in the editor
