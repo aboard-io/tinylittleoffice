@@ -103,7 +103,10 @@ storage encryption. See the next section for what that leaves open.
 Content-Security-Policy's `connect-src` and `img-src` name the only places the browser will let the site
 reach, and it has no `frame-src` or `media-src` of another site's (`public/_headers`, held by
 `test/csp.test.ts`), and the pages are served `no-transform` so Cloudflare does not add its analytics beacon
-(which the policy would block anyway).
+(which the policy would block anyway): the site's pages, its `/c/` card pages, and the short link's landing page on
+tinier. Two of Cloudflare's zone settings write scripts into pages no header stops, and both are kept off in the
+dashboard: Web Analytics, and Bot Fight Mode's JavaScript detections (Security → Bots), whose
+`/cdn-cgi/challenge-platform/` script was found on the short link's landing page on 2026-10-16.
 
 ## What it does not protect against
 
