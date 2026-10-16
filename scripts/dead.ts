@@ -33,7 +33,7 @@ const EXEMPT: { why: string; test: (path: string, name: string, source: string) 
   },
   {
     why: 'the group documents’ core (issue #21), its first milestone: no page calls it until the Share dialog’s Invite does (docs/groups.md, TODO), so its tests are its callers; this goes when that lands',
-    test: (path) => /^src\/kit\/share\/group(-[a-z]+)?\.ts$/.test(path),
+    test: (path) => /^src\/kit\/group\/[a-z]+\.ts$/.test(path),
   },
   { why: 'a custom element’s class: the page names it by its tag, not its class', test: (_p, name, source) => new RegExp(`customElements\\.define\\([^)]*\\b${name}\\)`).test(source) },
 ];

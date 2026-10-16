@@ -9,9 +9,9 @@
 import { applyAll, parse, write, type Doc, type Op } from '../../doc/index.ts';
 import { toBase64Url } from '../core/codec.ts';
 import { groupState, newEpochKey, signChange, unwrap, wrap, type EpochKey, type GroupState, type Member, type Role } from './group.ts';
-import { openEnvelope, seal, type Body, type Rejection } from './group-envelope.ts';
-import type { Device, Directory } from './group-keys.ts';
-import type { GroupStore } from './group-store.ts';
+import { openEnvelope, seal, type Body, type Rejection } from './envelope.ts';
+import type { Device, Directory } from './keys.ts';
+import type { GroupStore } from './store.ts';
 
 /** Why an envelope did not count: the envelope's reasons, or one of another group's, one written in an epoch already left, one seen before, or edits that do not apply. */
 export type Reason = Rejection | 'wrong-group' | 'stale-epoch' | 'replayed' | 'bad-ops';

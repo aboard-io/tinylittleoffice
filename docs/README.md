@@ -5,7 +5,7 @@ Tiny Little Office is; start here for how it is made and why.
 
 ## Design
 
-- [kernel.md](kernel.md): the document kernel, the one editor and the shell: the model, TLO as the one parser, the operations, the formula engine, and the kit's six folders and where a new file goes.
+- [kernel.md](kernel.md): the document kernel, the one editor and the shell: the model, TLO as the one parser, the operations, the formula engine, and the kit's seven folders and where a new file goes.
 - [editing.md](editing.md): the one editing standard every app keeps, by keyboard, pointer and finger.
 - [tlo.md](tlo.md): the document format, as a person or a language model learns it.
 - [exports.md](exports.md): the files each app's documents become, and the apps they open in (generated).

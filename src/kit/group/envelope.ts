@@ -9,7 +9,7 @@
 import type { Op } from '../../doc/index.ts';
 import { fromBase64Url, toBase64Url } from '../core/codec.ts';
 import type { EpochKey, GroupState } from './group.ts';
-import { canonical, deviceOf, sign, subtle, verify, type Device, type Directory } from './group-keys.ts';
+import { canonical, deviceOf, sign, subtle, verify, type Device, type Directory } from './keys.ts';
 
 /** What an envelope holds once opened. */
 export type Body = { kind: 'ops'; ops: Op[] } | { kind: 'comment'; block?: number; text: string } | { kind: 'snapshot'; text: string };

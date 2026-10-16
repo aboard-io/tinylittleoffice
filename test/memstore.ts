@@ -2,9 +2,9 @@
 import { dayOf } from '../tinier/brake.ts';
 import type { Card } from '../tinier/cards.ts';
 import type { Link, Store } from '../tinier/tinier.ts';
-import type { Change, Wrapped } from '../src/kit/share/group.ts';
-import type { Envelope } from '../src/kit/share/group-envelope.ts';
-import type { GroupStore } from '../src/kit/share/group-store.ts';
+import type { Change, Wrapped } from '../src/kit/group/group.ts';
+import type { Envelope } from '../src/kit/group/envelope.ts';
+import type { GroupStore } from '../src/kit/group/store.ts';
 
 /** The rows in Maps: what D1 does, for the test. */
 export class MemStore implements Store {

@@ -6,7 +6,7 @@
  * and the self-hosted process's node:sqlite run the same statements; the tests keep them in Maps too. No HTTP yet.
  */
 import type { SQL } from '../../../tinier/d1.ts';
-import type { Envelope } from './group-envelope.ts';
+import type { Envelope } from './envelope.ts';
 import type { Change, Wrapped } from './group.ts';
 
 export interface GroupStore {

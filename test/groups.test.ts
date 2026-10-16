@@ -5,11 +5,11 @@ import { describe, expect, test } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { parse, type Op } from '../src/doc/index.ts';
 import { sqlite } from '../selfhost/sqlite.ts';
-import { GroupClient } from '../src/kit/share/group-client.ts';
-import { groupState, newEpochKey, signChange, unwrap } from '../src/kit/share/group.ts';
-import { seal, type Envelope } from '../src/kit/share/group-envelope.ts';
-import { newDevice, type Device, type DeviceRecord, type Directory } from '../src/kit/share/group-keys.ts';
-import { SqlGroupStore, type GroupStore } from '../src/kit/share/group-store.ts';
+import { GroupClient } from '../src/kit/group/client.ts';
+import { groupState, newEpochKey, signChange, unwrap } from '../src/kit/group/group.ts';
+import { seal, type Envelope } from '../src/kit/group/envelope.ts';
+import { newDevice, type Device, type DeviceRecord, type Directory } from '../src/kit/group/keys.ts';
+import { SqlGroupStore, type GroupStore } from '../src/kit/group/store.ts';
 import { MemGroupStore } from './memstore.ts';
 
 const ALICE = 'did:plc:alice';

@@ -448,9 +448,9 @@ says in the order it says it, and the pages are a picture of it.
 
 ---
 
-## 11. The kit's six folders
+## 11. The kit's seven folders
 
-`src/kit/` is what every app shares: the shell that holds an app, the editor, drawing, files, and sharing. It is six
+`src/kit/` is what every app shares: the shell that holds an app, the editor, drawing, files, and sharing. It is seven
 folders, and nothing sits beside them. Every file begins by saying what it does; this section says where a file goes.
 
 - [core/](../src/kit/core/): the contract between an app and the shell, and the link: the app definition and the registry, the shell, commands and keys, the strings, the store, the route, the codec, the one voice (`toast()`, which the page's toast shows).
@@ -458,10 +458,14 @@ folders, and nothing sits beside them. Every file begins by saying what it does;
 - [text/](../src/kit/text/): the editor's model and its commands: `<to-text>`, its operations, the clipboard, history, rows and columns, the diff, and a document's text layer.
 - [draw/](../src/kit/draw/): drawing pages and what is drawn on them: the page, charts, the icons and emoji, QR codes, the mark, a preview card's picture, motion and steps.
 - [file/](../src/kit/file/): a document as a file, in and out: every export, PDF, GIF, WebM, zip, XLSX, CSV, ICS, and opening a file dropped on the page.
-- [share/](../src/kit/share/): sharing, sealing and keeping: short links, preview cards, passwords and sealing, privacy, the library of kept documents and its search, the site kept for offline (the service worker under Save in browser), and documents for small groups (`group-*.ts`, docs/groups.md).
+- [share/](../src/kit/share/): sharing, sealing and keeping: short links, preview cards, passwords and sealing, privacy, the library of kept documents and its search, the site kept for offline (the service worker under Save in browser).
 
-A new file goes in the folder whose line fits it. A file that fits none is a sign the design wants a word first, not a
-seventh folder or a file at the root.
+- [group/](../src/kit/group/): a document a small group reads, edits and talks about, encrypted: device keys, the group's
+  members and keys by epoch, the sealed and signed envelopes, the relay's store and the client (docs/groups.md; Paul,
+  2026-10-16: "A new folder called group is fine").
+
+A new file goes in the folder whose line fits it. A file that fits none is a sign the design wants a word first, not an
+eighth folder or a file at the root.
 
 Every import names its file (`'../../kit/draw/draw.ts'`): there is no barrel `index.ts` and no path alias, so a file
 says what it reaches for and the build leaves out what nothing reaches. A document the kit carries is kept beside the

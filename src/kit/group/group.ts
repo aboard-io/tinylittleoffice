@@ -7,7 +7,7 @@
  * change only when an editor of the group as it stood made it. docs/groups.md says the design and what it leaves open.
  */
 import { fromBase64Url, toBase64Url } from '../core/codec.ts';
-import { deviceOf, ECDH, sign, subtle, verify, type Device, type DeviceRecord, type Directory } from './group-keys.ts';
+import { deviceOf, ECDH, sign, subtle, verify, type Device, type DeviceRecord, type Directory } from './keys.ts';
 
 export type Role = 'editor' | 'viewer';
 export interface Member {
