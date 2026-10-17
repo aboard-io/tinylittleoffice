@@ -2,10 +2,10 @@
 // is the document the page is told, undo is answered inside it, and where a placed document opens is the host's answer,
 // never the address, and the page's own commands are declared, drawn and answered as the kit's are. A page that shares
 // the document hears each change as its ops, and hands another's in. No shell is on the page: this file imports none of
-// it.
+// it. A page that only shows a document mounts it read-only and hears an item activated in it.
 import { html, render } from 'lit';
 import { expect, test } from 'vitest';
-import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup } from '../../src/editors.ts';
+import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup, type DocPick, type Picked } from '../../src/editors.ts';
 import { trace } from '../../src/kit/core/commands.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
@@ -269,4 +269,91 @@ test('the page keeps its own body and the editors keep their look: the styleshee
     runner.forEach((s) => (s.disabled = false));
     own.remove();
   }
+});
+
+/** An editor of `app` mounted read-only over `text` on a bare page, what the page was told, and the picks it heard. */
+async function shown(app: string, text: string) {
+  document.body.innerHTML = '<main class="to-main"></main>';
+  const changes: string[] = [];
+  const { editor } = await mount(app, text, document.querySelector('main')!, (t) => changes.push(t), { readOnly: true });
+  const picks: Picked[] = [];
+  editor.addEventListener('docpick', (e) => picks.push((e as DocPick).detail));
+  return { editor: editor as typeof editor & { updateComplete: Promise<boolean> }, changes, picks };
+}
+const key = (el: Element, key: string, init: KeyboardEventInit = {}) => el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+
+test('a calendar mounted read-only: no tools, an event clicked or entered is picked with its block, day and time, and nothing edits it', async () => {
+  const now = new Date();
+  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const text = `- ${day} 09:00-10:00: Standup\n`;
+  const { editor, changes, picks } = await shown('cal', text);
+  expect(editor.hasAttribute('readonly')).toBe(true);
+  // Where you are is still moved through; nothing that makes or colours is drawn, and no undo.
+  expect(editor.querySelector('to-bar .to-datenav')).not.toBeNull();
+  expect(editor.querySelectorAll('to-insert, .cal-view, .cal-ink, .cal-zone, .cmd-kit-undo, .cmd-kit-redo')).toHaveLength(0);
+  const chip = editor.querySelector<HTMLElement>('.cal-chip')!;
+  chip.click();
+  expect(picks).toStrictEqual([{ at: 0, date: day, time: '09:00' }]);
+  // Picked, not opened: the dialog the one who edits gets is never shown.
+  expect(editor.querySelector('dialog[open]')).toBeNull();
+  // Enter on the event picks it too; a day tapped makes nothing.
+  chip.focus();
+  key(chip, 'Enter');
+  expect(picks).toHaveLength(2);
+  editor.querySelector<HTMLElement>('.cal-cell:not(.out) .cal-n')!.click();
+  await editor.updateComplete;
+  expect(editor.querySelector('dialog[open]')).toBeNull();
+  // What would edit it changes nothing: a letter typed, Delete and Mod+D on the event, a paste, Mod+Z.
+  chip.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: 'x', bubbles: true, cancelable: true }));
+  key(chip, 'Delete');
+  key(chip, 'd', { ctrlKey: true });
+  key(chip, 'z', { ctrlKey: true });
+  await editor.updateComplete;
+  expect(changes).toStrictEqual([]);
+  expect(editor.value).toBe(text);
+  expect(picks).toHaveLength(2);
+});
+
+test('words mounted read-only are shown, not edited: no bar, not editable, still in the focus order, and typing changes nothing', async () => {
+  const { editor, changes } = await shown('write', 'Hello.\n');
+  expect(editor.querySelector('to-bar')).toBeNull();
+  expect(editor.querySelector('[contenteditable=true]')).toBeNull();
+  const box = editor.querySelector<HTMLElement>('to-text .tx')!;
+  expect([box.getAttribute('contenteditable'), box.getAttribute('aria-readonly'), box.tabIndex]).toStrictEqual(['false', 'true', 0]);
+  box.focus();
+  expect(document.activeElement).toBe(box);
+  const typed = new InputEvent('beforeinput', { inputType: 'insertText', data: 'x', bubbles: true, cancelable: true, composed: true });
+  box.dispatchEvent(typed);
+  expect(typed.defaultPrevented).toBe(true);
+  key(box, 'Enter');
+  key(box, 'z', { ctrlKey: true });
+  await editor.updateComplete;
+  expect(changes).toStrictEqual([]);
+  // Set editable again, the words are typed in as ever.
+  editor.readOnly = false;
+  await editor.updateComplete;
+  await until(() => !!editor.querySelector('to-bar') && !!editor.querySelector('[contenteditable=true]'), 'the editor never came back editable');
+});
+
+test('a board mounted read-only: a card activated is picked with its row, by a click or Enter on its grip, and never carried', async () => {
+  const board = '---\nlanes: To do, Done\n---\nTask | Status:option\n--- | ---\nWrite the brief | To do\nBook the room | Done\n';
+  const { editor, changes, picks } = await shown('board', board);
+  expect(editor.querySelector('to-bar')).toBeNull();
+  expect(editor.querySelector('.board-more')).toBeNull();
+  const card = (row: number) => editor.querySelector<HTMLElement>(`.board-card[data-row="${row}"]`)!;
+  card(1).querySelector<HTMLElement>('.board-fields, .board-main')!.click();
+  expect(picks).toStrictEqual([{ at: 0, row: 1 }]);
+  const grip = card(0).querySelector<HTMLElement>('.board-grip')!;
+  grip.focus();
+  key(grip, 'Enter');
+  expect(picks.at(-1)).toStrictEqual({ at: 0, row: 0 });
+  // A press on the grip starts no carry, and a double click opens no card.
+  grip.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1, clientX: 5, clientY: 5 }));
+  grip.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerId: 1, clientX: 5, clientY: 300 }));
+  card(0).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  key(grip, 'Enter', { altKey: true });
+  await editor.updateComplete;
+  expect(editor.querySelector('.board-card.dragging, dialog[open]')).toBeNull();
+  expect(changes).toStrictEqual([]);
+  expect(editor.value).toBe(board);
 });

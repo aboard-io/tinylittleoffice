@@ -35,7 +35,7 @@ import COMMANDS, { EDIT, SHOW } from './commands.ts';
 import { docToHtml, linkToFence, pasteFrom, plainOf } from '../../kit/text/clipboard.ts';
 import { editFence, editTable, makeDoc, newTable } from '../../kit/ui/doc-dialog.ts';
 import { pageSvg } from '../../kit/draw/draw.ts';
-import { DocElement, firstAt, type Entry } from '../../kit/core/element.ts';
+import { DocElement, firstAt, type Entry, type Picked } from '../../kit/core/element.ts';
 import { icon, iconNamed, UI } from '../../kit/draw/icons.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { noteMarks, type NoteMark, type ToNotes } from '../../kit/draw/notes.ts';
@@ -454,6 +454,17 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   go(i: number) {
     this.cur = Math.max(0, Math.min(this.count - 1, i));
     this.sheets = false;
+  }
+  /** Read-only, a slide's thumbnail activated is picked (kit/core/element.ts): its first block, and its number, from 1. */
+  protected pickOf(el: Element): Picked | null {
+    const thumb = el.closest<HTMLElement>('.deck-thumb[data-i]');
+    if (!thumb || !this.contains(thumb)) return null;
+    const i = Number(thumb.dataset.i);
+    return { at: this.slides[i]?.from ?? this.doc.blocks.length, slide: i + 1 };
+  }
+  /** …and shown, as a tap on it shows it to the one who edits. */
+  protected chose(pick: Picked) {
+    this.go(Number(pick.slide) - 1);
   }
   /** A new slide after this one, of a layout, opened with the caret in its headline. */
   newSlide(layout: Layout = '', blocks?: Block[]) {
@@ -1056,19 +1067,23 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const size = pageSize(st);
     const own = (id: string) => COMMANDS.find((c) => c.id === `deck.${id}`)!;
     const x = this.current;
-    return html`<to-bar class="deck-bar">
-        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
-        ${g ? cmdTool(own('sheets'), this, { cls: 'deck-present' }) : cmdTool(own('present'), this, { cls: 'deck-present' })}
-        ${[BOLD, ITALIC, UNDERLINE, STRIKE, HIGHLIGHT, CODE, LINK].map((c) => cmdTool(c, x))}
-        ${cmdTool(FOOTNOTE, x, { disabled: !x })}
-        ${cmdTool(own('icon'), this)}
-        ${cmdTool(OUTDENT, x, { disabled: !canIndent })} ${cmdTool(INDENT, x, { disabled: !canIndent })}
-        ${cmdMenu(own('layout'), this, COMMANDS, 'deck-layout')} ${cmdMenu(own('look'), this, COMMANDS, 'deck-look')}
-        ${g ? nothing : cmdMenu(own('transition'), this, COMMANDS, 'deck-transition')}
-        ${cmdMenu(own('format'), this, COMMANDS, 'deck-format')}
-        ${cmdTool(own('qr'), this)} ${cmdTool(own('up'), this)} ${cmdTool(own('down'), this)} ${cmdTool(own('delete'), this)}
-        ${this.undoTools()}
-      </to-bar>
+    return html`${
+      this.readOnly
+        ? nothing
+        : html`<to-bar class="deck-bar">
+            <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+            ${g ? cmdTool(own('sheets'), this, { cls: 'deck-present' }) : cmdTool(own('present'), this, { cls: 'deck-present' })}
+            ${[BOLD, ITALIC, UNDERLINE, STRIKE, HIGHLIGHT, CODE, LINK].map((c) => cmdTool(c, x))}
+            ${cmdTool(FOOTNOTE, x, { disabled: !x })}
+            ${cmdTool(own('icon'), this)}
+            ${cmdTool(OUTDENT, x, { disabled: !canIndent })} ${cmdTool(INDENT, x, { disabled: !canIndent })}
+            ${cmdMenu(own('layout'), this, COMMANDS, 'deck-layout')} ${cmdMenu(own('look'), this, COMMANDS, 'deck-look')}
+            ${g ? nothing : cmdMenu(own('transition'), this, COMMANDS, 'deck-transition')}
+            ${cmdMenu(own('format'), this, COMMANDS, 'deck-format')}
+            ${cmdTool(own('qr'), this)} ${cmdTool(own('up'), this)} ${cmdTool(own('down'), this)} ${cmdTool(own('delete'), this)}
+            ${this.undoTools()}
+          </to-bar>`
+    }
       ${
         this.sheets && g
           ? this.renderSheets()

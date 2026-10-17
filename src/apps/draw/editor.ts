@@ -468,7 +468,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   }
 
   private onDown(e: PointerEvent) {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || this.readOnly) return;
     // No mouse events after a touch: their mousedown would take the focus from words just opened by this tap.
     e.preventDefault();
     if (this.pinching) return;
@@ -1024,7 +1024,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   render() {
     const v = this.view;
-    return html`${v.grid ? this.renderPixelBar() : this.renderBar()}
+    return html`${this.readOnly ? nothing : v.grid ? this.renderPixelBar() : this.renderBar()}
       <p class="draw-hint to-hint">${this.hint()}</p>
       ${v.grid ? this.renderPixels() : this.renderCanvas()}
       <to-context class="draw-context" .label=${t('draw-shape-in-hand')} .items=${this.contextItems()}></to-context>

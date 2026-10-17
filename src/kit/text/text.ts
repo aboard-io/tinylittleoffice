@@ -74,6 +74,9 @@
  * emoji are offered. While it is open the editor is a combobox's box: `aria-autocomplete="list"`, its
  * `aria-activedescendant` the highlighted row.
  *
+ * Inside a read-only editor (kit/core/element.ts) the words are shown and not edited: not contenteditable, but still a
+ * stop in the focus order (aria-readonly), and its keys are not answered here.
+ *
  * Nothing here calls execCommand, sets innerHTML, or reads it.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -367,6 +370,10 @@ export class ToText extends LitElement {
   /** The blocks as drawn: an editor with none shows one empty paragraph to type into. */
   get model(): Block[] {
     return this.blocks.length ? this.blocks : [EMPTY];
+  }
+  /** Inside a read-only editor: shown, not edited (the header). */
+  get locked(): boolean {
+    return !!this.closest('[readonly]');
   }
   /** The editable box. */
   get tx(): HTMLElement {
@@ -750,7 +757,7 @@ export class ToText extends LitElement {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (this.ownEvent(e) || e.isComposing || this.composing) return;
+    if (this.ownEvent(e) || e.isComposing || this.composing || this.locked) return;
     const chip = (e.target as HTMLElement).closest?.('.fn');
     if (chip && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
@@ -1325,6 +1332,7 @@ export class ToText extends LitElement {
     let notes = this.noteStart;
     const next = () => ++notes;
     const blank = model.length === 1 && isWords(model[0]) && !model[0].runs.length;
+    const locked = this.locked;
     // A line is one block whose host says what is round it (a task's row has its own box): no list there.
     const places = this.shape === 'line' ? [] : listPlaces(model);
     // Each block drawn in order (the numbers and the notes count as they go), then placed: a run of items is one list.
@@ -1342,7 +1350,9 @@ export class ToText extends LitElement {
     // Nothing but the blocks inside the box: it keeps white space as typed, so a newline of this template would be a line.
     return html`<div
         class="tx ${blank ? 'blank' : ''}"
-        contenteditable="true"
+        contenteditable=${locked ? 'false' : 'true'}
+        tabindex=${locked ? '0' : nothing}
+        aria-readonly=${locked ? 'true' : nothing}
         role="textbox"
         aria-multiline=${this.shape === 'line' ? 'false' : 'true'}
         aria-label=${this.label || nothing}

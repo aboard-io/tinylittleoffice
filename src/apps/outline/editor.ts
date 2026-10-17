@@ -39,7 +39,7 @@ import { fold } from '../../kit/share/search.ts';
 import { reveal } from '../../kit/ui/scroll.ts';
 import { editFence, makeDoc } from '../../kit/ui/doc-dialog.ts';
 import { pageSvg } from '../../kit/draw/draw.ts';
-import { DocElement, firstAt, type Entry } from '../../kit/core/element.ts';
+import { DocElement, firstAt, type Entry, type Picked } from '../../kit/core/element.ts';
 import { icon, UI } from '../../kit/draw/icons.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { dateWords } from '../../kit/core/dates.ts';
@@ -592,6 +592,12 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private landing(ops: Op[], at: number): number {
     const move = ops.find((o) => o.op === 'move');
     return move && move.op === 'move' ? move.to : at;
+  }
+  /** Read-only, an item activated (its row, anything on it) is picked (kit/core/element.ts): its block, and its place among the items, from 0. */
+  protected pickOf(el: Element): Picked | null {
+    const row = el.closest<HTMLElement>('.ol-row[data-at]');
+    const at = Number(row?.dataset.at ?? -1);
+    return row && at >= 0 && this.contains(row) ? { at, item: indexAt(this.view, at) } : null;
   }
   fold(at: number, shut = !this.folded.has(at)) {
     this.edit(setShut(this.doc, at, shut));
@@ -1177,7 +1183,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const numbers = this.doc.blocks.map((b) => count(b));
     const s = this.rows.range ? this.rows.span() : null;
     const rows = items.length ? vis : [{ at: -1, depth: this.base, runs: [] } as Item];
-    return html`${this.renderBar()}
+    return html`${this.readOnly ? nothing : this.renderBar()}
       ${c ? html`<p class="ol-hint to-hint" role="status">${c.from < 0 ? t('outline-tap-item-to-connect-from') : t('outline-tap-item-to-connect-words', { words: plainText(this.itemAt(c.from)?.runs ?? []).trim() })}</p>` : nothing}
       ${this.crumbs()}
       <div class="ol ${c ? 'connecting' : ''}" role="tree" tabindex="-1" aria-multiselectable="true" aria-label=${t('common-outline')}>

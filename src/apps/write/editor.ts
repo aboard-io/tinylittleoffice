@@ -309,8 +309,8 @@ export class ToWriteEditor extends DocElement<Doc> {
           <dd>
             ${
               tall
-                ? html`<textarea id="write-field-${k}" rows=${Math.max(2, lines.length)} .value=${lines.join('\n')} @change=${(e: Event) => this.setField(k, (e.target as HTMLTextAreaElement).value)}></textarea>`
-                : html`<input id="write-field-${k}" type=${k === 'date' || k === 'due' ? 'date' : 'text'} .value=${v} @change=${(e: Event) => this.setField(k, (e.target as HTMLInputElement).value)} />`
+                ? html`<textarea id="write-field-${k}" rows=${Math.max(2, lines.length)} ?readonly=${this.readOnly} .value=${lines.join('\n')} @change=${(e: Event) => this.setField(k, (e.target as HTMLTextAreaElement).value)}></textarea>`
+                : html`<input id="write-field-${k}" type=${k === 'date' || k === 'due' ? 'date' : 'text'} ?readonly=${this.readOnly} .value=${v} @change=${(e: Event) => this.setField(k, (e.target as HTMLInputElement).value)} />`
             }
           </dd>
         </div>`;
@@ -603,7 +603,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     const look = lookOf(this.doc);
     const words = wordCount(this.doc);
     const key = (this.barDrawn = this.barKey());
-    return html`${guard([key], () => this.renderBar())}
+    return html`${this.readOnly ? nothing : guard([key], () => this.renderBar())}
       <div class="write-page" data-paper=${paper} data-look=${look.id}>
         ${this.renderFields()}
         <to-text class="write-text" shape="doc" notes .blocks=${this.doc.blocks} .card=${this.card} label=${t('write-document')} placeholder=${t('write-here')} @text-ops=${this.onOps} @text-select=${this.onSelect} @text-embed=${this.onCardTap} @text-note=${this.onNote}></to-text>

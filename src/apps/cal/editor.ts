@@ -27,7 +27,7 @@ import COMMANDS, { AT } from './commands.ts';
 import { clipText, docToHtml, GENERATOR, htmlToBlocks } from '../../kit/text/clipboard.ts';
 import type { ContextEntry } from '../../kit/ui/context.ts';
 import type { ToDialog } from '../../kit/ui/dialog.ts';
-import { DocElement, firstAt, type Entry } from '../../kit/core/element.ts';
+import { DocElement, firstAt, type Entry, type Picked } from '../../kit/core/element.ts';
 import { Rows, type Clip, type DropHow, type RowItem, type RowRange, type RowSpan } from '../../kit/text/rows.ts';
 import { icon, UI, type IconNode } from '../../kit/draw/icons.ts';
 import { t } from '../../kit/core/i18n.ts';
@@ -307,6 +307,7 @@ export class ToCalEditor extends DocElement<CalView> {
    * on something that takes no focus opened it, to `back`: the day's button, the entry, the task's grip.
    */
   private async openDraft(item: Item | null, d: Draft, after?: Item, back?: string) {
+    if (this.readOnly) return;
     const had = document.activeElement as HTMLElement | null;
     const mine = had && had !== document.body && this.contains(had) ? had : null;
     this.opener = () => (mine?.isConnected ? mine : back ? this.querySelector<HTMLElement>(back) : null);
@@ -455,7 +456,7 @@ export class ToCalEditor extends DocElement<CalView> {
     return cell ? parseInt(cell.dataset.day!, 10) : null;
   }
   private onCellDown = (e: PointerEvent, day: number) => {
-    if (e.button !== 0 || (e.target as Element).closest('.cal-chip')) return;
+    if (e.button !== 0 || this.readOnly || (e.target as Element).closest('.cal-chip')) return;
     this.drag = { from: day, to: day, moved: false };
   };
   private onGridMove = (e: PointerEvent) => {
@@ -479,6 +480,24 @@ export class ToCalEditor extends DocElement<CalView> {
     if (this.dragged || (e.target as Element).closest('.cal-chip')) return;
     this.create(day);
   };
+
+  /**
+   * Read-only, an entry activated is picked (kit/core/element.ts): its item's block and when it starts, in the viewer's
+   * zone (the day, and the time of a timed one: a repeat's own time, the one tapped); a task on the schedule says its row.
+   */
+  protected pickOf(el: Element): Picked | null {
+    const thing = el.closest('.cal-chip, .cal-agenda-item, .cal-trow, .cal-chart [data-at]');
+    const it = thing && this.contains(thing) ? this.item(Number(thing.getAttribute('data-at'))) : undefined;
+    if (!it) return null;
+    const start = Number(thing!.getAttribute('data-start') ?? it.start);
+    if (it.kind === 'd') return { at: it.at, date: dayString(start), ...this.rowOf(it) };
+    const p = utcToParts(spanStartMs({ ...it, start }), this.zone);
+    return { at: it.at, date: ymdString(p.y, p.m, p.d), time: clockString(p), ...this.rowOf(it) };
+  }
+  /** A task's row on the schedule, from the first; nothing on the month. */
+  private rowOf(it: Item): Record<string, number> {
+    return this.view.gantt ? { row: ganttBars(this.view).findIndex((b) => b.item === it) } : {};
+  }
 
   /* ---------- the schedule: drag a bar, keys on a task ---------- */
 
@@ -903,13 +922,18 @@ export class ToCalEditor extends DocElement<CalView> {
     const docZone = v.zone;
     const ink = CAL_COLORS[this.ink];
     const own = (id: string) => COMMANDS.find((c) => c.id === `cal.${id}`)!;
+    // Read-only, where you are is still moved through (back, on, Today), and nothing else is drawn.
     return html`<to-bar class="cal-bar">
         ${this.nav()}
-        ${cmdMenu(own('view'), this, COMMANDS, 'cal-view', { icon: v.gantt ? ChartGantt : this.mode === 'year' ? Grid3x3 : CalendarDays })}
-        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
-        ${cmdMenu(own('ink'), this, COMMANDS, 'cal-ink', { icon: dot(ink.hex) })}
-        ${cmdBtn(own('zone'), this, { cls: 'cal-zone', keep: false })}
-        ${this.undoTools()}
+        ${
+          this.readOnly
+            ? nothing
+            : html`${cmdMenu(own('view'), this, COMMANDS, 'cal-view', { icon: v.gantt ? ChartGantt : this.mode === 'year' ? Grid3x3 : CalendarDays })}
+                <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+                ${cmdMenu(own('ink'), this, COMMANDS, 'cal-ink', { icon: dot(ink.hex) })}
+                ${cmdBtn(own('zone'), this, { cls: 'cal-zone', keep: false })}
+                ${this.undoTools()}`
+        }
       </to-bar>
       ${v.gantt ? this.renderGantt() : this.mode === 'year' ? this.renderYear() : this.renderMonth()}
       ${this.rows.renderContext()}
@@ -973,7 +997,7 @@ export class ToCalEditor extends DocElement<CalView> {
             ${chips.map((s) => {
               const starts = s.kind === 'd' ? s.start === day : spanStartMs(s) >= dayStart;
               const ends = s.kind === 'd' ? s.start + s.dur - 1 === day : Math.max(spanEndMs(s), spanStartMs(s) + 1) <= dayEnd;
-              return html`<button type="button" class="cal-chip ${s.kind === 'd' ? 'day' : ''} ${starts ? '' : 'cont'} ${ends ? '' : 'more'}" data-at=${s.at} style="--c:${CAL_COLORS[s.color]?.hex ?? CAL_COLORS[''].hex}" title=${this.whenWords(s) + (s.repeat ? `, ${repeatText(s.repeat)}` : '')} @click=${() => this.open(s)}>${starts && s.kind === 't' ? html`<b>${this.chipTime(s)}</b> ` : nothing}${s.repeat && starts ? icon(RepeatIcon, 10, 'cal-rep') : nothing}${s.words || t('common-untitled')}</button>`;
+              return html`<button type="button" class="cal-chip ${s.kind === 'd' ? 'day' : ''} ${starts ? '' : 'cont'} ${ends ? '' : 'more'}" data-at=${s.at} data-start=${s.start} style="--c:${CAL_COLORS[s.color]?.hex ?? CAL_COLORS[''].hex}" title=${this.whenWords(s) + (s.repeat ? `, ${repeatText(s.repeat)}` : '')} @click=${() => this.open(s)}>${starts && s.kind === 't' ? html`<b>${this.chipTime(s)}</b> ` : nothing}${s.repeat && starts ? icon(RepeatIcon, 10, 'cal-rep') : nothing}${s.words || t('common-untitled')}</button>`;
             })}
           </div>`;
             })}</div>`,
@@ -1012,7 +1036,7 @@ export class ToCalEditor extends DocElement<CalView> {
         all.length
           ? all.map(
               (s) =>
-                html`<li><button type="button" class="cal-agenda-item" data-at=${s.at} style="--c:${CAL_COLORS[s.color]?.hex ?? CAL_COLORS[''].hex}" @click=${() => this.open(s, `.cal-agenda-item[data-at="${s.at}"]`)}><span class="when">${this.whenWords(s)}</span><span class="what">${s.words || t('common-untitled')}${s.repeat ? html` <small>${repeatText(s.repeat)}</small>` : nothing}</span></button></li>`,
+                html`<li><button type="button" class="cal-agenda-item" data-at=${s.at} data-start=${s.start} style="--c:${CAL_COLORS[s.color]?.hex ?? CAL_COLORS[''].hex}" @click=${() => this.open(s, `.cal-agenda-item[data-at="${s.at}"]`)}><span class="when">${this.whenWords(s)}</span><span class="what">${s.words || t('common-untitled')}${s.repeat ? html` <small>${repeatText(s.repeat)}</small>` : nothing}</span></button></li>`,
             )
           : html`<li class="to-hint">${t('cal-nothing-this-month')}</li>`
       }

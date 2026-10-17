@@ -32,7 +32,7 @@ import BOARD, { CHOSEN, WORDS } from './commands.ts';
 import { btn, cmdBtn, cmdTool } from '../../kit/ui/bar.ts';
 import { clipText, docToHtml } from '../../kit/text/clipboard.ts';
 import { choicesOf } from '../../kit/text/columns.ts';
-import { DocElement, type Entry } from '../../kit/core/element.ts';
+import { DocElement, type Entry, type Picked } from '../../kit/core/element.ts';
 import { host } from '../../kit/core/host.ts';
 import { icon, UI } from '../../kit/draw/icons.ts';
 import { t } from '../../kit/core/i18n.ts';
@@ -674,7 +674,7 @@ export class ToBoardEditor extends DocElement<View> {
   /** Alt+Enter, Open, a double click: the card's every cell a field of a dialog, the first field focused. */
   openCard(row: number): boolean {
     const c = this.cardAt(row);
-    if (!c) return false;
+    if (!c || this.readOnly) return false;
     const cells = (this.doc.blocks[this.view.at] as TableBlock).rows[row];
     const back = this.rows.range ? 'rows' : this.cur === row ? this.caretIn(row) : 'end';
     this.rows.release();
@@ -985,6 +985,11 @@ export class ToBoardEditor extends DocElement<View> {
     if (this.dragged) return void (this.dragged = false);
     this.rows.choose(c.row, e.shiftKey);
   };
+  /** Read-only, a card activated is picked (kit/core/element.ts): the table's block, and the card's row in it. */
+  protected pickOf(el: Element): Picked | null {
+    const card = el.closest<HTMLElement>('.board-card');
+    return card && this.contains(card) ? { at: this.view.at, row: Number(card.dataset.row) } : null;
+  }
   /** A tap on a card outside its title and grip (its fields, the space round them) chooses it, as a tap on its grip does. */
   private cardTap(c: Card, e: MouseEvent) {
     if ((e.target as HTMLElement).closest?.('to-text, button, input, a, [popover], dialog')) return;
@@ -1044,24 +1049,32 @@ export class ToBoardEditor extends DocElement<View> {
           @text-selectall=${(e: Event) => e.stopPropagation()}
         ></to-text>
         <span class="board-count">${l.cards.length}</span>
-        <button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('board-options-for-lane', { lane: l.name || '–' })} title=${t('board-lane-options')} @click=${(e: Event) => void this.openMenu(i, e.currentTarget as HTMLElement)}>
-          ${icon(Ellipsis, 18)}
-        </button>
+        ${this.readOnly ? nothing : this.laneMore(l, i)}
       </header>
       ${l.cards.length ? html`<ol class="board-cards ${end ? 'end' : ''}">${l.cards.map((c, j) => this.card(l, c, j, i))}</ol>` : html`<p class="to-hint board-none ${end ? 'end' : ''}">${t('board-no-cards')}</p>`}
     </section>`;
   }
+  /** A lane's menu's button: Rename lane, Add a card, Move left, Move right, Delete lane. */
+  private laneMore(l: Lane, i: number) {
+    return html`<button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('board-options-for-lane', { lane: l.name || '–' })} title=${t('board-lane-options')} @click=${(e: Event) => void this.openMenu(i, e.currentTarget as HTMLElement)}>
+          ${icon(Ellipsis, 18)}
+        </button>`;
+  }
   render() {
     const v = this.view;
-    return html`<to-bar class="board-bar">
-        <to-insert .items=${drawnIn(BOARD, 'menu:insert', this)}></to-insert>
-        ${cmdTool(
-          BOARD.find((c) => c.id === 'board.view.sheet')!,
-          this,
-        )}
-        <span class="to-hint board-total">${t('board-n-cards', { n: v.cards.length })}</span>
-        ${this.undoTools()}
-      </to-bar>
+    return html`${
+      this.readOnly
+        ? nothing
+        : html`<to-bar class="board-bar">
+            <to-insert .items=${drawnIn(BOARD, 'menu:insert', this)}></to-insert>
+            ${cmdTool(
+              BOARD.find((c) => c.id === 'board.view.sheet')!,
+              this,
+            )}
+            <span class="to-hint board-total">${t('board-n-cards', { n: v.cards.length })}</span>
+            ${this.undoTools()}
+          </to-bar>`
+    }
       <div class="board ${this.carrying >= 0 ? 'carrying' : ''}" role="group" tabindex="-1" aria-label=${t('board-board')}>${v.lanes.map((l, i) => this.lane(l, i))}</div>
       ${this.rows.renderContext()}
       <to-menu class="board-menu" .label=${this.menuLane ? t('board-options-for-lane', { lane: this.menuLane.name || '–' }) : t('board-lane-options')} .items=${drawnIn(BOARD, 'menu:lane', this)}></to-menu>

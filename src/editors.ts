@@ -14,7 +14,8 @@
  * new text on every edit; `mount` wires the two, and answers Mod+Z and Mod+Shift+Z inside it the way the site's page
  * does (kit/core/keys.ts), since the page the editor is in is where keys are heard. A page that shares a document
  * (docs/kernel.md §12) hears each change's ops too (`onOps`, the element's "docops") and hands another's in with
- * `applyRemote` (kit/core/element.ts).
+ * `applyRemote` (kit/core/element.ts). A page that only shows a document mounts it `readOnly`: nothing of it is edited,
+ * and an item activated in it (a calendar's entry, a board's card, a sheet's cell) is told in a "docpick" event.
  *
  * A page's own commands (its records, its board) are declared as the kit's and the apps' are (kit/core/commands.ts),
  * drawn by the same functions (cmdTool, cmdMenu, drawnIn) and answered by the same runKey; `mount` given them and
@@ -35,7 +36,7 @@ import { applySize } from './kit/ui/zoom.ts';
 import './kit/ui/toast.ts';
 
 export type { AppDef, DocChange, Editor } from './kit/core/app.ts';
-export type { DocOps } from './kit/core/element.ts';
+export type { DocOps, DocPick, Picked } from './kit/core/element.ts';
 export { host, type Host, type Placed } from './kit/core/host.ts';
 export { appOf, apps } from './kit/core/apps.ts';
 export { command, contextOf, drawnIn, inScope, keysText, labelOf, live, register, registered, run, runKey, type Command, type Drawn, type Where, type Words } from './kit/core/commands.ts';
@@ -76,12 +77,14 @@ export async function editorTag(app: string): Promise<string> {
 /**
  * What else a page gives `mount`: its own commands and the context they act on (the page's own: its records, its
  * board), and for a shared document `onOps`, told each change's ops and how many the editor had applied before them
- * (kit/core/element.ts DocOps), before `onChange` is told its text.
+ * (kit/core/element.ts DocOps), before `onChange` is told its text; `readOnly`, a document shown and not edited, drawn so
+ * from the first (the element's `readonly`: no bar, no typing, and a "docpick" for an item activated).
  */
 export interface Own<C> {
   commands?: readonly Command<C>[];
   context?: C;
   onOps?: (ops: Op[], base: number) => void;
+  readOnly?: boolean;
 }
 
 /** An editor mounted: the element, and what takes another's ops in (DocElement's `applyRemote`: applied, nothing told, the history carried over them). */
@@ -102,6 +105,7 @@ export async function mount<C>(app: string, text: string, into: Element, onChang
   const editor = document.createElement(tag) as Editor;
   editor.classList.add('to-editor');
   editor.value = text;
+  if (own?.readOnly) editor.readOnly = true;
   const onOps = own?.onOps;
   if (onOps) editor.addEventListener('docops', (e) => onOps((e as DocOps).detail.ops, (e as DocOps).detail.base));
   editor.addEventListener('docchange', (e) => onChange((e as DocChange).detail));

@@ -42,7 +42,7 @@ import type { TextOps, ToText, Sel } from '../../kit/text/text.ts';
 import { type ChartKind } from '../../kit/draw/chart.ts';
 import { clipText, docToHtml, GENERATOR, htmlToBlocks } from '../../kit/text/clipboard.ts';
 import { type ContextEntry, type ToContext } from '../../kit/ui/context.ts';
-import { DocElement, type Entry } from '../../kit/core/element.ts';
+import { DocElement, type Entry, type Picked } from '../../kit/core/element.ts';
 import { icon, UI } from '../../kit/draw/icons.ts';
 import { t } from '../../kit/core/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/ui/menu.ts';
@@ -246,8 +246,14 @@ export class ToSheetEditor extends DocElement<SheetView> {
   val(r: number, c: number) {
     return this.view.values[r]?.[c] ?? null;
   }
+  /** Whether a cell is locked: by the document's own lock, or every cell of a read-only sheet. */
   locked(r: number, c: number): boolean {
-    return isLocked(this.view.table.lock, r, c);
+    return this.readOnly || isLocked(this.view.table.lock, r, c);
+  }
+  /** Read-only, a cell activated is picked (kit/core/element.ts): the table's block, and the cell's row and column, from 0. */
+  protected pickOf(el: Element): Picked | null {
+    const td = el.closest<HTMLElement>('td[data-r]');
+    return td && this.contains(td) ? { at: this.view.at, row: Number(td.dataset.r), col: Number(td.dataset.c) } : null;
   }
   /** What the cell held when the focus came to it (from the cell or the formula strip), for Escape. */
   private remember(r: number, c: number) {
@@ -1114,14 +1120,18 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const gutter = `--sheet-row-w: calc(${String(this.drawn).length}ch + 0.5rem);`;
     const own = (id: string) => COMMANDS.find((x) => x.id === `sheet.${id}`)!;
     // The bar holds the same tools whatever is selected (a tool that does not apply is disabled, not gone), so it never changes shape under a finger.
-    return html`<to-bar class="sheet-bar">
-        ${cmdTool(own('letters'), this)}
-        <to-insert .items=${this.inserts()}></to-insert>
-        ${cmdMenu(own('chart'), this, COMMANDS, 'sheet-chartmenu', { words: true, caret: true })}
-        ${['filldown', 'fillright', 'fit', 'showall'].map((id) => cmdTool(own(id), this, id === 'filldown' ? { disabled: !this.many } : {}))}
-        ${cmdTool(own('lock'), this, { icon: locked ? Lock : LockOpen })}
-        ${this.undoTools()}
-      </to-bar>
+    return html`${
+      this.readOnly
+        ? nothing
+        : html`<to-bar class="sheet-bar">
+            ${cmdTool(own('letters'), this)}
+            <to-insert .items=${this.inserts()}></to-insert>
+            ${cmdMenu(own('chart'), this, COMMANDS, 'sheet-chartmenu', { words: true, caret: true })}
+            ${['filldown', 'fillright', 'fit', 'showall'].map((id) => cmdTool(own(id), this, id === 'filldown' ? { disabled: !this.many } : {}))}
+            ${cmdTool(own('lock'), this, { icon: locked ? Lock : LockOpen })}
+            ${this.undoTools()}
+          </to-bar>`
+    }
       ${v.big ? html`<div class="sheet-big"><b>${v.big.value}</b><span>${v.big.label}</span></div>` : nothing}
       ${v.table.above ? figure : nothing}
       <div class="sheet-fx">
@@ -1179,7 +1189,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
               <td class="corner"></td>
               ${cols.map(
                 (col, c) => html`<th scope="col">
-                  <input class="cn" aria-label=${t('common-name-of-column-c', { c: COL_NAMES[c] })} placeholder=${typeName(c, cols)} .value=${isLetterName(col.name) ? '' : col.name} autocomplete="off" spellcheck="false"
+                  <input class="cn" aria-label=${t('common-name-of-column-c', { c: COL_NAMES[c] })} placeholder=${typeName(c, cols)} .value=${isLetterName(col.name) ? '' : col.name} autocomplete="off" spellcheck="false" ?readonly=${this.readOnly}
                     @change=${(e: Event) => this.rename(c, (e.target as HTMLInputElement).value)}
                     @keydown=${(e: KeyboardEvent) => this.nameKey(e, c, isLetterName(col.name) ? '' : col.name)} />
                 </th>`,

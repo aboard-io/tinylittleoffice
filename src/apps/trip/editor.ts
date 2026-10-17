@@ -907,14 +907,18 @@ export class ToTripEditor extends DocElement<TripView> {
     const n = v.stops.length;
     const total = n > 1 && v.linked ? formatLeg(routeKm(v.stops), v.units) : '';
     const own = (id: string) => TRIP.find((c) => c.id === `trip.${id}`)!;
-    return html`<to-bar class="trip-bar">
-        <to-insert .items=${drawnIn(TRIP, 'menu:insert', this)}></to-insert>
-        ${cmdMenu(own('units'), this, TRIP, 'trip-units')}
-        ${['linked', 'fit', 'locate', 'map'].map((id) => cmdTool(own(id), this, { keep: false }))}
-        ${cmdTool(own('present'), this, { cls: 'trip-present-btn' })}
-        <span class="to-hint trip-count">${t('trip-n-stops', { n })}${total ? html` · <b>${total}</b>` : nothing}</span>
-        ${this.undoTools()}
-      </to-bar>
+    return html`${
+      this.readOnly
+        ? nothing
+        : html`<to-bar class="trip-bar">
+            <to-insert .items=${drawnIn(TRIP, 'menu:insert', this)}></to-insert>
+            ${cmdMenu(own('units'), this, TRIP, 'trip-units')}
+            ${['linked', 'fit', 'locate', 'map'].map((id) => cmdTool(own(id), this, { keep: false }))}
+            ${cmdTool(own('present'), this, { cls: 'trip-present-btn' })}
+            <span class="to-hint trip-count">${t('trip-n-stops', { n })}${total ? html` · <b>${total}</b>` : nothing}</span>
+            ${this.undoTools()}
+          </to-bar>`
+    }
       <div class="trip ${this.showMap ? '' : 'no-map'} ${this.presenting >= 0 ? 'presenting' : ''}">
         ${
           this.showMap

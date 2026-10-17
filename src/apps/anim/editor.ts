@@ -558,7 +558,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return new DOMRect(left, top, Math.max(...rects.map((r) => r.right)) - left, Math.max(...rects.map((r) => r.bottom)) - top);
   }
   private onDown(e: PointerEvent) {
-    if (e.button !== 0 || this.pinching) return;
+    if (e.button !== 0 || this.pinching || this.readOnly) return;
     const target = e.target as Element;
     const idx = target.closest('[data-idx]')?.getAttribute('data-idx');
     const corner = target.closest('[data-corner]')?.getAttribute('data-corner');
@@ -713,7 +713,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return html`${
       this.mode === 'draw'
         ? keyed(this.drawGen, html`<to-draw-editor class="anim-draw" ?data-tile=${tile} .value=${write(drawingOf(this.doc))} @docchange=${this.onDrawChange}></to-draw-editor>`)
-        : html`${this.renderBar()} ${this.renderStage()}${this.renderTime()}${this.renderProps()}
+        : html`${this.readOnly ? nothing : this.renderBar()} ${this.renderStage()}${this.renderTime()}${this.renderProps()}
             <to-context class="anim-context" .label=${t('anim-shapes-in-hand')} .items=${this.contextItems()}></to-context>
             ${this.renderSettings()}`
     }

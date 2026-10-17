@@ -305,7 +305,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   open(hit: Hit, sel?: [number, number], fresh = true) {
     const found = this.targetFor(hit);
     const el = this.wordsEl;
-    if (!found || !el) return;
+    if (!found || !el || this.readOnly) return;
     if (fresh) {
       this.session++;
       this.openText = write(this.doc);
@@ -814,7 +814,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
     const i = g ? +g.dataset.i! : -1;
     const hit = this.view.d.shapes[i]?.hit;
-    if (e.button !== 0 || !g || !hit || hit.k === 'edge' || hit.k === 'lane' || this.target) return;
+    if (e.button !== 0 || !g || !hit || hit.k === 'edge' || hit.k === 'lane' || this.target || this.readOnly) return;
     const [x, y] = this.point(e);
     this.drag = { i, hit, x, y, moved: false };
     try {
@@ -907,14 +907,18 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
     const hint = this.joining === '' ? t('diagram-tap-first-thing-to-join') : this.joining !== null ? t('diagram-tap-thing-to-join-name', { name: this.joining }) : kindHint(kind);
     const own = (id: string) => COMMANDS.find((c) => c.id === `diagram.${id}`)!;
-    return html`<to-bar class="dg-bar">
-        ${cmdMenu(own('kind'), this, COMMANDS, 'dg-kind', { words: true, caret: true, icon: KIND_ICON[kind] })}
-        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
-        ${joins(kind) ? cmdTool(own('join'), this) : nothing}
-        ${cmdTool(own('cards'), this, { cls: 'dg-cards', keep: false })}
-        ${cmdTool(own('zoomout'), this, { keep: false })} ${cmdTool(own('zoomin'), this, { keep: false })}
-        ${this.undoTools()}
-      </to-bar>
+    return html`${
+      this.readOnly
+        ? nothing
+        : html`<to-bar class="dg-bar">
+            ${cmdMenu(own('kind'), this, COMMANDS, 'dg-kind', { words: true, caret: true, icon: KIND_ICON[kind] })}
+            <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+            ${joins(kind) ? cmdTool(own('join'), this) : nothing}
+            ${cmdTool(own('cards'), this, { cls: 'dg-cards', keep: false })}
+            ${cmdTool(own('zoomout'), this, { keep: false })} ${cmdTool(own('zoomin'), this, { keep: false })}
+            ${this.undoTools()}
+          </to-bar>`
+    }
       <p class="dg-hint to-hint" aria-live="polite">${hint}</p>
       <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel}>
         <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}

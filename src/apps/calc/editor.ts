@@ -480,7 +480,7 @@ export class ToCalcEditor extends DocElement<CalcView> {
         return html`<li class="calc-row ${note ? 'calc-note' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}">
           <button type="button" class="calc-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('calc-choose-line-n-drag-it', { n })} title=${t('common-drag-to-move-tap-to')}>${icon(GripVertical, 16)}</button>
           ${graph && colour >= 0 ? html`<span class="calc-swatch" style=${`--c:${SERIES[colour % SERIES.length]}`} aria-hidden="true"></span>` : nothing}
-          <input class="calc-line" aria-label=${t('calc-line-n', { n })} .value=${l} autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
+          <input class="calc-line" aria-label=${t('calc-line-n', { n })} .value=${l} ?readonly=${this.readOnly} autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
             @focus=${(e: Event) => this.settled.delete(e.target as HTMLInputElement)} @change=${(e: Event) => this.onLineChange(e, i)} @keydown=${(e: KeyboardEvent) => this.onLineKey(e, i)} @paste=${(e: ClipboardEvent) => this.onBoxPaste(e, i)} />
           ${graph || note ? nothing : html`<button type="button" class="calc-ans" aria-label=${texts[i] ? t('calc-put-answer-in-line', { answer: texts[i] }) : t('calc-no-answer')} ?disabled=${!texts[i]} @mousedown=${keep} @click=${() => this.put(texts[i].replace(/−/g, '-'))}>= ${texts[i] || '?'}</button>`}
           ${tool({ label: t('calc-take-away-line-n', { n }), icon: UI.close, cls: 'calc-drop', does: () => this.run((w) => removeLine(w, i)) })}
@@ -494,12 +494,16 @@ export class ToCalcEditor extends DocElement<CalcView> {
     const graph = v.mode === 'graph';
     const answer = live(this.entry, v.lines, v.mode);
     const own = (id: string) => COMMANDS.find((c) => c.id === `calc.${id}`)!;
-    return html`<to-bar class="calc-bar">
-        ${cmdTool(own('calc'), this, { keep: false })} ${cmdTool(own('graph'), this, { keep: false })}
-        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
-        ${cmdTool(own('clear'), this, { keep: false })}
-        ${this.undoTools()}
-      </to-bar>
+    return html`${
+      this.readOnly
+        ? nothing
+        : html`<to-bar class="calc-bar">
+            ${cmdTool(own('calc'), this, { keep: false })} ${cmdTool(own('graph'), this, { keep: false })}
+            <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+            ${cmdTool(own('clear'), this, { keep: false })}
+            ${this.undoTools()}
+          </to-bar>`
+    }
       <div class="calc ${graph ? 'calc-graphing' : ''}">
         ${graph ? html`<figure class="calc-graph">${unsafeSVG(pageSvg(graphPage(v.lines), 'class="calc-plot"'))}</figure>` : nothing}
         <div class="calc-paper">${this.tapeRows(v)}</div>

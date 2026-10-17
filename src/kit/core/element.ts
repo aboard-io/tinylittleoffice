@@ -14,6 +14,13 @@
  * a "docops" event before the "docchange", and `applyRemote()` takes another's operations in: applied with no step
  * of the history and nothing told, the history carried over them by the kernel's transform, so an undo here takes
  * back only what was done here.
+ *
+ * A page that only shows a document sets `readonly` (the attribute, or `readOnly`): nothing of it is edited. The editor
+ * draws no bar, its words are not editable, an edit, an undo and a typed, pasted, cut or dropped thing are refused, and
+ * the kit draws nothing that edits inside it (a context bar, a menu, a dialog). Its items keep their places in the
+ * focus order, and one activated (Enter, a click, a tap) says so in a "docpick" event: `{ at }`, the item's block, and
+ * the app's own key for it where it has one (`pickOf`), for the page to open what the item stands for. Another's ops
+ * still land (`applyRemote`), and a new `value` is still a new document.
  */
 import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
 import { applyAll, invertAll, parse, transform, write, type Doc, type Op } from '../../doc/index.ts';
@@ -30,6 +37,14 @@ export type DocChange = CustomEvent<string> & { key?: string };
  * dialog's) says nothing of the document around it.
  */
 export type DocOps = CustomEvent<{ ops: Op[]; base: number }>;
+
+/** An item activated in a read-only editor: its block, and the app's own key for it (a calendar's day, a board's row). */
+export type Picked = { at: number } & Record<string, number | string>;
+/** What a page hears when an item of a read-only editor is activated: "docpick", bubbling. */
+export type DocPick = CustomEvent<Picked>;
+
+/** What a person does that would change a read-only document, refused before anything inside hears it. */
+const REFUSED = ['beforeinput', 'paste', 'cut', 'drop', 'dragstart'];
 
 export interface Entry {
   ops: Op[];
@@ -79,8 +94,10 @@ function cross(mine: Op[], theirs: Op[]): [Op[], Op[]] {
 }
 
 export abstract class DocElement<V> extends LitElement {
-  static properties: PropertyDeclarations = { value: {} };
+  static properties: PropertyDeclarations = { value: {}, readOnly: { type: Boolean, attribute: 'readonly', reflect: true } };
   declare value: string;
+  /** Shown, not edited (the header): no bar, no typing, no drag, and a "docpick" for an item activated. */
+  declare readOnly: boolean;
   /** The document as the kernel reads it (public: an app's commands read it, kit/core/commands.ts). */
   doc: Doc = { head: {}, blocks: [] };
   view!: V;
@@ -96,6 +113,7 @@ export abstract class DocElement<V> extends LitElement {
   constructor() {
     super();
     this.value = '';
+    this.readOnly = false;
   }
   createRenderRoot() {
     return this;
@@ -104,11 +122,18 @@ export abstract class DocElement<V> extends LitElement {
     super.connectedCallback();
     this.addEventListener('docundo', this.onUndo);
     this.addEventListener('docredo', this.onRedo);
+    // Capturing, at the editor itself: before anything inside it hears them.
+    for (const type of REFUSED) this.addEventListener(type, this.onRefused, true);
+    for (const type of ['click', 'keydown']) this.addEventListener(type, this.onPick, true);
+    for (const type of ['pointerdown', 'dblclick']) this.addEventListener(type, this.onItemDown, true);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('docundo', this.onUndo);
     this.removeEventListener('docredo', this.onRedo);
+    for (const type of REFUSED) this.removeEventListener(type, this.onRefused, true);
+    for (const type of ['click', 'keydown']) this.removeEventListener(type, this.onPick, true);
+    for (const type of ['pointerdown', 'dblclick']) this.removeEventListener(type, this.onItemDown, true);
   }
 
   /** The pure function from the document to what the app draws. */
@@ -121,6 +146,37 @@ export abstract class DocElement<V> extends LitElement {
   protected followed(_ops: Op[]): void {}
   /** An entry's mark carried in place over another's ops: what was before the edit over `before`, what was after it over `after`. */
   protected carryMark(_mark: unknown, _before: Op[], _after: Op[]): void {}
+  /** In a read-only editor, the item `el` is in, as a "docpick" tells it; null where it is in none (the header). */
+  protected pickOf(_el: Element): Picked | null {
+    return null;
+  }
+  /** After an item is picked in a read-only editor: the app's own way of showing it, where it has one (a deck's slide). */
+  protected chose(_pick: Picked): void {}
+
+  private onRefused = (e: Event) => {
+    if (!this.readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  /** The item under a press, in a read-only editor; a link inside one is followed as a link. */
+  private itemOf(e: Event): Picked | null {
+    const el = e.target;
+    return this.readOnly && el instanceof Element && !el.closest('a[href]') ? this.pickOf(el) : null;
+  }
+  /** A click on an item, or Enter on one, is a pick: the page hears it, and the app never does. */
+  private onPick = (e: Event) => {
+    if (e instanceof KeyboardEvent && (e.key !== 'Enter' || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey)) return;
+    const pick = this.itemOf(e);
+    if (!pick) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.dispatchEvent(new CustomEvent('docpick', { detail: pick, bubbles: true }) as DocPick);
+    this.chose(pick);
+  };
+  /** A press on an item (or a handle) starts no drag, and a double click on one opens nothing. */
+  private onItemDown = (e: Event) => {
+    if (this.itemOf(e) || (this.readOnly && (e.target as Element).closest?.('.to-rows-handle'))) e.stopPropagation();
+  };
 
   /**
    * Whether `text` is this editor's own, the text it last read or wrote: the shell's echo of a change, which a host
@@ -144,6 +200,8 @@ export abstract class DocElement<V> extends LitElement {
 
   protected willUpdate(changed: PropertyValues) {
     super.willUpdate(changed);
+    // The words inside are drawn editable or not as the editor is (kit/text/text.ts).
+    if (changed.has('readOnly') && this.hasUpdated) for (const words of this.querySelectorAll<LitElement>('to-text')) words.requestUpdate();
     if (this.seen === null || (changed.has('value') && this.value !== this.seen)) {
       // A new document from the shell: read afresh, and the history starts over.
       this.doc = parse(this.value);
@@ -157,7 +215,7 @@ export abstract class DocElement<V> extends LitElement {
 
   /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one; `mark` is handed back to `undone()`. */
   edit(ops: Op[], key?: string, mark?: unknown) {
-    if (!ops.length) return;
+    if (!ops.length || this.readOnly) return;
     const inverse = invertAll(this.doc, ops);
     this.doc = applyAll(this.doc, ops);
     const now = Date.now();
@@ -236,6 +294,7 @@ export abstract class DocElement<V> extends LitElement {
     this.dispatchEvent(change);
   }
   private onUndo = (e: Event) => {
+    if (this.readOnly) return;
     const entry = this.undo.pop();
     if (!entry) return;
     e.preventDefault();
@@ -246,6 +305,7 @@ export abstract class DocElement<V> extends LitElement {
     this.undone(entry, false);
   };
   private onRedo = (e: Event) => {
+    if (this.readOnly) return;
     const entry = this.redo.pop();
     if (!entry) return;
     e.preventDefault();

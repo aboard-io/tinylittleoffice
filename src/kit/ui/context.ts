@@ -75,6 +75,8 @@ export class ToContext extends LitElement {
 
   /** Up beside the anchor; called again, it moves to a new anchor. */
   show(anchor: Anchor, side: 'below' | 'above' = 'below') {
+    // Nothing that edits comes up inside a read-only editor (kit/core/element.ts).
+    if (this.closest('[readonly]')) return;
     this.anchor = anchor;
     this.side = side;
     void this.updateComplete.then(() => {

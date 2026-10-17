@@ -119,6 +119,8 @@ export interface Handoff {
  */
 export interface Editor extends HTMLElement {
   value: Doc;
+  /** Shown and not edited: the `readonly` attribute (kit/core/element.ts). */
+  readOnly: boolean;
   focusFirst?(): void | Promise<void>;
 }
 export type DocChange = CustomEvent<Doc>;

@@ -296,12 +296,13 @@ export class ToMenu extends LitElement {
     return this.menu?.matches(':popover-open') ?? false;
   }
   open() {
-    this.menu.showPopover();
+    // Nothing that edits opens inside a read-only editor (kit/core/element.ts).
+    if (!this.closest('[readonly]')) this.menu.showPopover();
   }
   /** Open beside `anchor` instead of this menu's own button: one menu for many openers (a sheet's column heads). */
   openAt(anchor: HTMLElement) {
     this.anchor = anchor;
-    this.menu.showPopover();
+    this.open();
   }
   close() {
     if (this.isOpen) this.menu.hidePopover();

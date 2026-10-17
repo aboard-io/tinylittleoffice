@@ -64,6 +64,8 @@ export class ToDialog extends LitElement {
   /** Stepped aside for another (handOver): closed, its body (and so its scroll) and its `from` kept, no to-close said. */
   private aside: { back: HTMLElement } | null = null;
   async show() {
+    // Nothing that edits opens inside a read-only editor (kit/core/element.ts).
+    if (this.closest('[readonly]')) return;
     if (!this.dialog?.open && !this.aside) this.from = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     const aside = this.aside;
     this.aside = null;
