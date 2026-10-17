@@ -19,16 +19,19 @@
  * removes only its own files from the last build. The deploy makes all three before it publishes, and
  * test/package.test.ts packs the package and installs it.
  *
- * The stylesheet names the site's fonts by the site's paths (/fonts/…), left as they are: a page serves them there, or
- * sets its own (docs/library.md, Theming).
+ * The stylesheet names the site's fonts by the site's paths (/fonts/…); the editors' build carries the faces it names
+ * beside it, in dist/fonts/ with their license (the OFL asks that it travel with them), and names them there instead,
+ * ./fonts/…, so a page serves the folder beside editors.css (docs/library.md, Theming). The site's build is untouched.
  */
 import { defineConfig } from 'vite';
-import { rmSync } from 'node:fs';
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ftlBare } from './scripts/ftl-plugin.ts';
 import { fileOf } from './vite.config.ts';
 
 const DIST = resolve(import.meta.dirname, 'packages/doc/dist');
+/** Where the site keeps its faces (served at /fonts/…). */
+const FONTS = resolve(import.meta.dirname, 'public/fonts');
 
 export default defineConfig(({ mode }) => ({
   base: './',
@@ -52,7 +55,21 @@ export default defineConfig(({ mode }) => ({
       apply: 'build',
       buildStart() {
         if (mode === 'doc' || mode === 'commands') rmSync(resolve(DIST, `${mode}.js`), { force: true });
-        else for (const f of ['editors.js', 'editors.css', 'editors']) rmSync(resolve(DIST, f), { recursive: true, force: true });
+        else for (const f of ['editors.js', 'editors.css', 'editors', 'fonts']) rmSync(resolve(DIST, f), { recursive: true, force: true });
+      },
+    },
+    {
+      // The faces the editors' stylesheet names at the site's /fonts/… are copied beside it, and named there (header).
+      name: 'tinyoffice-lib-fonts',
+      apply: 'build',
+      writeBundle() {
+        if (mode !== 'editors') return;
+        const sheet = resolve(DIST, 'editors.css');
+        const css = readFileSync(sheet, 'utf8');
+        const faces = new Set([...css.matchAll(/url\(['"]?\/fonts\/([\w-]+\.woff2)/g)].map((m) => m[1]));
+        if (!faces.size) throw new Error('editors.css names no face at /fonts/');
+        for (const f of [...faces, 'LICENSE.txt']) cpSync(resolve(FONTS, f), resolve(DIST, 'fonts', f));
+        writeFileSync(sheet, css.replace(/url\((['"]?)\/fonts\//g, 'url($1./fonts/'));
       },
     },
   ],

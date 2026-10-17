@@ -34,7 +34,7 @@ test('the package serves the library: the kernel, the commands, the editors and 
     './examples/*.json': './examples/*.json',
     './package.json': './package.json',
   });
-  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors', 'dist/types']));
+  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors', 'dist/fonts', 'dist/types']));
   // The kernel and the commands have no side effects to keep; the editors define their elements and the stylesheet
   // styles the page.
   expect(pkg.sideEffects).not.toContain('./dist/doc.js');
@@ -180,6 +180,15 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
     expect(statSync(join(dist, 'editors.js')).size).toBeGreaterThan(500_000);
     expect(statSync(join(dist, 'editors.css')).size).toBeGreaterThan(50_000);
     expect(readdirSync(join(dist, 'editors')).filter((f) => /^(map|templates-write|lang-fr)-/.test(f))).toHaveLength(3);
+    // The faces ride beside the stylesheet, which names each of them there (./fonts/…) and none at the site's /fonts/,
+    // with the license the OFL asks to travel with them.
+    const faces = [...readFileSync(join(dist, 'editors.css'), 'utf8').matchAll(/url\(['"]?([^)'"]+\.woff2)/g)].map((m) => m[1]);
+    expect(faces).toHaveLength(16);
+    for (const face of faces) {
+      expect(face).toMatch(/^\.\/fonts\/IBMPlex[\w-]+\.woff2$/);
+      expect(statSync(join(dist, face)).size, face).toBe(statSync(join(ROOT, 'public', face)).size);
+    }
+    expect(readdirSync(join(dist, 'fonts')).sort()).toStrictEqual([...new Set(faces.map((f) => f.slice('./fonts/'.length))), 'LICENSE.txt'].sort());
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

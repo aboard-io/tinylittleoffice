@@ -61,6 +61,7 @@
     "dist/editors.js",
     "dist/editors.css",
     "dist/editors",
+    "dist/fonts",
     "dist/types",
     "dist/skill",
     "examples",

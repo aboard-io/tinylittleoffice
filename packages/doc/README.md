@@ -97,7 +97,10 @@ as the site (docs/library.md), through three more entry points, each built by `n
 - `tinylittleoffice/editors`, `dist/editors.js`: every app's editor element, the registry, and the host an app asks
   where a document opens (src/editors.ts), with no shell, no link and no library of kept documents. Its stylesheet is
   `tinylittleoffice/editors.css`, one file; what is fetched only when asked for (an app's templates, a language other
-  than English, the trip's map) is in `dist/editors/` beside it. Lit and the rest are inside, as on the site.
+  than English, the trip's map) is in `dist/editors/` beside it. Lit and the rest are inside, as on the site. The
+  faces, IBM Plex, are in `dist/fonts/` with their license (the SIL Open Font License), and the stylesheet names them
+  there, `./fonts/…`: a page serves that folder beside `editors.css`, at the same path relative to it (a bundler that
+  copies the stylesheet's assets does it), or sets the fonts to faces of its own (docs/library.md, Theming).
 
 Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/`, and a TypeScript program
 reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`
