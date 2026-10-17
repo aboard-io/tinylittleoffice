@@ -30,11 +30,15 @@
  * the order of its rows. Where a change would reorder the lanes or lose one (the first row of a lane moved below
  * another lane's, a lane's last card moved out), the lanes as they were are written into `lanes:` first (`head`), so a
  * lane never jumps or vanishes under a person's hand. A formula that points into a row taken out and put in again loses
- * its reference (#REF), as a row cut and pasted does in the Spreadsheet; a board's table seldom holds one. A card added goes after the lane's last card (or before the card
+ * its reference (#REF), as a row cut and pasted does in the Spreadsheet; a board's table seldom holds one. A locked
+ * cell (the table's `lock:`) is left as it is, as in the Spreadsheet: a card whose lane cell is locked stays in its
+ * lane and its place, and a lane renamed leaves such cards under the old name; where a card in a locked table changes
+ * its place, the lock follows the rows as the Spreadsheet's rows moved do (written again after the row is put in,
+ * since taking a row out drops its part of the lock). A card added goes after the lane's last card (or before the card
  * at the place asked for; into an empty lane, at the table's end), a lane added or moved is `lanes:` alone, and a lane
  * renamed is its cards' cells and its name in `lanes:`. Nothing here touches the DOM.
  */
-import { applyAll, column, firstTable, parse, type Column, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import { applyAll, column, firstTable, inHead, isLocked, lockText, parse, tableAt, type Column, type Doc, type Op, type Range, type TableBlock } from '../../doc/index.ts';
 import { t } from '../../kit/core/i18n.ts';
 
 export interface Field {
@@ -176,11 +180,31 @@ export function addCard(doc: Doc, lane: string, title = '', at?: number): Op[] {
 }
 const addName = (names: string[], name: string) => (!name || names.includes(name) ? names : [...names, name]);
 
-/** The card on row `row` into lane `lane` (by name: a new one is made after the rest), at place `to` among that lane's other cards. */
+/** A lock after row `from` is taken out and put in again at `to` (in the table without it): each range follows its rows, one the move splits a range per run of rows (sheet/model.ts `moveRows`). */
+function lockAfterMove(lock: Range[], from: number, to: number): Range[] {
+  const at = (i: number) => {
+    if (i === from) return to;
+    const j = i < from ? i : i - 1;
+    return j >= to ? j + 1 : j;
+  };
+  return lock.flatMap((g) => {
+    const runs: Range[] = [];
+    for (const r of Array.from({ length: g.r1 - g.r0 + 1 }, (_, i) => at(g.r0 + i)).sort((x, y) => x - y)) {
+      const last = runs[runs.length - 1];
+      if (last && last.r1 === r - 1) last.r1 = r;
+      else runs.push({ ...g, r0: r, r1: r });
+    }
+    return runs;
+  });
+}
+
+/** The card on row `row` into lane `lane` (by name: a new one is made after the rest), at place `to` among that lane's other cards. Nothing when its lane cell is locked. */
 export function moveCard(doc: Doc, row: number, lane: string, to: number): Op[] {
   const v = boardOf(doc);
   const card = v.cards.find((c) => c.row === row);
   if (!card) return [];
+  const { lock } = tableAt(doc, v.at)!;
+  if (isLocked(lock, row, v.laneCol)) return [];
   const b = doc.blocks[v.at] as TableBlock;
   const name = flat(lane);
   const others = (v.lanes.find((l) => l.name === name)?.cards ?? []).filter((c) => c.row !== row);
@@ -192,6 +216,15 @@ export function moveCard(doc: Doc, row: number, lane: string, to: number): Op[] 
   if (r !== row) {
     const cells = b.rows[row].map((x, c) => (c === v.laneCol ? name : x));
     ops.push({ op: 'rows', at: v.at, r: row, n: 1 }, { op: 'rows', at: v.at, r, n: 1, rows: [cells] });
+    if (lock.length) {
+      // Written where the lock is kept: the head, or the table's own `{lock=…}`.
+      const value = lockText(lockAfterMove(lock, row, r));
+      if (inHead(doc, v.at, 'lock')) ops.push({ op: 'head', key: 'lock', value });
+      else {
+        const put = applyAll(doc, ops).blocks[v.at] as TableBlock;
+        ops.push({ op: 'splice', at: v.at, n: 1, blocks: [{ ...put, a: { ...put.a, kv: { ...put.a?.kv, lock: value } } }] });
+      }
+    }
   }
   return keeping(doc, ops, addName(named(v), name));
 }

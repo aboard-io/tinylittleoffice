@@ -2,7 +2,7 @@
 // words and the files: under node.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { applyAll, column, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
+import { applyAll, column, invertAll, isLocked, parse, tableAt, write, type Doc, type Op } from '../../../doc/index.ts';
 import { arbitraryDoc, arbitraryTable, RUNS } from '../../../../test/doc/tlo-grammar.ts';
 import def from '../def.ts';
 import { sheetToBoard } from '../../sheet/convert.ts';
@@ -160,8 +160,40 @@ test('a move that would reorder the lanes or lose one writes lanes: first, so no
   expect(moveCard(d, 2, 'Todo', 0).some((o) => o.op === 'head')).toBe(false);
 });
 
-// A formula pointing into a row that moves loses its reference (#REF), as a row cut and pasted does in the Spreadsheet, and a
-// locked cell is left as it was: where the table holds either, the inverse is checked and where the card lands is not.
+test('a locked cell is left as it is: a card whose lane cell is locked stays; elsewhere the lock follows the rows; #REF for a formula into a moved row', () => {
+  // The lock in the head (A1 the first row under the headings): the Status cells of Write the brief and Book the room, and Print badges' Task.
+  const d = parse(BOARD.replace('lanes: To do, Doing, Done, Blocked', 'lanes: To do, Doing, Done, Blocked\nlock: C1:C2, A5'));
+  expect(moveCard(d, 0, 'Done', 0)).toEqual([]);
+  expect(moveCard(d, 1, 'Doing', 0)).toEqual([]);
+  // Send invites (row 3) to the top of To do: before Book the room, so above it in the table; each locked cell keeps its words.
+  const after = roundTrip(d, moveCard(d, 2, 'To do', 0));
+  expect(names(after)[0]).toEqual(['To do', ['Send invites', 'Book the room', 'Print badges']]);
+  expect(after.head.lock).toBe('C1, C3, A5');
+  const locked = (x: Doc) => {
+    const t = x.blocks[0] as { rows: string[][] };
+    return t.rows.flatMap((row, r) => row.flatMap((v, c) => (isLocked(tableAt(x, 0)!.lock, r, c) ? [v] : []))).sort();
+  };
+  expect(locked(after)).toEqual(locked(d));
+  // The lock on the table itself, `{lock=…}`: written back there.
+  const own = parse('Task | Status\n--- | ---\na | Todo\nb | Todo\nc | Doing\n{lock=A3}\n');
+  const moved = roundTrip(own, moveCard(own, 2, 'Todo', 0));
+  expect(names(moved)[0]).toEqual(['Todo', ['c', 'a', 'b']]);
+  expect(write(moved)).toContain('{lock=A1}');
+  // A lane renamed leaves a card whose lane cell is locked under the old name.
+  expect(names(roundTrip(d, renameLane(d, 'To do', 'Next'))).map(([n, c]) => [n, c.length])).toEqual([
+    ['Next', 1],
+    ['Doing', 2],
+    ['Done', 1],
+    ['Blocked', 0],
+    ['To do', 1],
+  ]);
+  // A formula that points into a row taken out and put in again: #REF, as a row cut and pasted.
+  const f = parse('Task | Status | N:number\n--- | --- | ---\na | Todo | 1\nb | Todo | =C1+1\n');
+  expect((roundTrip(f, moveCard(f, 0, 'Todo', 1)).blocks[0] as { rows: string[][] }).rows.map((r) => r[2])).toEqual(['=#REF+1', '1']);
+});
+
+// A formula pointing into a row that moves loses its reference (#REF): where the table holds one, the inverse is checked
+// and where the card lands is not. A card whose lane cell is locked moves nothing, and every locked cell keeps its words.
 test('for any table document, moving a card anywhere and inverting gives the document back, and the card lands where it was sent', () => {
   const doc = fc
     .tuple(arbitraryDoc(3), arbitraryTable(4, 5), fc.nat(3))
@@ -175,7 +207,11 @@ test('for any table document, moving a card anywhere and inverting gives the doc
       const ops = moveCard(d, card.row, target, to);
       const after = applyAll(d, ops);
       expect(applyAll(after, invertAll(d, ops))).toStrictEqual(d);
-      if (d.head.lock || (d.blocks[v.at] as { rows: string[][] }).rows.some((r) => r.some((x) => x.startsWith('=')))) return;
+      const lock = tableAt(d, v.at)!.lock;
+      if (isLocked(lock, card.row, v.laneCol)) return void expect(ops).toEqual([]);
+      const lockedCells = (x: Doc) => (x.blocks[v.at] as { rows: string[][] }).rows.flatMap((row, r) => row.filter((_, c) => isLocked(tableAt(x, v.at)!.lock, r, c))).sort();
+      expect(lockedCells(after)).toEqual(lockedCells(d));
+      if ((d.blocks[v.at] as { rows: string[][] }).rows.some((r) => r.some((x) => x.startsWith('=')))) return;
       const now = boardOf(after);
       const there = now.lanes.find((l) => l.name === target)!;
       const others = v.lanes.find((l) => l.name === target)!.cards.filter((c) => c.row !== card.row).length;
