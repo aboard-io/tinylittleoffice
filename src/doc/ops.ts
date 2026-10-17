@@ -15,6 +15,7 @@
  */
 import { attr, isAtomic, isText, normalRuns, type Attrs, type Block, type Column, type Doc, type Run, type TableBlock, type TextBlock } from './model.ts';
 import { inHead, isLocked, lockText, MAX_COLS, movedIn, movedOut, remapLock, remapRefs, stays, tableAt, type Moved } from './table.ts';
+import { checkBlock, fitColumn, fitRuns, keptHead, MAX_ROWS } from './json.ts';
 
 /** The eight primitive edits. */
 export type Op =
@@ -88,8 +89,120 @@ function withMovedTable(doc: Doc, at: number, b: TableBlock, r: Moved, c: Moved)
   return withBlock(doc, at, { ...bare, ...(a.id || a.cls || a.kv ? { a } : {}) });
 }
 
-/** The document with one operation applied. Pure: untouched blocks are the same objects. */
+/* ---------- what an op may be ---------- */
+
+const say = (v: unknown) => (typeof v === 'string' ? JSON.stringify(v) : Array.isArray(v) ? 'a list' : v === null ? 'null' : typeof v === 'object' ? 'an object' : String(v));
+
+const whole = (n: unknown, what: string): number => {
+  if (typeof n !== 'number' || !Number.isSafeInteger(n) || n < 0) throw new RangeError(`${what} is ${say(n)}, not a whole number`);
+  return n;
+};
+/** A list of lists of strings (cells by rows), no row wider than a table may be. */
+function grid(v: unknown, what: string, most: number): string[][] {
+  if (!Array.isArray(v) || v.length > most) throw new RangeError(`${what} is ${Array.isArray(v) ? `${v.length} rows, past ${most}` : say(v)}`);
+  v.forEach((row, i) => {
+    if (!Array.isArray(row) || row.length > MAX_COLS || row.some((x) => typeof x !== 'string')) throw new RangeError(`${what}[${i}] is not a row of at most ${MAX_COLS} strings`);
+  });
+  return v as string[][];
+}
+const tableOf = (doc: Doc, at: number): TableBlock => {
+  const b = doc.blocks[at];
+  if (b?.k !== 'table') throw new RangeError(`no table at ${at}`);
+  return b;
+};
+
+/**
+ * Whether `op` is one `apply` can do to `doc`: its kind one of the eight, every index a whole number within the
+ * document, and what it puts in (blocks, runs, cells, columns, a head key and value) of the schema's shape and within
+ * the kernel's bounds (json.ts checkBlock, keptHead). Throws a RangeError or a TypeError naming the fault; `apply` and
+ * `invert` ask first, so an op from anyone (another's client over a shared document, a program) either does what it
+ * says or changes nothing. Whether the text keeps what the ops leave is the document's question, asked once the ops
+ * are applied (json.ts keptDoc), since an editor's own edit may pass through a block the text would not keep.
+ */
+export function checkOp(doc: Doc, op: Op): void {
+  if (!op || typeof op !== 'object') throw new TypeError(`an op is an object, not ${say(op)}`);
+  const n = doc.blocks.length;
+  switch (op.op) {
+    case 'head':
+      keptHead(op.key, op.value);
+      return;
+    case 'splice': {
+      const at = whole(op.at, 'at');
+      const k = whole(op.n, 'n');
+      if (at + k > n) throw new RangeError(`a splice of ${k} at ${at} is past the ${n} blocks`);
+      if (!Array.isArray(op.blocks)) throw new RangeError(`blocks is ${say(op.blocks)}, not a list`);
+      op.blocks.forEach((b, i) => checkBlock(b, `blocks[${i}]`));
+      return;
+    }
+    case 'move': {
+      const at = whole(op.at, 'at');
+      const k = whole(op.n, 'n');
+      const to = whole(op.to, 'to');
+      if (at + k > n || to > n - k) throw new RangeError(`a move of ${k} at ${at} to ${to} is outside the ${n} blocks`);
+      return;
+    }
+    case 'text': {
+      const at = whole(op.at, 'at');
+      const from = whole(op.from, 'from');
+      const to = whole(op.to, 'to');
+      const b = doc.blocks[at];
+      if (!b || !isText(b)) throw new RangeError(`no text at ${at}`);
+      const len = runLength(b.runs);
+      if (from > to || to > len) throw new RangeError(`[${from}, ${to}) is outside the block's ${len} characters`);
+      fitRuns(op.runs, 'runs');
+      return;
+    }
+    case 'cells': {
+      tableOf(doc, whole(op.at, 'at'));
+      const r = whole(op.r, 'r');
+      const c = whole(op.c, 'c');
+      // The rectangle is clipped to the table as it applies (a paste past the edge writes what fits), so only what no table can hold is refused.
+      if (r > MAX_ROWS || c >= MAX_COLS) throw new RangeError(`(${r}, ${c}) is outside any table`);
+      if (op.force !== undefined && op.force !== true) throw new RangeError(`force is ${say(op.force)}`);
+      grid(op.values, 'values', MAX_ROWS);
+      return;
+    }
+    case 'rows': {
+      const b = tableOf(doc, whole(op.at, 'at'));
+      const r = whole(op.r, 'r');
+      if (op.rows !== undefined) {
+        const rows = grid(op.rows, 'rows', MAX_ROWS);
+        if (r > b.rows.length || b.rows.length + rows.length > MAX_ROWS) throw new RangeError(`${rows.length} rows at ${r} do not fit a table of ${b.rows.length}`);
+        return;
+      }
+      const k = whole(op.n, 'n');
+      if (k < 1 || r + k > b.rows.length) throw new RangeError(`${k} rows at ${r} are not the table's: it has ${b.rows.length}`);
+      return;
+    }
+    case 'cols': {
+      const b = tableOf(doc, whole(op.at, 'at'));
+      const c = whole(op.c, 'c');
+      if (op.cols !== undefined) {
+        if (!Array.isArray(op.cols) || c > b.cols.length || b.cols.length + op.cols.length > MAX_COLS)
+          throw new RangeError(`${Array.isArray(op.cols) ? op.cols.length : say(op.cols)} columns at ${c} do not fit a table of ${b.cols.length}`);
+        op.cols.forEach((col, i) => fitColumn(col, `cols[${i}]`));
+        return;
+      }
+      const k = whole(op.n, 'n');
+      if (k < 1 || c + k > b.cols.length) throw new RangeError(`${k} columns at ${c} are not the table's to take: it has ${b.cols.length}`);
+      if (b.cols.length - k < 1) throw new RangeError('a table keeps a column');
+      return;
+    }
+    case 'col': {
+      const b = tableOf(doc, whole(op.at, 'at'));
+      const c = whole(op.c, 'c');
+      if (c >= b.cols.length) throw new RangeError(`no column ${c} in a table of ${b.cols.length}`);
+      fitColumn(op.col, 'col');
+      return;
+    }
+    default:
+      throw new TypeError(`unknown op ${say((op as { op: unknown }).op)}`);
+  }
+}
+
+/** The document with one operation applied, once checkOp has passed it. Pure: untouched blocks are the same objects. */
 export function apply(doc: Doc, op: Op): Doc {
+  checkOp(doc, op);
   switch (op.op) {
     case 'head': {
       const head = { ...doc.head };
@@ -152,6 +265,8 @@ export function apply(doc: Doc, op: Op): Doc {
       const b = table(doc, op.at);
       return withBlock(doc, op.at, { ...b, cols: b.cols.map((c, i) => (i === op.c ? op.col : c)) });
     }
+    default:
+      throw new TypeError(`unknown op ${say((op as { op: unknown }).op)}`);
   }
 }
 
@@ -165,6 +280,7 @@ export const applyAll = (doc: Doc, ops: Op[]): Doc => ops.reduce(apply, doc);
  * the header's lock with it when the table keeps its lock there.
  */
 export function invert(doc: Doc, op: Op): Op[] {
+  checkOp(doc, op);
   switch (op.op) {
     case 'head':
       return [{ op: 'head', key: op.key, value: doc.head[op.key] }];
@@ -192,6 +308,8 @@ export function invert(doc: Doc, op: Op): Op[] {
     }
     case 'col':
       return [{ op: 'col', at: op.at, c: op.c, col: table(doc, op.at).cols[op.c] }];
+    default:
+      throw new TypeError(`unknown op ${say((op as { op: unknown }).op)}`);
   }
 }
 

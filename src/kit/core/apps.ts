@@ -39,6 +39,8 @@ lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === LOCKED_
  * second registration of one id is an error rather than an app quietly replaced.
  */
 export function registerApp(def: AppDef): void {
+  if (!def || typeof def.id !== 'string' || !/^[a-z][a-z0-9-]*$/.test(def.id) || typeof def.editor !== 'function' || typeof def.view !== 'function' || typeof def.blank !== 'function')
+    throw new TypeError('an app is a definition (defineApp): an id of lower-case letters, digits and dashes, an editor, a view and a blank document');
   if (lookup.appOf(def.id)) throw new Error(`an app "${def.id}" is registered already`);
   ALL.push(def);
 }

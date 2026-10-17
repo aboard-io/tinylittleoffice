@@ -110,8 +110,11 @@ type Splice = Of<'splice'>;
 type Cells = Of<'cells'>;
 type TableOp = Cells | Of<'rows'> | Of<'cols'> | Of<'col'>;
 
-/** `a` as it applies once `b` has, both made against one document; null when `b` took away what `a` acts on. Throws Conflict where their spans cross. */
+const KINDS = new Set(['head', 'splice', 'move', 'text', 'cells', 'rows', 'cols', 'col']);
+
+/** `a` as it applies once `b` has, both made against one document; null when `b` took away what `a` acts on. Throws Conflict where their spans cross, and a TypeError for an op of no kind the kernel has. */
 export function transform(a: Op, b: Op, side: Side): Op | null {
+  for (const op of [a, b]) if (!op || typeof op !== 'object' || !KINDS.has(op.op)) throw new TypeError(`unknown op ${String((op as { op?: unknown } | null)?.op)}`);
   switch (b.op) {
     case 'head':
       return a.op === 'head' && a.key === b.key && side === 'left' ? { op: 'head', key: a.key, ...(b.value === undefined ? {} : { value: b.value }) } : a;
@@ -133,30 +136,35 @@ export function transform(a: Op, b: Op, side: Side): Op | null {
 }
 
 /**
- * A client's pending ops (made one after another on its own view) once the server's ops (in the server's order, made
- * one after another) have been applied before them. Each pending op is transformed as 'right' over each server op, and
- * the server op as 'left' over the pending op before it moves on to the next, so the later pending ops meet it at the
- * indices their own predecessors left; a pending op that comes out null is dropped, and the server op still passes
- * over it. A server op that comes out null passes the rest unchanged. Throws Conflict as transform does.
+ * Ops made one after another on a document (`mine`: a client's pending ops, an undo's) and others made on the same
+ * document (`theirs`: the server's, in its order): mine as they apply after theirs, and theirs as they apply after
+ * mine, to be carried on. Each of mine is transformed as 'right' over each of theirs, and theirs as 'left' over the
+ * one of mine before it moves on to the next, so the later of mine meet it at the indices their own predecessors
+ * left; one of mine that comes out null is dropped, and theirs still passes over it; one of theirs that comes out
+ * null passes the rest unchanged, and is left out. Throws Conflict as transform does.
  */
-export function rebase(pending: Op[], over: Op[]): Op[] {
-  let mine = pending;
-  for (const op of over) {
-    let theirs: Op | null = op;
+export function cross(mine: Op[], theirs: Op[]): [Op[], Op[]] {
+  const passed: Op[] = [];
+  for (const op of theirs) {
+    let t: Op | null = op;
     const next: Op[] = [];
     for (const p of mine) {
-      if (!theirs) {
+      if (!t) {
         next.push(p);
         continue;
       }
-      const moved = transform(p, theirs, 'right');
-      theirs = transform(theirs, p, 'left');
+      const moved = transform(p, t, 'right');
+      t = transform(t, p, 'left');
       if (moved) next.push(moved);
     }
     mine = next;
+    if (t) passed.push(t);
   }
-  return mine;
+  return [mine, passed];
 }
+
+/** A client's pending ops (made one after another on its own view) once the server's ops (in the server's order) have been applied before them: `cross`'s first half. */
+export const rebase = (pending: Op[], over: Op[]): Op[] => cross(pending, over)[0];
 
 /** The document after the edits, in order: a snapshot and the ordered edits after it give the document now. */
 export const applyEdits = (doc: Doc, edits: Edit[]): Doc => edits.reduce((d, e) => apply(d, e.op), doc);
@@ -417,5 +425,7 @@ function overTable(a: TableOp, b: TableOp, side: Side): Op | null {
       return a.op === 'cells' ? cellsOverCells(a, b, side) : a;
     case 'col':
       return a.op === 'col' && a.c === b.c && side === 'left' ? { ...a, col: b.col } : a;
+    default:
+      throw new TypeError(`unknown op ${String((b as { op: unknown }).op)}`);
   }
 }

@@ -30,10 +30,29 @@ export {
 } from './tlo.ts';
 
 export type { Op } from './ops.ts';
-export { apply, applyAll, depthOf, family, invert, invertAll, joinBlocks, moveFamily, placeFamily, putCells, removeItem, replaceSpan, runLength, shiftFamily, sliceRuns, splitBlock } from './ops.ts';
+export { keptDoc, MAX_DEPTH } from './json.ts';
+export {
+  apply,
+  applyAll,
+  checkOp,
+  depthOf,
+  family,
+  invert,
+  invertAll,
+  joinBlocks,
+  moveFamily,
+  placeFamily,
+  putCells,
+  removeItem,
+  replaceSpan,
+  runLength,
+  shiftFamily,
+  sliceRuns,
+  splitBlock,
+} from './ops.ts';
 
 export type { Edit, Ordered } from './sync.ts';
-export { applyEdits, Conflict, rebase, transform } from './sync.ts';
+export { applyEdits, Conflict, cross, rebase, transform } from './sync.ts';
 
 export { linkable, linkify, linkTarget, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, referenceNotes, runLinks } from './notes.ts';
 

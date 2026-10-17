@@ -23,7 +23,7 @@
  * still land (`applyRemote`), and a new `value` is still a new document.
  */
 import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
-import { applyAll, invertAll, isText, parse, sayableRuns, transform, write, type Doc, type Op } from '../../doc/index.ts';
+import { applyAll, cross, invertAll, isText, keptDoc, parse, sayableRuns, write, type Doc, type Op } from '../../doc/index.ts';
 import { cmdTool } from '../ui/bar.ts';
 import { REDO, UNDO } from './keys.ts';
 
@@ -86,31 +86,6 @@ export function firstAt(entry: Pick<Entry, 'ops'>): number {
 }
 
 const BURST = 700;
-
-/**
- * Ops made one after another on a document (an entry's), and others made on the same document (another's): each of
- * the first as it applies after the others, as the kernel's `rebase` gives it, and the others as they apply after the
- * first, to be carried on past the entry below. Throws the kernel's Conflict where two spans cross.
- */
-function cross(mine: Op[], theirs: Op[]): [Op[], Op[]] {
-  const passed: Op[] = [];
-  for (const op of theirs) {
-    let t: Op | null = op;
-    const next: Op[] = [];
-    for (const p of mine) {
-      if (!t) {
-        next.push(p);
-        continue;
-      }
-      const moved = transform(p, t, 'right');
-      t = transform(t, p, 'left');
-      if (moved) next.push(moved);
-    }
-    mine = next;
-    if (t) passed.push(t);
-  }
-  return [mine, passed];
-}
 
 export abstract class DocElement<V> extends LitElement {
   static properties: PropertyDeclarations = { value: {}, readOnly: { type: Boolean, attribute: 'readonly', reflect: true } };
@@ -232,11 +207,25 @@ export abstract class DocElement<V> extends LitElement {
     }
   }
 
+  /** `next` read and written before anything is kept: an op the text cannot write, or the view cannot draw, throws here and leaves the editor as it was. */
+  private written(next: Doc): { view: V; text: string } {
+    return { view: this.read(next), text: write(next) };
+  }
+  /** `next` taken as the document, with its view and its text, and drawn. */
+  private takeUp(next: Doc, settled: { view: V; text: string }) {
+    this.doc = next;
+    this.view = settled.view;
+    this.seen = settled.text;
+    this.value = settled.text;
+    this.requestUpdate();
+  }
+
   /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one; `mark` is handed back to `undone()`. */
   edit(ops: Op[], key?: string, mark?: unknown) {
     if (!ops.length || this.readOnly) return;
     const inverse = invertAll(this.doc, ops);
-    this.doc = applyAll(this.doc, ops);
+    const next = applyAll(this.doc, ops);
+    const settled = this.written(next);
     const now = Date.now();
     const last = this.undo[this.undo.length - 1];
     if (key && last && last.key === key && now - last.at < BURST) {
@@ -246,23 +235,28 @@ export abstract class DocElement<V> extends LitElement {
     } else this.undo.push({ ops, inverse, key, at: now, ...(mark === undefined ? {} : { mark }) });
     if (this.undo.length > 500) this.undo.shift();
     this.redo = [];
+    this.takeUp(next, settled);
     this.emit(ops, key);
   }
   /** Ops the editor makes of a document as it arrives (a deck written loosely, loosened): applied and told as an edit is, with no step in the history, since nobody did anything. */
   protected arrive(ops: Op[]) {
     if (!ops.length) return;
-    this.doc = applyAll(this.doc, ops);
+    const next = applyAll(this.doc, ops);
+    this.takeUp(next, this.written(next));
     this.emit(ops);
   }
   /**
    * Another's ops (a page's shared document: docs/kernel.md §12), made on the document as it is here: applied, the view
    * drawn again, with no step of the history and nothing told (the page knows). The history is carried over them, each
    * entry as the kernel's rebase gives it, so an undo takes back only what was done here; where they cross an entry
-   * (the kernel's Conflict) the history is let go. Ops that do not apply throw, and nothing changes.
+   * (the kernel's Conflict) the history is let go. Ops that do not apply, or that leave a document the text would not
+   * read back as written, throw (the kernel's checkOp and keptDoc), and nothing changes.
    */
   applyRemote(ops: Op[]) {
     if (!ops.length) return;
-    this.doc = sayableAfter(this.doc, applyAll(this.doc, ops));
+    const next = sayableAfter(this.doc, applyAll(this.doc, ops));
+    keptDoc(next);
+    const settled = this.written(next);
     this.applied += ops.length;
     try {
       this.carryStack(this.undo, 'inverse', ops);
@@ -271,7 +265,7 @@ export abstract class DocElement<V> extends LitElement {
       this.undo = [];
       this.redo = [];
     }
-    this.rewrite();
+    this.takeUp(next, settled);
     this.followed(ops);
   }
   /**
@@ -293,24 +287,22 @@ export abstract class DocElement<V> extends LitElement {
       theirs = passed;
     }
   }
-  /** The view read again and the text written out. */
-  private rewrite(): string {
-    this.view = this.read(this.doc);
-    const text = write(this.doc);
-    this.seen = text;
-    this.value = text;
-    this.requestUpdate();
-    return text;
-  }
-  /** The view read again and the text written out; a page hears of the ops, and the shell of the change. */
+  /** A page hears of the ops just taken, and the shell of the change. */
   private emit(ops: Op[], key?: string) {
-    const text = this.rewrite();
     const base = this.applied;
     this.applied += ops.length;
     if (ops.length) this.dispatchEvent(new CustomEvent('docops', { detail: { ops, base } }) as DocOps);
-    const change = new CustomEvent<string>('docchange', { detail: text, bubbles: true }) as DocChange;
+    const change = new CustomEvent<string>('docchange', { detail: this.value, bubbles: true }) as DocChange;
     change.key = key;
     this.dispatchEvent(change);
+  }
+  /** An entry's side applied (an undo's inverse, a redo's ops), the entry moved to the other stack, and the shell told. */
+  private step(entry: Entry, ops: Op[], onto: Entry[]) {
+    const next = sayableAfter(this.doc, applyAll(this.doc, ops));
+    const settled = this.written(next);
+    onto.push(entry);
+    this.takeUp(next, settled);
+    this.emit(ops);
   }
   private onUndo = (e: Event) => {
     if (this.readOnly) return;
@@ -318,9 +310,7 @@ export abstract class DocElement<V> extends LitElement {
     if (!entry) return;
     e.preventDefault();
     if (this.carried.delete(entry)) entry.ops = invertAll(this.doc, entry.inverse);
-    this.doc = sayableAfter(this.doc, applyAll(this.doc, entry.inverse));
-    this.redo.push(entry);
-    this.emit(entry.inverse);
+    this.step(entry, entry.inverse, this.redo);
     this.undone(entry, false);
   };
   private onRedo = (e: Event) => {
@@ -329,9 +319,7 @@ export abstract class DocElement<V> extends LitElement {
     if (!entry) return;
     e.preventDefault();
     if (this.carried.delete(entry)) entry.inverse = invertAll(this.doc, entry.ops);
-    this.doc = sayableAfter(this.doc, applyAll(this.doc, entry.ops));
-    this.undo.push(entry);
-    this.emit(entry.ops);
+    this.step(entry, entry.ops, this.undo);
     this.undone(entry, true);
   };
   get canUndo(): boolean {

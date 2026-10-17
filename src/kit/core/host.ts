@@ -41,7 +41,7 @@ export const siteHost = (site: () => string): Host => ({
     const s = words.trim();
     if (!/^https?:\/\/\S+#\/v\d+\//.test(s)) return null;
     const { app, payload } = parseHash(s.slice(s.indexOf('#')));
-    if (!app) return null;
+    if (!app || !lookup.appOf(app)) return null;
     // A link locked with a password goes in as itself (kit/share/locked.ts).
     if (isSealed(payload)) {
       const { lang, body } = lockedFence(app, payload) as Placed;
