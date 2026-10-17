@@ -20,9 +20,9 @@
  * (dist/types/kit.d.ts). So an app and the editors share one of everything a module keeps: one Lit (one LitElement, one
  * html, one registry of custom elements), one registry of apps, one of commands, one set of words and one host. Lit is
  * served from here for that reason, with the directives the kit uses (Lit's `live` is `liveValue` here, `live` being
- * the commands'), and an app built outside needs no Lit of its own; its icons are Lucide's `IconNode`s, plain data. The
- * kernel is `tinylittleoffice/doc`, as for any program: pure functions, nothing kept, so its copy in the editors' file
- * and the one an app imports never disagree.
+ * the commands'), and an app built outside runs no Lit of its own (it installs lit for its types alone); its icons are
+ * Lucide's `IconNode`s, plain data. The kernel is `tinylittleoffice/doc`, as for any program: pure functions, nothing
+ * kept, so its copy in the editors' file and the one an app imports never disagree.
  *
  * What is here, by what it is for:
  * - the contract: `defineApp` and the types of a definition (AppDef, Template, Export, Handoff, Page, ViewOpts) and of

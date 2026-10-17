@@ -6,7 +6,7 @@
 // found by appOf, never listed by apps(), drawn where another document places one, and never under a name the registry
 // knows.
 import { describe, expect, test } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { exportsOf } from './lints.ts';
 import { appOf, apps, registerApp } from '../src/kit/core/apps.ts';
@@ -107,5 +107,16 @@ describe('an app registered from outside the suite', () => {
   test('never takes a name the registry knows: its own again, an app’s, the QR code’s or a locked document’s', () => {
     for (const id of ['tally', 'write', QR_LANG, LOCKED_LANG]) expect(() => registerApp({ ...tally, id }), id).toThrow(`an app "${id}" is registered already`);
     expect(appOf('write')!.name).toBe('Word Processor');
+  });
+
+  test('is never registered by the site: only the registry and the kit name registerApp in their code', () => {
+    const code = (f: string) =>
+      readFileSync(join(ROOT, f), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '');
+    const named = (readdirSync(join(ROOT, 'src'), { recursive: true }) as string[])
+      .map((f) => `src/${f.replaceAll('\\', '/')}`)
+      .filter((f) => f.endsWith('.ts') && !f.includes('/tests/') && /\bregisterApp\b/.test(code(f)));
+    expect(named.sort()).toStrictEqual(['src/kit.ts', 'src/kit/core/apps.ts']);
   });
 });

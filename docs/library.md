@@ -131,7 +131,8 @@ suite's repository: an app built outside it, cards in lanes first, is made with 
   dependency, for its types alone, as test/package.test.ts's program does; without it they read as `any` under
   `skipLibCheck`, and an element of its own is no `HTMLElement` to the checker. The kernel is a file of its own,
   `tinylittleoffice/doc`, whose functions keep nothing between calls, so the editors' copy of it and an app's never
-  disagree; they cost their bytes twice.
+  disagree on a document; they cost their bytes twice, and the one class it exports, `Conflict`, is two classes, so
+  a conflict is told by its `name` rather than by `instanceof` across them.
 - **The page.** A page that holds an outside app registers it, adds its words and mounts it before anything draws it:
 
 ```ts
