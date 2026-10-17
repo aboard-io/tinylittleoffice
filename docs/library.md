@@ -48,10 +48,45 @@ What an app still asked of the site itself, and what replaces it:
    sheet adds one rule the site's body makes needless (src/styles/standalone.css: the type and the ink on the
    editors and what they put on the page). test/browser/editors.test.ts holds that no rule of it names the root, the
    body or the shell, and that a page's own body keeps its own margin, ground and type.
-4. **A page's own commands.** A page registers commands and scopes of its own beside the kit's (Atlas's records, its
-   board), drawn and answered the same way.
+4. **A page's own commands.** Done: a page declares a scope of its own beside the kit's (Atlas's records, its
+   board), and draws and answers it with the kit's functions: see A page's own commands.
 5. **A bare page that holds `<to-write-editor>`** with a host of its own, and a test that types in it and reads the
    `docchange`. Done when the site is unchanged (every test, walk and budget) and the bare page works.
+
+## A page's own commands
+
+A page's commands are declared as the kit's and the apps' are (kit/core/commands.ts: id, label, icon, keys, scope,
+where, when, does), in a scope of the page's own (`host`, `atlas`), and act on a context of its own: its board, the
+record in hand. `tinylittleoffice/editors` exports what declares, draws and answers them, and nothing beside it:
+
+- declaring: `command`, `register`, `registered`, `inScope`, and the types `Command`, `Words` and `Where`;
+- running: `live` (in force and not disabled), `run`, and `runKey(e, commands, context)` (a key answered by a scope:
+  the first command in force whose key it is runs, and the key stops there);
+- drawing: `cmdTool`, `cmdBtn` and `cmdMenu` (a bar's button, a button with words, a menu: Lit templates, for
+  `<to-bar>`, which the page renders with its own Lit's `render`), `drawnIn` and `contextOf` (the same as plain objects, `Drawn`, for a page that draws with something
+  else), `labelOf` (a command's words in a context) and `keysText` (its keys as this device writes them).
+
+`mount(app, text, into, onChange, { commands, context })` answers the page's commands' keys inside the editor, after
+the words', the app's and undo's, so a key an inner scope takes (Mod+B, bold) is never the page's (the shell's rule:
+the inner scope wins). Of the site's page's own keys a bare page has nothing for (Mod+F, Mod+S, Mod+P, Mod+K, Mod+/,
+Mod+Shift+S, Mod+Shift+D), `mount` takes none, and they reach the page's commands and then the browser. Outside the
+editor the keys are the page's to listen for, with the same `runKey`; a key `mount` took is not taken again.
+
+```ts
+import { command, register, mount, cmdTool } from 'tinylittleoffice/editors';
+const open = command<Board>({ id: 'host.open', scope: 'host', label: (b) => `Open ${b?.record.name ?? 'record'}`,
+  keys: 'Mod+Shift+O', where: ['bar'], does: (b) => b.open(b.record) });
+register([open]);
+await mount('write', text, main, save, { commands: [open], context: board });
+render(html`<to-bar>${cmdTool(open, board)}</to-bar>`, bar);
+```
+
+A command's label is `Words`: a string is the id of a message of the site's (src/i18n/en.ftl), put through `t()` and
+translated with the rest; a function of the context is words of the page's own, in its own language, and `t()` is not
+asked (test/commands.test.ts holds that `labelOf` gives them). A page's commands are registered as it runs, so the
+site's registry, which scripts/commands.ts loads under node for docs/editing.md's tables and the lints (every label a
+message of en.ftl, every command run by a test, no key bound twice in a chain of scopes), never holds them: those lints
+are the site's, and a page keeps its own keys clear of the site's (docs/editing.md's tables list every key bound).
 
 ## Theming
 

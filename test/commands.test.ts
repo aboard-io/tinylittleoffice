@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { keyList, keyOf, keysText, labelOf, normalKey, runKey, command } from '../src/kit/core/commands.ts';
+import { keyList, keyOf, keysText, labelOf, normalKey, runKey, command, say } from '../src/kit/core/commands.ts';
 import { flatMessages } from '../scripts/ftl.ts';
 import { editingTables } from '../scripts/commands.ts';
 import { makeSkill } from '../scripts/make-skill.ts';
@@ -154,6 +154,22 @@ describe('the keys as the registry reads them', () => {
     ctx.on = false;
     log.length = 0;
     expect(runKey(e, cmds, ctx)).toBe(false);
+  });
+});
+
+describe('a page’s own commands (docs/library.md)', () => {
+  // A page that holds an editor declares its scope as the kit does, and registers it as the page runs: the registry the
+  // lints and the tables read is the site's, loaded by scripts/commands.ts, and a host's is never in it.
+  const own = command<{ record: string }>({ id: 'host.open', scope: 'host', label: (b) => (b ? `Open ${b.record}` : 'Open a record'), keys: 'Mod+Shift+9', where: ['bar'], does: () => {} });
+  test('its words are its own, a function of its context rather than a message of en.ftl', () => {
+    expect(labelOf(own)).toBe('Open a record');
+    expect(labelOf(own, { record: 'r1' })).toBe('Open r1');
+    expect(say(own.label, { record: 'r2' })).toBe('Open r2');
+  });
+  test('the key the browser test binds for it is no command’s of the site’s, so no chain of scopes meets it', () => {
+    expect(all.filter((c) => keyList(c.keys).includes('Mod+Shift+9')).map((c) => c.id)).toStrictEqual([]);
+    expect(collisions([...all, own]).filter((c) => c.a === own || c.b === own)).toStrictEqual([]);
+    expect(all.some((c) => c.scope === 'host')).toBe(false);
   });
 });
 
