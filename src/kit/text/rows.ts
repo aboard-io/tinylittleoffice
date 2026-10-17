@@ -36,6 +36,7 @@ import { SEP, type ContextEntry, type ToContext } from '../ui/context.ts';
 import { contextOf, labelOf, runKey } from '../core/commands.ts';
 import { ROWS_COMMANDS } from './rows-commands.ts';
 import { t } from '../core/i18n.ts';
+import type { Clip } from './clipboard.ts';
 import '../ui/context.ts';
 
 /** Blocks [from, to): a row with its family, or a run of rows. */
@@ -52,10 +53,8 @@ export interface RowRange<Id> {
   anchor: Id;
   focus: Id;
 }
-export interface Clip {
-  text: string;
-  html: string;
-}
+/** A copy's words and HTML: the clipboard's one Clip, so the kit names one type for both. */
+export type { Clip } from './clipboard.ts';
 export type DropHow = 'under' | 'after';
 export interface RowDrag<Id> {
   id: Id;
