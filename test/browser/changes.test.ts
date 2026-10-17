@@ -30,6 +30,7 @@ import {
   type ToText,
   type Tracked,
 } from '../../src/kit.ts';
+import type { ToContext } from '../../src/kit/ui/context.ts';
 import { tick, until } from './wait.ts';
 
 const ALICE = 'alice@x.co';
@@ -46,12 +47,12 @@ const VERSIONS: Step[] = [
   { author: BOB, text: V1, hash: 'v1' },
 ];
 
-/** A Word Processor on a bare page holding `text`, its words (wordsOf), and the texts the page is told. */
-async function mounted(text = V1) {
+/** A Word Processor on a bare page holding `text` (shown read-only, given `readOnly`), its words (wordsOf), and the texts the page is told. */
+async function mounted(text = V1, readOnly = false) {
   document.body.innerHTML = '<main></main>';
   const changes: string[] = [];
   const main = document.querySelector('main')!;
-  const { editor } = await mount('write', text, main, (next) => changes.push(next));
+  const { editor } = await mount('write', text, main, (next) => changes.push(next), { readOnly });
   const words = wordsOf(editor)!;
   await words.updateComplete;
   return { editor, words, changes, main };
@@ -198,7 +199,9 @@ test('the bubble begins with Comment where the host marks the words for comments
     asked.push(`${w === words} ${w.sel!.anchor.offset}-${w.sel!.focus.offset}`);
   });
   await select(0, 8);
+  // Comment first, then the rest as ever.
   expect(labels()[0]).toBe('Comment');
+  expect(labels().slice(1)).toEqual(expect.arrayContaining(['Bold', 'Italic', 'Link']));
   bubble()!.querySelector<HTMLElement>('button[aria-label="Comment"]')!.click();
   expect(asked).toEqual(['true 0-8']);
   // Not inside the box the comment is written in.
@@ -207,6 +210,37 @@ test('the bubble begins with Comment where the host marks the words for comments
   document.querySelector('[data-comment-box]')!.append(main);
   await select(0, 7);
   expect(labels()).not.toContain('Comment');
+});
+
+test('a reader of a read-only editor who selects words gets the bubble with Comment alone where the host takes comments, and nowhere else a bubble', async () => {
+  const { editor, words, main, changes } = await mounted(V1, true);
+  const bubble = () => words.querySelector<HTMLElement>(':scope > to-context.tx-bubble > .to-context:popover-open');
+  const labels = () => [...bubble()!.querySelectorAll<HTMLElement>('button')].map((b) => b.getAttribute('aria-label'));
+  const select = async (from: number, to: number) => {
+    words.focus();
+    words.sel = { anchor: { block: 0, offset: from }, focus: { block: 0, offset: to } };
+    await words.updateComplete;
+    await until(() => words.readSel()?.focus.offset === to, 'the words were never selected');
+  };
+  // Read-only alone: the words are selected, and nothing comes up over them.
+  await select(0, 7);
+  await words.querySelector<ToContext>('to-context.tx-bubble')!.updateComplete;
+  await tick();
+  expect(bubble()).toBeNull();
+  // Where the host takes comments: Comment, and nothing that formats.
+  main.dataset.comments = '';
+  const asked: string[] = [];
+  main.addEventListener('text-comment', (e) => asked.push(`${e.target === words} ${words.sel!.anchor.offset}-${words.sel!.focus.offset}`));
+  await select(0, 8);
+  await until(() => !!bubble(), 'the bubble never opened');
+  expect(labels()).toEqual(['Comment']);
+  bubble()!.querySelector<HTMLElement>('button[aria-label="Comment"]')!.click();
+  expect(asked).toEqual(['true 0-8']);
+  // Escape lets it go, as in words that edit; nothing was written.
+  words.tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await until(() => !bubble(), 'Escape never let the bubble go');
+  expect(editor.value).toBe(V1);
+  expect(changes).toStrictEqual([]);
 });
 
 /** A page with every kind of block and run the Word Processor draws, its cards among them (a rule, a table, a sheet). */

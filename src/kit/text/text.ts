@@ -87,7 +87,8 @@
  * words. With none (the default) a block is drawn as its words and nothing else.
  *
  * Inside a read-only editor (kit/core/element.ts) the words are shown and not edited: not contenteditable, but still a
- * stop in the focus order (aria-readonly), and its keys are not answered here.
+ * stop in the focus order (aria-readonly), and its keys are not answered here but Escape, which lets the bubble go.
+ * Where its host takes comments (`data-comments`), words a reader selects bring up the bubble with Comment alone.
  *
  * Nothing here calls execCommand, sets innerHTML, or reads it.
  */
@@ -96,7 +97,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { applyAll, hasClass, isAtomic, listNumbers, normalRuns, runLength, type Block, type Op, type Run } from '../../doc/index.ts';
 import { copyData, pasteFrom, readClip, writeClip } from './clipboard.ts';
 import { contextOf, runKey } from '../core/commands.ts';
-import { TEXT_COMMANDS } from './text-commands.ts';
+import { COMMENT, TEXT_COMMANDS } from './text-commands.ts';
 import type { ToContext } from '../ui/context.ts';
 import { lookup } from '../core/app.ts';
 import { t } from '../core/i18n.ts';
@@ -841,7 +842,9 @@ export class ToText extends LitElement {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (this.ownEvent(e) || e.isComposing || this.composing || this.locked) return;
+    if (this.ownEvent(e) || e.isComposing || this.composing) return;
+    // Read-only: no key is the words', but Escape lets the bubble (a reader's Comment) go.
+    if (this.locked) return void (e.key === 'Escape' && this.escape(e));
     const chip = (e.target as HTMLElement).closest?.('.fn');
     if (chip && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
@@ -1169,8 +1172,11 @@ export class ToText extends LitElement {
     const dom = !this.writing && !this.pendingSel ? document.getSelection() : null;
     const inCard = (n: Node | null | undefined) => !!(n && (n instanceof Element ? n : n.parentElement)?.closest('.tx-card'));
     if (this.noBubble || this.composing || !sel || collapsed(sel) || !focused || this.linkPop?.shown || inCard(dom?.anchorNode) || inCard(dom?.focusNode)) return bub.hide();
-    const items = contextOf(TEXT_COMMANDS, this);
+    // Read-only, the bubble is a reader's: Comment alone, where the host takes comments, and else none.
+    const items = contextOf(this.locked ? [COMMENT] : TEXT_COMMANDS, this);
+    if (!items.length) return bub.hide();
     bub.items = items;
+    bub.reads = this.locked;
     bub.show(() => (this._sel && !collapsed(this._sel) && this.isConnected ? this.selRect(this._sel) : null));
   }
   /** Where a selection is on the screen, for a bubble. */
