@@ -48,6 +48,8 @@ export class ToContext extends LitElement {
   declare label: string;
   /** A line under the buttons ('' for none); cleared when the bar goes. */
   declare hint: string;
+  /** Its items edit nothing (a read-only editor's Comment, kit/text/text.ts): it comes up inside a read-only editor too. */
+  reads = false;
   private anchor: Anchor | null = null;
   private side: 'below' | 'above' = 'below';
   private soon = 0;
@@ -76,7 +78,7 @@ export class ToContext extends LitElement {
   /** Up beside the anchor; called again, it moves to a new anchor. */
   show(anchor: Anchor, side: 'below' | 'above' = 'below') {
     // Nothing that edits comes up inside a read-only editor (kit/core/element.ts).
-    if (this.closest('[readonly]')) return;
+    if (this.closest('[readonly]') && !this.reads) return;
     this.anchor = anchor;
     this.side = side;
     void this.updateComplete.then(() => {

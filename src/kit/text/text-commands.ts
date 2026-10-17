@@ -11,7 +11,8 @@
  *
  * A host that takes comments on its words (docs/library.md, Tracked changes and comments for a host) marks an element
  * around them `data-comments`, and the bubble begins with Comment, which tells it "text-comment"; nowhere else is there
- * a Comment, so the site's bubbles are as they were.
+ * a Comment, so the site's bubbles are as they were. A reader of a read-only editor there may comment too: the bubble
+ * comes up over the words they select with Comment alone (kit/text/text.ts): nothing else of it is for a reader.
  */
 import { ClipboardPaste, Copy, MessageSquarePlus, Scissors } from 'lucide';
 import { coarse, register, type Command, commandsOf } from '../core/commands.ts';
@@ -106,7 +107,7 @@ export const INDENT = cmd('indent', 'common-indent', {
  * `data-comments`, which hears "text-comment" (bubbling from the <to-text>, its selection the words) and opens its own
  * box; not inside the words of that box (`data-comment-box`), where a comment is being written.
  */
-const COMMENT = cmd('comment', 'common-comment', {
+export const COMMENT = cmd('comment', 'common-comment', {
   icon: MessageSquarePlus,
   where: ['context'],
   group: 'comment',

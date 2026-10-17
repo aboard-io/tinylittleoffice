@@ -155,7 +155,9 @@ being its text layer.
   no index carried through the edits after it: nothing is transformed, on the server or on the page. Where the host
   marks an element around the editor `data-comments`, the selection's bubble begins with Comment, which sends
   "text-comment" up from the `<to-text>` (its `sel` the words selected) for the host to open its box; inside an element
-  marked `data-comment-box` (where a comment is written) there is none, and nowhere else is there a Comment.
+  marked `data-comment-box` (where a comment is written) there is none, and nowhere else is there a Comment. A reader
+  of a read-only editor there (`readOnly`) who selects words gets the bubble with Comment alone, nothing that formats,
+  sending the same "text-comment", and Escape lets it go; nowhere else does a read-only editor show a bubble.
 - **"@" for its people.** `words.mentions = people.map((p) => ({ name: p.name, detail: p.email }))`, and "@" with
   letters offers them as ":" offers icons, the one picked put in by name. With none, "@" is a letter like any other.
 
