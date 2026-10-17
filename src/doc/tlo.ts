@@ -790,6 +790,31 @@ const sayable = (runs: Run[]): Run[] =>
       .flatMap(unspaced),
   );
 
+/**
+ * A block's runs as reading their writing gives them back: what the writer lets go of taken off first, a line at a
+ * time, so `parse(write(d))` is `d` for a document whose blocks are so. A mark never holds a space at its ends: it
+ * ends before the spaces after it and begins after the ones before it (`**a** b`, as Markdown has it: `**a **` is
+ * no bold), and a line break carries none; a link's spaces at a line's ends go outside it (in a quote, `quote`, only
+ * at its end); an icon carries no mark, a note's words are balanced, and out of code goes what a backtick span cannot
+ * hold. The editor keeps its words so as it edits (kit/text/textops.ts `settle`), so what it holds is what the text
+ * says. Runs already so are given back as they are, the same array.
+ */
+export function sayableRuns(runs: Run[], quote = false): Run[] {
+  const lines: Run[][] = [[]];
+  for (const r of runs) {
+    if (r.ic || r.fn !== undefined || !r.t.includes('\n')) {
+      lines[lines.length - 1].push(r);
+      continue;
+    }
+    r.t.split('\n').forEach((t, i) => {
+      if (i) lines.push([]);
+      if (t) lines[lines.length - 1].push({ ...r, t });
+    });
+  }
+  const out = normalRuns(lines.flatMap((l, i): Run[] => [...(i ? [{ t: '\n' }] : []), ...unlinkEnds(sayable(l), !quote)]));
+  return same(out, runs) ? runs : out;
+}
+
 /** A code run split where its words hold what a backtick span cannot: those characters are plain words. */
 function uncoded(r: Run): Run[] {
   const parts = r.t.split(r.href ? /([`\n\]\\])/ : /([`\n])/);

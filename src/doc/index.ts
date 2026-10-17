@@ -19,6 +19,7 @@ export {
   parseInline,
   parseLines,
   refFence,
+  sayableRuns,
   splitAttrs,
   takeHead,
   text,

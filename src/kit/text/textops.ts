@@ -3,10 +3,30 @@
  * offset in its characters (an icon, a footnote mark or a line break counts
  * one); a selection is two of them. Every edit the editor makes is a pure
  * function from the blocks it owns and the selection to the operations
- * (docs/kernel.md §3) and the selection after. text.ts maps events onto
- * these; the node tests work them without a browser.
+ * (docs/kernel.md §3) and the selection after; `settle` keeps what they
+ * make as the format does (no mark on a space at its edge), so the model is
+ * what its text reads back as. text.ts maps events onto these; the node
+ * tests work them without a browser.
  */
-import { hasClass, isAtomic, isText as holdsRuns, normalRuns, rule, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../../doc/index.ts';
+import {
+  apply,
+  hasClass,
+  isAtomic,
+  isText as holdsRuns,
+  normalRuns,
+  plainText,
+  rule,
+  runLength,
+  sayableRuns,
+  sliceRuns,
+  splitBlock,
+  type Attrs,
+  type Block,
+  type Doc,
+  type Op,
+  type Run,
+  type TextBlock,
+} from '../../doc/index.ts';
 
 /** Whether a block is words the caret can sit in: a heading, a paragraph, an item, a note. Anything else is a card. */
 export const isWords = holdsRuns;
@@ -125,6 +145,12 @@ export function marksAt(runs: Run[], offset: number): Fmt {
   return out;
 }
 
+/**
+ * The runs a selection's marks are judged by: its words, without the spaces and breaks among them, which carry no mark
+ * at a mark's edge ("word " selected and made bold is bold, its space not: sayableRuns); the spaces when that is all.
+ */
+const judged = (runs: Run[]): Run[] => (runs.some((r) => r.t.trim()) ? runs.filter((r) => r.t.trim()) : runs);
+
 /** The marks a selection shows: at a caret, those of the words before it; over a range, those every selected word has (a link when all share one). */
 export function marksOf(blocks: Block[], sel: Sel): Fmt {
   const [a] = ordered(sel);
@@ -132,9 +158,11 @@ export function marksOf(blocks: Block[], sel: Sel): Fmt {
   if (!b || !isText(b)) return {};
   if (collapsed(sel)) return marksAt(b.runs, a.offset);
   // (A piece cut from words is words, whatever it would be alone: a linked word is not a card.)
-  const picked = sliceBlocks(blocks, sel)
-    .flatMap((x) => (holdsRuns(x) ? x.runs : []))
-    .filter((r) => !isAtomic(r) && r.t);
+  const picked = judged(
+    sliceBlocks(blocks, sel)
+      .flatMap((x) => (holdsRuns(x) ? x.runs : []))
+      .filter((r) => !isAtomic(r) && r.t),
+  );
   if (!picked.length) return {};
   const out: Fmt = {};
   for (const m of MARKS) if (picked.every((r) => r[m])) out[m] = true;
@@ -314,11 +342,13 @@ function join(at: number, first: TextBlock, second: TextBlock, sel: Sel): Edit {
   return { ops: [{ op: 'splice', at, n: 2, blocks: [{ ...first, runs: normalRuns([...first.runs, ...second.runs]) }] }], sel };
 }
 
-/** Every selected run of words, with the block it is in. */
+/** Every selected run of words, as their marks are judged. */
 function selectedRuns(blocks: Block[], sel: Sel): Run[] {
-  return sliceBlocks(blocks, sel)
-    .flatMap((b) => (isText(b) ? b.runs : []))
-    .filter((r) => !isAtomic(r) && r.t);
+  return judged(
+    sliceBlocks(blocks, sel)
+      .flatMap((b) => (isText(b) ? b.runs : []))
+      .filter((r) => !isAtomic(r) && r.t),
+  );
 }
 
 /** A mark put on the selection, or taken off when every selected word has it. One `text` op per block; the selection is kept. */
@@ -356,9 +386,11 @@ const spanOf = (sel: Sel): [number, number] => {
   return [a.block, b.block + 1];
 };
 
+/** A block with these attributes, as the format reads them back: what is empty in them (no class left) is not there. */
 const withAttrs = (b: Block, a: Attrs | undefined): Block => {
   const out = { ...b } as Block & { a?: Attrs };
-  if (a && (a.id || a.cls?.length || (a.kv && Object.keys(a.kv).length))) out.a = a;
+  const kept: Attrs = { ...(a?.id ? { id: a.id } : {}), ...(a?.cls?.length ? { cls: a.cls } : {}), ...(a?.kv && Object.keys(a.kv).length ? { kv: a.kv } : {}) };
+  if (Object.keys(kept).length) out.a = kept;
   else delete out.a;
   return out;
 };
@@ -567,4 +599,124 @@ export function runsDiff(at: number, from: Run[], to: Run[]): Op | null {
   while (tail < la - head && tail < lb - head && same(la - 1 - tail, lb - 1 - tail)) tail++;
   if (head === la && la === lb) return null;
   return { op: 'text', at, from: head, to: la - tail, runs: sliceRuns(b, head, lb - tail) };
+}
+
+/* ---------- what the format keeps ---------- */
+
+/** A block of words as the format keeps it (sayableRuns); any other block, and words already so, as it is. */
+export function sayableBlock<B extends Block>(b: B): B {
+  if (!isText(b)) return b;
+  const runs = sayableRuns(b.runs, b.k === 'quote');
+  return runs === b.runs ? b : { ...b, runs };
+}
+
+/**
+ * Marks the format let go of just before a caret: the spaces from `from` to `to` (the caret) carried them as they were
+ * typed, or until the words after them went, and a mark never ends on a space (sayableRuns). `fmt` is the marks in
+ * force there all the same, so the next letter typed carries them, and the spaces take back those they share with it
+ * (`typeRuns`): a bold word, a space and a bold word are one bold "a b".
+ */
+export interface Held {
+  block: number;
+  from: number;
+  to: number;
+  fmt: Fmt;
+}
+
+/** What a position carries besides its letter: the marks, the link, the icon or the note. */
+const marksKey = (r: Run): string => [...MARKS.map((m) => (r[m] ? m : '')), r.href ?? '', r.ic ?? '', r.fn ?? ''].join('\u0000');
+
+/** Where two runs of the same words carry other marks: the first position and the one after the last; null where none. */
+function marksDiffer(a: Run[], b: Run[]): [number, number] | null {
+  const keys = (runs: Run[]) => runs.flatMap((r) => Array<string>(isAtomic(r) ? 1 : r.t.length).fill(marksKey(r)));
+  const x = keys(a);
+  const y = keys(b);
+  if (x.length !== y.length) return [0, Math.max(x.length, y.length)];
+  let lo = 0;
+  while (lo < x.length && x[lo] === y[lo]) lo++;
+  if (lo === x.length) return null;
+  let hi = x.length;
+  while (hi > lo && x[hi - 1] === y[hi - 1]) hi--;
+  return [lo, hi];
+}
+
+/**
+ * One op as the format keeps what it makes (`made`, the op applied to `doc`): as it is, widened over the marks let go
+ * of, or null when it then changes nothing.
+ */
+function settleOp(doc: Doc, made: Doc, op: Op): Op | null {
+  if (op.op === 'splice') {
+    const put = op.blocks.map(sayableBlock);
+    return put.every((b, i) => b === op.blocks[i]) ? op : { ...op, blocks: put };
+  }
+  if (op.op !== 'text') return op;
+  const block = made.blocks[op.at] as TextBlock;
+  const said = sayableBlock(block);
+  if (said === block) return op;
+  const span = marksDiffer(block.runs, said.runs);
+  if (!span) return op;
+  // The same words in the same places: the op reaches over the marks let go of, before or after what it put in.
+  const put = runLength(op.runs);
+  const from = Math.min(op.from, span[0]);
+  const end = Math.max(op.from + put, span[1]);
+  const before = (doc.blocks[op.at] as TextBlock).runs;
+  if (runLength(before) === runLength(said.runs) && plainText(before) === plainText(said.runs) && !marksDiffer(before, said.runs)) return null;
+  return { op: 'text', at: op.at, from, to: op.to + end - op.from - put, runs: normalRuns(sliceRuns(said.runs, from, end)) };
+}
+
+/** The spaces just before a collapsed caret whose marks the format let go of: from the ops as made (`made`) to as kept (`kept`). */
+function heldAt(made: Block[], kept: Block[], sel: Sel): Held | null {
+  if (!collapsed(sel)) return null;
+  const { block, offset } = sel.anchor;
+  const u = made[block];
+  const s = kept[block];
+  if (!u || !s || !isText(u) || !isText(s)) return null;
+  let from = offset;
+  while (from > 0 && /^[^\S\n]$/.test(charAt(u.runs, from - 1))) from--;
+  if (from === offset) return null;
+  const typed = marksAt(u.runs, offset);
+  const fmt = marksAt(s.runs, offset);
+  const lost = MARKS.filter((m) => typed[m] && !fmt[m]);
+  if (!lost.length) return null;
+  for (const m of lost) fmt[m] = true;
+  return { block, from, to: offset, fmt };
+}
+
+/**
+ * An edit's ops as the format keeps what they make (docs/kernel.md §2, point 5): every block of
+ * words they leave is what its text reads back as, so the editor holds what `parse(write(model))` gives, and a server
+ * that keeps the text and applies the same ops holds the same words (Atlas, 2026-10-17). A splice's blocks go in so;
+ * a `text` op that would leave a mark on a space at its edge reaches over the marks let go of (its words and their
+ * places stay as they were, so the selection after it does too), and one that then changes nothing goes. `held` is
+ * what was let go of just before the caret `sel`, if it is one.
+ */
+export function settle(blocks: Block[], ops: Op[], sel?: Sel): { ops: Op[]; held: Held | null } {
+  let kept: Doc = { head: {}, blocks };
+  let made = kept;
+  const out: Op[] = [];
+  for (const op of ops) {
+    made = apply(kept, op);
+    const said = settleOp(kept, made, op);
+    if (said) out.push(said);
+    kept = said === op ? made : said ? apply(kept, said) : kept;
+  }
+  return { ops: out, held: sel ? heldAt(made.blocks, kept.blocks, sel) : null };
+}
+
+/**
+ * Words typed at the caret (or over the selection), with their marks. Where the format let go of marks just before
+ * the caret (`held`), the spaces there take back those they share with the words' first run, and the words follow:
+ * typing a bold word, a space and a bold word writes "**a b**". Spaces alone are only put in: at the edge again,
+ * settle holds them again.
+ */
+export function typeRuns(blocks: Block[], sel: Sel, runs: Run[], held: Held | null): Edit {
+  const at = held && collapsed(sel) && held.block === sel.anchor.block && held.to === sel.anchor.offset ? held : null;
+  const b = at ? blocks[at.block] : null;
+  const first = runs.find((r) => isAtomic(r) || r.t.trim());
+  if (!at || !b || !isText(b) || !first || isAtomic(first)) return insertRuns(blocks, sel, runs);
+  const keep = MARKS.filter((m) => at.fmt[m] && first[m]);
+  const between = sliceRuns(b.runs, at.from, at.to);
+  if (!keep.length || between.some((r) => isAtomic(r) || r.t.trim() || r.t.includes('\n'))) return insertRuns(blocks, sel, runs);
+  const spaces = between.map((r): Run => Object.assign({ ...r }, ...keep.map((m) => ({ [m]: true }))));
+  return insertRuns(blocks, { anchor: { block: at.block, offset: at.from }, focus: sel.anchor }, [...spaces, ...runs]);
 }

@@ -35,6 +35,8 @@ document; it never parses text of its own.
    and the first leading one; the spaces between are kept by being between), in a paragraph, a heading, an item,
    a quote's end and a table cell, and a line of a block with nothing on it (a line break at a paragraph's end, or
    two in a row) is a line of one `\`. A reader trims a line's ends up to an escaped space and never past it.
+   A mark holds no space at its ends, as in Markdown: `**a** b`, never `**a **` (which is words); the space is
+   kept, outside the mark. A space between marked words may be marked with them (`**a b**`).
 
 ## The model
 

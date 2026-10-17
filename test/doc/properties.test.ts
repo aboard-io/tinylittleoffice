@@ -3,7 +3,7 @@
 // generated cases (2,000 under `npm run fuzz`); a failure names the shrunk counterexample.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { applyAll, evaluateTable, invert, invertAll, pages, parse, write, type ColType, type Table } from '../../src/doc/index.ts';
+import { applyAll, evaluateTable, invert, invertAll, pages, parse, sayableRuns, write, type ColType, type Doc, type Table } from '../../src/doc/index.ts';
 import { apply } from '../../src/doc/ops.ts';
 import { decodeDoc, encodeDoc, packDoc, toBase64Url } from '../../src/kit/core/codec.ts';
 import { arbitraryDoc, arbitraryEdits, arbitraryOp, arbitraryText, readGrammar, RULES, RUNS, TLO_EBNF, textOf } from './tlo-grammar.ts';
@@ -98,6 +98,25 @@ test(
   'property: parse(write(d)) is d for every model the format can say',
   () => {
     holds('parse(write(d)) = d', arbitraryDoc(), (d) => expect(parse(write(d)), write(d)).toStrictEqual(d));
+  },
+  LONG,
+);
+
+/** A document's words as the format keeps them (sayableRuns), every other block as it is. */
+const said = (d: Doc): Doc => ({ ...d, blocks: d.blocks.map((b) => ('runs' in b ? { ...b, runs: sayableRuns(b.runs, b.k === 'quote') } : b)) });
+
+test(
+  "property: a model with marks at its words' edges reads back as the format keeps it, and that reads back as itself",
+  () => {
+    // The generator breaks the rule that no mark holds a space at its ends, as an editor would before the format has
+    // its say (Atlas, 2026-10-17); sayableRuns is what the reader makes of the writing, so the editor that keeps its
+    // words so (kit/text/textops.ts settle) holds what any reader of the text holds.
+    holds('parse(write(d)) = said(d)', arbitraryDoc(8, true), (d) => {
+      const kept = said(d);
+      expect(parse(write(d)), write(d)).toStrictEqual(kept);
+      expect(write(kept)).toBe(write(d));
+      expect(said(kept)).toStrictEqual(kept);
+    });
   },
   LONG,
 );

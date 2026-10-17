@@ -6,6 +6,7 @@ import fc from 'fast-check';
 import { expect, test } from 'vitest';
 import { normalRuns, parse, write, type Block, type Doc, type Run } from '../../src/doc/index.ts';
 import { docToHtml, htmlToBlocks } from '../../src/kit/text/clipboard.ts';
+import { sayableBlock } from '../../src/kit/text/textops.ts';
 import { arbitraryDoc, RUNS } from '../doc/tlo-grammar.ts';
 
 function holds<T>(name: string, arb: fc.Arbitrary<T>, pred: (x: T) => void): void {
@@ -31,6 +32,14 @@ test('property: pasting what was pasted changes nothing', () => {
   holds('paste(paste(d)) = paste(d)', arbitraryDoc(), (d) => {
     const once = pasted(d.blocks);
     expect(text(pasted(once))).toBe(text(once));
+  });
+}, 60_000);
+
+test('property: words with marks at their edges pasted as HTML (another editor’s "<b>a </b>b") come as the format keeps them, and its writing reads back as them', () => {
+  holds('parse(write(paste(d))) = paste(d)', arbitraryDoc(8, true), (d) => {
+    const once = pasted(d.blocks);
+    for (const b of once) expect(sayableBlock(b)).toBe(b);
+    expect(parse(text(once)).blocks, text(once)).toStrictEqual(once);
   });
 }, 60_000);
 

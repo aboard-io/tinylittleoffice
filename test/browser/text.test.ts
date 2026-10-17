@@ -425,6 +425,95 @@ test('an IME composition: the browser writes into the block, compositionend read
   expect(h.tlo).toBe('hello  world\n');
 });
 
+test('a space typed after a bold word is plain, as the text says it (Atlas, 2026-10-17): the editor holds what its writing reads back as', async () => {
+  // Bold, a word, a space, bold off, a plain word: the space is not bold, in the model as in "**a** b".
+  const h = await mount('');
+  h.el.exec('b');
+  await typeIn(h, 'a ');
+  h.el.exec('b');
+  await typeIn(h, 'b');
+  expect(h.tlo).toBe('**a** b\n');
+  expect(h.doc.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'a', b: true }, { t: ' b' }] }]);
+  expect(parse(h.tlo).blocks).toStrictEqual(h.doc.blocks);
+  // The same in italic, code and underline.
+  for (const m of ['i', 'c', 'u'] as const) {
+    const k = await mount('');
+    k.el.exec(m);
+    await typeIn(k, 'a ');
+    k.el.exec(m);
+    await typeIn(k, 'b');
+    expect(k.doc.blocks, m).toStrictEqual([{ k: 'p', runs: [{ t: 'a', [m]: true }, { t: ' b' }] }]);
+    expect(parse(k.tlo).blocks).toStrictEqual(k.doc.blocks);
+  }
+});
+
+test('a space typed at the end of a bold word: plain, the caret after it, the bold still in force; a bold word after it is one bold; Backspace returns into the bold', async () => {
+  const h = await mount('');
+  h.el.exec('b');
+  await typeIn(h, 'a ');
+  await tick();
+  expect(h.doc.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'a', b: true }, { t: ' ' }] }]);
+  expect(h.el.sel).toEqual(caret(0, 2));
+  expect(h.el.readSel()).toEqual(caret(0, 2));
+  expect(h.el.marks).toEqual({ b: true });
+  expect(h.el.tx.querySelector('b')!.textContent).toBe('a');
+  // A bold word after the space: one bold, the space in it.
+  await typeIn(h, 'b c');
+  expect(h.tlo).toBe('**a b c**\n');
+  expect(h.el.tx.querySelector('b')!.textContent).toBe('a b c');
+  expect(parse(h.tlo).blocks).toStrictEqual(h.doc.blocks);
+  // Backspace over a space typed after it: back in the bold, and what is typed next is bold.
+  await typeIn(h, ' ');
+  await key(h, 'Backspace');
+  expect(h.doc.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'a b c', b: true }] }]);
+  expect(h.el.marks).toEqual({ b: true });
+  await typeIn(h, 'd');
+  expect(h.tlo).toBe('**a b cd**\n');
+  // Words taken out after a bold space leave it plain, the bold in force: what is typed next is bold, the space too.
+  await key(h, 'Backspace');
+  await key(h, 'Backspace');
+  expect(h.doc.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'a b', b: true }, { t: ' ' }] }]);
+  expect(h.el.marks).toEqual({ b: true });
+  await typeIn(h, 'e');
+  expect(h.tlo).toBe('**a b e**\n');
+  // The caret moved away and back by the person: the marks there are the space's own.
+  await typeIn(h, ' ');
+  await tick();
+  const para = h.el.tx.querySelector('p')!;
+  document.getSelection()!.collapse(
+    [...para.querySelector('b')!.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && (n as Text).data)!,
+    1,
+  );
+  await until(() => h.el.sel?.anchor.offset === 1);
+  expect(h.el.marks).toEqual({ b: true });
+  const space = [...para.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE && (n as Text).data).pop() as Text;
+  document.getSelection()!.collapse(space, 1);
+  await until(() => h.el.sel?.anchor.offset === 6);
+  expect(h.el.marks).toEqual({});
+});
+
+test('an IME composition after a bold word and a space: the composed word is bold, and so is the space before it', async () => {
+  const h = await mount('');
+  h.el.exec('b');
+  await typeIn(h, 'a ');
+  await tick();
+  const p = h.el.tx.querySelector('p')!;
+  const textNode = [...p.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE && (n as Text).data).pop() as Text;
+  expect(textNode.data).toBe(' ');
+  document.getSelection()!.collapse(textNode, 1);
+  p.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  // The browser writes the composed word where the caret is: after the plain space, plain.
+  textNode.data = ' 日本';
+  p.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertCompositionText', data: '日本', bubbles: true, cancelable: true }));
+  document.getSelection()!.collapse(textNode, 3);
+  p.dispatchEvent(new CompositionEvent('compositionend', { data: '日本', bubbles: true }));
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('**a 日本**\n');
+  expect(h.el.sel).toEqual(caret(0, 4));
+  expect(h.el.tx.querySelector('b')!.textContent).toBe('a 日本');
+  expect(parse(h.tlo).blocks).toStrictEqual(h.doc.blocks);
+});
+
 test('undo and redo through the op log: a typing burst is one step, the caret comes back with it', async () => {
   const h = await mount('ab\n', 'doc', caret(0, 2));
   await typeIn(h, 'cd');
@@ -901,7 +990,8 @@ test('Mod+E marks the words selected as code, drawn in Plex Mono the size of its
   await h.el.updateComplete;
   press(h.el.tx, { key: 'e', ctrlKey: true });
   await typeIn(h, ' ok');
-  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'run npx tlo now' }, { t: ' ok', c: true }] });
+  // (The space typed first is at the code's edge: plain, as the text says it.)
+  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'run npx tlo now ' }, { t: 'ok', c: true }] });
   expect(h.tlo).toBe('run npx tlo now `ok`\n');
 });
 

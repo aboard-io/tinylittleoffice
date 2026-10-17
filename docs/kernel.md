@@ -13,7 +13,7 @@ named here by their ids (write, sheet, deck, …); docs/tlo.md is each one's doc
 | file | holds |
 |---|---|
 | `src/doc/model.ts` | the types below; `plainText`, `hasClass`, `attr`, `pages`, `sections`, `isInnerDoc` |
-| `src/doc/tlo.ts` | `parse`, `write`, `writeBlock`, `takeHead`, `withHead`; the inline codec `parseInline`, `writeInline`, `escapeInline`, `balanceNote`; `refFence`, `fenceRef`; `column`, `columnText`, `columnsOf` |
+| `src/doc/tlo.ts` | `parse`, `write`, `writeBlock`, `takeHead`, `withHead`; the inline codec `parseInline`, `writeInline`, `escapeInline`, `balanceNote`, `sayableRuns`; `refFence`, `fenceRef`; `column`, `columnText`, `columnsOf` |
 | `src/doc/ops.ts` | `Op`, `apply`, `invert`, and the composed edits (`splitBlock`, `joinBlocks`, `family`, `shiftFamily`, `moveFamily`, `placeFamily`, `removeItem`) |
 | `src/doc/notes.ts` | `foldNotes`, `notesOf`, `noteRuns`, `noteNumbers`, `markNotes`, `referenceNotes`, `listNumbers`, `linkify`, `runLinks`, `linkTarget`, `linkable` |
 | `src/doc/table.ts` | `Table`, `tableAt`, `withTable`, A1 addressing, locks, formula reference remaps, `copyCells`/`pasteCells`/`fillCells`/`seriesOf`/`sortRows`/`clearCells` |
@@ -90,6 +90,20 @@ Why runs in the model rather than text with runs derived: every view would other
 2. **The writer is byte-stable on canonical text.** `writeInline` writes a candidate with *minimal* escaping (only `\`, `^[`, `:name:`, `[x](y)`, `<u>`, a backtick, and a mark at a position where `parseInline` would open or close one), parses it back, and if the runs differ falls back to full escaping. So `writeInline(parseInline(s)) === s` for every canonical `s` (`5 * 3 * 2` on the calculator's tape and `snake_case` in an outline item stay as written). The corpus test asserts `write(parse(x)) === x` over every template and example.
 3. **Columns at parse time.** A table's heading row becomes `cols: Column[]` via `column(h)`; `writeBlock` writes `columnText(c.name, c.type)`. Canonical headings (`Price:money`, `Time: 10am`) are byte-stable; `Price: money` is read leniently and written canonically.
 4. **Reference footnotes fold in `parse`.** `foldNotes` runs in the kernel for every app (`[^id]: note` paragraphs become inline notes). Canonical documents hold the inline form only.
+5. **Spaces at a mark's edge are outside the mark (2026-10-17).** A mark never holds a space at its ends and a line
+   break carries none: bold "a " before "b" is written `**a** b` and read back as bold "a" and a plain " b". Atlas,
+   whose server keeps the text while its editors keep the model, found the two disagreeing on which spaces were bold,
+   so an op made against an editor's runs need not apply alike to the server's parse. There were two ways to make
+   them agree. The format could keep the edge space inside the mark, but no writing of it is Markdown: CommonMark
+   closes no mark after a space, and our reader takes neither `**a **` nor `**a\ **` as bold (any other reader of a
+   link's text, a language model among them, would meet stars). So the editor lets the space go, as the writer already did.
+   `sayableRuns(runs, quote)` is what reading a block's writing gives back: no mark on a space at a run's ends, a
+   line break unmarked, a link's spaces at a line's ends outside it (a quote keeps a line's start), an icon unmarked,
+   a note's words balanced, and out of code what a backtick span cannot hold. The editor keeps every block it edits
+   so (`settle`, §4), so `parse(write(model))` is the model it holds, an item's depth by indent aside. A space
+   between two marked words may hold the mark (`**a b**`); a link keeps a space inside a line. What a person sees of a
+   bold or an italic space is the same either way; an underline, a highlight or code now stops at the word, and the
+   marks typed with the space stay in force (§4), so typing a bold sentence writes it whole.
 
 ### Grammar the kernel must preserve (every example in docs/tlo.md and the skill parses and writes byte-for-byte)
 
@@ -209,6 +223,23 @@ Every `beforeinput` is `preventDefault()`ed and turned into ops, except while co
 | `historyUndo`, `historyRedo` | prevented; nothing — Mod+Z reaches the shell |
 | `insertOrderedList`, `insertUnorderedList`, `formatIndent`, `formatOutdent`, `formatJustify*` | `exec` of the matching command |
 | `insertHorizontalRule`, `insertLink`, `formatSetBlockTextDirection`, `formatFontColor`… | prevented, ignored |
+
+### The words as the format keeps them
+
+Every edit's ops go through `settle` (textops.ts) before `text-ops` is fired: each block of words they leave is
+`sayableRuns` of itself (§2, point 5), so the editor holds what its text reads back as, and a server that keeps the
+text and applies the same ops holds the same words. A `text` op that would leave a mark on a space at its edge reaches
+over the marks let go of (its words and their places stay, so the selection after it does, and its inverse is exact);
+one that then changes nothing (Bold over spaces alone) goes; a splice's blocks go in so. A space typed at the end of a
+bold word is therefore plain, the caret after it, and the bold stays in force there (`Held`, which the bar shows
+pressed): a bold word typed next takes the space back into the bold in the same op (`typeRuns`: `**a b**`), and so does
+a word an IME composes there; with Bold turned off first it is `**a** b`. Backspace over the space returns into the
+bold, and so does the caret after a word taken out behind a bold space. The caret moved away lets the held marks go,
+and a link's space let go at a line's end is not held (a space ends a link, docs/editing.md). A selection's marks are
+those of its words, not the spaces at its edges, so "word " made bold shows Bold pressed and Bold again unbolds it. A
+paste's blocks come as the format keeps them (`fitBlocks`, `htmlToBlocks`). Ops someone else made are applied as
+they arrive (`applyRemote`); a transformed op can rarely leave a mark on a space whose neighbor another took away,
+which the text, the server's document (§12, rule 4), says without it.
 
 ### Rendering and reconciliation
 
@@ -344,7 +375,9 @@ Two generators come from it, both with fast-check, both biased to the hard cases
 attributes that look like words, `\{`, `~~` beside a link, empty cells, items nested deep, icons and emoji in names,
 right-to-left words): `textOf(rule)` makes texts from the EBNF; `arbitraryDoc()` makes models of the kernel as far as
 the format can say them, and `sayableLine`/`sayableDoc` list, one rule a line, what it cannot (a mark never begins or
-ends with a space; an item is at most one deeper than the item before it).
+ends with a space; an item is at most one deeper than the item before it). `arbitraryDoc(n, true)` breaks the first
+rule as an editor would before the format has its say (marks and links on the spaces at a run's ends, on spaces alone,
+on a line break), for the properties that the format and the editor let them go alike (§2, point 5).
 `arbitraryOp(doc)` and `arbitraryEdits()` make operations that apply.
 
 The properties, each a `fc.assert`-style check whose failure names the shrunk counterexample (200 cases each;
@@ -355,11 +388,14 @@ The properties, each a `fc.assert`-style check whose failure names the shrunk co
 | any text the grammar makes is read, and its writing is canonical: `write(parse(write(parse(x)))) === write(parse(x))` | test/doc/properties.test.ts |
 | a lenient text and its canonical writing read alike: `parse(write(parse(x)))` is `parse(x)` | " |
 | `write(parse(x)) === x` for every canonical text, and `parse(write(d))` is `d` for every model the format can say | " |
+| a model with marks at its words' edges reads back as `sayableRuns` has it, which reads back as itself | " |
+| whatever the editor's edits do to such a document read in (typing with the marks held, marks and links over any range, deletes, Enter, kinds, a paste), each through `settle`, it holds what its text reads back as (an item's depth aside), and the inverse takes it back | test/textops.test.ts |
 | every op applied then its inverse gives the document back (untouched blocks keep their identity); a random run of ops then `invertAll` too | " |
 | `pages()` never throws, never gives no pages, and holds every block but the rules in order | " |
 | formulas: `a + b = b + a`, `a * b = b * a`, `(a + b) + c = a + (b + c)` within 1e-9 of the sum's scale; `=X` is X's value; a cell that reaches a cycle is `#CIRC` and one clear of cycles its sum, never a loop | " |
 | `decodeDoc(encodeDoc(x)) === x`, and the encoding chosen is never longer than the raw | " |
 | a document pasted as HTML (`docToHtml` → `htmlToBlocks`) is one the writer keeps; pasting it again changes nothing; paragraphs and items come back as they were | test/browser/paste-properties.test.ts |
+| words with marks at their edges pasted as HTML (another editor's `<b>a </b>b`) come as the format keeps them, and their writing reads back as them | " |
 
 What the fuzz found on its first runs, each fixed with a test in test/doc/grammar.test.ts or test/browser/paste.test.ts:
 a rule's attributes (`--- {.big}`) read as words; an item's attributes, written after its last line, were read only

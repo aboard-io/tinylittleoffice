@@ -1,7 +1,9 @@
 /**
  * <to-text>: the one rich-text editor (docs/kernel.md §4). It is given a
  * span of blocks and draws them; every `beforeinput` is prevented and
- * turned into operations (textops.ts), fired as `text-ops` for the host to
+ * turned into operations (textops.ts), kept as the format keeps what they
+ * make (`settle`: no mark on a space at its edge, the marks typed with such a
+ * space still in force after it) and fired as `text-ops` for the host to
  * apply; the host hands the new blocks back and only the blocks whose
  * identity changed are drawn again (Lit's repeat, keyed by the block
  * object). The selection lives in the model as a Pos pair and is written to
@@ -117,12 +119,15 @@ import {
   shortcut,
   skipCard,
   smartQuote,
+  settle,
   splitAt,
   toggleMark,
+  typeRuns,
   runsDiff,
   wholeSel,
   type Command,
   type Fmt,
+  type Held,
   type Mark,
   type Pos,
   type Sel,
@@ -320,6 +325,10 @@ export class ToText extends LitElement {
   private _sel: Sel | null = null;
   /** The marks the next letter typed will carry. */
   private fmt: Fmt = {};
+  /** Marks the format let go of on the spaces just before the caret (a space typed after a bold word): still in force there. */
+  private held: Held | null = null;
+  /** What was held where a composition began: the words it makes are typed as letters are. */
+  private composeHeld: Held | null = null;
   private composing = false;
   private composingEl: HTMLElement | null = null;
   /** Write the model selection to the DOM after the next draw; 'focus' takes the focus too. */
@@ -398,6 +407,7 @@ export class ToText extends LitElement {
   /** Put the selection here (and the focus with it). */
   set sel(s: Sel | null) {
     this._sel = s ? clampSel(this.model, s) : null;
+    if (!this.heldAt(this._sel)) this.held = null;
     this.whole = false;
     if (!s) return;
     this.pendingSel = 'focus';
@@ -410,6 +420,7 @@ export class ToText extends LitElement {
    * the focus, and never taking it.
    */
   carry(ops: Op[], blocks: Block[]) {
+    this.held = null;
     if (!this._sel || this.whole) return;
     this._sel = clampSel(blocks, carrySel(this._sel, ops));
     this.pendingSel ??= 'keep';
@@ -419,6 +430,11 @@ export class ToText extends LitElement {
   /** The marks at the caret (what a bar shows pressed). */
   get marks(): Fmt {
     return this.fmt;
+  }
+  /** The marks held at a caret (textops.ts Held): while the caret stays where they were let go of. */
+  private heldAt(s: Sel | null): Fmt | null {
+    const h = this.held;
+    return h && s && collapsed(s) && s.anchor.block === h.block && s.anchor.offset === h.to ? h.fmt : null;
   }
   /** The kind of block the caret is in. */
   get kind() {
@@ -453,9 +469,11 @@ export class ToText extends LitElement {
     return i < 0 ? this.model.length : i;
   }
 
-  /** A DOM point as a position: characters counted through the block's text nodes, chips and line breaks as one each. */
-  readPos(node: Node, offset: number): Pos | null {
-    const model = this.model;
+  /**
+   * A DOM point as a position: characters counted through the block's text nodes, chips and line breaks as one each,
+   * held within `model` (the blocks as drawn; at compositionend, with the composed block as the browser left it).
+   */
+  readPos(node: Node, offset: number, model: Block[] = this.model): Pos | null {
     const tx = this.tx;
     if (node === tx || (node as Element).classList?.contains(LIST)) {
       const n = model.length;
@@ -541,12 +559,12 @@ export class ToText extends LitElement {
     return anchor && focus ? { anchor, focus } : null;
   }
   /** The DOM selection as a model selection, when it sits in this editor. */
-  readSel(): Sel | null {
+  readSel(model: Block[] = this.model): Sel | null {
     const s = document.getSelection();
     if (!s?.anchorNode || !s.focusNode || !this.tx) return null;
     if (!this.tx.contains(s.anchorNode) || !this.tx.contains(s.focusNode)) return null;
-    const anchor = this.readPos(s.anchorNode, s.anchorOffset);
-    const focus = this.readPos(s.focusNode, s.focusOffset);
+    const anchor = this.readPos(s.anchorNode, s.anchorOffset, model);
+    const focus = this.readPos(s.focusNode, s.focusOffset, model);
     return anchor && focus ? { anchor, focus } : null;
   }
   private onSelectionChange = () => {
@@ -569,6 +587,7 @@ export class ToText extends LitElement {
     if (sameSel(s, this._sel)) return this.syncBubble();
     this.whole = false;
     this._sel = s;
+    this.held = null;
     this.fmt = marksOf(this.model, s);
     this.showLink();
     this.syncBubble();
@@ -625,6 +644,11 @@ export class ToText extends LitElement {
     if (!ops.length) return;
     const before = this._sel;
     if (first && !this.blocks.length) ops = [{ op: 'splice', at: 0, n: 0, blocks: [EMPTY] }, ...ops];
+    // What the ops make, as the format keeps it: the model is what its text reads back as (docs/kernel.md §2).
+    const kept = settle(this.blocks, ops, sel);
+    if (!kept.ops.length) return;
+    ops = kept.ops;
+    this.held = kept.held;
     this._sel = sel;
     this.whole = false;
     if (how) this.pendingSel = how;
@@ -737,7 +761,8 @@ export class ToText extends LitElement {
       const b = model[a.block];
       words = smartQuote(data, isWords(b) ? charAt(b.runs, a.offset - 1) : '');
     }
-    this.put(sel, [{ t: words, ...(marks ? this.fmt : {}) }]);
+    const e = typeRuns(model, sel, [{ t: words, ...(marks ? this.fmt : {}) }], marks ? this.held : null);
+    this.emit(e.ops, e.sel, 'type');
   }
   private put(sel: Sel, runs: Run[]) {
     const e = insertRuns(this.model, sel, runs);
@@ -852,6 +877,7 @@ export class ToText extends LitElement {
     const m = this.model;
     this._sel = clampSel(m, wholeSel(m));
     this.whole = true;
+    this.held = null;
     this.fmt = marksOf(m, this._sel);
     this.pendingSel = 'focus';
     if (this.hasUpdated && !this.isUpdatePending) this.flushSel();
@@ -930,6 +956,7 @@ export class ToText extends LitElement {
   };
   private onCompositionStart = () => {
     this.composing = true;
+    this.composeHeld = this.heldAt(this._sel) ? this.held : null;
     this.composingEl = this.blockElOf(document.getSelection()?.anchorNode ?? null);
     this.closePops();
   };
@@ -943,8 +970,17 @@ export class ToText extends LitElement {
     const b = this.model[i];
     if (i < 0 || !b || !isWords(b)) return;
     const runs = domToRuns(el);
-    const op = runsDiff(i, b.runs, runs);
-    const sel = this.readSel() ?? caret(i, runLength(runs));
+    let op = runsDiff(i, b.runs, runs);
+    // (The caret is read against the block as composed: words composed at its end are past what the model had.)
+    const sel = this.readSel(this.model.map((x, k) => (k === i ? { ...b, runs } : x))) ?? caret(i, runLength(runs));
+    const held = this.composeHeld;
+    this.composeHeld = null;
+    // Words composed just after spaces whose marks the format let go of (a bold word and a space) are typed as letters
+    // are: with the marks in force, and the spaces take them back (typeRuns).
+    if (op?.op === 'text' && held?.block === i && op.from === held.to && op.to === held.to) {
+      const marked = op.runs.map((r): Run => (isAtomic(r) ? r : { ...r, ...this.fmt }));
+      op = typeRuns(this.model, caret(i, held.to), marked, held).ops[0] ?? op;
+    }
     this.fresh = i;
     this.armed = !!op;
     if (op) this.emit([op], sel, 'type');
@@ -1237,7 +1273,7 @@ export class ToText extends LitElement {
     this.flushSel();
     // New blocks under the same selection: the marks there may have changed (Bold over a range); the host's bar is told.
     if (changed.has('blocks') && this._sel && this.hasUpdated && changed.get('blocks') !== undefined) {
-      this.fmt = marksOf(this.model, this._sel);
+      this.fmt = this.heldAt(this._sel) ?? marksOf(this.model, this._sel);
       this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: this._sel, bubbles: true }));
     }
     this.syncBubble();
