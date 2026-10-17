@@ -411,6 +411,18 @@ test('at phone width: the lanes stacked, the full width, cards a finger tall, 16
     for (const c of el.querySelectorAll<HTMLElement>('.board-card')) expect(c.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
     for (const g of el.querySelectorAll<HTMLElement>('.board-grip')) expect(Math.min(g.getBoundingClientRect().width, g.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
     for (const x of el.querySelectorAll<HTMLElement>('.board-title .tx, .board-lane-name .tx')) expect(parseFloat(getComputedStyle(x).fontSize)).toBeGreaterThanOrEqual(16);
+    // The bar, and the bar under chosen cards, each one row inside the screen.
+    const oneRow = (bar: HTMLElement) => {
+      const kids = [...bar.children].filter((x) => (x as HTMLElement).offsetWidth > 0);
+      expect(kids.length).toBeGreaterThan(0);
+      // One row: every button and separator centered on the same line (a separator is shorter than a button).
+      const mid = (x: Element) => Math.round((x.getBoundingClientRect().top + x.getBoundingClientRect().bottom) / 2);
+      expect(new Set(kids.map(mid)).size).toBe(1);
+      expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(390.5);
+    };
+    oneRow(el.querySelector<HTMLElement>('to-bar.board-bar')!);
+    await tapGrip(el, 1, 0);
+    oneRow(contextButton(el, 'Open').closest<HTMLElement>('.to-context')!);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
   } finally {
     await page.viewport(1100, 800);
