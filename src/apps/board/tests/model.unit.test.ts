@@ -13,7 +13,6 @@ import {
   boardOf,
   cardsTable,
   duplicateCards,
-  laneColumn,
   lanesOf,
   lanesText,
   moveCard,
@@ -26,7 +25,6 @@ import {
   renameLane,
   setCells,
   setTitle,
-  titleColumn,
 } from '../model.ts';
 import { templates } from '../templates.ts';
 import { boardPages, boardText, shownCards } from '../view.ts';
@@ -53,17 +51,17 @@ function roundTrip(d: Doc, ops: Op[]): Doc {
   return after;
 }
 
-test('the lane column: Status or Stage by name, else the first option column, else the last', () => {
-  const cols = (...h: string[]) => ({ cols: h.map(column) });
-  expect(laneColumn(cols('Task', 'Priority:option', 'stage').cols)).toBe(2);
-  expect(laneColumn(cols('Task', 'STATUS', 'Kind:option').cols)).toBe(1);
-  expect(laneColumn(cols('Task', 'Kind:option', 'Owner').cols)).toBe(1);
-  expect(laneColumn(cols('Task', 'Owner', 'Where').cols)).toBe(2);
-  expect(laneColumn([])).toBe(-1);
+test('the lane column: Status or Stage by name, else the first option column, else the last; the title the first of words', () => {
+  const board = (...h: string[]) => boardOf(parse(`| ${h.join(' | ')} |\n| ${h.map(() => '---').join(' | ')} |\n`));
+  expect(board('Task', 'Priority:option', 'stage').laneCol).toBe(2);
+  expect(board('Task', 'STATUS', 'Kind:option').laneCol).toBe(1);
+  expect(board('Task', 'Kind:option', 'Owner').laneCol).toBe(1);
+  expect(board('Task', 'Owner', 'Where').laneCol).toBe(2);
+  expect(boardOf(parse('Words.\n')).laneCol).toBe(-1);
   // The title: the first column of words that is not the lane's, else the first other one.
-  expect(titleColumn(cols('Cost:money', 'Task', 'Status').cols, 2)).toBe(1);
-  expect(titleColumn(cols('Cost:money', 'Status').cols, 1)).toBe(0);
-  expect(titleColumn(cols('Status').cols, 0)).toBe(-1);
+  expect(board('Cost:money', 'Task', 'Status')).toMatchObject({ laneCol: 2, titleCol: 1 });
+  expect(board('Cost:money', 'Status')).toMatchObject({ laneCol: 1, titleCol: 0 });
+  expect(board('Status')).toMatchObject({ laneCol: 0, titleCol: -1 });
 });
 
 test('the lanes: in the order lanes: gives, an empty one kept; the rest as the rows first hold them; the nameless lane for empty cells', () => {

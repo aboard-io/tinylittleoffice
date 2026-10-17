@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { hasClass, attr, parse, plainText, write, type Block, type Doc } from '../src/doc/index.ts';
 import type { Template } from '../src/kit/core/app.ts';
 import { plainLink } from '../src/kit/core/plain.ts';
+import { boardOf } from '../src/apps/board/model.ts';
 import { lint } from '../src/lint.ts';
 
 /** A shape an app reads: its id (for `example <app> <id>`), what it is called, what it is for, and whether a document shows it. */
@@ -194,7 +195,8 @@ export const SHAPES: Record<string, Shape[]> = {
       id: 'lanes',
       name: 'cards in lanes',
       for: 'a card a row of a table, its lane the Status (or Stage) column: Task | Status:option',
-      has: (d) => (tables(d)[0]?.rows.length ?? 0) >= 2 && new Set(tables(d)[0].rows.map((r) => r[tables(d)[0].cols.findIndex((c) => /^(status|stage)$/i.test(c.name))] ?? '')).size >= 2,
+      // Read as the Board reads it (its lane column chosen by board/model.ts, not a second copy of the rule here).
+      has: (d) => boardOf(d).lanes.filter((l) => l.cards.length).length >= 2,
     },
     { id: 'order', name: 'lanes in order', for: 'every lane, an empty one too, in its place: lanes: To do, Doing, Done in the head', has: (d) => !!d.head.lanes && tables(d).length >= 1 },
     { id: 'fields', name: 'fields on a card', for: 'more about each card: the other columns, typed (Owner, Due:date)', has: (d) => (tables(d)[0]?.cols.length ?? 0) >= 4 && column(d, 'date') },

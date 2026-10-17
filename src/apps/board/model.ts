@@ -103,7 +103,7 @@ export const lanesText = (names: string[]): string | undefined =>
     .join(', ') || undefined;
 
 /** Which column holds the lane: Status or Stage by name, else the first `option` column, else the last (header). */
-export function laneColumn(cols: Column[]): number {
+function laneColumn(cols: Column[]): number {
   if (!cols.length) return -1;
   const named = cols.findIndex((c) => /^(status|stage)$/i.test(c.name.trim()));
   if (named >= 0) return named;
@@ -111,7 +111,7 @@ export function laneColumn(cols: Column[]): number {
   return option >= 0 ? option : cols.length - 1;
 }
 /** Which column is a card's title: the first of words that is not the lane's, else the first other one; -1 for none. */
-export function titleColumn(cols: Column[], lane: number): number {
+function titleColumn(cols: Column[], lane: number): number {
   const words = cols.findIndex((c, i) => i !== lane && (c.type === 'text' || c.type === 'rich'));
   return words >= 0 ? words : cols.findIndex((_, i) => i !== lane);
 }
