@@ -39,7 +39,10 @@ the examples of the apps at the tag `v0-before-rebuild`). For any runs,
 `parseInline(writeInline(runs))` keeps every letter and every mark on it, and `writeInline` is idempotent on its own
 output. The inline writer keeps canonical text stable by escaping as little as reads back right: it writes the words
 with only a backslash escaped, reads them back, and falls to full escaping only when they would read as other runs
-(so `5 * 3` and `snake_case` stay as written, and `a *b* c` as plain words becomes `a \*b\* c`).
+(so `5 * 3` and `snake_case` stay as written, and `a *b* c` as plain words becomes `a \*b\* c`). A mark never holds
+a space at its ends (`**a** b`, as Markdown has it): `sayableRuns` gives a block's runs as reading their writing gives
+them back, and for a document whose words are so `parse(write(d))` is `d`; the editor keeps its words so as it edits
+(docs/kernel.md §2, point 5).
 
 ## As JSON (`json.ts`)
 

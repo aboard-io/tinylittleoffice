@@ -15,7 +15,12 @@
  *   arbitraryDoc()  models of the kernel (src/doc/model.ts) as far as the
  *                   format can say them: parse(write(d)) is d. What the
  *                   format cannot say is listed in `sayable`, one rule a
- *                   line, and the generator keeps to it.
+ *                   line, and the generator keeps to it. With `edges`, it
+ *                   breaks the first rule as an editor would before the
+ *                   format has its say: marks and links on the spaces at a
+ *                   run's ends, on spaces alone and on a line break; the
+ *                   format lets them go (`sayableRuns`), and so does the
+ *                   editor as it edits (kit/text/textops.ts `settle`).
  *
  * Both are biased to the hard cases: marks at a block's edges, attributes
  * that look like words, "\{", "~~" beside a link, empty cells, items nested
@@ -262,6 +267,30 @@ const arbitraryLines = (max: number) =>
     .array(fc.oneof({ weight: 4, arbitrary: arbitraryLine }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), { minLength: 1, maxLength: max })
     .map((ls) => normalRuns(ls.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l))));
 
+/** Marks for a run an editor makes: the five and code, a link now and then. */
+const editorMarks = fc.record({ marks: fc.subarray([...MARK_KEYS, 'c' as const], { minLength: 1 }), href: fc.option(pick(POOLS.href), { nil: undefined, freq: 4 }) });
+const marked = (t: string, { marks, href }: { marks: readonly string[]; href?: string }): Run => Object.assign({ t }, ...marks.map((m) => ({ [m]: true })), href ? { href } : {}) as Run;
+/**
+ * A run as an editor may hold it before the format has its say: any run the format can say, words with a mark on the
+ * spaces at their ends ("a " bold before plain words: typed so, or left so when the words after went), and spaces
+ * alone with a mark or a link (Mod+B over a space).
+ */
+const edgyRun: fc.Arbitrary<Run> = fc.oneof(
+  { weight: 4, arbitrary: arbitraryRun() },
+  { weight: 3, arbitrary: fc.tuple(pick([' ', '', '  ']), word, pick([' ', '  ', ''])).chain(([a, w, z]) => editorMarks.map((m) => marked(a + w + z, m))) },
+  { weight: 1, arbitrary: fc.tuple(pick([' ', '  ']), editorMarks).map(([t, m]) => marked(t, m)) },
+);
+/** One line of runs with marks at their edges, as an editor may hold it. */
+const edgyLine = fc.array(edgyRun, { minLength: 1, maxLength: 5 }).map(normalRuns);
+/** Lines of them, a line break now and then carrying the marks of the words around it (Mod+B over two lines). */
+const edgyLines = (max: number) =>
+  fc
+    .array(fc.tuple(fc.oneof({ weight: 4, arbitrary: edgyLine }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), fc.option(editorMarks, { nil: undefined, freq: 3 })), {
+      minLength: 1,
+      maxLength: max,
+    })
+    .map((ls) => normalRuns(ls.flatMap(([l, m], i) => (i ? [m ? marked('\n', m) : { t: '\n' }, ...l] : l))));
+
 /**
  * What the format cannot say, kept out of a generated model (each a fact of
  * Markdown's, not a bug; a rule here that turns out to be a bug is reported
@@ -335,51 +364,57 @@ export const arbitraryTable = (maxCols = 4, maxRows = 4): fc.Arbitrary<Extract<B
         .map(({ cols, rows, a }) => withA({ k: 'table' as const, cols, rows }, a)),
     );
 
-/** One block of any of the nine kinds. */
-export const arbitraryBlock: fc.Arbitrary<Block> = fc.oneof(
-  {
-    weight: 4,
-    arbitrary: fc
-      .record({ runs: fc.oneof({ weight: 9, arbitrary: arbitraryLines(3) }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), a: arbitraryAttrs })
-      .map(({ runs, a }): Block => withA({ k: 'p', runs }, a)),
-  },
-  { weight: 2, arbitrary: fc.record({ level: pick([1, 2, 3, 4, 5, 6] as const), runs: arbitraryLine, a: arbitraryAttrs }).map(({ level, runs, a }): Block => withA({ k: 'h', level, runs }, a)) },
-  {
-    weight: 4,
-    arbitrary: fc
-      .record({ depth: fc.integer({ min: 0, max: 4 }), ord: fc.boolean(), done: fc.option(fc.boolean(), { nil: undefined }), runs: arbitraryLines(2), a: arbitraryAttrs })
-      .map(({ depth, ord, done, runs, a }): Block => withA({ k: 'li', depth, ...(ord ? { ord: true as const } : {}), ...(done === undefined ? {} : { done }), runs }, a)),
-  },
-  { weight: 2, arbitrary: fc.record({ runs: arbitraryLines(3), a: arbitraryAttrs }).map(({ runs, a }): Block => withA({ k: 'quote', runs }, a)) },
-  { weight: 1, arbitrary: arbitraryAttrs.map((a): Block => withA({ k: 'hr' }, a)) },
-  { weight: 2, arbitrary: arbitraryTable() },
-  {
-    weight: 1,
-    arbitrary: fc
-      .record({ lang: pick(['', 'sheet', 'draw', 'js', 'qr']), body: fc.array(pick(POOLS.body), { maxLength: 3 }).map((ls) => ls.join('\n')), a: arbitraryAttrs })
-      .map(({ lang, body, a }): Block => withA({ k: 'fence', lang, body }, a)),
-  },
-  {
-    weight: 1,
-    arbitrary: fc
-      .record({
-        from: pick(POOLS.node),
-        to: pick(POOLS.node),
-        dir: pick<Dir>(['->', '<-', '<->', '--']),
-        label: fc.option(pick(['feeds', 'two words', '🚀', 'שלום']), { nil: undefined }),
-        a: arbitraryAttrs,
-      })
-      .map(({ label, a, ...e }): Block => withA({ k: 'edge', ...e, ...(label ? { label } : {}) }, a)),
-  },
-);
+/** One block of any of the nine kinds, its words lines of `line` (a heading's one). */
+const blockOf = (line: fc.Arbitrary<Run[]>, lines: (max: number) => fc.Arbitrary<Run[]>): fc.Arbitrary<Block> =>
+  fc.oneof(
+    {
+      weight: 4,
+      arbitrary: fc
+        .record({ runs: fc.oneof({ weight: 9, arbitrary: lines(3) }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), a: arbitraryAttrs })
+        .map(({ runs, a }): Block => withA({ k: 'p', runs }, a)),
+    },
+    { weight: 2, arbitrary: fc.record({ level: pick([1, 2, 3, 4, 5, 6] as const), runs: line, a: arbitraryAttrs }).map(({ level, runs, a }): Block => withA({ k: 'h', level, runs }, a)) },
+    {
+      weight: 4,
+      arbitrary: fc
+        .record({ depth: fc.integer({ min: 0, max: 4 }), ord: fc.boolean(), done: fc.option(fc.boolean(), { nil: undefined }), runs: lines(2), a: arbitraryAttrs })
+        .map(({ depth, ord, done, runs, a }): Block => withA({ k: 'li', depth, ...(ord ? { ord: true as const } : {}), ...(done === undefined ? {} : { done }), runs }, a)),
+    },
+    { weight: 2, arbitrary: fc.record({ runs: lines(3), a: arbitraryAttrs }).map(({ runs, a }): Block => withA({ k: 'quote', runs }, a)) },
+    { weight: 1, arbitrary: arbitraryAttrs.map((a): Block => withA({ k: 'hr' }, a)) },
+    { weight: 2, arbitrary: arbitraryTable() },
+    {
+      weight: 1,
+      arbitrary: fc
+        .record({ lang: pick(['', 'sheet', 'draw', 'js', 'qr']), body: fc.array(pick(POOLS.body), { maxLength: 3 }).map((ls) => ls.join('\n')), a: arbitraryAttrs })
+        .map(({ lang, body, a }): Block => withA({ k: 'fence', lang, body }, a)),
+    },
+    {
+      weight: 1,
+      arbitrary: fc
+        .record({
+          from: pick(POOLS.node),
+          to: pick(POOLS.node),
+          dir: pick<Dir>(['->', '<-', '<->', '--']),
+          label: fc.option(pick(['feeds', 'two words', '🚀', 'שלום']), { nil: undefined }),
+          a: arbitraryAttrs,
+        })
+        .map(({ label, a, ...e }): Block => withA({ k: 'edge', ...e, ...(label ? { label } : {}) }, a)),
+    },
+  );
+/** One block of any of the nine kinds, as the format can say it. */
+export const arbitraryBlock: fc.Arbitrary<Block> = blockOf(arbitraryLine, arbitraryLines);
+/** One block as an editor may hold it before the format has its say: marks at the edges of its words. */
+export const edgyBlock: fc.Arbitrary<Block> = blockOf(edgyLine, edgyLines);
 
 /** A head: the shell's keys and an app's, values on one line with no spaces at their ends. */
 const arbitraryHead = fc
   .dictionary(pick(['title', 'by', 'chart', 'lock', 'currency', 'zone', 'x-y']), pick(['Hello', 'Two words', 'bar', 'A1:B2', '$', 'שלום', '🚀 launch', 'a: b']), { maxKeys: 4 })
   .map((h) => ({ ...h }));
 
-/** A document of the kernel: a head and blocks, as the format can say them. */
-export const arbitraryDoc = (maxBlocks = 8): fc.Arbitrary<Doc> => fc.record({ head: arbitraryHead, blocks: fc.array(arbitraryBlock, { maxLength: maxBlocks }) }).map(sayableDoc);
+/** A document of the kernel: a head and blocks, as the format can say them; with `edges`, marks at the edges of the words too. */
+export const arbitraryDoc = (maxBlocks = 8, edges = false): fc.Arbitrary<Doc> =>
+  fc.record({ head: arbitraryHead, blocks: fc.array(edges ? edgyBlock : arbitraryBlock, { maxLength: maxBlocks }) }).map(sayableDoc);
 
 /**
  * The rules between blocks, as the format has them (each one Markdown's or

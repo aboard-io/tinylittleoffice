@@ -1,7 +1,9 @@
 // The editor's model maths, without a DOM: positions and offsets, every edit as ops, and the kernel's invert taking
-// each of the editor's ops back exactly.
+// each of the editor's ops back exactly; every edit leaving words as the format keeps them, so the model is what its
+// text reads back as.
+import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { applyAll, invertAll, parse, write, type Block, type Doc } from '../src/doc/index.ts';
+import { applyAll, invertAll, parse, write, type Block, type Doc, type Run } from '../src/doc/index.ts';
 import {
   align,
   backspace,
@@ -10,6 +12,7 @@ import {
   carrySel,
   charAt,
   clampPos,
+  deleteSel,
   forwardDelete,
   insertBlocks,
   insertRuns,
@@ -20,8 +23,10 @@ import {
   ordered,
   runAt,
   runsDiff,
+  sayableBlock,
   setKind,
   setMark,
+  settle,
   shiftItems,
   shortcut,
   skipCard,
@@ -29,11 +34,16 @@ import {
   smartQuote,
   splitAt,
   toggleMark,
+  typeRuns,
   wholeSel,
   type Edit,
+  type Fmt,
+  type Held,
+  type Mark,
   type Sel,
 } from '../src/kit/text/textops.ts';
 import { rng } from './doc/helpers.ts';
+import { arbitraryDoc, edgyBlock, RUNS } from './doc/tlo-grammar.ts';
 
 const doc = (tlo: string): Doc => parse(tlo);
 const blocks = (tlo: string): Block[] => doc(tlo).blocks;
@@ -400,3 +410,235 @@ test('a selection carried over another’s ops: past blocks put in or taken out 
   expect(carrySel(caret(2, 3), [{ op: 'text', at: 2, from: 1, to: 5, runs: [{ t: 'x' }] }])).toEqual(caret(2, 2));
   expect(carrySel(caret(2, 3), [{ op: 'text', at: 1, from: 0, to: 0, runs: [{ t: 'ab' }] }])).toEqual(caret(2, 3));
 });
+
+/**
+ * An editor's model as <to-text> keeps it (kit/text/text.ts): each edit through `settle`, and the marks in force after
+ * it those held at the caret, else the marks there, as the editor's own `fmt` is.
+ */
+class Model {
+  doc: Doc;
+  sel: Sel;
+  held: Held | null = null;
+  fmt: Fmt = {};
+  constructor(tlo: string, at: Sel = caret(0, 0)) {
+    this.doc = parse(tlo);
+    if (!this.doc.blocks.length) this.doc = { head: {}, blocks: [{ k: 'p', runs: [] }] };
+    this.sel = at;
+    this.fmt = marksOf(this.doc.blocks, at);
+  }
+  get blocks() {
+    return this.doc.blocks;
+  }
+  get tlo() {
+    return write(this.doc);
+  }
+  do(e: Edit | null | 'exit') {
+    if (!e || e === 'exit') return;
+    const kept = settle(this.blocks, e.ops, e.sel);
+    const next = applyAll(this.doc, kept.ops);
+    expect(applyAll(next, invertAll(this.doc, kept.ops))).toStrictEqual(this.doc);
+    this.doc = next;
+    this.sel = e.sel;
+    this.held = kept.held;
+    const h = this.held;
+    this.fmt = h && this.sel.anchor.block === h.block && this.sel.anchor.offset === h.to ? h.fmt : marksOf(this.blocks, this.sel);
+  }
+  type(text: string) {
+    for (const ch of text) this.do(typeRuns(this.blocks, this.sel, [{ t: ch, ...this.fmt }], this.held));
+  }
+  /** Mod+B and the rest with the caret together: what is typed next. */
+  toggle(m: Mark) {
+    const fmt = { ...this.fmt };
+    if (fmt[m]) delete fmt[m];
+    else fmt[m] = true;
+    this.fmt = fmt;
+  }
+  /** What the editor holds is what its text reads back as. */
+  readsBack() {
+    expect(parse(this.tlo).blocks, this.tlo).toStrictEqual(this.blocks);
+  }
+}
+const words = (b: Block): Run[] => (b as Extract<Block, { runs: Run[] }>).runs;
+/** A document with every item at the margin. */
+const level = (d: Doc): Doc => ({ ...d, blocks: d.blocks.map((b) => (b.k === 'li' ? { ...b, depth: 0 } : b)) });
+
+test('a space typed at the end of a bold word is plain, the caret after it and the bold still in force: a bold word after it makes one "**a b**"', () => {
+  const m = new Model('');
+  m.toggle('b');
+  m.type('a ');
+  expect(words(m.blocks[0])).toEqual([{ t: 'a', b: true }, { t: ' ' }]);
+  expect(m.tlo).toBe('**a**\\ \n');
+  expect(m.sel).toEqual(caret(0, 2));
+  expect(m.fmt).toEqual({ b: true });
+  m.readsBack();
+  m.type('b');
+  expect(words(m.blocks[0])).toEqual([{ t: 'a b', b: true }]);
+  expect(m.tlo).toBe('**a b**\n');
+  // Two spaces, and a sentence: every space between bold words is bold, the one at the end is not.
+  m.type('  c ');
+  expect(m.tlo).toBe('**a b  c**\\ \n');
+  m.readsBack();
+  // Bold turned off after the space: the next word is plain, and so is the space.
+  m.toggle('b');
+  m.type('d');
+  expect(m.tlo).toBe('**a b  c** d\n');
+  m.readsBack();
+});
+
+test('each mark ends before a space typed after it: italic, underline, strike, highlight, code', () => {
+  for (const [mark, text] of [
+    ['i', '*a b*'],
+    ['u', '++a b++'],
+    ['s', '~~a b~~'],
+    ['h', '==a b=='],
+    ['c', '`a b`'],
+  ] as const) {
+    const m = new Model('');
+    m.toggle(mark);
+    m.type('a ');
+    expect(words(m.blocks[0]), mark).toEqual([{ t: 'a', [mark]: true }, { t: ' ' }]);
+    m.readsBack();
+    m.type('b');
+    expect(m.tlo).toBe(`${text}\n`);
+    m.readsBack();
+  }
+});
+
+test('Backspace over a space after a bold word returns into the bold; words taken out after a bold space leave it plain, the bold still in force', () => {
+  const m = new Model('');
+  m.toggle('b');
+  m.type('a ');
+  m.do(backspace(m.blocks, m.sel, 'doc'));
+  expect(words(m.blocks[0])).toEqual([{ t: 'a', b: true }]);
+  expect(m.fmt).toEqual({ b: true });
+  m.type('c');
+  expect(m.tlo).toBe('**ac**\n');
+  // "x **a b**": Backspace takes the "b", and the space before it is at the bold's edge.
+  const n = new Model('x **a b**\n', caret(0, 5));
+  n.do(backspace(n.blocks, n.sel, 'doc'));
+  expect(words(n.blocks[0])).toEqual([{ t: 'x ' }, { t: 'a', b: true }, { t: ' ' }]);
+  n.readsBack();
+  expect(n.fmt).toEqual({ b: true });
+  n.type('c');
+  expect(n.tlo).toBe('x **a c**\n');
+  // A selection taken out leaves the same.
+  const o = new Model('**a b** c\n', sel([0, 2], [0, 3]));
+  o.do(deleteSel(o.blocks, o.sel));
+  expect(o.tlo).toBe('**a**  c\n');
+  o.readsBack();
+});
+
+test('marks over a selection: a word and its space made bold is the word bold; pressed again it is plain; a mark on spaces alone is no edit', () => {
+  const m = new Model('one two\n', sel([0, 0], [0, 4]));
+  m.do(toggleMark(m.blocks, m.sel, 'b'));
+  expect(m.tlo).toBe('**one** two\n');
+  m.readsBack();
+  // The selection still holds the space: it shows bold, and Bold again takes it off.
+  expect(marksOf(m.blocks, m.sel)).toEqual({ b: true });
+  m.do(toggleMark(m.blocks, m.sel, 'b'));
+  expect(m.tlo).toBe('one two\n');
+  const space = new Model('one two\n', sel([0, 3], [0, 4]));
+  expect(settle(space.blocks, toggleMark(space.blocks, space.sel, 'i').ops).ops).toEqual([]);
+  // Across a line break: the break carries no mark.
+  const lines = new Model('a\nb\n');
+  expect(lines.blocks).toEqual([{ k: 'p', runs: [{ t: 'a\nb' }] }]);
+  lines.do(toggleMark(lines.blocks, sel([0, 0], [0, 3]), 'b'));
+  expect(words(lines.blocks[0])).toEqual([{ t: 'a', b: true }, { t: '\n' }, { t: 'b', b: true }]);
+  lines.readsBack();
+});
+
+test("a link lets go of the space at a line's end and keeps one inside the line; what is typed after it there is plain", () => {
+  const m = new Model('[a b](https://x.y/)\n', caret(0, 3));
+  m.do(backspace(m.blocks, m.sel, 'doc'));
+  expect(words(m.blocks[0])).toEqual([{ t: 'a', href: 'https://x.y/' }, { t: ' ' }]);
+  expect(m.held).toBeNull();
+  m.type('c');
+  expect(m.tlo).toBe('[a](https://x.y/) c\n');
+  m.readsBack();
+  const inside = new Model('[a b](https://x.y/) z\n', caret(0, 3));
+  inside.do(backspace(inside.blocks, inside.sel, 'doc'));
+  expect(inside.tlo).toBe('[a ](https://x.y/) z\n');
+  inside.readsBack();
+});
+
+test('settle widens a text op over the marks the format lets go of, and its inverse takes it back exactly', () => {
+  const b: Block[] = [{ k: 'p', runs: [{ t: 'a b', b: true }, { t: ' c' }] }];
+  const e = backspace(b, caret(0, 3), 'doc') as Edit;
+  expect(e.ops).toEqual([{ op: 'text', at: 0, from: 2, to: 3, runs: [] }]);
+  const kept = settle(b, e.ops, e.sel);
+  expect(kept.ops).toEqual([{ op: 'text', at: 0, from: 1, to: 3, runs: [{ t: ' ' }] }]);
+  expect(kept.held).toEqual({ block: 0, from: 1, to: 2, fmt: { b: true } });
+  const after = applyAll({ head: {}, blocks: b }, kept.ops);
+  expect(after.blocks).toEqual([{ k: 'p', runs: [{ t: 'a', b: true }, { t: '  c' }] }]);
+  expect(applyAll(after, invertAll({ head: {}, blocks: b }, kept.ops)).blocks).toEqual(b);
+  // A splice's blocks go in as the format keeps them; one already so keeps its identity.
+  const p: Block = { k: 'p', runs: [{ t: 'x' }] };
+  const put = settle(b, [{ op: 'splice', at: 1, n: 0, blocks: [p, { k: 'li', depth: 0, runs: [{ t: 'y ', i: true }] }] }]).ops[0] as Extract<Edit['ops'][number], { op: 'splice' }>;
+  expect(put.blocks[0]).toBe(p);
+  expect(put.blocks[1]).toEqual({ k: 'li', depth: 0, runs: [{ t: 'y', i: true }, { t: ' ' }] });
+  expect(sayableBlock(p)).toBe(p);
+});
+
+test(
+  'property: whatever the editor does to a document, it holds what the text reads back as, and an undo takes it back exactly',
+  () => {
+    // Documents as the grammar makes them with marks at their words' edges, read as an editor is given them; then
+    // edits as the editor makes them, with runs that carry marks at their edges and marks in force on spaces typed.
+    const X = 'https://x.y/';
+    const runs: Run[][] = [
+      [{ t: 'x' }],
+      [{ t: ' ' }],
+      [{ t: ' ', b: true }],
+      [{ t: 'a ', i: true }],
+      [{ t: ' z ', c: true }],
+      [{ t: 'w ', href: X }],
+      [{ t: '\n', u: true }],
+      [
+        { t: 'k', s: true },
+        { t: ' ', s: true },
+      ],
+    ];
+    const fmts: Fmt[] = [{}, { b: true }, { i: true, u: true }, { c: true }, { h: true }, { href: X }];
+    fc.assert(
+      fc.property(arbitraryDoc(6, true), fc.integer({ min: 1, max: 2 ** 30 }), fc.array(edgyBlock, { minLength: 1, maxLength: 3 }), (d, seed, pool) => {
+        const r = rng(seed);
+        const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
+        const m = new Model(write(d));
+        m.readsBack();
+        for (let step = 0; step < 24; step++) {
+          const texts = m.blocks.flatMap((b, i) => ('runs' in b ? [i] : []));
+          if (!texts.length) break;
+          const i = pick(texts);
+          const j = pick(texts);
+          const s = sel([i, Math.floor(r() * (blockLength(m.blocks[i]) + 1))], [j, Math.floor(r() * (blockLength(m.blocks[j]) + 1))]);
+          const c = caret(ordered(s)[0].block, ordered(s)[0].offset);
+          const typing = m.held && r() < 0.5 ? m.sel : c;
+          const kinds: (() => Edit | null | 'exit')[] = [
+            () => typeRuns(m.blocks, typing, [{ t: pick(['x', ' ', 'yz', '  ', '.']), ...(r() < 0.5 ? m.fmt : pick(fmts)) }], m.held),
+            () => insertRuns(m.blocks, s, pick(runs)),
+            () => toggleMark(m.blocks, s, pick(['b', 'i', 'u', 's', 'h', 'c'] as const)),
+            () => setMark(m.blocks, s, 'href', pick([X, ''])),
+            () => backspace(m.blocks, c, 'doc'),
+            () => forwardDelete(m.blocks, c),
+            () => deleteSel(m.blocks, s),
+            () => splitAt(m.blocks, s),
+            () => setKind(m.blocks, s, pick(['p', 'quote', 'h2', 'ul'] as const)),
+            () => insertBlocks(m.blocks, s, pool),
+          ];
+          const k = pick(kinds);
+          m.do(k());
+          // Every block of words is as the format keeps it.
+          for (const b of m.blocks) expect(sayableBlock(b), m.tlo).toBe(b);
+          // A heading holding a line break (a paragraph of lines joined to it by Backspace, or pasted into it) is
+          // written as a heading and a paragraph after it: no matter of spaces, and not this property's (2026-10-17).
+          if (m.blocks.some((b) => b.k === 'h' && b.runs.some((x) => x.t.includes('\n')))) break;
+          // What the editor holds is what the text says, but for an item's depth, which the format reads by indent
+          // (an item is at most one deeper than the one before it): no matter of spaces either.
+          expect(level(parse(m.tlo)), m.tlo).toStrictEqual(level(m.doc));
+        }
+      }),
+      { numRuns: Math.max(50, RUNS / 2) },
+    );
+  },
+  Math.max(20000, RUNS * 100),
+);

@@ -24,7 +24,7 @@ import { lookup } from '../core/app.ts';
 import { decodeDoc } from '../core/codec.ts';
 import { parseHash, routeHash } from '../core/route.ts';
 import { LOCKED_LANG, lockedFence, lockedOf } from '../share/locked.ts';
-import { MARKS, sliceBlocks, type Sel, type Shape } from './textops.ts';
+import { MARKS, sayableBlock, sliceBlocks, type Sel, type Shape } from './textops.ts';
 
 /** The mark our own HTML carries. */
 export const GENERATOR = 'TinyLittleOffice';
@@ -338,9 +338,10 @@ export function htmlToBlocks(html: string): Block[] {
       c.depth = 0;
     }
     if (!runs.length) return;
-    if (c.k === 'h') blocks.push({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs });
-    else if (c.k === 'li') blocks.push({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs });
-    else blocks.push({ k: c.k, runs });
+    // (A mark on the spaces at its ends, "<b>a </b>b", is let go of there, as the format writes it: sayableRuns.)
+    if (c.k === 'h') blocks.push(sayableBlock({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs }));
+    else if (c.k === 'li') blocks.push(sayableBlock({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs }));
+    else blocks.push(sayableBlock({ k: c.k, runs }));
   };
   const addText = (raw: string, m: Marks) => {
     const t = (pre ? raw : raw.replace(/[ \t\r\n ]+/g, ' ')).replace(INVISIBLE, '');
@@ -537,12 +538,14 @@ function asWords(b: Block, shape: Shape): Block[] {
 /**
  * Blocks fitted to an editor's shape: lines keeps items and paragraphs; a line takes the words alone, lines joined
  * by spaces. What the host cannot show becomes words first (asWords); in a document, only for a paste from
- * elsewhere (`foreign`): our own copy pastes back as it was.
+ * elsewhere (`foreign`): our own copy pastes back as it was. A block comes as the format keeps it (sayableBlock: no mark
+ * on a space at its edge), whole blocks being what a host may put in as they are; words alone go where the editor
+ * keeps them so.
  */
 export function fitBlocks(blocks: Block[], shape: Shape, foreign = false): Pasted {
-  if (shape === 'doc') return { blocks: foreign ? blocks.flatMap((b) => asWords(b, shape)) : blocks };
+  if (shape === 'doc') return { blocks: (foreign ? blocks.flatMap((b) => asWords(b, shape)) : blocks).map(sayableBlock) };
   const words = blocks.flatMap((b) => asWords(b, shape)).filter(isText);
-  if (shape === 'lines') return { blocks: words.map((b): Block => (b.k === 'li' || b.k === 'p' ? b : { k: 'p', runs: b.runs })) };
+  if (shape === 'lines') return { blocks: words.map((b): Block => sayableBlock(b.k === 'li' || b.k === 'p' ? b : { k: 'p', runs: b.runs })) };
   const runs: Run[] = [];
   words.forEach((b, i) => {
     if (i) runs.push({ t: ' ' });
