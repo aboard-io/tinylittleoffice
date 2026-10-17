@@ -165,7 +165,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { apply, parse, write, type Doc, type Op } from 'tinylittleoffice/doc';",
         "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
         "import { mount, type Mounted } from 'tinylittleoffice/editors';",
-        "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type SheetMark } from 'tinylittleoffice/kit';",
+        "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type GhostAt, type SheetMark } from 'tinylittleoffice/kit';",
         "import { COLORS, changesOf, ghostsOf, paint, pinComments, rejectOps, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
         "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
         "import 'tinylittleoffice/editors.css';",
@@ -197,8 +197,6 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "export const tally: AppDef = defineApp({ id: 'tally', name: 'Tally', noun: 'tally', group: 'Plan', icon: [], blurb: 'Marks.', blank: () => '',",
         "  templates: async () => [], editor: async () => ({ tag: 'tally-editor' }), title: () => '', retitle: (doc) => doc, view: () => [{ w: 1, h: 1, svg: '' }] });",
         'registerApp(tally);',
-        // A host's marks on a read-only sheet.
-        "export const marked: SheetMark[] = [{ row: 0, text: '2', title: '2 comments' }, { row: 1, col: 2, text: '!' }];",
         // Who did what, for a host whose documents several people write: versions by their authors, drawn over the words.
         "const versions: Step[] = [{ author: 'a@x.co', text: '# Plan\\n' }, { author: 'b@x.co', text: '# Plans\\n', hash: 'v1' }];",
         'export const changes: Change[] = changesOf(track(versions));',
@@ -206,6 +204,9 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         'export const tracked: Tracked[] = trackOnServer(versions);',
         "export const undo: Op[] | null = rejectOps(track(versions), parse(versions[1].text).blocks, ['v1:0']) ?? rejectOn(tracked, [], []);",
         "export const people: Mention[] = [{ name: 'Bea', detail: 'b@x.co' }];",
+        // The edit the keys reach, as a host hears it; a host's marks on a read-only sheet.
+        'export const opened = (e: CustomEvent<GhostAt>): string => `${e.detail.id} ${e.detail.block} ${e.detail.el?.title ?? ""}`;',
+        "export const marked: SheetMark[] = [{ row: 0, text: '2', title: '2 comments' }, { row: 1, col: 2, text: '!' }];",
         "const drawing: Drawing = { color: () => COLORS[0], initials: () => 'B', name: () => 'Bea', accepted: () => false, takenOutBy: (n) => n, cardChanged: 'Changed', rejected: 'rejected', restored: 'restored' };",
         'export const redline = async (into: Element, frame: HTMLElement): Promise<Pinned[]> => {',
         "  const words = wordsOf((await mount('write', versions[1].text, into, () => {})).editor);",
