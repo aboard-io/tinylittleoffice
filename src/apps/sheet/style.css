@@ -507,24 +507,8 @@
     table.sheet td .fill::before {
       inset: -1.0625rem;
     }
-    /* A cell being typed in, the keyboard up (Paul, 2026-10-11: "no room to navigate"): the header has stepped aside
-       (kit/ui/chrome.ts), the formula strip is the column's top with the menu button at its end (responsive.css gives
-       the column's top back), the heads are one line, the letter and the name, and the table's box is the rest. Read
-       from the chrome's `editing` alone, which comes a frame after the focus: a tap that takes the focus from a cell
-       (a row's number) lands before the heads move, never on what moved under it. */
-    to-chrome[editing] .sheet-fx {
-      padding-inline-end: calc(3.5 * var(--to-nav-font));
-    }
-    to-chrome[editing] to-sheet-editor:not(:has(tr.names :focus)) table.sheet tr.names {
-      display: none;
-    }
-    to-chrome[editing] to-sheet-editor:not(:has(tr.names :focus)) table.sheet .col-head .nm {
-      display: inline;
-    }
-    to-chrome[editing] .sheet-scroll {
-      min-height: 0;
-      max-height: calc(var(--to-col-h) - 2.75rem - 1px - var(--to-gutter));
-    }
+    /* (While a cell is typed in on the site, the heads are one line and the formula strip keeps the menu button's room:
+       the chrome's rules, page.css.) */
   }
   /* The bar's ABC is a phone keyboard's: nowhere else. */
   @media not (pointer: coarse) {

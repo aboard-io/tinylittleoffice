@@ -10,7 +10,7 @@
  * The person's own size is the 100%: the root's font size is the browser's default (100%) × the size × BASE, so a
  * browser set to larger type draws everything larger. An iPhone's browser keeps 16px whatever the device's text size
  * (Settings, Larger Text), so there, while nothing is kept, the size starts at the body text style's size over its
- * normal 17px (`deviceStart`). Above 100%, the root carries `data-large` (the menu button is opaque then: responsive.css).
+ * normal 17px (`deviceStart`). Above 100%, the root carries `data-large` (the menu button is opaque then: page.css).
  *
  * The size is two plain numbers on the root, and the stylesheet does the rest (kit.css's header): `--to-doc`, the
  * document's scale, which is the root's font size (the browser's default × it), so every length in rem follows it; and `--to-nav`, the
@@ -22,7 +22,7 @@
  * The normal size, 100%, draws everything at BASE (1.3): the lengths in the stylesheet were too small to start from
  * (Paul, 2026-10-10, on his iPhone: "Start at what we now call 130%"). The stepper and the pill say the size alone, so
  * 100% is normal. Nothing drawn outside the page (print, the PDF, the PNG, the thumbnails, the cards) is in rem; a page
- * printed from the screen has both scales put back to 1 (kit.css).
+ * printed from the screen has both scales put back to 1 (page.css).
  *
  * The nav has a natural limit: the bar, the header, the drawer, the dialogs, the context bar, the menus and the pills
  * grow with the size up to 120% (NAV_MAX) and no further, while the words, the cards and the pictures go on to 200%.

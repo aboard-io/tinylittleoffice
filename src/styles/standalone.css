@@ -1,0 +1,11 @@
+/* What the site's body gives every editor on its page (page.css: the type, its line and the ink), given here to the
+   editors and to what they put on the page beside them (a dialog, another document edited in place, the toast, the
+   size's pill) on a page that is not the site, whose body is its own (docs/library.md, Theming). In :where(), of no
+   weight: any rule of the kit's, an app's or the page's own outranks it. Only the editors' stylesheet (editors.css)
+   has it; on the site the body gives the same. */
+@layer kit {
+  :where(.to-editor, to-dialog, to-doc-dialog, to-toast, .to-pinch-pill) {
+    font: 1rem/var(--to-line) var(--to-font);
+    color: var(--to-ink);
+  }
+}

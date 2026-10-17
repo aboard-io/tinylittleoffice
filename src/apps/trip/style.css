@@ -3,7 +3,7 @@
    above it. A pin is a finger wide to hit, its dot drawn smaller inside. */
 @layer apps {
   /* Its words are typed in the stops' rows, beside or under the map, not at the column's end: no room below it for a
-     caret at the middle (kit.css .to-main.to-wide). */
+     caret at the middle (page.css .to-main.to-wide). */
   .to-main:has(> to-trip-editor) {
     padding-bottom: var(--to-gutter);
   }

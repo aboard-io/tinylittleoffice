@@ -1,7 +1,7 @@
 /* Diagram: the picture in a frame that scrolls when it is wider than the screen, the hint line under the bar, and the
    words typed over the thing tapped (the things to do to it are a <to-context> under the words). */
 @layer apps {
-  /* The picture fills the column: no room below it for a caret at the middle (kit.css .to-main.to-wide). */
+  /* The picture fills the column: no room below it for a caret at the middle (page.css .to-main.to-wide). */
   .to-main:has(> to-diagram-editor) {
     padding-bottom: var(--to-gutter);
   }

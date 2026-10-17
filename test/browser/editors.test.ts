@@ -2,7 +2,7 @@
 // is the document the page is told, undo is answered inside it, and where a placed document opens is the host's answer,
 // never the address. No shell is on the page: this file imports none of it.
 import { expect, test } from 'vitest';
-import { editorTag, host, mount, setup } from '../../src/editors.ts';
+import { apps, editorTag, host, mount, setup } from '../../src/editors.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import { parse, plainText } from '../../src/doc/index.ts';
 import { tick, until } from './wait.ts';
@@ -69,4 +69,49 @@ test('where a placed document opens is the host’s answer, and a pasted link is
   el.querySelector('.ol-doc')!.dispatchEvent(paste);
   await until(() => changes.some((c) => c.includes('1500')), 'the pasted link never became the item’s document');
   expect(changes.at(-1)).not.toContain('1200');
+});
+
+/** A selector that names the page's root or body, or the site's shell: what the editors' stylesheet never names. */
+const PAGE = /(^|[\s>+~(,])(html|body|to-shell|to-chrome)(?=$|[\s.#:[>+~),])/;
+/** Every style rule's selector in a list of rules, inside layers, media and nested rules alike. */
+const selectors = (rules: CSSRuleList): string[] =>
+  [...rules].flatMap((r) => [...(r instanceof CSSStyleRule ? [r.selectorText] : []), ...('cssRules' in r ? selectors((r as CSSGroupingRule).cssRules) : [])]);
+/** The library's stylesheets on the page: the ones the dev server put there from the source (src/editors.css, each app's). */
+const library = () => [...document.styleSheets].filter((s) => (s.ownerNode as HTMLElement | null)?.dataset?.viteDevId?.includes('/src/'));
+
+test('the page keeps its own body and the editors keep their look: the stylesheet names nothing of the page or the site’s chrome', async () => {
+  // Every app's editor loaded, so every app's own sheet is on the page too.
+  await Promise.all(apps().map((a) => editorTag(a.id)));
+  document.body.innerHTML = '<main></main>';
+  const editor = await mount('write', '', document.querySelector('main')!, () => {});
+  const ours = library();
+  expect(ours.map((s) => (s.ownerNode as HTMLElement).dataset.viteDevId!.replace(/^.*\/src\//, ''))).toEqual(
+    expect.arrayContaining(['editors.css', 'apps/write/style.css', 'apps/sheet/style.css', 'apps/deck/style.css']),
+  );
+  const all = ours.flatMap((s) => selectors(s.cssRules));
+  expect(all.length).toBeGreaterThan(500);
+  expect(all.filter((s) => PAGE.test(s))).toStrictEqual([]);
+
+  // The page's own rules for its body, as weak as rules can be: in a layer before every one of the library's, of no
+  // specificity, so any rule of the library's for the body would outweigh them. The test runner's own page (whose
+  // sheets set the body's margin outside any layer) is set aside while the body is read.
+  const own = document.createElement('style');
+  own.textContent = '@layer page { :where(body) { margin: 7px; background: rgb(250, 240, 230); font-family: Georgia, serif; } }';
+  document.head.prepend(own);
+  const runner = [...document.styleSheets].filter((s) => s !== own.sheet && !ours.includes(s));
+  runner.forEach((s) => (s.disabled = true));
+  try {
+    const body = getComputedStyle(document.body);
+    expect([body.marginTop, body.marginLeft, body.backgroundColor, body.fontFamily]).toStrictEqual(['7px', '7px', 'rgb(250, 240, 230)', 'Georgia, serif']);
+    // The editor is the kit's: its bar a row on the tokens' ground (var(--to-bg) resolved, not the page's showing
+    // through) in the nav's scale, its words in the tokens' type rather than the page's.
+    const bar = getComputedStyle(editor.querySelector('to-bar')!);
+    expect(bar.display).toBe('flex');
+    expect(bar.getPropertyValue('--to-nav-font')).not.toBe('');
+    expect(bar.backgroundColor).not.toMatch(/^rgba\(0, 0, 0, 0\)$|^transparent$/);
+    expect(getComputedStyle(editor).fontFamily).toContain('IBM Plex Sans');
+  } finally {
+    runner.forEach((s) => (s.disabled = false));
+    own.remove();
+  }
 });

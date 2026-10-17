@@ -10,7 +10,7 @@
  * On a phone (a coarse pointer) nothing floats: iOS draws its selection callout over whatever is near the words,
  * and no page can stop it over editable text (Paul, 2026-10-10: "Our menu keeps getting obscured under the native
  * copy paste menu"). So there the bar is a row of the bottom bar, `docked`: across the column's foot, where the app's
- * bar is, which slides away while it is up (`data-context-row` on the root; kit.css) and back when it goes, with the
+ * bar is, which slides away while it is up (`data-context-row` on the root; page.css) and back when it goes, with the
  * chrome's glide. `hint` is a line under the row (Paste refused: use the keyboard's).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -99,7 +99,7 @@ export class ToContext extends LitElement {
     const pop = this.pop;
     if (pop?.matches(':popover-open')) pop.hidePopover();
   }
-  /** A row of the bottom bar (on a phone): the app's bar steps aside for it (kit.css reads the root's attribute). */
+  /** A row of the bottom bar (on a phone): the app's bar steps aside for it (page.css reads the root's attribute). */
   private dock(on: boolean) {
     this.pop?.toggleAttribute('data-docked', on);
     if (on) docked.add(this);

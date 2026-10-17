@@ -13,7 +13,7 @@
  *
  * On a phone the bar comes with the focus (Paul, 2026-10-10: "We could also just hide the secondary bar unless we are
  * editing"): `indoc` says something in the document has the focus from the person's own tap or key (words, a cell, a
- * canvas, a chosen row, the bar itself; not the focus a document opens with), and kit.css slides the bar under the column's foot while it is not set (reading), with the glide; an editor whose keys
+ * canvas, a chosen row, the bar itself; not the focus a document opens with), and page.css slides the bar under the column's foot while it is not set (reading), with the glide; an editor whose keys
  * are the document says `data-bar="always"` (the Calculator). What of the bar needs nothing in hand is a row of the
  * drawer's This document too (kit/ui/drawer.ts).
  *
@@ -29,7 +29,7 @@
  *
  * The bar glides (Paul: "When the keyboard appears and disappears it jumps and it's overwhelming. Could move briskly or
  * fade in and fade out"): under a finger the column's height follows the visible window through a transition of a
- * fifth of a second (kit.css), and while it moves `gliding` is set and the bar fades out, back when the column settles
+ * fifth of a second (page.css), and while it moves `gliding` is set and the bar fades out, back when the column settles
  * (its transitionend, a timer as the fallback). Under reduced motion the height changes at once and the fade alone
  * remains. The caret is kept in sight once the column has settled, not in flight (kit/ui/scroll.ts gliding(), which kit/text/text.ts asks).
  *
@@ -94,14 +94,14 @@ export interface Plain {
 
 /** What a person types in: while one of these has the focus, the header steps aside on a phone. */
 const BOX = 'to-text, input, textarea, select, [contenteditable="true"], iframe';
-/** The column's glide, a little longer than its transition (kit.css): the fallback should transitionend never come. */
+/** The column's glide, a little longer than its transition (page.css): the fallback should transitionend never come. */
 const GLIDE_MS = 260;
 
 /** What a box hands the focus to and back from without the person having left it: the bar, a menu, a popover, a dialog. */
 const ASIDE = 'to-bar, to-context, [popover], dialog, to-dialog, to-link-pop, to-complete';
 
 /**
- * What responsive.css slides away under a finger, by its own selectors: the app's bar while the
+ * What page.css slides away under a finger, by its own selectors: the app's bar while the
  * person reads (no `indoc`), and under a docked context row. What is away is inert as well, out of Tab's order and a
  * screen reader's swipes, set wherever those flags change (stow), so the look and the flag change together.
  */
@@ -131,7 +131,7 @@ export function startEditing(): void {
     hold.contentEditable = 'true';
     hold.tabIndex = -1;
     hold.setAttribute('aria-hidden', 'true');
-    // iOS draws a focused box's caret itself, whatever the box's opacity (Paul, 2026-10-13: "There's a big black area the cursor is in it. Then it focuses"): the hold's is transparent (kit.css).
+    // iOS draws a focused box's caret itself, whatever the box's opacity (Paul, 2026-10-13: "There's a big black area the cursor is in it. Then it focuses"): the hold's is transparent (page.css).
 
     hold.addEventListener('focusout', () => hold!.remove());
     document.body.append(hold);
@@ -181,9 +181,9 @@ export class ToChrome extends LitElement {
   private titleWas = '';
   /** What had the focus before the title: it has it again after Enter or Escape. */
   private titleFrom: HTMLElement | null = null;
-  /** A box has the focus: on a phone the header steps aside (kit.css). */
+  /** A box has the focus: on a phone the header steps aside (page.css). */
   declare editing: boolean;
-  /** Something in the document has the focus (words, a cell, a canvas, a chosen row, its bar): on a phone the bar is shown (kit.css). */
+  /** Something in the document has the focus (words, a cell, a canvas, a chosen row, its bar): on a phone the bar is shown (page.css). */
   declare indoc: boolean;
   /** Arrived by a short link that expires then (ms since the epoch); 0: no banner. */
   declare expires: number;
@@ -257,7 +257,7 @@ export class ToChrome extends LitElement {
   private fit = () => {
     const vv = window.visualViewport;
     const h = `${vv && vv.scale <= 1.01 ? vv.height : window.innerHeight}px`;
-    // Under a finger a change of height is the keyboard: the bar fades while the column glides (kit.css), back when it settles.
+    // Under a finger a change of height is the keyboard: the bar fades while the column glides (page.css), back when it settles.
     if (this.style.height && this.style.height !== h && matchMedia('(pointer: coarse)').matches) this.glide();
     this.style.height = h;
     this.pin();

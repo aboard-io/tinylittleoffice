@@ -154,7 +154,7 @@ export function reveal(el: Element | null | undefined, opts: Reveal = {}): void 
  * After an edit (`middle`), a caret below the middle of what can be seen is brought to the middle, and one above it is
  * only kept in sight (Paul, 2026-10-12: "enough padding at the end of a document we are editing that the cursor stays
  * roughly in the middle of the screen unless we scroll"); the room below the last line is the column's padding
- * (kit.css). A click, an arrow key or Find never asks for it, so the person's own scroll is never undone.
+ * (page.css). A click, an arrow key or Find never asks for it, so the person's own scroll is never undone.
  */
 export function revealCaret(box: Element, opts: { middle?: boolean } = {}): void {
   const sel = document.getSelection();

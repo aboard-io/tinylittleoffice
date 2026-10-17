@@ -623,20 +623,7 @@
       overflow-y: hidden;
       padding-bottom: 0.25rem;
     }
-    /* While a box is typed in (to-chrome[editing]) the rail leaves the flow for the column's foot, right above the bar
-       and placed as the bar is (kit.css: by the column, over the scrolling main), so with the keyboard up the whole
-       slide stands above it and every other slide is a tap away, with no room wasted under the slide (Paul, 2026-10-13:
-       "a quick way to jump to other slides without leaving edit mode… put the deck preview above the edit bar"; "get rid
-       of all the space below the slides and make sure we can see the whole slide above when we switch into edit"). */
-    to-chrome[editing] .to-column > main > to-deck-editor .deck-rail {
-      position: absolute;
-      inset-inline: 0;
-      bottom: var(--to-bar-h);
-      z-index: 2;
-      padding: 0.25rem var(--to-gutter) 0.125rem;
-      background: var(--to-bg);
-      border-top: 1px solid var(--to-border);
-    }
+    /* (While a box is typed in on the site, the rail is the bar's upper row: the chrome's rule, page.css.) */
     .deck-slot {
       width: 6rem;
     }

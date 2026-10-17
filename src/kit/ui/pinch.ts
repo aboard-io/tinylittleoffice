@@ -7,7 +7,7 @@
  * never arrive. A mouse, a pen and one finger are never a pinch.
  *
  * The kit's own use (`pinchSizes`, started by the shell): the browser's pinch is off (`touch-action: pan-x pan-y` on
- * the root, kit.css), and unless the gesture began inside a `[data-spatial]` element, which takes its own, the size of
+ * the root, page.css), and unless the gesture began inside a `[data-spatial]` element, which takes its own, the size of
  * everything (zoom.ts) follows the fingers live: size × scale, drawn each frame without being kept, the point under
  * the fingers kept under them (the element there and how far down it they were: the words reflow, so an element, not
  * a pixel), a pill top centre saying the size. Lifted, the size is kept to the nearest 5% and the pill goes half a

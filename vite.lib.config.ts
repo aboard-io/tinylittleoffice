@@ -17,7 +17,7 @@
  * test/package.test.ts packs the package and installs it.
  *
  * The stylesheet names the site's fonts by the site's paths (/fonts/…), left as they are: a page serves them there, or
- * sets its own (docs/library.md, step 3).
+ * sets its own (docs/library.md, Theming).
  */
 import { defineConfig } from 'vite';
 import { rmSync } from 'node:fs';

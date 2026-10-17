@@ -12,7 +12,7 @@
   /* The paper is the page, not a card on it (Paul, 2026-10-10): its colour runs the window's width, edge to edge
      under the bar at any size (the main's side insets, negated; none outside the main), and the words keep the
      measure of a page at 96 px to the inch with its inch of margin, centred (less where the screen is narrower
-     than the page, 16px on a phone). An app's page draws its line here before the app is there (kit.css, #to-first). */
+     than the page, 16px on a phone). An app's page draws its line here before the app is there (page.css, #to-first). */
   .write-page,
   #to-first > h1 + p {
     touch-action: manipulation;

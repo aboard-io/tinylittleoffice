@@ -1,6 +1,6 @@
 /* Draw: the canvas in a frame that scrolls when zoomed, the hint line under the bar, the words over their shape, the pixel grid. */
 @layer apps {
-  /* The canvas fills the column: no room below it for a caret at the middle (kit.css .to-main.to-wide). */
+  /* The canvas fills the column: no room below it for a caret at the middle (page.css .to-main.to-wide). */
   .to-main:has(> to-draw-editor) {
     padding-bottom: var(--to-gutter);
   }

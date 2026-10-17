@@ -14,7 +14,7 @@
  * new text on every edit; `mount` wires the two, and answers Mod+Z and Mod+Shift+Z inside it the way the site's page
  * does (kit/core/keys.ts), since the page the editor is in is where keys are heard.
  */
-import './styles.css';
+import './editors.css';
 import type { DocChange, Editor } from './kit/core/app.ts';
 import { appOf } from './kit/core/apps.ts';
 import { KIT_COMMANDS, pageKey, type Page } from './kit/core/keys.ts';

@@ -37,14 +37,62 @@ What an app still asked of the site itself, and what replaces it:
    one file). What the editors fetch only when asked for, an app's templates, a language other than English and the
    trip's map and its worker, is in dist/editors/ beside them. The site's build keeps its own entry; both are built
    from the same modules. test/package.test.ts packs and installs the package and runs the kernel from it; the
-   stylesheet still names the site's fonts by the site's paths (/fonts/…), which step 3 takes up.
-3. **The stylesheet for a page that is not the site.** styles.css in layers, with what belongs to the site's page
-   (`html`, `body`, the chrome) kept apart from what an editor needs, and the colors, type and sizes as custom
-   properties a page sets.
+   stylesheet names the site's fonts by the site's paths (/fonts/…): see Theming.
+3. **The stylesheet for a page that is not the site.** Done: src/editors.css is everything an editor needs (the
+   fonts, the tokens, the kit, the text editor, the rules by width and by a person's settings, and each app's own sheet,
+   which its editor brings), and src/styles/page.css is the site's page and chrome (`html` and `body`, `<to-shell>`,
+   `<to-chrome>`, the header, the column and the bar's place in it, the drawer, the banners, the home page, Share,
+   Privacy, the Display Link's view, Compare). The site's styles.css is the two, in the same layers: the same rules,
+   page.css's at the end of each layer, which the cascade allows because none of them meets a rule of the editors'
+   on one element at the same weight (one did, a Share link's face, and stays where it was in kit.css). The editors'
+   sheet adds one rule the site's body makes needless (src/styles/standalone.css: the type and the ink on the
+   editors and what they put on the page). test/browser/editors.test.ts holds that no rule of it names the root, the
+   body or the shell, and that a page's own body keeps its own margin, ground and type.
 4. **A page's own commands.** A page registers commands and scopes of its own beside the kit's (Atlas's records, its
    board), drawn and answered the same way.
 5. **A bare page that holds `<to-write-editor>`** with a host of its own, and a test that types in it and reads the
    `docchange`. Done when the site is unchanged (every test, walk and budget) and the bare page works.
+
+## Theming
+
+`tinylittleoffice/editors.css` puts every rule in a cascade layer (`tokens`, `kit`, `apps`, `responsive`, `a11y`), so
+a page's own rules outside a layer outrank all of them. It sets nothing on the page's root but custom properties and
+`color-scheme` (light or dark with the theme; light for the instant of a copy), and nothing on its body. A few rules
+name elements rather than the kit's classes, and reach the page's own elements where the page says nothing of them:
+border-box sizing, a control's font size, code in the mono face, a link's color, the focus ring, `[hidden]`, and no
+transitions for a person who asks for less motion. The editors draw on the page's own ground: the site's is
+`--to-bg`.
+
+A page themes the editors with custom properties (src/styles/tokens.css), on `:root` or on an element that holds them,
+since they inherit. Light is on `:root`; dark is under `:root[data-theme='dark']`, which `setup()` and `setTheme()` set
+on the root (kit/ui/theme.ts), so a page's own dark values go under the same selector.
+
+- **Colors.** `--to-bg` (the ground, under the bar), `--to-surface` and `--to-surface-2` (panels, menus, dialogs),
+  `--to-border` and `--to-border-strong`, `--to-ink`, `--to-ink-2` and `--to-ink-3` (words, from loudest to
+  quietest), `--to-accent`, `--to-accent-soft` and `--to-on-accent` (words on the accent), `--to-danger`,
+  `--to-success`, `--to-go`, `--to-warning`, `--to-placeholder`, `--to-input-bg` and `--to-input-border`. The paper a
+  document is drawn on: `--to-paper`, `--to-paper-ink`, `--to-paper-muted`, `--to-paper-line`, `--to-paper-shade`
+  and `--to-paper-accent`. test/contrast.test.ts holds the site's pairs to their contrast; a page's own are its own.
+- **Type.** `--to-font` (the interface and the Sans look), `--to-font-serif`, `--to-font-mono`, `--to-font-system` (the
+  device's stack, behind the rest), `--to-line` and `--to-line-label` (the line of body text, and of headings and
+  labels). The faces are IBM Plex, which the stylesheet's `@font-face` rules name at `/fonts/…` on the page's own
+  origin; the package does not carry the files (public/fonts/ in this repository, under the SIL Open Font License).
+  A page serves them there, or sets the fonts to faces of its own.
+- **Shape.** `--to-radius`, `--to-radius-sm`, `--to-radius-pill`, `--to-shadow` and `--to-shadow-pop`.
+- **Room.** `--to-gutter-k` (the gutter, as a number of the scale's 16px: 1, and 0.75 on a narrow screen), `--to-max-w`
+  (the measure of a column of words), and `--to-col-h`, the height a canvas or a map fills (the Drawing, the Diagram,
+  the Animation, the Trip Planner's map): the screen less the site's header and bar unless the page sets it, as the
+  site's chrome does to its column's measured height.
+- **Size.** `--to-doc` and `--to-nav` (kit/ui/zoom.ts): the size of everything as two plain numbers on the root, which
+  `setup()` sets (1.3 at 100%; the nav's stops at 120%). A document's lengths are in rem, and on the site the root's
+  font size is the browser's default times `--to-doc` (page.css); the editors' stylesheet leaves the root's font size
+  to the page. A page that wants the size of everything sets `html { font-size: calc(100% * var(--to-doc, 1)) }`
+  itself; one that keeps its own draws the editors at its own rem, and should keep the size at 100%, since the nav's
+  scale is reckoned from the root's (`--to-nav-font`: a rem over `--to-doc`, times `--to-nav`).
+
+budgets.json does not weigh editors.css: scripts/budgets.ts weighs the site's build (dist/), and editors.css comes
+from a second one (`npm run build:lib`), which `npm run build` does not run; test/package.test.ts holds that it is
+there.
 
 Then, for Atlas and the site alike: operations with ids, authors and versions, ordered by a server, with the property
 that any order of delivery ends in the same document (Atlas's plan, phase 3).

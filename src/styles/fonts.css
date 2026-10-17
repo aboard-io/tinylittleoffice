@@ -109,7 +109,7 @@
     line-gap-override: 0%;
     unicode-range: U+0000-052F, U+0E3F, U+1E00-1EFF, U+2000-215F, U+2190-22FF, U+2400-25FF, U+2713, U+274C, U+2B0E-2B11, U+FB01-FB02, U+FEFF, U+FFFD;
   }
-  /* The home page's wordmark before the app (kit.css, #to-first): the Serif's stand-in above under a name of its own, so
+  /* The home page's wordmark before the app (page.css, #to-first): the Serif's stand-in above under a name of its own, so
      the page asks for no face of Plex before its first paint (budgets.json: five requests, the two Sans faces among
      them); the wordmark the shell draws is Plex Serif, in the same place. */
   @font-face {

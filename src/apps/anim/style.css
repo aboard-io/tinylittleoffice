@@ -1,7 +1,7 @@
 /* Motion: the stage, the filmstrip and the scrubber right under it, the chosen shape's sliders, and at the column's foot
    the row with Draw/Move and the hint. Nothing in gray boxes, no gaps but the ones that part things (Paul, 2026-10-11). */
 @layer apps {
-  /* The stage fills the column: no room below it for a caret at the middle (kit.css .to-main.to-wide). */
+  /* The stage fills the column: no room below it for a caret at the middle (page.css .to-main.to-wide). */
   .to-main:has(> to-anim-editor) {
     padding-bottom: var(--to-gutter);
   }

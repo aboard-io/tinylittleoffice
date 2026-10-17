@@ -24,19 +24,11 @@
       transition: none !important;
       animation: none !important;
     }
-    /* The bar's fade while the column takes a keyboard's height is no motion: it stays, the height changing at once (kit/ui/chrome.ts). */
-    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      transition: opacity 0.12s ease !important;
-    }
   }
   @media (prefers-contrast: more) {
     :root {
       --to-ink-3: var(--to-ink-2);
       --to-border: var(--to-border-strong);
-    }
-    /* The menu button does not fade while typing (responsive.css): it is the only way to the menu. */
-    to-chrome[editing] :is(.to-burger, .to-share-btn) {
-      opacity: 1;
     }
   }
   @media (forced-colors: active) {

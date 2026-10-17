@@ -4,7 +4,7 @@
    else is the theme's tokens. Every control is 44px to the finger; inputs are 16px so a phone does not zoom. */
 @layer apps {
   /* Its words are typed in the dialog and the schedule's rows, not at the column's end: no room below it for a caret
-     at the middle (kit.css .to-main.to-wide). */
+     at the middle (page.css .to-main.to-wide). */
   .to-main:has(> to-cal-editor) {
     padding-bottom: var(--to-gutter);
   }

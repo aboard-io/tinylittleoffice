@@ -1,0 +1,14 @@
+/* The editors' stylesheet, for a page that is not the site (docs/library.md): everything an editor needs and nothing
+   of the site's page. The cascade is the site's, said once: tokens under everything, then the kit, then each app's own
+   sheet (an editor brings its own, as it does on the site), then what changes by width, then what changes for a
+   person's settings. No rule for the body and none for the shell, and none for the root but the tokens (its custom
+   properties, and its color-scheme with the theme): the page keeps its own (page.css is the site's). Every rule is in a layer, so a page's own rules outside one
+   outrank them all. The npm package serves it as `tinylittleoffice/editors.css` (vite.lib.config.ts). */
+@layer tokens, kit, apps, responsive, a11y;
+@import './styles/fonts.css';
+@import './styles/tokens.css';
+@import './styles/kit.css';
+@import './styles/standalone.css';
+@import './styles/text.css';
+@import './styles/responsive.css';
+@import './styles/a11y.css';

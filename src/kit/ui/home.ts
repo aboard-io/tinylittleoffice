@@ -2,7 +2,7 @@
  * <to-home>: the apps, as rows, in the registry's order: each its icon and name (open it blank), a dialog
  * of its templates to the right of its name (Blank first and chosen, or the first template where the app's templates carry its blanks, each drawn small from its own document; choosing one opens the
  * app with that document), and under it the documents of that app kept on this device (kit/share/library.ts),
- * newest first, each preview on the edge of the app's icon (kit.css .to-drive). No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
+ * newest first, each preview on the edge of the app's icon (page.css .to-drive). No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
  * in that format … Drive is just documents under the icons. No descriptions of apps.") Rows the width of
  * the page, not cards, so it looks on a desktop as it does on a phone (Paul, 2026-10-09: "Don't make apps into cards.
  * Just make them into rows with docs below."). Each document shows its first page small at its left

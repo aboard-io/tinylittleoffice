@@ -9,7 +9,7 @@
     --to-font-system: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --to-font: 'IBM Plex Sans', 'IBM Plex Sans Arabic', 'IBM Plex Sans Hebrew', 'IBM Plex Sans Devanagari', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --to-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    /* The home page's wordmark (kit.css .to-header .to-brand) and the Serif look. */
+    /* The home page's wordmark (page.css .to-header .to-brand) and the Serif look. */
     --to-font-serif: 'IBM Plex Serif', Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif;
 
     --to-bg: hsl(0 0% 97.5%);
@@ -55,7 +55,7 @@
     --to-shadow-pop: 0 0.25em 1em rgb(0 0 0 / 16%);
     /* The header is nav: its height is the nav's (kit.css, --to-nav-font), wherever it is reckoned with. */
     --to-header-h: calc(3.5 * var(--to-nav-font));
-    /* The app's bar, one row: a finger's target and its padding, in the nav's scale (kit.css, the bar's place). */
+    /* The app's bar, one row: a finger's target and its padding, in the nav's scale (page.css, the bar's place). */
     --to-bar-h: calc(3.5 * var(--to-nav-font));
     /* The column's height, what a canvas or a map fills: <to-chrome> sets it as measured (kit/ui/chrome.ts);
        until then, and for an editor drawn alone, the screen less the header and the bar. */
@@ -66,16 +66,16 @@
     --to-touch: min(2.75rem, calc(2.75 * var(--to-nav-font)));
     --to-max-w: 67.5rem;
     /* The column's side insets: the gutter (or the notch), or half of what the window has over the measure and the
-       gutter, whichever is more. Worked out here, where both readers inherit it: the column's padding (kit.css .to-main)
+       gutter, whichever is more. Worked out here, where both readers inherit it: the column's padding (page.css .to-main)
        and the home page's header, whose wordmark starts where the column does (Paul, 2026-10-12: "keep the logo aligned
        with the list of apps below"). The 100% is the reader's own: the window's width, for both. */
     --to-col-inset-l: max(var(--to-gutter), env(safe-area-inset-left), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
     --to-col-inset-r: max(var(--to-gutter), env(safe-area-inset-right), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
-    /* A row's inset inside the column, from its hover box to its icon (kit.css .to-app-open), in the document's scale;
+    /* A row's inset inside the column, from its hover box to its icon (page.css .to-app-open), in the document's scale;
        the home page's wordmark is set in by as much, so its first letter stands on the icons' edge. */
     --to-row-inset: calc(0.5 * var(--to-scale));
     /* A field's inside, from its border to its words (kit.css, the fields), in the field's own ems: the title's box,
-       and the title an app's page shows before the app is there (kit.css, #to-first). */
+       and the title an app's page shows before the app is there (page.css, #to-first). */
     --to-field-pad: 0.625em;
     /* The line: body text's, and the tighter one of headings and labels. */
     --to-line: 1.5;
