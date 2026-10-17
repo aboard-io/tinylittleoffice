@@ -2,7 +2,7 @@
 // words and the files: under node.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { applyAll, column, invertAll, isLocked, parse, tableAt, write, type Doc, type Op } from '../../../doc/index.ts';
+import { applyAll, invertAll, isLocked, parse, tableAt, write, type Doc, type Op } from '../../../doc/index.ts';
 import { arbitraryDoc, arbitraryTable, RUNS } from '../../../../test/doc/tlo-grammar.ts';
 import def from '../def.ts';
 import { sheetToBoard } from '../../sheet/convert.ts';
