@@ -60,7 +60,8 @@ test('where a placed document opens is the host’s answer, and a pasted link is
   await until(() => !!el.querySelector('.ol-doc a'), 'the placed sheet was never drawn');
   const a = el.querySelector<HTMLAnchorElement>('.ol-doc a')!;
   expect(a.href).toMatch(/^https:\/\/atlas\.test\/open\/sheet\?n=\d+$/);
-  expect(links.at(-1)).toBe('sheet:Item | Cost:money\n--- | ---\nRent | 1200');
+  // The sheet as the item holds it, its lines indented under the item: the host is given the text as the document has it.
+  expect(links.at(-1)!.replace(/\n\s+/g, '\n')).toBe('sheet:Item | Cost:money\n--- | ---\nRent | 1200');
   // The page's own link to the same kind of document, pasted over the card: the host reads it, and the document under
   // the item is the one it names (the way an edit made in its own app comes back).
   const paste = new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: new DataTransfer() });
