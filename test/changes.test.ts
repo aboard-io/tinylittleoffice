@@ -2,15 +2,17 @@
 // library.md, Tracked changes and comments for a host): versions by their authors tracked word by word, every change
 // its maker's and every kind of change tracked (Paul, 2026-10-16: "There can be no changes of any kind unless they are
 // tracked and attributed"), a rejection a change of its own, and what is drawn among the words (ghostsOf) never the
-// words. The examples first, then the same fuzzed from the kernel's grammar (test/doc/tlo-grammar.ts), as the kernel's
-// properties are: any document, any edits of any kind, each property over RUNS cases (2,000 under `npm run fuzz`), a
-// failure naming the shrunk counterexample. Painting over a mounted editor and pinning comments are the browser's:
+// words; and the edit that rejects a change (kit/text/reject.ts) taking back exactly that change. The examples first,
+// then the same fuzzed from the kernel's grammar (test/doc/tlo-grammar.ts), as the kernel's properties are: any
+// document, any edits of any kind, each property over RUNS cases (2,000 under `npm run fuzz`), a failure naming the
+// shrunk counterexample. Painting over a mounted editor and pinning comments are the browser's:
 // test/browser/changes.test.ts.
 import fc from 'fast-check';
 import { describe, expect, test } from 'vitest';
-import { applyAll, parse, write, type Doc, type Op } from '../src/doc/index.ts';
-import { changesOf, OTHER, same, textOf, track, type Step } from '../src/kit/text/changes.ts';
+import { applyAll, parse, write, type Block, type Doc, type Op } from '../src/doc/index.ts';
+import { changesOf, isHead, OTHER, same, textOf, track, type Step, type Tracked } from '../src/kit/text/changes.ts';
 import { ghostsOf, initialsOf, type Drawing } from '../src/kit/text/redline.ts';
+import { rejectOps } from '../src/kit/text/reject.ts';
 import { arbitraryEdits, RUNS } from './doc/tlo-grammar.ts';
 
 const A = 'alice@x.co';
@@ -204,6 +206,77 @@ describe('tracked changes', () => {
   });
 });
 
+/** The last version's text with the changes `ids` of its tracking rejected (rejectOps), as the format writes it; null where they cannot be. */
+function rejecting(v: Step[], ids: (all: string[]) => string[], rejectedBy?: (id: string, seq: number) => boolean) {
+  const t = track(v, rejectedBy);
+  const doc = parse(v.at(-1)!.text);
+  const ops = rejectOps(t, doc.blocks, ids(changesOf(t).map((c) => c.id)));
+  return ops && write(applyAll(doc, ops));
+}
+
+describe('the edit that rejects a change', () => {
+  const v = [
+    { author: A, text: 'Payment is due in 30 days.\n\nNotices go by email.\n', hash: 'v0' },
+    { author: B, text: 'Payment is due in 45 days, net.\n\nNotices go by email.\n', hash: 'v1' },
+  ];
+
+  test('takes back the words it put in and puts back the words it took out, and leaves the other changes as they are', () => {
+    expect(changesOf(track(v)).map((c) => [c.id, c.put, c.took])).toEqual([
+      ['v1:0', '45', '30'],
+      ['v1:1', ', net', ''],
+    ]);
+    expect(rejecting(v, () => ['v1:0'])).toBe('Payment is due in 30 days, net.\n\nNotices go by email.\n');
+    expect(rejecting(v, () => ['v1:1'])).toBe('Payment is due in 45 days.\n\nNotices go by email.\n');
+    expect(rejecting(v, (all) => all)).toBe(v[0].text);
+    // None named, nothing to do.
+    expect(rejecting(v, () => [])).toBe(v[1].text);
+  });
+
+  test('against the words as they are now: the ops are made at the places the change has in the editor’s blocks', () => {
+    // A paragraph typed at the top since (the words being typed are a version too): the change is found below it.
+    const t = track(v);
+    const now = parse(`Draft.\n\n${v[1].text}`);
+    expect(write(applyAll(now, rejectOps(t, now.blocks, ['v1:1'])!))).toBe('Draft.\n\nPayment is due in 45 days.\n\nNotices go by email.\n');
+  });
+
+  test('puts back marks, a block’s kind and look, a paragraph taken out and a field of the head, as they were', () => {
+    const base = { author: A, text: '---\npaper: letter\n---\nPayment is due.\n\nTerms\n\nGone soon.\n\nNotices.\n', hash: 'v0' };
+    const next = { author: B, text: '---\npaper: a4\n---\nPayment is **due**.\n\n## Terms {.center}\n\nNotices.\n', hash: 'v1' };
+    expect(changesOf(track([base, next])).map((c) => [c.id, c.styles.join(' '), c.took])).toEqual([
+      ['v1:3', 'head:paper:letter>a4', ''],
+      ['v1:0', '+b', ''],
+      ['v1:1', 'kind:p>h2 look:>.center', ''],
+      ['v1:2', '-block:p', 'Gone soon.'],
+    ]);
+    for (const [id, text] of [
+      ['v1:3', next.text.replace('a4', 'letter')],
+      ['v1:0', next.text.replace('**due**', 'due')],
+      ['v1:1', next.text.replace('## Terms {.center}', 'Terms')],
+      ['v1:2', next.text.replace('Notices.', 'Gone soon.\n\nNotices.')],
+    ])
+      expect(
+        rejecting([base, next], () => [id]),
+        id,
+      ).toBe(text);
+  });
+
+  test('a rejection of a rejection: words someone took out and another put back are taken out again', () => {
+    const steps = [
+      { author: A, text: 'Due in 30 days.\n', hash: 'v0' },
+      { author: B, text: 'Due in days.\n', hash: 'v1' },
+      { author: A, text: 'Due in 30 days.\n', hash: 'v2' },
+    ];
+    expect(rejecting(steps, () => ['v2:0'])).toBe('Due in days.\n');
+    // Both: the taking out and the putting back, the words as they were.
+    expect(rejecting(steps, () => ['v1:0', 'v2:0'])).toBe('Due in 30 days.\n');
+  });
+
+  test('a change no part of the tracking could place is undone by hand alone: none is made', () => {
+    const t: Tracked[] = [{ kind: OTHER, look: '', toks: [], fmt: B, fmtId: 'v1:0', wasLook: '' }];
+    expect(rejectOps(t, [], ['v1:0'])).toBeNull();
+  });
+});
+
 describe('drawn among the words', () => {
   test('every edit: an opening bracket, the lozenge right after it, the words taken out in place, a closing bracket', () => {
     const t = track([
@@ -259,6 +332,27 @@ const LONG = Math.max(20_000, RUNS * 40);
 const canon = (text: string) => same(parse(text));
 /** A document's text after some edits. */
 const after = (doc: Doc, ops: Op[]) => write(applyAll(doc, ops));
+/** A block of words: a paragraph, a heading, an item or a quote (the tracking's kinds of text). */
+const WORDS = /^(p|h[1-6]|li\d+o?|quote)$/;
+const isWords = (b: Block) => b.k === 'p' || b.k === 'h' || b.k === 'li' || b.k === 'quote';
+/**
+ * The words of each block of words with the change `c` alone taken back, read from the tracking itself (one
+ * person's version after another's: no restoring, no restyling under another): a block it put in gone, one it took
+ * out back; in the rest, the words it put in gone and the words it took out back.
+ */
+function wordsWithout(t: Tracked[], c: string): string[] {
+  const words = (b: Tracked, keep: (x: Tracked['toks'][number]) => boolean) =>
+    b.toks
+      .filter(keep)
+      .map((x) => x.t)
+      .join('');
+  return t.flatMap((b) => {
+    if (isHead(b) || !WORDS.test(b.kind)) return [];
+    if (b.del) return b.delId === c && b.insId !== c ? [words(b, (x) => x.insId !== c)] : [];
+    if (b.insId === c && b.toks.every((x) => x.insId === c || x.del)) return [];
+    return [words(b, (x) => (x.del ? x.delId === c && x.insId !== c : x.insId !== c))];
+  });
+}
 
 describe('properties', () => {
   test(
@@ -334,6 +428,82 @@ describe('properties', () => {
           expect(count('['), 'brackets paired').toBe(count(']'));
         }
       });
+    },
+    LONG,
+  );
+
+  test(
+    'rejecting every change of a version gives back the version before it, its words with marks at their edges and all',
+    () => {
+      holds('one person’s edits, rejected', arbitraryEdits(6, true), ({ doc, ops }) => {
+        const x = write(doc);
+        const y = after(doc, ops);
+        const t = track([
+          { author: 'a', text: x, hash: 'v0' },
+          { author: 'b', text: y, hash: 'v1' },
+        ]);
+        const now = parse(y);
+        const back = rejectOps(
+          t,
+          now.blocks,
+          changesOf(t).map((c) => c.id),
+        );
+        expect(back, 'a rejection for every change').not.toBeNull();
+        expect(same(applyAll(now, back!))).toBe(canon(x));
+      });
+    },
+    LONG,
+  );
+
+  test(
+    'three people’s edits one after another, all rejected, give the first version back',
+    () => {
+      const chain = fc.tuple(arbitraryEdits(4, true), fc.integer({ min: 1, max: 3 }), fc.integer({ min: 0, max: 2 }));
+      holds('edits by three people, rejected', chain, ([{ doc, ops }, parts, first]) => {
+        const people = ['a', 'b', 'c'];
+        const size = Math.ceil(ops.length / parts);
+        const versions = [{ author: people[first], text: write(doc), hash: 'v0' }];
+        let d = doc;
+        for (let k = 0; k * size < ops.length; k++) {
+          d = applyAll(d, ops.slice(k * size, (k + 1) * size));
+          versions.push({ author: people[(first + k + 1) % 3], text: write(d), hash: `v${k + 1}` });
+        }
+        const t = track(versions);
+        const now = parse(versions.at(-1)!.text);
+        const back = rejectOps(
+          t,
+          now.blocks,
+          changesOf(t).map((c) => c.id),
+        );
+        expect(back, 'a rejection for every change').not.toBeNull();
+        expect(same(applyAll(now, back!))).toBe(canon(versions[0].text));
+      });
+    },
+    LONG,
+  );
+
+  test(
+    'rejecting one change leaves the others’ words: each block of words reads as the tracking says it does with that change alone taken back',
+    () => {
+      holds(
+        'one change of several, rejected',
+        arbitraryEdits(6, true).chain((e) => fc.nat().map((pick) => ({ ...e, pick }))),
+        ({ doc, ops, pick }) => {
+          const y = after(doc, ops);
+          const t = track([
+            { author: 'a', text: write(doc), hash: 'v0' },
+            { author: 'b', text: y, hash: 'v1' },
+          ]);
+          const ids = changesOf(t).map((c) => c.id);
+          if (!ids.length) return;
+          const c = ids[pick % ids.length];
+          const now = parse(y);
+          const back = rejectOps(t, now.blocks, [c]);
+          expect(back, `a rejection of ${c}`).not.toBeNull();
+          // A card is put back whole, every change open on it with it: the words are the blocks of words.
+          expect(applyAll(now, back!).blocks.filter(isWords).map(textOf)).toStrictEqual(wordsWithout(t, c));
+        },
+      );
     },
     LONG,
   );

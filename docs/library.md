@@ -96,10 +96,11 @@ What an app still asked of the site itself, and what replaces it:
     Contract Editor shows it (Paul, 2026-10-17: "the way it shows who did what is good"), is the kit's:
     kit/text/changes.ts says it and kit/text/redline.ts draws it over a mounted Word Processor, with the text editor's
     hooks for them (`showGhosts` and `Ghost`, `mentions` and `Mention`, the bubble's Comment where a host marks
-    `data-comments`) and their colors in editors.css (src/styles/changes.css). test/changes.test.ts tracks versions
-    and fuzzes them from the kernel's grammar; test/browser/changes.test.ts mounts a Word Processor with the kit
-    alone, tracks two people's versions and draws them, pins a comment by its quote, has the bubble's Comment tell the
-    host and offers "@" people: see Tracked changes and comments for a host.
+    `data-comments`) and their colors in editors.css (src/styles/changes.css), and the edit that rejects a change
+    (kit/text/reject.ts). test/changes.test.ts tracks versions, rejects their changes and fuzzes both from the
+    kernel's grammar; test/browser/changes.test.ts mounts a Word Processor with the kit alone, tracks two people's
+    versions and draws them, pins a comment by its quote, has the bubble's Comment tell the host and offers "@"
+    people: see Tracked changes and comments for a host.
 
 ## Tracked changes and comments for a host
 
@@ -120,7 +121,15 @@ mounted Word Processor's words without writing anything into them.
   who took it out, and each word, block and head field restyled with who restyled it and what it was. `changesOf` is
   each person's changes in reading order (`Change`: what it put in, took out and restyled, and whether it is an edit,
   a rejection, words put back or a restyling alone), to list and to accept or reject. A rejection is the host's own
-  edit, made like any other; the helpers that put a block back as it was are served with the rest (`blockFrom`,
+  edit, made like any other: `rejectOps(tracked, blocks, ids)` (kit/text/reject.ts) gives the kernel's operations
+  that take back exactly the changes `ids` (a lozenge's, or a `Change`'s), made against the editor's blocks as they
+  are now (`words.model`): the words they put in taken out, the words they took out put back where they were with
+  their marks, and a word's marks, a block's kind or look and a field of the head as they were; null where none can
+  be made (the change's words have moved, a restyling over it stands, or it is one no part of the tracking could
+  place, `OTHER`). Rejecting every change of a version gives back the version before it, and rejecting one leaves the
+  others' words, but on a card (a table, another document), which is put back whole with every change open on it.
+  `diffLines` (kit/text/diff.ts), the comparison the tracking pairs blocks by, is served for a host that pairs the
+  tracked blocks with the editor's itself, and so are the helpers that put a block back as it was (`blockFrom`,
   `kindTo`, `lookTo`, `runOf`, `restylings`).
 - **What is drawn.** Over the words of a mounted Word Processor (`wordsOf(editor)`, its `<to-text>`), never in them.
   `ghostsOf(tracked, words.model, settled, drawing)` gives each block's ghosts, which `words.showGhosts()` draws: the
