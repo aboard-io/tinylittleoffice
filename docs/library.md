@@ -40,7 +40,8 @@ What an app still asked of the site itself, and what replaces it:
    stylesheet names the site's fonts by the site's paths (/fonts/…): see Theming. The package is typed: build:lib
    writes the declarations of the three and of the API into dist/types (tsconfig.lib.json), which each export names
    first, and test/package.test.ts type-checks a strict program against them as installed (with `skipLibCheck`, since
-   the editors' declarations name Lit's and Lucide's types, which are bundled in, not installed).
+   the commands' declarations name Lucide's `IconNode` and the editors' name Lit's and Lucide's types, which are bundled
+   in, not installed).
 3. **The stylesheet for a page that is not the site.** Done: src/editors.css is everything an editor needs (the
    fonts, the tokens, the kit, the text editor, the rules by width and by a person's settings, and each app's own sheet,
    which its editor brings), and src/styles/page.css is the site's page and chrome (`html` and `body`, `<to-shell>`,
