@@ -236,7 +236,7 @@ export async function makeShort(skill: string, examples?: Map<string, Example[]>
       .map((a) => `\`${a.id}\``)
       .join(
         ', ',
-      )}. \`&title=\` names it, \`&by=\` says who made it, and \`&lang=\` (\`es\`, \`zh-hant\`…) opens the page in one of the site's languages. The words may be in any language or script, right to left too: write for the reader. Emoji are words, put the character in; \`:name:\` is one of Lucide's icons in the line, and first in a slide's headline it is the slide's icon; \`code\` is set in monospace. Keep a link under 2,000 characters and to the shapes shown: a hand-written link is checked by nothing.`,
+      )}. \`&title=\` names it, \`&by=\` says who made it, and \`&lang=\` (\`es\`, \`zh-hant\`…) picks the page's language. Write in the reader's language, right to left too. Emoji go in as characters; \`:name:\` is a Lucide icon, and first in a slide's headline the slide's icon; \`code\` is monospace. Keep a link under 2,000 characters and to the shapes shown: a hand-written link is checked by nothing.`,
     '',
     `With a runtime: \`${API_LINE}\` in a browser, Deno or Bun; \`npx tinylittleoffice\` in Node, where \`skill --into ~/.claude/skills\` installs this guide for Claude Code. To learn a shape by example:`,
     '',
