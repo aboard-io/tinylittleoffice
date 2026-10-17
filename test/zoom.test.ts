@@ -1,6 +1,6 @@
 // The size of everything (src/kit/ui/zoom.ts): clamped to 70%–200%, a pinch kept to the nearest 5%, the stepper moving in
 // tens from wherever a pinch left it, and the nav stopping at 120%. The normal size (100%) draws everything at 1.3,
-// what the stepper called 130% before: the root's --to-doc is BASE × the size (its font size, kit.css), --to-nav the
+// what the stepper called 130% before: the root's --to-doc is BASE × the size (its font size, page.css), --to-nav the
 // nav's, and nothing drawn outside the page moves.
 import { test, expect, afterEach, vi } from 'vitest';
 import { BASE, NAV_MAX, SIZE_MAX, SIZE_MIN, applySize, clampSize, deviceStart, keepSize, navSize, pinchSize, size, stepFrom, stepSize } from '../src/kit/ui/zoom.ts';
@@ -71,7 +71,7 @@ test('the normal size draws everything at 1.3: the root carries --to-doc (BASE �
     expect(props.get('--to-nav')).toBe('1.3');
     expect(attrs.has('data-large')).toBe(false);
     keepSize(2);
-    // Above 100% the root says so, and the menu button is opaque while typing (responsive.css).
+    // Above 100% the root says so, and the menu button is opaque while typing (page.css).
     expect(attrs.has('data-large')).toBe(true);
     expect(props.get('--to-doc')).toBe('2.6');
     expect(navSize()).toBe(1.2);

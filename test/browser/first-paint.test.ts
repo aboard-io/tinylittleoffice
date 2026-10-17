@@ -1,6 +1,6 @@
 // The page before the app (Paul, 2026-10-12: "What can we do about fouc", then "Do both fixes"). What the build writes
 // for crawlers into <header id="to-first"> (scripts/first.ts, scripts/seo.ts) is drawn by the stylesheet alone, no
-// module, as the page the shell draws over it (kit.css, #to-first): the home page's wordmark and the apps' names, and
+// module, as the page the shell draws over it (page.css, #to-first): the home page's wordmark and the apps' names, and
 // an app's name and line on its page, each within two pixels of where the shell puts them, at a phone's width and a
 // desktop's; what the page does not show (the line for agents, the templates' names) out of sight. And while a face of
 // Plex is on its way the words are set in the device's face standing in for it (src/styles/fonts.css), sized so the

@@ -101,7 +101,7 @@ test('a page printed from the screen has the size of everything taken off: in pr
   await session.send('Emulation.setEmulatedMedia', { media: 'print' });
   try {
     expect(matchMedia('print').matches).toBe(true);
-    // kit.css's @media print rule outranks the root's inline scales (an !important rule), and the lengths with them.
+    // page.css's @media print rule outranks the root's inline scales (an !important rule), and the lengths with them.
     expect(root.style.getPropertyValue('--to-doc')).toBe(String(BASE));
     const look = getComputedStyle(root);
     expect(look.fontSize).toBe('16px');

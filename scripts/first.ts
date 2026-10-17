@@ -1,7 +1,7 @@
 /**
  * What a page says before any script runs: the inside of its <header id="to-first"> (scripts/seo.ts writes it into
  * each page; kit/core/shell.ts takes it away as it starts). Plain text for a crawler, drawn by the stylesheet as the
- * page it becomes (kit.css, #to-first): on the home page the line for agents first (out of sight), then the site's name
+ * page it becomes (page.css, #to-first): on the home page the line for agents first (out of sight), then the site's name
  * and the apps' names, each a link to its page; on an app's page its name, its line and its templates' names (out of
  * sight). Pure, so the browser test that measures it against the shell builds it as the build does
  * (test/browser/first-paint.test.ts).

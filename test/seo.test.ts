@@ -95,7 +95,7 @@ test('the static HTML says what the rendered page shows: the apps’ names on th
     const page = firstHeader(read(`${a.id}/index.html`));
     for (const name of a.templates) expect(page, `${a.id}: ${name}`).toContain(`<li>${name.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</li>`);
   }
-  // The page as it is drawn before the app (kit.css, #to-first): the words a crawler reads, where the page shows them;
+  // The page as it is drawn before the app (page.css, #to-first): the words a crawler reads, where the page shows them;
   // what it does not show (the line for agents, an app's templates' names) out of sight as a screen reader's words are
   // (.sr-only), and nothing else: no other class, no style, no hidden attribute.
   expect(read('write/index.html')).toMatch(/<header id="to-first">/);

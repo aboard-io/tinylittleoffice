@@ -1,6 +1,6 @@
 // The caret stays at the middle while you type (Paul, 2026-10-12: "We want to put enough padding at the end of a
 // document we are editing that the cursor stays roughly in the middle of the screen unless we scroll"). An edited
-// column has half of what can be seen of it as room below its last line (kit.css, --to-col-h), and an edit that leaves
+// column has half of what can be seen of it as room below its last line (page.css, --to-col-h), and an edit that leaves
 // the caret below the middle scrolls it there (kit/ui/scroll.ts revealCaret's `middle`); a click, an arrow key or the
 // person's own scroll never recenters.
 import { test, expect, afterEach } from 'vitest';

@@ -8,7 +8,7 @@
  *   - in each page's <header id="to-first">, plain text the shell takes away as it starts (kit/core/shell.ts;
  *     scripts/first.ts): on the home page the line for agents first (where /llms.txt is), then the apps' names, each a
  *     link to its page; on an app's page its name, its line and its templates' names. The words the rendered page
- *     shows, there before any script runs, drawn by the stylesheet where the rendered page shows them (kit.css,
+ *     shows, there before any script runs, drawn by the stylesheet where the rendered page shows them (page.css,
  *     #to-first): the line for agents and the templates' names, which it does not show, out of sight;
  *   - one JSON-LD block on each page, a schema.org WebApplication with that page's name, line and address
  *     (`type="application/ld+json"` runs nothing, so the Content-Security-Policy is as it was: scripts/check-build.ts);

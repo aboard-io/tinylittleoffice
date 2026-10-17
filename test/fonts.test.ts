@@ -27,7 +27,7 @@ const declared = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => {
 /** The faces the site serves, and the device's faces standing in for them while they are on their way. */
 const faces = declared.filter((f) => !f.src.startsWith('local('));
 const fallbacks = declared.filter((f) => f.src.startsWith('local('));
-/** The home page's wordmark before the app is the Serif's stand-in under a name of its own (kit.css, #to-first). */
+/** The home page's wordmark before the app is the Serif's stand-in under a name of its own (page.css, #to-first). */
 const wordmark = fallbacks.find((f) => f.family === 'IBM Plex Serif Stand-in');
 // A face on its way is drawn in a face of the device's, sized to Plex (Paul, 2026-10-12: "What can we do about fouc"):
 // declared just before it, the same family, weight, style and characters, so the browser reaches for it while the
