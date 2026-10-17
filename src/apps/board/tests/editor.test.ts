@@ -6,14 +6,14 @@
 // edit from elsewhere kept); a drag by the grip
 // into another lane with its ghost, and undone; a finger held on the grip; the hand-off to the Spreadsheet; on a wide
 // screen the lanes in a row that scrolls sideways, and at phone width one under another, a finger tall, the bars one
-// row, the page never wider; and every card and lane named.
+// row, the page never wider; every card and lane named; and a card moved told as ops that reapply to the same board.
 import { expect, test, vi } from 'vitest';
 import { page } from 'vitest/browser';
 // The cascade's order is declared by the stylesheet, so it comes before the app's own (as in main.ts).
 import '../../../styles.css';
 import '../editor.ts';
 import type { ToBoardEditor } from '../editor.ts';
-import { parse } from '../../../doc/index.ts';
+import { applyAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
 import type { ToDialog } from '../../../kit/ui/dialog.ts';
 import { caret } from '../../../kit/text/textops.ts';
@@ -195,6 +195,27 @@ test('the keys in a title: Up/Down from card to card, Alt+Up/Down along the lane
   await settle(el);
   expect(drawn(el)[1]).toEqual(['Doing', ['Send invites', 'Write the brief', 'Write the brief']]);
   expect(document.activeElement).toBe(title(el, 1, 2).tx);
+});
+
+test('a card moved along its lane and across lanes is told as ops (docops) that reapply to the same board', async () => {
+  const { el, last } = await editor();
+  const told: { ops: Op[]; base: number }[] = [];
+  el.addEventListener('docops', (e) => told.push((e as CustomEvent<{ ops: Op[]; base: number }>).detail));
+  await caretIn(el, title(el, 1, 0), 3);
+  key(title(el, 1, 0).tx, 'ArrowDown', { altKey: true });
+  await settle(el);
+  key(title(el, 1, 1).tx, 'ArrowRight', { altKey: true, ctrlKey: true });
+  await settle(el);
+  expect(last()).toContain('\nWrite the brief | Done | Ana\n');
+  expect(told.map((t) => t.base)).toStrictEqual([0, told[0].ops.length]);
+  expect(
+    write(
+      applyAll(
+        parse(BOARD),
+        told.flatMap((t) => t.ops),
+      ),
+    ),
+  ).toBe(last());
 });
 
 test('a lane’s name is kept on Enter (its cards’ cells and lanes:), put back by Escape', async () => {
