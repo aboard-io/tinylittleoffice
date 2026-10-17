@@ -526,8 +526,9 @@ four rules:
 3. **No lock in the head.** A sheet keeps its lock in the head for its first table; rows and columns put in or taken
    out move it there, and which table is first is the document's to say, not an op's, so a lock set at once with rows
    put in comes out different in the two orders. A shared document keeps its lock on its table's attributes
-   (`{lock=…}`), and the server refuses an op on the head's `lock`. (The Spreadsheet writes the head's lock while its
-   first table carries none of its own; in a shared sheet it is to write the table's.)
+   (`{lock=…}`), and the server refuses an op on the head's `lock`; the kernel has no check of it, so the server's is
+   the only one. (The Spreadsheet writes the head's lock while its first table carries none of its own; it does not
+   yet write the table's in a shared sheet, so until it does, locking cells there is an op the server refuses.)
 4. **The server's order is the document.** A client keeps the server's document as far as it has been told and shows
    it with its pending ops applied. An editor that instead applies the server's op, transformed over its pending ones,
    to what it shows gets the same but in the two places above, and takes the recomputed document where they differ.

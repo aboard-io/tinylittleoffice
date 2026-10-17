@@ -74,7 +74,8 @@
  *      where it is applied, in either order, and the server refuses it alike.
  *   3. No lock in the head. A sheet keeps its lock in the head for its first table, rows and columns move it there,
  *      and which table is first is the document's to say, not an op's: a shared document keeps its lock on its table's
- *      attributes, and the server refuses an op on the head's `lock`.
+ *      attributes, and the server refuses an op on the head's `lock`. The kernel has no check of this one: the
+ *      server keeps it (rules 1 and 2 are transform's Conflict and apply's RangeError; rule 4 is the client's).
  *   4. The server's order is the document. A client keeps the server's document as far as it has been told (the
  *      ordered edits applied) and shows it with its pending ops applied (rebase); applying the server's op, transformed
  *      over its pending ones, to what it shows gives the same but for the two places above, so a client that does that

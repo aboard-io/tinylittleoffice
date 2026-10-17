@@ -38,10 +38,17 @@ What an app still asked of the site itself, and what replaces it:
    trip's map and its worker, is in dist/editors/ beside them. The site's build keeps its own entry; both are built
    from the same modules. test/package.test.ts packs and installs the package and runs the kernel from it; the
    stylesheet names the fonts the package carries beside it (./fonts/…): see Theming. The package is typed: build:lib
-   writes the declarations of the three and of the API into dist/types (tsconfig.lib.json), which each export names
-   first, and test/package.test.ts type-checks a strict program against them as installed (with `skipLibCheck`, since
-   the commands' declarations name Lucide's `IconNode` and the editors' name Lit's and Lucide's types, which are bundled
-   in, not installed).
+   writes the declarations of `/doc`, `/editors` and `/commands` (step 6) and of the API into dist/types
+   (tsconfig.lib.json), which each export names first, `/editors.css` has an empty one of its own
+   (packages/doc/editors.css.d.ts), and test/package.test.ts type-checks a strict program that imports all of them
+   against them as installed (with `skipLibCheck`, since the commands' declarations name Lucide's `IconNode` and the
+   editors' name Lit's and Lucide's types, which are bundled in, not installed).
+
+   `tinylittleoffice/editors` exports, besides the commands' functions (A page's own commands): `setup`, `mount` and
+   `editorTag` (an app's element, ready to create); `host`; `apps` and `appOf` (the registry); `setLanguage`,
+   `chosenLanguage`, `languages` and `t`; `setTheme` and `theme`; `keepSize` and `size`; `toast`; `pageCommands` (the
+   site's page keys, for a page that draws a bar of its own); and the types `AppDef`, `Editor`, `DocChange`, `DocOps`,
+   `DocPick`, `Picked`, `Host`, `Placed`, `Theme` and `Action` (a toast's).
 3. **The stylesheet for a page that is not the site.** Done: src/editors.css is everything an editor needs (the
    fonts, the tokens, the kit, the text editor, the rules by width and by a person's settings, and each app's own sheet,
    which its editor brings), and src/styles/page.css is the site's page and chrome (`html` and `body`, `<to-shell>`,
@@ -54,18 +61,22 @@ What an app still asked of the site itself, and what replaces it:
    body or the shell, and that a page's own body keeps its own margin, ground and type.
 4. **A page's own commands.** Done: a page declares a scope of its own beside the kit's (Atlas's records, its
    board), and draws and answers it with the kit's functions: see A page's own commands.
-5. **A bare page that holds `<to-write-editor>`** with a host of its own, and a test that types in it and reads the
-   `docchange`. Done when the site is unchanged (every test, walk and budget) and the bare page works.
+5. **A bare page.** Done: test/browser/editors.test.ts mounts `<to-write-editor>` on a bare page with a host of its
+   own, types in it and reads the `docchange`.
 6. **Commands for a program.** Done: src/commands.ts, served as `tinylittleoffice/commands` (dist/commands.js), the
    registry with a program's half and the two derivations Atlas's docs/commands.md asks of it: see Commands for a
    program.
 7. **Editors speak in ops, and take remote ops.** Done: every editor tells each change as its operations and takes
-   another's in, for a page that shares a document (docs/kernel.md §12): see Shared editing from a page.
+   another's in, for a page that shares a document: see Shared editing from a page. For the server that orders them
+   (Atlas's plan, phase 3), `tinylittleoffice/doc` serves `transform`, `rebase` and `applyEdits` (src/doc/sync.ts);
+   docs/kernel.md §12 is the design, its rules and its properties.
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
    on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, a board's `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
-   An outline's fold button picks its item too, and folds nothing: a fold is the document's own (`{.shut}`), so a
-   read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw.
+   Those five apps pick; the Word Processor, the Drawing Tool, the Diagram Maker, the Animator, the Trip Planner and the
+   Calculator have no item to open (their `pickOf` is the element's, null), so they are shown read-only and fire no
+   `docpick`. An outline's fold button picks its item too, and folds nothing: a fold is the document's own
+   (`{.shut}`), so a read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw.
 9. **A toast with an action.** Done: `toast(words, { action: { label, does } })` draws a button after the words, the
    toast held while it has the focus (kit/core/say.ts, kit/ui/toast.ts).
 10. **The fonts in the package.** Done: build:lib copies the faces editors.css names, and their license, into
@@ -83,6 +94,12 @@ page's own not yet told back (`rebase`, from `tinylittleoffice/doc`): applied wi
 event fired, the view drawn again, and the history carried over them, so an undo takes back only what was done here
 (where they cross, it is let go). Only the Word Processor carries its caret and its undo's saved carets past them; the
 other apps hold theirs within the document. A page that takes the server's document again gives it as a new `value`.
+
+Of the server's four rules (docs/kernel.md §12), the kernel enforces two: `transform` throws `Conflict` for crossing
+spans, and `apply` throws for a table left with no column or one past Z. The third, no lock in the head, has no check in
+the kernel: the server refuses an op on the head's `lock` itself. The Spreadsheet does not keep it yet: it writes the
+head's lock while its first table carries no `{lock=…}`, so a person locking cells in a shared sheet sends an op the
+server refuses, until the Spreadsheet writes the table's lock when its page shares the document.
 
 ## A page's own commands
 
@@ -187,6 +204,3 @@ on the root (kit/ui/theme.ts), so a page's own dark values go under the same sel
 budgets.json does not weigh editors.css: scripts/budgets.ts weighs the site's build (dist/), and editors.css comes
 from a second one (`npm run build:lib`), which `npm run build` does not run; test/package.test.ts holds that it is
 there.
-
-Then, for Atlas and the site alike, operations ordered by a server (Atlas's plan, phase 3): done. `tinylittleoffice/doc`
-serves `transform`, `rebase` and `applyEdits` (src/doc/sync.ts); docs/kernel.md §12 is the design, its rules, its properties.

@@ -1,4 +1,4 @@
-# Tiny Little Office from the command line, and the API
+# Tiny Little Office from the command line, the API and the library
 
 A document is a link: the whole thing is packed into the part of the URL after `#`, which no server ever sees.
 `tinyoffice` makes those links from files and files from those links, over `src/api.ts`, the module the site
@@ -86,8 +86,9 @@ as the site (docs/library.md), through three more entry points, each built by `n
 (vite.lib.config.ts):
 
 - `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
-  operations and their inverses, tables and formulas, and the document as JSON. One file, no dependencies, no DOM:
-  Node 24, a Worker or a page.
+  operations and their inverses, tables and formulas, the document as JSON, and what a server that orders several
+  people's operations needs (`transform`, `rebase`, `applyEdits`). One file, no dependencies, no DOM: Node 24, a
+  Worker or a page.
 - `tinylittleoffice/commands`, `dist/commands.js`: the command registry for a program (src/commands.ts). A command is
   declared as the editors' are, and may carry what a program reads of it: `input` and `output` as JSON Schema objects,
   `who` may run it, `reads` when it changes nothing, and `doc`, a sentence saying what it does. `tools(commands, actor)`
@@ -102,8 +103,8 @@ as the site (docs/library.md), through three more entry points, each built by `n
   there, `./fonts/…`: a page serves that folder beside `editors.css`, at the same path relative to it (a bundler that
   copies the stylesheet's assets does it), or sets the fonts to faces of its own (docs/library.md, Theming).
 
-Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/`, and a TypeScript program
-reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`
+Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/` (the stylesheet's, empty,
+is `editors.css.d.ts`), and a TypeScript program reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`
 and the editors' name the types of Lit and Lucide, which are bundled in, not installed.
 
 ```js
@@ -124,6 +125,13 @@ import 'tinylittleoffice/editors.css';
 Object.assign(host, { link: (app, text) => `/doc/${save(app, text)}` }); // where a placed document opens
 const { editor } = await mount('write', text, main, (next) => save(next)); // the editor, drawn; told every edit
 ```
+
+A page that shares a document with others gives `mount` an `onOps(ops, base)`, told each change's operations, and
+hands others' in with the `applyRemote(ops)` it returns, rebased with `rebase` from `/doc`. A page that only shows a
+document mounts it `{ readOnly: true }`: nothing in it is edited, and an item activated (a calendar's entry, a sheet's
+cell, a board's card) fires a bubbling `docpick` event (`DocPick`) saying which. `toast(words, { action: { label,
+does } })` says something with a button after it, an Undo for one. docs/library.md has each: Shared editing from a
+page, and the steps.
 
 ## The skill
 
