@@ -74,6 +74,16 @@
  * emoji are offered. While it is open the editor is a combobox's box: `aria-autocomplete="list"`, its
  * `aria-activedescendant` the highlighted row.
  *
+ * A host that gives `mentions` (the people sharing its document) has "@" do the same: typed at the start of a block,
+ * after a space or after an opening bracket or quote, it offers the people whose name or line under it has a word
+ * beginning with what follows, and the one picked is put in by name in place of the "@word". With none (the default),
+ * "@" is a letter like any other.
+ *
+ * A host may show words among the words that are not the document's (`showGhosts`, Ghost): the words someone took out,
+ * and brackets and initials saying who did what (kit/text/redline.ts draws them so). They are drawn at their offsets,
+ * not editable and passed over as a task's state is (data-said), and the caret is written back where it was in the
+ * words. With none (the default) a block is drawn as its words and nothing else.
+ *
  * Inside a read-only editor (kit/core/element.ts) the words are shown and not edited: not contenteditable, but still a
  * stop in the focus order (aria-readonly), and its keys are not answered here.
  *
@@ -157,6 +167,8 @@ interface Trigger {
   start: number;
   end: number;
   query: string;
+  /** ":" for an icon or an emoji, "@" for one of the host's people (`mentions`). */
+  sigil: ':' | '@';
 }
 const keys = new WeakMap<Block, number>();
 let nextKey = 0;
@@ -233,8 +245,36 @@ const FORMATS: Record<string, Command> = {
 
 /** A run of items, drawn as one element: a list to a screen reader. Its items are blocks as the box's children are. */
 const LIST = 'tx-list';
-/** What is said and not written: a task's state, read before its words, which the caret, the copy and the IME pass over. */
+/** What is said and not written: a task's state, read before its words, which the caret, the copy and the IME pass over; and a host's ghosts. */
 const SAID = 'data-said';
+
+/**
+ * Words a host shows among a block's words that are not the block's (words someone took out, struck through where
+ * they were, and who did what: kit/text/redline.ts ghostsOf): drawn at an offset, never written, passed over by the
+ * caret, the copy and the IME as what is said is.
+ */
+export interface Ghost {
+  offset: number;
+  text: string;
+  cls?: string;
+  title?: string;
+  style?: string;
+  /** A name the host finds it by again (data-ghost). */
+  id?: string;
+  /** A whole block's worth: drawn as a line of its own before the block's words. */
+  block?: boolean;
+  /** Drawn as words taken out (`del`, the default) or as a mark of the host's own (`span`). */
+  tag?: 'del' | 'span';
+  /** Pieces drawn in place of `text`, each with its own class (and name): a line made of a mark and words. */
+  parts?: { text: string; cls?: string; id?: string; title?: string; style?: string }[];
+  /** Among ghosts at one offset, the order they are drawn in (as given, otherwise). */
+  order?: number;
+}
+/** One of the people "@" offers (ToText's `mentions`): the name put in the words, and a line under it (an email). */
+export interface Mention {
+  name: string;
+  detail?: string;
+}
 
 /**
  * A block's element read back as runs: text nodes with the marks of the
@@ -332,6 +372,23 @@ export class ToText extends LitElement {
   private fresh = -1;
   /** Select All in a doc: the selection is the whole document, cards included; an edit over it takes everything. */
   private whole = false;
+  /**
+   * The people "@" offers while typing, as a host gives them (the people sharing its document): a name to put
+   * in, and a line under it. None: "@" is a letter like any other.
+   */
+  mentions: Mention[] = [];
+  /** The ghosts a host shows in each block, by the block's index (Ghost); none by default. Given anew with showGhosts(). */
+  ghosts: ((block: number) => Ghost[]) | null = null;
+  /**
+   * New ghosts drawn: the blocks drawn again around them, and the caret (or the selection) written back where it was in
+   * the words, since the draw replaces the text it was in. A host calls this as often as its ghosts change, typing or not.
+   */
+  showGhosts(ghosts: ((block: number) => Ghost[]) | null) {
+    this.ghosts = ghosts;
+    if (this._sel && this.hasFocus()) this.pendingSel = 'focus';
+    this.requestUpdate();
+    return this.updateComplete;
+  }
   /** The ":word" being completed: its block, where its ":" is, where the caret is, the letters after the ":". */
   private completing: Trigger | null = null;
   /** The ":word" Escape closed the completion on: it stays closed while the caret stays in it. */
@@ -1125,7 +1182,10 @@ export class ToText extends LitElement {
   private get iconsHere(): boolean {
     return !this.marksOnly && !this.noBubble;
   }
-  /** The ":word" just before a caret: a ":" at the start of the block or after a space, then letters, digits or hyphens. */
+  /**
+   * The ":word" just before a caret: a ":" at the start of the block or after a space, then letters, digits or hyphens;
+   * or, where the host offers people (`mentions`), an "@" there or after an opening bracket or quote, then a name's letters.
+   */
   private trigger(sel: Sel | null): Trigger | null {
     if (!sel || !collapsed(sel)) return null;
     const { block, offset } = sel.focus;
@@ -1136,7 +1196,9 @@ export class ToText extends LitElement {
       .join('')
       .slice(0, offset);
     const m = /(?:^|\s):([A-Za-z0-9][A-Za-z0-9-]*)$/.exec(before);
-    return m ? { block, start: offset - m[1].length - 1, end: offset, query: m[1].toLowerCase() } : null;
+    if (m) return { block, start: offset - m[1].length - 1, end: offset, query: m[1].toLowerCase(), sigil: ':' };
+    const at = this.mentions.length ? /(?:^|[\s(“"'])@([\p{L}\p{N}.'’-]*)$/u.exec(before) : null;
+    return at ? { block, start: offset - at[1].length - 1, end: offset, query: at[1].toLowerCase(), sigil: '@' } : null;
   }
   private completeOpen(): boolean {
     return !!this.completing && !!this.completePop?.shown;
@@ -1159,7 +1221,19 @@ export class ToText extends LitElement {
     const pop = this.completePop;
     const tr = this.completing;
     if (!pop || !tr) return;
-    const items = completions(tr.query, this.iconsHere);
+    const items: Completion[] =
+      tr.sigil === '@'
+        ? this.mentions
+            .filter(
+              (p) =>
+                !tr.query ||
+                `${p.name} ${p.detail ?? ''}`
+                  .toLowerCase()
+                  .split(/[\s@.]+/)
+                  .some((w) => w.startsWith(tr.query)),
+            )
+            .map((p) => ({ kind: 'mention' as const, value: p.name, name: p.name, ...(p.detail ? { detail: p.detail } : {}) }))
+        : completions(tr.query, this.iconsHere);
     if (!items.length) return this.ariaComplete(false);
     void pop.show(this.selRect({ anchor: { block: tr.block, offset: tr.start }, focus: { block: tr.block, offset: tr.end } }), items).then(() => this.ariaComplete(this.completeOpen()));
   }
@@ -1203,7 +1277,7 @@ export class ToText extends LitElement {
     e.preventDefault();
     e.stopPropagation();
   };
-  /** What a pick puts in: an icon run, or the emoji as words with the marks in force. */
+  /** What a pick puts in: an icon run, or words with the marks in force (an emoji, a person's name). */
   private completed(c: Completion): Run {
     return c.kind === 'icon' ? { t: '', ic: c.value } : { t: c.value, ...this.fmt };
   }
@@ -1251,36 +1325,86 @@ export class ToText extends LitElement {
     });
     return out;
   }
-  private renderRuns(runs: Run[], notes: () => number): unknown[] {
+  private renderRuns(runs: Run[], notes: () => number, ghosts: Ghost[] = []): unknown[] {
+    if (ghosts.length) return this.withGhosts(runs, notes, ghosts);
     if (!runs.length) return [html`<br />`];
-    const out: unknown[] = runs.map((r) => {
-      if (r.ic) {
-        // The icon itself; a name outside the starter set brings the rest of Lucide (drawn again when it joins); a name nothing has stays its name, small.
-        const node = iconNamed(r.ic);
-        if (!node && !iconsComplete()) void loadIcons();
-        return html`<span class="ic ${node ? '' : 'ic-name'}" data-icon=${r.ic} data-atomic contenteditable="false" role="img" aria-label=${r.ic}>${node ? icon(node, 16) : r.ic}</span>`;
-      }
-      if (r.fn !== undefined) {
-        const n = notes();
-        return html`<sup class="fn" data-fn=${r.fn} data-atomic contenteditable="false" tabindex="0" role="button" aria-label=${t('common-footnote-n', { n })}>${n}</sup>`;
-      }
-      let node: unknown = this.words(r.t);
-      if (r.c) node = html`<code>${node}</code>`;
-      if (r.h) node = html`<mark>${node}</mark>`;
-      if (r.s) node = html`<s>${node}</s>`;
-      if (r.u) node = html`<u>${node}</u>`;
-      if (r.i) node = html`<i>${node}</i>`;
-      if (r.b) node = html`<b>${node}</b>`;
-      if (r.href) node = html`<a href=${r.href} rel="noopener">${node}</a>`;
-      return node;
-    });
+    const out: unknown[] = runs.map((r) => this.renderRun(r, notes));
     const last = runs[runs.length - 1];
     if (!isAtomic(last) && last.t.endsWith('\n')) out.push(html`<br />`);
     return out;
   }
+  /** One run as drawn: an icon, a footnote's mark, or words with their marks. */
+  private renderRun(r: Run, notes: () => number): unknown {
+    if (r.ic) {
+      // The icon itself; a name outside the starter set brings the rest of Lucide (drawn again when it joins); a name nothing has stays its name, small.
+      const node = iconNamed(r.ic);
+      if (!node && !iconsComplete()) void loadIcons();
+      return html`<span class="ic ${node ? '' : 'ic-name'}" data-icon=${r.ic} data-atomic contenteditable="false" role="img" aria-label=${r.ic}>${node ? icon(node, 16) : r.ic}</span>`;
+    }
+    if (r.fn !== undefined) {
+      const n = notes();
+      return html`<sup class="fn" data-fn=${r.fn} data-atomic contenteditable="false" tabindex="0" role="button" aria-label=${t('common-footnote-n', { n })}>${n}</sup>`;
+    }
+    let node: unknown = this.words(r.t);
+    if (r.c) node = html`<code>${node}</code>`;
+    if (r.h) node = html`<mark>${node}</mark>`;
+    if (r.s) node = html`<s>${node}</s>`;
+    if (r.u) node = html`<u>${node}</u>`;
+    if (r.i) node = html`<i>${node}</i>`;
+    if (r.b) node = html`<b>${node}</b>`;
+    if (r.href) node = html`<a href=${r.href} rel="noopener">${node}</a>`;
+    return node;
+  }
+  /** A ghost as drawn: the host's words, not editable, passed over (SAID). */
+  private ghost(g: Ghost): TemplateResult {
+    const inner = g.parts ? g.parts.map((p) => html`<span class=${p.cls ?? nothing} data-ghost=${p.id ?? nothing} title=${p.title ?? nothing} style=${p.style ?? nothing}>${p.text}</span>`) : g.text;
+    if (g.block)
+      return html`<span class="tx-ghost tx-ghost-block ${g.cls ?? ''}" data-said contenteditable="false" data-ghost=${g.id ?? nothing} title=${g.title ?? nothing} style=${g.style ?? nothing}>${inner}</span>`;
+    return g.tag === 'span'
+      ? html`<span class="tx-ghost ${g.cls ?? ''}" data-said contenteditable="false" data-ghost=${g.id ?? nothing} title=${g.title ?? nothing} style=${g.style ?? nothing}>${inner}</span>`
+      : html`<del class="tx-ghost ${g.cls ?? ''}" data-said contenteditable="false" data-ghost=${g.id ?? nothing} title=${g.title ?? nothing} style=${g.style ?? nothing}>${inner}</del>`;
+  }
+  /** Runs with a host's ghosts among them, each at its offset (a run split where one falls inside it). */
+  private withGhosts(runs: Run[], notes: () => number, ghosts: Ghost[]): unknown[] {
+    const sorted = ghosts
+      .map((g, i) => [g, i] as const)
+      .sort(([a, i], [b, j]) => a.offset - b.offset || Number(!!b.block) - Number(!!a.block) || (a.order ?? i) - (b.order ?? j))
+      .map(([g]) => g);
+    const out: unknown[] = [];
+    let g = 0;
+    let at = 0;
+    const flush = (upTo: number) => {
+      while (g < sorted.length && sorted[g].offset <= upTo) out.push(this.ghost(sorted[g++]));
+    };
+    for (const r of runs) {
+      if (isAtomic(r)) {
+        flush(at);
+        out.push(this.renderRun(r, notes));
+        at += 1;
+        continue;
+      }
+      let rest = r.t;
+      let from = at;
+      while (g < sorted.length && sorted[g].offset < from + rest.length) {
+        const cut = Math.max(0, sorted[g].offset - from);
+        if (cut) out.push(this.renderRun({ ...r, t: rest.slice(0, cut) }, notes));
+        rest = rest.slice(cut);
+        from += cut;
+        flush(from);
+      }
+      if (rest) out.push(this.renderRun({ ...r, t: rest }, notes));
+      at = from + rest.length;
+    }
+    flush(Infinity);
+    const last = runs.at(-1);
+    if (!last || (!isAtomic(last) && last.t.endsWith('\n'))) out.push(html`<br />`);
+    return out;
+  }
   private renderCard(b: Block, at: number): TemplateResult {
     const own = this.card?.(b, at);
-    if (own) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${own}</div>`;
+    // A host's ghosts on a card are drawn at its head: a card holds no words for them to sit among.
+    const ghosts = this.ghosts?.(at) ?? [];
+    if (own) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${ghosts.map((g) => this.ghost(g))}${own}</div>`;
     switch (b.k) {
       case 'hr':
         return html`<div class="tx-card" data-k="hr" contenteditable="false" tabindex="0" role="separator"><hr /></div>`;
@@ -1302,7 +1426,7 @@ export class ToText extends LitElement {
   private renderBlock(b: Block, at: number, n: number | undefined, notes: () => number, place?: { pos: number; size: number }): TemplateResult {
     if (!isWords(b)) return this.renderCard(b, at);
     const cls = (b.a?.cls ?? []).filter((c) => c === 'center' || c === 'right' || c === 'justify' || c === 'title').join(' ');
-    const inner = this.renderRuns(b.runs, notes);
+    const inner = this.renderRuns(b.runs, notes, this.ghosts?.(at) ?? []);
     switch (b.k) {
       case 'h':
         if (b.level === 1) return hasClass(b, 'title') ? html`<h1 class="title ${cls}">${inner}</h1>` : html`<h1 class=${cls}>${inner}</h1>`;
