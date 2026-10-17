@@ -923,3 +923,50 @@ test("a column's name copies, cuts and pastes as the browser's own input does: n
   expect(last()).toBeUndefined();
   expect(cell(el, 'A1').value).toBe('Rent');
 });
+
+test('read-only, a page’s marks are drawn at the end of a row’s first cell or of a cell, titled, and never written; with none the sheet is drawn as ever', async () => {
+  const { el, changes } = await editor(SHEET);
+  el.readOnly = true;
+  await el.updateComplete;
+  /** The grid as drawn, without Lit's markers. */
+  const drawn = () => el.querySelector('table.sheet')!.innerHTML.replace(/<!--[^]*?-->/g, '');
+  const before = drawn();
+  el.marks = [];
+  await el.updateComplete;
+  expect(drawn()).toBe(before);
+  // A count of comments on the second row, a flag on B1, and a mark with no title on the third row.
+  el.marks = [
+    { row: 1, text: '2', title: '2 comments' },
+    { row: 0, col: 1, text: '!', title: 'Flagged' },
+    { row: 2, text: '1' },
+  ];
+  await el.updateComplete;
+  const marks = (ref: string) => [...cell(el, ref).closest('td')!.querySelectorAll<HTMLElement>('.sheet-mark')].map((m) => [m.textContent, m.title, m.getAttribute('aria-label')]);
+  expect(marks('A2')).toStrictEqual([['2', '2 comments', '2 comments']]);
+  expect(marks('B1')).toStrictEqual([['!', 'Flagged', 'Flagged']]);
+  expect(marks('A3')).toStrictEqual([['1', '', '1']]);
+  expect(el.querySelectorAll('.sheet-mark')).toHaveLength(3);
+  // At the cell's end, inside it, filled.
+  const mark = el.querySelector<HTMLElement>('td[data-r="1"] .sheet-mark')!;
+  const box = mark.closest('td')!.getBoundingClientRect();
+  const at = mark.getBoundingClientRect();
+  expect(at.right).toBeLessThanOrEqual(box.right);
+  expect(at.left).toBeGreaterThan(box.left + box.width / 2);
+  expect(getComputedStyle(mark).backgroundColor).not.toMatch(/^rgba\(0, 0, 0, 0\)$|^transparent$/);
+  // A mark's cell picks as any cell does: its row and column, to the page.
+  const picks: unknown[] = [];
+  el.addEventListener('docpick', (e) => picks.push((e as CustomEvent).detail));
+  mark.click();
+  expect(picks).toStrictEqual([{ at: 0, row: 1, col: 0 }]);
+  // Drawn over the sheet, never written into it.
+  expect(changes).toStrictEqual([]);
+  expect(el.value).toBe(SHEET);
+  // A sheet that edits draws none; read-only again with none, the sheet is as it was.
+  el.readOnly = false;
+  await el.updateComplete;
+  expect(el.querySelector('.sheet-mark')).toBeNull();
+  el.readOnly = true;
+  el.marks = [];
+  await el.updateComplete;
+  expect(drawn()).toBe(before);
+});

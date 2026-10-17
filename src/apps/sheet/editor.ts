@@ -25,6 +25,11 @@
  *
  * Find in this document (Mod+F) goes from cell to matching cell: `find()` is the kit's Findable.
  *
+ * Read-only (a page's, docs/library.md step 8), a cell activated is picked ("docpick", its row and column), and the
+ * page may mark rows and cells (`marks`, SheetMark: a count of comments, say): a small badge at the end of the row's
+ * first cell, or of the cell named, its words the page's and its title said on hover, drawn over the sheet and never
+ * written into the document. A sheet that edits draws none; with none given the sheet is drawn as ever.
+ *
  * On a phone with the keyboard up (Paul, 2026-10-11: "no room to navigate"): the header steps aside as for any box
  * (kit/ui/chrome.ts `editing`), the formula strip takes the column's top with the menu button at its end, the column
  * heads are one line (the letter and the name, style.css), the table's box is what is left above the bar, and the cell
@@ -113,6 +118,16 @@ import './style.css';
 
 export const tag = 'to-sheet-editor';
 
+/** A page's mark on a read-only sheet: on a row (at its first cell) or on one cell, its words (a count) and what hovering it says. */
+export interface SheetMark {
+  /** The table's row, from 0, as "docpick" names it. */
+  row: number;
+  /** The column, from 0; none, the row's first cell. */
+  col?: number;
+  text: string;
+  title?: string;
+}
+
 const MIN_COL = 48;
 /** A reference fits wherever the formula is waiting for a value. */
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
@@ -166,7 +181,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
     menuRow: { state: true },
     menuCol: { state: true },
     letters: { state: true },
+    marks: { attribute: false },
   };
+  /** A page's marks on a read-only sheet's rows and cells (the header); none by default, and none drawn on a sheet that edits. */
+  declare marks: SheetMark[];
   /** The selected cell: where typing goes. */
   declare sel: [number, number];
   /** The far corner of a block of cells; `sel` is the corner it was started from. */
@@ -219,6 +237,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     this.menuRow = 0;
     this.menuCol = 0;
     this.letters = new Set();
+    this.marks = [];
   }
 
   protected read(doc: Doc): SheetView {
@@ -1225,6 +1244,11 @@ export class ToSheetEditor extends DocElement<SheetView> {
     }
   }
 
+  /** A page's marks on one cell (SheetMark): small badges at its end, each named for a screen reader by its title. */
+  private renderMarks(marks: SheetMark[]) {
+    return html`<span class="sheet-marks">${marks.map((m) => html`<span class="sheet-mark" role="note" aria-label=${m.title ?? m.text} title=${m.title ?? nothing}>${m.text}</span>`)}</span>`;
+  }
+
   private renderRow(r: number, cols: Column[], g: Range, fill: Range | null) {
     const [sr, sc] = this.sel;
     return html`<tr>
@@ -1242,8 +1266,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
             ? html`<span class="fill" role="button" aria-label=${t('common-fill-drag-to-carry-these')} title=${t('common-drag-to-fill')} @pointerdown=${this.onFillDown}></span>`
             : nothing;
         const pointed = !!this.pointed && this.focused && r === this.pointed[0] && c === this.pointed[1];
+        // A page's marks on this cell, read-only: drawn after its words; with none the cell is drawn as ever.
+        const marks = this.readOnly && this.marks.length ? this.marks.filter((m) => m.row === r && (m.col ?? 0) === c) : [];
         const td = (inner: unknown) =>
-          html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''} ${pointed ? 'pointed' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>${inner}${fillHandle}</td>`;
+          html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''} ${pointed ? 'pointed' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>${marks.length ? html`${inner}${this.renderMarks(marks)}` : inner}${fillHandle}</td>`;
         if (isRich(type, raw)) {
           // A rich cell is its words' editor; the grid's keys are caught on their way down to it.
           return td(html`<to-text

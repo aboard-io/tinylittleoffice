@@ -81,7 +81,11 @@ What an app still asked of the site itself, and what replaces it:
    Those four apps pick; the Word Processor, the Drawing Tool, the Diagram Maker, the Animator, the Trip Planner and the
    Calculator have no item to open (their `pickOf` is the element's, null), so they are shown read-only and fire no
    `docpick`. An outline's fold button picks its item too, and folds nothing: a fold is the document's own
-   (`{.shut}`), so a read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw.
+   (`{.shut}`), so a read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw. A
+   read-only Spreadsheet takes a page's marks on its rows and cells, `editor.marks = [{ row, col?, text, title? }]`
+   (`SheetMark`: a count of comments, say), each a small badge at the end of the row's first cell or of the cell named,
+   its title said on hover and to a screen reader, drawn over the sheet and never written into the document; a marked
+   cell picks as any cell does, and a sheet that edits draws none.
 9. **A toast with an action.** Done: `toast(words, { action: { label, does } })` draws a button after the words, the
    toast held while it has the focus (kit/core/say.ts, kit/ui/toast.ts).
 10. **The fonts in the package.** Done: build:lib copies the faces editors.css names, and their license, into
