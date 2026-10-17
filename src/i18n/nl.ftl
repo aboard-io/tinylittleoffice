@@ -3337,12 +3337,12 @@ board-options-for-lane = Opties voor { $lane }
 board-add-card = Een kaart toevoegen
 # en: 9b16c4bcc3877580d2535eb47b42650501308935
 board-delete-lane = Kolom wissen
-# en: 7090c242fb9b97684094b7dc8f802a991283c07c
-board-move-to-lane = Naar { $lane } verplaatsen
-# en: 64335add8762bba21015395f18232cc14689050c
-board-move-to-lane-before = Naar de vorige kolom
-# en: 7f67c2a11578b4e6e660fbab94657203a08d1a79
-board-move-to-lane-after = Naar de volgende kolom
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = Verplaatsen naar…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = Kolom hernoemen
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = De kaart ernaast in de vorige of de volgende kolom
 # en: a200dd9231cf71181960586345e66a1b8bb3e738
 board-move-card-to-lane-before-or = De kaart naar de vorige of de volgende kolom verplaatsen
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4

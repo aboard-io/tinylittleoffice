@@ -36,7 +36,8 @@
  * its place, the lock follows the rows as the Spreadsheet's rows moved do (written again after the row is put in,
  * since taking a row out drops its part of the lock). A card added goes after the lane's last card (or before the card
  * at the place asked for; into an empty lane, at the table's end), a lane added or moved is `lanes:` alone, and a lane
- * renamed is its cards' cells and its name in `lanes:`. Nothing here touches the DOM.
+ * renamed is its cards' cells and its name in `lanes:`; a card's fields typed in its dialog are its cells. Nothing here
+ * touches the DOM.
  */
 import { applyAll, column, firstTable, inHead, isLocked, lockText, parse, tableAt, type Column, type Doc, type Op, type Range, type TableBlock } from '../../doc/index.ts';
 import { t } from '../../kit/core/i18n.ts';
@@ -287,6 +288,23 @@ export function setTitle(doc: Doc, row: number, title: string): Op[] {
     { op: 'cols', at: v.at, c: 0, n: 1, cols: [column(t('common-title'))] },
     { op: 'cells', at: v.at, r: row, c: 0, values: [[words]] },
   ];
+}
+
+/**
+ * A card's cells as its dialog gives them, by column: a `cells` op for each that changed, the words on one line (the
+ * title's spaces as `setTitle` keeps them). The lane's cell is left to `moveCard` (a lane changed is a card moved),
+ * and a locked cell stays as it is (the operation's own rule, as in the Spreadsheet).
+ */
+export function setCells(doc: Doc, row: number, values: Record<number, string>): Op[] {
+  const v = boardOf(doc);
+  if (!v.cards.some((c) => c.row === row)) return [];
+  const b = doc.blocks[v.at] as TableBlock;
+  return Object.entries(values).flatMap(([k, raw]): Op[] => {
+    const c = Number(k);
+    const value = c === v.titleCol ? flat(raw) : raw.replace(/\s*\n\s*/g, ' ').trim();
+    if (c === v.laneCol || !(c >= 0 && c < b.cols.length) || (b.rows[row][c] ?? '') === value) return [];
+    return [{ op: 'cells', at: v.at, r: row, c, values: [[value]] }];
+  });
 }
 
 /** Lane `from` called `to`: its cards' cells, and its name in `lanes:`. A name another lane has joins the two; an empty name changes nothing. */

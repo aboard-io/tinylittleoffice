@@ -24,6 +24,7 @@ import {
   removeCards,
   removeLane,
   renameLane,
+  setCells,
   setTitle,
   titleColumn,
 } from '../model.ts';
@@ -259,6 +260,17 @@ test('removeCard, removeCards, duplicateCards, setTitle, moveCards: ops that app
   const m = roundTrip(d, moveCards(d, [1, 4], 'Done', 1));
   expect(names(m)[0]).toEqual(['To do', []]);
   expect(names(m)[2]).toEqual(['Done', ['Order food', 'Book the room', 'Print badges']]);
+});
+
+test('setCells: a card’s cells from its dialog, each that changed, on one line; never its lane; a locked cell kept', () => {
+  const d = parse(BOARD);
+  const ops = setCells(d, 0, { 0: 'Write the  brief', 1: 'Ana\nLee ', 2: 'Done', 3: '120' });
+  expect(ops).toEqual([{ op: 'cells', at: 0, r: 0, c: 1, values: [['Ana Lee']] }]);
+  expect((roundTrip(d, ops).blocks[0] as { rows: string[][] }).rows[0]).toEqual(['Write the brief', 'Ana Lee', 'Doing', '120']);
+  expect(setCells(d, 99, { 1: 'x' })).toEqual([]);
+  expect(setCells(d, 0, { 9: 'x' })).toEqual([]);
+  const locked = parse(BOARD.replace('lanes: To do, Doing, Done, Blocked', 'lanes: To do, Doing, Done, Blocked\nlock: B1'));
+  expect((applyAll(locked, setCells(locked, 0, { 1: 'Bo', 3: '99' })).blocks[0] as { rows: string[][] }).rows[0]).toEqual(['Write the brief', 'Ana', 'Doing', '99']);
 });
 
 test('lanes: added, moved, renamed and taken away, through lanes: and the cards’ cells', () => {

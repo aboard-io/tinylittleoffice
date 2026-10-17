@@ -3329,12 +3329,12 @@ board-options-for-lane = Optionen für { $lane }
 board-add-card = Karte hinzufügen
 # en: 9b16c4bcc3877580d2535eb47b42650501308935
 board-delete-lane = Spalte löschen
-# en: 7090c242fb9b97684094b7dc8f802a991283c07c
-board-move-to-lane = Nach { $lane } verschieben
-# en: 64335add8762bba21015395f18232cc14689050c
-board-move-to-lane-before = In die Spalte davor
-# en: 7f67c2a11578b4e6e660fbab94657203a08d1a79
-board-move-to-lane-after = In die Spalte danach
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = Verschieben nach…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = Spalte umbenennen
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = Die Karte daneben in der Spalte davor oder danach
 # en: a200dd9231cf71181960586345e66a1b8bb3e738
 board-move-card-to-lane-before-or = Karte in die Spalte davor oder danach verschieben
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4

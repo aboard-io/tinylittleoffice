@@ -1660,9 +1660,12 @@ board-lane-options = Lane options
 board-options-for-lane = Options for { $lane }
 board-add-card = Add a card
 board-delete-lane = Delete lane
-board-move-to-lane = Move to { $lane }
-board-move-to-lane-before = Move to the lane before
-board-move-to-lane-after = Move to the lane after
+# A button that opens a list of the lanes, to move the selected cards to one of them.
+board-move-to = Move to…
+# A lane’s menu item: its name becomes a field where it is drawn.
+board-rename-lane = Rename lane
+# A key in a card’s title: Left or Right at its end goes to the card beside it in the next lane over.
+board-card-in-lane-beside = The card beside it in the lane before or after
 board-move-card-to-lane-before-or = Move the card to the lane before or after
 board-lane-name = Lane name
 # A lane just added, before it is named.

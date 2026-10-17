@@ -1,61 +1,76 @@
 /**
- * The Board's commands (kit/core/commands.ts), its editor the context: the bar (Insert ▾ a card after the one in hand,
- * or a lane after the one in hand), a lane's menu (Add a card, Move left, Move right, Delete lane), the board's own
- * items in the bar under chosen cards (Move to the lane before and after), and the keys in a card's title
- * (docs/editing.md §6): Alt+Up/Down move the card along its lane, Mod+Alt+Left/Right carry it to the lane before or
- * after, Up and Down go to the card before or after, Mod+D duplicates it. A key acts on the card it is typed in
- * (`here`, which the editor sets as the key comes); a lane's menu on the lane whose menu is open (`menuLane`).
+ * The Board's commands (kit/core/commands.ts), its editor the context: the bar (Insert ▾ a card after the one in hand
+ * or a lane after the one in hand, and the hand-off, the cards opened in the Spreadsheet), a lane's menu (Rename lane,
+ * Add a card, Move left, Move right, Delete lane), the board's own items in the bar under chosen cards (Open, which
+ * edits a card's fields in a dialog, and Move to…, a menu of the lanes: a phone's way across, having no drag), the
+ * card's dialog's Delete, and the keys (docs/editing.md §6). On chosen cards Mod+Left/Right, and the standard's
+ * Mod+Alt+Left/Right, carry them to the lane on that side, and Alt+Enter opens one. In a card's title Alt+Up/Down move
+ * the card along its lane, Mod+Alt+Left/Right carry it across (Mod+Left/Right stay the caret's: a line's start and end
+ * on a Mac, a word on Windows), Up and Down go to the card before or after, Left at the title's start and Right at its
+ * end to the card beside it in the lane on that side, Mod+D duplicates it and Alt+Enter opens it. Left and right are
+ * the screen's: in a language written right to left the lane before is on the right. A key acts on the card it is
+ * typed in (`here`, which the editor sets as the key comes); a lane's menu on the lane whose menu is open (`menuLane`).
  */
-import { ArrowLeft, ArrowRight, Columns3 } from 'lucide';
+import { ArrowLeft, ArrowRight, Columns3, MoveHorizontal, PanelTop, SquarePen, Table2 } from 'lucide';
 import { register, type Command, commandsOf } from '../../kit/core/commands.ts';
-import { t } from '../../kit/core/i18n.ts';
 import { UI } from '../../kit/draw/icons.ts';
 import type { ToBoardEditor } from './editor.ts';
 
 type B = ToBoardEditor;
 const cmd = commandsOf<B>('board');
-const side = (e?: Event): -1 | 1 => (e instanceof KeyboardEvent && e.key.endsWith('Left') ? -1 : 1);
+/** Which way a key goes among the lanes: -1 the lane before, 1 the lane after, as the screen shows them. */
+const side = (b: B, e?: Event): -1 | 1 => (e instanceof KeyboardEvent ? b.sideOf(e.key) : 1);
 const by = (e?: Event): -1 | 1 => (e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1);
-/** The lane beside the chosen cards, where they can go. */
-const beside = (b: B, to: -1 | 1) => b.chosenLane(to);
 
 const BOARD: Command<B>[] = [
   cmd('insert', 'common-insert', { icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
-  cmd('insert.card', 'board-card', { icon: UI.plus, where: ['menu:insert'], does: (b) => b.insertCard() }),
-  cmd('insert.lane', 'board-lane', { icon: Columns3, where: ['menu:insert'], does: (b) => b.insertLane() }),
+  cmd('card.new', 'board-card', { icon: UI.plus, where: ['menu:insert'], does: (b) => b.insertCard() }),
+  cmd('lane.new', 'board-lane', { icon: Columns3, where: ['menu:insert'], does: (b) => b.insertLane() }),
+  // The hand-off: the same table, as the Spreadsheet draws it, in a tab of its own (the Download table has it too).
+  cmd('view.sheet', 'board-open-cards-in-spreadsheet', { icon: Table2, where: ['bar'], document: true, does: (b) => b.openInSheet() }),
   cmd('lane', 'board-lane-options', { menu: 'lane', where: ['in-doc'], does: () => undefined }),
+  cmd('lane.rename', 'board-rename-lane', { icon: SquarePen, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.renameMenuLane() }),
   cmd('lane.card', 'board-add-card', { icon: UI.plus, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.addToLane(b.menuLane!.name) }),
   cmd('lane.left', 'common-move-left', { icon: ArrowLeft, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(-1), does: (b) => b.moveMenuLane(-1) }),
   cmd('lane.right', 'common-move-right', { icon: ArrowRight, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(1), does: (b) => b.moveMenuLane(1) }),
   cmd('lane.delete', 'board-delete-lane', { icon: UI.trash, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.deleteMenuLane() }),
-  cmd('before', (b) => (b && beside(b, -1) ? t('board-move-to-lane', { lane: beside(b, -1)!.name || '–' }) : t('board-move-to-lane-before')), {
+  // Chosen cards: the bar under them, and their keys.
+  cmd('card.open', 'common-open', {
     at: 'rows',
-    icon: ArrowLeft,
-    keys: 'Mod+Alt+ArrowLeft',
+    icon: PanelTop,
+    keys: 'Alt+Enter',
     where: ['context'],
-    disabled: (b) => !beside(b, -1),
-    does: (b) => b.carryChosen(-1),
+    takesFocus: true,
+    disabled: (b) => !b.chosenOne(),
+    does: (b) => b.openCard(b.chosenOne()!.row),
   }),
-  cmd('after', (b) => (b && beside(b, 1) ? t('board-move-to-lane', { lane: beside(b, 1)!.name || '–' }) : t('board-move-to-lane-after')), {
+  cmd('card.moveto', 'board-move-to', { at: 'rows', icon: MoveHorizontal, where: ['context'], takesFocus: true, disabled: (b) => b.view.lanes.length < 2, does: (b) => b.moveToMenu() }),
+  cmd('card.move-left', 'common-move-left', { at: 'rows', keys: 'Mod+ArrowLeft / Mod+Alt+ArrowLeft', where: ['keys-only'], when: (b) => !!b.rows.range, does: (b, e) => b.carryChosen(side(b, e)) }),
+  cmd('card.move-right', 'common-move-right', {
     at: 'rows',
-    icon: ArrowRight,
-    keys: 'Mod+Alt+ArrowRight',
-    where: ['context'],
-    disabled: (b) => !beside(b, 1),
-    does: (b) => b.carryChosen(1),
+    keys: 'Mod+ArrowRight / Mod+Alt+ArrowRight',
+    where: ['keys-only'],
+    when: (b) => !!b.rows.range,
+    does: (b, e) => b.carryChosen(side(b, e)),
   }),
-  cmd('carry', 'board-move-card-to-lane-before-or', {
+  // The dialog's Delete: the card whose fields it holds.
+  cmd('card.delete', 'common-delete', { icon: UI.trash, where: ['in-doc'], when: (b) => !!b.opened, does: (b) => b.deleteOpened() }),
+  // The keys in a card's title.
+  cmd('title.open', 'common-open', { at: 'words', keys: 'Alt+Enter', where: ['keys-only'], when: (b) => !!b.here, does: (b) => b.openCard(b.here!.row) }),
+  cmd('card.move-up', 'common-move-up', { at: 'words', keys: 'Alt+ArrowUp', where: ['keys-only'], when: (b) => !!b.here, does: (b) => b.moveOne(b.here!, -1) }),
+  cmd('card.move-down', 'common-move-down', { at: 'words', keys: 'Alt+ArrowDown', where: ['keys-only'], when: (b) => !!b.here, does: (b) => b.moveOne(b.here!, 1) }),
+  cmd('title.across', 'board-move-card-to-lane-before-or', {
     at: 'words',
     keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight',
     where: ['keys-only'],
     when: (b) => !!b.here,
-    does: (b, e) => b.carryOne(b.here!, side(e)),
+    does: (b, e) => b.carryOne(b.here!, side(b, e)),
   }),
-  cmd('move', 'common-move-selected-items-up-or', { at: 'words', keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], when: (b) => !!b.here, does: (b, e) => b.moveOne(b.here!, by(e)) }),
   cmd('step', 'common-next-or-one-before', { at: 'words', keys: 'ArrowUp / ArrowDown', where: ['keys-only'], when: (b) => !!b.here, does: (b, e) => b.stepCard(b.here!, by(e)) }),
+  cmd('beside', 'board-card-in-lane-beside', { at: 'words', keys: 'ArrowLeft / ArrowRight', where: ['keys-only'], when: (b) => !!b.here, does: (b, e) => b.besideCard(b.here!, side(b, e)) }),
   cmd('duplicate', 'common-duplicate', { at: 'words', keys: 'Mod+D', where: ['keys-only'], when: (b) => !!b.here, does: (b) => b.duplicateOne(b.here!) }),
 ];
-/** The items in the bar under chosen cards, and the keys in a card's title. */
+/** The items in the bar under chosen cards and their keys; the keys in a card's title. */
 export const CHOSEN = BOARD.filter((c) => c.at === 'rows');
 export const WORDS = BOARD.filter((c) => c.at === 'words');
 

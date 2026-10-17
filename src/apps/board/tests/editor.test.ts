@@ -1,15 +1,20 @@
-// The Board editor in a real browser: the lanes and cards from the document; a title typed into its cell (a burst one
-// undo, the caret back with it); Enter, Backspace and Delete in a title; the keys (Up/Down, Alt+Up/Down,
-// Mod+Alt+Left/Right, Mod+D); a lane's name kept on Enter and put back by Escape; Insert ▾ and a lane's menu; cards chosen
-// whole with the bar under them (to the lane before and after), the clipboard; a drag by the grip into another lane;
-// and at phone width the lanes one under another, a finger tall, the page never wider.
-import { expect, test } from 'vitest';
+// The Board editor in a real browser: a template's lanes and cards; the lanes and cards from the document; a title typed
+// into its cell (a burst one undo, the caret back with it); Enter, Backspace and Delete in a title; the keys (Up/Down,
+// Left/Right at a title's ends, Alt+Up/Down, Mod+Alt+Left/Right, Mod+D); a lane's name kept on Enter, put back by Escape,
+// and renamed from its menu; Insert ▾ and a lane's menu; cards chosen whole with the bar under them (Open, Move to…),
+// Mod+Left/Right, the clipboard; a card opened, its fields typed in a dialog and kept as one step; a drag by the grip
+// into another lane with its ghost, and undone; a finger held on the grip; the hand-off to the Spreadsheet; on a wide
+// screen the lanes in a row that scrolls sideways, and at phone width one under another, a finger tall, the page never
+// wider; and every card and lane named.
+import { expect, test, vi } from 'vitest';
 import { page } from 'vitest/browser';
 // The cascade's order is declared by the stylesheet, so it comes before the app's own (as in main.ts).
 import '../../../styles.css';
 import '../editor.ts';
 import type { ToBoardEditor } from '../editor.ts';
 import { parse } from '../../../doc/index.ts';
+import def from '../def.ts';
+import type { ToDialog } from '../../../kit/ui/dialog.ts';
 import { caret } from '../../../kit/text/textops.ts';
 import type { ToText } from '../../../kit/text/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
@@ -167,6 +172,12 @@ test('the keys in a title: Up/Down from card to card, Alt+Up/Down along the lane
   expect(drawn(el)[1]).toEqual(['Doing', ['Send invites', 'Write the brief']]);
   expect(document.activeElement).toBe(title(el, 1, 1).tx);
   expect(title(el, 1, 1).sel?.focus.offset).toBe(3);
+  key(title(el, 1, 1).tx, 'ArrowUp', { altKey: true });
+  await settle(el);
+  expect(drawn(el)[1]).toEqual(['Doing', ['Write the brief', 'Send invites']]);
+  key(title(el, 1, 0).tx, 'ArrowDown', { altKey: true });
+  await settle(el);
+  expect(drawn(el)[1]).toEqual(['Doing', ['Send invites', 'Write the brief']]);
   key(title(el, 1, 1).tx, 'ArrowRight', { altKey: true, ctrlKey: true });
   await settle(el);
   expect(drawn(el).map(([n, c]) => [n, (c as string[]).length])).toEqual([
@@ -210,6 +221,13 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   await pick(el, insert(), 'Card');
   expect(drawn(el)[1]).toEqual(['Doing', ['Write the brief', '', 'Send invites']]);
   expect(document.activeElement).toBe(title(el, 1, 1).tx);
+  // A new card is a row of the table, in its lane, after the card in hand (just before the lane's next card).
+  expect((parse(last()!).blocks[0] as { rows: string[][] }).rows).toEqual([
+    ['Write the brief', 'Doing', 'Ana'],
+    ['Book the room', 'To do', 'Ben'],
+    ['', 'Doing', ''],
+    ['Send invites', 'Doing', ''],
+  ]);
   await pick(el, insert(), 'Lane');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'New lane', 'Done']);
   expect(last()).toContain('lanes: To do, Doing, New lane, Done');
@@ -219,24 +237,44 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done', 'New lane']);
   await pick(el, menu(3), 'Move left');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'New lane', 'Done']);
+  // Rename lane: the name where it is drawn, chosen whole, so typing replaces it; kept on Enter.
+  await pick(el, menu(2), 'Rename lane');
+  expect(document.activeElement).toBe(laneName(el, 2).tx);
+  expect(laneName(el, 2).sel).toMatchObject({ anchor: { offset: 0 }, focus: { offset: 8 } });
+  input(laneName(el, 2), 'insertText', 'Review');
+  await settle(el);
+  input(laneName(el, 2), 'insertParagraph');
+  await settle(el);
+  expect(last()).toContain('lanes: To do, Doing, Review, Done');
+  // Enter went on into the lane's first card, made for it.
+  expect(drawn(el)[2]).toEqual(['Review', ['']]);
   await pick(el, menu(2), 'Add a card');
-  expect(drawn(el)[2]).toEqual(['New lane', ['']]);
-  expect(document.activeElement).toBe(title(el, 2, 0).tx);
+  expect(drawn(el)[2]).toEqual(['Review', ['', '']]);
+  expect(document.activeElement).toBe(title(el, 2, 1).tx);
   await pick(el, menu(2), 'Delete lane');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
   expect(last()).toContain('lanes: To do, Doing, Done');
   await undo(el);
-  expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'New lane', 'Done']);
+  expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Review', 'Done']);
 });
 
-test('a tap on the grip chooses the card with the bar under it; Move to the lane after and before carry the chosen; Delete takes them away', async () => {
+test('a tap on the grip chooses the card with the bar under it; Move to… a lane, Mod+Left/Right carry the chosen; Delete takes them away', async () => {
   const { el, last } = await editor();
   await tapGrip(el, 1, 0);
   await tapGrip(el, 1, 1, { shiftKey: true });
   expect(ranged(el)).toEqual(['Write the brief', 'Send invites']);
   const labels = [...el.querySelectorAll('.board-context button')].map((b) => b.getAttribute('aria-label'));
-  expect(labels).toEqual(['Edit', 'Move up', 'Move down', 'Move to To do', 'Move to Done', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
-  contextButton(el, 'Move to Done').click();
+  expect(labels).toEqual(['Edit', 'Move up', 'Move down', 'Open', 'Move to…', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  // Move to…: a menu of the lanes, the one they are in checked and not to be chosen.
+  contextButton(el, 'Move to…').click();
+  await until(() => !!el.querySelector('to-menu.board-moveto [popover]:popover-open'));
+  const items = [...el.querySelectorAll<HTMLButtonElement>('to-menu.board-moveto [role^=menuitem]')];
+  expect(items.map((b) => [b.textContent!.trim(), b.getAttribute('aria-checked'), b.disabled])).toEqual([
+    ['To do', 'false', false],
+    ['Doing', 'true', true],
+    ['Done', 'false', false],
+  ]);
+  items[2].click();
   await settle(el);
   expect(drawn(el)).toEqual([
     ['To do', ['Book the room']],
@@ -245,6 +283,14 @@ test('a tap on the grip chooses the card with the bar under it; Move to the lane
   ]);
   expect(ranged(el)).toEqual(['Write the brief', 'Send invites']);
   key(el.querySelector<HTMLElement>('.board')!, 'ArrowLeft', { altKey: true, ctrlKey: true });
+  await settle(el);
+  expect(drawn(el)[1]).toEqual(['Doing', ['Write the brief', 'Send invites']]);
+  // Mod+Right: the lane after; the status cells say so.
+  key(el.querySelector<HTMLElement>('.board')!, 'ArrowRight', { ctrlKey: true });
+  await settle(el);
+  expect(last()).toBe(HEAD + 'Write the brief | Done | Ana\nSend invites | Done |\n' + B);
+  expect(ranged(el)).toEqual(['Write the brief', 'Send invites']);
+  key(el.querySelector<HTMLElement>('.board')!, 'ArrowLeft', { ctrlKey: true });
   await settle(el);
   expect(drawn(el)[1]).toEqual(['Doing', ['Write the brief', 'Send invites']]);
   contextButton(el, 'Delete').click();
@@ -274,6 +320,7 @@ test('a drag by the grip carries a card into another lane before the card under 
   const g = grip(el, 0, 0);
   const h = g.getBoundingClientRect();
   const to = cards(el, 1)[1].getBoundingClientRect();
+  const from = cards(el, 0)[0].getBoundingClientRect();
   const at = (type: string, x: number, y: number) =>
     g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
   at('pointerdown', h.left + 4, h.top + 4);
@@ -282,8 +329,14 @@ test('a drag by the grip carries a card into another lane before the card under 
   expect(el.over).toEqual({ lane: 1, pos: 1 });
   expect(cards(el, 0)[0].classList.contains('dragging')).toBe(true);
   expect(cards(el, 1)[1].classList.contains('before')).toBe(true);
+  // A ghost of the card follows the pointer, kept from the hands of a screen reader.
+  const ghost = document.querySelector<HTMLElement>('.board-ghost')!;
+  expect(ghost.textContent).toBe('Book the room');
+  expect(ghost.getAttribute('aria-hidden')).toBe('true');
+  expect(Math.abs(ghost.getBoundingClientRect().left - (to.left + 40 - (h.left + 4 - from.left)))).toBeLessThan(2);
   at('pointerup', to.left + 40, to.top + 4);
   await settle(el);
+  expect(document.querySelector('.board-ghost')).toBe(null);
   expect(drawn(el)).toEqual([
     ['To do', []],
     ['Doing', ['Write the brief', 'Book the room', 'Send invites']],
@@ -291,6 +344,12 @@ test('a drag by the grip carries a card into another lane before the card under 
   ]);
   expect(last()).toBe(HEAD + A + 'Book the room | Doing | Ben\n' + C);
   expect(getComputedStyle(grip(el, 1, 1)).touchAction).toBe('none');
+  // One undo brings it back.
+  await undo(el);
+  expect(last()).toBe(BOARD);
+  el.dispatchEvent(new CustomEvent('docredo', { cancelable: true }));
+  await settle(el);
+  expect(last()).toBe(HEAD + A + 'Book the room | Doing | Ben\n' + C);
   // Into an empty lane, past its end.
   const empty = lanes(el)[0].getBoundingClientRect();
   const g2 = grip(el, 1, 0);
@@ -321,18 +380,162 @@ test('a blank board: To do, Doing and Done, no cards; Enter in a lane’s name m
   expect(document.activeElement).toBe(title(el, 0, 0).tx);
 });
 
-test('at phone width: a lane a row, the full width, cards a finger tall, 16px words, the page never wider', async () => {
+test('on a wide screen the lanes are a row that scrolls sideways on its own, the page never wider', async () => {
+  await page.viewport(1100, 800);
+  const { el } = await editor((await def.templates!()).find((x) => x.id === 'pipeline')!.doc);
+  const board = el.querySelector<HTMLElement>('.board')!;
+  const [a, b] = lanes(el).map((l) => l.getBoundingClientRect());
+  expect(Math.round(b.top)).toBe(Math.round(a.top));
+  expect(b.left).toBeGreaterThan(a.right);
+  expect(board.scrollWidth).toBeGreaterThan(board.clientWidth);
+  expect(getComputedStyle(board).overflowX).toBe('auto');
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(innerWidth);
+  // A card in a lane out of sight is brought into it when its title takes the focus.
+  const far = lanes(el).length - 1;
+  await el.focusTitle(Number(cards(el, far)[0].dataset.row));
+  await settle(el);
+  const r = cards(el, far)[0].getBoundingClientRect();
+  const box = board.getBoundingClientRect();
+  expect(r.right).toBeLessThanOrEqual(box.right + 1);
+});
+
+test('at phone width: the lanes stacked, the full width, cards a finger tall, 16px words, the page never wider', async () => {
   await page.viewport(390, 844);
   try {
     const { el } = await editor();
     const [a, b] = lanes(el).map((l) => l.getBoundingClientRect());
     expect(b.top).toBeGreaterThanOrEqual(a.bottom);
     expect(a.width).toBeGreaterThan(300);
+    for (const x of el.querySelectorAll<HTMLElement>('.board-lane, .board-card')) expect(x.getBoundingClientRect().right).toBeLessThanOrEqual(390);
     for (const c of el.querySelectorAll<HTMLElement>('.board-card')) expect(c.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
     for (const g of el.querySelectorAll<HTMLElement>('.board-grip')) expect(Math.min(g.getBoundingClientRect().width, g.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
     for (const x of el.querySelectorAll<HTMLElement>('.board-title .tx, .board-lane-name .tx')) expect(parseFloat(getComputedStyle(x).fontSize)).toBeGreaterThanOrEqual(16);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
   } finally {
     await page.viewport(1100, 800);
+  }
+});
+
+test('a template opened draws its lanes and its cards, each card with its fields', async () => {
+  const doc = (await def.templates!()).find((x) => x.id === 'project')!.doc;
+  const { el } = await editor(doc);
+  expect(drawn(el)).toEqual([
+    ['To do', ['Order the samples', 'Plan the launch party', 'Send the thank-you notes']],
+    ['Doing', ['Draft the press release', 'Build the landing page']],
+    ['Done', ['Write the launch brief', 'Book the photographer']],
+  ]);
+  expect([...cards(el, 1)[0].querySelectorAll('.board-fields dt')].map((x) => x.textContent)).toEqual(['Owner', 'Due']);
+});
+
+test('every lane and every card has a name: the lane’s, the card’s title; its grip and title say which card in which lane', async () => {
+  const { el } = await editor();
+  expect(lanes(el).map((l) => l.getAttribute('aria-label'))).toEqual(['To do', 'Doing', 'Done']);
+  expect([...el.querySelectorAll('.board-card')].map((c) => c.getAttribute('aria-label'))).toEqual(['Book the room', 'Write the brief', 'Send invites']);
+  for (const g of el.querySelectorAll('.board-grip, .board-more')) expect(g.getAttribute('aria-label')).toBeTruthy();
+  for (const x of el.querySelectorAll<ToText>('to-text')) expect(x.tx.getAttribute('aria-label')).toBeTruthy();
+  expect(el.querySelector('.board')!.getAttribute('aria-label')).toBe('Board');
+});
+
+test('Left at a title’s start and Right at its end go to the card beside it in the lane before or after; elsewhere they are the caret’s', async () => {
+  const { el } = await editor();
+  await caretIn(el, title(el, 1, 1), 2);
+  key(title(el, 1, 1).tx, 'ArrowRight');
+  await settle(el);
+  expect(document.activeElement).toBe(title(el, 1, 1).tx);
+  await caretIn(el, title(el, 1, 1));
+  key(title(el, 1, 1).tx, 'ArrowRight');
+  await settle(el);
+  // Done has no card: its name.
+  expect(document.activeElement).toBe(laneName(el, 2).tx);
+  await caretIn(el, title(el, 1, 1), 0);
+  key(title(el, 1, 1).tx, 'ArrowLeft');
+  await settle(el);
+  // To do holds one card: its last.
+  expect(document.activeElement).toBe(title(el, 0, 0).tx);
+  expect(title(el, 0, 0).sel?.focus.offset).toBe('Book the room'.length);
+});
+
+test('a card opened (Alt+Enter, Open, a double click) is its fields in a dialog; Done keeps them as one step, the lane a move; Escape keeps nothing', async () => {
+  const { el, last } = await editor();
+  await caretIn(el, title(el, 1, 0), 4);
+  key(title(el, 1, 0).tx, 'Enter', { altKey: true });
+  const dialog = () => el.querySelector<ToDialog>('to-dialog.board-dialog')!;
+  await until(() => !!dialog().dialog?.open);
+  await settle(el);
+  expect(dialog().querySelector('h2')!.textContent).toBe('Write the brief');
+  const fields = () => [...dialog().querySelectorAll<HTMLElement>('.board-field')];
+  expect(fields().map((f) => f.querySelector('span')!.textContent)).toEqual(['Task', 'Status', 'Owner']);
+  const inputs = () => dialog().querySelectorAll<HTMLInputElement>('.board-field input');
+  expect(document.activeElement).toBe(inputs()[0]);
+  // The status column is a list of the lanes, its options the column's own words.
+  const select = dialog().querySelector<HTMLSelectElement>('select')!;
+  expect([...select.options].map((o) => o.value)).toEqual(['To do', 'Doing', 'Done']);
+  expect(select.value).toBe('Doing');
+  inputs()[1].value = 'Ana Lee';
+  inputs()[1].dispatchEvent(new Event('input', { bubbles: true }));
+  select.value = 'Done';
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  await settle(el);
+  expect(el.value).toBe(BOARD);
+  inputs()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await settle(el);
+  await until(() => !dialog().dialog?.open);
+  expect(last()).toBe(HEAD + 'Write the brief | Done | Ana Lee\n' + B + C);
+  // The focus back in the card's title, where it now is, the caret where it was.
+  await settle(el);
+  expect(document.activeElement).toBe(title(el, 2, 0).tx);
+  await undo(el);
+  expect(last()).toBe(BOARD);
+  // Chosen, Open in the bar under it; Escape: nothing written, the card chosen again.
+  await tapGrip(el, 0, 0);
+  contextButton(el, 'Open').click();
+  await until(() => !!dialog().dialog?.open);
+  await settle(el);
+  inputs()[1].value = 'Nobody';
+  inputs()[1].dispatchEvent(new Event('input', { bubbles: true }));
+  dialog().close();
+  await until(() => !dialog().dialog?.open);
+  await settle(el);
+  expect(last()).toBe(BOARD);
+  expect(ranged(el)).toEqual(['Book the room']);
+  // A double click on the card's fields; the dialog's Delete takes it away.
+  cards(el, 0)[0]
+    .querySelector('.board-fields')!
+    .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+  await until(() => !!dialog().dialog?.open);
+  await settle(el);
+  [...dialog().querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.trim() === 'Delete')!.click();
+  await settle(el);
+  expect(last()).toBe(HEAD + A + C);
+  expect(drawn(el)[0]).toEqual(['To do', []]);
+});
+
+test('a finger held on the grip chooses the card, the bar under it up; it is no drag after', async () => {
+  const { el } = await editor();
+  const g = grip(el, 1, 0);
+  const h = g.getBoundingClientRect();
+  const at = (type: string, x: number, y: number) =>
+    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, isPrimary: true, button: 0, pointerType: 'touch', clientX: x, clientY: y }));
+  at('pointerdown', h.left + 4, h.top + 4);
+  // Half a second held, the card is chosen.
+  await until(() => ranged(el).length === 1);
+  expect(ranged(el)).toEqual(['Write the brief']);
+  at('pointermove', h.left + 120, h.top + 60);
+  at('pointerup', h.left + 120, h.top + 60);
+  g.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(el.value).toBe(BOARD);
+  expect(ranged(el)).toEqual(['Write the brief']);
+});
+
+test('the bar hands the cards to the Spreadsheet: the same table, opened where the page says documents open', async () => {
+  const { el } = await editor();
+  const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+  try {
+    el.querySelector<HTMLButtonElement>('to-bar button[aria-label="Open the cards in a spreadsheet"]')!.click();
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(String(open.mock.calls[0][0])).toMatch(/#\/v\d+\/sheet\//);
+  } finally {
+    open.mockRestore();
   }
 });
