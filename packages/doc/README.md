@@ -99,6 +99,9 @@ as the site (docs/library.md), through three more entry points, each built by `n
   `tinylittleoffice/editors.css`, one file; what is fetched only when asked for (an app's templates, a language other
   than English, the trip's map) is in `dist/editors/` beside it. Lit and the rest are inside, as on the site.
 
+Each is typed, as the API is: their declarations are in `dist/types/`, and a TypeScript program reads them with nothing
+more installed (under `skipLibCheck`, since the editors' name the types of Lit, which is bundled in).
+
 ```js
 import { parse, write, apply, applyAll, invert } from 'tinylittleoffice/doc';
 const doc = parse('# Plan\n\nShip it.\n');

@@ -22,10 +22,22 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./dist/api.js",
-    "./doc": "./dist/doc.js",
-    "./commands": "./dist/commands.js",
-    "./editors": "./dist/editors.js",
+    ".": {
+      "types": "./dist/types/api.d.ts",
+      "default": "./dist/api.js"
+    },
+    "./doc": {
+      "types": "./dist/types/kernel.d.ts",
+      "default": "./dist/doc.js"
+    },
+    "./commands": {
+      "types": "./dist/types/commands.d.ts",
+      "default": "./dist/commands.js"
+    },
+    "./editors": {
+      "types": "./dist/types/editors.d.ts",
+      "default": "./dist/editors.js"
+    },
     "./editors.css": "./dist/editors.css",
     "./examples/*.json": "./examples/*.json",
     "./package.json": "./package.json"
@@ -49,6 +61,7 @@
     "dist/editors.js",
     "dist/editors.css",
     "dist/editors",
+    "dist/types",
     "dist/skill",
     "examples",
     "schema",

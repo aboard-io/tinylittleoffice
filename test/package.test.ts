@@ -1,7 +1,8 @@
 // The npm package `tinylittleoffice` (packages/doc) as an agent with a runtime gets it: built (npm run build:cli, and
 // npm run build:lib for the library's entry points), packed, installed from the tarball into a folder of its own, and
 // run there. Node strips no types under node_modules, so this is the test that the package carries what it runs. The
-// editors are a page's, so only their files are looked for here; test/browser/editors.test.ts mounts one.
+// editors are a page's, so only their files are looked for here; test/browser/editors.test.ts mounts one. A TypeScript
+// program's check reads the declarations build:lib writes (tsconfig.lib.json), against the package as installed.
 import { test, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -22,15 +23,18 @@ test('the package is the site’s version, public, named tinylittleoffice, with 
   expect(pkg.files).toEqual(expect.arrayContaining(['dist/tinyoffice.js', 'dist/api.js', 'dist/skill', 'examples', 'schema', 'README.md']));
 });
 
-test('the package serves the library: the kernel, the commands, the editors and their stylesheet, beside the API', () => {
-  expect(pkg.exports).toMatchObject({
-    '.': './dist/api.js',
-    './doc': './dist/doc.js',
-    './commands': './dist/commands.js',
-    './editors': './dist/editors.js',
+test('the package serves the library: the kernel, the commands, the editors and their stylesheet, beside the API, each typed', () => {
+  // Each module's declarations first, as TypeScript reads the conditions in order (tsconfig.lib.json emits them).
+  expect(pkg.exports).toStrictEqual({
+    '.': { types: './dist/types/api.d.ts', default: './dist/api.js' },
+    './doc': { types: './dist/types/kernel.d.ts', default: './dist/doc.js' },
+    './commands': { types: './dist/types/commands.d.ts', default: './dist/commands.js' },
+    './editors': { types: './dist/types/editors.d.ts', default: './dist/editors.js' },
     './editors.css': './dist/editors.css',
+    './examples/*.json': './examples/*.json',
+    './package.json': './package.json',
   });
-  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors']));
+  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors', 'dist/types']));
   // The kernel and the commands have no side effects to keep; the editors define their elements and the stylesheet
   // styles the page.
   expect(pkg.sideEffects).not.toContain('./dist/doc.js');
@@ -38,7 +42,7 @@ test('the package serves the library: the kernel, the commands, the editors and 
   expect(pkg.sideEffects).toEqual(expect.arrayContaining(['./dist/editors.js', './dist/editors.css', './dist/editors/*']));
 });
 
-test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API, kernel and commands import, and the editors are there', { timeout: 600_000 }, () => {
+test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API, kernel and commands import typed, editors are there', { timeout: 600_000 }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-npm-'));
   try {
     const npm = (args: string[], cwd: string) => execFileSync('npm', [...args, '--cache', join(dir, 'cache'), '--no-audit', '--no-fund', '--loglevel=error'], { cwd, encoding: 'utf8' });
@@ -106,6 +110,59 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       [],
       true,
     ]);
+    // The types, as a TypeScript program that holds documents sees them: a consumer importing from every subpath checks
+    // clean under strict, and a second file that misuses each fails, error by error, so the check is reading the
+    // package's declarations rather than taking every name as any. skipLibCheck, as Atlas sets it: the declarations name
+    // Lit's and Lucide's types, which ride bundled in editors.js and are not installed beside it, and those read as any.
+    const tsconfig = (files: string[]) => ({
+      compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler', lib: ['ES2022', 'DOM'], types: [], strict: true, skipLibCheck: true, noEmit: true },
+      files,
+    });
+    writeFileSync(join(app, 'tsconfig.json'), JSON.stringify(tsconfig(['use.ts'])));
+    writeFileSync(join(app, 'tsconfig.bad.json'), JSON.stringify(tsconfig(['use.ts', 'bad.ts'])));
+    writeFileSync(
+      join(app, 'use.ts'),
+      [
+        "import { link } from 'tinylittleoffice';",
+        "import { apply, parse, write, type Doc, type Op } from 'tinylittleoffice/doc';",
+        "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
+        "import { mount, type Editor } from 'tinylittleoffice/editors';",
+        'interface Board { create(company: string): string }',
+        "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
+        "const op: Op = { op: 'text', at: 1, from: 0, to: 4, runs: [{ t: 'Sail' }] };",
+        'export const text: string = write(apply(doc, op));',
+        "export const create: Command<Board> = command<Board>({ id: 'lead.create', scope: 'records', label: () => 'New lead', where: ['keys-only'], who: ['team'], does: (b) => b.create('Aboard') });",
+        'register([create]);',
+        "export const served: { name: string; description: string; inputSchema: object }[] = tools([create], 'team');",
+        'export const place: (app: string, text: string, into: Element, onChange: (text: string) => void) => Promise<Editor> = mount;',
+        "export const url: string = link('write', text);",
+      ].join('\n'),
+    );
+    writeFileSync(
+      join(app, 'bad.ts'),
+      [
+        "import { write } from 'tinylittleoffice/doc';",
+        "import { tools } from 'tinylittleoffice/commands';",
+        "import { mount } from 'tinylittleoffice/editors';",
+        "write('# Plan');",
+        'tools([], 7);',
+        "void mount('write', '', 'main', () => {});",
+      ].join('\n'),
+    );
+    const tsc = (project: string) => {
+      try {
+        return execFileSync(join(ROOT, 'node_modules/.bin/tsc'), ['--noEmit', '-p', project], { cwd: app, encoding: 'utf8' });
+      } catch (e) {
+        return (e as { stdout: string }).stdout;
+      }
+    };
+    expect(tsc('tsconfig.json')).toBe('');
+    expect(
+      tsc('tsconfig.bad.json')
+        .trim()
+        .split('\n')
+        .map((l) => /^(\S+)\((\d+),\d+\): error (TS\d+)/.exec(l)?.slice(1).join(' ')),
+    ).toStrictEqual(['bad.ts 4 TS2345', 'bad.ts 5 TS2345', 'bad.ts 6 TS2345']);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');
     expect(statSync(join(dist, 'editors.js')).size).toBeGreaterThan(500_000);
