@@ -102,3 +102,18 @@ test("the walks' replay: Enter where the letter's words leave a space or a break
   }
   expect(words(text.blocks).some((w) => /\s$/.test(w))).toBe(true);
 });
+
+test('an underlined word and its space, pasted before an underlined word, are one underline: the space is the pasted words’ own where it lands', async () => {
+  // The pasted words join the words where they go, and only then is a mark let go of a space at its edge (settle):
+  // "a " alone would be "++a++ ", but before "c" its space is inside the underline.
+  const { shell, text } = await open('++a b++\n\n++c++\n');
+  await copyPaste(text, { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 2 } }, () => caret(1, 0), 1);
+  const { words: w, link } = held(shell, text);
+  expect(write({ head: {}, blocks: link })).toBe('++a b++\n\n++a c++\n');
+  expect(w).toStrictEqual(link);
+  // At a block's end the space is plain, as the text says it.
+  await copyPaste(text, { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 2 } }, end(1), 1);
+  const after = held(shell, text);
+  expect(write({ head: {}, blocks: after.link })).toBe('++a b++\n\n++a ca++\\ \n');
+  expect(after.words).toStrictEqual(after.link);
+});
