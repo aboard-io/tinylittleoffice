@@ -282,7 +282,8 @@ const MONEY_AFTER = /(?<=[\d.])\s*(?:[a-z]{3}|[^\d\s.+-]{1,3})$/i;
  * A cell as typed, read as its column's type: a number, a date's day number, a check's 1 or 0, or the words themselves.
  * Empty is null. An apostrophe before words that would otherwise read as something else (a formula, a number, a date)
  * keeps them words, the apostrophe not among them, as in Excel and Sheets (asWords); before words that read as
- * themselves it is theirs ("'Tis"). A rich column's words are inline Markdown, whose own escape is a backslash.
+ * themselves it is theirs ("'Tis"). A rich column's words are inline Markdown, whose own escape is a backslash, and
+ * are words whatever they say: its cell is never read as a number or a date.
  */
 export function parseLiteral(raw: string, type: string = 'text', today = todaySerial): CellValue {
   if (raw.startsWith("'") && type !== 'rich') {
@@ -291,6 +292,8 @@ export function parseLiteral(raw: string, type: string = 'text', today = todaySe
   }
   const s = raw.trim();
   if (s === '') return null;
+  // A rich column's cell is words, drawn as its Markdown says them: never a number or a date ("007" is 007).
+  if (type === 'rich') return raw;
   if (type === 'check') return /^(x|y|yes|true|1|done|☑|✓|✔)$/i.test(s) ? 1 : 0;
   if (type === 'date') {
     // A date as written: 2027-03-01, or 3/1/2027, or "today".
@@ -313,7 +316,7 @@ export function parseLiteral(raw: string, type: string = 'text', today = todaySe
 /**
  * Words written as a cell of a column of `type` that reads back as those words whatever they start with (docs/kernel.md
  * §5, Words that look like something else). In a rich column, as inline Markdown (writeInline) with a backslash before
- * a "=" at their start, the inline form's own escape ("\=SUM(1)"); in any other, as they are where they read as
+ * a "=" at their start, the inline form's own escape ("\=SUM(1)"), its cell being words already ("007"); in any other, as they are where they read as
  * themselves already, else with an apostrophe before them ("'=SUM(1)", "'007"), which parseLiteral reads past. Words of
  * nothing but spaces are an empty cell, as they are.
  */

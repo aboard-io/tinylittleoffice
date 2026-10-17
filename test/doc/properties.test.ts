@@ -244,8 +244,8 @@ test(
       const kept = (parse(write(doc)).blocks[0] as TableBlock).rows[0][0];
       expect(kept, 'the format keeps the cell').toBe(raw);
       const v = evaluateTable({ cols: [{ name: 'A', type }], rows: [[kept]], lock: [], chart: '' }).values[0][0];
-      // A rich cell's words are its inline Markdown's (a number alone in one is a number, as in any cell).
-      if (type === 'rich') expect(plainText(parseInline(kept))).toBe(w);
+      // A rich cell is its inline Markdown, whose words are the words, a number alone or a date among them.
+      if (type === 'rich') expect([v, plainText(parseInline(kept))]).toStrictEqual([kept, w]);
       else expect(v).toBe(w);
       // Words that read as themselves are written as they are.
       if (type !== 'rich' && !w.startsWith('=') && parseLiteral(w, type) === w) expect(raw).toBe(w);

@@ -135,6 +135,9 @@ test('words that look like a formula, a number or a date are kept words by an ap
   // A rich cell is inline Markdown, whose own escape keeps a "=" at its start from a formula.
   expect([asWords('=SUM(1)', 'rich'), asWords("'Tis", 'rich')]).toStrictEqual(['\\=SUM(1)', "'Tis"]);
   expect(values(grid([['\\=SUM(1)']], ['rich']))[0]).toStrictEqual(['\\=SUM(1)']);
+  // And its cell is words whatever they say, a number or a date alone among them; a formula is a formula.
+  expect([asWords('007', 'rich'), asWords('2027-03-01', 'rich')]).toStrictEqual(['007', '2027-03-01']);
+  expect(values(grid([['007', '50%', '**12**', '=1+1']], ['rich', 'rich', 'rich', 'rich']))[0]).toStrictEqual(['007', '50%', '**12**', 2]);
   // Through the format the cell is as it was written.
   const doc = parse("A | B:date | C:rich\n--- | --- | ---\n'=SUM(1) | '2027-03-01 | \\\\=SUM(1)\n");
   expect(tableAt(doc, 0)!.rows[0]).toStrictEqual(["'=SUM(1)", "'2027-03-01", '\\=SUM(1)']);
