@@ -20,6 +20,7 @@ named here by their ids (write, sheet, deck, …); docs/tlo.md is each one's doc
 | `src/doc/formula.ts` | the evaluator: `evaluate(doc, at)`, `evaluateTable`, `FUNCTIONS`, `parseLiteral`, `formatCell`, `formatValue` |
 | `src/doc/text.ts` | the text layer (§10): `textOf`, `textMarkdown`, `textCounts`, `textWords` |
 | `src/doc/json.ts` | the document as JSON (docs/tlo.md): `docJson`, `jsonDoc`, checked against the schema |
+| `src/doc/sync.ts` | shared editing (§12): `transform`, `rebase`, `applyEdits`, `Conflict`, and the envelope `Edit`, `Ordered` |
 | `src/doc/index.ts` | the kernel's public surface: an app imports from here and nowhere deeper |
 
 ### Types
@@ -467,3 +468,90 @@ Every import names its file (`'../../kit/draw/draw.ts'`): there is no barrel `in
 says what it reaches for and the build leaves out what nothing reaches. A document the kit carries is kept beside the
 file that uses it and imported as text (`kit/ui/manual.tlo`, the manual, `'./manual.tlo?raw'` in `kit/ui/manual.ts`,
 compiled into the drawer's What is this? link at build; Paul, 2026-10-14). `test/lints.test.ts` holds all of this.
+
+---
+
+## 12. Shared editing: operations in one order (2026-10-17)
+
+Several people, and Atlas, edit one document at once (docs/library.md; Atlas keeps a document as a snapshot and the
+operations after it, its docs/data.md). `src/doc/sync.ts` is the kernel's half: operational transformation with a
+server as the one order of operations. A client sends an op with the version it was made against (`Edit`: id, author,
+base, op); the server transforms it over every op appended since, appends it with the next `seq` (`Ordered`) and tells
+every client; a client rebases the ops it has sent or not yet sent over each op it is told of (`rebase(pending, over)`).
+Every replica applies the server's order (`applyEdits(snapshot, edits)`), so all end with one document, and the
+transformation is what keeps an op meaning what its author meant once others land before it. One order asks one
+property of it, TP1: for a and b made against one document, a then `transform(b, a, 'right')` is b then
+`transform(a, b, 'left')`. Nothing in it names the DOM, and the site imports none of it.
+
+**The cases** (the matrix is the file's header, one line a pair). `side` is an op's place in the order (the server
+transforms what it receives as `'right'`): where two ops set one thing the later wins, where both put something in at
+one place the earlier's comes first, and null means the other took away what an op acts on. Head keys are independent,
+and the same key is the later's. An op on a block shifts past the blocks a splice puts in or takes out before it,
+follows its block through a move, and is null inside a splice's span (its block taken out or replaced). Text ops on one
+block, and splices over blocks, are ranges replaced by new content: the later op's ends are carried over the earlier's
+(an end inside the earlier's range goes to its new words, an end at its edge stays outside), so the later replaces the
+earlier's words when its range held the earlier's whole range and otherwise sits beside them, clipped to what is still
+there, and the earlier becomes what brings the other order to the same, taking the later's words in and putting them
+back where its own range lay on both sides of them. A splice follows the blocks it takes out through a move (inside the
+moved span, with it; holding it, as it was; apart, as they close up), and one that only puts blocks in sits between
+blocks; a move takes in what a splice put inside it and loses what one took out; of two moves, the inner goes with the
+outer, and the same span goes where the later sends it. Different cells are independent; the same cell is a forced
+write's (an undo's) and else the later's, the loser writing the winner's value where it cannot leave the cell out. A
+rectangle of cells follows rows and columns put in or taken out, its formulas moved as the table's are. Rows and
+columns shift as splices do, but rows put in strictly inside rows taken out are dropped (one op cannot take rows out
+on both sides of others); rows put in carry their formulas over the other's move, and their cells over the columns. A
+column renamed follows its column; `force` is kept.
+
+**The rules.** Index transformation cannot know everything a document says, and two orders of one pair still differ in
+two places no op can reach: the head writes its keys in the order they were put in (two put in at once), and `apply`'s
+remapping leaves a range in a formula or a table's lock a row apart when it ends in rows one op takes out beside rows
+the other puts in at their edge (it grows a range over rows put in inside it and closes it over rows taken out of its
+end, and the two do not commute there: `=SUM(A1:A3)` comes out `A1:A3` one way and `A1:A2` the other, over the same
+rows). The server and its clients keep four rules:
+
+1. **Crossing spans are refused.** A splice that takes out some of a moved span's blocks and some others, or into whose
+   span a moved span lands, cannot be brought together with the move by one op on each side, which every pair of the
+   kind on five blocks shows by brute force; nor can two moves whose spans overlap without one holding the other, or
+   that each land inside the other, without undoing both or tearing a span apart. `transform` throws `Conflict`; the
+   server refuses the later op and tells its author, whose client takes the server's document again and drops its
+   pending ops. A client meets the same throw rebasing its pending ops over the earlier one, and starts again then.
+2. **A table keeps its columns.** Two ops can together take out every column of a table, or put it past Z: the second
+   throws where it is applied, in either order, and the server refuses it as it refuses a crossing.
+3. **No lock in the head.** A sheet keeps its lock in the head for its first table; rows and columns put in or taken
+   out move it there, and which table is first is the document's to say, not an op's, so a lock set at once with rows
+   put in comes out different in the two orders. A shared document keeps its lock on its table's attributes
+   (`{lock=…}`), and the server refuses an op on the head's `lock`. (The Spreadsheet writes the head's lock while its
+   first table carries none of its own; in a shared sheet it is to write the table's.)
+4. **The server's order is the document.** A client keeps the server's document as far as it has been told and shows
+   it with its pending ops applied. An editor that instead applies the server's op, transformed over its pending ones,
+   to what it shows gets the same but in the two places above, and takes the recomputed document where they differ.
+   Every client ends with the server's document whatever reached it in between.
+
+What it costs a person: words typed into a block that someone else replaced at the same moment are lost (the editors
+make a paragraph a heading, split it with Enter and join it with Backspace by splicing it, and an op inside a span
+taken out or replaced is null); a move across someone's deletion costs the later author the edits it had not yet had
+back; an undo is the inverse rebased over what came after (`invert`), so an undo of rows or columns, which puts the old
+table back, takes back another's edit to that table too.
+
+The properties (test/doc/sync.test.ts; 200 cases each, 2,000 under `npm run fuzz`):
+
+| property | how |
+|---|---|
+| TP1 for every pair of splices and moves on five blocks (13,924 pairs), of text ops on one block (2,025), and of table ops on a table of three rows and columns with formulas (6,400), compared by their writing, the head's keys in one order, a range at an edge as above | enumerated |
+| TP1 for any two ops on any document the grammar makes, half of them on one text or table, or near each other | fuzzed |
+| a crossing is found by both transforms or neither, and only where no op on each side does what a splice and a move did (brute force), or where two moves cross (told by moving blocks) | both |
+| every transformed op fits the document it applies to, and is null only where the other took away what it acts on | both |
+| two to four clients and a server, interleaved at random, undo among the steps: every client ends with the server's document; the server's transform of a client's op is the client's own rebase of it; the server's op applied to a client's view is its recomputed document but in the two places above | fuzzed |
+| an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed where nothing later touched it | fuzzed |
+
+What the fuzz found on its first runs, each fixed or made a rule, with a test:
+the head's keys put in by two ops at once are written in the order each replica put them in (the documents compare
+with their keys in one order; replicas never differ, rule 4); a range ending in rows taken out beside rows put in at
+their edge ends a row apart in the two orders, which no placement of the rows mends (rule 4, and the case shown in a
+test); a move that moves nothing, transformed, kept indices past the document's end (it now moves nothing); the brute
+force first counted meetings that took out a block neither op took out, or undid both moves (a meeting must do what
+both did); crossing moves can sometimes meet with both spans whole (the union moved where both sent it, two spans
+swapped), and are refused all the same, a rule kept simple; and two ops at random met on one text or table in about
+three cases in a hundred, so the pairs are now made on one text or table, or beside the first op, and about four in
+ten meet on one block; TP1 holds over 20,000 cases. Rules 2 and 3 came from reading `apply` (a table keeps a column; `withMovedTable` moves the
+head's lock), each shown by a test.

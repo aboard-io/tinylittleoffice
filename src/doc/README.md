@@ -67,6 +67,15 @@ at a start), `replaceSpan`, and the family helpers for lists — `family`, `shif
 `removeItem`. An item's family is the list items deeper than it (and a fence that says `{depth=N}`); a lines app that
 counts heading levels passes its own `depths`.
 
+## Shared editing (`sync.ts`)
+
+Several people edit one document through a server that puts their ops in one order. `transform(a, b, side)` is op `a`
+as it applies once `b` has (`side`: `a`'s place in the order; null when `b` took away what `a` acts on);
+`rebase(pending, over)` is a client's pending ops over the server's; `applyEdits` applies the ordered edits (`Edit`,
+`Ordered`) to a snapshot. Where index transformation cannot reach (spans that cross, a table's last column, the head's
+lock) the server refuses the op, and `transform` throws `Conflict`. The cases and the rules are the file's header;
+docs/kernel.md §12 says why.
+
 ## An app is a view
 
 ```ts
@@ -79,5 +88,5 @@ the view's padding, and `evaluate(doc, at)` (`formula.ts`) works out any table b
 text as much as in a sheet. Footnotes, numbered lists and links in plain words are drawn with `notes.ts`
 (`notesOf`, `markNotes`, `noteNumbers`, `listNumbers`, `runLinks`), the same way everywhere.
 
-Tests: `test/doc/*.test.ts`, node only (`npm run test:unit`). The corpus is fixed: a document is added to it by hand,
-and never rewritten to match the code.
+Tests: `test/doc/*.test.ts`, node only (`npm run test:unit`); `test/doc/sync.test.ts` holds TP1 for every pair of ops.
+The corpus is fixed: a document is added to it by hand, and never rewritten to match the code.

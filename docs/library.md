@@ -164,5 +164,5 @@ budgets.json does not weigh editors.css: scripts/budgets.ts weighs the site's bu
 from a second one (`npm run build:lib`), which `npm run build` does not run; test/package.test.ts holds that it is
 there.
 
-Then, for Atlas and the site alike: operations with ids, authors and versions, ordered by a server, with the property
-that any order of delivery ends in the same document (Atlas's plan, phase 3).
+Then, for Atlas and the site alike, operations ordered by a server (Atlas's plan, phase 3): done. `tinylittleoffice/doc`
+serves `transform`, `rebase` and `applyEdits` (src/doc/sync.ts); docs/kernel.md §12 is the design, its rules, its properties.
