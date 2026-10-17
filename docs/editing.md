@@ -199,6 +199,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 
 | Keys | Command | Where |
 |---|---|---|
+|  | Comment | context |
 | `Mod+X` | Cut | context |
 | `Mod+C` | Copy | context |
 | `Mod+V` | Paste | context |

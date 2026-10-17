@@ -1293,6 +1293,8 @@ icons-search-by-name-or-by = 按名称或含义搜索（“钱”“天气”“
 icons-no-icon = 无图标
 # en: 1935c7dc9183bd8f7d4987f70ff5592b29d45397
 common-icon-or-emoji = 图标或表情符号
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+common-people = 成员
 # en: 1699cec34f8ca2d63e0b366fc1fe83d5de3a0c13
 icons-search-icons-and-emoji = 搜索图标和表情符号
 # en: da588993ff27cbb60e3c1cecefb192d389748ef0
@@ -1841,6 +1843,8 @@ outline-connection-from-from-to-to = 从{ $from }到{ $to }的连接
 common-connections = 连接
 # en: af74f7c5362aaee985bf8cda3dd75fc80751ce51
 common-copy = 复制
+# en: 153d7a58b3a3e898fcbdd04c462af308414bd09d
+common-comment = 评论
 # en: ba97113463234ae7bc314eae6a172572b35b1b71
 common-presentation-builder = 演示文稿
 # en: 20dcb3b3184067197035f08a5a3955d51fcd94a3

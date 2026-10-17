@@ -769,6 +769,8 @@ icons-no-icons-match-q = No icons match “{ $q }”.
 icons-search-by-name-or-by = Search by name or by what it means (“money”, “weather”, “ai”) to find any of { $n } icons.
 icons-no-icon = No icon
 common-icon-or-emoji = Icon or emoji
+# The list "@" opens while typing: the people sharing the document, to name one in the words.
+common-people = People
 icons-search-icons-and-emoji = Search icons and emoji
 icons-or-emoji = Icons or emoji
 icons-emoji = Emoji
@@ -1053,6 +1055,8 @@ outline-connect-from-to-to = Connect “{ $from }” to “{ $to }”
 outline-connection-from-from-to-to = Connection from { $from } to { $to }
 common-connections = Connections
 common-copy = Copy
+# Comment on the words selected (a button in the selection's bar, where a host takes comments).
+common-comment = Comment
 common-presentation-builder = Presentation Builder
 common-diagram-maker = Diagram Maker
 common-drag-to-move = Drag to move

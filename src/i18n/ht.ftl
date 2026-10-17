@@ -1322,6 +1322,8 @@ icons-search-by-name-or-by = Chèche pa non oswa pa sa l vle di (“lajan”, �
 icons-no-icon = Pa gen ikòn
 # en: 1935c7dc9183bd8f7d4987f70ff5592b29d45397
 common-icon-or-emoji = Ikòn oswa emoji
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+common-people = Moun
 # en: 1699cec34f8ca2d63e0b366fc1fe83d5de3a0c13
 icons-search-icons-and-emoji = Chèche ikòn ak emoji
 # en: da588993ff27cbb60e3c1cecefb192d389748ef0
@@ -1872,6 +1874,8 @@ outline-connection-from-from-to-to = Koneksyon soti nan { $from } rive nan { $to
 common-connections = Koneksyon
 # en: af74f7c5362aaee985bf8cda3dd75fc80751ce51
 common-copy = Kopye
+# en: 153d7a58b3a3e898fcbdd04c462af308414bd09d
+common-comment = Kòmante
 # en: ba97113463234ae7bc314eae6a172572b35b1b71
 common-presentation-builder = Kreyatè Prezantasyon
 # en: 20dcb3b3184067197035f08a5a3955d51fcd94a3

@@ -1440,6 +1440,8 @@ icons-search-by-name-or-by = ابحث بالاسم أو بالمعنى («مال
 icons-no-icon = بلا أيقونة
 # en: 1935c7dc9183bd8f7d4987f70ff5592b29d45397
 common-icon-or-emoji = أيقونة أو إيموجي
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+common-people = الأشخاص
 # en: 1699cec34f8ca2d63e0b366fc1fe83d5de3a0c13
 icons-search-icons-and-emoji = بحث عن أيقونات وإيموجي
 # en: da588993ff27cbb60e3c1cecefb192d389748ef0
@@ -2004,6 +2006,8 @@ outline-connection-from-from-to-to = وصلة من { $from } إلى { $to }
 common-connections = الوصلات
 # en: af74f7c5362aaee985bf8cda3dd75fc80751ce51
 common-copy = نسخ
+# en: 153d7a58b3a3e898fcbdd04c462af308414bd09d
+common-comment = تعليق
 # en: ba97113463234ae7bc314eae6a172572b35b1b71
 common-presentation-builder = منشئ العروض التقديمية
 # en: 20dcb3b3184067197035f08a5a3955d51fcd94a3

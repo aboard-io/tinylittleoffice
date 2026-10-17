@@ -99,10 +99,11 @@ What an app still asked of the site itself, and what replaces it:
 12. **Tracked changes and comments for a host.** Done: who did what in a document several people write, as the
     Contract Editor shows it (Paul, 2026-10-17: "the way it shows who did what is good"), is the kit's:
     kit/text/changes.ts says it and kit/text/redline.ts draws it over a mounted Word Processor, with the text editor's
-    hooks for them (`showGhosts` and `Ghost`, `mentions` and `Mention`) and their colors in editors.css
-    (src/styles/changes.css). test/changes.test.ts tracks versions and fuzzes them from the kernel's grammar;
-    test/browser/changes.test.ts mounts a Word Processor with the kit alone, tracks two people's versions and draws
-    them, pins a comment by its quote and offers "@" people: see Tracked changes and comments for a host.
+    hooks for them (`showGhosts` and `Ghost`, `mentions` and `Mention`, the bubble's Comment where a host marks
+    `data-comments`) and their colors in editors.css (src/styles/changes.css). test/changes.test.ts tracks versions
+    and fuzzes them from the kernel's grammar; test/browser/changes.test.ts mounts a Word Processor with the kit
+    alone, tracks two people's versions and draws them, pins a comment by its quote, has the bubble's Comment tell the
+    host and offers "@" people: see Tracked changes and comments for a host.
 
 ## Tracked changes and comments for a host
 
@@ -135,11 +136,16 @@ mounted Word Processor's words without writing anything into them.
   then the paint. A change the host calls `settled` is drawn as plain words, or, taken out, not at all. The highlights
   are named `tlo-by-0` and on (`PREFIX`), which `tinylittleoffice/editors.css` colors; a host that names its own
   (`paint`'s last argument) colors them itself. A browser with no highlights gets the ghosts alone.
-- **Comments.** A comment is anchored by its quote, the words it is about as they read when it was made, and by the
-  version that was the head then. `pinComments(words, frame, comments)` finds each quote in the words as they are now,
+- **Comments.** A comment is anchored by its quote, the words it is about as they read when it was made: the kit takes
+  each as `{ id, quote }` and reads nothing else. A host that wants to say which version a comment was made on (to show
+  it against that version, or to tell a comment on words since changed) keeps that version with it, its own; the kit
+  neither needs it nor checks it. `pinComments(words, frame, comments)` finds each quote in the words as they are now,
   highlights it (`tlo-by-comment`) and says how far below `frame`'s top its note goes; a comment whose words are gone
   is not pinned, and the host lists it with the rest. Found by its words rather than kept at a place, a comment needs
-  no index carried through the edits after it: nothing is transformed, on the server or on the page.
+  no index carried through the edits after it: nothing is transformed, on the server or on the page. Where the host
+  marks an element around the editor `data-comments`, the selection's bubble begins with Comment, which sends
+  "text-comment" up from the `<to-text>` (its `sel` the words selected) for the host to open its box; inside an element
+  marked `data-comment-box` (where a comment is written) there is none, and nowhere else is there a Comment.
 - **"@" for its people.** `words.mentions = people.map((p) => ({ name: p.name, detail: p.email }))`, and "@" with
   letters offers them as ":" offers icons, the one picked put in by name. With none, "@" is a letter like any other.
 

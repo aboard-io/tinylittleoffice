@@ -8,8 +8,12 @@
  * On a phone the bubble is a row of the bottom bar (kit/ui/context.ts) and begins with Cut, Copy and Paste: iOS draws
  * its own callout over the words, and our row is where ours are. They go through the editor's own clipboard path
  * (kit/text/clipboard.ts: our TLO and our HTML); their keys stay the browser's (`native`), which raise the same events.
+ *
+ * A host that takes comments on its words (docs/library.md, Tracked changes and comments for a host) marks an element
+ * around them `data-comments`, and the bubble begins with Comment, which tells it "text-comment"; nowhere else is there
+ * a Comment, so the site's bubbles are as they were.
  */
-import { ClipboardPaste, Copy, Scissors } from 'lucide';
+import { ClipboardPaste, Copy, MessageSquarePlus, Scissors } from 'lucide';
 import { coarse, register, type Command, commandsOf } from '../core/commands.ts';
 import { UI, type IconNode } from '../draw/icons.ts';
 import type { Mark } from './textops.ts';
@@ -97,8 +101,22 @@ export const INDENT = cmd('indent', 'common-indent', {
   does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(1) : x.exec('indent')),
 });
 
+/**
+ * Comment on the words selected, first in the bubble, where a host takes comments: an element around the words marked
+ * `data-comments`, which hears "text-comment" (bubbling from the <to-text>, its selection the words) and opens its own
+ * box; not inside the words of that box (`data-comment-box`), where a comment is being written.
+ */
+const COMMENT = cmd('comment', 'common-comment', {
+  icon: MessageSquarePlus,
+  where: ['context'],
+  group: 'comment',
+  when: (x) => !!x.closest('[data-comments]') && !x.closest('[data-comment-box]'),
+  does: (x) => x.dispatchEvent(new CustomEvent('text-comment', { bubbles: true })),
+});
+
 /** Every command of the words, in the order the bubble and the shortcuts dialog list them. */
 export const TEXT_COMMANDS = register([
+  COMMENT,
   CUT,
   COPY,
   PASTE,

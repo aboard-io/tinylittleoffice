@@ -4,9 +4,10 @@
 // ghosts given to the editor (ghostsOf, showGhosts), the words taken out in place, struck through, with a lozenge of
 // the author's initials, and then the words they put in painted in their color (paint, the CSS Custom Highlight API).
 // The caret stays where it was in the words as the ghosts are drawn again, and a letter typed goes there; a comment is
-// pinned by its quote; "@" offers the host's people. And a page that gives none of it (no ghosts, no people) has its
-// words drawn as ever, "@" a letter like any other: the site's pages give none, so the site is as it was.
-// (A unit test cannot say so: the unit project runs under node, with no DOM for Lit to draw in.)
+// pinned by its quote, and the bubble's Comment tells the host where it takes comments; "@" offers the host's people,
+// in a list named People. And a page that gives none of it (no ghosts, no people, no element marked for comments) has
+// its words drawn as ever, its bubble without Comment, "@" a letter like any other: the site's pages give none, so the
+// site is as it was. (A unit test cannot say so: the unit project runs under node, with no DOM for Lit to draw in.)
 import { expect, test } from 'vitest';
 import '../../src/editors.css';
 import {
@@ -172,8 +173,40 @@ test('"@" offers the host’s people and puts in the one picked by name; with no
   await until(() => !!open(), 'the people were never offered');
   const rows = [...open()!.querySelectorAll<HTMLElement>('[role="option"]')];
   expect(rows.map((r) => [r.dataset.kind, r.dataset.value, r.querySelector('.to-complete-detail')?.textContent])).toEqual([['mention', 'Bob Brown', BOB]]);
+  // A screen reader hears a list of people, not of icons.
+  expect(open()!.getAttribute('aria-label')).toBe('People');
   words.tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   await until(() => changes.at(-1) === 'Ask @b Bob Brown\n', 'the person picked was never put in');
+});
+
+test('the bubble begins with Comment where the host marks the words for comments, and Comment tells the host; elsewhere there is none', async () => {
+  const { words, main } = await mounted();
+  const bubble = () => words.querySelector<HTMLElement>(':scope > to-context.tx-bubble > .to-context:popover-open');
+  const labels = () => [...bubble()!.querySelectorAll<HTMLElement>('button')].map((b) => b.getAttribute('aria-label'));
+  const select = async (from: number, to: number) => {
+    words.focus();
+    words.sel = { anchor: { block: 0, offset: from }, focus: { block: 0, offset: to } };
+    await words.updateComplete;
+    await until(() => !!bubble(), 'the bubble never opened');
+  };
+  await select(0, 7);
+  expect(labels()).not.toContain('Comment');
+  main.dataset.comments = '';
+  const asked: string[] = [];
+  main.addEventListener('text-comment', (e) => {
+    const w = e.target as ToText;
+    asked.push(`${w === words} ${w.sel!.anchor.offset}-${w.sel!.focus.offset}`);
+  });
+  await select(0, 8);
+  expect(labels()[0]).toBe('Comment');
+  bubble()!.querySelector<HTMLElement>('button[aria-label="Comment"]')!.click();
+  expect(asked).toEqual(['true 0-8']);
+  // Not inside the box the comment is written in.
+  delete main.dataset.comments;
+  document.body.insertAdjacentHTML('afterbegin', '<section data-comments><div data-comment-box></div></section>');
+  document.querySelector('[data-comment-box]')!.append(main);
+  await select(0, 7);
+  expect(labels()).not.toContain('Comment');
 });
 
 /** A page with every kind of block and run the Word Processor draws, its cards among them (a rule, a table, a sheet). */

@@ -9,7 +9,7 @@
  * The starter icons answer at once; the first ":" imports the rest of Lucide with its tags (the icon picker's
  * module) and the emoji table, and the list grows when they arrive. Where the editor holds no icon runs
  * (a shape's label, plain words) only emoji are offered. After "@" the rows are the people the editor's host offers
- * (kit/text/text.ts `mentions`), each a name with a line under it, its glyph an "@".
+ * (kit/text/text.ts `mentions`), each a name with a line under it, its glyph an "@", and the list is named People.
  */
 import { LitElement, html, nothing } from 'lit';
 import { icon, iconNamed } from '../draw/icons.ts';
@@ -164,7 +164,7 @@ export class ToComplete extends LitElement {
             >
           </div>`;
         });
-    return html`<div class="to-complete" id=${this.uid} popover=${POPOVER ? 'manual' : nothing} role="listbox" aria-label=${t('common-icon-or-emoji')} ?hidden=${!POPOVER && !this.shown}>${rows}</div>`;
+    return html`<div class="to-complete" id=${this.uid} popover=${POPOVER ? 'manual' : nothing} role="listbox" aria-label=${this.items[0]?.kind === 'mention' ? t('common-people') : t('common-icon-or-emoji')} ?hidden=${!POPOVER && !this.shown}>${rows}</div>`;
   }
 }
 if (!customElements.get('to-complete')) customElements.define('to-complete', ToComplete);
