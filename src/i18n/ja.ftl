@@ -3255,6 +3255,9 @@ board-card-in-lane-beside = 前または次の列の隣のカード
 board-move-card-to-lane-before-or = カードを前または次の列へ移動
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
 board-lane-name = 列の名前
+# same
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = YYYY-MM-DD
 # en: a0cb8ea4060e4a90b3f78592285740f7da401615
 board-new-lane = 新しい列
 # en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6

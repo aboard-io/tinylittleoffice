@@ -1668,6 +1668,8 @@ board-rename-lane = Rename lane
 board-card-in-lane-beside = The card beside it in the lane before or after
 board-move-card-to-lane-before-or = Move the card to the lane before or after
 board-lane-name = Lane name
+# A date field’s placeholder: the order a date is typed in (year, month, day, as digits), in the letters the language names them by.
+board-yyyy-mm-dd = YYYY-MM-DD
 # A lane just added, before it is named.
 board-new-lane = New lane
 board-title-of-card-n = Title of card { $n } in { $lane }

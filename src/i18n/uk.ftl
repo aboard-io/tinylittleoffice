@@ -3371,6 +3371,8 @@ board-card-in-lane-beside = Сусідня картка в попередній 
 board-move-card-to-lane-before-or = Перенести картку в попередню або наступну колонку
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
 board-lane-name = Назва колонки
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = РРРР-ММ-ДД
 # en: a0cb8ea4060e4a90b3f78592285740f7da401615
 board-new-lane = Нова колонка
 # en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6

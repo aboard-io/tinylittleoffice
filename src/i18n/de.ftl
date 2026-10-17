@@ -3339,6 +3339,8 @@ board-card-in-lane-beside = Die Karte daneben in der Spalte davor oder danach
 board-move-card-to-lane-before-or = Karte in die Spalte davor oder danach verschieben
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
 board-lane-name = Name der Spalte
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = JJJJ-MM-TT
 # en: a0cb8ea4060e4a90b3f78592285740f7da401615
 board-new-lane = Neue Spalte
 # en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6

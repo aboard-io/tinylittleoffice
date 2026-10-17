@@ -3424,6 +3424,8 @@ board-card-in-lane-beside = Sąsiednia karta w poprzedniej lub następnej kolumn
 board-move-card-to-lane-before-or = Przenieś kartę do poprzedniej lub następnej kolumny
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
 board-lane-name = Nazwa kolumny
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = RRRR-MM-DD
 # en: a0cb8ea4060e4a90b3f78592285740f7da401615
 board-new-lane = Nowa kolumna
 # en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6

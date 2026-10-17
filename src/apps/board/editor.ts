@@ -26,7 +26,7 @@
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
 import { Ellipsis, GripVertical } from 'lucide';
-import { applyAll, parse, parseInline, plainText, write, writeInline, type Block, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import { applyAll, COL_NAMES, parse, parseInline, plainText, write, writeInline, type Block, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
 import { drawnIn, runKey } from '../../kit/core/commands.ts';
 import BOARD, { CHOSEN, WORDS } from './commands.ts';
 import { btn, cmdBtn, cmdTool } from '../../kit/ui/bar.ts';
@@ -750,7 +750,7 @@ export class ToBoardEditor extends DocElement<View> {
   private field(c: number, o: Opened) {
     const v = this.view;
     const col = v.cols[c];
-    const name = col.name || (c === v.laneCol ? t('board-lane') : '–');
+    const name = col.name || (c === v.laneCol ? t('board-lane') : t('common-column-c', { c: COL_NAMES[c] ?? '' }));
     const value = o.values[c] ?? '';
     const id = `${this.uid}-f${c}`;
     if (c === v.laneCol)
@@ -775,7 +775,7 @@ export class ToBoardEditor extends DocElement<View> {
           autocomplete="off"
           .value=${value}
           inputmode=${KEYBOARD[col.type] ?? 'text'}
-          placeholder=${col.type === 'date' ? 'YYYY-MM-DD' : nothing}
+          placeholder=${col.type === 'date' ? t('board-yyyy-mm-dd') : nothing}
           list=${choices.length ? id : nothing}
           @input=${(e: Event) => this.put(c, (e.target as HTMLInputElement).value)}
         />${choices.length ? html`<datalist id=${id}>${choices.map((x) => html`<option value=${x}></option>`)}</datalist>` : nothing}</label>`;
