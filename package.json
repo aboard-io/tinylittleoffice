@@ -35,7 +35,7 @@
     "test:browser": "vitest run --project browser",
     "test:e2e": "playwright test",
     "walks": "VITE_WALK_STEPS=200 VITE_WALK_RUNS=2 VITE_WALK_FRESH=1 vitest run --project browser test/browser/walks.test.ts",
-    "fuzz": "VITE_FUZZ_RUNS=2000 vitest run test/doc/properties.test.ts test/browser/paste-properties.test.ts",
+    "fuzz": "VITE_FUZZ_RUNS=2000 vitest run test/doc/properties.test.ts test/doc/sync.test.ts test/browser/paste-properties.test.ts",
     "deploy": "node scripts/deploy.mjs",
     "selfhost": "node --env-file-if-exists=.env selfhost/server.ts",
     "selfhost:build": "docker compose build",

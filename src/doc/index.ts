@@ -1,8 +1,8 @@
 /**
  * The document kernel's public surface. An app imports from here and
- * nowhere deeper: the model, TLO in and out, the operations, footnotes and
- * links over runs, tables and the formula engine. README.md in this folder
- * says how the pieces fit.
+ * nowhere deeper: the model, TLO in and out, the operations and their
+ * transformation for shared editing, footnotes and links over runs, tables
+ * and the formula engine. README.md in this folder says how the pieces fit.
  */
 export type { Attrs, Block, ColType, Column, Dir, Doc, Head, Run, TableBlock, TextBlock } from './model.ts';
 export { attr, hasClass, isAtomic, isInnerDoc, isRule, isText, normalRuns, pages, plainText, rule, sections } from './model.ts';
@@ -30,6 +30,9 @@ export {
 
 export type { Op } from './ops.ts';
 export { apply, applyAll, depthOf, family, invert, invertAll, joinBlocks, moveFamily, placeFamily, putCells, removeItem, replaceSpan, runLength, shiftFamily, sliceRuns, splitBlock } from './ops.ts';
+
+export type { Edit, Ordered } from './sync.ts';
+export { applyEdits, Conflict, rebase, transform } from './sync.ts';
 
 export { linkable, linkify, linkTarget, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, referenceNotes, runLinks } from './notes.ts';
 
