@@ -77,7 +77,7 @@ test('/llms.txt says a document goes inside another, before the three rules, wit
   expect(at).toBeGreaterThan(short.indexOf('\n## One example per app\n'));
   expect(at).toBeLessThan(short.indexOf('\n## Three rules agents break first\n'));
   const section = short.slice(at, short.indexOf('\n## Three rules'));
-  for (const words of ['a fence named by any of the ten app ids', '```` ```anim ````', 'an animation moves on its slide', 'edited in place']) expect(section).toContain(words);
+  for (const words of ['a fence named by any of the eleven app ids', '```` ```anim ````', 'an animation moves on its slide', 'edited in place']) expect(section).toContain(words);
   const url = /<(https:\/\/tinylittleoffice\.com\/deck\/#doc=[^>]+)>/.exec(section)![1];
   const r = read(url);
   expect(r.app).toBe('deck');

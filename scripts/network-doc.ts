@@ -62,7 +62,7 @@ address.
   fetched when a page's words need it, and the policy's \`font-src\` is \`'self'\` alone; the icons and the emoji
   are in the site's own app file.
 - **Offline.** With Save in browser on, the site's service worker (\`/sw.js\`, from \`src/sw.ts\`) keeps the
-  site's own files on the device: the eleven pages, the app file, its stylesheet, the manifest
+  site's own files on the device: the home page and one for each app, the app file, its stylesheet, the manifest
   and icons and the Latin faces when it is installed, and each file a page fetches afterwards (an app's templates,
   a language, a face). It asks only the site, and only for its files; a page is asked of the network first, so a
   visit online is never stale. It never keeps a document (the document is after the "#", which never reaches it)

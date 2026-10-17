@@ -37,7 +37,7 @@ There is no shared document. Whoever opens a link gets their own copy: what they
 
 ## A document inside a document
 
-Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the ten app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
+Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the eleven app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
 
 Two slides, a cover and then the Moon going around the Earth, an animation on its slide: {{embed}}
 
