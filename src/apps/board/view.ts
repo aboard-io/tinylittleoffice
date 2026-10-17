@@ -3,8 +3,10 @@
  * cards under it, each card its title and its fields as the Spreadsheet shows its cells (money in its currency, a date
  * as a date, a formula's value: sheet/view.ts `cellText`). A print, a PDF, a PNG and the Display Link get landscape
  * Letter pages, four lanes to a page and the lanes after them on further pages, each page as tall as its longest lane
- * needs; drawn small (on a slide, in a text) or as a thumbnail, one landscape page of the first lanes with the titles
- * that fit. And the board as words, for a screen reader and the API: lane by lane, card by card.
+ * needs, and every card whole: its title and each of its fields wrapped to the card's width, none cut, since a page is
+ * what a board is read from away from the screen. Drawn small (on a slide, in a text) or as a thumbnail, it is the
+ * gist: one landscape page of the first four lanes, each card its title's first line, as many as fit. And the board
+ * as words, for a screen reader and the API: lane by lane, card by card.
  */
 import { evaluateTable, tableAt, textOf, type CellValue, type Doc, type TextNode } from '../../doc/index.ts';
 import type { Page } from '../../kit/core/app.ts';
@@ -46,23 +48,20 @@ const LANE = 240;
 const ACROSS = Math.floor((PAGE.w - 2 * M + GAP) / (LANE + GAP));
 const TITLE_PX = 14;
 const FIELD_PX = 12;
-/** A card's title wraps to at most this many lines, and shows at most this many of its fields. */
-const TITLE_LINES = 3;
-const FIELDS = 4;
 const HEAD = 48;
 
 /** A lane's name as drawn: the nameless lane a dash. */
 const laneName = (l: Lane) => l.name || '–';
 
-/** A card at (x, y), and how tall it is: its title wrapped, then a line a field. Small, the title's first line alone. */
+/** A card at (x, y), and how tall it is: its title wrapped, then each field wrapped, all of them. Small, the title's first line alone. */
 function cardSvg(s: Shown, x: number, y: number, small: boolean): { svg: string; h: number } {
   const w = LANE - 16;
-  const lines = small ? [clip(s.title || '–', w - 24, TITLE_PX)] : wrapText(s.title || '–', w - 24, TITLE_PX, true).slice(0, TITLE_LINES);
-  const fields = small ? [] : s.fields.slice(0, FIELDS);
+  const lines = small ? [clip(s.title || '–', w - 24, TITLE_PX)] : wrapText(s.title || '–', w - 24, TITLE_PX, true);
+  const fields = small ? [] : s.fields.flatMap((f) => wrapText(`${f.name}: ${f.value}`, w - 24, FIELD_PX));
   const h = 14 + lines.length * 19 + fields.length * 17 + 6;
   let svg = rect(x, y, w, h, PAPER, `rx="6" stroke="${LINE}"`);
   lines.forEach((l, k) => (svg += text(x + 12, y + 26 + k * 19, l, { px: TITLE_PX, bold: !small })));
-  fields.forEach((f, k) => (svg += text(x + 12, y + 20 + lines.length * 19 + k * 17, clip(`${f.name}: ${f.value}`, w - 24, FIELD_PX), { px: FIELD_PX, fill: MUTED })));
+  fields.forEach((l, k) => (svg += text(x + 12, y + 20 + lines.length * 19 + k * 17, l, { px: FIELD_PX, fill: MUTED })));
   return { svg, h };
 }
 

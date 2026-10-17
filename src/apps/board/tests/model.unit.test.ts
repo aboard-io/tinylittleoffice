@@ -342,6 +342,13 @@ test('view(): pages never empty, holding every card’s title; four lanes to a l
   // Small: one landscape page, four by three.
   const [thumb] = boardPages(six, true);
   expect(thumb.h).toBe(Math.round((thumb.w * 3) / 4));
+  // A page draws a card whole: a long title and six fields, none cut.
+  const title = 'Draft the long statement of work for the regional rollout and send it round';
+  const wide = parse(`Task | Status | A | B | C | D | E | F\n--- | --- | --- | --- | --- | --- | --- | ---\n${title} | Doing | one | two | three | four | five | six\n`);
+  const [page] = boardPages(wide);
+  for (const word of title.split(' ')) expect(page.svg).toContain(word);
+  for (const value of ['one', 'two', 'three', 'four', 'five', 'six']) expect(page.svg).toMatch(new RegExp(`[A-F]: ${value}<`));
+  expect(page.svg).not.toContain('…');
 });
 
 test('text(): lane by lane, card by card, every card there', () => {
