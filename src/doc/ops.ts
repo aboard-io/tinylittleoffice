@@ -13,7 +13,7 @@
  * column past Z) throws; a rectangle of cells wider or taller than the table
  * is clipped to it.
  */
-import { attr, isText, normalRuns, type Attrs, type Block, type Column, type Doc, type Run, type TableBlock } from './model.ts';
+import { attr, isAtomic, isText, normalRuns, type Attrs, type Block, type Column, type Doc, type Run, type TableBlock, type TextBlock } from './model.ts';
 import { inHead, isLocked, lockText, MAX_COLS, movedIn, movedOut, remapLock, remapRefs, stays, tableAt, type Moved } from './table.ts';
 
 /** The eight primitive edits. */
@@ -42,6 +42,20 @@ export function sliceRuns(runs: Run[], from: number, to: number): Run[] {
     at += len;
   }
   return out;
+}
+
+/** The offset of the first line break among the runs, or -1. */
+export function lineEnd(runs: Run[]): number {
+  let at = 0;
+  for (const r of runs) {
+    if (isAtomic(r)) at += 1;
+    else {
+      const i = r.t.indexOf('\n');
+      if (i >= 0) return at + i;
+      at += r.t.length;
+    }
+  }
+  return -1;
 }
 
 const table = (doc: Doc, at: number): TableBlock => {
@@ -212,12 +226,26 @@ export function splitBlock(doc: Doc, at: number, offset: number): Op[] {
   return [{ op: 'splice', at, n: 1, blocks: [first, second] }];
 }
 
-/** Backspace at the start of `at`: its words joined to the text block before it. Nothing when either is not text. */
+/** Backspace at the start of `at`: its words joined to the text block before it (`joined`). Nothing when either is not text. */
 export function joinBlocks(doc: Doc, at: number): Op[] {
   const prev = doc.blocks[at - 1];
   const b = doc.blocks[at];
   if (!prev || !b || !isText(prev) || !isText(b)) return [];
-  return [{ op: 'splice', at: at - 1, n: 2, blocks: [{ ...prev, runs: normalRuns([...prev.runs, ...b.runs]) }] }];
+  return [{ op: 'splice', at: at - 1, n: 2, blocks: joined(prev, b) }];
+}
+
+/**
+ * Two blocks of words made one: the first keeps its kind and takes the second's words. A heading is one line, which is
+ * all the format can write of one (`## …`), so it takes the second's first line and the second keeps the lines after
+ * it, as the block it was: no line break is lost, and none is held where the text cannot say it.
+ */
+export function joined(first: TextBlock, second: TextBlock): TextBlock[] {
+  const nl = first.k === 'h' ? lineEnd(second.runs) : -1;
+  if (nl < 0) return [{ ...first, runs: normalRuns([...first.runs, ...second.runs]) }];
+  return [
+    { ...first, runs: normalRuns([...first.runs, ...sliceRuns(second.runs, 0, nl)]) },
+    { ...second, runs: sliceRuns(second.runs, nl + 1, runLength(second.runs)) },
+  ];
 }
 
 /** How far in a block sits as an item: a list item's depth, a block that says `{depth=N}`, or -1 for one that nests nothing. */

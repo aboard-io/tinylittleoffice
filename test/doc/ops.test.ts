@@ -303,6 +303,9 @@ test('splitBlock and joinBlocks: Enter and Backspace as splices', () => {
   ]);
   expect(applyAll(d, joinBlocks(d, 1)).blocks[0]).toStrictEqual({ k: 'h', level: 1, runs: [{ t: 'HeadSome ' }, { t: 'bold', b: true }, { t: ' words' }] });
   expect(joinBlocks(d, 0)).toStrictEqual([]);
+  // A heading is one line: it takes a block's first line, and the block keeps the rest as what it was.
+  const lines = parse('# Head\n\nB\nC {.right}\n');
+  expect(write(applyAll(lines, joinBlocks(lines, 1)))).toBe('# HeadB\n\nC {.right}\n');
   expect(joinBlocks(parse('a | b\n--- | ---\n\nx\n'), 1)).toStrictEqual([]);
   expect(applyAll(d, replaceSpan(d, 0, 2, [{ k: 'hr' }])).blocks.map((b) => b.k)).toStrictEqual(['hr', 'li', 'li']);
 });

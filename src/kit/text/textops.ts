@@ -10,6 +10,7 @@
  */
 import {
   apply,
+  applyAll,
   hasClass,
   isAtomic,
   isText as holdsRuns,
@@ -27,6 +28,7 @@ import {
   type Run,
   type TextBlock,
 } from '../../doc/index.ts';
+import { joined, lineEnd } from '../../doc/ops.ts';
 
 /** Whether a block is words the caret can sit in: a heading, a paragraph, an item, a note. Anything else is a card. */
 export const isWords = holdsRuns;
@@ -333,13 +335,14 @@ export function forwardDelete(blocks: Block[], sel: Sel): Edit | null {
  * Two blocks of words made one (Backspace at the second's start, Delete at
  * the first's end). An empty one simply goes, so the block with words keeps
  * its kind and its element: a heading pulled up into an empty line stays a
- * heading (Docs). With words in both, the first keeps its kind. The caret
- * lands where the two met.
+ * heading (Docs). With words in both, the first keeps its kind; a heading,
+ * one line, takes only the second's first line, and the second keeps the
+ * rest (the kernel's `joined`). The caret lands where the two met.
  */
 function join(at: number, first: TextBlock, second: TextBlock, sel: Sel): Edit {
   if (!first.runs.length) return { ops: [{ op: 'splice', at, n: 1, blocks: [] }], sel: caret(at, 0) };
   if (!second.runs.length) return { ops: [{ op: 'splice', at: at + 1, n: 1, blocks: [] }], sel };
-  return { ops: [{ op: 'splice', at, n: 2, blocks: [{ ...first, runs: normalRuns([...first.runs, ...second.runs]) }] }], sel };
+  return { ops: [{ op: 'splice', at, n: 2, blocks: joined(first, second) }], sel };
 }
 
 /** Every selected run of words, as their marks are judged. */
@@ -449,22 +452,11 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
 /** A block's attributes but the title's class. */
 const notTitle = (a: Attrs | undefined): Attrs => ({ ...a, cls: (a?.cls ?? []).filter((c) => c !== 'title') });
 
-/** The lines of a block after its first (`nl`, the first line break) as a paragraph: what a heading cannot hold. */
-const linesAfter = (b: TextBlock, nl: number): Block => withAttrs({ k: 'p', runs: sliceRuns(b.runs, nl + 1, runLength(b.runs)) }, notTitle(b.a));
-
-/** The offset of the first line break among the runs, or -1. */
-function lineEnd(runs: Run[]): number {
-  let at = 0;
-  for (const r of runs) {
-    if (isAtomic(r)) at += 1;
-    else {
-      const i = r.t.indexOf('\n');
-      if (i >= 0) return at + i;
-      at += r.t.length;
-    }
-  }
-  return -1;
-}
+/**
+ * The lines of a block after its first (`nl`, the first line break) as a paragraph: what a heading cannot hold. It keeps
+ * the block's alignment and classes but the title's, and not its id, which names the heading's line alone.
+ */
+const linesAfter = (b: TextBlock, nl: number): Block => withAttrs({ k: 'p', runs: sliceRuns(b.runs, nl + 1, runLength(b.runs)) }, { ...notTitle(b.a), id: undefined });
 
 /** Whether the first selected block is of a kind: for a bar's pressed states. */
 export function kindAt(blocks: Block[], sel: Sel): 'p' | 'h1' | 'h2' | 'title' | 'ul' | 'ol' | 'quote' | null {
@@ -689,39 +681,64 @@ function heldAt(made: Block[], kept: Block[], sel: Sel): Held | null {
 }
 
 /**
+ * An op (`op`, settled) as the format keeps a heading: one line (setKind). Words with a line break put into a heading
+ * (lines pasted or typed there; `after`, what the op makes of `before`) leave it its first line, and the lines after it
+ * go in as a paragraph after it, in the op itself: a `text` op puts in the heading's line, and a splice after it the
+ * paragraph; a splice's heading is put in as the two blocks. So each op told leaves a document its text says, and a
+ * server that applies each to what its text reads back holds what the editor holds. `splits` gets each heading split:
+ * its block in what the op would have made, and its first line's end.
+ */
+function oneLine(before: Doc, after: Doc, op: Op, splits: [number, number][]): Op[] {
+  if (op.op === 'text') {
+    const b = after.blocks[op.at] as TextBlock;
+    const nl = b.k === 'h' ? lineEnd(b.runs) : -1;
+    if (nl < 0) return [op];
+    splits.push([op.at, nl]);
+    const from = Math.min(op.from, nl);
+    return [
+      { op: 'text', at: op.at, from, to: blockLength(before.blocks[op.at]), runs: sliceRuns(b.runs, from, nl) },
+      { op: 'splice', at: op.at + 1, n: 0, blocks: [linesAfter(b, nl)] },
+    ];
+  }
+  if (op.op !== 'splice') return [op];
+  const blocks = op.blocks.flatMap((b, j): Block[] => {
+    const nl = b.k === 'h' ? lineEnd(b.runs) : -1;
+    if (b.k !== 'h' || nl < 0) return [b];
+    splits.push([op.at + j, nl]);
+    return [{ ...b, runs: sliceRuns(b.runs, 0, nl) }, linesAfter(b, nl)];
+  });
+  return blocks.length === op.blocks.length ? [op] : [{ ...op, blocks }];
+}
+
+/**
  * An edit's ops as the format keeps what they make (docs/kernel.md §2, point 5): every block of
  * words they leave is what its text reads back as, so the editor holds what `parse(write(model))` gives, and a server
  * that keeps the text and applies the same ops holds the same words (Atlas, 2026-10-17). A splice's blocks go in so;
  * a `text` op that would leave a mark on a space at its edge reaches over the marks let go of (its words and their
- * places stay as they were, so the selection after it does too), and one that then changes nothing goes. A heading
- * left holding a line break is split as setKind splits one, and `sel` (the selection after the ops) follows. `held` is
- * what was let go of just before the caret, if it is one.
+ * places stay as they were, so the selection after it does too), and one that then changes nothing goes. An op that
+ * leaves a heading holding a line break leaves it one line and a paragraph after it (`oneLine`), and `sel` (the
+ * selection after the ops; an edit puts lines into a heading with its last op) follows. `held` is what was let go of
+ * just before the caret, if it is one.
  */
 export function settle<S extends Sel | undefined>(blocks: Block[], ops: Op[], sel?: S): { ops: Op[]; held: Held | null; sel: S } {
   let kept: Doc = { head: {}, blocks };
   let made = kept;
   const out: Op[] = [];
+  const splits: [number, number][] = [];
   for (const op of ops) {
     made = apply(kept, op);
     const said = settleOp(kept, made, op);
-    if (said) out.push(said);
-    kept = said === op ? made : said ? apply(kept, said) : kept;
+    if (!said) continue;
+    const after = said === op ? made : apply(kept, said);
+    const one = oneLine(kept, after, said, splits);
+    out.push(...one);
+    kept = one[0] === said ? after : applyAll(kept, one);
   }
   let held = sel ? heldAt(made.blocks, kept.blocks, sel) : null;
-  // A heading is one line (setKind): one left holding a line break (a paragraph of lines joined to it by Backspace,
-  // lines pasted into it) is its first line, and the lines after it a paragraph, as the format reads them; the
-  // selection follows them. The last first, so each split leaves the places of those before it.
+  // The selection follows a heading's lines into the paragraph after it, and the blocks after a split are one further
+  // on. The last first, so each split leaves the places of those before it.
   let at: Sel | undefined = sel;
-  for (let i = kept.blocks.length - 1; i >= 0; i--) {
-    const b = kept.blocks[i];
-    const nl = b.k === 'h' ? lineEnd(b.runs) : -1;
-    if (b.k !== 'h' || nl < 0) continue;
-    const split: Op[] = [
-      { op: 'text', at: i, from: nl, to: runLength(b.runs), runs: [] },
-      { op: 'splice', at: i + 1, n: 0, blocks: [sayableBlock(linesAfter(b, nl))] },
-    ];
-    for (const op of split) kept = apply(kept, op);
-    out.push(...split);
+  for (const [i, nl] of splits.sort((x, y) => y[0] - x[0])) {
     const moved = (p: Pos): Pos => (p.block > i ? { ...p, block: p.block + 1 } : p.block === i && p.offset > nl ? { block: i + 1, offset: p.offset - nl - 1 } : p);
     if (at) at = { anchor: moved(at.anchor), focus: moved(at.focus) };
     if (held && held.block >= i) held = null;

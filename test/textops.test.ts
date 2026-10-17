@@ -3,7 +3,7 @@
 // text reads back as.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { applyAll, invertAll, parse, write, type Block, type Doc, type Run } from '../src/doc/index.ts';
+import { apply, applyAll, invertAll, parse, write, type Block, type Doc, type Op, type Run } from '../src/doc/index.ts';
 import {
   align,
   backspace,
@@ -437,6 +437,13 @@ class Model {
     const kept = settle(this.blocks, e.ops, e.sel);
     const next = applyAll(this.doc, kept.ops);
     expect(applyAll(next, invertAll(this.doc, kept.ops))).toStrictEqual(this.doc);
+    // Each op told leaves a document its text says (but for an item's depth, below), so a server that applies each op
+    // to what its text reads back holds what the editor holds.
+    let step = this.doc;
+    for (const op of kept.ops) {
+      step = apply(step, op);
+      expect(level(parse(write(step))), write(step)).toStrictEqual(level(step));
+    }
     this.doc = next;
     this.sel = kept.sel;
     this.held = kept.held;
@@ -579,30 +586,80 @@ test('settle widens a text op over the marks the format lets go of, and its inve
   expect(sayableBlock(p)).toBe(p);
 });
 
-test('lines joined to a heading by Backspace or Delete, or pasted into it, are a paragraph after it, and the caret follows', () => {
-  // The format writes a heading as one line ("## AB\nC" reads as a heading and a paragraph), as setKind splits one.
-  const L = blocks('## A {.center}\n\nB\nC\nD\n\nE\n');
-  const m = new Model(write({ head: {}, blocks: L }), caret(1, 0));
+/** The text a server holds that applies each op to what its text reads back, from `tlo`. */
+const told = (tlo: string, ops: Op[]): string => ops.reduce((t, op) => write(apply(parse(t), op)), tlo);
+
+test('a heading is one line: a block of lines joined to it gives it its first line and keeps the rest; lines pasted into it leave a paragraph after it', () => {
+  // The format writes a heading as one line ("## AB\nC" reads as a heading and a paragraph). Backspace at the start of
+  // a paragraph of lines after a heading: the heading takes the first line, and the paragraph keeps the rest, its
+  // alignment and all, in one op that a server applying it to the text holds alike (found 2026-10-17: the heading held
+  // the lines, then two ops more split them off, and a server reading the text between ops wrote the lines twice).
+  const start = '## A {.center}\n\nB\nC\nD {.right}\n\nE\n';
+  const m = new Model(start, caret(1, 0));
   m.do(backspace(m.blocks, m.sel, 'doc'));
-  expect(m.blocks.map((b) => b.k)).toEqual(['h', 'p', 'p']);
-  expect(m.tlo).toBe('## AB {.center}\n\nC\nD {.center}\n\nE\n');
+  expect(m.tlo).toBe('## AB {.center}\n\nC\nD {.right}\n\nE\n');
   expect(m.sel).toEqual(caret(0, 1));
   m.readsBack();
-  // Delete at the heading's end does the same.
-  const f = new Model(write({ head: {}, blocks: L }), caret(0, 1));
+  const e = backspace(blocks(start), caret(1, 0), 'doc') as Edit;
+  expect(settle(blocks(start), e.ops, e.sel).ops).toHaveLength(1);
+  expect(told(start, e.ops)).toBe(m.tlo);
+  // Delete at the heading's end does the same; an item keeps its lines as an item, a quote as a quote.
+  const f = new Model(start, caret(0, 1));
   f.do(forwardDelete(f.blocks, f.sel));
   expect(f.tlo).toBe(m.tlo);
-  f.readsBack();
-  // Lines pasted into a heading as words: the caret after them is in the paragraph, at the last line's end.
-  const p = new Model('## Head\n\nAfter\n', caret(0, 2));
-  p.do(insertRuns(p.blocks, p.sel, [{ t: 'x\ny', b: true }]));
-  expect(p.tlo).toBe('## He**x**\n\n**y**ad\n\nAfter\n');
+  for (const [was, is] of [
+    ['## A\n\n- x\n  y\n', '## Ax\n\n- y\n'],
+    ['## A\n\n> x\n> y\n', '## Ax\n\n> y\n'],
+    ['# A {.title}\n\nx\n\\\n', '# Ax {.title}\n\n<br>\n'],
+  ]) {
+    const d = new Model(was, caret(0, 1));
+    d.do(forwardDelete(d.blocks, d.sel));
+    expect(d.tlo).toBe(is);
+    d.readsBack();
+  }
+  // A paragraph, an item and a quote hold lines: joined to one, the lines all go with them.
+  for (const [was, is] of [
+    ['a\n\nb\nc\n', 'ab\nc\n'],
+    ['- a\n\nb\nc\n', '- ab\n  c\n'],
+    ['> a\n\nb\nc\n', '> ab\n> c\n'],
+  ]) {
+    const d = new Model(was, caret(1, 0));
+    d.do(backspace(d.blocks, d.sel, 'doc'));
+    expect(d.tlo).toBe(is);
+    d.readsBack();
+  }
+  // Lines pasted into a heading as words: the heading keeps its first line, its id and its title alone, and the rest
+  // is a paragraph after it, the caret at the last line's end; a text op puts in the heading's line, a splice the
+  // paragraph.
+  const head = '## Head {#top .center}\n\nAfter\n';
+  const p = new Model(head, caret(0, 2));
+  const put = insertRuns(p.blocks, p.sel, [{ t: 'x\ny', b: true }]);
+  p.do(put);
+  expect(p.tlo).toBe('## He**x** {#top .center}\n\n**y**ad {.center}\n\nAfter\n');
   expect(p.sel).toEqual(caret(1, 1));
   p.readsBack();
+  const ops = settle(blocks(head), put.ops, put.sel).ops;
+  expect(ops.map((o) => o.op)).toEqual(['text', 'splice']);
+  expect(told(head, ops)).toBe(p.tlo);
+  // As blocks (a paste of paragraphs, the first of lines): the first line joins the heading, and the last block takes
+  // the heading's words after the caret. In an item or a quote the lines stay.
+  const pb = new Model('## Head\n\nAfter\n', caret(0, 2));
+  pb.do(insertBlocks(pb.blocks, pb.sel, blocks('x\ny\n\nz\n')));
+  expect(pb.tlo).toBe('## Hex\n\ny\n\nzad\n\nAfter\n');
+  expect(pb.sel).toEqual(caret(2, 1));
+  for (const [was, is] of [
+    ['- ab\n', '- ax\n  yb\n'],
+    ['> ab\n', '> ax\n> yb\n'],
+  ]) {
+    const d = new Model(was, caret(0, 1));
+    d.do(insertRuns(d.blocks, d.sel, [{ t: 'x\ny' }]));
+    expect(d.tlo).toBe(is);
+  }
   // A selection follows the lines it was in, and the blocks after the split are one further on (undo: Model.do).
-  const e = backspace(L, caret(1, 0), 'doc') as Edit;
-  expect(settle(L, e.ops, sel([0, 1], [0, 4])).sel).toEqual(sel([0, 1], [1, 1]));
-  expect(settle(L, e.ops, sel([1, 1])).sel).toEqual(sel([2, 1]));
+  const H = blocks('## Head\n\nAfter\n');
+  const x = insertRuns(H, caret(0, 2), [{ t: 'x\ny' }]);
+  expect(settle(H, x.ops, sel([0, 1], [0, 5])).sel).toEqual(sel([0, 1], [1, 1]));
+  expect(settle(H, x.ops, sel([1, 1])).sel).toEqual(sel([2, 1]));
 });
 
 test(

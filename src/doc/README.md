@@ -66,7 +66,8 @@ An op that cannot apply (a `text` op on a table, a column past Z, a table left w
 rectangle is clipped to the table — `putCells` gives the table the rows it needs first.
 
 Composed edits return `Op[]`, so undo and tests see primitives only: `splitBlock` (Enter), `joinBlocks` (Backspace
-at a start), `replaceSpan`, and the family helpers for lists — `family`, `shiftFamily`, `moveFamily`, `placeFamily`,
+at a start; a heading, one line, takes a block's first line and the block keeps the rest: `joined`), `replaceSpan`,
+and the family helpers for lists — `family`, `shiftFamily`, `moveFamily`, `placeFamily`,
 `removeItem`. An item's family is the list items deeper than it (and a fence that says `{depth=N}`); a lines app that
 counts heading levels passes its own `depths`.
 

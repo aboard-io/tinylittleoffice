@@ -260,9 +260,9 @@ page's own not yet told back (`rebase`, from `tinylittleoffice/doc`): applied wi
 event fired, the view drawn again, and the history carried over them, so an undo takes back only what was done here
 (where they cross, it is let go). Only the Word Processor carries its caret and its undo's saved carets past them; the
 other apps hold theirs within the document. A page that takes the server's document again gives it as a new `value`.
-An editor's ops leave its words as the format keeps them (docs/kernel.md §2, point 5: no mark on a space at its edge),
-so a server that keeps the document as its text, and applies the same ops to what it reads back, holds the words the
-editor holds.
+An editor's ops leave its words as the format keeps them (docs/kernel.md §2, point 5: no mark on a space at its edge;
+a heading one line), each op on its own, so a server that keeps the document as its text, and applies each op to what
+it reads back, holds the words the editor holds.
 
 Of the server's four rules (docs/kernel.md §12), the kernel enforces two: `transform` throws `Conflict` for crossing
 spans, and `apply` throws for a table left with no column or one past Z. The third, no lock in the head, has no check in

@@ -19,7 +19,8 @@
  * of no app's is words where it cannot be shown. Words that look like
  * syntax stay words: the TLO writer escapes them.
  */
-import { column, isAtomic, isText, linkable, linkTarget, normalRuns, parse, plainText, refFence, write, type Block, type Column, type Run } from '../../doc/index.ts';
+import { column, isAtomic, isText, linkable, linkTarget, normalRuns, parse, plainText, refFence, runLength, sliceRuns, write, type Block, type Column, type Run } from '../../doc/index.ts';
+import { lineEnd } from '../../doc/ops.ts';
 import { lookup } from '../core/app.ts';
 import { decodeDoc } from '../core/codec.ts';
 import { parseHash, routeHash } from '../core/route.ts';
@@ -339,8 +340,12 @@ export function htmlToBlocks(html: string, kept = true): Block[] {
       c.depth = 0;
     }
     if (!runs.length) return;
-    if (c.k === 'h') blocks.push({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs });
-    else if (c.k === 'li') blocks.push({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs });
+    if (c.k === 'h') {
+      // A heading is one line (docs/kernel.md §2): the lines after a <br> in one are a paragraph after it.
+      const nl = lineEnd(runs);
+      blocks.push({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs: nl < 0 ? runs : sliceRuns(runs, 0, nl) });
+      if (nl >= 0) blocks.push({ k: 'p', runs: sliceRuns(runs, nl + 1, runLength(runs)) });
+    } else if (c.k === 'li') blocks.push({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs });
     else blocks.push({ k: c.k, runs });
   };
   const addText = (raw: string, m: Marks) => {

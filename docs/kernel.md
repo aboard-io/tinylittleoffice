@@ -150,7 +150,7 @@ Composed edits, each returning `Op[]` (so undo and tests see primitives only):
 
 ```ts
 splitBlock(doc, at, offset): Op[]                 // Enter: block `at` becomes two; a li keeps depth/ord; a heading's second half is a p
-joinBlocks(doc, at): Op[]                         // Backspace at the start of `at`: joined to the text block before it
+joinBlocks(doc, at): Op[]                         // Backspace at the start of `at`: joined to the text block before it (a heading takes its first line: `joined`)
 family(doc, i): number                            // the end of item i's family (li blocks deeper than it)
 shiftFamily(doc, i, by: 1 | -1): Op[] | null      // Tab, Shift+Tab: the family a level in or out
 moveFamily(doc, i, by: 1 | -1): Op[] | null       // past its neighbor: one `move`
@@ -216,7 +216,7 @@ Every `beforeinput` is `preventDefault()`ed and turned into ops, except while co
 | `insertText`, `insertReplacementText` (autocorrect) | delete the selection, `text` insert `data` with the marks in force (`fmt`); `' '` after `-`/`*`/`1.` at a `p`'s start → `li`, after `#`… → `h`, after `>` → `quote` (doc shape), as two steps (the space typed, then the kind) so an undo gives the marker back; `"`/`'` → curly |
 | `insertParagraph` | doc/lines: `splitBlock` (at the end of an item whose children follow, the new item is their first child; at the very start of words that are not an item, an empty `p` is spliced in above and the block is left as it is); line: `text-enter` |
 | `insertLineBreak` | doc/lines, in a `p`, `li` or `quote`: insert `'\n'`; a heading splits; line: `text-enter` with `shift: true` |
-| `deleteContentBackward` / `Forward` | one character or one atomic run; at a block's start: an empty `li` with children goes and they come out a level, any other `li` unlists (depth−1, then `p`), else a join (the block before keeps its kind; when either is empty the empty one is spliced out, so words keep their heading); at the span's start (not doc): `text-exit`; beside an embed block: `splice` it out |
+| `deleteContentBackward` / `Forward` | one character or one atomic run; at a block's start: an empty `li` with children goes and they come out a level, any other `li` unlists (depth−1, then `p`), else a join (the block before keeps its kind; when either is empty the empty one is spliced out, so words keep their heading; a heading takes only the first line and the block keeps the rest); at the span's start (not doc): `text-exit`; beside an embed block: `splice` it out |
 | `deleteWordBackward/Forward`, `deleteSoftLineBackward/Forward`, `deleteHardLineBackward/Forward`, `deleteContent`, `deleteByCut`, `deleteByDrag` | `text` delete over the target range (cut also writes the clipboard, see below) |
 | `insertFromPaste`, `insertFromDrop` | the paste pipeline |
 | `formatBold/Italic/Underline/StrikeThrough` (Safari's Mod+B…) | `exec('b'…)` |
@@ -240,8 +240,14 @@ and a link's space let go at a line's end is not held (a space ends a link, docs
 those of its words, not the spaces at its edges, so "word " made bold shows Bold pressed and Bold again unbolds it. A
 paste's words are settled where they land, with the words around them (`pasteFrom(…, false)`), so an underlined
 "a " pasted before an underlined word is one underline; a host that puts pasted blocks in whole gets them as the
-format keeps them (`fitBlocks`, `htmlToBlocks`). A heading is one line, as setKind makes one: lines joined to it by
-Backspace or Delete, or pasted into it, are a paragraph after it, the caret with them. Ops someone else made are applied
+format keeps them (`fitBlocks`, `htmlToBlocks`). A heading is one line, as setKind makes one (docs/editing.md §2): a
+block of lines joined to it by Backspace or Delete gives it its first line and keeps the rest as the block it was, in
+the join's one splice (ops.ts `joined`), and lines pasted or typed into it leave it its first line and a paragraph
+after it, the caret with them, in the op that put them there (`oneLine`: a `text` op puts in the heading's line and a
+splice the paragraph; a splice puts in the two blocks). So each op told leaves a document its text says, and a server
+that applies each op to what its text reads back holds what the editor holds (found 2026-10-17: the heading held the
+lines and two ops more split them off, and such a server, reading the text between ops, wrote the lines twice).
+Ops someone else made are applied
 as they arrive (`applyRemote`), and a transformed op can leave a mark on a space whose neighbor another took away
 (here "c" taken out of a bold "a b c", there "b": a bold space after "a", a plain one after that), so the blocks such
 ops make, and an undo's or a redo's, are settled as they land (kit/core/element.ts `sayableAfter`), as the text, the

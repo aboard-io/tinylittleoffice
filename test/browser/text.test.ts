@@ -5,7 +5,7 @@
 // the visual viewport).
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
-import { applyAll, parse, write, type Doc } from '../../src/doc/index.ts';
+import { apply, applyAll, parse, write, type Doc, type Op } from '../../src/doc/index.ts';
 import { htmlToBlocks } from '../../src/kit/text/clipboard.ts';
 import { encodeDoc } from '../../src/kit/core/codec.ts';
 import { History } from '../../src/kit/text/history.ts';
@@ -200,6 +200,73 @@ test('a heading pulled up into an empty line stays a heading: one <h1> left, not
   expect(below.el.tx.children).toHaveLength(1);
   expect(below.el.tx.firstElementChild!.tagName).toBe('H1');
   expect(below.el.sel).toEqual(caret(0, 5));
+});
+
+/** The text a server holds that applies each op it is told to what its text reads back, from `tlo`. */
+const told = (tlo: string, ops: Op[]): string => ops.reduce((t, op) => write(apply(parse(t), op)), tlo);
+/** The ops of each change the editor tells, from now on. */
+function heard(h: Host): Op[][] {
+  const all: Op[][] = [];
+  h.el.addEventListener('text-ops', (e) => all.push((e as CustomEvent<TextOps>).detail.ops));
+  return all;
+}
+const tags = (h: Host) => [...h.el.tx.children].map((c) => c.tagName);
+
+test('a heading is one line: Backspace before a paragraph of lines gives it the first line, and lines pasted into it leave a paragraph after it', async () => {
+  // Backspace at the start of a paragraph of two lines after a heading: the heading takes the first line, the
+  // paragraph keeps the second, the caret where the two met; one op, which a server keeping the text holds alike.
+  const start = '## A\n\nB\nC {.right}\n\nD\n';
+  const h = await mount(start, 'doc', caret(1, 0));
+  const ops = heard(h);
+  await key(h, 'Backspace');
+  await tick();
+  expect(h.tlo).toBe('## AB\n\nC {.right}\n\nD\n');
+  expect(tags(h)).toEqual(['H2', 'P', 'P']);
+  expect(h.el.tx.querySelector('h2')!.textContent).toBe('AB');
+  expect(h.el.sel).toEqual(caret(0, 1));
+  expect(domSel().node && h.el.tx.querySelector('h2')!.contains(domSel().node!)).toBe(true);
+  expect(ops).toHaveLength(1);
+  expect(told(start, ops[0])).toBe(h.tlo);
+  expect(parse(h.tlo).blocks).toStrictEqual(h.doc.blocks);
+  // Undo puts the paragraph back whole; Delete at the heading's end then does the same as Backspace did.
+  h.step('undo');
+  await h.el.updateComplete;
+  expect(h.tlo).toBe(start);
+  h.el.sel = caret(0, 1);
+  await h.el.updateComplete;
+  await key(h, 'Delete');
+  expect(h.tlo).toBe('## AB\n\nC {.right}\n\nD\n');
+  expect(h.el.sel).toEqual(caret(0, 1));
+
+  // Two lines pasted into a heading as words: the heading keeps the first, the second and the heading's words after
+  // the caret are a paragraph after it, the caret at the end of the pasted words.
+  const p = await mount('## Head\n\nAfter\n', 'doc', caret(0, 2));
+  const pasted = heard(p);
+  await paste(p, { 'text/plain': 'x\ny' });
+  await tick();
+  expect(p.tlo).toBe('## Hex\n\nyad\n\nAfter\n');
+  expect(tags(p)).toEqual(['H2', 'P', 'P']);
+  expect(p.el.sel).toEqual(caret(1, 1));
+  expect(told('## Head\n\nAfter\n', pasted[0])).toBe(p.tlo);
+  expect(parse(p.tlo).blocks).toStrictEqual(p.doc.blocks);
+  // A heading of two lines from a page (<h2>a<br>b</h2>) is a heading and a paragraph, pasted or read.
+  expect(htmlToBlocks('<h2>a<br>b</h2>')).toEqual([
+    { k: 'h', level: 2, runs: [{ t: 'a' }] },
+    { k: 'p', runs: [{ t: 'b' }] },
+  ]);
+  const q = await mount('## Head\n\nAfter\n', 'doc', caret(0, 4));
+  await paste(q, { 'text/html': '<p>x<br>y</p>', 'text/plain': 'x\ny' });
+  await tick();
+  expect(q.tlo).toBe('## Headx\n\ny\n\nAfter\n');
+  expect(q.el.sel).toEqual(caret(1, 1));
+  // An item and a quote hold lines: pasted into one, the lines stay in it.
+  const li = await mount('- ab\n\n> cd\n', 'doc', caret(0, 1));
+  await paste(li, { 'text/plain': 'x\ny' });
+  li.el.sel = caret(1, 1);
+  await li.el.updateComplete;
+  await paste(li, { 'text/plain': 'x\ny' });
+  expect(li.tlo).toBe('- ax\n  yb\n\n> cx\n> yd\n');
+  expect(parse(li.tlo).blocks).toStrictEqual(li.doc.blocks);
 });
 
 test('marks over a selection: one op, the <b> drawn, the selection kept on the same words', async () => {
