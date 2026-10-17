@@ -65,7 +65,7 @@ What an app still asked of the site itself, and what replaces it:
    on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, a board's `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
    An outline's fold button picks its item too, and folds nothing: a fold is the document's own (`{.shut}`), so a
-   read-only outline shows the folds it was given. A motion's Draw mode is a read-only Draw.
+   read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw.
 9. **A toast with an action.** Done: `toast(words, { action: { label, does } })` draws a button after the words, the
    toast held while it has the focus (kit/core/say.ts, kit/ui/toast.ts).
 10. **The fonts in the package.** Done: build:lib copies the faces editors.css names, and their license, into
@@ -175,7 +175,7 @@ on the root (kit/ui/theme.ts), so a page's own dark values go under the same sel
 - **Shape.** `--to-radius`, `--to-radius-sm`, `--to-radius-pill`, `--to-shadow` and `--to-shadow-pop`.
 - **Room.** `--to-gutter-k` (the gutter, as a number of the scale's 16px: 1, and 0.75 on a narrow screen), `--to-max-w`
   (the measure of a column of words), and `--to-col-h`, the height a canvas or a map fills (the Drawing, the Diagram,
-  the Animation, the Trip Planner's map): the screen less the site's header and bar unless the page sets it, as the
+  the Animator, the Trip Planner's map): the screen less the site's header and bar unless the page sets it, as the
   site's chrome does to its column's measured height.
 - **Size.** `--to-doc` and `--to-nav` (kit/ui/zoom.ts): the size of everything as two plain numbers on the root, which
   `setup()` sets (1.3 at 100%; the nav's stops at 120%). A document's lengths are in rem, and on the site the root's

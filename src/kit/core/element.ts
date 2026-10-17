@@ -2,7 +2,7 @@
  * DocElement: what every app's editor extends (docs/kernel.md §3). The shell hands it the document's text
  * as `value`; it parses once, keeps the kernel's Doc, and draws a view of it (`read`, pure). Every edit is
  * a list of the kernel's operations through `edit()`: applied, re-read, written back as text in a
- * "docchange" event. Undo is an op log (§8, decision 2): each entry holds the ops and their inverses, a
+ * "docchange" event. Undo is an op log (§6, decision 2): each entry holds the ops and their inverses, a
  * burst of typing into one place within 700 ms is one entry, and the shell's "docundo"/"docredo" events
  * are answered here. An edit may carry a `mark` (the host's selection, whatever shape it has), handed back
  * with the entry to `undone()` so the selection comes back with the change; `firstAt()` says where the

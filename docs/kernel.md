@@ -119,13 +119,13 @@ export type Op =
   | { op: 'splice'; at: number; n: number; blocks: Block[] }                 // insert (n = 0), remove (blocks = []), replace
   | { op: 'move'; at: number; n: number; to: number }                        // a span of blocks moved before index `to` (in the doc without the span)
   | { op: 'text'; at: number; from: number; to: number; runs: Run[] }        // in text block `at`: replace characters [from, to) with runs (atomic runs count 1)
-  | { op: 'cells'; at: number; r: number; c: number; values: string[][] }    // a rectangle of a table's cells written, top-left (r, c)
+  | { op: 'cells'; at: number; r: number; c: number; values: string[][]; force?: true } // a rectangle of a table's cells written, top-left (r, c); force writes locked cells too
   | { op: 'rows'; at: number; r: number; n: number; rows?: string[][] }      // rows put in before r (rows given) or taken out
   | { op: 'cols'; at: number; c: number; n: number; cols?: Column[] }        // columns put in before c (cols given) or taken out
   | { op: 'col'; at: number; c: number; col: Column };                       // a column renamed or retyped
 
 export function apply(doc: Doc, op: Op): Doc;          // pure; structural sharing: untouched blocks are the same objects
-export function invert(doc: Doc, op: Op): Op;          // the op that undoes `op` applied to `doc`
+export function invert(doc: Doc, op: Op): Op[];        // the ops that undo `op` applied to `doc`
 export const applyAll = (doc: Doc, ops: Op[]) => ops.reduce(apply, doc);
 ```
 
@@ -456,7 +456,7 @@ says in the order it says it, and the pages are a picture of it.
 `src/kit/` is what every app shares: the shell that holds an app, the editor, drawing, files, and sharing. It is six
 folders, and nothing sits beside them. Every file begins by saying what it does; this section says where a file goes.
 
-- [core/](../src/kit/core/): the contract between an app and the shell, and the link: the app definition and the registry, the shell, commands and keys, the strings, the store, the route, the codec, the one voice (`toast()`, which the page's toast shows).
+- [core/](../src/kit/core/): the contract between an app and the shell, and the link: the app definition and the registry, the shell, commands and keys, the strings, the store, the route, the codec, what an app asks of its page (host), the one voice (`toast()`, which the page's toast shows).
 - [ui/](../src/kit/ui/): the elements round a document and the chrome: the bar, the menus and dialogs, the drawer, find, home, Insert, the toast, the size of everything and the theme.
 - [text/](../src/kit/text/): the editor's model and its commands: `<to-text>`, its operations, the clipboard, history, rows and columns, the diff, and a document's text layer.
 - [draw/](../src/kit/draw/): drawing pages and what is drawn on them: the page, charts, the icons and emoji, QR codes, the mark, a preview card's picture, motion and steps.
