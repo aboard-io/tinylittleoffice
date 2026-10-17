@@ -100,6 +100,30 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       '# Plan\n\nSail it.\n',
       '# Plan\n\nShip it.\n',
     ]);
+    // Who did what, for a server as for a page: the kernel's file tracks two people's versions, says each change, and
+    // makes the edit that rejects one, with nothing of the editors loaded: one file that imports nothing and names no
+    // browser global, as the commands' (docs/library.md, Tracked changes and comments for a host).
+    const docJs = readFileSync(join(app, 'node_modules/tinylittleoffice/dist/doc.js'), 'utf8');
+    expect(importsOf(docJs)).toStrictEqual([]);
+    expect(domNames(docJs)).toStrictEqual([]);
+    const tracking = [
+      "import { applyAll, changesOf, diffLines, parse, rejectOps, track, trackOn, write } from 'tinylittleoffice/doc';",
+      "const versions = [{ author: 'a@x.co', text: 'Due in 30 days.\\n', hash: 'v0' }, { author: 'b@x.co', text: 'Due in 45 days, net.\\n', hash: 'v1' }];",
+      'const tracked = track(versions);',
+      "const typing = trackOn(tracked, { author: 'b@x.co', text: 'Due in 45 days, net 30.\\n', hash: 'v2' }, 2);",
+      'const now = parse(versions[1].text);',
+      "const back = write(applyAll(now, rejectOps(tracked, now.blocks, ['v1:0'])));",
+      "console.log(JSON.stringify([changesOf(tracked).map((c) => [c.author, c.put, c.took]), changesOf(typing).length, back, diffLines(['a', 'b'], ['b']).map((c) => c.kind)]));",
+    ].join('\n');
+    expect(JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', tracking], { cwd: app, encoding: 'utf8' }))).toStrictEqual([
+      [
+        ['b@x.co', '45', '30'],
+        ['b@x.co', ', net', ''],
+      ],
+      2,
+      'Due in 30 days, net.\n',
+      ['-', ' '],
+    ]);
     // The commands, as a program serves them: one file that imports nothing and names no browser global
     // (vite.lib.config.ts answers what the registry's modules ask of a page "none"), a command declared, served as a
     // tool to the actor it names, its words in English with nothing set up, and documented.
@@ -142,7 +166,8 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
         "import { mount, type Mounted } from 'tinylittleoffice/editors';",
         "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type SheetMark } from 'tinylittleoffice/kit';",
-        "import { COLORS, changesOf, ghostsOf, paint, pinComments, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
+        "import { COLORS, changesOf, ghostsOf, paint, pinComments, rejectOps, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
+        "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
         "import 'tinylittleoffice/editors.css';",
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
@@ -177,6 +202,9 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         // Who did what, for a host whose documents several people write: versions by their authors, drawn over the words.
         "const versions: Step[] = [{ author: 'a@x.co', text: '# Plan\\n' }, { author: 'b@x.co', text: '# Plans\\n', hash: 'v1' }];",
         'export const changes: Change[] = changesOf(track(versions));',
+        // The same tracking from the kernel's file, for a server: the kit's and the kernel's types are one.
+        'export const tracked: Tracked[] = trackOnServer(versions);',
+        "export const undo: Op[] | null = rejectOps(track(versions), parse(versions[1].text).blocks, ['v1:0']) ?? rejectOn(tracked, [], []);",
         "export const people: Mention[] = [{ name: 'Bea', detail: 'b@x.co' }];",
         "const drawing: Drawing = { color: () => COLORS[0], initials: () => 'B', name: () => 'Bea', accepted: () => false, takenOutBy: (n) => n, cardChanged: 'Changed', rejected: 'rejected', restored: 'restored' };",
         'export const redline = async (into: Element, frame: HTMLElement): Promise<Pinned[]> => {',
@@ -198,11 +226,13 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { tools } from 'tinylittleoffice/commands';",
         "import { mount } from 'tinylittleoffice/editors';",
         "import { registerApp, track } from 'tinylittleoffice/kit';",
+        "import { rejectOps } from 'tinylittleoffice/doc';",
         "write('# Plan');",
         'tools([], 7);',
         "void mount('write', '', 'main', () => {});",
         "registerApp('tally');",
         "track('# Plan');",
+        "rejectOps([], 'v1:0', []);",
       ].join('\n'),
     );
     const tsc = (project: string) => {
@@ -218,7 +248,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         .trim()
         .split('\n')
         .map((l) => /^(\S+)\((\d+),\d+\): error (TS\d+)/.exec(l)?.slice(1).join(' ')),
-    ).toStrictEqual(['bad.ts 5 TS2345', 'bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345', 'bad.ts 9 TS2345']);
+    ).toStrictEqual(['bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345', 'bad.ts 9 TS2345', 'bad.ts 10 TS2345', 'bad.ts 11 TS2345']);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');
     // The kit is the editors' file: resolved there, and that file exports every value the kit's source does (its last

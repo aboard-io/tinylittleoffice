@@ -33,8 +33,8 @@ What an app still asked of the site itself, and what replaces it:
 1. **The host.** Done: kit/core/host.ts, and the lint.
 2. **The entry points.** Done: src/kernel.ts and src/editors.ts, built by `npm run build:lib` (vite.lib.config.ts)
    into packages/doc/dist beside the command line's files, and published with them by the deploy. The package serves
-   `tinylittleoffice/doc` (dist/doc.js: the kernel, the model, ops, TLO, JSON and formulas, one file with no
-   dependencies and no DOM, for Node 24 or a page), `tinylittleoffice/editors` (dist/editors.js: the registry, each
+   `tinylittleoffice/doc` (dist/doc.js: the kernel, the model, ops, TLO, JSON and formulas, and who did what in a
+   document several people write, one file with no dependencies and no DOM, for Node 24 or a page), `tinylittleoffice/editors` (dist/editors.js: the registry, each
    app's editor element, the host, and what a page sets up once, the language, the theme and the size, with no shell;
    Lit and the rest bundled in, as the site bundles its app file) and `tinylittleoffice/editors.css` (its stylesheet,
    one file). What the editors fetch only when asked for, an app's templates, a language other than English and the
@@ -112,7 +112,12 @@ A host whose documents several people write (Atlas's shared documents) shows who
 in, in their color; the words they took out, in place and struck through; each edit bracketed in its author's color
 with a lozenge of their initials; and comments beside the words they are about. `tinylittleoffice/kit` serves it in two
 modules, kit/text/changes.ts, which says who did what and is pure, and kit/text/redline.ts, which draws it over a
-mounted Word Processor's words without writing anything into them.
+mounted Word Processor's words without writing anything into them. What is pure is served by `tinylittleoffice/doc`
+too, for a server that tracks with no Lit and no DOM: `track`, `trackOn`, `changesOf`, `rejectOps`, `diffLines`, the
+helpers that put a block back as it was (`blockFrom`, `kindTo`, `lookOf`, `lookTo`, `marksOf`, `runOf`,
+`restylings`, `isHead`, `OTHER`) and the types (`Step`, `Tracked`, `Tok`, `Change`, `Under`), the same functions the
+kit serves; the kit's `textOf` (a block's words as the editor counts them) is the kit's alone, the kernel's `textOf`
+being its text layer.
 
 - **What the host gives.** Its versions of a document in order, each a `Step`: its author (the string the host names a
   person by, an email), its TLO text, a hash that names its changes (`<hash>:0` is the first it made) and its place in
