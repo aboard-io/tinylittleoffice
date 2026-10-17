@@ -22,7 +22,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AppDef } from '../src/kit/core/app.ts';
 import { origin } from '../src/kit/core/network.ts';
-import { CARD_TAGS, tagCount } from '../tinier/cards.ts';
+import { CARD_TAGS, tagCount } from '../backends/cards/cards.ts';
 import { agents, appFirst, homeFirst, SITE_NAME, text, type Listed } from './first.ts';
 
 export type { Listed };
@@ -167,7 +167,7 @@ export function checkSeo(dist: string, apps: Listed[]): string[] {
       const wrong = Object.keys(want).filter((k) => JSON.stringify(got[k]) !== JSON.stringify(want[k]));
       if (wrong.length) problems.push(`${p.file}: the JSON-LD is not the page’s WebApplication (${wrong.join(', ')})`);
     }
-    // A link shared with a network writes its preview card into these tags (tinier/cards.ts), by substitution: each once.
+    // A link shared with a network writes its preview card into these tags (backends/cards/cards.ts), by substitution: each once.
     for (const tag of CARD_TAGS) if (tagCount(page, tag) !== 1) problems.push(`${p.file}: the tag ${tag} is there ${tagCount(page, tag)} times, not once`);
     const first = firstHeader(page);
     for (const w of p.words) if (!first.includes(text(w))) problems.push(`${p.file}: the first text does not say "${w}"`);

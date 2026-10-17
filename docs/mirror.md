@@ -63,7 +63,7 @@ out. A link with a password opens the same on both, and asks for the same passwo
 
 tinier lets the sites its `SITE` var names call it, and leads a short link only under one of them. The var may name
 several, comma-separated, the site's own first; each is an origin, or an origin and a path for a copy that is not at
-its host's root. `tinier/wrangler.jsonc` names both:
+its host's root. `backends/cloudflare/tinier/wrangler.jsonc` names both:
 
 ```jsonc
 "vars": { "SITE": "https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice" },

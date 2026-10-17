@@ -3,11 +3,11 @@
 import { test, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { D1Store } from '../tinier/d1.ts';
-import { MIGRATIONS, migrate, sqlite } from '../selfhost/sqlite.ts';
-import { brakeHash, brakeKey, DAILY, dayOf } from '../tinier/brake.ts';
-import { newId } from '../tinier/cards.ts';
-import { handle, MAX_BYTES, sitesOf, TTLS } from '../tinier/tinier.ts';
+import { D1Store } from '../backends/tinier/d1.ts';
+import { MIGRATIONS, migrate, sqlite } from '../backends/node/sqlite.ts';
+import { brakeHash, brakeKey, DAILY, dayOf } from '../backends/tinier/brake.ts';
+import { newId } from '../backends/cards/cards.ts';
+import { handle, MAX_BYTES, sitesOf, TTLS } from '../backends/tinier/tinier.ts';
 import { MemStore } from './memstore.ts';
 import { EXPIRIES, SHORT_MAX } from '../src/kit/share/short.ts';
 
@@ -148,19 +148,19 @@ test('tinier: the sweep forgets expired links and the counts of any day but toda
   expect([...store.brakes.keys()]).toEqual([`h${today - 1}`, `h${today}`]);
 });
 
-// D1's few calls over node's SQLite, and the migrations in order: the self-hosted process's own store (selfhost/sqlite.ts),
+// D1's few calls over node's SQLite, and the migrations in order: the self-hosted process's own store (backends/node/sqlite.ts),
 // so these tests hold the SQL the Workers run on D1 and the store the process runs on one SQLite file alike.
 const migrations = () => readdirSync(MIGRATIONS).sort();
 const schema = () => migrate(new DatabaseSync(':memory:'));
 const columns = (db: DatabaseSync, table: string) => (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name);
 
-test("tinier's migrations: wrangler's NNNN_name.sql form, numbered from one, the directory wrangler.jsonc names, and the deploy applies them", () => {
+test("tinier's migrations: wrangler's NNNN_name.sql form, numbered from one, the directory its backends/cloudflare/site/wrangler.jsonc names, and the deploy applies them", () => {
   const files = migrations();
   expect(files.length).toBeGreaterThanOrEqual(3);
   files.forEach((f, i) => expect(f).toMatch(new RegExp(`^${String(i + 1).padStart(4, '0')}_[a-z0-9_]+\\.sql$`)));
-  expect(readFileSync(new URL('../tinier/wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"migrations_dir": "migrations"/);
+  expect(readFileSync(new URL('../backends/cloudflare/tinier/wrangler.jsonc', import.meta.url), 'utf8')).toContain('"migrations_dir": "../../tinier/migrations"');
   // One way to make the tables: the migrations. No schema file of its own beside them.
-  expect(existsSync(new URL('../tinier/schema.sql', import.meta.url))).toBe(false);
+  expect(existsSync(new URL('../backends/tinier/schema.sql', import.meta.url))).toBe(false);
 });
 
 test("tinier's migrations apply in order on a fresh database, and on production's, which has the four columns and its links already", () => {
@@ -221,16 +221,16 @@ test('tinier: without BRAKE_KEY the Worker refuses, and says what is missing', (
   expect(() => brakeKey('')).toThrow(/BRAKE_KEY/);
   expect(brakeKey(KEY)).toBe(KEY);
   // The Worker asks for it before anything is answered.
-  expect(readFileSync(new URL('../tinier/worker.ts', import.meta.url), 'utf8')).toMatch(/handle\(req, new D1Store\(env\.DB\), brakeKey\(env\.BRAKE_KEY\)/);
+  expect(readFileSync(new URL('../backends/cloudflare/tinier/worker.ts', import.meta.url), 'utf8')).toMatch(/handle\(req, new D1Store\(env\.DB\), brakeKey\(env\.BRAKE_KEY\)/);
 });
 
 test('tinier: no per-minute limiter and no brake in memory; the key is a secret, never in the repo', () => {
-  const read = (f: string) => readFileSync(new URL(`../tinier/${f}`, import.meta.url), 'utf8');
-  expect(read('wrangler.jsonc')).not.toMatch(/ratelimits|LIMITER/);
-  expect(read('worker.ts')).not.toMatch(/LIMITER|brake\(/);
-  expect(read('tinier.ts')).not.toMatch(/Limiter|function brake\(/);
-  expect(read('brake.ts')).not.toMatch(/Limiter|new Map/);
-  expect(read('wrangler.jsonc')).not.toMatch(/BRAKE_KEY"\s*:/);
+  const read = (f: string) => readFileSync(new URL(`../backends/${f}`, import.meta.url), 'utf8');
+  expect(read('cloudflare/tinier/wrangler.jsonc')).not.toMatch(/ratelimits|LIMITER/);
+  expect(read('cloudflare/tinier/worker.ts')).not.toMatch(/LIMITER|brake\(/);
+  expect(read('tinier/tinier.ts')).not.toMatch(/Limiter|function brake\(/);
+  expect(read('tinier/brake.ts')).not.toMatch(/Limiter|new Map/);
+  expect(read('cloudflare/tinier/wrangler.jsonc')).not.toMatch(/BRAKE_KEY"\s*:/);
   expect(readFileSync(new URL('../.gitignore', import.meta.url), 'utf8')).toMatch(/^\.dev\.vars$/m);
 });
 
@@ -249,8 +249,10 @@ test('tinier: a copy of the site on this machine names itself, and its short lin
 test('tinier: SITE may name the site and its mirror, comma-separated; the API answers each by its own origin, a short link may lead under either and nowhere else (docs/mirror.md)', async () => {
   const both = 'https://tinylittleoffice.com, https://aboard-io.github.io/tinylittleoffice/';
   expect(sitesOf(both)).toEqual(['https://tinylittleoffice.com', 'https://aboard-io.github.io/tinylittleoffice']);
-  // The production shortener's var names both (tinier/wrangler.jsonc).
-  expect(readFileSync(new URL('../tinier/wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"SITE": "https:\/\/tinylittleoffice\.com,https:\/\/aboard-io\.github\.io\/tinylittleoffice"/);
+  // The production shortener's var names both (backends/cloudflare/tinier/wrangler.jsonc).
+  expect(readFileSync(new URL('../backends/cloudflare/tinier/wrangler.jsonc', import.meta.url), 'utf8')).toMatch(
+    /"SITE": "https:\/\/tinylittleoffice\.com,https:\/\/aboard-io\.github\.io\/tinylittleoffice"/,
+  );
   const from = (origin: string | null) => {
     const r = post(LINK);
     if (origin) r.headers.set('origin', origin);
@@ -279,7 +281,7 @@ test('tinier: SITE may name the site and its mirror, comma-separated; the API an
   // The real landing page leads to a mirror link, and not to another page of the mirror's host.
   const { sealShortAt } = await import('../src/kit/share/short.ts');
   const { toBase64Url } = await import('../src/kit/core/codec.ts');
-  const real = readFileSync(new URL('../tinier/page.html', import.meta.url), 'utf8');
+  const real = readFileSync(new URL('../backends/tinier/page.html', import.meta.url), 'utf8');
   const script = /<script>([\s\S]*)<\/script>/
     .exec(real)![1]
     .replace("'{{id}}'", "'abcdefg'")
@@ -304,18 +306,22 @@ test('tinier: SITE may name the site and its mirror, comma-separated; the API an
   }
 });
 
-test('tinier: the folder logs nothing, and neither does the site', async () => {
+test('tinier: the Workers log nothing, the shortener’s and the site’s alike; the one process on a machine says only where it listens', async () => {
   const { readdirSync } = await import('node:fs');
-  const dir = new URL('../tinier/', import.meta.url);
-  for (const f of readdirSync(dir).filter((n) => (n.endsWith('.ts') && !n.endsWith('.d.ts')) || n.endsWith('.html'))) expect(readFileSync(new URL(f, dir), 'utf8'), f).not.toMatch(/console\.|\.log\(/);
-  expect(readFileSync(new URL('wrangler.jsonc', dir), 'utf8')).toMatch(/"observability": \{ "enabled": false \}/);
-  expect(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"observability": \{ "enabled": false \}/);
+  const dir = new URL('../backends/', import.meta.url);
+  // Every service and every Worker; backends/node/server.ts alone prints the two addresses it listens on, once.
+  const files = readdirSync(dir, { recursive: true })
+    .map(String)
+    .filter((n) => ((n.endsWith('.ts') && !n.endsWith('.d.ts')) || n.endsWith('.html')) && n !== 'node/server.ts');
+  expect(files.length).toBeGreaterThan(8);
+  for (const f of files) expect(readFileSync(new URL(f, dir), 'utf8'), f).not.toMatch(/console\.|\.log\(/);
+  for (const w of ['tinier', 'site']) expect(readFileSync(new URL(`cloudflare/${w}/wrangler.jsonc`, dir), 'utf8'), w).toMatch(/"observability": \{ "enabled": false \}/);
 });
 
 test('tinier: the landing page opens a link whose key, IV and ciphertext are written with "~" or "-", and hands on only the id and the expiry', async () => {
   const { sealShortAt } = await import('../src/kit/share/short.ts');
   const { toBase64Url } = await import('../src/kit/core/codec.ts');
-  const page = readFileSync(new URL('../tinier/page.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../backends/tinier/page.html', import.meta.url), 'utf8');
   const script = /<script>([\s\S]*)<\/script>/.exec(page)![1].replace("'{{id}}'", "'abcdefg'").replace("'{{sites}}'", "'https://tinylittleoffice.com'");
   const long = 'https://tinylittleoffice.com/text/#/v1/text/yA~b';
   // A key and an IV whose base64url holds 62 and 63 in several places.

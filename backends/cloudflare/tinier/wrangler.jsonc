@@ -1,6 +1,6 @@
 // tinier, the link shortener, as a Worker: the ciphertext and the daily counts in D1, swept hourly.
 {
-  "$schema": "../node_modules/wrangler/config-schema.json",
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
   "name": "tinier",
   "main": "worker.ts",
   "compatibility_date": "2026-10-08",
@@ -14,10 +14,10 @@
       // Filled in by `npx wrangler d1 create tinier` on the account the site deploys from.
       "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5",
       // The tables, as wrangler's numbered migrations (NNNN_name.sql), applied by the deploy before this Worker ships.
-      "migrations_dir": "migrations",
+      "migrations_dir": "../../tinier/migrations",
     },
   ],
-  // The sites that may call the API, and the only places a short link may lead (tinier.ts SITE), comma-separated, the
+  // The sites that may call the API, and the only places a short link may lead (backends/tinier/tinier.ts SITE), comma-separated, the
   // first the site's own: tinylittleoffice.com and its mirror on GitHub Pages (docs/mirror.md). A copy of your own
   // names its own (docs/self-host.md).
   "vars": { "SITE": "https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice" },

@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { apps } from '../src/kit/core/apps.ts';
 import { inlineScripts } from '../scripts/headers.ts';
 import { checkSeo, firstHeader, ldBlocks, listed, sitemapLocs, writePages, type Listed } from '../scripts/seo.ts';
-import { CARD_TAGS, tagCount } from '../tinier/cards.ts';
+import { CARD_TAGS, tagCount } from '../backends/cards/cards.ts';
 
 const SITE = 'https://office.example.org/';
 const BUILT = '2026-10-11T12:00:00Z';
@@ -129,7 +129,7 @@ test('a build with no address for the site (no VITE_SITE_URL) writes no sitemap,
   expect(checkSeo(dist, list)).toEqual(['the build has no address for the site (VITE_SITE_URL): no sitemap, and no address in the structured data']);
 });
 
-// The site's Worker writes a shared document's card into these tags by plain substitution (tinier/cards.ts): each must
+// The site's Worker writes a shared document's card into these tags by plain substitution (backends/cards/cards.ts): each must
 // be there, once, on every page a link opens, or a card would be left out or said twice.
 test('every page a link opens carries each tag a preview card replaces exactly once; an app page names its own card in them', () => {
   build(SITE);

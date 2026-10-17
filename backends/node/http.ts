@@ -11,14 +11,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { createGzip } from 'node:zlib';
-import { headersFor } from '../scripts/headers.ts';
+import { headersFor } from '../../scripts/headers.ts';
 
 /** The most a request may carry: a preview card's picture (400 KB, as base64) and its words, with room to spare. */
 export const MAX_BODY = 1024 * 1024;
 
 /**
  * A node request as a Request at `origin`, its body read whole (null when it is over MAX_BODY). The address that
- * asked goes in cf-connecting-ip, where Cloudflare puts it and the brake reads it (tinier/brake.ts): the socket's,
+ * asked goes in cf-connecting-ip, where Cloudflare puts it and the brake reads it (backends/tinier/brake.ts): the socket's,
  * or `ipHeader`'s when a proxy in front names it; whatever the client sent under that name is dropped.
  */
 export async function toRequest(req: IncomingMessage, origin: string, ipHeader = ''): Promise<Request | null> {

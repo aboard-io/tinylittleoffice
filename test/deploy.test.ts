@@ -209,7 +209,10 @@ test('the secrets are out of the environment of every check, and reach Wrangler 
   expect(checks.map((c) => c.cmd)).toEqual(['npm run -s typecheck', 'npm run -s i18n:check', 'npm run -s test:unit', 'npm run -s test:browser', 'node scripts/check-build.ts']);
   expect(r.calls.some((c) => c.cmd.startsWith('npx playwright test'))).toBe(true);
   for (const c of r.calls.filter((c) => !c.cmd.startsWith('npx wrangler '))) for (const k of SECRETS) expect(c.env, `${c.cmd}: ${k}`).not.toMatch(new RegExp(`^${k}=`, 'm'));
-  expect(wrangler.map((c) => c.cmd)).toEqual(['npx wrangler secret list -c tinier/wrangler.jsonc --format json', 'npx wrangler secret list -c wrangler.jsonc --format json']);
+  expect(wrangler.map((c) => c.cmd)).toEqual([
+    'npx wrangler secret list -c backends/cloudflare/tinier/wrangler.jsonc --format json',
+    'npx wrangler secret list -c backends/cloudflare/site/wrangler.jsonc --format json',
+  ]);
   expect(wrangler[0].env).toMatch(/^CLOUDFLARE_API_TOKEN=stub-cf-token$/m);
   expect(wrangler[0].env).toMatch(/^CLOUDFLARE_ACCOUNT_ID=stub-cf-account$/m);
   expect(wrangler[0].env).not.toMatch(/^NPM_TOKEN=/m);
@@ -221,7 +224,7 @@ test('the deploy stops before any check when a Worker has no BRAKE_KEY, or its s
   expect(none.status).toBe(1);
   expect(none.stderr).toMatch(/^Not deployed: the shortener has no BRAKE_KEY\. /);
   expect(none.stdout.split('the shortener has its BRAKE_KEY\n')[1] ?? '').not.toMatch(/▸/);
-  expect(none.calls.map((c) => c.cmd)).toEqual(['npx wrangler secret list -c tinier/wrangler.jsonc --format json']);
+  expect(none.calls.map((c) => c.cmd)).toEqual(['npx wrangler secret list -c backends/cloudflare/tinier/wrangler.jsonc --format json']);
 
   const failed = deploy({}, STUB, { list: null });
   expect(failed.status).toBe(1);
@@ -235,9 +238,9 @@ test("a dry run lists the shipping: the shortener's migrations before either Wor
   expect(here.status, here.stderr).toBe(0);
   const lines = here.stdout.slice(here.stdout.indexOf('Dry run:')).split('\n');
   const at = (s: string) => lines.findIndex((l) => l.includes(s));
-  expect(at("the shortener's tables: npx wrangler d1 migrations apply tinier --remote -c tinier/wrangler.jsonc")).toBeGreaterThan(0);
+  expect(at("the shortener's tables: npx wrangler d1 migrations apply tinier --remote -c backends/cloudflare/tinier/wrangler.jsonc")).toBeGreaterThan(0);
   expect(at("the shortener's tables:")).toBeLessThan(at('the site: npx wrangler deploy'));
-  expect(at("the shortener's tables:")).toBeLessThan(at('the shortener: npx wrangler deploy -c tinier/wrangler.jsonc'));
+  expect(at("the shortener's tables:")).toBeLessThan(at('the shortener: npx wrangler deploy -c backends/cloudflare/tinier/wrangler.jsonc'));
   expect(here.stdout).toMatch(/the command line, on npm: tinylittleoffice 1\.0\.0, if npm has not that version: npm publish --access public --provenance=false$/m);
 
   const runner = deploy(PUBLISHED, { ...STUB, ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.example/' }, { list });

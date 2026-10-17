@@ -1,6 +1,6 @@
 /**
  * Nothing exported that nothing uses (Paul, 2026-10-11: "Do a dead code sweep … we have unused functions"). Every
- * `export` of src/, scripts/, packages/, tinier/, site/ and selfhost/ is named, as a whole word, in some other file of the tree, or it is
+ * `export` of src/, scripts/, packages/, backends/ is named, as a whole word, in some other file of the tree, or it is
  * printed with its file and line and the script exits 1. A plain count of words by regex, no type-checker: tsc cannot
  * say an export is unused across files, and a dependency for one check is more than this file.
  *
@@ -20,8 +20,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 const ROOT = resolve(import.meta.dirname, '..');
 
 /** Where exports are counted, and where a use counts (with the root's configuration files and page). */
-const EXPORTERS = ['src', 'scripts', 'packages', 'tinier', 'site', 'selfhost'];
-const USERS = ['src', 'test', 'e2e', 'scripts', 'packages', 'tinier', 'site', 'selfhost', 'dev', 'stories', '.storybook'];
+const EXPORTERS = ['src', 'scripts', 'packages', 'backends'];
+const USERS = ['src', 'test', 'e2e', 'scripts', 'packages', 'backends', 'dev', 'stories', '.storybook'];
 const SKIP = /(^|\/)(node_modules|dist)\/|\.d\.ts$/;
 
 /** The exports that need no other file, each with why. */

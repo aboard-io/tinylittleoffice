@@ -3,10 +3,10 @@
  * Share dialog (Bluesky, Mastodon, X, LinkedIn or the device's share sheet) with 'Show a preview of the first page'
  * on (Paul, 2026-10-11: "When we explicitly share with a social network from in the app, that's when we do this"). The
  * document's first page (or the page its app puts on a card: a sheet's chart, by ViewOpts.card) is drawn by its
- * app's own view() on the card's ground (kit/draw/card.ts) as a PNG of 1200 by 630, and posted with the title and the first words to the site's own /card (tinier/cards.ts, the site's Worker),
+ * app's own view() on the card's ground (kit/draw/card.ts) as a PNG of 1200 by 630, and posted with the title and the first words to the site's own /card (backends/cards/cards.ts, the site's Worker),
  * which keeps them readable for a month so the network can fetch them; the document itself is not sent. The link
  * shared then carries the card's id in its path, `/c/<id>` before the "#": the one page the site's Worker serves
- * (site/site.ts, with the card's tags), every other page being a static file (2026-10-15, when the Worker in front
+ * (backends/cards/site.ts, with the card's tags), every other page being a static file (2026-10-15, when the Worker in front
  * of every page passed the free plan's requests a day; before that the id rode as `?c=` on the app's page, which the
  * shell still reads). Copy link and Email make none, nor does a document with a password, which says nothing of itself.
  *
@@ -32,7 +32,7 @@ const PREVIEW_KEY = 'tinyoffice.preview';
 export const previewOn = () => store.get(PREVIEW_KEY) !== '0';
 export const setPreview = (on: boolean) => store.set(PREVIEW_KEY, on ? '1' : '0');
 
-/** What the server takes (tinier/cards.ts holds the same numbers; test/cards.test.ts holds them together). */
+/** What the server takes (backends/cards/cards.ts holds the same numbers; test/cards.test.ts holds them together). */
 export const CARD_PNG_MAX = 400 * 1024;
 export const CARD_TITLE_MAX = 120;
 /** The first words sent: 200 characters of the server's 300. */

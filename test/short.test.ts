@@ -1,6 +1,6 @@
 // The short-link client against the shortener itself, in one process: fetch is the Worker's handle().
 import { test, expect, vi, afterEach } from 'vitest';
-import { handle } from '../tinier/tinier.ts';
+import { handle } from '../backends/tinier/tinier.ts';
 import { expiresLine, expiresSentence, shorten, shortLink, timeLeft, unshorten } from '../src/kit/share/short.ts';
 import { MemStore } from './memstore.ts';
 

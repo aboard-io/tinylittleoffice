@@ -30,7 +30,7 @@
  * in D1, worker.ts runs it on Cloudflare; the tests give it Maps, and d1.ts node's SQLite.
  */
 import { braked, type Counter } from './brake.ts';
-import { cardId, newId, noEdge, withCard, type CardStore, type Edge } from './cards.ts';
+import { cardId, newId, noEdge, withCard, type CardStore, type Edge } from '../cards/cards.ts';
 
 export interface Link {
   c: string;

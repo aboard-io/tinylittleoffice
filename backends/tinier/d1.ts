@@ -1,6 +1,6 @@
-/** The shortener's rows in Cloudflare D1 (tinier/migrations/): the Store tinier.ts asks for, and the cards the site's Worker keeps there too. */
+/** The shortener's rows in Cloudflare D1 (backends/tinier/migrations/): the Store tinier.ts asks for, and the cards the site's Worker keeps there too. */
 import { dayOf } from './brake.ts';
-import type { Card } from './cards.ts';
+import type { Card } from '../cards/cards.ts';
 import type { Link, Store } from './tinier.ts';
 
 type Value = string | number | Uint8Array;

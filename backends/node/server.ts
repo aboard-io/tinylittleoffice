@@ -1,11 +1,11 @@
 /**
  * Tiny Little Office on one machine, without Cloudflare: one Node process (node:http, node:sqlite, nothing else) on two
- * ports, the site and its short-link service, running the very code the two Workers run (site/site.ts and
- * tinier/tinier.ts) over a SQLite file in place of D1 (selfhost/sqlite.ts) and the build's files in place of the
- * ASSETS binding (selfhost/http.ts). Paul (issue #7, 2026-10-15): "the smallest possible stack … ideally it would just
+ * ports, the site and its short-link service, running the very code the two Workers run (backends/cards/site.ts and
+ * backends/tinier/tinier.ts) over a SQLite file in place of D1 (backends/node/sqlite.ts) and the build's files in place of the
+ * ASSETS binding (backends/node/http.ts). Paul (issue #7, 2026-10-15): "the smallest possible stack … ideally it would just
  * all be JS + sqlite instead of something heavy like nginx."
  *
- *   node selfhost/server.ts        after `npm run build` with VITE_TINIER set to the shortener's address
+ *   node backends/node/server.ts        after `npm run build` with VITE_TINIER set to the shortener's address
  *
  * The environment (.env.example):
  *   BRAKE_KEY    the secret the daily counts are kept under (required; any long random string, kept nowhere else)
@@ -25,8 +25,8 @@ import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { D1Store } from '../tinier/d1.ts';
 import { handle } from '../tinier/tinier.ts';
-import { handleSite } from '../site/site.ts';
-import { noEdge } from '../tinier/cards.ts';
+import { handleSite } from '../cards/site.ts';
+import { noEdge } from '../cards/cards.ts';
 import { assets, send, toRequest } from './http.ts';
 import { migrate, sqlite } from './sqlite.ts';
 
@@ -41,7 +41,7 @@ export interface Options {
   ipHeader: string;
 }
 
-const ROOT = resolve(import.meta.dirname, '..');
+const ROOT = resolve(import.meta.dirname, '../..');
 const fail = (why: string): never => {
   throw new Error(why);
 };
@@ -72,7 +72,7 @@ export async function start(o: Options): Promise<{ site: Server; tinier: Server;
   migrate(db);
   const store = new D1Store(sqlite(db));
   const files = assets(o.dist);
-  const page = readFileSync(resolve(ROOT, 'tinier/page.html'), 'utf8');
+  const page = readFileSync(resolve(ROOT, 'backends/tinier/page.html'), 'utf8');
   // The cards' counts beside the links' in one table, under a key of their own, as the two Workers' two secrets keep them apart.
   const cardKey = `${o.key}\ncards`;
   const listen = (port: number, answer: (req: Request) => Promise<Response>) =>

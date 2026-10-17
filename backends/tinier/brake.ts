@@ -12,7 +12,7 @@ export interface Counter {
 }
 
 /** The brake's secret, as the deployment gives it; without one the Worker serves nothing, and says why. `config` is the Worker's wrangler file. */
-export function brakeKey(key: string | undefined, config = 'tinier/wrangler.jsonc', dev = 'tinier/.dev.vars', run = 'npm run tinier:dev'): string {
+export function brakeKey(key: string | undefined, config = 'backends/cloudflare/tinier/wrangler.jsonc', dev = 'backends/cloudflare/tinier/.dev.vars', run = 'npm run tinier:dev'): string {
   if (!key) throw new Error(`BRAKE_KEY is not set. Run \`npx wrangler secret put BRAKE_KEY -c ${config}\`, or put BRAKE_KEY=… in ${dev} for \`${run}\`.`);
   return key;
 }

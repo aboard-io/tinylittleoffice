@@ -1,7 +1,7 @@
 /**
  * The shortener's rows in one SQLite file, by node's own SQLite (node:sqlite, no package): the few calls of D1's that
- * tinier/d1.ts makes (its SQL interface), so the self-hosted process keeps its links, cards and daily counts with the
- * very statements the Workers run on Cloudflare. The tables are tinier/migrations/, applied in order on start; each
+ * backends/tinier/d1.ts makes (its SQL interface), so the self-hosted process keeps its links, cards and daily counts with the
+ * very statements the Workers run on Cloudflare. The tables are backends/tinier/migrations/, applied in order on start; each
  * is safe on a database that has its tables already (0001_links.sql says why), so a restart applies them again.
  */
 import { readdirSync, readFileSync } from 'node:fs';
@@ -22,7 +22,7 @@ export function sqlite(db: DatabaseSync): SQL {
   };
 }
 
-/** tinier/migrations/, in the order `wrangler d1 migrations apply` takes them (by name: NNNN_name.sql). */
+/** backends/tinier/migrations/, in the order `wrangler d1 migrations apply` takes them (by name: NNNN_name.sql). */
 export const MIGRATIONS = new URL('../tinier/migrations/', import.meta.url);
 
 /** Every migration, in order, on `db`; the database back. */

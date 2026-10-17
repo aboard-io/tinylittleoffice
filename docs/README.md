@@ -25,7 +25,7 @@ siblings, one an app; the kit's and the kernel's files each begin by saying what
 
 ## Running it
 
-- [self-host.md](self-host.md): running your own copy on your own Cloudflare account, in about thirty minutes, and deploying it from GitHub on a tag; or on one machine, as one Node process over one SQLite file, with Docker or without.
+- [self-host.md](self-host.md): running your own copy on your own Cloudflare account, in about thirty minutes, and deploying it from GitHub on a tag; or on one machine, as one Node process over one SQLite file, with Docker or without; the servers themselves are in [backends/](../backends/README.md), a folder a service and a folder a platform.
 - [mirror.md](mirror.md): the mirror on GitHub Pages, https://aboard-io.github.io/tinylittleoffice/: what it is, what it lacks, and how a document link maps between it and tinylittleoffice.com.
 
 ## History

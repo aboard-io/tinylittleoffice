@@ -1,6 +1,6 @@
 /**
  * Preview cards through the dev Workers: the built site served by its own Worker (`wrangler dev`, as `npm run
- * site:dev` runs it) and the shortener (`wrangler dev -c tinier/wrangler.jsonc`), on one local D1 with the migrations
+ * site:dev` runs it) and the shortener (`wrangler dev -c backends/cloudflare/tinier/wrangler.jsonc`), on one local D1 with the migrations
  * applied. A document's Share, Bluesky with the preview on: the browser draws the first page, the Worker keeps it, the
  * compose box gets the link with /c/<id>; that page says the card in its tags, the picture decodes at 1200 by
  * 630, and the shortener's landing page with the same ?c= says it too. Desktop Chromium only (one Worker pair). Run on
@@ -41,10 +41,10 @@ test.beforeAll(async ({}, info) => {
   test.setTimeout(180_000);
   dir = mkdtempSync(join(tmpdir(), 'tlo-cards-'));
   const env = { ...process.env, CI: 'true' };
-  execFileSync('npx', ['wrangler', 'd1', 'migrations', 'apply', 'tinier', '--local', '--persist-to', dir], { env, stdio: 'ignore' });
+  execFileSync('npx', ['wrangler', 'd1', 'migrations', 'apply', 'tinier', '--local', '-c', 'backends/cloudflare/site/wrangler.jsonc', '--persist-to', dir], { env, stdio: 'ignore' });
   const run = (args: string[]) => workers.push(spawn('npx', ['wrangler', 'dev', '--persist-to', dir, ...args], { env, stdio: 'ignore', detached: true }));
-  run(['--port', String(SITE_PORT), '--var', 'BRAKE_KEY:e2e-site']);
-  run(['-c', 'tinier/wrangler.jsonc', '--port', String(TINIER_PORT), '--var', 'BRAKE_KEY:e2e-tinier', '--var', `SITE:${site}`]);
+  run(['-c', 'backends/cloudflare/site/wrangler.jsonc', '--port', String(SITE_PORT), '--var', 'BRAKE_KEY:e2e-site']);
+  run(['-c', 'backends/cloudflare/tinier/wrangler.jsonc', '--port', String(TINIER_PORT), '--var', 'BRAKE_KEY:e2e-tinier', '--var', `SITE:${site}`]);
   await Promise.all([up(`${site}/`), up(`${tinier}/`)]);
 });
 test.afterAll(() => {

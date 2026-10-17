@@ -10,8 +10,8 @@ any copy reads it). This takes about thirty minutes, most of it waiting for a do
 
 | Worker | Config | What it is | Storage |
 | --- | --- | --- | --- |
-| the site | `wrangler.jsonc` | `dist/` as static assets, with `dist/_headers` (the Content-Security-Policy), and a small Worker (`site/`) that runs first only for the home page, each app's page and `/card`: the preview cards a person sends with a link to a network | D1: the `cards` table, in the shortener's database |
-| tinier | `tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out, a hundred links a day per address (docs/crypto/short-links.md) | D1: the links and the daily counts, swept hourly by a cron trigger (the cards with them) |
+| the site | `backends/cloudflare/site/wrangler.jsonc` | `dist/` as static assets, with `dist/_headers` (the Content-Security-Policy), and a small Worker (`backends/cards/`) that runs first only for the home page, each app's page and `/card`: the preview cards a person sends with a link to a network | D1: the `cards` table, in the shortener's database |
+| tinier | `backends/cloudflare/tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out, a hundred links a day per address (docs/crypto/short-links.md) | D1: the links and the daily counts, swept hourly by a cron trigger (the cards with them) |
 
 Each has `observability` off and `workers_dev` off: no logs, and no `*.workers.dev` copy. Keep it that way
 unless you mean to change what your copy knows about its readers.
@@ -35,10 +35,10 @@ npx wrangler login
 Choose two addresses, for example `office.example.org` (the site) and `tinier.example.org`. Then change
 ours to yours, in six places:
 
-1. **The routes.** In `wrangler.jsonc` and `tinier/wrangler.jsonc`, set each
+1. **The routes.** In `backends/cloudflare/site/wrangler.jsonc` and `backends/cloudflare/tinier/wrangler.jsonc`, set each
    `routes` pattern to its address, keeping `"custom_domain": true`. Cloudflare makes the DNS record and
    the certificate the first time it deploys.
-2. **The site the Worker serves.** In `tinier/wrangler.jsonc`, set
+2. **The site the Worker serves.** In `backends/cloudflare/tinier/wrangler.jsonc`, set
    `"vars": { "SITE": "https://office.example.org" }`, in place of ours. tinier lets only that site call it, and leads a
    short link nowhere else. (Without the var it falls back to `https://tinylittleoffice.com`, and your site
    would be refused.) The file names ours, tinylittleoffice.com and its mirror on GitHub Pages; the var may name
@@ -54,10 +54,10 @@ ours to yours, in six places:
    `tinier` entry names `tinier.tinylittleoffice.com`; a build with `VITE_TINIER` set to an address of its own writes
    that address there instead, so the browser lets the pages reach your tinier and no other.
 5. **The brake.** tinier counts its own, a hundred links a day per address, in D1, under a keyed hash: set the
-   Worker secret `BRAKE_KEY` (tinier/wrangler.jsonc says how). The site's own Worker (`site/`, which keeps the
+   Worker secret `BRAKE_KEY` (backends/cloudflare/tinier/wrangler.jsonc says how). The site's own Worker (`backends/cards/`, which keeps the
    preview cards a person sends with a link to a network) counts cards the same way under its own `BRAKE_KEY`.
-6. **The cards' database.** `wrangler.jsonc` binds the shortener's database too (the `cards` table): put the same
-   `database_id` there as in `tinier/wrangler.jsonc`.
+6. **The cards' database.** `backends/cloudflare/site/wrangler.jsonc` binds the shortener's database too (the `cards` table): put the same
+   `database_id` there as in `backends/cloudflare/tinier/wrangler.jsonc`.
 
 ## 3. The short links' database
 
@@ -65,8 +65,8 @@ ours to yours, in six places:
 npx wrangler d1 create tinier
 ```
 
-Put the `database_id` it prints into `tinier/wrangler.jsonc` (it is not a secret, but it is your account's,
-so a fork that is public will show it). The tables are `tinier/migrations/` (wrangler's numbered
+Put the `database_id` it prints into `backends/cloudflare/tinier/wrangler.jsonc` (it is not a secret, but it is your account's,
+so a fork that is public will show it). The tables are `backends/tinier/migrations/` (wrangler's numbered
 `NNNN_name.sql` files, the directory `migrations_dir` names); the deploy applies the ones the database has not had,
 before the shortener ships, so there is nothing to run by hand. Each is safe on a database that has its tables
 already, as one made before wrangler kept its record does.
@@ -75,12 +75,12 @@ Then give tinier the secret its daily counts are kept under: any long random str
 the one thing set by hand, once; the deploy checks it is there and stops, saying so, if it is not.
 
 ```sh
-openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY -c tinier/wrangler.jsonc
+openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY -c backends/cloudflare/tinier/wrangler.jsonc
 openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY
 ```
 
 The second is the site's Worker's own, for the preview cards. Without its key either Worker answers nothing and says
-why. On a development machine, put `BRAKE_KEY=<any string>` in `tinier/.dev.vars` for `npm run tinier:dev` and in
+why. On a development machine, put `BRAKE_KEY=<any string>` in `backends/cloudflare/tinier/.dev.vars` for `npm run tinier:dev` and in
 `.dev.vars` for `npm run site:dev` (both ignored by git); each applies the migrations to its local database, and
 `site:dev` serves the build in `dist/` with the Worker in front, where the dev server sends `/card`.
 
@@ -190,15 +190,15 @@ the Edit link and the Present link, draws the QR code and hands the link to the 
 
 The same code runs on one machine as one Node process, with nothing in front of it and nothing to install beyond
 Node 24 (Paul, issue #7: "ideally it would just all be JS + sqlite instead of something heavy like nginx"):
-`selfhost/server.ts`, on two ports, built on `node:http` and `node:sqlite`, which Node has built in.
+`backends/node/server.ts`, on two ports, built on `node:http` and `node:sqlite`, which Node has built in.
 
 | Port | What | The code it runs |
 | --- | --- | --- |
-| 8000 | the site: `dist/`, each file with the headers `dist/_headers` gives it (the Content-Security-Policy reaches the browser as the file says it), and the preview cards (`/c/<id>`, `/card`) | `site/site.ts`, as the site's Worker runs it |
-| 8001 | the short links | `tinier/tinier.ts`, as tinier's Worker runs it |
+| 8000 | the site: `dist/`, each file with the headers `dist/_headers` gives it (the Content-Security-Policy reaches the browser as the file says it), and the preview cards (`/c/<id>`, `/card`) | `backends/cards/site.ts`, as the site's Worker runs it |
+| 8001 | the short links | `backends/tinier/tinier.ts`, as tinier's Worker runs it |
 
-Both keep their rows in one SQLite file, through the same statements the Workers run on D1 (`tinier/d1.ts`, over
-`selfhost/sqlite.ts`); the tables are `tinier/migrations/`, applied each time it starts. The hourly sweep runs in the
+Both keep their rows in one SQLite file, through the same statements the Workers run on D1 (`backends/tinier/d1.ts`, over
+`backends/node/sqlite.ts`); the tables are `backends/tinier/migrations/`, applied each time it starts. The hourly sweep runs in the
 process. Nothing is logged but the addresses it listens on, and it fetches nothing.
 
 **What works:** everything: every app, Share, short links, preview cards, the offline copy.
@@ -223,7 +223,7 @@ Without Docker, the build and the process:
 
 ```sh
 VITE_SITE_URL=http://localhost:8000/ VITE_TINIER=http://localhost:8001/ npm run build
-BRAKE_KEY=… npm run selfhost   # node selfhost/server.ts, reading .env if there is one
+BRAKE_KEY=… npm run selfhost   # node backends/node/server.ts, reading .env if there is one
 ```
 
 The settings (`.env.example` lists them; compose reads the checkout's `.env`):

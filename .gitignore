@@ -9,7 +9,6 @@ playwright-report/
 .wrangler/
 .vite/
 *.local
-tinier/worker-configuration.d.ts
-site/worker-configuration.d.ts
+backends/cloudflare/*/worker-configuration.d.ts
 /data/
 storybook-static/

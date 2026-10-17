@@ -1,7 +1,7 @@
 // The shortener's rows in Maps: what D1 does, for the tests.
-import { dayOf } from '../tinier/brake.ts';
-import type { Card } from '../tinier/cards.ts';
-import type { Link, Store } from '../tinier/tinier.ts';
+import { dayOf } from '../backends/tinier/brake.ts';
+import type { Card } from '../backends/cards/cards.ts';
+import type { Link, Store } from '../backends/tinier/tinier.ts';
 
 /** The rows in Maps: what D1 does, for the test. */
 export class MemStore implements Store {

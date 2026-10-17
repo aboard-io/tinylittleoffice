@@ -1,6 +1,6 @@
 # Short links
 
-`src/kit/share/short.ts` (the browser's side), `tinier/` (the service: `tinier.ts` is the whole of its logic,
+`src/kit/share/short.ts` (the browser's side), `backends/tinier/` (the service: `tinier.ts` is the whole of its logic,
 `brake.ts` the daily count, `d1.ts` its rows in Cloudflare D1, `worker.ts` puts it on Cloudflare, `migrations/` its
 tables, `page.html` the page that opens a short link; `cards.ts` and the `cards` table are the site's own Worker's
 preview cards, kept in the same database). WebCrypto alone: no crypto library. Test vectors:
@@ -48,7 +48,7 @@ Anything else under `/api` answers 404 with the body an unknown link gets, as if
 
 ## What tinier stores
 
-One row per short link (`tinier/migrations/0001_links.sql`):
+One row per short link (`backends/tinier/migrations/0001_links.sql`):
 
 | Column | What | Size |
 |---|---|---|
@@ -57,7 +57,7 @@ One row per short link (`tinier/migrations/0001_links.sql`):
 | `iv` | its IV, base64url | 16 characters (at most 32 accepted) |
 | `exp` | when to forget it, milliseconds since 1970 | an integer |
 
-And one row per address per UTC day that made a link (`tinier/migrations/0002_brakes.sql`):
+And one row per address per UTC day that made a link (`backends/tinier/migrations/0002_brakes.sql`):
 
 | Column | What |
 |---|---|
@@ -65,7 +65,7 @@ And one row per address per UTC day that made a link (`tinier/migrations/0002_br
 | `n` | how many links that address made that day |
 | `day` | the UTC day number, days since 1970 |
 
-`BRAKE_KEY` is a secret of the deployment (`wrangler secret put BRAKE_KEY`; `tinier/.dev.vars` on a
+`BRAKE_KEY` is a secret of the deployment (`wrangler secret put BRAKE_KEY`; `backends/cloudflare/tinier/.dev.vars` on a
 development machine, never in the repository; without it the Worker serves nothing and says why). Without the
 key a row says nothing of the address; with it, only that the address made links that day, and how many. The
 count is one statement (`INSERT … ON CONFLICT DO UPDATE SET n = n + 1 RETURNING n`), and the 101st request of a
@@ -101,8 +101,8 @@ new document", which opens a copy under a long link of its own that nothing expi
 
 ## What its logs hold
 
-Nothing, held by `test/tinier.test.ts`: `tinier/wrangler.jsonc` sets `"observability": { "enabled": false }`,
-no file in `tinier/` makes a console call, and the site's own `wrangler.jsonc` sets the same. Cloudflare, which
+Nothing, held by `test/tinier.test.ts`: `backends/cloudflare/tinier/wrangler.jsonc` sets `"observability": { "enabled": false }`,
+no file in `backends/tinier/` makes a console call, and the site's own `backends/cloudflare/site/wrangler.jsonc` sets the same. Cloudflare, which
 terminates TLS, sees each request's address and path as it does for any site it serves. The threat model
 (`docs/threat-model.md`) says what that leaves.
 

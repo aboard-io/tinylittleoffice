@@ -1,4 +1,4 @@
-// The self-hosted process (selfhost/): node:http as the Fetch API, the built files with the headers dist/_headers gives
+// The self-hosted process (backends/node/): node:http as the Fetch API, the built files with the headers dist/_headers gives
 // them, and a short link and a preview card made and read through the two listeners, over a SQLite database in memory.
 import { test, expect, afterAll } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -7,8 +7,8 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fillHeaders } from '../scripts/headers.ts';
-import { assets, MAX_BODY, send, toRequest } from '../selfhost/http.ts';
-import { options, start } from '../selfhost/server.ts';
+import { assets, MAX_BODY, send, toRequest } from '../backends/node/http.ts';
+import { options, start } from '../backends/node/server.ts';
 
 /** A built site in small: the real _headers, filled as the build fills it, and a page or two. */
 const dist = mkdtempSync(join(tmpdir(), 'tlo-selfhost-'));

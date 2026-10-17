@@ -17,8 +17,8 @@ COPY . .
 # no commit in About and /version.json.
 RUN npm run build:site
 
-# Only what the process runs: node itself (no npm, no yarn), the build, the server, and the Workers' code it runs (site/,
-# tinier/, the headers' reading).
+# Only what the process runs: node itself (no npm, no yarn), the build, the server, and the services it runs (backends/cards/,
+# backends/tinier/, the headers' reading).
 FROM node:24-alpine AS node
 FROM alpine:3.24
 RUN apk add --no-cache libstdc++ && adduser -D -u 1000 node
@@ -27,14 +27,14 @@ WORKDIR /app
 ENV NODE_ENV=production DB=/data/tinier.sqlite PORT=8000 TINIER_PORT=8001
 COPY --from=build /src/package.json ./
 COPY --from=build /src/dist ./dist
-COPY --from=build /src/selfhost ./selfhost
-COPY --from=build /src/site/site.ts ./site/
-COPY --from=build /src/tinier/tinier.ts /src/tinier/cards.ts /src/tinier/brake.ts /src/tinier/d1.ts /src/tinier/page.html ./tinier/
-COPY --from=build /src/tinier/migrations ./tinier/migrations
+COPY --from=build /src/backends/node ./backends/node
+COPY --from=build /src/backends/cards/cards.ts /src/backends/cards/site.ts ./backends/cards/
+COPY --from=build /src/backends/tinier/tinier.ts /src/backends/tinier/brake.ts /src/backends/tinier/d1.ts /src/backends/tinier/page.html ./backends/tinier/
+COPY --from=build /src/backends/tinier/migrations ./backends/tinier/migrations
 COPY --from=build /src/scripts/headers.ts ./scripts/
 COPY --from=build /src/src/kit/core/network.ts ./src/kit/core/
 RUN mkdir /data && chown node:node /data
 USER node
 VOLUME /data
 EXPOSE 8000 8001
-CMD ["node", "selfhost/server.ts"]
+CMD ["node", "backends/node/server.ts"]

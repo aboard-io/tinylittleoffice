@@ -27,7 +27,7 @@
     "vite.cli.config.ts",
     "vite.lib.config.ts",
     "packages",
-    "selfhost",
+    "backends/node",
     "vitest.config.ts",
     "playwright.config.ts",
     "stories",

@@ -14,9 +14,9 @@
  *   npm run deploy -- --dry-run    the checks, and no deploy (uncommitted changes allowed)
  *
  * What was last deployed is kept in .wrangler/deployed (this checkout's own record; with none, a change
- * counts as on screen). Then, in order: the shortener's migrations (tinier/migrations/, by wrangler, on the remote
- * database), the site (`wrangler.jsonc`: dist/ as static assets, with dist/_headers), the shortener
- * (`tinier/wrangler.jsonc`), and the command line on npm (packages/doc, when it is not private and npm has not its
+ * counts as on screen). Then, in order: the shortener's migrations (backends/tinier/migrations/, by wrangler, on the remote
+ * database), the site (`backends/cloudflare/site/wrangler.jsonc`: dist/ as static assets, with dist/_headers), the shortener
+ * (`backends/cloudflare/tinier/wrangler.jsonc`), and the command line on npm (packages/doc, when it is not private and npm has not its
  * version yet; with provenance when a GitHub runner runs this).
  *
  * Two callers, one script: a tag v* on GitHub (.github/workflows/deploy.yml, the runner's log public), or a
@@ -70,8 +70,8 @@ const run = (what, cmd, env = process.env) => {
 
 // Each Worker's BRAKE_KEY, which only a person sets (`wrangler secret put`); asking also proves the token works.
 for (const [who, config] of [
-  ['the shortener', 'tinier/wrangler.jsonc'],
-  ['the site', 'wrangler.jsonc'],
+  ['the shortener', 'backends/cloudflare/tinier/wrangler.jsonc'],
+  ['the site', 'backends/cloudflare/site/wrangler.jsonc'],
 ]) {
   process.stdout.write(`\n▸ ${who} has its BRAKE_KEY\n`);
   let names;
@@ -137,9 +137,9 @@ run('the policy and the version', 'node scripts/check-build.ts');
 const provenance = Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
 const ship = [
   // The tables first, so the shortener never runs against a database it does not know. CI: no question to answer.
-  ["the shortener's tables", 'npx wrangler d1 migrations apply tinier --remote -c tinier/wrangler.jsonc', { ...cloudflare, CI: 'true' }],
-  ['the site', 'npx wrangler deploy', cloudflare],
-  ['the shortener', 'npx wrangler deploy -c tinier/wrangler.jsonc', cloudflare],
+  ["the shortener's tables", 'npx wrangler d1 migrations apply tinier --remote -c backends/cloudflare/tinier/wrangler.jsonc', { ...cloudflare, CI: 'true' }],
+  ['the site', 'npx wrangler deploy -c backends/cloudflare/site/wrangler.jsonc', cloudflare],
+  ['the shortener', 'npx wrangler deploy -c backends/cloudflare/tinier/wrangler.jsonc', cloudflare],
 ];
 if (dry) {
   console.log(`\nDry run: ${head.slice(0, 7)} checked, nothing deployed. A deploy would now run:`);

@@ -6,17 +6,17 @@
  * fetcher sees it. A card is not a link: it is kept readable, for a month, so a network can fetch it. The document
  * itself never comes here.
  *
- *   POST /card            {png, title, text, app}  -> 201 {id, exp}   (the site's Worker, site/site.ts)
+ *   POST /card            {png, title, text, app}  -> 201 {id, exp}   (the site's Worker, backends/cards/site.ts)
  *   GET  /card/<id>.png   the picture, immutable                      (404 once gone)
  *   GET  <a page>?c=<id>  the page, its head's tags saying the card    (the site's app pages and /, the shortener's landing page)
  *
  * The body is JSON, the PNG in base64: the shortener's API is JSON too, one parser and one size check before it is
- * read, and the tests post it as they post a link. One module for both Workers: the site's (site/site.ts) and the
+ * read, and the tests post it as they post a link. One module for both Workers: the site's (backends/cards/site.ts) and the
  * shortener's (tinier.ts), whose landing page previews the same way. What either reads from the database it keeps at
  * the edge (`Edge`, caches.default on Cloudflare): the picture for the card's life, a page for an hour, so a card is
  * read from D1 once however many fetchers come (Paul, 2026-10-11: "cache it, this is Cloudflare").
  */
-import { braked, type Counter } from './brake.ts';
+import { braked, type Counter } from '../tinier/brake.ts';
 
 /** A card as a page's tags say it. */
 export interface Card {

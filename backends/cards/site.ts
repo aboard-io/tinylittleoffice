@@ -4,7 +4,7 @@
  * "/card" and "/card/*"); everything else, the pages among them, is the assets alone, served without counting (since
  * 2026-10-15, when the Worker in front of every page passed the free plan's requests a day and the pages answered 429).
  *
- *   POST /card            a preview card kept for a month (tinier/cards.ts)
+ *   POST /card            a preview card kept for a month (backends/cards/cards.ts)
  *   GET  /card/<id>.png   its picture
  *   GET  /c/<id>          the page a link shared with a network opens (kit/share/card.ts withCardId): the card's app's
  *                         page with its tags saying the card; the document is the hash's, and the shell moves the
@@ -12,10 +12,10 @@
  *   GET  /, /<app>/       with ?c=<id>, the same tags on the page, where the Worker is run for the pages (it is not, in
  *                         production; the links made before 2026-10-15 open as built, the shell reading the hash)
  *
- * No logic of its own beyond the routing: the cards are tinier/cards.ts, the brake tinier/brake.ts, the rows
- * tinier/d1.ts, so the tests run all of it under node with a store in Maps (test/cards.test.ts).
+ * No logic of its own beyond the routing: the cards are backends/cards/cards.ts, the brake backends/tinier/brake.ts, the rows
+ * backends/tinier/d1.ts, so the tests run all of it under node with a store in Maps (test/cards.test.ts).
  */
-import { cardId, cardPage, cardPng, postCard, withCard, type CardStore, type Edge } from '../tinier/cards.ts';
+import { cardId, cardPage, cardPng, postCard, withCard, type CardStore, type Edge } from './cards.ts';
 
 export interface Site {
   /** The built files (the ASSETS binding). */

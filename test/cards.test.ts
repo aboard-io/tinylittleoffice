@@ -1,4 +1,4 @@
-// Preview cards (tinier/cards.ts, served by the site's Worker, site/site.ts, and by the shortener's landing page): a
+// Preview cards (backends/cards/cards.ts, served by the site's Worker, backends/cards/site.ts, and by the shortener's landing page): a
 // card is kept a month and handed back as it came; what is refused, and why; the brake; a page asked for with ?c=
 // carries the card's tags, escaped, and an unknown card leaves the page as built; what is read once is answered from
 // the edge after. The generic cards (scripts/make-cards.ts, public/og/<app>.png) are drawn in the Plex stack and
@@ -11,10 +11,10 @@ import { apps, appOf } from '../src/kit/core/apps.ts';
 import { FONT, pageSvg } from '../src/kit/draw/draw.ts';
 import { CARD_H as DRAWN_H, CARD_W as DRAWN_W } from '../src/kit/draw/card.ts';
 import { CARD_PNG_MAX as CLIENT_PNG_MAX, CARD_TEXT, CARD_TITLE_MAX as CLIENT_TITLE_MAX, cardWords, withCardId } from '../src/kit/share/card.ts';
-import { CARD_H, CARD_PNG_MAX, CARD_TAGS, CARD_TEXT_MAX, CARD_TITLE_MAX, CARD_TTL, CARD_W, tagCount, type Edge } from '../tinier/cards.ts';
-import { handleSite } from '../site/site.ts';
-import { handle } from '../tinier/tinier.ts';
-import { DAILY } from '../tinier/brake.ts';
+import { CARD_H, CARD_PNG_MAX, CARD_TAGS, CARD_TEXT_MAX, CARD_TITLE_MAX, CARD_TTL, CARD_W, tagCount, type Edge } from '../backends/cards/cards.ts';
+import { handleSite } from '../backends/cards/site.ts';
+import { handle } from '../backends/tinier/tinier.ts';
+import { DAILY } from '../backends/tinier/brake.ts';
 import { MemStore } from './memstore.ts';
 
 const KEY = 'a-key-for-the-tests';
@@ -232,7 +232,7 @@ test('the edge: a card and a page with it are read from the database once, howev
 
 test("the shortener's landing page with ?c= carries the card's tags the same way, the picture the site's; without, its own", async () => {
   const store = new MemStore();
-  const page = readFileSync(new URL('../tinier/page.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../backends/tinier/page.html', import.meta.url), 'utf8');
   for (const tag of CARD_TAGS) expect(tagCount(page, tag), tag).toBe(1);
   const { id: card } = (await (await site(store)(post(body({ title: 'Trip <notes>', text: 'Day one.' })))).json()) as { id: string };
   const made = await handle(new Request('https://tinier.tinylittleoffice.com/api', { method: 'POST', body: JSON.stringify({ c: 'abc', iv: 'xyz', ttl: 3600 }) }), store, KEY, page, NOW);
@@ -268,15 +268,15 @@ test('the sweep forgets expired cards with expired links; a card a month old is 
 // The pages are static assets, never the Worker's: on launch day (2026-10-15) every visit through the Worker passed the
 // free plan's 100,000 requests a day and the pages answered 429. Only the cards run it.
 test("the site's Worker runs first only for the cards and a shared link's /c/<id> page: an app's page, with or without ?c=, is a static asset", () => {
-  const jsonc = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8');
+  const jsonc = readFileSync(new URL('../backends/cloudflare/site/wrangler.jsonc', import.meta.url), 'utf8');
   const first = JSON.parse(/"run_worker_first": (\[[^\]]*\])/.exec(jsonc)![1]);
   expect(first).toEqual(['/c/*', '/card', '/card/*']);
   for (const a of apps()) expect(first).not.toContain(`/${a.id}/`);
-  expect(jsonc).toMatch(/"main": "site\/worker\.ts"/);
+  expect(jsonc).toMatch(/"main": "worker\.ts"/);
   expect(jsonc).toMatch(/"binding": "ASSETS"/);
   // The cards are in the shortener's database: the same one, by its id.
   const id = (f: string) => /"database_id": "([^"]+)"/.exec(readFileSync(new URL(f, import.meta.url), 'utf8'))![1];
-  expect(id('../wrangler.jsonc')).toBe(id('../tinier/wrangler.jsonc'));
+  expect(id('../backends/cloudflare/site/wrangler.jsonc')).toBe(id('../backends/cloudflare/tinier/wrangler.jsonc'));
   // The site's robots.txt lets every fetcher in, so a network can read a card's page.
   const robots = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8');
   expect(robots).toMatch(/^Allow: \/$/m);

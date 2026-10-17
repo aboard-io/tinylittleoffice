@@ -11,8 +11,8 @@ A document is its link. The whole of it, compressed, sits after the `#` of
 `https://tinylittleoffice.com/<app>/#/v1/<app>/<payload>`, and a browser never sends the part after `#` to
 any server. The site is static files on Cloudflare; there is no account, no database of documents in the
 clear and no server code that receives one. One service exists besides the files: the short-link service
-(`tinier/`), and nothing else of ours; it holds a document only when someone makes a short link, encrypted
-under a key it never receives, until the link expires. The site's own small Worker (`site/`) keeps one thing more,
+(`backends/tinier/`), and nothing else of ours; it holds a document only when someone makes a short link, encrypted
+under a key it never receives, until the link expires. The site's own small Worker (`backends/cards/`) keeps one thing more,
 only when a person asks: a preview card, below. Everything else the site can reach belongs to someone else and is reached only
 while a person uses it or after they ask (the map, a share), as `docs/network.md` lists.
 
@@ -193,7 +193,7 @@ whatever reaches any of them, Cloudflare and the account's operator could see.
 - **The site.** Requests for the static files: the reader's IP address, the time, the user agent, the
   path (which names the app: `/sheet/`), and the files the page then loads. Not the fragment, so never the document, its title or its password.
   Cloudflare keeps its own aggregate traffic counts for the account, as for any site it serves; per-request
-  Worker logs are off (`wrangler.jsonc`, held by `test/tinier.test.ts`).
+  Worker logs are off (`backends/cloudflare/site/wrangler.jsonc`, held by `test/tinier.test.ts`).
 - **The cards.** For each preview a person chose to send: the picture, the title, the first words and the app, in
   the shortener's D1 database for a month, readable at `/card/<id>.png` and in the tags of the shared link's page,
   `/c/<id>`; counted against the same hundred a day from one address, under the site Worker's own `BRAKE_KEY`.
@@ -224,12 +224,12 @@ makes the rest checkable by a stranger, and a test holds each.
   `scripts/network-doc.ts` (`npm run docs:network`, run first by `npm run build`) writes the two pages, and
   `scripts/headers.ts` writes `connect-src` and `img-src` from the list (`test/csp.test.ts`: every host in its
   directive and nothing else). Builds are not run in tests, so `test/network.test.ts` reads the source (`src/`,
-  `tinier/`) instead of the built site: every host must be on the list (or localhost, or an XML namespace), `src/`
+  `backends/tinier/`) instead of the built site: every host must be on the list (or localhost, or an XML namespace), `src/`
   names hosts only through the list, and the committed page must be what the list says.
 - **No telemetry, asserted.** No analytics, no error reporting, no fonts from a CDN, no fetch the person did not
   cause: `test/network.test.ts` fails on any analytics, error-reporting, font-CDN, tag-manager or
-  session-recording host (a deny-list of 22) anywhere in `src/`, `tinier/`, `public/`, `index.html`,
-  `vite.config.ts` and `wrangler.jsonc`.
+  session-recording host (a deny-list of 22) anywhere in `src/`, `backends/tinier/`, `public/`, `index.html`,
+  `vite.config.ts` and `backends/cloudflare/site/wrangler.jsonc`.
 - **Reproducible, attested builds.** Two builds of one commit are the same bytes: `scripts/reproducible.ts`
   (`npm run build:verify`) builds it twice in fresh checkouts at different paths and depths (`scripts/builds.ts`),
   hashes every file and prints the first difference, and compares this checkout's `dist/` too when it is that
@@ -256,7 +256,7 @@ makes the rest checkable by a stranger, and a test holds each.
   hand. "Logs nothing" for tinier is held by `test/tinier.test.ts`.
 - **A copy of your own.** `docs/self-host.md` deploys the same code to anyone's Cloudflare account, the shortener
   included, and About names the commit a copy runs, so a self-hoster's copy is distinguishable. Or it runs the same
-  code on one machine, as one Node process over one SQLite file (`selfhost/`), where whoever runs the machine sees
+  code on one machine, as one Node process over one SQLite file (`backends/node/`), where whoever runs the machine sees
   what Cloudflare would: the file holds what D1 holds, and a swept row is overwritten in it (`secure_delete`).
 
 Later: an independent audit of the crypto and the shortener, published in full; a public test dashboard; a signed

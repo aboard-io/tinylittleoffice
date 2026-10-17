@@ -31,7 +31,7 @@ const code = (text: string) =>
     .join('\n');
 const hosts = (text: string) => [...text.matchAll(/https?:\/\/([a-z0-9-]+(?:\.[a-z0-9-]+)+|localhost)/gi)].map((m) => m[1].toLowerCase());
 
-const source = [...files('src'), ...files('tinier')];
+const source = [...files('src'), ...files('backends')];
 
 test('every host the source reaches is on the list, or localhost, or a namespace', () => {
   const stray: string[] = [];
@@ -83,7 +83,7 @@ const DENY = [
 ];
 
 test('no telemetry: no analytics, error-reporting, font-CDN or tag-manager host anywhere in the site', () => {
-  const everywhere = [...source, ...files('public'), 'index.html', 'vite.config.ts', 'wrangler.jsonc'];
+  const everywhere = [...source, ...files('public'), 'index.html', 'vite.config.ts', 'backends/cloudflare/site/wrangler.jsonc'];
   const found: string[] = [];
   for (const path of everywhere) {
     const text = readFileSync(join(root, path), 'utf8').toLowerCase();

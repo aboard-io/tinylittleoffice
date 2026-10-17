@@ -1,5 +1,5 @@
 // The site on Cloudflare: the build in dist/, served as static assets, with public/_headers. A small Worker
-// (site/worker.ts) runs first only for the preview cards: "/c/<id>", the page a link shared with a network opens
+// (backends/cloudflare/site/worker.ts) runs first only for the preview cards: "/c/<id>", the page a link shared with a network opens
 // (the app's page with the card's tags), "/card" and "/card/*". Every other path, the home page and each app's page
 // among them, is the assets alone, which Cloudflare serves without counting them. The link shortener is its own
 // Worker (tinier/).
@@ -10,28 +10,28 @@
 // and the site is down"). A shared link's card is in its path now, so only those visits are the Worker's; a link made
 // before, with ?c= on the app's page, opens as built (the shell reads the hash) and previews as the app's card.
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
   "name": "tinylittleoffice",
-  "main": "site/worker.ts",
+  "main": "worker.ts",
   "compatibility_date": "2026-10-08",
   "assets": {
-    "directory": "./dist",
+    "directory": "../../../dist",
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
     // The cards alone (test/cards.test.ts holds it): an app's page is never the Worker's.
     "run_worker_first": ["/c/*", "/card", "/card/*"],
   },
-  // The cards are kept in the shortener's database (tinier/wrangler.jsonc, tinier/migrations/), whose sweep forgets them.
+  // The cards are kept in the shortener's database (backends/cloudflare/tinier/wrangler.jsonc, backends/tinier/migrations/), whose sweep forgets them.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "tinier",
       "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5",
-      "migrations_dir": "tinier/migrations",
+      "migrations_dir": "../../tinier/migrations",
     },
   ],
-  // A hundred cards a day from one address, counted under a keyed hash (tinier/brake.ts); the key is this Worker's own
+  // A hundred cards a day from one address, counted under a keyed hash (backends/tinier/brake.ts); the key is this Worker's own
   // secret BRAKE_KEY (`wrangler secret put BRAKE_KEY`), set once by hand, never here.
   // Only on its own domain: no workers.dev copy once this is live.
   "workers_dev": false,

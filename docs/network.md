@@ -47,12 +47,12 @@ address.
   them but the browser's own cache. The site sends no referrer.
 - **Short links.** Only when a short link is made or opened; the service holds
   ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send
-  (tinier/tinier.ts).
+  (backends/tinier/tinier.ts).
 - **A preview.** Only when a person shares with a network from Share with "Show a preview of the first page" on:
   a picture of the first page, the title and the first words go to the site's own `/card`, and the link
   shared carries the card's id in its path (`/c/<id>`, before the "#"): the one page the site's Worker serves, the
   app's page with the card's tags, which the shell moves to the app's own address as it opens. The card is kept
-  readable for a month, then forgotten (tinier/cards.ts); the document and its link are never sent.
+  readable for a month, then forgotten (backends/cards/cards.ts); the document and its link are never sent.
 - **Sharing to a service.** Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in
   a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so
   whoever reads the post can read it. "Any https address" there is the Mastodon server the person names.
