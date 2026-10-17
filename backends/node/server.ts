@@ -1,8 +1,8 @@
 /**
- * Tiny Little Office on one machine, without Cloudflare: one Node process (node:http, node:sqlite, nothing else) on two
- * ports, the site and its short-link service, running the very code the two Workers run (backends/cards/site.ts and
- * backends/tinier/tinier.ts) over a SQLite file in place of D1 (backends/node/sqlite.ts) and the build's files in place of the
- * ASSETS binding (backends/node/http.ts). Paul (issue #7, 2026-10-15): "the smallest possible stack … ideally it would just
+ * Tiny Little Office on one machine, without Cloudflare: one Node process (node:http, node:sqlite, nothing else) on
+ * three ports, the site, its short-link service and the journal, running the very code the three Workers run
+ * (backends/cards/site.ts, backends/tinier/tinier.ts and backends/journal/journal.ts) over a SQLite file in place of D1
+ * and the Durable Objects (backends/node/sqlite.ts) and the build's files in place of the ASSETS binding (backends/node/http.ts). Paul (issue #7, 2026-10-15): "the smallest possible stack … ideally it would just
  * all be JS + sqlite instead of something heavy like nginx."
  *
  *   node backends/node/server.ts        after `npm run build` with VITE_TINIER set to the shortener's address
@@ -10,14 +10,15 @@
  * The environment (.env.example):
  *   BRAKE_KEY    the secret the daily counts are kept under (required; any long random string, kept nowhere else)
  *   SITE         the site's address as a browser reaches it (http://localhost:8000): the one origin the shortener answers
- *   PORT         the site's port (8000);  TINIER_PORT  the shortener's (8001);  HOST  where both listen (0.0.0.0)
- *   DB           the SQLite file (data/tinier.sqlite): the links, the preview cards and the daily counts
+ *   PORT         the site's port (8000);  TINIER_PORT  the shortener's (8001);  JOURNAL_PORT  the journal's (8002)
+ *   HOST         where all three listen (0.0.0.0)
+ *   DB           the SQLite file (data/tinier.sqlite): the links, the preview cards, the journals and the daily counts
  *   DIST         the built site (dist/)
  *   IP_HEADER    behind a proxy, the header that names the client's address (x-forwarded-for), so the brake counts
  *                each reader rather than the proxy
  *
  * What the Workers keep at the edge (caches.default) is not kept here: every card page is read from the file. The
- * hourly sweep runs in the process. Nothing is logged but the two addresses it listens on, and nothing is fetched.
+ * hourly sweep runs in the process. Nothing is logged but the three addresses it listens on, and nothing is fetched.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -25,6 +26,7 @@ import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { D1Store } from '../tinier/d1.ts';
 import { handle } from '../tinier/tinier.ts';
+import { handle as handleJournal, SCHEMA, SqlStore, waiters } from '../journal/journal.ts';
 import { handleSite } from '../cards/site.ts';
 import { noEdge } from '../cards/cards.ts';
 import { assets, send, toRequest } from './http.ts';
@@ -35,6 +37,7 @@ export interface Options {
   site: string;
   port: number;
   tinierPort: number;
+  journalPort: number;
   host: string;
   db: string;
   dist: string;
@@ -53,6 +56,7 @@ export function options(env: Record<string, string | undefined>): Options {
     site: (env.SITE || `http://localhost:${env.PORT || 8000}`).replace(/\/+$/, ''),
     port: Number(env.PORT || 8000),
     tinierPort: Number(env.TINIER_PORT || 8001),
+    journalPort: Number(env.JOURNAL_PORT || 8002),
     host: env.HOST || '0.0.0.0',
     db: resolve(ROOT, env.DB || 'data/tinier.sqlite'),
     dist: resolve(ROOT, env.DIST || 'dist'),
@@ -63,14 +67,18 @@ export function options(env: Record<string, string | undefined>): Options {
 /** The paths the site's Worker runs first for (wrangler.jsonc run_worker_first); every other path is the files alone. */
 const WORKER_FIRST = /^\/(c\/|card$|card\/)/;
 
-/** Both listeners, started; `close()` stops them and closes the database. A port of 0 takes any free one. */
-export async function start(o: Options): Promise<{ site: Server; tinier: Server; close(): Promise<void> }> {
+/** The three listeners, started; `close()` stops them and closes the database. A port of 0 takes any free one. */
+export async function start(o: Options): Promise<{ site: Server; tinier: Server; journal: Server; close(): Promise<void> }> {
   if (o.db !== ':memory:') mkdirSync(dirname(o.db), { recursive: true });
   const db = new DatabaseSync(o.db);
   // A row the sweep deletes is overwritten in the file, not left in its free pages for whoever copies it.
   db.exec('PRAGMA secure_delete = ON');
   migrate(db);
+  for (const statement of SCHEMA.split(';')) if (statement.trim()) db.exec(statement);
   const store = new D1Store(sqlite(db));
+  // The journals' rows beside the links' in the one file; their daily counts in the brakes table under a key of their own.
+  const journals = new SqlStore(sqlite(db), store);
+  const wake = waiters();
   const files = assets(o.dist);
   const page = readFileSync(resolve(ROOT, 'backends/tinier/page.html'), 'utf8');
   // The cards' counts beside the links' in one table, under a key of their own, as the two Workers' two secrets keep them apart.
@@ -92,18 +100,20 @@ export async function start(o: Options): Promise<{ site: Server; tinier: Server;
     WORKER_FIRST.test(new URL(req.url).pathname) ? handleSite(req, { assets: files, store, key: cardKey, edge: noEdge, now: Date.now() }) : files.fetch(req),
   );
   const tinier = await listen(o.tinierPort, (req) => handle(req, store, o.key, page, Date.now(), o.site));
-  // The Worker's cron, "17 * * * *": expired links and cards, and the counts of days before yesterday.
+  const journal = await listen(o.journalPort, (req) => handleJournal(req, journals, `${o.key}\njournal`, Date.now(), o.site, wake));
+  // The Worker's cron, "17 * * * *": expired links, cards and journals, and the counts of days before yesterday.
   // A sweep that fails (a full disk) is tried again in an hour; nothing is logged, by design, and the process stays up.
-  const sweeping = () => store.sweep(Date.now()).catch(() => {});
+  const sweeping = () => Promise.all([store.sweep(Date.now()), journals.sweep(Date.now())]).catch(() => {});
   const sweep = setInterval(() => void sweeping(), 3_600_000);
   sweep.unref();
   void sweeping();
   return {
     site,
     tinier,
+    journal,
     async close() {
       clearInterval(sweep);
-      await Promise.all([site, tinier].map((s) => new Promise((done) => (s.close(done), s.closeAllConnections()))));
+      await Promise.all([site, tinier, journal].map((s) => new Promise((done) => (s.close(done), s.closeAllConnections()))));
       db.close();
     },
   };
@@ -112,6 +122,8 @@ export async function start(o: Options): Promise<{ site: Server; tinier: Server;
 if (import.meta.main) {
   const o = options(process.env);
   const running = await start(o);
-  console.log(`Tiny Little Office: the site on http://${o.host}:${o.port}/ (as ${o.site}), the short links on http://${o.host}:${o.tinierPort}/, kept in ${o.db}`);
+  console.log(
+    `Tiny Little Office: the site on http://${o.host}:${o.port}/ (as ${o.site}), the short links on http://${o.host}:${o.tinierPort}/, the journal on http://${o.host}:${o.journalPort}/, kept in ${o.db}`,
+  );
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => void running.close().then(() => process.exit(0)));
 }

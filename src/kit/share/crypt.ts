@@ -8,7 +8,7 @@
  * nothing. Each edit runs AES-GCM with
  * a fresh IV. WebCrypto alone. docs/crypto/password.md gives the layout and why it is sound.
  */
-import { fromBase64Url, isSealed, toBase64Url } from '../core/codec.ts';
+import { encodeDoc, fromBase64Url, isSealed, packDoc, toBase64Url, unpackDoc } from '../core/codec.ts';
 
 /** HKDF's info: names the format, so this key is for nothing else. */
 const INFO = new TextEncoder().encode('tinylittleoffice sealed v1');
@@ -101,4 +101,35 @@ export async function unsealWith(locker: Locker, payload: string): Promise<{ fla
   const p = parts(payload);
   if (!p || p.salt.length !== locker.salt.length || p.salt.some((b, i) => b !== locker.salt[i])) return null;
   return open(locker.key, p.iv, p.ct);
+}
+
+/* ---------- a document's text, sealed and opened ---------- */
+
+/** A document's text as its link's payload: sealed under the locker when there is one. */
+export async function pack(text: string, locker: Locker | null): Promise<string> {
+  if (!locker) return encodeDoc(text);
+  const { flag, bytes } = packDoc(text);
+  return seal(locker, flag, bytes);
+}
+
+/** What a seal held, as a document's text, or null when it is not one the codec reads (a seal made of other bytes under the password). */
+const unpacked = ({ flag, bytes }: { flag: string; bytes: Uint8Array }): string | null => {
+  try {
+    return unpackDoc(flag, bytes);
+  } catch {
+    return null;
+  }
+};
+
+/** A password tried on a sealed payload: the text and its locker, or null when it is not the password, or the seal holds no document. */
+export async function unlock(password: string, payload: string): Promise<{ text: string; locker: Locker } | null> {
+  const r = await unseal(password, payload);
+  const text = r && unpacked(r);
+  return !r || text === null ? null : { text, locker: r.locker };
+}
+
+/** A sealed payload opened by a locker already held: the text, or null when the locker is not its or the seal holds no document. */
+export async function reopenWith(locker: Locker, payload: string): Promise<string | null> {
+  const r = await unsealWith(locker, payload);
+  return r ? unpacked(r) : null;
 }

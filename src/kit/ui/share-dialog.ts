@@ -30,7 +30,7 @@ import { fitLine, fitWords, limitWords, roomFor, shown } from '../share/limits.t
 import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from '../share/short.ts';
 import { dropKept, keepLink, keptLinks } from '../share/kept-links.ts';
 import { CARDS, cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
-import { pack } from '../share/privacy.ts';
+import { pack } from '../share/crypt.ts';
 import { store } from '../core/store.ts';
 import { QR_MAX_BYTES, qrSvg } from '../draw/qr.ts';
 import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from '../share/share.ts';

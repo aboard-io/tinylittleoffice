@@ -74,7 +74,7 @@ address.
 ## Nothing else
 
 No analytics, no error reporting, no fonts or scripts from a CDN, no tag manager, no fetch the person did
-not cause. \`test/network.test.ts\` reads the source (\`src/\` and the shortener in \`tinier/\`) and fails
+not cause. \`test/network.test.ts\` reads the source (\`src/\` and the services in \`backends/\`) and fails
 on any host that is not on this page, and on any analytics, error-reporting, font-CDN or tag-manager host
 anywhere in the site.
 

@@ -17,8 +17,7 @@
  */
 import { forgetOpened } from './locked.ts';
 import { keeping, setKeeping, store } from '../core/store.ts';
-import { encodeDoc, packDoc, unpackDoc } from '../core/codec.ts';
-import { newLocker, seal, unseal, unsealWith, type Locker } from './crypt.ts';
+import { newLocker, reopenWith, unlock as opened, type Locker } from './crypt.ts';
 import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './kept-links.ts';
 import { keepOffline } from './offline.ts';
@@ -47,7 +46,7 @@ export { keeping };
 export async function setPrivate(privately: boolean) {
   setKeeping(!privately);
   if (privately) {
-    opened.length = 0;
+    lockers.length = 0;
     forgetOpened();
   }
   changed();
@@ -59,47 +58,28 @@ export const prefsKept = (): number => PREFS.filter((k) => store.get(k) !== null
 /* ---------- the password ---------- */
 
 /** The keys that opened documents this visit: memory only, never written. */
-const opened: Locker[] = [];
+const lockers: Locker[] = [];
 
 /** A new password's locker. */
 export const lockWith = (password: string): Promise<Locker> => newLocker(password);
 
-/** A document's text as its link's payload: sealed under the locker when there is one. */
-export async function pack(text: string, locker: Locker | null): Promise<string> {
-  if (!locker) return encodeDoc(text);
-  const { flag, bytes } = packDoc(text);
-  return seal(locker, flag, bytes);
-}
-
-/** What a seal held, as a document's text, or null when it is not one the codec reads (a seal made of other bytes under the password). */
-const unpacked = ({ flag, bytes }: { flag: string; bytes: Uint8Array }): string | null => {
-  try {
-    return unpackDoc(flag, bytes);
-  } catch {
-    return null;
-  }
-};
-
-/** A password tried on a sealed payload: the text and its locker, or null when it is not the password, or the seal holds no document. */
+/** A password tried on a sealed payload (crypt.ts unlock), its locker kept for the visit: the text and the locker, or null. */
 export async function unlock(password: string, payload: string): Promise<{ text: string; locker: Locker } | null> {
-  const r = await unseal(password, payload);
-  const text = r && unpacked(r);
-  if (!r || text === null) return null;
-  opened.push(r.locker);
-  return { text, locker: r.locker };
+  const r = await opened(password, payload);
+  if (r) lockers.push(r.locker);
+  return r;
 }
 
 /** A sealed payload opened by a password already given this visit, or null. */
 export async function reopen(payload: string): Promise<{ text: string; locker: Locker } | null> {
-  for (const locker of opened) {
-    const r = await unsealWith(locker, payload);
-    const text = r ? unpacked(r) : null;
+  for (const locker of lockers) {
+    const text = await reopenWith(locker, payload);
     if (text !== null) return { text, locker };
   }
   return null;
 }
 /** A locker made here (a password set) opens its document again this visit too. */
-export const remember = (locker: Locker) => void (opened.includes(locker) || opened.push(locker));
+export const remember = (locker: Locker) => void (lockers.includes(locker) || lockers.push(locker));
 
 /* ---------- what the device holds ---------- */
 

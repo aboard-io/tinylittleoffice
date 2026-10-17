@@ -10,10 +10,13 @@ the site can make is listed in `docs/network.md`.
 A document is its link. The whole of it, compressed, sits after the `#` of
 `https://tinylittleoffice.com/<app>/#/v1/<app>/<payload>`, and a browser never sends the part after `#` to
 any server. The site is static files on Cloudflare; there is no account, no database of documents in the
-clear and no server code that receives one. One service exists besides the files: the short-link service
-(`backends/tinier/`), and nothing else of ours; it holds a document only when someone makes a short link, encrypted
-under a key it never receives, until the link expires. The site's own small Worker (`backends/cards/`) keeps one thing more,
-only when a person asks: a preview card, below. Everything else the site can reach belongs to someone else and is reached only
+clear and no server code that receives one. Two services exist besides the files, and nothing else of ours: the
+short-link service (`backends/tinier/`), which holds a document only when someone makes a short link, encrypted under a
+key it never receives, until the link expires; and the journal (`backends/journal/`), which holds a document several
+people edit at once, or a person's own store of documents kept in sync across their devices, as sealed entries under
+keys it never receives, for a page built on the library (`docs/crypto/journal.md`; the site itself makes no journal
+yet). The site's own small Worker (`backends/cards/`) keeps one thing more, only when a person asks: a preview card,
+below. Everything else the site can reach belongs to someone else and is reached only
 while a person uses it or after they ask (the map, a share), as `docs/network.md` lists.
 
 Two consequences follow, and the rest of this page is mostly their detail:
@@ -50,8 +53,10 @@ free plan's requests a day on launch day; such a link still opens, the shell rea
 app's card.) The document itself and its link are never sent. Edit link, Present link and Email make no card, nor does a
 document with a password. A link with no card previews as its app's generic card, whose page is gray shapes.
 
-There is no shared document: every link is a copy. Whoever opens one has their own, and what they change is in
-their link, never in the sender's; Share says so under the link, in every language.
+On the site there is no shared document: every link is a copy. Whoever opens one has their own, and what they change
+is in their link, never in the sender's; Share says so under the link, in every language. A page built on the library
+may share a document through the journal instead: then whoever has its writer's address writes it, whoever has its
+reader's address follows it, and the server holds what neither it nor anyone without an address can read.
 
 ## What it protects against
 
@@ -185,6 +190,9 @@ carry the reader's address to OpenFreeMap or OpenStreetMap, and which squares of
 | Short links cannot be changed or recalled: no update, no delete, no key that could do either | A short link replaced under the people it was sent to; a key to replace it copied out of an address bar |
 | Short links expire (an hour to a month) and are swept hourly | Ciphertext kept indefinitely by a service |
 | A hundred links a day per address, counted under a keyed hash kept two days | The shortener used as free storage by a stranger; a record of who made links |
+| A journal's entries sealed under a key derived from a secret the server never has, each bound to its journal, place and kind, padded to 256 bytes; the write token's hash the only thing the server keeps of it, compared whole | The journal service reading a shared document, moving an entry, forging one, or telling a keystroke from a word by its size; a leak of its storage giving anyone a way to write |
+| A journal appends only at the next seq, and every replica applies one order with one kernel | Two people's edits leaving two documents; one bad entry parting the people on a document |
+| A hundred journals a day per address, each at most 32 MB, forgotten a year after its last use | The journal used as free storage by a stranger |
 | No logs in the site or the shortener (observability off, no console calls, tests hold both) | A record of who asked for what |
 | The link guard before every link that leaves | A scam link disguised by its words |
 | No app draws a document as a web page of its own: a document never runs code | A phishing page served from our own domain |
@@ -213,6 +221,12 @@ whatever reaches any of them, Cloudflare and the account's operator could see.
   history of the database for a limited window (Cloudflare's Time Travel); a row deleted from the table can
   be restored from that history by the account's operator until the window passes. Details:
   `docs/crypto/short-links.md`.
+
+- **The journal.** For each journal a page built on the library makes: its id, the hash of its write token, its
+  entries' ciphertext with their IVs, seqs and kinds, and when it was last used, in a Durable Object's own SQLite
+  database until a year after that; the daily counts of journals made, under the shortener's keyed hash, in D1 for
+  two days. The address of each request is seen for its length and not written down. Never a key, so never a word, an
+  author or the app. Details: `docs/crypto/journal.md`.
 
 What none of them can see: a document's words, a password, who a link was sent to, or that a
 given person opened a given document, beyond the timing and address of requests that a person could try to

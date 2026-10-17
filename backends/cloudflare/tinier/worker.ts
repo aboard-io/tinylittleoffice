@@ -3,11 +3,11 @@
  * preview card kept at the edge (caches.default), and the hourly sweep on a cron (links, cards and old counts).
  */
 import PAGE from '../../tinier/page.html';
-import { brakeKey } from '../../tinier/brake.ts';
+import { brakeKey, SITE } from '../../tinier/brake.ts';
 import { D1Store } from '../../tinier/d1.ts';
-import { SITE, handle } from '../../tinier/tinier.ts';
+import { handle } from '../../tinier/tinier.ts';
 
-// SITE, the sites that may call it (tinier.ts), is wrangler.jsonc's var, which `wrangler types` declares; under
+// SITE, the sites that may call it (brake.ts), is wrangler.jsonc's var, which `wrangler types` declares; under
 // `wrangler dev` (npm run tinier:dev) it names a copy of the site on this machine instead.
 declare global {
   interface Env {

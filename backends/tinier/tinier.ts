@@ -30,7 +30,7 @@
  * This file is the whole of it apart from the brake, the cards and where the rows live (a Store): d1.ts keeps them
  * in D1, worker.ts runs it on Cloudflare; the tests give it Maps, and d1.ts node's SQLite.
  */
-import { bodyText, braked, type Counter } from './brake.ts';
+import { bodyText, braked, HSTS, json, SITE, sitesOf, type Counter } from './brake.ts';
 import { newId, type CardStore } from '../cards/cards.ts';
 
 export interface Link {
@@ -49,21 +49,6 @@ export interface Store extends Counter, CardStore {
   sweep(now: number): Promise<void>;
 }
 
-/**
- * The site that may call the API, and the only place a short link may lead (a local copy of the site, under `wrangler dev`,
- * names itself). The Worker's var SITE may name more than one, comma-separated, the first the site's own: each an
- * origin, or an origin and a path for a copy that is not at its host's root, as the mirror on GitHub Pages
- * ("https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice": docs/mirror.md). Each may call the API,
- * and a short link may lead only under one of them.
- */
-export const SITE = 'https://tinylittleoffice.com';
-
-/** The sites a SITE names, each without a trailing "/". */
-export const sitesOf = (site: string): string[] =>
-  site
-    .split(',')
-    .map((s) => s.trim().replace(/\/+$/, ''))
-    .filter(Boolean);
 /** The most ciphertext a link may hold, in base64url characters. src/kit/share/short.ts carries the same number; a test holds them together. */
 export const MAX_BYTES = 16 * 1024;
 /** The lifetimes on the menu, in seconds: an hour, a day, a week, a month (Paul, 2026-10-11: "Make the max expire a month"). */
@@ -72,12 +57,6 @@ const B64 = /^[A-Za-z0-9_~-]+$/;
 
 const valid = (s: string) => /^[a-z0-9]{7}$/.test(s);
 
-const HSTS = 'max-age=31536000; includeSubDomains';
-const json = (body: unknown, site: string, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'strict-transport-security': HSTS },
-  });
 const bad = (site: string) => json({ error: 'Bad request' }, site, 400);
 const gone = (site: string) => json({ error: 'No such link, or it has expired.' }, site, 404);
 const html = (page: string, status = 200) =>

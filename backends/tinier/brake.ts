@@ -1,10 +1,11 @@
 /**
- * The daily brake every service keeps: one address may make a hundred things a UTC day (DAILY), a short link at the
- * shortener (tinier.ts), a preview card at the site (cards/cards.ts) and a journal (journal/journal.ts) each counted
+ * What every service shares (tinier.ts, cards/cards.ts, journal/journal.ts). The daily brake: one address may make a
+ * hundred things a UTC day (DAILY), a short link at the shortener, a preview card at the site and a journal each counted
  * the same way. The count is kept under base64url(sha256(key ‖ day ‖ address)), where the key is a secret of each
  * Worker's deployment (BRAKE_KEY), so the row says nothing of the address to anyone without the key, and with it only
- * that the address made something that day. The sweep forgets the counts of every day but today and yesterday. And
- * the one bounded read of a request's body (bodyText), which every service does before it parses anything.
+ * that the address made something that day. The sweep forgets the counts of every day but today and yesterday. The
+ * sites whose pages may call (SITE); the one bounded read of a request's body (bodyText), which every service does
+ * before it parses anything; and the JSON answer, with the headers every one carries.
  */
 
 /** Where an address's count is kept: one more under `h` on `day`, and the count now, this one included. */
@@ -17,6 +18,30 @@ export function brakeKey(key: string | undefined, config = 'backends/cloudflare/
   if (!key) throw new Error(`BRAKE_KEY is not set. Run \`npx wrangler secret put BRAKE_KEY -c ${config}\`, or put BRAKE_KEY=… in ${dev} for \`${run}\`.`);
   return key;
 }
+
+/**
+ * The site whose pages may call a service, and the only place a short link may lead (a local copy of the site, under
+ * `wrangler dev`, names itself). A Worker's var SITE may name more than one, comma-separated, the first the site's own:
+ * each an origin, or an origin and a path for a copy that is not at its host's root, as the mirror on GitHub Pages
+ * ("https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice": docs/mirror.md). Each may call, and a
+ * short link may lead only under one of them.
+ */
+export const SITE = 'https://tinylittleoffice.com';
+
+/** The sites a SITE names, each without a trailing "/". */
+export const sitesOf = (site: string): string[] =>
+  site
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+export const HSTS = 'max-age=31536000; includeSubDomains';
+/** A JSON answer to a page of `site`: never cached, never sniffed, over TLS from here on. */
+export const json = (body: unknown, site: string, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'strict-transport-security': HSTS },
+  });
 
 /** The most one address may make in a UTC day. */
 export const DAILY = 100;

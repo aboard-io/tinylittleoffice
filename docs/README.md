@@ -20,6 +20,7 @@ siblings, one an app; the kit's and the kernel's files each begin by saying what
 - [threat-model.md](threat-model.md): what the defaults, passwords and short links protect against, what they do not, how a stranger checks it, and how to say what this is.
 - [crypto/password.md](crypto/password.md): a password on a document, byte by byte, with test vectors.
 - [crypto/short-links.md](crypto/short-links.md): a short link, byte by byte: the cipher, the key in the fragment, what the service stores and for how long.
+- [crypto/journal.md](crypto/journal.md): a journal, byte by byte: the keys a secret gives, an entry sealed for its place, the order the service keeps, with test vectors.
 - [network.md](network.md): what leaves your browser: every request the site can make, when, what it carries, what stops it (generated).
 - [dependencies.md](dependencies.md): every package, its version and license, the native API it beat, and the bytes it adds (generated).
 

@@ -18,7 +18,7 @@ import { lookup, type AppDef, type Editor } from '../core/app.ts';
 import { icon, UI } from '../draw/icons.ts';
 import { LOCKED_LANG, setOpened } from '../share/locked.ts';
 import { openPlaced } from './locked-doc.ts';
-import { pack } from '../share/privacy.ts';
+import { pack } from '../share/crypt.ts';
 import { routeHash } from '../core/route.ts';
 import { t } from '../core/i18n.ts';
 

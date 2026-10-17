@@ -1,7 +1,7 @@
 # Running your own copy
 
 Tiny Little Office runs on anyone's Cloudflare account exactly as it runs at tinylittleoffice.com: the same
-code, the same two Workers, nothing of ours in between. Or it runs on any machine with Node or Docker, as one process
+code, the same three Workers, nothing of ours in between. Or it runs on any machine with Node or Docker, as one process
 over one SQLite file ([Without Cloudflare](#without-cloudflare-one-process-and-sqlite), below). A document is its link, so a copy of your own
 needs no data from ours; a link made on one copy opens on another (the part after `#` is the document, and
 any copy reads it). This takes about thirty minutes, most of it waiting for a domain's certificate.
@@ -12,14 +12,15 @@ any copy reads it). This takes about thirty minutes, most of it waiting for a do
 | --- | --- | --- | --- |
 | the site | `backends/cloudflare/site/wrangler.jsonc` | `dist/` as static assets, with `dist/_headers` (the Content-Security-Policy), and a small Worker (`backends/cards/`) that runs first only for the home page, each app's page and `/card`: the preview cards a person sends with a link to a network | D1: the `cards` table, in the shortener's database |
 | tinier | `backends/cloudflare/tinier/wrangler.jsonc` | the short-link service: ciphertext in, ciphertext out, a hundred links a day per address (docs/crypto/short-links.md) | D1: the links and the daily counts, swept hourly by a cron trigger (the cards with them) |
+| the journal | `backends/cloudflare/journal/wrangler.jsonc` | the journal service for a page built on the library: sealed entries in one order, a document several people edit at once or a person's own store (docs/crypto/journal.md); a hundred journals a day per address | a Durable Object a journal, its rows in the object's own SQLite database, swept by its alarm; the daily counts in the shortener's D1 database |
 
 Each has `observability` off and `workers_dev` off: no logs, and no `*.workers.dev` copy. Keep it that way
 unless you mean to change what your copy knows about its readers.
 
 ## What you need
 
-- A Cloudflare account, and a domain whose DNS is on it (a zone). Workers and D1 both have a free tier;
-  check Cloudflare's current limits for what your readers will need.
+- A Cloudflare account, and a domain whose DNS is on it (a zone). Workers, D1 and Durable Objects with SQLite
+  storage all have a free tier; check Cloudflare's current limits for what your readers will need.
 - Node 24 or later, and git.
 
 ## 1. The code
@@ -32,17 +33,18 @@ npx wrangler login
 
 ## 2. Your names
 
-Choose two addresses, for example `office.example.org` (the site) and `tinier.example.org`. Then change
-ours to yours, in six places:
+Choose three addresses, for example `office.example.org` (the site), `tinier.example.org` and
+`journal.example.org`. Then change ours to yours, in six places:
 
-1. **The routes.** In `backends/cloudflare/site/wrangler.jsonc` and `backends/cloudflare/tinier/wrangler.jsonc`, set each
-   `routes` pattern to its address, keeping `"custom_domain": true`. Cloudflare makes the DNS record and
-   the certificate the first time it deploys.
-2. **The site the Worker serves.** In `backends/cloudflare/tinier/wrangler.jsonc`, set
-   `"vars": { "SITE": "https://office.example.org" }`, in place of ours. tinier lets only that site call it, and leads a
-   short link nowhere else. (Without the var it falls back to `https://tinylittleoffice.com`, and your site
-   would be refused.) The file names ours, tinylittleoffice.com and its mirror on GitHub Pages; the var may name
-   several, comma-separated, yours first (docs/mirror.md).
+1. **The routes.** In `backends/cloudflare/site/wrangler.jsonc`, `backends/cloudflare/tinier/wrangler.jsonc` and
+   `backends/cloudflare/journal/wrangler.jsonc`, set each `routes` pattern to its address, keeping `"custom_domain": true`.
+   Cloudflare makes the DNS record and the certificate the first time it deploys.
+2. **The site the Workers serve.** In `backends/cloudflare/tinier/wrangler.jsonc` and `backends/cloudflare/journal/wrangler.jsonc`,
+   set `"vars": { "SITE": "https://office.example.org" }`, in place of ours. tinier lets only that site call it, and
+   leads a short link nowhere else; the journal lets only its pages write. (Without the var each falls back to
+   `https://tinylittleoffice.com`, and your site would be refused.) The files name ours, tinylittleoffice.com and its
+   mirror on GitHub Pages; the var may name several, comma-separated, yours first (docs/mirror.md). A page built on
+   the library that uses the journal from another origin names that origin here.
 3. **The build's settings,** in a file `.env.production` (not committed; `.env.example` lists them):
 
    ```sh
@@ -56,8 +58,9 @@ ours to yours, in six places:
 5. **The brake.** tinier counts its own, a hundred links a day per address, in D1, under a keyed hash: set the
    Worker secret `BRAKE_KEY` (backends/cloudflare/tinier/wrangler.jsonc says how). The site's own Worker (`backends/cards/`, which keeps the
    preview cards a person sends with a link to a network) counts cards the same way under its own `BRAKE_KEY`.
-6. **The cards' database.** `backends/cloudflare/site/wrangler.jsonc` binds the shortener's database too (the `cards` table): put the same
-   `database_id` there as in `backends/cloudflare/tinier/wrangler.jsonc`.
+6. **The cards' and the counts' database.** `backends/cloudflare/site/wrangler.jsonc` binds the shortener's database too (the `cards`
+   table), and so does `backends/cloudflare/journal/wrangler.jsonc` (the `brakes` table alone): put the same `database_id` in both as in
+   `backends/cloudflare/tinier/wrangler.jsonc`.
 
 ## 3. The short links' database
 
@@ -76,12 +79,14 @@ the one thing set by hand, once; the deploy checks it is there and stops, saying
 
 ```sh
 openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY -c backends/cloudflare/tinier/wrangler.jsonc
-openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY
+openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY -c backends/cloudflare/site/wrangler.jsonc
+openssl rand -base64 32 | npx wrangler secret put BRAKE_KEY -c backends/cloudflare/journal/wrangler.jsonc
 ```
 
-The second is the site's Worker's own, for the preview cards. Without its key either Worker answers nothing and says
-why. On a development machine, put `BRAKE_KEY=<any string>` in `backends/cloudflare/tinier/.dev.vars` for `npm run tinier:dev` and in
-`.dev.vars` for `npm run site:dev` (both ignored by git); each applies the migrations to its local database, and
+The second is the site's Worker's own, for the preview cards; the third the journal's, for the journals made. Without
+its key a Worker answers nothing and says why. On a development machine, put `BRAKE_KEY=<any string>` in
+`backends/cloudflare/tinier/.dev.vars` for `npm run tinier:dev`, in `backends/cloudflare/journal/.dev.vars` for `npm run journal:dev` and in
+`backends/cloudflare/site/.dev.vars` for `npm run site:dev` (all ignored by git); each applies the migrations to its local database, and
 `site:dev` serves the build in `dist/` with the Worker in front, where the dev server sends `/card`.
 
 ## 4. Deploy
@@ -99,9 +104,9 @@ The deploy reads three credentials from the environment, or else from the checko
 npm run deploy
 ```
 
-That checks both Workers' `BRAKE_KEY` is set, runs the checks we run before shipping (the types, the strings, the unit
+That checks each Worker's `BRAKE_KEY` is set, runs the checks we run before shipping (the types, the strings, the unit
 and browser tests, the build, what the build wrote, and the smoke run on the built site when something on screen
-changed), then applies the shortener's migrations, deploys the two Workers in turn, and publishes the command line
+changed), then applies the shortener's migrations, deploys the three Workers in turn, and publishes the command line
 to npm when its version is new. `npm run deploy -- --dry-run` makes every check and prints the steps it would
 take, and ships nothing. No credential is printed, and none is seen by the tests or the build: the script takes
 them out of the environment first and hands them to Wrangler and npm alone.
@@ -150,7 +155,7 @@ log is public: the repository's **Actions** tab, the workflow **Deploy**, one ru
 
 1. checks the tag out and installs what the lockfile names (`npm ci`), the browsers and the fonts the tests measure in;
 2. runs `npm run deploy` with the three secrets, which only that step is given: the checks, the shortener's
-   migrations, the site, the shortener, and the command line on npm, published with **provenance** (npm's record
+   migrations, the site, the shortener, the journal, and the command line on npm, published with **provenance** (npm's record
    of the repository, the commit and the workflow run that built the package, vouched for by the runner's identity:
    the package's page on npmjs.com shows it, and `npm audit signatures` checks it); a prerelease (1.1.0-next) is
    published under its own tag, `next`, and `latest` is moved to it, so `npx tinylittleoffice` is always the newest;
@@ -190,16 +195,18 @@ the Edit link and the Present link, draws the QR code and hands the link to the 
 
 The same code runs on one machine as one Node process, with nothing in front of it and nothing to install beyond
 Node 24 (Paul, issue #7: "ideally it would just all be JS + sqlite instead of something heavy like nginx"):
-`backends/node/server.ts`, on two ports, built on `node:http` and `node:sqlite`, which Node has built in.
+`backends/node/server.ts`, on three ports, built on `node:http` and `node:sqlite`, which Node has built in.
 
 | Port | What | The code it runs |
 | --- | --- | --- |
 | 8000 | the site: `dist/`, each file with the headers `dist/_headers` gives it (the Content-Security-Policy reaches the browser as the file says it), and the preview cards (`/c/<id>`, `/card`) | `backends/cards/site.ts`, as the site's Worker runs it |
 | 8001 | the short links | `backends/tinier/tinier.ts`, as tinier's Worker runs it |
+| 8002 | the journal, for a page built on the library | `backends/journal/journal.ts`, as the journal's Worker runs it in a Durable Object a journal |
 
-Both keep their rows in one SQLite file, through the same statements the Workers run on D1 (`backends/tinier/d1.ts`, over
-`backends/node/sqlite.ts`); the tables are `backends/tinier/migrations/`, applied each time it starts. The hourly sweep runs in the
-process. Nothing is logged but the addresses it listens on, and it fetches nothing.
+All three keep their rows in one SQLite file, through the same statements the Workers run on D1 and in the objects
+(`backends/tinier/d1.ts`, over `backends/node/sqlite.ts`); the tables are `backends/tinier/migrations/` and the journal's
+`SCHEMA`, applied each time it starts. The hourly sweep runs in the process. Nothing is logged but the addresses it
+listens on, and it fetches nothing.
 
 **What works:** everything: every app, Share, short links, preview cards, the offline copy.
 
@@ -208,7 +215,7 @@ machine; the card pages and the short links are on your box, not ours, and a sho
 runs; the backup is the one SQLite file (`data/tinier.sqlite`, or the Docker volume `data`); and the commit a Docker
 build was made from is not named in About, since the image is built from the files without their history. A
 browser keeps short links, passwords and the offline copy to a secure page: `https://`, or `http://localhost`.
-On any other address, put the two ports behind TLS (a tunnel, or a proxy that ends TLS) and give the `https://`
+On any other address, put the ports behind TLS (a tunnel, or a proxy that ends TLS) and give the `https://`
 addresses below.
 
 With Docker, from a checkout:
@@ -216,7 +223,7 @@ With Docker, from a checkout:
 ```sh
 echo "BRAKE_KEY=$(openssl rand -base64 32)" >> .env
 npm run selfhost:build   # docker compose build: npm ci and the build in one image, then a small one with node and dist/ alone
-npm run selfhost:up      # docker compose up -d: the site on :8000, the short links on :8001, the file on the volume data
+npm run selfhost:up      # docker compose up -d: the site on :8000, the short links on :8001, the journal on :8002, the file on the volume data
 ```
 
 Without Docker, the build and the process:
@@ -233,8 +240,8 @@ The settings (`.env.example` lists them; compose reads the checkout's `.env`):
 | `BRAKE_KEY` | none: it will not start without one | the secret the daily counts are kept under (a hundred links and a hundred cards a day per address); any long random string, kept nowhere else |
 | `SITE` | `http://localhost:8000` | the site's address as a browser reaches it: the one origin the shortener answers, and where a short link leads; Docker builds the pages for it too |
 | `TINIER` | `http://localhost:8001` | the shortener's address as a browser reaches it, which Docker builds into the pages and their policy (`VITE_TINIER` to a build without Docker) |
-| `PORT`, `TINIER_PORT` | `8000`, `8001` | the two ports (in Docker, the ports on the host) |
+| `PORT`, `TINIER_PORT`, `JOURNAL_PORT` | `8000`, `8001`, `8002` | the three ports (in Docker, the ports on the host) |
 | `DB` | `data/tinier.sqlite` | the SQLite file (in Docker, `/data/tinier.sqlite` on the volume) |
-| `IP_HEADER` | none | behind a proxy, the header that names the reader's address (`x-forwarded-for`): the last address in it, the one the proxy appended, so the brake counts each reader and not the proxy. With it set, let the two ports be reached through the proxy alone (`HOST=127.0.0.1`, or the proxy's network), since a client that reaches them directly names any address it likes |
+| `IP_HEADER` | none | behind a proxy, the header that names the reader's address (`x-forwarded-for`): the last address in it, the one the proxy appended, so the brake counts each reader and not the proxy. With it set, let the ports be reached through the proxy alone (`HOST=127.0.0.1`, or the proxy's network), since a client that reaches them directly names any address it likes |
 
 `SITE` and `TINIER` are written into the build: change them and build again.

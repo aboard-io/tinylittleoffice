@@ -2,7 +2,8 @@
 // opens its document without being typed again, and a locked document's opened text is gone (Paul, 2026-10-12:
 // "Are we sure when I turn stuff off no cookies or local storage or in memory remains").
 import { beforeEach, expect, test } from 'vitest';
-import { lockWith, pack, remember, reopen, setPrivate } from '../src/kit/share/privacy.ts';
+import { lockWith, remember, reopen, setPrivate } from '../src/kit/share/privacy.ts';
+import { pack } from '../src/kit/share/crypt.ts';
 import { openedText, setOpened } from '../src/kit/share/locked.ts';
 
 /** localStorage, in memory, for node. */

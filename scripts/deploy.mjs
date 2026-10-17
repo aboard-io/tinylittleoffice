@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Ship the site and the shortener to Cloudflare, checking what the change can have broken. Always: the
+ * Ship the site, the shortener and the journal to Cloudflare, checking what the change can have broken. Always: the
  * types, the strings, the unit tests (node), the browser tests (the kit and every editor in Chromium), the
  * build, and what the build writes after the bundler (scripts/check-build.ts: the Content-Security-Policy's
  * script hashes and version.json). When something on
@@ -16,16 +16,16 @@
  * What was last deployed is kept in .wrangler/deployed (this checkout's own record; with none, a change
  * counts as on screen). Then, in order: the shortener's migrations (backends/tinier/migrations/, by wrangler, on the remote
  * database), the site (`backends/cloudflare/site/wrangler.jsonc`: dist/ as static assets, with dist/_headers), the shortener
- * (`backends/cloudflare/tinier/wrangler.jsonc`), and the command line on npm (packages/doc, when it is not private and npm has not its
- * version yet; with provenance when a GitHub runner runs this).
+ * (`backends/cloudflare/tinier/wrangler.jsonc`), the journal (`backends/cloudflare/journal/wrangler.jsonc`), and the command line on npm
+ * (packages/doc, when it is not private and npm has not its version yet; with provenance when a GitHub runner runs this).
  *
  * Two callers, one script: a tag v* on GitHub (.github/workflows/deploy.yml, the runner's log public), or a
  * maintainer's machine. CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and NPM_TOKEN come from the environment (the
  * repository's secrets, on a runner) or else from this checkout's .env (never committed). They are taken out of the
  * environment before any check runs, so no test, build or dependency's script sees one, and handed to Wrangler and
  * npm alone; none is printed. A missing one stops everything, before the checks, in a sentence naming it. Before the
- * checks too: each Worker's secret BRAKE_KEY must exist (the shortener's and the site's, each set once, by hand), or
- * that Worker would answer nothing.
+ * checks too: each Worker's secret BRAKE_KEY must exist (the shortener's, the site's and the journal's, each set once, by
+ * hand), or that Worker would answer nothing.
  */
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -72,6 +72,7 @@ const run = (what, cmd, env = process.env) => {
 for (const [who, config] of [
   ['the shortener', 'backends/cloudflare/tinier/wrangler.jsonc'],
   ['the site', 'backends/cloudflare/site/wrangler.jsonc'],
+  ['the journal', 'backends/cloudflare/journal/wrangler.jsonc'],
 ]) {
   process.stdout.write(`\n▸ ${who} has its BRAKE_KEY\n`);
   let names;
@@ -140,6 +141,7 @@ const ship = [
   ["the shortener's tables", 'npx wrangler d1 migrations apply tinier --remote -c backends/cloudflare/tinier/wrangler.jsonc', { ...cloudflare, CI: 'true' }],
   ['the site', 'npx wrangler deploy -c backends/cloudflare/site/wrangler.jsonc', cloudflare],
   ['the shortener', 'npx wrangler deploy -c backends/cloudflare/tinier/wrangler.jsonc', cloudflare],
+  ['the journal', 'npx wrangler deploy -c backends/cloudflare/journal/wrangler.jsonc', cloudflare],
 ];
 if (dry) {
   console.log(`\nDry run: ${head.slice(0, 7)} checked, nothing deployed. A deploy would now run:`);
@@ -185,7 +187,7 @@ function publishCli() {
     if (tag) execSync(`npm dist-tag add ${cli.name}@${cli.version} latest`, { stdio: 'inherit', env });
     console.log(`  ✓ ${what}: ${cli.version} published (npm had ${published || 'none'})`);
   } catch {
-    console.error(`  ✗ ${what}: npm publish failed (above); the site and the shortener are deployed`);
+    console.error(`  ✗ ${what}: npm publish failed (above); the site, the shortener and the journal are deployed`);
     process.exitCode = 1;
   } finally {
     rmSync(dir, { recursive: true, force: true });

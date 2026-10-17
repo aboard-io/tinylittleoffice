@@ -54,7 +54,13 @@
  *   PREFIX), `ghostsOf` (the words taken out and the brackets and lozenges of initials, `initialsOf`, as Drawing says
  *   them) for the text editor's `showGhosts` (Ghost; Alt+Enter names the edit at the caret in "text-ghost", GhostAt),
  *   and `pinComments` and `unpin` (a comment found by its quote, Pinned); and "@" offering the host's people as the
- *   text editor's `mentions` (Mention).
+ *   text editor's `mentions` (Mention);
+ * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
+ *   whichever of the `backends` owns the address (a link, a sealed link, a short link, a journal's: Backend, Opened,
+ *   Ask), and `place` puts it in an editor on the page (Placement); a document several people edit at once is made by
+ *   `newShared` (kit/share/multiparty.ts) and its history read by `versions` and `textAt` (Version), a reader's address
+ *   for a writer's by `readerAddressOf`; a person's own store of documents, kept in sync across their devices, is a
+ *   `SyncStore` (kit/share/sync.ts) of Kept documents.
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
 export { DocElement, firstAt, type DocOps, type DocPick, type Entry, type Picked } from './kit/core/element.ts';
@@ -95,6 +101,10 @@ export { rejectOps } from './kit/text/reject.ts';
 export { diffLines } from './kit/text/diff.ts';
 export { COLORS, ghostsOf, initialsOf, paint, pinComments, PREFIX, unpaint, unpin, wordsOf, type Drawing, type Painted, type Pinned } from './kit/text/redline.ts';
 export { caret, type Pos, type Sel } from './kit/text/textops.ts';
+export { backends, link, multiparty, open, place, sealed, short, type Ask, type Backend, type Opened, type Placement } from './kit/share/backends.ts';
+export { newShared, textAt, versions, type Version } from './kit/share/multiparty.ts';
+export { readerAddressOf } from './kit/share/journal.ts';
+export { SyncStore, type Kept } from './kit/share/sync.ts';
 export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRange, type RowSpan, type RowsOptions } from './kit/text/rows.ts';
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';
 export { choicesOf } from './kit/text/columns.ts';

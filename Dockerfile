@@ -1,5 +1,5 @@
-# Tiny Little Office in one container, without Cloudflare (docs/self-host.md, "Without Cloudflare"): the site and its
-# short-link service, one Node process on two ports, over one SQLite file in /data. Built by `npm run selfhost:build`.
+# Tiny Little Office in one container, without Cloudflare (docs/self-host.md, "Without Cloudflare"): the site, its
+# short-link service and the journal, one Node process on three ports, over one SQLite file in /data. Built by `npm run selfhost:build`.
 #
 # The pages are built for the addresses a browser reaches them at: SITE (the canonical link, the cards) and TINIER
 # (the short links, written into the pages and their Content-Security-Policy). Change them, and build again.
@@ -18,23 +18,24 @@ COPY . .
 RUN npm run build:site
 
 # Only what the process runs: node itself (no npm, no yarn), the build, the server, and the services it runs (backends/cards/,
-# backends/tinier/, the headers' reading).
+# backends/tinier/, backends/journal/, the headers' reading).
 FROM node:24-alpine AS node
 FROM alpine:3.24
 RUN apk add --no-cache libstdc++ && adduser -D -u 1000 node
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
-ENV NODE_ENV=production DB=/data/tinier.sqlite PORT=8000 TINIER_PORT=8001
+ENV NODE_ENV=production DB=/data/tinier.sqlite PORT=8000 TINIER_PORT=8001 JOURNAL_PORT=8002
 COPY --from=build /src/package.json ./
 COPY --from=build /src/dist ./dist
 COPY --from=build /src/backends/node ./backends/node
 COPY --from=build /src/backends/cards/cards.ts /src/backends/cards/site.ts ./backends/cards/
 COPY --from=build /src/backends/tinier/tinier.ts /src/backends/tinier/brake.ts /src/backends/tinier/d1.ts /src/backends/tinier/page.html ./backends/tinier/
 COPY --from=build /src/backends/tinier/migrations ./backends/tinier/migrations
+COPY --from=build /src/backends/journal/journal.ts ./backends/journal/
 COPY --from=build /src/scripts/headers.ts ./scripts/
 COPY --from=build /src/src/kit/core/network.ts ./src/kit/core/
 RUN mkdir /data && chown node:node /data
 USER node
 VOLUME /data
-EXPOSE 8000 8001
+EXPOSE 8000 8001 8002
 CMD ["node", "backends/node/server.ts"]

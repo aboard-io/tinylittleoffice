@@ -36,6 +36,10 @@ const EXEMPT: { why: string; test: (path: string, name: string, source: string) 
     test: (_p, name, source) => new RegExp(`^export const ${name} = (-?[\\d.]+|'[^'\\n]*'|"[^"\\n]*");`, 'm').test(source) && count(code(source), name) > 1,
   },
   { why: 'a custom element’s class: the page names it by its tag, not its class', test: (_p, name, source) => new RegExp(`customElements\\.define\\([^)]*\\b${name}\\)`).test(source) },
+  {
+    why: 'a Durable Object’s class: the Worker’s wrangler.jsonc names it (class_name), and the runtime makes the objects',
+    test: (path, name) => /^backends\/cloudflare\/[^/]+\/worker\.ts$/.test(path) && readFileSync(resolve(ROOT, path, '../wrangler.jsonc'), 'utf8').includes(`"class_name": "${name}"`),
+  },
 ];
 
 export interface Dead {

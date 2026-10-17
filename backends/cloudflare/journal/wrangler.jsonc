@@ -1,0 +1,26 @@
+// The journal service as a Worker (backends/journal/journal.ts, backends/README.md): a Durable Object a journal, each in
+// its own SQLite database; the daily counts in D1's brakes table, the shortener's database.
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "journal",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-08",
+  // Only on its own domain: no workers.dev copy once this is live.
+  "workers_dev": false,
+  "routes": [{ "pattern": "journal.tinylittleoffice.com", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tinier",
+      // The shortener's database (backends/cloudflare/tinier/wrangler.jsonc): its brakes table counts journals made too.
+      "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5",
+    },
+  ],
+  "durable_objects": { "bindings": [{ "name": "JOURNALS", "class_name": "JournalObject" }] },
+  // The object keeps its rows in SQLite (new_sqlite_classes), which every plan has.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["JournalObject"] }],
+  // The sites whose pages may write here (backends/tinier/brake.ts SITE), comma-separated; a copy of your own names its own (docs/self-host.md).
+  "vars": { "SITE": "https://tinylittleoffice.com,https://aboard-io.github.io/tinylittleoffice" },
+  // No logs: the server holds ciphertext and an order, and keeps even that to itself.
+  "observability": { "enabled": false },
+}

@@ -1,6 +1,6 @@
 # Tiny Little Office on your own machine (docs/self-host.md, "Without Cloudflare"): npm run selfhost:build, then
-# npm run selfhost:up. The site on port 8000, the short links on 8001 (PORT and TINIER_PORT choose others), every link and card in one SQLite file on the
-# volume `data` (the one thing to back up). BRAKE_KEY comes from the environment or the checkout's .env.
+# npm run selfhost:up. The site on port 8000, the short links on 8001, the journal on 8002 (PORT, TINIER_PORT and JOURNAL_PORT
+# choose others), every link, card and journal in one SQLite file on the volume `data` (the one thing to back up). BRAKE_KEY comes from the environment or the checkout's .env.
 name: tinylittleoffice
 services:
   office:
@@ -17,6 +17,7 @@ services:
     ports:
       - '${PORT:-8000}:8000'
       - '${TINIER_PORT:-8001}:8001'
+      - '${JOURNAL_PORT:-8002}:8002'
     volumes:
       - data:/data
     restart: unless-stopped

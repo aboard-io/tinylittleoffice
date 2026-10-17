@@ -611,6 +611,15 @@ three cases in a hundred, so the pairs are now made on one text or table, or bes
 meet on one block; TP1 holds over 20,000 cases. Rules 2 and 3 came from reading `apply` (a table keeps a column;
 `withMovedTable` moves the head's lock), each shown by a test.
 
+**A journal needs less.** The backends (backends/README.md) keep a shared document as a journal: the server appends an
+entry only at the seq its author names, the next one, and never transforms anything, so every entry was made against
+the whole order before it and every replica applies one order. That is rule 4 alone: an author whose entry comes back
+stale carries its pending ops over the entries it had not seen (`cross`) and sends them again, and where that crossing
+throws (rule 1), or its ops would not apply (rule 2), or a snapshot is not the document as it holds it, the author takes
+the journal's document again; rule 3 has nothing to guard, since nobody transforms an op but its author. An entry whose
+ops do not apply to the journal's document, or leave one the text would not read back as written (`checkOp`,
+`keptDoc`), every replica passes over alike, so no one entry can part them (src/kit/share/multiparty.ts; test/journal.test.ts).
+
 What a review of the properties found, the same day: the undo was checked exactly only for ops on a block and splices
 that put blocks in, never a move or a splice that only took blocks out. It now follows the place such an op left
 between blocks, and calls it touched only where later ops leave no one place for it (blocks put in or a span moved

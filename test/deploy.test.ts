@@ -35,7 +35,7 @@ interface Workflow {
   jobs: Record<string, Job>;
 }
 
-test('a tag v* deploys: the checks and both Workers by npm run deploy with the three secrets, then the live site against the build, then the release', () => {
+test('a tag v* deploys: the checks and the three Workers by npm run deploy with the three secrets, then the live site against the build, then the release', () => {
   const w = yaml(read('.github/workflows/deploy.yml')) as Workflow;
   // A tag, or a run by hand for a tag already pushed; never a push to main, never a pull request.
   expect(Object.keys(w.on).sort()).toEqual(['push', 'workflow_dispatch']);
@@ -212,6 +212,7 @@ test('the secrets are out of the environment of every check, and reach Wrangler 
   expect(wrangler.map((c) => c.cmd)).toEqual([
     'npx wrangler secret list -c backends/cloudflare/tinier/wrangler.jsonc --format json',
     'npx wrangler secret list -c backends/cloudflare/site/wrangler.jsonc --format json',
+    'npx wrangler secret list -c backends/cloudflare/journal/wrangler.jsonc --format json',
   ]);
   expect(wrangler[0].env).toMatch(/^CLOUDFLARE_API_TOKEN=stub-cf-token$/m);
   expect(wrangler[0].env).toMatch(/^CLOUDFLARE_ACCOUNT_ID=stub-cf-account$/m);
@@ -241,6 +242,7 @@ test("a dry run lists the shipping: the shortener's migrations before either Wor
   expect(at("the shortener's tables: npx wrangler d1 migrations apply tinier --remote -c backends/cloudflare/tinier/wrangler.jsonc")).toBeGreaterThan(0);
   expect(at("the shortener's tables:")).toBeLessThan(at('the site: npx wrangler deploy'));
   expect(at("the shortener's tables:")).toBeLessThan(at('the shortener: npx wrangler deploy -c backends/cloudflare/tinier/wrangler.jsonc'));
+  expect(at('the shortener: npx wrangler deploy')).toBeLessThan(at('the journal: npx wrangler deploy -c backends/cloudflare/journal/wrangler.jsonc'));
   expect(here.stdout).toMatch(/the command line, on npm: tinylittleoffice 1\.0\.0, if npm has not that version: npm publish --access public --provenance=false$/m);
 
   const runner = deploy(PUBLISHED, { ...STUB, ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.example/' }, { list });

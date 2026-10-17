@@ -5,9 +5,9 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { D1Store } from '../backends/tinier/d1.ts';
 import { MIGRATIONS, migrate, sqlite } from '../backends/node/sqlite.ts';
-import { brakeHash, brakeKey, DAILY, dayOf } from '../backends/tinier/brake.ts';
+import { brakeHash, brakeKey, DAILY, dayOf, sitesOf } from '../backends/tinier/brake.ts';
 import { newId } from '../backends/cards/cards.ts';
-import { handle, MAX_BYTES, sitesOf, TTLS } from '../backends/tinier/tinier.ts';
+import { handle, MAX_BYTES, TTLS } from '../backends/tinier/tinier.ts';
 import { MemStore } from './memstore.ts';
 import { EXPIRIES, SHORT_MAX } from '../src/kit/share/short.ts';
 
@@ -354,13 +354,13 @@ test('tinier: SITE may name the site and its mirror, comma-separated; the API an
 test('tinier: the Workers log nothing, the shortener’s and the site’s alike; the one process on a machine says only where it listens', async () => {
   const { readdirSync } = await import('node:fs');
   const dir = new URL('../backends/', import.meta.url);
-  // Every service and every Worker; backends/node/server.ts alone prints the two addresses it listens on, once.
+  // Every service and every Worker; backends/node/server.ts alone prints the three addresses it listens on, once.
   const files = readdirSync(dir, { recursive: true })
     .map(String)
     .filter((n) => ((n.endsWith('.ts') && !n.endsWith('.d.ts')) || n.endsWith('.html')) && n !== 'node/server.ts');
   expect(files.length).toBeGreaterThan(8);
   for (const f of files) expect(readFileSync(new URL(f, dir), 'utf8'), f).not.toMatch(/console\.|\.log\(/);
-  for (const w of ['tinier', 'site']) expect(readFileSync(new URL(`cloudflare/${w}/wrangler.jsonc`, dir), 'utf8'), w).toMatch(/"observability": \{ "enabled": false \}/);
+  for (const w of ['tinier', 'site', 'journal']) expect(readFileSync(new URL(`cloudflare/${w}/wrangler.jsonc`, dir), 'utf8'), w).toMatch(/"observability": \{ "enabled": false \}/);
 });
 
 test('tinier: the landing page opens a link whose key, IV and ciphertext are written with "~" or "-", and hands on only the id and the expiry', async () => {

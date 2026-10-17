@@ -1,0 +1,81 @@
+{
+  "about": "Tiny Little Office journals (src/kit/share/journal.ts, backends/journal/, docs/crypto/journal.md). From a secret of 32 bytes: read = HKDF-SHA-256(ikm = secret, salt = empty, info = 'tinylittleoffice journal read v1' as UTF-8, 32 bytes); token = the same with info 'tinylittleoffice journal write v1'; id = the first 22 characters of base64url(SHA-256('tinylittleoffice journal id v1' as UTF-8 || read)); verifier = base64url(SHA-256(base64url(token) as UTF-8)), what the service keeps. An entry: plaintext = the content's JSON as UTF-8 after its length as 4 bytes big-endian, then zeros to a multiple of 256 bytes; c = AES-256-GCM(read, iv, plaintext, additionalData = 'tinylittleoffice journal v1' LF id LF seq LF kind, as UTF-8) with its 16-byte tag last; iv and c travel as base64url without padding, seq and kind in the clear. A writer's address is <service>/j/<id>#w<secret>, a reader's <service>/j/<id>#r<read>. Fixed secrets and IVs are for these vectors only: the site draws both from crypto.getRandomValues. Base64url here is RFC 4648's URL alphabet with '~' for 62 where the RFC has '-' (a hyphen is where a pasted link breaks a line), no padding; '-' is read as 62 too.",
+  "kdf": {
+    "name": "HKDF",
+    "hash": "SHA-256",
+    "salt": "",
+    "infoRead": "tinylittleoffice journal read v1",
+    "infoWrite": "tinylittleoffice journal write v1",
+    "keyBytes": 32
+  },
+  "cipher": {
+    "name": "AES-GCM",
+    "keyBits": 256,
+    "ivBytes": 12,
+    "tagBytes": 16,
+    "additionalData": "tinylittleoffice journal v1\\n<id>\\n<seq>\\n<kind>",
+    "paddedTo": 256
+  },
+  "vectors": [
+    {
+      "secretHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "readHex": "cf4ec0091af1a00ffa22cebca421e58aff5ed38a2c98310f9ecf393c419aa58f",
+      "read": "z07ACRrxoA_6Is68pCHliv9e04osmDEPns85PEGapY8",
+      "tokenHex": "32bf5f779af027bd7a612c8419cba21ee603583e431f1cb8bf305de0942dd77a",
+      "token": "Mr9fd5rwJ716YSyEGcuiHuYDWD5DHxy4vzBd4JQt13o",
+      "id": "VfI12iV9ogMl99L4ir8tPa",
+      "verifier": "JZhFHCk8lyExb7N4O4IdwdFuuz4RLqHIujgwonI4tTk",
+      "writerAddress": "https://journal.tinylittleoffice.com/j/VfI12iV9ogMl99L4ir8tPa#wAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "readerAddress": "https://journal.tinylittleoffice.com/j/VfI12iV9ogMl99L4ir8tPa#rz07ACRrxoA_6Is68pCHliv9e04osmDEPns85PEGapY8",
+      "seq": 1,
+      "kind": "snapshot",
+      "ivHex": "202122232425262728292a2b",
+      "iv": "ICEiIyQlJicoKSor",
+      "content": {
+        "by": "ann",
+        "at": 1700000000000,
+        "app": "write",
+        "text": "The note passed in class.\n"
+      },
+      "json": "{\"by\":\"ann\",\"at\":1700000000000,\"app\":\"write\",\"text\":\"The note passed in class.\\n\"}",
+      "plaintextHex": "000000527b226279223a22616e6e222c226174223a313730303030303030303030302c22617070223a227772697465222c2274657874223a22546865206e6f74652070617373656420696e20636c6173732e5c6e227d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "additionalData": "tinylittleoffice journal v1\nVfI12iV9ogMl99L4ir8tPa\n1\nsnapshot",
+      "ciphertextAndTagHex": "a750ce347e92afa00d8c4ba2988ccfe96034a304aac9861034d853bc1adcb1e2146b4773b63c11f8515573d9283962f61e800c31c811659a4af2e8d0900165c65656f05435736d64b78c17bc838c45d0ea19d5d83fc44b3b169622a5502e1eace9cbf5b445906c58f1bf8b402a4519d33edfd8be0136ea0ef73f79d1109d4e46c46482d7dbaf3beebcebc92af2f7bc55d0fc19e04f4b84606b88e50c6f18d7ce13c2cfcdad986848223e0ef3ddae2705ff0edc92d4f16759e1d2a5d94b3e999254c0baf3bc07d6d56da10adeecc9044636b85c98aa025f43aa06f25f64ec865f60487cd5a8f77d9c659f15cc34401dee0eea444220f047abcef782bddd023300f22a4a0bd188c9f55f3e7b17f2dc5dda",
+      "c": "p1DONH6Sr6ANjEuimIzP6WA0owSqyYYQNNhTvBrcseIUa0dztjwR~FFVc9koOWL2HoAMMcgRZZpK8ujQkAFlxlZW8FQ1c21kt4wXvIOMRdDqGdXYP8RLOxaWIqVQLh6s6cv1tEWQbFjxv4tAKkUZ0z7f2L4BNuoO9z950RCdTkbEZILX26877rzrySry97xV0PwZ4E9LhGBriOUMbxjXzhPCz82tmGhIIj4O892uJwX_DtyS1PFnWeHSpdlLPpmSVMC687wH1tVtoQre7MkERja4XJiqAl9DqgbyX2Tshl9gSHzVqPd9nGWfFcw0QB3uDupEQiDwR6vO94K93QIzAPIqSgvRiMn1Xz57F_LcXdo"
+    },
+    {
+      "secretHex": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff000102030405060708090a0b0c0d0e0f",
+      "secret": "8PHy8_T19vf4~fr7_P3~_wABAgMEBQYHCAkKCwwNDg8",
+      "readHex": "51dc1646837e89aa447738e0e794652dca7377bb93512e7025078f822e6458c5",
+      "read": "UdwWRoN~iapEdzjg55RlLcpzd7uTUS5wJQePgi5kWMU",
+      "tokenHex": "1ccf2b5289538d58fb507aaf00dd9e8f06804c7ea23c4638df3da3f01961921b",
+      "token": "HM8rUolTjVj7UHqvAN2ejwaATH6iPEY43z2j8Blhkhs",
+      "id": "7WWK90uOd1v6ZmClrqcnrc",
+      "verifier": "gep2OhgCIOiVPiPOz7JOrKqd0qgMDjXHeLZ9pZ7caYY",
+      "writerAddress": "https://journal.tinylittleoffice.com/j/7WWK90uOd1v6ZmClrqcnrc#w8PHy8_T19vf4~fr7_P3~_wABAgMEBQYHCAkKCwwNDg8",
+      "readerAddress": "https://journal.tinylittleoffice.com/j/7WWK90uOd1v6ZmClrqcnrc#rUdwWRoN~iapEdzjg55RlLcpzd7uTUS5wJQePgi5kWMU",
+      "seq": 2,
+      "kind": "ops",
+      "ivHex": "d0d1d2d3d4d5d6d7d8d9dadb",
+      "iv": "0NHS09TV1tfY2drb",
+      "content": {
+        "by": "ann",
+        "at": 1700000001000,
+        "client": "c0ffee",
+        "ops": [
+          {
+            "op": "head",
+            "key": "title",
+            "value": "Vector"
+          }
+        ]
+      },
+      "json": "{\"by\":\"ann\",\"at\":1700000001000,\"client\":\"c0ffee\",\"ops\":[{\"op\":\"head\",\"key\":\"title\",\"value\":\"Vector\"}]}",
+      "plaintextHex": "000000667b226279223a22616e6e222c226174223a313730303030303030313030302c22636c69656e74223a22633066666565222c226f7073223a5b7b226f70223a2268656164222c226b6579223a227469746c65222c2276616c7565223a22566563746f72227d5d7d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "additionalData": "tinylittleoffice journal v1\n7WWK90uOd1v6ZmClrqcnrc\n2\nops",
+      "ciphertextAndTagHex": "2661f2f898291b05e9038800cd008cb4354ffa8774d60ba0d4db648a8a19992d82f182b24361357e2e3941d79244a0f7118b169efca9dc343fca1086543fc2c2961f09e8c48505505822149515c5f688cc5a886f70f49d3086a128bb554f88c70d143c6e83b91a65400efcfeed77de878fc88e1dc7484b2cca072d31cb568eeaff122e73732e73e6c133e4341d1f959d609aad4ccd496eec01c8b4e75184515c5a2b33b5c7bd6c88771e6a0e5555a9a20e80092ad7ed29ad4575b5a986980b085c58dd61ddb0ab7d6ca0c24e6452cc36e8981427ffac9685fa12f6cbcf8405436bda43043598abf1f3ae04749af29557670c1b3100df1376120f2cb25ddc769d27a243b0a45af90401dba781608e107d",
+      "c": "JmHy~JgpGwXpA4gAzQCMtDVP~od01gug1NtkiooZmS2C8YKyQ2E1fi45QdeSRKD3EYsWnvyp3DQ_yhCGVD_CwpYfCejEhQVQWCIUlRXF9ojMWohvcPSdMIahKLtVT4jHDRQ8boO5GmVADvz~7Xfeh4_Ijh3HSEssygctMctWjur_Ei5zcy5z5sEz5DQdH5WdYJqtTM1JbuwByLTnUYRRXForM7XHvWyIdx5qDlVVqaIOgAkq1~0prUV1tamGmAsIXFjdYd2wq31soMJOZFLMNuiYFCf_rJaF~hL2y8~EBUNr2kMENZir8fOuBHSa8pVXZwwbMQDfE3YSDyyyXdx2nSeiQ7CkWvkEAdungWCOEH0"
+    }
+  ]
+}

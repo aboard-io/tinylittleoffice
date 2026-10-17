@@ -301,6 +301,39 @@ the kernel: the server refuses an op on the head's `lock` itself. The Spreadshee
 head's lock while its first table carries no `{lock=…}`, so a person locking cells in a shared sheet sends an op the
 server refuses, until the Spreadsheet writes the table's lock when its page shares the document.
 
+## Where a document lives: the backends
+
+The site keeps a document in its link; a page may keep it elsewhere, and the five ways are one shape
+(backends/README.md): `open(address, ask)` gives the document an address names, whichever backend owns the address's
+form, and `place(opened, into, moved, own)` puts it in an editor on the page, as `mount` does, with each change handed to
+the backend and the backend's news handed to the editor.
+
+```ts
+import { open, place, newShared, readerAddressOf, SyncStore } from 'tinylittleoffice/kit';
+
+// A link, a sealed link (the page is asked for the password) or a short link: the document is in the address.
+const doc = await open(location.href, { password: () => ask('Password?') });
+const placed = await place(doc, main, (address) => history.replaceState(null, '', address));
+
+// A document several people edit at once: a journal (docs/crypto/journal.md), at a journal service of your own.
+const { address, reader } = await newShared('https://journal.example.org/', 'write', text, 'Ann');
+const shared = await open(address, { by: 'Ann' });   // by: the name the changes carry
+await place(shared, main);                             // others' changes land as they come; a reader's address opens read-only
+
+// A person's own store, the same on every device that has its address: an index of such documents, in a journal of its own.
+const store = await SyncStore.make('https://journal.example.org/', 'Ann');
+const note = await store.create('https://journal.example.org/', 'write', '', 'A note');
+store.watch((documents) => draw(documents));           // told as another device adds, renames or removes
+```
+
+An `Opened` has the app, the text, the address that holds the document now (`changed(ops, text)` answers with the next,
+a link's with every edit), `readOnly` for a reader's address, and for a shared document `remote(fn)` (others' ops, for
+`applyRemote`) and `reset(fn)` (the document taken whole again, for the editor's new value); `place` wires all of it
+and returns the editor with `close()`. A shared document's journal is its history: `versions(address)` lists every entry
+with who made it and when, `textAt(address, seq)` gives the document as it was. The journal service runs on Cloudflare
+or on one machine (docs/self-host.md); it lets only the sites it is told of write, so a page on another origin names
+that origin in the service's `SITE`.
+
 ## A page's own commands
 
 A page's commands are declared as the kit's and the apps' are (kit/core/commands.ts: id, label, icon, keys, scope,

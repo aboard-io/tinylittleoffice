@@ -1,5 +1,5 @@
 // The self-hosted process (backends/node/): node:http as the Fetch API, the built files with the headers dist/_headers gives
-// them, and a short link and a preview card made and read through the two listeners, over a SQLite database in memory.
+// them, and a short link, a preview card and a journal made and read through the three listeners, over a SQLite database in memory.
 import { test, expect, afterAll } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { fillHeaders } from '../scripts/headers.ts';
 import { assets, MAX_BODY, send, toRequest } from '../backends/node/http.ts';
 import { options, start } from '../backends/node/server.ts';
+import { Journal, newSecret, writerKeys } from '../src/kit/share/journal.ts';
 import { png as wholePng } from './png.ts';
 
 /** A built site in small: the real _headers, filled as the build fills it, and a page or two. */
@@ -98,7 +99,7 @@ test('the adapters: method, path, headers and body in; status, headers and body 
 test('the environment: BRAKE_KEY required and said so; the site’s address, the ports and the file by default', () => {
   expect(() => options({})).toThrow(/BRAKE_KEY is not set/);
   const o = options({ BRAKE_KEY: 'k' });
-  expect(o).toMatchObject({ key: 'k', site: 'http://localhost:8000', port: 8000, tinierPort: 8001, host: '0.0.0.0' });
+  expect(o).toMatchObject({ key: 'k', site: 'http://localhost:8000', port: 8000, tinierPort: 8001, journalPort: 8002, host: '0.0.0.0' });
   expect(o.db).toMatch(/data\/tinier\.sqlite$/);
   expect(options({ BRAKE_KEY: 'k', SITE: 'https://office.example.org/' }).site).toBe('https://office.example.org');
 });
@@ -106,9 +107,9 @@ test('the environment: BRAKE_KEY required and said so; the site’s address, the
 /** A PNG of 1200 by 630, whole as the card's check reads it (test/cards.test.ts png), as base64. */
 const png = () => btoa(String.fromCharCode(...wholePng(1200, 630, 200)));
 
-test('one process, two listeners: a short link made and read back, its landing page, and a preview card at /c/<id> on the app’s page', async () => {
+test('one process, three listeners: a short link made and read back, its landing page, a preview card at /c/<id> on the app’s page, and a journal', async () => {
   const SITE = 'http://office.test';
-  const running = await start({ ...options({ BRAKE_KEY: 'k', SITE }), port: 0, tinierPort: 0, host: '127.0.0.1', db: ':memory:', dist });
+  const running = await start({ ...options({ BRAKE_KEY: 'k', SITE }), port: 0, tinierPort: 0, journalPort: 0, host: '127.0.0.1', db: ':memory:', dist });
   const at = (s: Server) => `http://127.0.0.1:${(s.address() as AddressInfo).port}`;
   try {
     const tinier = at(running.tinier);
@@ -140,6 +141,13 @@ test('one process, two listeners: a short link made and read back, its landing p
     expect((await fetch(`${site}/card/${cid}.png`)).headers.get('content-type')).toBe('image/png');
     // An unknown card goes home, where the hash still opens the document.
     expect((await fetch(`${site}/c/zzzzzzz`, { redirect: 'manual' })).status).toBe(302);
+
+    // A journal, in the same file: made with a snapshot, appended to, read from the snapshot; the shortener's brake is not it.
+    const journal = new Journal(`${at(running.journal)}/`, await writerKeys(newSecret()));
+    await journal.make({ by: 'ann', at: 1, app: 'write', text: 'Hello.\n' });
+    expect(await journal.append(2, 'ops', { by: 'ann', at: 2, client: 'c', ops: [] })).toEqual({ seq: 2 });
+    expect((await journal.read()).entries.map((e) => e.seq)).toEqual([1, 2]);
+    expect((await fetch(`${at(running.journal)}/j/${'z'.repeat(22)}`)).status).toBe(404);
   } finally {
     await running.close();
   }

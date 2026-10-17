@@ -5,7 +5,8 @@
 import { test, expect, afterEach } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { decodeDoc, encodeDoc } from '../../src/kit/core/codec.ts';
-import { lockWith, pack } from '../../src/kit/share/privacy.ts';
+import { lockWith } from '../../src/kit/share/privacy.ts';
+import { pack } from '../../src/kit/share/crypt.ts';
 import { forgetOpened, lockedFence } from '../../src/kit/share/locked.ts';
 import { parseHash } from '../../src/kit/core/route.ts';
 import { write } from '../../src/doc/index.ts';
