@@ -37,7 +37,7 @@ What an app still asked of the site itself, and what replaces it:
    one file). What the editors fetch only when asked for, an app's templates, a language other than English and the
    trip's map and its worker, is in dist/editors/ beside them. The site's build keeps its own entry; both are built
    from the same modules. test/package.test.ts packs and installs the package and runs the kernel from it; the
-   stylesheet names the site's fonts by the site's paths (/fonts/…): see Theming. The package is typed: build:lib
+   stylesheet names the fonts the package carries beside it (./fonts/…): see Theming. The package is typed: build:lib
    writes the declarations of the three and of the API into dist/types (tsconfig.lib.json), which each export names
    first, and test/package.test.ts type-checks a strict program against them as installed (with `skipLibCheck`, since
    the commands' declarations name Lucide's `IconNode` and the editors' name Lit's and Lucide's types, which are bundled
@@ -61,6 +61,13 @@ What an app still asked of the site itself, and what replaces it:
    program.
 7. **Editors speak in ops, and take remote ops.** Done: every editor tells each change as its operations and takes
    another's in, for a page that shares a document (docs/kernel.md §12): see Shared editing from a page.
+8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
+   on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
+   calendar's `date`, `time` or `row`, a board's `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
+9. **A toast with an action.** Done: `toast(words, { action: { label, does } })` draws a button after the words, the
+   toast held while it has the focus (kit/core/say.ts, kit/ui/toast.ts).
+10. **The fonts in the package.** Done: build:lib copies the faces editors.css names, and their license, into
+    dist/fonts/, and editors.css names them there (`./fonts/…`).
 
 ## Shared editing from a page
 
@@ -160,9 +167,9 @@ on the root (kit/ui/theme.ts), so a page's own dark values go under the same sel
   and `--to-paper-accent`. test/contrast.test.ts holds the site's pairs to their contrast; a page's own are its own.
 - **Type.** `--to-font` (the interface and the Sans look), `--to-font-serif`, `--to-font-mono`, `--to-font-system` (the
   device's stack, behind the rest), `--to-line` and `--to-line-label` (the line of body text, and of headings and
-  labels). The faces are IBM Plex, which the stylesheet's `@font-face` rules name at `/fonts/…` on the page's own
-  origin; the package does not carry the files (public/fonts/ in this repository, under the SIL Open Font License).
-  A page serves them there, or sets the fonts to faces of its own.
+  labels). The faces are IBM Plex, which the site's stylesheet names at `/fonts/…` (public/fonts/, under the SIL Open
+  Font License); the package carries the files and the license in dist/fonts/, and its stylesheet names them there,
+  `./fonts/…` (vite.lib.config.ts). A page serves that folder beside editors.css, or sets the fonts to faces of its own.
 - **Shape.** `--to-radius`, `--to-radius-sm`, `--to-radius-pill`, `--to-shadow` and `--to-shadow-pop`.
 - **Room.** `--to-gutter-k` (the gutter, as a number of the scale's 16px: 1, and 0.75 on a narrow screen), `--to-max-w`
   (the measure of a column of words), and `--to-col-h`, the height a canvas or a map fills (the Drawing, the Diagram,
