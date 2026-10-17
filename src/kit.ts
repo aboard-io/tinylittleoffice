@@ -40,7 +40,16 @@
  * - drawing a page with no DOM (kit/draw/draw.ts): the colors, `rect`, `text`, `clip`, `wrapText`, `textWidth`, `xml`,
  *   `utf8` for a file's bytes; the icons (`icon`, `iconNamed`, `UI`);
  * - the Spreadsheet's words for a table: `cellAsShown`, a cell's value as its column shows it (money in its currency, a
- *   date as a date, a rich cell's words), and `tableAsCsv`, a document's first table as the Spreadsheet's CSV.
+ *   date as a date, a rich cell's words), and `tableAsCsv`, a document's first table as the Spreadsheet's CSV;
+ * - who did what, for a host whose documents several people write (docs/library.md, Tracked changes and comments for
+ *   a host): `track` and `trackOn` (its versions by their authors, Step, to Tracked blocks of Toks), `changesOf` (each
+ *   person's changes, Change), and the helpers that put a block back as it was (`blockFrom`, `kindTo`, `lookOf`,
+ *   `lookTo`, `marksOf`, `runOf`, `textOf`, `restylings` and Under, `isHead` and `OTHER`), from kit/text/changes.ts;
+ *   drawn over a mounted Word Processor's words (`wordsOf`) by kit/text/redline.ts: `paint` and `unpaint` (each
+ *   person's words highlighted in their color, COLORS, under PREFIX), `ghostsOf` (the words taken out and the
+ *   brackets and lozenges of initials, `initialsOf`, as Drawing says them) for the text editor's `showGhosts` (Ghost),
+ *   and `pinComments` and `unpin` (a comment found by its quote, Pinned); and "@" offering the host's people as the
+ *   text editor's `mentions` (Mention).
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
 export { DocElement, firstAt, type DocOps, type DocPick, type Entry, type Picked } from './kit/core/element.ts';
@@ -56,7 +65,28 @@ export { ToMenu, type MenuItem } from './kit/ui/menu.ts';
 export { ToInsert } from './kit/ui/insert.ts';
 export { ToDialog } from './kit/ui/dialog.ts';
 export { reveal, scrollerOf, type Reveal } from './kit/ui/scroll.ts';
-export { ToText, type TextOps } from './kit/text/text.ts';
+export { ToText, type Ghost, type Mention, type TextOps } from './kit/text/text.ts';
+export {
+  blockFrom,
+  changesOf,
+  isHead,
+  kindTo,
+  lookOf,
+  lookTo,
+  marksOf,
+  OTHER,
+  restylings,
+  runOf,
+  textOf,
+  track,
+  trackOn,
+  type Change,
+  type Step,
+  type Tok,
+  type Tracked,
+  type Under,
+} from './kit/text/changes.ts';
+export { COLORS, ghostsOf, initialsOf, paint, pinComments, PREFIX, unpaint, unpin, wordsOf, type Drawing, type Painted, type Pinned } from './kit/text/redline.ts';
 export { caret, type Pos, type Sel } from './kit/text/textops.ts';
 export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRange, type RowSpan, type RowsOptions } from './kit/text/rows.ts';
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';

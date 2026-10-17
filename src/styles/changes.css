@@ -1,0 +1,112 @@
+/* Tracked changes and comments drawn over the words for a host (kit/text/redline.ts; docs/library.md, Tracked changes
+   and comments for a host): each person's words put in on a wash of their color and underlined in it, their
+   restyling underlined with dots, under the highlights' default names (redline.ts PREFIX, "tlo-by-"; a host that names
+   its own colors them itself); the comments' words on a post-it's yellow, in either theme; and among the words, the
+   ghosts the editor draws and never writes (kit/text/text.ts Ghost): the words taken out, struck through in red,
+   brackets in their author's color with a lozenge of initials after the opening one, filled while it waits for this
+   reader, a paragraph taken out a line of its own, a card's change a line at its head. None of it is part of the
+   words, so none of it is selected. The colors are redline.ts COLORS, in order. Only the editors' stylesheet
+   (editors.css) has this sheet: no page of the site draws changes. */
+@layer kit {
+  ::highlight(tlo-by-0) {
+    background-color: color-mix(in srgb, #0072b2 20%, transparent);
+    text-decoration: underline #0072b2;
+  }
+  ::highlight(tlo-by-1) {
+    background-color: color-mix(in srgb, #d55e00 20%, transparent);
+    text-decoration: underline #d55e00;
+  }
+  ::highlight(tlo-by-2) {
+    background-color: color-mix(in srgb, #009e73 20%, transparent);
+    text-decoration: underline #009e73;
+  }
+  ::highlight(tlo-by-3) {
+    background-color: color-mix(in srgb, #a05ca8 20%, transparent);
+    text-decoration: underline #a05ca8;
+  }
+  ::highlight(tlo-by-4) {
+    background-color: color-mix(in srgb, #56b4e9 20%, transparent);
+    text-decoration: underline #56b4e9;
+  }
+  ::highlight(tlo-by-5) {
+    background-color: color-mix(in srgb, #b3261e 20%, transparent);
+    text-decoration: underline #b3261e;
+  }
+  ::highlight(tlo-by-fmt-0) {
+    text-decoration: underline dotted #0072b2;
+  }
+  ::highlight(tlo-by-fmt-1) {
+    text-decoration: underline dotted #d55e00;
+  }
+  ::highlight(tlo-by-fmt-2) {
+    text-decoration: underline dotted #009e73;
+  }
+  ::highlight(tlo-by-fmt-3) {
+    text-decoration: underline dotted #a05ca8;
+  }
+  ::highlight(tlo-by-fmt-4) {
+    text-decoration: underline dotted #56b4e9;
+  }
+  ::highlight(tlo-by-fmt-5) {
+    text-decoration: underline dotted #b3261e;
+  }
+  ::highlight(tlo-by-comment) {
+    background-color: color-mix(in srgb, #f5c400 35%, transparent);
+  }
+
+  /* A ghost a whole block's worth (Ghost's `block`): a line of its own before the block's words. */
+  .tx-ghost-block {
+    display: block;
+    margin-bottom: 0.4em;
+  }
+  /* The words taken out, in place: struck through in red, on a wash of it. */
+  .tx-out {
+    color: var(--to-danger);
+    text-decoration: line-through 0.12em var(--to-danger);
+    background: color-mix(in srgb, var(--to-danger) 9%, transparent);
+  }
+  .tx-gone {
+    text-decoration: none;
+  }
+  .tx-gone .tx-out {
+    margin-inline-end: 0.15em;
+  }
+  .tx-br {
+    color: var(--c);
+    font-weight: 600;
+  }
+  /* The lozenge, the size of the words: tapped, the host opens the edit it names (its data-ghost, "edit:" and ids). */
+  .tx-loz {
+    display: inline-block;
+    margin: 0 0.25em 0 0.1em;
+    padding: 0 0.4em;
+    border: 1px solid var(--c);
+    border-radius: var(--to-radius-pill);
+    background: var(--to-paper);
+    color: var(--c);
+    font-size: 0.85em;
+    font-weight: 600;
+    line-height: 1.3;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .tx-loz.tx-loz-waiting {
+    background: var(--c);
+    color: #fff;
+  }
+  .tx-card-change {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+  }
+  .tx-card-said {
+    color: var(--to-ink-2);
+    margin-inline-end: 0.15em;
+  }
+  .tx-out,
+  .tx-br,
+  .tx-loz {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
