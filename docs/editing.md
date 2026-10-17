@@ -63,6 +63,7 @@ Rules:
 - **A space ends a link**: typing letters after a link stays in it (Mod+K or the bubble made it; the word typed next is its too); the space typed at its end is plain, so what comes next is normal text, as in Gmail, Notes and Slack (Paul, 2026-10-15: "there's no way out"; it had taken two spaces, 2026-10-11, which a phone never sends: iOS makes the second a period, and its keyboard has no Escape and no arrow). A space inside a link's words is the link's.
 - Selecting words shows the **selection bubble** (B, I, U, S, highlight, code | link, footnote | list) centered under the selection; it hides when the selection collapses or leaves. Hosts may turn it off (`no-bubble`).
 - The caret in a link shows the link bubble (open, edit, remove).
+- **Who did what, by the keys**: where a page shows who did what among the words (docs/library.md, Tracked changes and comments for a host), each edit's lozenge is a tap, and Alt+Enter (a thing's details, as a Calendar task's dates are) opens the edit the caret is in, or else the nearest in its paragraph, before the caret first: the page hears "text-ghost" and opens its panel. In a paragraph with no edit, and on the site, which shows none, the key goes on.
 - **Footnotes are typed at the foot**, where they are drawn (the Word Processor's endnotes at the end of the page, a slide's foot, the notes under an outline), never in a box beside the mark: each note is a one-line `<to-text>` (its marks and links; no blocks, no note in a note). A tap or Enter on a mark brings the foot into view with the caret at the end of that note; the Footnote command puts the mark at the caret and the caret in its new, empty note; Enter or Escape in a note returns to the words after its mark (the Word Processor's ↩ too); a note emptied and left takes its mark with it, and Backspace at the start of an empty note removes it and returns to where its mark was. The note's words are the document's like any others: Mod+Z undoes them, the caret back in the note.
 - Cards (tables, documents, page breaks, horizontal rules) are one character to the caret: skipped by arrows, removed by one Backspace/Delete, tapped to open.
 - Paste: our HTML → blocks; other HTML → blocks (`htmlToBlocks`); Markdown/TLO text → blocks; a lone address → a card; words → words. A paste never brings styles the document cannot keep.
@@ -219,6 +220,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `Alt+ArrowDown` | Move down | keys only |
 | `Mod+Enter` | Check or uncheck a task | keys only |
 | `Mod+A` | Select all (this field first, then the whole document) | keys only |
+| `Alt+Enter` | Open this change | keys only |
 
 ### Rows chosen whole (`rows`)
 

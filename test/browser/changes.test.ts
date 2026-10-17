@@ -26,6 +26,7 @@ import {
   unpin,
   wordsOf,
   type Drawing,
+  type GhostAt,
   type Step,
   type ToText,
   type Tracked,
@@ -241,6 +242,51 @@ test('a reader of a read-only editor who selects words gets the bubble with Comm
   await until(() => !bubble(), 'Escape never let the bubble go');
   expect(editor.value).toBe(V1);
   expect(changes).toStrictEqual([]);
+});
+
+test('Alt+Enter names the edit the caret is in, or else the nearest in its paragraph, before the caret first; with no edit there, or no ghosts, the key goes on', async () => {
+  const { words, main } = await mounted();
+  await show(words, track(VERSIONS));
+  const heard: GhostAt[] = [];
+  main.addEventListener('text-ghost', (e) => heard.push((e as CustomEvent<GhostAt>).detail));
+  /** Alt+Enter with the caret at `offset` of `block`: whether the editor took the key, and the edit it named. */
+  const press = async (block: number, offset: number) => {
+    words.focus();
+    words.sel = caret(block, offset);
+    await words.updateComplete;
+    heard.length = 0;
+    const taken = !words.tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', altKey: true, bubbles: true, cancelable: true }));
+    return [taken, heard[0]?.id ?? null];
+  };
+  // "Payment is due in [BB 30]45 days[BB, net]." : 45 is 18 to 20, ", net" 25 to 30.
+  expect(await press(0, 19)).toStrictEqual([true, 'edit:v1:0']);
+  // The lozenge itself, drawn, for the host to open its panel beside; and its block.
+  expect([heard[0].block, heard[0].el?.dataset.ghost, heard[0].el?.classList.contains('tx-loz')]).toStrictEqual([0, 'edit:v1:0', true]);
+  expect(await press(0, 27)).toStrictEqual([true, 'edit:v1:1']);
+  // Between the two, the one before; past the last, the last; before the first, the first.
+  expect(await press(0, 23)).toStrictEqual([true, 'edit:v1:0']);
+  expect(await press(0, 31)).toStrictEqual([true, 'edit:v1:1']);
+  expect(await press(0, 2)).toStrictEqual([true, 'edit:v1:0']);
+  // A paragraph with no edit in it: nothing named, and the key goes on to the page.
+  expect(await press(1, 3)).toStrictEqual([false, null]);
+  // No ghosts given (the site's pages): the key is never the words'.
+  await words.showGhosts(null);
+  expect(await press(0, 19)).toStrictEqual([false, null]);
+  unpaint();
+});
+
+test('a reader of a read-only editor reaches an edit by the keys too', async () => {
+  const { words, main } = await mounted(V1, true);
+  await show(words, track(VERSIONS));
+  const heard: string[] = [];
+  main.addEventListener('text-ghost', (e) => heard.push((e as CustomEvent<GhostAt>).detail.id));
+  words.focus();
+  words.sel = caret(0, 28);
+  await words.updateComplete;
+  await until(() => words.readSel()?.focus.offset === 28, 'the caret never came');
+  words.tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', altKey: true, bubbles: true, cancelable: true }));
+  expect(heard).toStrictEqual(['edit:v1:1']);
+  unpaint();
 });
 
 /** A page with every kind of block and run the Word Processor draws, its cards among them (a rule, a table, a sheet). */

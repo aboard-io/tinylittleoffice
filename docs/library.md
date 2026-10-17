@@ -139,13 +139,19 @@ being its text layer.
 - **What is drawn.** Over the words of a mounted Word Processor (`wordsOf(editor)`, its `<to-text>`), never in them.
   `ghostsOf(tracked, words.model, settled, drawing)` gives each block's ghosts, which `words.showGhosts()` draws: the
   words taken out, struck through; the brackets; the lozenge, filled while the edit waits for this reader and named
-  `edit:` and its changes' ids (`data-ghost`) for the host to open; a paragraph taken out, a line of its own. Then
-  `paint(words, tracked, order)` highlights each person's words, and their restyling with dots, by the CSS Custom
-  Highlight API. The caret, the copy and the IME pass over the ghosts, and the caret is written back where it was in the
+  `edit:` and its changes' ids (`data-ghost`) for the host to open, by a click or by the keys (below); a paragraph
+  taken out, a line of its own. Then `paint(words, tracked, order)` highlights each person's words, and their
+  restyling with dots, by the CSS Custom Highlight API. The caret, the copy and the IME pass over the ghosts, and the caret is written back where it was in the
   words, so a host draws again whenever the words or the versions change, typing or not: the ghosts first, awaited,
   then the paint. A change the host calls `settled` is drawn as plain words, or, taken out, not at all. The highlights
   are named `tlo-by-0` and on (`PREFIX`), which `tinylittleoffice/editors.css` colors; a host that names its own
   (`paint`'s last argument) colors them itself. A browser with no highlights gets the ghosts alone.
+- **A lozenge by the keys.** The ghosts take no focus (the caret passes over them), so the keys reach an edit from the
+  words: Alt+Enter with the caret in an edit's words, or else at the nearest edit in its paragraph (before the caret
+  first), fires "text-ghost" from the `<to-text>`, bubbling, with `{ id, block, el }` (`GhostAt`): the lozenge's name
+  (`edit:` and its ids), its block, and the lozenge as drawn, to open the panel beside. The kit finds it by the words
+  each lozenge stands for (`covers`, which `ghostsOf` gives), never by counting brackets. A read-only editor answers
+  it too; a paragraph with no edit, or words with no ghosts, leaves the key to the page (docs/editing.md lists it).
 - **Comments.** A comment is anchored by its quote, the words it is about as they read when it was made: the kit takes
   each as `{ id, quote }` and reads nothing else. A host that wants to say which version a comment was made on (to show
   it against that version, or to tell a comment on words since changed) keeps that version with it, its own; the kit

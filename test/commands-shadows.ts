@@ -5,6 +5,8 @@
 const LINE = 'in a one-line box the words leave Tab, Alt+Up/Down and Mod+Enter to the row they are in';
 
 export const SHADOWS: Record<string, string> = {
+  'cal.task.dates ~ text.change':
+    'Alt+Enter opens what the thing at the caret is: a task’s dates, or the change a host shows there (who did what); the words’ is in force only where a host shows changes, which a calendar never does',
   'kit.search ~ text.link': 'in words Mod+K is Link (Docs’ key, and every editor’s); the drawer’s search for anything is Mod+K everywhere else, and the menu button opens it',
   'outline.indent ~ text.indent': LINE,
   'outline.outdent ~ text.outdent': LINE,
