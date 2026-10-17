@@ -319,6 +319,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* A person after "@": the line under the name (an email), quieter. */
+  .to-complete-detail {
+    color: var(--to-ink-2);
+  }
   @media print {
     .to-complete {
       display: none !important;

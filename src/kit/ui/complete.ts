@@ -8,7 +8,8 @@
  *
  * The starter icons answer at once; the first ":" imports the rest of Lucide with its tags (the icon picker's
  * module) and the emoji table, and the list grows when they arrive. Where the editor holds no icon runs
- * (a shape's label, plain words) only emoji are offered.
+ * (a shape's label, plain words) only emoji are offered. After "@" the rows are the people the editor's host offers
+ * (kit/text/text.ts `mentions`), each a name with a line under it, its glyph an "@".
  */
 import { LitElement, html, nothing } from 'lit';
 import { icon, iconNamed } from '../draw/icons.ts';
@@ -19,11 +20,12 @@ import { reveal, room } from './scroll.ts';
 const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 const MAX = 8;
 
-/** One row: an icon by name, or an emoji's character with its name. */
+/** One row: an icon by name, an emoji's character with its name, or a person a host offers after "@" (a name, a line under it). */
 export interface Completion {
-  kind: 'icon' | 'emoji';
+  kind: 'icon' | 'emoji' | 'mention';
   value: string;
   name: string;
+  detail?: string;
 }
 
 let emoji: typeof import('../draw/emoji.ts') | null = null;
@@ -157,7 +159,9 @@ export class ToComplete extends LitElement {
       : this.items.map((c, i) => {
           const node = c.kind === 'icon' ? iconNamed(c.value) : undefined;
           return html`<div class="to-complete-row" role="option" id=${`${this.uid}-${i}`} aria-selected=${i === this.active ? 'true' : 'false'} data-value=${c.value} data-kind=${c.kind} @mousedown=${keep} @click=${() => pick(c)}>
-            <span class="to-complete-glyph" aria-hidden="true">${node ? icon(node, 18) : c.value}</span><span class="to-complete-name">${c.name}</span>
+            <span class="to-complete-glyph" aria-hidden="true">${node ? icon(node, 18) : c.kind === 'mention' ? '@' : c.value}</span><span class="to-complete-name"
+              >${c.name}${c.detail ? html` <small class="to-complete-detail">${c.detail}</small>` : nothing}</span
+            >
           </div>`;
         });
     return html`<div class="to-complete" id=${this.uid} popover=${POPOVER ? 'manual' : nothing} role="listbox" aria-label=${t('common-icon-or-emoji')} ?hidden=${!POPOVER && !this.shown}>${rows}</div>`;
