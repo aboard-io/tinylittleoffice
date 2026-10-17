@@ -86,9 +86,10 @@ as the site (docs/library.md), through four more entry points, each built by `np
 (vite.lib.config.ts):
 
 - `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
-  operations and their inverses, tables and formulas, the document as JSON, and what a server that orders several
-  people's operations needs (`transform`, `rebase`, `applyEdits`). One file, no dependencies, no DOM: Node 24, a
-  Worker or a page.
+  operations and their inverses, tables and formulas, the document as JSON, what a server that orders several
+  people's operations needs (`transform`, `rebase`, `applyEdits`), and who did what in a document several people
+  write (`track`, `trackOn`, `changesOf`, `rejectOps`, as the kit serves them). One file, no dependencies, no DOM:
+  Node 24, a Worker or a page.
 - `tinylittleoffice/commands`, `dist/commands.js`: the command registry for a program (src/commands.ts). A command is
   declared as the editors' are, and may carry what a program reads of it: `input` and `output` as JSON Schema objects,
   `who` may run it, `reads` when it changes nothing, and `doc`, a sentence saying what it does. `tools(commands, actor)`
