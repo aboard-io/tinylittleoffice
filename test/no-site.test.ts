@@ -1,5 +1,5 @@
 // No app makes a web page (Paul, 2026-10-11): a page of arbitrary HTML, style and script from a link, served
-// from our own domain, is a phishing kit, and no sandbox makes it safe. A document never runs code: eleven apps,
+// from our own domain, is a phishing kit, and no sandbox makes it safe. A document never runs code: ten apps,
 // none of them draws a web page of its own, and the site serves no frame script for one.
 import { test, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
@@ -7,8 +7,8 @@ import { apps, appOf } from '../src/kit/core/apps.ts';
 
 const file = (path: string) => new URL(`../${path}`, import.meta.url);
 
-test('eleven apps, and no website among them', () => {
-  expect(apps().map((a) => a.id)).toHaveLength(11);
+test('ten apps, and no website among them', () => {
+  expect(apps().map((a) => a.id)).toHaveLength(10);
   expect(appOf('site')).toBeUndefined();
   expect(apps().some((a) => 'page' in a)).toBe(false);
   expect(existsSync(file('src/apps/site'))).toBe(false);

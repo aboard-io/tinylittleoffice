@@ -1302,8 +1302,6 @@ sheet-edit-cell-caret-at-its = Editar la celda con el cursor al final
 sheet-put-back-what-cell-held = Restaurar el valor de la celda
 # en: 2b69414b3787eaa8a38f2f1a9c4a48aff7dd78a5
 sheet-put-dated-rows-on-calendar = Poner las filas con fecha en un calendario
-# en: 8176189f8be90b48f852836e7872ab326b9908eb
-sheet-put-rows-on-board = Poner las filas en un tablero, una tarjeta cada una
 
 ## downloads: hand-offs to another app (kit/file/exports.ts)
 
@@ -3294,79 +3292,3 @@ find-not-found = No se encontró
 menu-nothing-starts-q = Sin coincidencias para «{ $q }»
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = Coincidencias para «{ $q }»
-
-
-## the Board
-
-# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
-board-board = Tablero
-# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
-board-board-lowercase = tablero
-# en: d1b387380c728b48ad48dad8e820910a5b9823d8
-board-cards-in-lanes-by-status = Tarjetas en columnas según su estado, cada tarjeta una fila de una tabla.
-# en: bae7d5be70820ed56467bd9a63744e23b47bd711
-board-status = Estado
-# en: 8665aed3624f4916345a2b028d6d28d352ad4245
-board-to-do = Por hacer
-# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
-board-doing = En curso
-# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
-board-done = Hecho
-# en: cf5fbf174610c73177abf9c8651380a7704db1bd
-board-no-cards = Sin tarjetas
-# en: 0463e9010e415ef45e74451772c13dbd858b5db4
-board-n-cards = { $n ->
-        [one] una tarjeta
-        [many] { $n } de tarjetas
-       *[other] { $n } tarjetas
-    }
-# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
-board-open-cards-in-spreadsheet = Abrir las tarjetas en una hoja de cálculo
-# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
-board-card = Tarjeta
-# en: 8ccf7349a24f44599bb594439759d55772afee20
-board-lane = Columna
-# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
-board-lane-options = Opciones de la columna
-# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
-board-options-for-lane = Opciones de { $lane }
-# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
-board-add-card = Añadir una tarjeta
-# en: 9b16c4bcc3877580d2535eb47b42650501308935
-board-delete-lane = Eliminar columna
-# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
-board-move-to = Mover a…
-# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
-board-rename-lane = Renombrar columna
-# en: a5912ab4a43981f406eba8185371c4b3651e648b
-board-card-in-lane-beside = La tarjeta de al lado en la columna anterior o siguiente
-# en: a200dd9231cf71181960586345e66a1b8bb3e738
-board-move-card-to-lane-before-or = Mover la tarjeta a la columna anterior o siguiente
-# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
-board-lane-name = Nombre de la columna
-# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
-board-yyyy-mm-dd = AAAA-MM-DD
-# en: a0cb8ea4060e4a90b3f78592285740f7da401615
-board-new-lane = Columna nueva
-# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
-board-title-of-card-n = Título de la tarjeta { $n } en { $lane }
-# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
-board-card-n-tap-chooses-it = Tarjeta { $n } en { $lane }: toca para seleccionar, arrastra para mover
-# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
-board-chosen-cards = Tarjetas seleccionadas
-# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
-board-project-board = Tablero de proyecto
-# en: c1781d58aa2f45b844d09310320a3910191ad880
-board-to-do-doing-done-owner = Por hacer, en curso y hecho, cada tarea con su responsable y su fecha límite.
-# en: df5ed7c968260c1206d4e522066460822cf75b92
-board-sales-pipeline = Embudo de ventas
-# en: e8005f76e068a5cac180467fb97ac33561c72f62
-board-deals-from-inbound-to-won = Oportunidades desde la entrada hasta ganada o perdida, con su valor y su fecha de cierre.
-# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
-board-hiring = Contratación
-# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
-board-candidates-from-application-to-hire = Candidatos desde la solicitud hasta la contratación, con el puesto y el siguiente paso.
-# en: d52515f227f638ad6d968486abebc20d6729d8c6
-board-content-calendar = Calendario de contenidos
-# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
-board-pieces-from-idea-to-published = Piezas desde la idea hasta la publicación, con el canal, el autor y la fecha.

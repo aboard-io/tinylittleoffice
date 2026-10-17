@@ -61,7 +61,6 @@ there it is drawn still, at its resting moment (`ViewOpts.still`).
 | Calendar | `.csv` | CSV |
 | Trip Planner | `.gpx` | GPX route |
 | Trip Planner | `.geojson` | GeoJSON |
-| Board | `.csv` | CSV |
 
 A seating chart (Diagram Maker, `kind: seating`) prints its place cards from its bar: a card a guest, eight to a
 letter sheet, with lines to cut along.
@@ -82,9 +81,7 @@ Under Download, "Open in": the document as another app reads it, converted by a 
 | Outliner | Diagram Maker | Draw as a network |
 | Outliner | Calendar | Calendar |
 | Spreadsheet | Calendar | Put the dated rows on a calendar |
-| Spreadsheet | Board | Put the rows on a board, a card each |
 | Drawing Tool | Animator | Animate this drawing |
 | Diagram Maker | Outliner | Show as outline |
 | Diagram Maker | Drawing Tool | Open in Drawing Tool |
 | Trip Planner | Calendar | Put the stops on a calendar, a day each |
-| Board | Spreadsheet | Open the cards in a spreadsheet |

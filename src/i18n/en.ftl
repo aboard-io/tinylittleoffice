@@ -746,7 +746,6 @@ sheet-has-one = The sheet already has a chart
 sheet-edit-cell-caret-at-its = Edit cell with cursor at end
 sheet-put-back-what-cell-held = Restore cell value
 sheet-put-dated-rows-on-calendar = Put the dated rows on a calendar
-sheet-put-rows-on-board = Put the rows on a board, a card each
 
 ## downloads: hand-offs to another app (kit/file/exports.ts)
 
@@ -1633,56 +1632,6 @@ trip-put-stops-on-calendar-day = Put the stops on a calendar, a day each
 trip-first-last = First or last
 trip-next-stop = Next stop
 trip-stop-before = Previous stop
-
-## the Board
-
-# The app's name: a board of cards in lanes, a lane for each status.
-board-board = Board
-# A noun, lower case: what one document of the app is called ("New board", "Untitled board").
-board-board-lowercase = board
-board-cards-in-lanes-by-status = Cards in lanes by their status, each card a row of a table.
-# The heading over a new board's status column (a noun).
-board-status = Status
-# A new board's three lanes: what is still to do, what is being done, what is finished.
-board-to-do = To do
-board-doing = Doing
-board-done = Done
-board-no-cards = No cards
-board-n-cards = { $n ->
-        [one] one card
-       *[other] { $n } cards
-    }
-board-open-cards-in-spreadsheet = Open the cards in a spreadsheet
-# Insert ▾ items (nouns): a new card, a new lane.
-board-card = Card
-board-lane = Lane
-board-lane-options = Lane options
-board-options-for-lane = Options for { $lane }
-board-add-card = Add a card
-board-delete-lane = Delete lane
-# A button that opens a list of the lanes, to move the selected cards to one of them.
-board-move-to = Move to…
-# A lane’s menu item: its name becomes a field where it is drawn.
-board-rename-lane = Rename lane
-# A key in a card’s title: Left or Right at its end goes to the card beside it in the next lane over.
-board-card-in-lane-beside = The card beside it in the lane before or after
-board-move-card-to-lane-before-or = Move the card to the lane before or after
-board-lane-name = Lane name
-# A date field’s placeholder: the order a date is typed in (year, month, day, as digits), in the letters the language names them by.
-board-yyyy-mm-dd = YYYY-MM-DD
-# A lane just added, before it is named.
-board-new-lane = New lane
-board-title-of-card-n = Title of card { $n } in { $lane }
-board-card-n-tap-chooses-it = Card { $n } in { $lane }: tap to select, drag to move
-board-chosen-cards = Selected cards
-board-project-board = Project board
-board-to-do-doing-done-owner = To do, doing and done, each task with its owner and due date.
-board-sales-pipeline = Sales pipeline
-board-deals-from-inbound-to-won = Deals from inbound to won or lost, with their value and close date.
-board-hiring = Hiring
-board-candidates-from-application-to-hire = Candidates from application to hire, with the role and the next step.
-board-content-calendar = Content calendar
-board-pieces-from-idea-to-published = Pieces from idea to published, with the channel, the author and the date.
 
 ## shared: the Word Processor's looks, the header's Home, a money column's currency
 

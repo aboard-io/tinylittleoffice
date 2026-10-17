@@ -24,7 +24,6 @@ import '../src/apps/diagram/commands.ts';
 import '../src/apps/anim/commands.ts';
 import '../src/apps/cal/commands.ts';
 import '../src/apps/trip/commands.ts';
-import '../src/apps/board/commands.ts';
 import { generate } from './generated.ts';
 import { makeSkill, skillOutputs } from './make-skill.ts';
 

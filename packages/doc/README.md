@@ -129,7 +129,7 @@ const { editor } = await mount('write', text, main, (next) => save(next)); // th
 A page that shares a document with others gives `mount` an `onOps(ops, base)`, told each change's operations, and
 hands others' in with the `applyRemote(ops)` it returns, rebased with `rebase` from `/doc`. A page that only shows a
 document mounts it `{ readOnly: true }`: nothing in it is edited, and an item activated (a calendar's entry, a sheet's
-cell, a board's card) fires a bubbling `docpick` event (`DocPick`) saying which. `toast(words, { action: { label,
+cell, an outline's item) fires a bubbling `docpick` event (`DocPick`) saying which. `toast(words, { action: { label,
 does } })` says something with a button after it, an Undo for one. docs/library.md has each: Shared editing from a
 page, and the steps.
 

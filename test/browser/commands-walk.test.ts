@@ -189,12 +189,6 @@ const PLAN: Record<string, State[]> = {
     { name: 'a pin', tpl: 'weekend', set: (ed) => (ed.pinAt = 0) },
     { name: 'presenting', tpl: 'weekend', set: (ed) => ((ed.presenting = 0), ed.requestUpdate()) },
   ],
-  board: [
-    { name: 'a card', tpl: 'project', set: (ed) => (ed.here = ed.view.cards[1]) },
-    { name: 'cards chosen', tpl: 'project', set: (ed) => ed.rows.choose(ed.view.cards[1].row) },
-    { name: 'a lane’s menu', tpl: 'project', set: (ed) => (ed.menuAt = 1) },
-    { name: 'a card opened', tpl: 'project', set: (ed) => ed.openCard(ed.view.cards[1].row) },
-  ],
 };
 
 for (const [app, states] of Object.entries(PLAN))

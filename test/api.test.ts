@@ -58,7 +58,7 @@ test('compare: what the second link changed', () => {
 
 test('the apps, their templates and the files they make without a browser', async () => {
   const all = await apps();
-  expect(all.map((a) => a.id)).toEqual(['write', 'outline', 'deck', 'sheet', 'calc', 'draw', 'diagram', 'anim', 'cal', 'trip', 'board']);
+  expect(all.map((a) => a.id)).toEqual(['write', 'outline', 'deck', 'sheet', 'calc', 'draw', 'diagram', 'anim', 'cal', 'trip']);
   expect(all.find((a) => a.id === 'sheet')).toMatchObject({ name: 'Spreadsheet', noun: 'spreadsheet' });
   const tpl = await templates('sheet');
   expect(tpl[0]).toMatchObject({ id: 'budget', name: 'Budget' });

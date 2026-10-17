@@ -60,7 +60,7 @@ What an app still asked of the site itself, and what replaces it:
    editors and what they put on the page). test/browser/editors.test.ts holds that no rule of it names the root, the
    body or the shell, and that a page's own body keeps its own margin, ground and type.
 4. **A page's own commands.** Done: a page declares a scope of its own beside the kit's (Atlas's records, its
-   board), and draws and answers it with the kit's functions: see A page's own commands.
+   pipeline), and draws and answers it with the kit's functions: see A page's own commands.
 5. **A bare page.** Done: test/browser/editors.test.ts mounts `<to-write-editor>` on a bare page with a host of its
    own, types in it and reads the `docchange`.
 6. **Commands for a program.** Done: src/commands.ts, served as `tinylittleoffice/commands` (dist/commands.js), the
@@ -72,8 +72,8 @@ What an app still asked of the site itself, and what replaces it:
    docs/kernel.md §12 is the design, its rules and its properties.
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
    on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
-   calendar's `date`, `time` or `row`, a board's `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
-   Those five apps pick; the Word Processor, the Drawing Tool, the Diagram Maker, the Animator, the Trip Planner and the
+   calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
+   Those four apps pick; the Word Processor, the Drawing Tool, the Diagram Maker, the Animator, the Trip Planner and the
    Calculator have no item to open (their `pickOf` is the element's, null), so they are shown read-only and fire no
    `docpick`. An outline's fold button picks its item too, and folds nothing: a fold is the document's own
    (`{.shut}`), so a read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw.
@@ -104,7 +104,7 @@ server refuses, until the Spreadsheet writes the table's lock when its page shar
 ## A page's own commands
 
 A page's commands are declared as the kit's and the apps' are (kit/core/commands.ts: id, label, icon, keys, scope,
-where, when, does), in a scope of the page's own (`host`, `atlas`), and act on a context of its own: its board, the
+where, when, does), in a scope of the page's own (`host`, `atlas`), and act on a context of its own: its pipeline, the
 record in hand. `tinylittleoffice/editors` exports what declares, draws and answers them, and nothing beside it:
 
 - declaring: `command`, `register`, `registered`, `inScope`, and the types `Command`, `Words` and `Where`;
@@ -122,11 +122,11 @@ editor the keys are the page's to listen for, with the same `runKey`; a key `mou
 
 ```ts
 import { command, register, mount, cmdTool } from 'tinylittleoffice/editors';
-const open = command<Board>({ id: 'host.open', scope: 'host', label: (b) => `Open ${b?.record.name ?? 'record'}`,
+const open = command<Pipeline>({ id: 'host.open', scope: 'host', label: (b) => `Open ${b?.record.name ?? 'record'}`,
   keys: 'Mod+Shift+O', where: ['bar'], does: (b) => b.open(b.record) });
 register([open]);
-await mount('write', text, main, save, { commands: [open], context: board });
-render(html`<to-bar>${cmdTool(open, board)}</to-bar>`, bar);
+await mount('write', text, main, save, { commands: [open], context: pipeline });
+render(html`<to-bar>${cmdTool(open, pipeline)}</to-bar>`, bar);
 ```
 
 A command's label is `Words`: a string is the id of a message of the site's (src/i18n/en.ftl), put through `t()` and

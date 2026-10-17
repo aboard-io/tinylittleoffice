@@ -1292,8 +1292,6 @@ sheet-edit-cell-caret-at-its = Cel bewerken met de cursor aan het eind
 sheet-put-back-what-cell-held = Celwaarde herstellen
 # en: 2b69414b3787eaa8a38f2f1a9c4a48aff7dd78a5
 sheet-put-dated-rows-on-calendar = De rijen met een datum op een kalender zetten
-# en: 8176189f8be90b48f852836e7872ab326b9908eb
-sheet-put-rows-on-board = De rijen op een bord zetten, een kaart per rij
 
 ## downloads: hand-offs to another app (kit/file/exports.ts)
 
@@ -3297,79 +3295,3 @@ find-not-found = Niet gevonden
 menu-nothing-starts-q = Geen resultaten voor “{ $q }”
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = Resultaten voor “{ $q }”
-
-
-## the Board
-
-# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
-board-board = Bord
-# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
-board-board-lowercase = bord
-# en: d1b387380c728b48ad48dad8e820910a5b9823d8
-board-cards-in-lanes-by-status = Kaarten in kolommen naar hun status, elke kaart een rij van een tabel.
-# same
-# en: bae7d5be70820ed56467bd9a63744e23b47bd711
-board-status = Status
-# en: 8665aed3624f4916345a2b028d6d28d352ad4245
-board-to-do = Te doen
-# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
-board-doing = Bezig
-# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
-board-done = Klaar
-# en: cf5fbf174610c73177abf9c8651380a7704db1bd
-board-no-cards = Geen kaarten
-# en: 0463e9010e415ef45e74451772c13dbd858b5db4
-board-n-cards = { $n ->
-        [one] één kaart
-       *[other] { $n } kaarten
-    }
-# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
-board-open-cards-in-spreadsheet = De kaarten openen in een rekenblad
-# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
-board-card = Kaart
-# en: 8ccf7349a24f44599bb594439759d55772afee20
-board-lane = Kolom
-# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
-board-lane-options = Kolomopties
-# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
-board-options-for-lane = Opties voor { $lane }
-# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
-board-add-card = Een kaart toevoegen
-# en: 9b16c4bcc3877580d2535eb47b42650501308935
-board-delete-lane = Kolom wissen
-# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
-board-move-to = Verplaatsen naar…
-# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
-board-rename-lane = Kolom hernoemen
-# en: a5912ab4a43981f406eba8185371c4b3651e648b
-board-card-in-lane-beside = De kaart ernaast in de vorige of de volgende kolom
-# en: a200dd9231cf71181960586345e66a1b8bb3e738
-board-move-card-to-lane-before-or = De kaart naar de vorige of de volgende kolom verplaatsen
-# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
-board-lane-name = Naam van de kolom
-# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
-board-yyyy-mm-dd = JJJJ-MM-DD
-# en: a0cb8ea4060e4a90b3f78592285740f7da401615
-board-new-lane = Nieuwe kolom
-# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
-board-title-of-card-n = Titel van kaart { $n } in { $lane }
-# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
-board-card-n-tap-chooses-it = Kaart { $n } in { $lane }: tik om te selecteren, sleep om te verplaatsen
-# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
-board-chosen-cards = Geselecteerde kaarten
-# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
-board-project-board = Projectbord
-# en: c1781d58aa2f45b844d09310320a3910191ad880
-board-to-do-doing-done-owner = Te doen, bezig en klaar, elke taak met wie hem doet en wanneer hij af moet.
-# en: df5ed7c968260c1206d4e522066460822cf75b92
-board-sales-pipeline = Verkooppijplijn
-# en: e8005f76e068a5cac180467fb97ac33561c72f62
-board-deals-from-inbound-to-won = Deals van binnengekomen tot gewonnen of verloren, met hun waarde en sluitdatum.
-# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
-board-hiring = Werving
-# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
-board-candidates-from-application-to-hire = Kandidaten van sollicitatie tot aanname, met de functie en de volgende stap.
-# en: d52515f227f638ad6d968486abebc20d6729d8c6
-board-content-calendar = Contentkalender
-# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
-board-pieces-from-idea-to-published = Stukken van idee tot gepubliceerd, met het kanaal, de auteur en de datum.

@@ -18,8 +18,6 @@ export const SHADOWS: Record<string, string> = {
   'cal.task.move ~ text.down': LINE,
   'text.up ~ trip.move': LINE,
   'text.down ~ trip.move': LINE,
-  'board.card.move-up ~ text.up': LINE,
-  'board.card.move-down ~ text.down': LINE,
   'deck.onto ~ text.tick': `${LINE}: Mod+Enter in the headline goes on to the words, a line's "done"`,
   'diagram.done ~ text.tick': `${LINE}: Mod+Enter is done with a thing's words`,
   'cal.task.tick ~ text.tick': LINE,

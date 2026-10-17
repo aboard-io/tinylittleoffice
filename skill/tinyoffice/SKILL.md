@@ -37,7 +37,7 @@ There is no shared document. Whoever opens a link gets their own copy: what they
 
 ## A document inside a document
 
-Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the eleven app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
+Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the ten app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
 
 Two slides, a cover and then the Moon going around the Earth, an animation on its slide: <https://tinylittleoffice.com/deck/#doc=%23%23+%3Amoon%3A+Why+the+Moon+has+phases+%7B.title%7D%0A%0A---%0A%0A%23%23+%3Amoon%3A+The+model%2C+moving%0A%0A%60%60%60anim%0A---%0Aframes%3A+16%0Afps%3A+4%0Aalt%3A+The+Moon+goes+around+the+Earth%2C+lit+from+the+left+by+the+Sun.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Ai+%7C+2+%7C+21+%7C+8+%7C+8+%7C+0o+%7C+sun%0Ae+%7C+37+%7C+22+%7C+6+%7C+6+%7C+2b+%7C%0Ae+%7C+57+%7C+24+%7C+2+%7C+2+%7C+2+%7C%0A%0AShape+%7C+Keys%0A---+%7C+---%0A2+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+4%2C-144%2C-144%2C0%2C1%2C0%3B+8%2C-288%2C0%2C0%2C1%2C0%3B+12%2C-144%2C144%2C0%2C1%2C0%3B+15%2C-36%2C36%2C0%2C1%2C0%0A%60%60%60>
 
@@ -76,16 +76,15 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `anim` | Animator | Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes. |
 | `cal` | Calendar | Days and times on a month, a year or a schedule, in any time zone. |
 | `trip` | Trip Planner | A route on a map: stops in order, each with a note, and how far between them. |
-| `board` | Board | Cards in lanes by their status, each card a row of a table. |
 
-Before writing for an app, read its reference, which says what it reads and gives one of its own templates as the example: [write](references/write.md), [outline](references/outline.md), [deck](references/deck.md), [sheet](references/sheet.md), [calc](references/calc.md), [draw](references/draw.md), [diagram](references/diagram.md), [anim](references/anim.md), [cal](references/cal.md), [trip](references/trip.md), [board](references/board.md). The files every document downloads, short links, the API and the command line are in [references/api.md](references/api.md); the keys that drive the editors in a browser are in [references/editors.md](references/editors.md).
+Before writing for an app, read its reference, which says what it reads and gives one of its own templates as the example: [write](references/write.md), [outline](references/outline.md), [deck](references/deck.md), [sheet](references/sheet.md), [calc](references/calc.md), [draw](references/draw.md), [diagram](references/diagram.md), [anim](references/anim.md), [cal](references/cal.md), [trip](references/trip.md). The files every document downloads, short links, the API and the command line are in [references/api.md](references/api.md); the keys that drive the editors in a browser are in [references/editors.md](references/editors.md).
 
 ## Choosing an app
 
 - Numbers, a table, a chart, a model: `sheet`. A quick sum or a conversion: `calc`.
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
-- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`. Work moving through stages (a pipeline, a project, hiring): `board`.
+- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
 - Anything else visual: `draw`; moving: `anim`.
 
 ## The skill

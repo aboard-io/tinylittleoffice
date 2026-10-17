@@ -24,7 +24,7 @@ The link is the document.
 
 ## How it is made {.two}
 
-- Eleven apps on one kit
+- Ten apps on one kit
 - One text format: Markdown with a few additions
 - Any document can sit inside another: a chart on a slide, a map on a page
 
@@ -254,24 +254,6 @@ Porto | 41.1579 | -8.6291 | Port cellars across the river in Gaia
 ```
 
 > Stops in order on OpenStreetMap, with the distance between them. Presented, a stop a step.
-
----
-
-## :columns-3: Board
-
-```board
----
-lanes: To do, Doing, Done
----
-Task | Status:option | Owner | Due:date
---- | --- | --- | ---
-Write the launch brief | Done | Maya | 2026-11-02
-Draft the press release | Doing | Maya | 2026-11-09
-Build the landing page | Doing | Sam | 2026-11-13
-Plan the launch party | To do | Priya | 2026-11-20
-```
-
-> Cards in lanes by their status, each card a row of a table: the same text opens in the Spreadsheet.
 
 ---
 

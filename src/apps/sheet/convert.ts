@@ -1,12 +1,10 @@
 /**
- * A sheet opened as another app's document (the Download menu's "Open in"): as a calendar, or as a board.
- *
- * As a calendar: each row with a date a day on it, named by
+ * A sheet opened as a calendar (the Download menu's "Open in"): each row with a date a day on it, named by
  * the row's first column of words. The date is the first date column's (or, with none typed so, the first
  * column whose cells read as dates); a second date column, when there is one, is where the span ends. A
  * row with no date is left out.
  */
-import { firstTable, parse, parseInline, serialToIso, write, type Block, type TableBlock } from '../../doc/index.ts';
+import { parse, parseInline, serialToIso, write, type Block } from '../../doc/index.ts';
 import { dayOf, itemBlock, newDraft } from '../cal/model.ts';
 import { readSheet } from './model.ts';
 
@@ -37,15 +35,4 @@ export function sheetToCal(text: string): string {
   }
   blocks.sort((a, b) => (a.k === 'li' && b.k === 'li' ? (a.runs[0]?.t ?? '').localeCompare(b.runs[0]?.t ?? '') : 0));
   return write({ head: doc.head.title ? { title: doc.head.title } : {}, blocks });
-}
-
-/**
- * A sheet opened as a board (the Download menu's "Open in"): its first table, a card a row, the lanes the values of its
- * status column (board/model.ts says which). The title comes too; the lock and the chart are the sheet's and stay.
- */
-export function sheetToBoard(text: string): string {
-  const doc = parse(text);
-  const at = firstTable(doc);
-  const b = doc.blocks[at] as TableBlock | undefined;
-  return write({ head: doc.head.title ? { title: doc.head.title } : {}, blocks: b ? [{ k: 'table', cols: b.cols, rows: b.rows }] : [] });
 }

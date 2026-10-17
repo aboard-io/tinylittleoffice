@@ -1227,8 +1227,6 @@ sheet-edit-cell-caret-at-its = 커서를 끝에 두고 셀 편집
 sheet-put-back-what-cell-held = 셀 값 되돌리기
 # en: 2b69414b3787eaa8a38f2f1a9c4a48aff7dd78a5
 sheet-put-dated-rows-on-calendar = 날짜가 있는 행을 캘린더에 넣기
-# en: 8176189f8be90b48f852836e7872ab326b9908eb
-sheet-put-rows-on-board = 행을 보드에 카드로 넣기
 
 ## downloads: hand-offs to another app (kit/file/exports.ts)
 
@@ -3183,78 +3181,3 @@ find-not-found = 결과 없음
 menu-nothing-starts-q = “{ $q }”에 맞는 항목이 없습니다
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = “{ $q }”에 맞는 항목
-
-
-## the Board
-
-# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
-board-board = 보드
-# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
-board-board-lowercase = 보드
-# en: d1b387380c728b48ad48dad8e820910a5b9823d8
-board-cards-in-lanes-by-status = 상태별 열에 카드를 놓습니다. 카드 한 장이 표의 한 행입니다.
-# en: bae7d5be70820ed56467bd9a63744e23b47bd711
-board-status = 상태
-# en: 8665aed3624f4916345a2b028d6d28d352ad4245
-board-to-do = 할 일
-# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
-board-doing = 진행 중
-# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
-board-done = 완료
-# en: cf5fbf174610c73177abf9c8651380a7704db1bd
-board-no-cards = 카드 없음
-# en: 0463e9010e415ef45e74451772c13dbd858b5db4
-board-n-cards = { $n ->
-       *[other] 카드 { $n }장
-    }
-# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
-board-open-cards-in-spreadsheet = 카드를 스프레드시트에서 열기
-# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
-board-card = 카드
-# en: 8ccf7349a24f44599bb594439759d55772afee20
-board-lane = 열
-# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
-board-lane-options = 열 옵션
-# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
-board-options-for-lane = { $lane } 옵션
-# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
-board-add-card = 카드 추가
-# en: 9b16c4bcc3877580d2535eb47b42650501308935
-board-delete-lane = 열 삭제
-# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
-board-move-to = 다른 열로 이동…
-# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
-board-rename-lane = 열 이름 바꾸기
-# en: a5912ab4a43981f406eba8185371c4b3651e648b
-board-card-in-lane-beside = 이전 열이나 다음 열의 옆 카드
-# en: a200dd9231cf71181960586345e66a1b8bb3e738
-board-move-card-to-lane-before-or = 카드를 이전 열이나 다음 열로 이동
-# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
-board-lane-name = 열 이름
-# same
-# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
-board-yyyy-mm-dd = YYYY-MM-DD
-# en: a0cb8ea4060e4a90b3f78592285740f7da401615
-board-new-lane = 새 열
-# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
-board-title-of-card-n = { $lane }의 카드 { $n } 제목
-# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
-board-card-n-tap-chooses-it = { $lane }의 카드 { $n }: 탭하면 선택, 끌면 이동
-# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
-board-chosen-cards = 선택한 카드
-# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
-board-project-board = 프로젝트 보드
-# en: c1781d58aa2f45b844d09310320a3910191ad880
-board-to-do-doing-done-owner = 할 일, 진행 중, 완료. 작업마다 담당자와 마감일이 있습니다.
-# en: df5ed7c968260c1206d4e522066460822cf75b92
-board-sales-pipeline = 영업 파이프라인
-# en: e8005f76e068a5cac180467fb97ac33561c72f62
-board-deals-from-inbound-to-won = 신규 문의부터 성사나 실패까지의 거래를 금액과 마감 예정일과 함께 봅니다.
-# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
-board-hiring = 채용
-# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
-board-candidates-from-application-to-hire = 지원부터 채용까지의 후보자를 직무와 다음 단계와 함께 봅니다.
-# en: d52515f227f638ad6d968486abebc20d6729d8c6
-board-content-calendar = 콘텐츠 캘린더
-# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
-board-pieces-from-idea-to-published = 아이디어부터 발행까지의 콘텐츠를 채널, 작성자, 날짜와 함께 봅니다.

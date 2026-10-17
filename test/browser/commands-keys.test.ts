@@ -175,10 +175,6 @@ const PLACES: Record<string, Record<string, Place[]>> = {
     pin: [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.trip-pin') }],
     '': [{ tpl: 'trip:weekend', at: (ed) => ed.querySelector('.trip-stops') ?? ed }],
   },
-  board: {
-    words: [{ tpl: 'board:project', at: (ed) => nth(ed, '.board-card to-text.board-title', 1) }],
-    rows: [{ tpl: 'board:project', set: (ed) => ed.rows.choose(ed.view.lanes[1].cards[0].row), at: (ed) => ed.rows.o.box() }],
-  },
 };
 
 /** Whether pressing this key, from this place, runs this command. */

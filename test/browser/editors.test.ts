@@ -336,29 +336,6 @@ test('words mounted read-only are shown, not edited: no bar, not editable, still
   await until(() => !!editor.querySelector('to-bar') && !!editor.querySelector('[contenteditable=true]'), 'the editor never came back editable');
 });
 
-test('a board mounted read-only: a card activated is picked with its row, by a click or Enter on its grip, and never carried', async () => {
-  const board = '---\nlanes: To do, Done\n---\nTask | Status:option\n--- | ---\nWrite the brief | To do\nBook the room | Done\n';
-  const { editor, changes, picks } = await shown('board', board);
-  expect(editor.querySelector('to-bar')).toBeNull();
-  expect(editor.querySelector('.board-more')).toBeNull();
-  const card = (row: number) => editor.querySelector<HTMLElement>(`.board-card[data-row="${row}"]`)!;
-  card(1).querySelector<HTMLElement>('.board-fields, .board-main')!.click();
-  expect(picks).toStrictEqual([{ at: 0, row: 1 }]);
-  const grip = card(0).querySelector<HTMLElement>('.board-grip')!;
-  grip.focus();
-  key(grip, 'Enter');
-  expect(picks.at(-1)).toStrictEqual({ at: 0, row: 0 });
-  // A press on the grip starts no carry, and a double click opens no card.
-  grip.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1, clientX: 5, clientY: 5 }));
-  grip.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerId: 1, clientX: 5, clientY: 300 }));
-  card(0).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-  key(grip, 'Enter', { altKey: true });
-  await editor.updateComplete;
-  expect(editor.querySelector('.board-card.dragging, dialog[open]')).toBeNull();
-  expect(changes).toStrictEqual([]);
-  expect(editor.value).toBe(board);
-});
-
 test('an outline mounted read-only: its fold button picks the item as the row does, and folds nothing, a fold being the document’s', async () => {
   const outline = '- Plan\n  - Book the room\n- Ship\n';
   const { editor, changes, picks } = await shown('outline', outline);

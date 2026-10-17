@@ -30,7 +30,7 @@ test('/llms.txt and /api.js are served; the API makes a link that opens', async 
   });
   expect(made.money).toBe(0);
   expect(made.back).toBe('---\ntitle: Shop\n---\n- [ ] Milk\n');
-  expect(made.apps).toBe(11);
+  expect(made.apps).toBe(10);
   await page.goto(made.url);
   await expect(page.locator('.to-title')).toHaveValue('Shop');
 });

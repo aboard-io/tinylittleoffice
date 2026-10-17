@@ -15,9 +15,9 @@
  * does (kit/core/keys.ts), since the page the editor is in is where keys are heard. A page that shares a document
  * (docs/library.md, Shared editing from a page) hears each change's ops too (`onOps`, the element's "docops") and hands another's in with
  * `applyRemote` (kit/core/element.ts). A page that only shows a document mounts it `readOnly`: nothing of it is edited,
- * and an item activated in it (a calendar's entry, a board's card, a sheet's cell) is told in a "docpick" event.
+ * and an item activated in it (a calendar's entry, an outline's item, a sheet's cell) is told in a "docpick" event.
  *
- * A page's own commands (its records, its board) are declared as the kit's and the apps' are (kit/core/commands.ts),
+ * A page's own commands (its records, its pipeline) are declared as the kit's and the apps' are (kit/core/commands.ts),
  * drawn by the same functions (cmdTool, cmdMenu, drawnIn) and answered by the same runKey; `mount` given them and
  * their context answers their keys inside the editor after the words', the app's and undo's, so an inner scope wins.
  */
@@ -76,7 +76,7 @@ export async function editorTag(app: string): Promise<string> {
 
 /**
  * What else a page gives `mount`: its own commands and the context they act on (the page's own: its records, its
- * board), and for a shared document `onOps`, told each change's ops and how many the editor had applied before them
+ * pipeline), and for a shared document `onOps`, told each change's ops and how many the editor had applied before them
  * (kit/core/element.ts DocOps), before `onChange` is told its text; `readOnly`, a document shown and not edited, drawn so
  * from the first (the element's `readonly`: no bar, no typing, and a "docpick" for an item activated).
  */

@@ -38,7 +38,7 @@ export type DocChange = CustomEvent<string> & { key?: string };
  */
 export type DocOps = CustomEvent<{ ops: Op[]; base: number }>;
 
-/** An item activated in a read-only editor: its block, and the app's own key for it (a calendar's day, a board's row). */
+/** An item activated in a read-only editor: its block, and the app's own key for it (a calendar's day, an outline's item). */
 export type Picked = { at: number } & Record<string, number | string>;
 /** What a page hears when an item of a read-only editor is activated: "docpick", bubbling. */
 export type DocPick = CustomEvent<Picked>;
