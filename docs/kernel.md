@@ -569,9 +569,10 @@ there, a block beside it moved away, the blocks on both sides taken out and othe
 mix, about 460 undone moves and 170 deletions in all come back exactly, and the transform needed no change. The
 exemption for a range at an edge took any two ranges in a cell as alike and left the lock out; it now allows one end
 apart by exactly the rows put in, at their place, the lock compared too, and the table pairs run again on a table with
-a lock. That run found a fault in `apply`, not the transform: where a lock is a table's only attribute, rows or columns
-taken out that take all of it leave it as it was, so the two orders keep different stale locks (and, in one person's
-document, a lock on cells nobody locked). It is ops.ts's to mend in a change of its own, since the site uses `apply`;
-the locked table in the test carries an id meanwhile. And table ops were few among what the clients sent; the clients
+a lock. That run found a fault in `apply`, not the transform: where a lock was a table's only attribute, rows or
+columns taken out that took all of it left it as it was, so the two orders kept different stale locks (and, in one
+person's document, a lock on cells nobody locked). `withMovedTable` now rebuilds the table without its old attributes,
+so the lock goes with the last cells it covered, and the locked table in the test has the lock as its only attribute.
+And table ops were few among what the clients sent; the clients
 and the undo now run again with ops mostly on tables, in which a client's view met a range apart at an edge about a
 dozen times in 2,000 cases, and converge.

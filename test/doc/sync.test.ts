@@ -439,10 +439,9 @@ test('TP1 for every pair of table ops on a table of three rows and three columns
     return out;
   };
   expect(pairs(sheet(''), ops('p'), ops('q'))).toStrictEqual([]);
-  // A locked range ends in rows and columns others take out, and its cells are written only when forced. The table has
-  // an id beside its lock: where the lock is a table's only attribute, apply leaves it as it was when rows or columns
-  // taken out take all of it, and the two orders keep different stale locks (ops.ts's to mend, not the transform's).
-  const locked = sheet('{#t lock=A1:B2}\n');
+  // A locked range ends in rows and columns others take out, and its cells are written only when forced. The lock is
+  // the table's only attribute, so rows or columns taken out that take all of it leave the table with none.
+  const locked = sheet('{lock=A1:B2}\n');
   expect((locked.blocks[0] as TableBlock).a?.kv?.lock).toBe('A1:B2');
   expect(pairs(locked, ops('p'), ops('q'))).toStrictEqual([]);
 }, 60_000);

@@ -69,7 +69,9 @@ function withMovedTable(doc: Doc, at: number, b: TableBlock, r: Moved, c: Moved)
   text ? (kv.lock = text) : delete kv.lock;
   const a: Attrs = { ...b.a, kv };
   if (!Object.keys(kv).length) delete a.kv;
-  return withBlock(doc, at, { ...b, ...(a.id || a.cls || a.kv ? { a } : {}) });
+  // The block is rebuilt without its old attributes, so a lock that was its only one goes when nothing of it is left.
+  const { a: _old, ...bare } = b;
+  return withBlock(doc, at, { ...bare, ...(a.id || a.cls || a.kv ? { a } : {}) });
 }
 
 /** The document with one operation applied. Pure: untouched blocks are the same objects. */

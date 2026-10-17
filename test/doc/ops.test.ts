@@ -106,6 +106,12 @@ test('rows: put in before r or taken out; formulas follow and so does the lock, 
     ['5', '6'],
   ]);
   expect(t.blocks[0]).toBe(two.blocks[0]);
+  // A lock that is a table's only attribute goes with the last rows it covered, and leaves no other row locked.
+  const only = parse('Intro\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n{lock=A1:B1}\n');
+  const left = apply(only, { op: 'rows', at: 1, r: 0, n: 1 });
+  expect(left.blocks[1].a).toBeUndefined();
+  expect(tableAt(left, 1)!.lock).toStrictEqual([]);
+  expect(write(left)).not.toContain('lock');
 });
 
 test('cols: put in (given, before c) or taken out; cells, names, types and the lock move together, and formulas follow', () => {
@@ -128,6 +134,10 @@ test('cols: put in (given, before c) or taken out; cells, names, types and the l
     ['Ink', '=SUM(#REF)+"B1"'],
   ]);
   expect(apply(parse('a | b | c | d\n--- | --- | --- | ---\n1 | 2 | 3 | =SUM(A1:C1)\n'), { op: 'cols', at: 0, c: 1, n: 1 }).blocks[0]).toMatchObject({ rows: [['1', '3', '=SUM(A1:B1)']] });
+  // A lock that is a table's only attribute goes with the last column it covered.
+  const only = apply(parse('Intro\n\n| A | B |\n|---|---|\n| 1 | 2 |\n{lock=A1:A1}\n'), { op: 'cols', at: 1, c: 0, n: 1 });
+  expect(only.blocks[1].a).toBeUndefined();
+  expect(write(only)).not.toContain('lock');
   expect(() => apply(DOC, { op: 'cols', at: 4, c: 0, n: 3 })).toThrow(RangeError);
   expect(() => apply(DOC, { op: 'cols', at: 4, c: 0, n: 24, cols: Array.from({ length: 24 }, (): Column => ({ name: '', type: 'text' })) })).toThrow(RangeError);
   const named = apply(DOC, { op: 'col', at: 4, c: 1, col: { name: 'Count', type: 'number' } });
