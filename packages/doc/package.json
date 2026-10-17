@@ -38,6 +38,10 @@
       "types": "./dist/types/editors.d.ts",
       "default": "./dist/editors.js"
     },
+    "./kit": {
+      "types": "./dist/types/kit.d.ts",
+      "default": "./dist/editors.js"
+    },
     "./editors.css": {
       "types": "./editors.css.d.ts",
       "default": "./dist/editors.css"

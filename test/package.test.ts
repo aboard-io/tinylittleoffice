@@ -1,14 +1,16 @@
 // The npm package `tinylittleoffice` (packages/doc) as an agent with a runtime gets it: built (npm run build:cli, and
 // npm run build:lib for the library's entry points), packed, installed from the tarball into a folder of its own, and
 // run there. Node strips no types under node_modules, so this is the test that the package carries what it runs. The
-// editors are a page's, so only their files are looked for here; test/browser/editors.test.ts mounts one. A TypeScript
-// program's check reads the declarations build:lib writes (tsconfig.lib.json), against the package as installed.
+// editors are a page's, so only their files are looked for here; test/browser/editors.test.ts mounts one. The kit, for
+// an app built outside the suite, is the editors' file at run time, so here it resolves to that file and the file
+// exports every name the kit's source does; test/browser/kit.test.ts builds an app with it. A TypeScript program's
+// check reads the declarations build:lib writes (tsconfig.lib.json), against the package as installed.
 import { test, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { domNames, importsOf } from './lints.ts';
+import { domNames, exportsOf, importsOf } from './lints.ts';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const PKG = join(ROOT, 'packages/doc');
@@ -25,13 +27,15 @@ test('the package is the site’s version, public, named tinylittleoffice, with 
   expect(readFileSync(join(PKG, 'LICENSE'), 'utf8')).toBe(readFileSync(join(ROOT, 'LICENSE'), 'utf8'));
 });
 
-test('the package serves the library: the kernel, the commands, the editors and their stylesheet, beside the API, each typed', () => {
+test('the package serves the library: the kernel, the commands, the editors, their stylesheet and the kit, beside the API, each typed', () => {
   // Each module's declarations first, as TypeScript reads the conditions in order (tsconfig.lib.json emits them).
   expect(pkg.exports).toStrictEqual({
     '.': { types: './dist/types/api.d.ts', default: './dist/api.js' },
     './doc': { types: './dist/types/kernel.d.ts', default: './dist/doc.js' },
     './commands': { types: './dist/types/commands.d.ts', default: './dist/commands.js' },
     './editors': { types: './dist/types/editors.d.ts', default: './dist/editors.js' },
+    // The kit is the editors' own file, typed by its own declarations: one Lit and one registry for an app built outside.
+    './kit': { types: './dist/types/kit.d.ts', default: './dist/editors.js' },
     './editors.css': { types: './editors.css.d.ts', default: './dist/editors.css' },
     './examples/*.json': './examples/*.json',
     './package.json': './package.json',
@@ -124,6 +128,10 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
     // The README's mount, as a page would copy it, checked with the rest: it must take what mount returns.
     const shown = readFileSync(join(PKG, 'README.md'), 'utf8').match(/^const .+ = await mount\(.+$/m)?.[0];
     expect(shown).toBeDefined();
+    // Lit's types, as an app built outside the suite has them: the kit's declarations name them (its DocElement is a
+    // LitElement), and an app installs lit at the kit's version for its types alone, its run time importing Lit from the
+    // kit (docs/library.md, An app built outside). Linked from this checkout, as an installed copy would be found.
+    symlinkSync(join(ROOT, 'node_modules/lit'), join(app, 'node_modules/lit'), 'dir');
     writeFileSync(join(app, 'tsconfig.json'), JSON.stringify(tsconfig(['use.ts'])));
     writeFileSync(join(app, 'tsconfig.bad.json'), JSON.stringify(tsconfig(['use.ts', 'bad.ts'])));
     writeFileSync(
@@ -133,6 +141,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { apply, parse, write, type Doc, type Op } from 'tinylittleoffice/doc';",
         "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
         "import { mount, type Mounted } from 'tinylittleoffice/editors';",
+        "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef } from 'tinylittleoffice/kit';",
         "import 'tinylittleoffice/editors.css';",
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
@@ -152,6 +161,16 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         'declare const save: (next: string) => void;',
         shown!,
         'export const drawn: HTMLElement = editor;',
+        // An app built outside the suite, with the kit and the kernel alone.
+        'class Tally extends DocElement<Doc> {',
+        '  protected read(doc: Doc): Doc { return doc; }',
+        "  render() { return html`<p>${t('tally-name')}</p>`; }",
+        '}',
+        "customElements.define('tally-editor', Tally);",
+        "addStrings('en', 'tally-name = Tally\\n');",
+        "export const tally: AppDef = defineApp({ id: 'tally', name: 'Tally', noun: 'tally', group: 'Plan', icon: [], blurb: 'Marks.', blank: () => '',",
+        "  templates: async () => [], editor: async () => ({ tag: 'tally-editor' }), title: () => '', retitle: (doc) => doc, view: () => [{ w: 1, h: 1, svg: '' }] });",
+        'registerApp(tally);',
       ].join('\n'),
     );
     writeFileSync(
@@ -160,9 +179,11 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { write } from 'tinylittleoffice/doc';",
         "import { tools } from 'tinylittleoffice/commands';",
         "import { mount } from 'tinylittleoffice/editors';",
+        "import { registerApp } from 'tinylittleoffice/kit';",
         "write('# Plan');",
         'tools([], 7);',
         "void mount('write', '', 'main', () => {});",
+        "registerApp('tally');",
       ].join('\n'),
     );
     const tsc = (project: string) => {
@@ -178,9 +199,22 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         .trim()
         .split('\n')
         .map((l) => /^(\S+)\((\d+),\d+\): error (TS\d+)/.exec(l)?.slice(1).join(' ')),
-    ).toStrictEqual(['bad.ts 4 TS2345', 'bad.ts 5 TS2345', 'bad.ts 6 TS2345']);
+    ).toStrictEqual(['bad.ts 5 TS2345', 'bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345']);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');
+    // The kit is the editors' file: resolved there, and that file exports every value the kit's source does (its last
+    // statement, `export{a as b,…}`, read as written, since it defines custom elements and never runs under Node).
+    const resolved = (spec: string) => execFileSync(process.execPath, ['--input-type=module', '-e', `console.log(import.meta.resolve('${spec}'))`], { cwd: app, encoding: 'utf8' }).trim();
+    expect(resolved('tinylittleoffice/kit')).toBe(resolved('tinylittleoffice/editors'));
+    const served = new Set(
+      /export\{([^}]*)\};?\s*$/
+        .exec(readFileSync(join(dist, 'editors.js'), 'utf8'))![1]
+        .split(',')
+        .map((p) => p.split(' as ').pop()!.trim()),
+    );
+    const kit = exportsOf(readFileSync(join(ROOT, 'src/kit.ts'), 'utf8')).names.filter((n) => !n.type);
+    expect(kit.length).toBeGreaterThan(50);
+    expect(kit.map((n) => n.name).filter((n) => !served.has(n))).toStrictEqual([]);
     expect(statSync(join(dist, 'editors.js')).size).toBeGreaterThan(500_000);
     expect(statSync(join(dist, 'editors.css')).size).toBeGreaterThan(50_000);
     expect(readdirSync(join(dist, 'editors')).filter((f) => /^(map|templates-write|lang-fr)-/.test(f))).toHaveLength(3);

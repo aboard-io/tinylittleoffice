@@ -28,8 +28,8 @@ const SKIP = /(^|\/)(node_modules|dist)\/|\.d\.ts$/;
 const EXEMPT: { why: string; test: (path: string, name: string, source: string) => boolean }[] = [
   { why: 'the API for programs and agents: its exports are the public surface (packages/doc/README.md)', test: (path) => path === 'src/api.ts' },
   {
-    why: 'the library’s entry points, the kernel, the commands and the editors (docs/library.md): their exports are the public surface the package serves as tinylittleoffice/doc, tinylittleoffice/commands and tinylittleoffice/editors',
-    test: (path) => path === 'src/kernel.ts' || path === 'src/commands.ts' || path === 'src/editors.ts',
+    why: 'the library’s entry points, the kernel, the commands, the editors and the kit (docs/library.md): their exports are the public surface the package serves as tinylittleoffice/doc, tinylittleoffice/commands, tinylittleoffice/editors and tinylittleoffice/kit',
+    test: (path) => path === 'src/kernel.ts' || path === 'src/commands.ts' || path === 'src/editors.ts' || path === 'src/kit.ts',
   },
   {
     why: 'a number or a string its own file uses: exported, the bundler writes the value where it is read (rolldown inlines an exported constant), where its own file’s alone stays a variable, and the chunk grows',

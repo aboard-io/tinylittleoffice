@@ -13,7 +13,10 @@
  *                    site bundles its app file (vite.config.ts fileOf: Lit, the kit and every app in the one file),
  *                    with its stylesheet whole beside it as dist/editors.css, and what the site fetches lazily (an
  *                    app's templates, a language other than English, the trip's map and its worker) as files of
- *                    their own under dist/editors/, fetched by the page when asked for
+ *                    their own under dist/editors/, fetched by the page when asked for; it is
+ *                    `tinylittleoffice/kit` too (src/kit.ts, for an app built outside the suite), whose names
+ *                    src/editors.ts exports, so one file serves both and a page that imports the two has one Lit,
+ *                    one registry of apps and one of commands (docs/library.md, An app built outside)
  *
  * `npm run build:lib` makes all three, after `npm run build:cli` or before it: no build empties the folder, each
  * removes only its own files from the last build. The deploy makes all three before it publishes, and

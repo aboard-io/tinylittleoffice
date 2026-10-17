@@ -4,6 +4,7 @@
  *
  *   bareWords(source)    the words a person would read in an html`` or svg`` template that are not through t()
  *   importsOf(source)    a module's imports: static, type-only or lazy
+ *   exportsOf(source)    a module's exports: the names it declares and lists, and the modules it exports whole
  *   graphProblems(mods)  the module graph's cycles and the edges its layers forbid
  *
  * Nothing here ships: it is read by the tests alone (test/dist-dev-only.test.ts holds the built site to that).
@@ -270,6 +271,53 @@ export function importsOf(source: string): Import[] {
       const open = type ? b : a;
       if (open?.k === K.OpenBraceToken || open?.k === K.AsteriskToken) from(i + 1, type);
     }
+  });
+  return out;
+}
+
+/** A module's exports: each name (`type` when only a type: gone from the built code), and each module it exports whole (`export * from`). */
+export interface Exports {
+  names: { name: string; type: boolean }[];
+  all: string[];
+}
+
+/** The keywords that declare what follows them, after `export` (and `declare`, `async`, `abstract` before them). */
+const DECLARES = new Set([K.ConstKeyword, K.LetKeyword, K.VarKeyword, K.FunctionKeyword, K.ClassKeyword, K.InterfaceKeyword, K.TypeKeyword, K.EnumKeyword]);
+const BEFORE = new Set([K.DeclareKeyword, K.AsyncKeyword, K.AbstractKeyword]);
+
+/** A module's exports, read from its tokens: `export { a, b as c, type T } (from …)`, `export * (as n) from …`, and `export const|function|class|interface|type|enum x`. A default export is no name. */
+export function exportsOf(source: string): Exports {
+  const toks = tokensOf(source).filter((t) => t.tpl === undefined || t.k === K.NoSubstitutionTemplateLiteral || t.k === K.TemplateHead);
+  const out: Exports = { names: [], all: [] };
+  toks.forEach((t, i) => {
+    if (t.k !== K.ExportKeyword || toks[i - 1]?.k === K.DotToken) return;
+    let j = i + 1;
+    const listType = toks[j]?.k === K.TypeKeyword && toks[j + 1]?.k === K.OpenBraceToken;
+    if (listType) j++;
+    if (toks[j]?.k === K.OpenBraceToken) {
+      for (j++; j < toks.length && toks[j].k !== K.CloseBraceToken; j++) {
+        if (toks[j].k === K.CommaToken) continue;
+        // `type X`: the element's own word, unless the name itself is "type" (`export { type }`).
+        const own = toks[j].k === K.TypeKeyword && toks[j + 1]?.k !== K.CommaToken && toks[j + 1]?.k !== K.CloseBraceToken && toks[j + 1]?.k !== K.AsKeyword;
+        if (own) j++;
+        let name = toks[j].text;
+        if (toks[j + 1]?.k === K.AsKeyword) name = toks[(j += 2)].text;
+        out.names.push({ name, type: listType || own });
+      }
+      return;
+    }
+    if (toks[j]?.k === K.AsteriskToken) {
+      const as = toks[j + 1]?.k === K.AsKeyword;
+      const spec = toks.slice(j, j + 6).find((x) => x.k === K.StringLiteral);
+      if (as) out.names.push({ name: toks[j + 2].text, type: false });
+      else if (spec) out.all.push(spec.value);
+      return;
+    }
+    while (BEFORE.has(toks[j]?.k)) j++;
+    if (!DECLARES.has(toks[j]?.k)) return;
+    const type = toks[j].k === K.InterfaceKeyword || toks[j].k === K.TypeKeyword;
+    if (toks[j + 1]?.k === K.AsteriskToken) j++;
+    if (toks[j + 1]?.k === K.Identifier) out.names.push({ name: toks[j + 1].text, type });
   });
   return out;
 }
