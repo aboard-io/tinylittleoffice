@@ -209,7 +209,9 @@ test('for any table document, moving a card anywhere and inverting gives the doc
       expect(applyAll(after, invertAll(d, ops))).toStrictEqual(d);
       const lock = tableAt(d, v.at)!.lock;
       if (isLocked(lock, card.row, v.laneCol)) return void expect(ops).toEqual([]);
-      const lockedCells = (x: Doc) => (x.blocks[v.at] as { rows: string[][] }).rows.flatMap((row, r) => row.filter((_, c) => isLocked(tableAt(x, v.at)!.lock, r, c))).sort();
+      // A locked formula keeps its place but not its references into a row moved (#REF, as in the Spreadsheet): its words aside.
+      const lockedCells = (x: Doc) =>
+        (x.blocks[v.at] as { rows: string[][] }).rows.flatMap((row, r) => row.filter((cell, c) => isLocked(tableAt(x, v.at)!.lock, r, c) && !cell.startsWith('='))).sort();
       expect(lockedCells(after)).toEqual(lockedCells(d));
       if ((d.blocks[v.at] as { rows: string[][] }).rows.some((r) => r.some((x) => x.startsWith('=')))) return;
       const now = boardOf(after);
