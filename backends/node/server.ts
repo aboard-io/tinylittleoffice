@@ -93,9 +93,11 @@ export async function start(o: Options): Promise<{ site: Server; tinier: Server;
   );
   const tinier = await listen(o.tinierPort, (req) => handle(req, store, o.key, page, Date.now(), o.site));
   // The Worker's cron, "17 * * * *": expired links and cards, and the counts of days before yesterday.
-  const sweep = setInterval(() => void store.sweep(Date.now()), 3_600_000);
+  // A sweep that fails (a full disk) is tried again in an hour; nothing is logged, by design, and the process stays up.
+  const sweeping = () => store.sweep(Date.now()).catch(() => {});
+  const sweep = setInterval(() => void sweeping(), 3_600_000);
   sweep.unref();
-  void store.sweep(Date.now());
+  void sweeping();
   return {
     site,
     tinier,

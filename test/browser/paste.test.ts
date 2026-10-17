@@ -104,3 +104,16 @@ test('found by the fuzz: an ordered item after a bulleted one starts its own lis
   expect(write({ head: {}, blocks: htmlToBlocks(docToHtml(blocks)) })).toBe('- a\n1. b\n');
   expect(write({ head: {}, blocks: htmlToBlocks('<p>words</p><ul><li><ul><li>deep</li></ul></li></ul>') })).toBe('words\n\n- deep\n');
 });
+
+test('a link carried on the clipboard under our own marker goes only where a link may go: the marker is ours, the clipboard anyone’s (a review, 2026-10-17)', () => {
+  const runs = [
+    { t: 'click', href: 'javascript:alert(1)' },
+    { t: ' fine', href: 'https://x.y/a b' },
+    { t: ' note', href: 'data:text/html,x' },
+    { t: ' call', href: 'tel:+1' },
+  ];
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  const html = `<meta name="generator" content="TinyLittleOffice">\n<meta name="tlo-runs" content="${esc(JSON.stringify(runs))}">\n<p>click fine note call</p>`;
+  const pasted = paste(html, 'click fine note call', 'line');
+  expect(pasted && 'runs' in pasted ? pasted.runs.map((r) => r.href ?? null) : pasted).toEqual([null, 'https://x.y/a%20b', null, 'tel:+1']);
+});

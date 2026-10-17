@@ -32,6 +32,8 @@ import {
   type Block,
   type Doc,
   type Run,
+  linkable,
+  linkTarget,
 } from '../../doc/index.ts';
 import { currencyAt } from '../sheet/model.ts';
 import { tablePage } from '../sheet/view.ts';
@@ -441,7 +443,7 @@ const appOfLazy = (id: string) => lookup.appOf(id);
 /** A run's words as HTML, with their marks and links; a web address in plain words is a link too. */
 function markedHtml(run: Run, bold = 'strong', italic = 'em'): string {
   let s = runLinks(run)
-    .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t).replace(/\n/g, '<br>')))
+    .map((p) => (p.url && linkable(p.url) ? `<a href="${xml(linkTarget(p.url))}" rel="noopener noreferrer">${xml(p.t)}</a>` : xml(p.t).replace(/\n/g, '<br>')))
     .join('');
   if (run.c) s = `<code>${s}</code>`;
   if (run.h) s = `<mark>${s}</mark>`;

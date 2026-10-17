@@ -72,6 +72,9 @@ function parts(payload: string): { salt: Uint8Array; iv: Uint8Array; ct: Uint8Ar
   return { salt: all.slice(0, SALT_LEN), iv: all.slice(SALT_LEN, SALT_LEN + IV_LEN), ct: all.slice(SALT_LEN + IV_LEN) };
 }
 
+/** Whether a payload has a sealed payload's shape at all: "E", base64url, and at least a salt, an IV, a flag and a tag. A link cut short in a chat fails here, before any password is asked for. */
+export const isWholeSeal = (payload: string): boolean => parts(payload) !== null;
+
 async function open(key: CryptoKey, iv: Uint8Array, ct: Uint8Array): Promise<{ flag: string; bytes: Uint8Array } | null> {
   try {
     const plain = new Uint8Array(await subtle().decrypt({ name: 'AES-GCM', iv: iv as BufferSource }, key, ct as BufferSource));

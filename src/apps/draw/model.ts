@@ -207,7 +207,7 @@ export const pixelsAt = (doc: Doc): number => doc.blocks.findIndex((b) => b.k ==
 function rowShape(row: string[], cols: Cols): Shape | null {
   const get = (f: Field) => (cols[f] >= 0 ? (row[cols[f]] ?? '').trim() : '');
   const word = get('kind').toLowerCase();
-  const k = ((KINDS as readonly string[]).includes(word) ? word : NAMED[word]) as Kind | undefined;
+  const k = ((KINDS as readonly string[]).includes(word) ? word : Object.hasOwn(NAMED, word) ? NAMED[word] : undefined) as Kind | undefined;
   if (!k) return null;
   const n = (f: Field) => Math.round(parseFloat(get(f))) || 0;
   const style = get('style');

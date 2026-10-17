@@ -154,7 +154,7 @@ export const THEMES: Record<string, DeckTheme> = {
   },
 };
 
-export const themeOf = (id = ''): DeckTheme => THEMES[id] ?? THEMES[''];
+export const themeOf = (id = ''): DeckTheme => (Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES['']);
 
 /** The colours a deck's icons can be, besides the theme's accent: the header says the name ("color: red"). */
 export const ICON_COLORS: Record<string, { name: () => string; hex: string }> = {

@@ -27,7 +27,7 @@ export function unlockForm(o: { wrong: boolean; busy: boolean; submit: (e: Event
   return html`<form class="to-unlock" @submit=${o.submit}>
     <p>${t('privacy-enter-password-to-open-this')}</p>
     <div class="to-ask-row">
-      <input type="password" class="to-unlock-field" aria-label=${t('common-password')} autocomplete="current-password" aria-invalid=${String(o.wrong)} aria-describedby="to-unlock-wrong" @input=${o.input} />
+      <input type="password" class="to-unlock-field" aria-label=${t('common-password')} autocomplete="off" aria-invalid=${String(o.wrong)} aria-describedby="to-unlock-wrong" @input=${o.input} />
       <button type="submit" class="to-btn primary to-unlock-go" ?disabled=${o.busy}>${icon(UI.unlock, 16)}<span>${o.busy ? t('privacy-opening') : t('privacy-unlock')}</span></button>
     </div>
     <p id="to-unlock-wrong" class="to-unlock-wrong" role="alert">${o.wrong ? notOpened() : ''}</p>

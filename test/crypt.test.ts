@@ -95,3 +95,23 @@ test('tampering is caught, junk refused', async () => {
   expect(await unseal('pw', 'Eabc')).toBeNull();
   expect(await unseal('pw', 'yabc')).toBeNull();
 });
+
+test('a payload that cannot be a seal is known before any password is asked; a seal that holds no document opens to nothing', async () => {
+  const { isWholeSeal, sealAt } = crypt;
+  const { unlock } = await import('../src/kit/share/privacy.ts');
+  const locker = await newLocker('k7Rwm-Xq9Pz-aaaaa-bbbbb');
+  const sealed = await seal(locker, 'r', utf8('Hello.\n'));
+  expect(isWholeSeal(sealed)).toBe(true);
+  // Cut short in a chat, or not base64url, or not sealed at all.
+  for (const cut of [sealed.slice(0, 40), sealed.slice(0, -1) + '!', 'E', 'yAbc', '']) expect(isWholeSeal(cut), cut).toBe(false);
+  // The password opens it, but what is inside is no document the codec reads (a flag of no kind): nothing, and no locker kept (a review, 2026-10-17).
+  const odd = await sealAt(
+    locker,
+    'E',
+    utf8('not a document'),
+    Uint8Array.from({ length: 12 }, (_, i) => i),
+  );
+  expect(await unseal('k7Rwm-Xq9Pz-aaaaa-bbbbb', odd)).not.toBeNull();
+  expect(await unlock('k7Rwm-Xq9Pz-aaaaa-bbbbb', odd)).toBeNull();
+  expect(await unlock('k7Rwm-Xq9Pz-aaaaa-bbbbb', sealed)).toMatchObject({ text: 'Hello.\n' });
+});

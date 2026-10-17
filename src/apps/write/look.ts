@@ -66,4 +66,4 @@ export const LOOKS: Record<LookId, Look> = {
 export const LOOK_IDS = Object.keys(LOOKS) as LookId[];
 
 /** The look the head names, else sans. */
-export const lookOf = (doc: Doc): Look => LOOKS[doc.head.look as LookId] ?? LOOKS.sans;
+export const lookOf = (doc: Doc): Look => (Object.hasOwn(LOOKS, doc.head.look ?? '') ? LOOKS[doc.head.look as LookId] : LOOKS.sans);

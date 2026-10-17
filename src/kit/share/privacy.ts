@@ -71,19 +71,30 @@ export async function pack(text: string, locker: Locker | null): Promise<string>
   return seal(locker, flag, bytes);
 }
 
-/** A password tried on a sealed payload: the text and its locker, or null when it is not the password. */
+/** What a seal held, as a document's text, or null when it is not one the codec reads (a seal made of other bytes under the password). */
+const unpacked = ({ flag, bytes }: { flag: string; bytes: Uint8Array }): string | null => {
+  try {
+    return unpackDoc(flag, bytes);
+  } catch {
+    return null;
+  }
+};
+
+/** A password tried on a sealed payload: the text and its locker, or null when it is not the password, or the seal holds no document. */
 export async function unlock(password: string, payload: string): Promise<{ text: string; locker: Locker } | null> {
   const r = await unseal(password, payload);
-  if (!r) return null;
+  const text = r && unpacked(r);
+  if (!r || text === null) return null;
   opened.push(r.locker);
-  return { text: unpackDoc(r.flag, r.bytes), locker: r.locker };
+  return { text, locker: r.locker };
 }
 
 /** A sealed payload opened by a password already given this visit, or null. */
 export async function reopen(payload: string): Promise<{ text: string; locker: Locker } | null> {
   for (const locker of opened) {
     const r = await unsealWith(locker, payload);
-    if (r) return { text: unpackDoc(r.flag, r.bytes), locker };
+    const text = r ? unpacked(r) : null;
+    if (text !== null) return { text, locker };
   }
   return null;
 }

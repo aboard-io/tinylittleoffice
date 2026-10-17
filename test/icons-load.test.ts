@@ -30,3 +30,10 @@ test('ensureIcons resolves at once for the starter set, and loads the rest of Lu
   expect(iconNamed('no-such-icon')).toBeUndefined();
   off();
 });
+
+test("a name of an Object's own, which a document may write between colons, names no icon, before and after the rest of Lucide loads", async () => {
+  for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) expect(iconNamed(name), name).toBeUndefined();
+  await loadIcons();
+  for (const name of ['constructor', 'toString', '__proto__']) expect(iconNamed(name), name).toBeUndefined();
+  expect(iconNamed('rocket')).toBeDefined();
+});

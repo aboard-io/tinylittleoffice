@@ -52,12 +52,12 @@ import { appOf } from './apps.ts';
 import { decodeDoc, encodeDoc, withBreaks } from './codec.ts';
 import { withHead, takeHead } from '../../doc/tlo.ts';
 import type { Head } from '../../doc/model.ts';
-import type { Locker } from '../share/crypt.ts';
+import { isWholeSeal, type Locker } from '../share/crypt.ts';
 import { ENVELOPE_KEYS, isoMinute } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from '../draw/icons.ts';
 import { chosenLanguage, languagePending, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { exportItems, formatsReady, printDoc, viewAs } from '../file/exports.ts';
-import { LINK_VERSION, onFlush, parseHash, routeHash, withLang, withText } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash, siteOf, withLang, withText } from './route.ts';
 import { keeping, onPrivacy, pack, reopen, setPrivate } from '../share/privacy.ts';
 import { copyText } from '../share/share.ts';
 import { trustButton, type ToPrivacy } from '../ui/privacy-dialog.ts';
@@ -332,6 +332,9 @@ export class ToShell extends LitElement {
     this.relang(!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     this.comparing = parseCompare(location.hash);
     const { app, payload, view: asked, display, arrived, sealed, show, text, version } = parseHash(location.hash);
+    // The embed page is the pages alone, for another site's frame, and nothing else is shown there: any other view
+    // opens on the site's own page, which no frame may hold (public/_headers; a review, 2026-10-17).
+    if (this.pageApp() === 'embed' && !(asked === 'embed' && payload)) return void location.replace(siteOf(location.href, (id) => !!appOf(id)) + (app ? `${app}/` : '') + location.hash);
     const view = asked === 'embed' ? '' : asked;
     this.querySelector<ToFind>('to-find')?.close();
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
@@ -341,9 +344,10 @@ export class ToShell extends LitElement {
     this.changed = false;
     this.copied = false;
     this.payloadLength = withBreaks(payload).length;
-    this.sealed = def && sealed ? payload : '';
+    // A sealed payload cut short in a chat is said to be cut, as a plain one is, before any password is asked for.
+    this.unreadable = !!payload && (sealed ? !isWholeSeal(payload) : !decodeDoc(payload));
+    this.sealed = def && sealed && !this.unreadable ? payload : '';
     this.locker = null;
-    this.unreadable = !!payload && !sealed && !decodeDoc(payload);
     this.doc = def ? (sealed ? '' : payload ? decodeDoc(payload) : def.blank()) : '';
     this.edited = this.doc;
     this.envelope = takeHead(this.doc, ENVELOPE_KEYS)[0];
@@ -478,7 +482,8 @@ export class ToShell extends LitElement {
   private writeLink(app: string, payload: string) {
     madeHere.add(routeHash(app, payload));
     // Told already, by its name rather than its link: a reload forgets madeHere, but this digest is kept under Saved.
-    firstTold(docDigest(app, this.envelope, routeHash(app, payload)));
+    // Not under a password: nothing of the document, its author and its day included, is kept but the ciphertext.
+    if (!this.locker) firstTold(docDigest(app, this.envelope, routeHash(app, payload)));
     this.payloadLength = withBreaks(payload).length;
     this.keepSoon(payload);
     history.replaceState(this.state(), '', routeHash(app, payload, '', false, null, chosenLanguage()));
@@ -591,7 +596,10 @@ export class ToShell extends LitElement {
     this.flushLink();
     if (!keeping()) return void toast(t('shell-save-in-browser-is-off'));
     if (!this.doc.trim() || this.doc === def.blank()) return void toast(t('shell-nothing-to-keep-yet'));
-    const payload = parseHash(location.hash).payload || encodeDoc(this.doc);
+    const inLink = parseHash(location.hash).payload;
+    // Under a password the link holds the sealed document once the seal is done: until it is, nothing is kept, never the text.
+    if (!inLink && this.locker) return;
+    const payload = inLink || encodeDoc(this.doc);
     this.kept.soon({ app: def.id, title: this.locker ? '' : def.title(this.doc) || this.fresh || firstWords(this.doc), hash: routeHash(def.id, payload) });
     this.kept.flush();
     history.replaceState(this.state(), '', location.href);

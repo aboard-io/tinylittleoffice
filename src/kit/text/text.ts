@@ -97,7 +97,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { applyAll, hasClass, isAtomic, listNumbers, normalRuns, runLength, type Block, type Op, type Run } from '../../doc/index.ts';
+import { applyAll, hasClass, isAtomic, linkable, linkTarget, listNumbers, normalRuns, runLength, type Block, type Op, type Run } from '../../doc/index.ts';
 import { copyData, pasteFrom, readClip, writeClip } from './clipboard.ts';
 import { contextOf, runKey } from '../core/commands.ts';
 import { CHANGE_KEYS, COMMENT, TEXT_COMMANDS } from './text-commands.ts';
@@ -337,7 +337,7 @@ function domToRuns(el: HTMLElement): Run[] {
     if (e.tagName === 'S' || e.tagName === 'DEL') next.s = true;
     if (e.tagName === 'MARK') next.h = true;
     if (e.tagName === 'CODE') next.c = true;
-    if (e.tagName === 'A' && e.getAttribute('href')) next.href = e.getAttribute('href')!;
+    if (e.tagName === 'A' && e.getAttribute('href') && linkable(e.getAttribute('href')!)) next.href = linkTarget(e.getAttribute('href')!);
     for (const c of e.childNodes) walk(c, next);
   };
   for (const c of el.childNodes) walk(c, {});

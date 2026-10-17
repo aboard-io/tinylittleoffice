@@ -114,7 +114,10 @@ export class ToPrivacy extends LitElement {
     this.wrong = false;
     await this.updateComplete;
     await this.dialogOf('to-unlock-dialog')?.show();
-    this.querySelector<HTMLInputElement>('.to-unlock-field')?.focus();
+    const field = this.querySelector<HTMLInputElement>('.to-unlock-field');
+    // Never the last document's password, left in the field (a review, 2026-10-17).
+    if (field) field.value = '';
+    field?.focus();
   }
   private async tryPassword(e: Event) {
     e.preventDefault();
@@ -130,6 +133,7 @@ export class ToPrivacy extends LitElement {
         field.select();
         return;
       }
+      field.value = '';
       this.dialogOf('to-unlock-dialog')?.close();
       this.say('to-unlock', r);
     } finally {
@@ -154,6 +158,8 @@ export class ToPrivacy extends LitElement {
       this.say('to-lock', locker);
       toast(password ? t('privacy-password-set-link-holds-only') : t('privacy-password-removed'));
       this.dialogOf('to-password-dialog')?.close();
+      // Shown until the dialog closes and never again (docs/crypto/password.md).
+      this.made = '';
     } finally {
       this.busy = false;
     }
@@ -240,7 +246,7 @@ export class ToPrivacy extends LitElement {
     if (!this.doc) return privacy;
     const unlocking = unlockForm({ wrong: this.wrong, busy: this.busy, submit: (e) => void this.tryPassword(e), input: () => (this.wrong = false) });
     return html`${privacy}<to-dialog class="to-unlock-dialog" heading=${t('common-this-document-is-locked')} .body=${unlocking}></to-dialog>
-      <to-dialog class="to-password-dialog" heading=${t('common-password')} .body=${this.renderPassword()}></to-dialog>`;
+      <to-dialog class="to-password-dialog" heading=${t('common-password')} .body=${this.renderPassword()} @to-close=${() => (this.made = '')}></to-dialog>`;
   }
 }
 customElements.define('to-privacy', ToPrivacy);

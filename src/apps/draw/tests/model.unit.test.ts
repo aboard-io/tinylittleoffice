@@ -558,3 +558,7 @@ test("a label keeps the spaces a person typed at its lines' ends, through the do
   expect(readDrawing(parse(doc)).shapes[0].text).toBe('Launch ');
   expect(write(parse(shapesToTlo(readDrawing(parse(doc)).shapes)))).toContain('Launch\\ ');
 });
+
+test("a kind named for an Object's own property is no shape (a review, 2026-10-17)", () => {
+  for (const name of ['constructor', 'toString', '__proto__']) expect(kinds(`Kind | X | Y | W | H\n--- | --- | --- | --- | ---\n${name} | 1 | 1 | 4 | 4\nr | 1 | 1 | 4 | 4\n`), name).toBe('r');
+});

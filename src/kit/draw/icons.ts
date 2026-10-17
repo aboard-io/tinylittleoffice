@@ -331,7 +331,7 @@ export const LIBRARY: Record<string, IconNode> = {
 export function addIcons(more: Record<string, IconNode>): string[] {
   const added: string[] = [];
   for (const [name, node] of Object.entries(more)) {
-    if (name in LIBRARY) continue;
+    if (Object.hasOwn(LIBRARY, name)) continue;
     LIBRARY[name] = node;
     added.push(name);
   }
@@ -368,7 +368,7 @@ export function onIcons(f: () => void): () => void {
 /** Every name known, loading the rest of Lucide first when one is not: resolves at once when they all are. */
 export function ensureIcons(names: Iterable<string>): Promise<void> {
   if (joined) return Promise.resolve();
-  for (const n of names) if (!(n in LIBRARY)) return loadIcons();
+  for (const n of names) if (!Object.hasOwn(LIBRARY, n)) return loadIcons();
   return Promise.resolve();
 }
 /**
@@ -386,7 +386,8 @@ export function iconNames(doc: string): string[] {
 export const isIconName = (s: string): boolean => /^[a-z][a-z0-9-]*$/.test(s);
 
 /** The icon a document names, or undefined while nothing goes by that name. */
-export const iconNamed = (name: string): IconNode | undefined => LIBRARY[name];
+/** (Its own names alone: a document naming ":constructor:" names no icon, rather than an Object's.) */
+export const iconNamed = (name: string): IconNode | undefined => (Object.hasOwn(LIBRARY, name) ? LIBRARY[name] : undefined);
 
 function attrs(a: Record<string, string | number | undefined>): string {
   return Object.entries(a)

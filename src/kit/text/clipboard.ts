@@ -236,7 +236,8 @@ function carriedRuns(html: string): Run[] | null {
       if (!r || typeof r.t !== 'string') return null;
       const run: Run = { t: r.t };
       for (const k of MARKS) if (r[k] === true) run[k] = true;
-      if (typeof r.href === 'string' && r.href) run.href = r.href;
+      // A link only to what a link may go to (notes.ts linkable): the marker is ours, the clipboard anyone's.
+      if (typeof r.href === 'string' && r.href && linkable(r.href)) run.href = linkTarget(r.href);
       if (typeof r.ic === 'string' && r.ic) run.ic = r.ic;
       if (typeof r.fn === 'string') run.fn = r.fn;
       runs.push(run);

@@ -198,9 +198,9 @@ export function settingsOf(doc: Doc): Settings {
   const color = (h.color ?? '').trim().toLowerCase();
   const format = (h.format ?? '').trim().toLowerCase();
   return {
-    theme: theme in THEMES ? theme : '',
+    theme: Object.hasOwn(THEMES, theme) ? theme : '',
     transition: TRANSITIONS.some((x) => x.id === tr) ? (tr as Transition) : '',
-    color: color in ICON_COLORS ? color : '',
+    color: Object.hasOwn(ICON_COLORS, color) ? color : '',
     qr: !/^(no|false|off)$/i.test(h.qr ?? ''),
     format: FORMATS.some((f) => f.id === format) ? (format as Format) : '',
     two: h.sides === '2',

@@ -417,3 +417,11 @@ test('a deck drawn as a thumbnail puts no map tiles under a trip on its slide; d
   expect(tiles(deck.view(text, { small: true, thumb: true }))).toBe(false);
   expect(tiles(deck.view(text, { small: true, still: true }))).toBe(true);
 });
+
+test('a theme or a colour named for an Object\'s own property is none (a document naming "constructor" drew every slide with no fill; a review, 2026-10-17)', () => {
+  for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+    const s = settingsOf(parse(`---\ntheme: ${name}\ncolor: ${name}\n---\n# A\n`));
+    expect([s.theme, s.color], name).toEqual(['', '']);
+  }
+  expect(settingsOf(parse('---\ntheme: midnight\n---\n# A\n')).theme).toBe('midnight');
+});

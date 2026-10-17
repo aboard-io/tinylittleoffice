@@ -25,7 +25,7 @@ function runs(rs: TextRun[]): string {
       if (r.u) s = `<u>${s}</u>`;
       if (r.s) s = `<s>${s}</s>`;
       if (r.h) s = `<mark>${s}</mark>`;
-      return r.href && linkable(r.href) ? `<a href="${xml(r.href)}">${s}</a>` : s;
+      return r.href && linkable(r.href) ? `<a href="${xml(r.href)}" rel="noopener noreferrer">${s}</a>` : s;
     })
     .join('');
 }

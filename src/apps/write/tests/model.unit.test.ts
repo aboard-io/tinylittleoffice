@@ -428,3 +428,9 @@ test("the files wear the look: the web page's CSS, Word's and RTF's font names, 
   expect(docToRtf(doc('news'), ctx)).toContain('\\cols2');
   expect(docToRtf(doc('book'), ctx)).toContain('\\fi360');
 });
+
+test("a look named for an Object's own property is sans (a review, 2026-10-17)", async () => {
+  const { lookOf } = await import('../look.ts');
+  for (const name of ['constructor', 'toString', '__proto__']) expect(lookOf(parse(`---\nlook: ${name}\n---\nA\n`)).id, name).toBe('sans');
+  expect(lookOf(parse('---\nlook: book\n---\nA\n')).id).toBe('book');
+});
