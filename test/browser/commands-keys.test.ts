@@ -83,6 +83,12 @@ const PLACES: Record<string, Record<string, Place[]>> = {
     '': [
       { tpl: 'write:invoice', set: (ed) => ed.focusFirst(), at: words('to-text.write-text') },
       { tpl: 'deck:talk', set: (ed) => ed.focusBox('words'), at: words('to-text.deck-words') },
+      // Words a host shows its changes among (docs/library.md): a lozenge at the start of each block, for Alt+Enter.
+      {
+        tpl: 'write:invoice',
+        set: (ed) => (ed.focusFirst(), ed.text.showGhosts(() => [{ offset: 0, text: 'AB', tag: 'span', cls: 'tx-loz', id: 'edit:v1:0', covers: [0, 0] }])),
+        at: words('to-text.write-text'),
+      },
     ],
   },
   rows: {
