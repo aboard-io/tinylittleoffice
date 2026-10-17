@@ -13,7 +13,7 @@
  * An editor element (kit/core/app.ts Editor) takes the document's TLO text as `value` and fires "docchange" with the
  * new text on every edit; `mount` wires the two, and answers Mod+Z and Mod+Shift+Z inside it the way the site's page
  * does (kit/core/keys.ts), since the page the editor is in is where keys are heard. A page that shares a document
- * (docs/kernel.md §12) hears each change's ops too (`onOps`, the element's "docops") and hands another's in with
+ * (docs/library.md, Shared editing from a page) hears each change's ops too (`onOps`, the element's "docops") and hands another's in with
  * `applyRemote` (kit/core/element.ts). A page that only shows a document mounts it `readOnly`: nothing of it is edited,
  * and an item activated in it (a calendar's entry, a board's card, a sheet's cell) is told in a "docpick" event.
  *
@@ -44,7 +44,7 @@ export { cmdBtn, cmdMenu, cmdTool } from './kit/ui/bar.ts';
 export { chosenLanguage, languages, setLanguage, t } from './kit/core/i18n.ts';
 export { setTheme, theme, type Theme } from './kit/ui/theme.ts';
 export { keepSize, size } from './kit/ui/zoom.ts';
-export { toast } from './kit/core/say.ts';
+export { toast, type Action } from './kit/core/say.ts';
 
 let ready: Promise<void> | null = null;
 /**
@@ -124,5 +124,5 @@ export async function mount<C>(app: string, text: string, into: Element, onChang
   return { editor, applyRemote: (ops) => el.applyRemote(ops) };
 }
 
-/** The page's own commands (undo, redo, print, share…), for a page that draws a bar of its own: kit/core/keys.ts. */
+/** The site's page keys (undo, redo, print, share…), for a page that draws a bar of its own: kit/core/keys.ts. */
 export const pageCommands = KIT_COMMANDS;

@@ -21,6 +21,8 @@ test('the package is the site’s version, public, named tinylittleoffice, with 
   expect(pkg.bin).toStrictEqual({ tinylittleoffice: 'dist/tinyoffice.js', tinyoffice: 'dist/tinyoffice.js' });
   expect(pkg.dependencies).toBeUndefined();
   expect(pkg.files).toEqual(expect.arrayContaining(['dist/tinyoffice.js', 'dist/api.js', 'dist/skill', 'examples', 'schema', 'README.md']));
+  // The code's license travels with it (npm packs a LICENSE whatever `files` says): the repository's, word for word.
+  expect(readFileSync(join(PKG, 'LICENSE'), 'utf8')).toBe(readFileSync(join(ROOT, 'LICENSE'), 'utf8'));
 });
 
 test('the package serves the library: the kernel, the commands, the editors and their stylesheet, beside the API, each typed', () => {
@@ -30,11 +32,11 @@ test('the package serves the library: the kernel, the commands, the editors and 
     './doc': { types: './dist/types/kernel.d.ts', default: './dist/doc.js' },
     './commands': { types: './dist/types/commands.d.ts', default: './dist/commands.js' },
     './editors': { types: './dist/types/editors.d.ts', default: './dist/editors.js' },
-    './editors.css': './dist/editors.css',
+    './editors.css': { types: './editors.css.d.ts', default: './dist/editors.css' },
     './examples/*.json': './examples/*.json',
     './package.json': './package.json',
   });
-  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors', 'dist/fonts', 'dist/types']));
+  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'editors.css.d.ts', 'dist/editors', 'dist/fonts', 'dist/types']));
   // The kernel and the commands have no side effects to keep; the editors define their elements and the stylesheet
   // styles the page.
   expect(pkg.sideEffects).not.toContain('./dist/doc.js');
@@ -42,7 +44,7 @@ test('the package serves the library: the kernel, the commands, the editors and 
   expect(pkg.sideEffects).toEqual(expect.arrayContaining(['./dist/editors.js', './dist/editors.css', './dist/editors/*']));
 });
 
-test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API, kernel and commands import typed, editors are there', { timeout: 600_000 }, () => {
+test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API, kernel and commands import typed, editors are there', { timeout: 180_000 }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-npm-'));
   try {
     const npm = (args: string[], cwd: string) => execFileSync('npm', [...args, '--cache', join(dir, 'cache'), '--no-audit', '--no-fund', '--loglevel=error'], { cwd, encoding: 'utf8' });
@@ -54,6 +56,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
     writeFileSync(join(app, 'package.json'), '{ "name": "agent", "private": true, "type": "module" }\n');
     npm(['install', '--offline', join(dir, tgz)], app);
     const bin = join(app, 'node_modules/.bin/tinylittleoffice');
+    expect(readFileSync(join(app, 'node_modules/tinylittleoffice/LICENSE'), 'utf8')).toContain('MIT License');
     const sheet = JSON.parse(readFileSync(join(app, 'node_modules/tinylittleoffice/examples/sheet.json'), 'utf8'));
     writeFileSync(join(app, 'money.tlo'), `---\napp: sheet\n---\n${sheet.shapes[0].text}`);
     expect(execFileSync(bin, ['lint', join(app, 'money.tlo')], { encoding: 'utf8' })).toBe('');
@@ -130,6 +133,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { apply, parse, write, type Doc, type Op } from 'tinylittleoffice/doc';",
         "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
         "import { mount, type Mounted } from 'tinylittleoffice/editors';",
+        "import 'tinylittleoffice/editors.css';",
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
         "const op: Op = { op: 'text', at: 1, from: 0, to: 4, runs: [{ t: 'Sail' }] };",

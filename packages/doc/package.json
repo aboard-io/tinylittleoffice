@@ -1,7 +1,7 @@
 {
   "name": "tinylittleoffice",
   "version": "1.2.0-next",
-  "description": "Tiny Little Office from the command line and in Node: links from files, files from links, and the lint, the measures and the examples an agent checks a document by.",
+  "description": "Tiny Little Office from the command line, in Node and on a page: links from files, files from links, the lint, the measures and the examples an agent checks a document by, and the library a program builds on (the document kernel, the commands, the editors and their stylesheet).",
   "keywords": [
     "office",
     "documents",
@@ -38,7 +38,10 @@
       "types": "./dist/types/editors.d.ts",
       "default": "./dist/editors.js"
     },
-    "./editors.css": "./dist/editors.css",
+    "./editors.css": {
+      "types": "./editors.css.d.ts",
+      "default": "./dist/editors.css"
+    },
     "./examples/*.json": "./examples/*.json",
     "./package.json": "./package.json"
   },
@@ -60,6 +63,7 @@
     "dist/commands.js",
     "dist/editors.js",
     "dist/editors.css",
+    "editors.css.d.ts",
     "dist/editors",
     "dist/fonts",
     "dist/types",
