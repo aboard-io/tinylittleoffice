@@ -28,10 +28,16 @@ What an app still asked of the site itself, and what replaces it:
 ## The steps
 
 1. **The host.** Done: kit/core/host.ts, and the lint.
-2. **The entry points.** `tinylittleoffice/doc`: the kernel (model, ops, TLO, JSON, formulas), with no DOM, beside the
-   command line's `api.js`. `tinylittleoffice/editors`: the registry, each app's editor element, the host, and what a
-   page sets up once (the language, the theme, the icons), with no shell. The site's build keeps its own entry; both are
-   built from the same modules.
+2. **The entry points.** Done: src/kernel.ts and src/editors.ts, built by `npm run build:lib` (vite.lib.config.ts)
+   into packages/doc/dist beside the command line's files, and published with them by the deploy. The package serves
+   `tinylittleoffice/doc` (dist/doc.js: the kernel, the model, ops, TLO, JSON and formulas, one file with no
+   dependencies and no DOM, for Node 24 or a page), `tinylittleoffice/editors` (dist/editors.js: the registry, each
+   app's editor element, the host, and what a page sets up once, the language, the theme and the size, with no shell;
+   Lit and the rest bundled in, as the site bundles its app file) and `tinylittleoffice/editors.css` (its stylesheet,
+   one file). What the editors fetch only when asked for, an app's templates, a language other than English and the
+   trip's map and its worker, is in dist/editors/ beside them. The site's build keeps its own entry; both are built
+   from the same modules. test/package.test.ts packs and installs the package and runs the kernel from it; the
+   stylesheet still names the site's fonts by the site's paths (/fonts/…), which step 3 takes up.
 3. **The stylesheet for a page that is not the site.** styles.css in layers, with what belongs to the site's page
    (`html`, `body`, the chrome) kept apart from what an editor needs, and the colors, type and sizes as custom
    properties a page sets.

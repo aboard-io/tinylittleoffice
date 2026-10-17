@@ -79,6 +79,31 @@ await tryDraft('deck', text); // { lint, measure, json }
 The guide an agent reads first is `/llms.txt` (short); the guide to every app's format is served whole as
 `/llms-full.txt`, with a page per app at `/llms/<app>.txt`, and is the skill below, cut into its folder.
 
+## As a library
+
+A program or a page that keeps documents of its own, in a database rather than in links, builds on the same modules
+as the site (docs/library.md), through two more entry points, each built by `npm run build:lib`
+(vite.lib.config.ts):
+
+- `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
+  operations and their inverses, tables and formulas, and the document as JSON. One file, no dependencies, no DOM:
+  Node 24, a Worker or a page.
+- `tinylittleoffice/editors`, `dist/editors.js`: every app's editor element, the registry, and the host an app asks
+  where a document opens (src/editors.ts), with no shell, no link and no library of kept documents. Its stylesheet is
+  `tinylittleoffice/editors.css`, one file; what is fetched only when asked for (an app's templates, a language other
+  than English, the trip's map) is in `dist/editors/` beside it. Lit and the rest are inside, as on the site.
+
+```js
+import { parse, write, apply, invert } from 'tinylittleoffice/doc';
+const doc = parse('# Plan\n\nShip it.\n');
+write(apply(doc, { op: 'head', key: 'title', value: 'Plan' })); // the canonical TLO text
+
+import { mount, host } from 'tinylittleoffice/editors';
+import 'tinylittleoffice/editors.css';
+Object.assign(host, { link: (app, text) => `/doc/${save(app, text)}` }); // where a placed document opens
+const editor = await mount('write', text, main, (next) => save(next)); // the editor, drawn; told every edit
+```
+
 ## The skill
 
 The package carries the skill, the folder `dist/skill/tinyoffice/`, as Claude Code reads one: `SKILL.md`, under front

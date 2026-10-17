@@ -160,7 +160,9 @@ console.log(`\nDeployed ${head.slice(0, 7)}.`);
  * as NODE_AUTH_TOKEN through a .npmrc in a folder of its own, removed after: never the home directory's, never in a
  * log. A version with a part after "-" (1.0.0-next) goes under that dist-tag, as npm asks of a prerelease, and then
  * latest is moved to it as well: while every version is a prerelease the newest is the one to install (Paul,
- * 2026-10-12: "Latest is better"). A failure here comes after the site is deployed, and says so.
+ * 2026-10-12: "Latest is better"). The package is built first, whole: the command line and its API (npm run
+ * build:cli) and the library, the kernel and the editors (npm run build:lib, docs/library.md). A failure here comes
+ * after the site is deployed, and says so.
  */
 function publishCli() {
   const what = 'the command line, on npm';
@@ -176,7 +178,7 @@ function publishCli() {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-npm-'));
   try {
     writeFileSync(join(dir, '.npmrc'), '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n');
-    execSync('npm run -s build:cli', { stdio: 'inherit' });
+    execSync('npm run -s build:cli && npm run -s build:lib', { stdio: 'inherit' });
     const tag = cli.version.includes('-') ? ` --tag ${cli.version.split('-')[1].split('.')[0]}` : '';
     const env = { ...process.env, NODE_AUTH_TOKEN: secret.NPM_TOKEN, NPM_CONFIG_USERCONFIG: join(dir, '.npmrc') };
     execSync(`npm publish --access public --provenance=${provenance}${tag}`, { cwd: 'packages/doc', stdio: 'inherit', env });

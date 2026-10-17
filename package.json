@@ -23,6 +23,7 @@
     "build:mirror": "VITE_SITE_URL=https://aboard-io.github.io/tinylittleoffice/ VITE_CSP_META=1 VITE_CARDS=0 VITE_TINIER=https://tinier.tinylittleoffice.com/ npm run build",
     "build:verify": "node scripts/reproducible.ts",
     "build:cli": "vite build -c vite.cli.config.ts --mode api && vite build -c vite.cli.config.ts --mode cli",
+    "build:lib": "vite build -c vite.lib.config.ts --mode doc && vite build -c vite.lib.config.ts --mode editors",
     "verify-deploy": "node scripts/verify-deploy.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && npm run -s tinier:types && tsc -p tinier && npm run -s site:types && tsc -p site",

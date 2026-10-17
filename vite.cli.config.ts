@@ -12,13 +12,16 @@
  *
  * `npm run build:cli` makes both; the deploy makes them before it publishes, and test/package.test.ts packs the
  * package and installs it. What only a browser loads (the editors and their styles) is in api.js too, never run.
+ * Neither mode empties the folder: each removes only its own files from the last build, so the library's beside them
+ * (`npm run build:lib`, vite.lib.config.ts) stay.
  */
-import { defineConfig } from 'vite';
-import { readdirSync, readFileSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const API = resolve(import.meta.dirname, 'src/api.ts');
 const SKILL = resolve(import.meta.dirname, 'skill/tinyoffice');
+const DIST = resolve(import.meta.dirname, 'packages/doc/dist');
 /** The skill's files, by their paths in its folder: SKILL.md and references/*.md, never its template. */
 const skillFiles = () => [
   'SKILL.md',
@@ -28,24 +31,32 @@ const skillFiles = () => [
     .map((f) => `references/${f}`),
 ];
 
+/** The skill's folder, beside the command line. */
+const skill: Plugin = {
+  name: 'skill',
+  generateBundle() {
+    for (const f of skillFiles()) this.emitFile({ type: 'asset', fileName: `skill/tinyoffice/${f}`, source: readFileSync(resolve(SKILL, f), 'utf8') });
+  },
+};
+
 export default defineConfig(({ mode }) => ({
   publicDir: false,
   logLevel: 'warn',
-  plugins:
-    mode === 'api'
-      ? []
-      : [
-          {
-            name: 'skill',
-            generateBundle() {
-              for (const f of skillFiles()) this.emitFile({ type: 'asset', fileName: `skill/tinyoffice/${f}`, source: readFileSync(resolve(SKILL, f), 'utf8') });
-            },
-          },
-        ],
+  plugins: [
+    {
+      // This mode's files from the last build go before it writes (a reference the skill no longer has, say).
+      name: 'tinyoffice-cli-clean',
+      apply: 'build',
+      buildStart() {
+        for (const f of mode === 'api' ? ['api.js'] : ['tinyoffice.js', 'skill']) rmSync(resolve(DIST, f), { recursive: true, force: true });
+      },
+    },
+    ...(mode === 'api' ? [] : [skill]),
+  ],
   build: {
     target: 'node24',
-    outDir: resolve(import.meta.dirname, 'packages/doc/dist'),
-    emptyOutDir: mode === 'api',
+    outDir: DIST,
+    emptyOutDir: false,
     copyPublicDir: false,
     minify: false,
     ssr: mode === 'api' ? API : resolve(import.meta.dirname, 'packages/doc/tinyoffice.ts'),

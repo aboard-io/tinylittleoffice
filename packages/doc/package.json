@@ -23,9 +23,19 @@
   "type": "module",
   "exports": {
     ".": "./dist/api.js",
+    "./doc": "./dist/doc.js",
+    "./editors": "./dist/editors.js",
+    "./editors.css": "./dist/editors.css",
     "./examples/*.json": "./examples/*.json",
     "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "./dist/api.js",
+    "./dist/tinyoffice.js",
+    "./dist/editors.js",
+    "./dist/editors.css",
+    "./dist/editors/*"
+  ],
   "bin": {
     "tinylittleoffice": "dist/tinyoffice.js",
     "tinyoffice": "dist/tinyoffice.js"
@@ -33,6 +43,10 @@
   "files": [
     "dist/api.js",
     "dist/tinyoffice.js",
+    "dist/doc.js",
+    "dist/editors.js",
+    "dist/editors.css",
+    "dist/editors",
     "dist/skill",
     "examples",
     "schema",

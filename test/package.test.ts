@@ -1,9 +1,10 @@
-// The npm package `tinylittleoffice` (packages/doc) as an agent with a runtime gets it: built (npm run build:cli),
-// packed, installed from the tarball into a folder of its own, and run there. Node strips no types under
-// node_modules, so this is the test that the package carries what it runs.
+// The npm package `tinylittleoffice` (packages/doc) as an agent with a runtime gets it: built (npm run build:cli, and
+// npm run build:lib for the library's entry points), packed, installed from the tarball into a folder of its own, and
+// run there. Node strips no types under node_modules, so this is the test that the package carries what it runs. The
+// editors are a page's, so only their files are looked for here; test/browser/editors.test.ts mounts one.
 import { test, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -20,11 +21,20 @@ test('the package is the site’s version, public, named tinylittleoffice, with 
   expect(pkg.files).toEqual(expect.arrayContaining(['dist/tinyoffice.js', 'dist/api.js', 'dist/skill', 'examples', 'schema', 'README.md']));
 });
 
-test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, and the API imports', { timeout: 180_000 }, () => {
+test('the package serves the library: the kernel, the editors and their stylesheet, beside the API', () => {
+  expect(pkg.exports).toMatchObject({ '.': './dist/api.js', './doc': './dist/doc.js', './editors': './dist/editors.js', './editors.css': './dist/editors.css' });
+  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors']));
+  // The kernel has no side effects to keep; the editors define their elements and the stylesheet styles the page.
+  expect(pkg.sideEffects).not.toContain('./dist/doc.js');
+  expect(pkg.sideEffects).toEqual(expect.arrayContaining(['./dist/editors.js', './dist/editors.css', './dist/editors/*']));
+});
+
+test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API and the kernel import, and the editors are there', { timeout: 600_000 }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-npm-'));
   try {
     const npm = (args: string[], cwd: string) => execFileSync('npm', [...args, '--cache', join(dir, 'cache'), '--no-audit', '--no-fund', '--loglevel=error'], { cwd, encoding: 'utf8' });
     execFileSync('npm', ['run', '-s', 'build:cli'], { cwd: ROOT, stdio: 'ignore' });
+    execFileSync('npm', ['run', '-s', 'build:lib'], { cwd: ROOT, stdio: 'ignore' });
     const tgz = npm(['pack', '--pack-destination', dir], PKG).trim().split('\n').pop()!;
     const app = join(dir, 'app');
     execFileSync('mkdir', [app]);
@@ -56,6 +66,25 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       encoding: 'utf8',
     });
     expect(made).toBe('- [ ] Milk\n\n');
+    // The kernel, as a program that keeps its own documents uses it: parsed, an operation applied, written, read again
+    // the same, and the operation's inverse putting the first text back.
+    const kernel = [
+      "import { parse, apply, applyAll, invert, write } from 'tinylittleoffice/doc';",
+      "const doc = parse('# Plan\\n\\nShip it.\\n');",
+      "const op = { op: 'text', at: 1, from: 0, to: 4, runs: [{ t: 'Sail' }] };",
+      'const next = apply(doc, op);',
+      'console.log(JSON.stringify([write(next), write(parse(write(next))), write(applyAll(next, invert(doc, op)))]));',
+    ].join('\n');
+    expect(JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', kernel], { cwd: app, encoding: 'utf8' }))).toStrictEqual([
+      '# Plan\n\nSail it.\n',
+      '# Plan\n\nSail it.\n',
+      '# Plan\n\nShip it.\n',
+    ]);
+    // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
+    const dist = join(app, 'node_modules/tinylittleoffice/dist');
+    expect(statSync(join(dist, 'editors.js')).size).toBeGreaterThan(500_000);
+    expect(statSync(join(dist, 'editors.css')).size).toBeGreaterThan(50_000);
+    expect(readdirSync(join(dist, 'editors')).filter((f) => /^(map|templates-write|lang-fr)-/.test(f))).toHaveLength(3);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
