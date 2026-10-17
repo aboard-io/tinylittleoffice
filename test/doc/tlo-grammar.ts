@@ -512,9 +512,9 @@ export function arbitraryOp(doc: Doc): fc.Arbitrary<Op> {
   return fc.oneof(...ops);
 }
 
-/** A document and a run of operations that apply to it one after another. */
-export function arbitraryEdits(maxOps = 6): fc.Arbitrary<{ doc: Doc; ops: Op[] }> {
-  return arbitraryDoc().chain((doc) => {
+/** A document and a run of operations that apply to it one after another; with `edges`, the document's words with marks at their edges, as an editor may hold them. */
+export function arbitraryEdits(maxOps = 6, edges = false): fc.Arbitrary<{ doc: Doc; ops: Op[] }> {
+  return arbitraryDoc(8, edges).chain((doc) => {
     const step = (d: Doc, left: number): fc.Arbitrary<Op[]> => (left ? arbitraryOp(d).chain((op) => step(applyOp(d, op), left - 1).map((rest) => [op, ...rest])) : fc.constant([]));
     return fc
       .integer({ min: 1, max: maxOps })
