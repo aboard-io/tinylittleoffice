@@ -1104,6 +1104,15 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+  /* A toast with an action (toast.ts): its button after the words, and a tap reaches it under a finger too. */
+  .to-toast.act {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+  }
+  .to-toast.shown.act {
+    pointer-events: auto;
+  }
   /* A pointer that hovers holds a toast while it is on it (toast.ts); a finger's taps go through it to the bar below. */
   @media (hover: hover) {
     .to-toast.shown {

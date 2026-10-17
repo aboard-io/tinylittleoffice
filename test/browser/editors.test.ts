@@ -2,10 +2,11 @@
 // is the document the page is told, undo is answered inside it, and where a placed document opens is the host's answer,
 // never the address, and the page's own commands are declared, drawn and answered as the kit's are. A page that shares
 // the document hears each change as its ops, and hands another's in. No shell is on the page: this file imports none of
-// it. A page that only shows a document mounts it read-only and hears an item activated in it.
+// it. A page that only shows a document mounts it read-only and hears an item activated in it; a page's toast can offer
+// an action.
 import { html, render } from 'lit';
 import { expect, test } from 'vitest';
-import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup, type DocPick, type Picked } from '../../src/editors.ts';
+import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup, toast, type DocPick, type Picked } from '../../src/editors.ts';
 import { trace } from '../../src/kit/core/commands.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
@@ -356,4 +357,28 @@ test('a board mounted read-only: a card activated is picked with its row, by a c
   expect(editor.querySelector('.board-card.dragging, dialog[open]')).toBeNull();
   expect(changes).toStrictEqual([]);
   expect(editor.value).toBe(board);
+});
+
+test('a bare page’s toast offers an action: a button after the words, named by its label, held while it has the focus, and pressed it runs', async () => {
+  document.body.innerHTML = '<main class="to-main"></main><to-toast></to-toast>';
+  await mount('write', '', document.querySelector('main')!, () => {});
+  let undone = 0;
+  toast('Moved to Won.', { action: { label: 'Undo', does: () => undone++ } });
+  const button = () => document.querySelector<HTMLButtonElement>('.to-toast.shown button');
+  await until(() => !!button(), 'the action was never drawn');
+  expect(button()!.getAttribute('aria-label')).toBe('Undo');
+  expect(button()!.textContent).toBe('Undo');
+  expect(document.querySelector('.to-toast')!.textContent).toBe('Moved to Won.Undo');
+  // The words are said, by the status region, as any toast's are.
+  await until(() => document.querySelector('to-toast [role=status]')!.textContent === 'Moved to Won.', 'the words were never said');
+  button()!.focus();
+  expect(document.activeElement).toBe(button());
+  button()!.click();
+  expect(undone).toBe(1);
+  await until(() => !document.querySelector('.to-toast.shown'), 'the toast never went');
+  // A toast with nothing to do draws no button, and is seen and not heard, as ever.
+  toast('Link copied');
+  await until(() => !!document.querySelector('.to-toast.shown'));
+  expect(document.querySelector('.to-toast button')).toBeNull();
+  expect(document.querySelector('.to-toast')!.getAttribute('aria-hidden')).toBe('true');
 });
