@@ -612,7 +612,8 @@ export function installPlainCopy(root: Document = document) {
   // For the instant of a copy or a cut the page is light: iOS Safari puts its own rendering of the selection on the
   // pasteboard beside the HTML a page gives it, with the colours as drawn, and an app that prefers that rendering
   // (Google Docs) pastes a dark theme's words white on white (Paul, 2026-10-11: "It's when we're in dark mode").
-  // kit.css: `:root[data-copying]` draws the words black on white; the mark goes before anything is painted.
+  // kit.css: `:root[data-copying]` makes the page light, and page.css draws the site's words black on white under it;
+  // the mark goes before anything is painted.
   for (const type of ['copy', 'cut'])
     root.addEventListener(
       type,

@@ -96,9 +96,6 @@
     }
   }
   @media print {
-    .to-header,
-    .to-burger,
-    .to-share-btn,
     to-bar,
     to-drawer,
     to-toast {

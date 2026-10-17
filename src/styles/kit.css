@@ -26,12 +26,10 @@
   /* The nav: everything that is nav, not document, grows with the size of everything up to 120% and no further
      (zoom.ts NAV_MAX), while the words, the cards and the pictures go on to 200%. Each of these is drawn at the nav's
      font size and its lengths inside are em; a finger's target and the gutter are the nav's too. One list: an app's
-     own bar (anything nav, not document) joins it rather than inventing its own. */
+     own bar (anything nav, not document) joins it rather than inventing its own. The site's header, menu button and
+     Share are nav too, and are the site's page's (page.css). */
   :is(
     to-bar,
-    .to-header,
-    .to-burger,
-    .to-share-btn,
     .to-drawer,
     .to-dialog,
     .to-doc-dialog,

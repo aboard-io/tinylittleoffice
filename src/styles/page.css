@@ -41,6 +41,19 @@
       overscroll-behavior: none;
     }
   }
+  /* The header, the menu button and Share are nav, not document: drawn at the nav's scale as the editors' bars are
+     (kit.css, the nav's list, which they were once in). The two buttons are buttons (.to-btn) at the nav's size, so
+     theirs outweighs .to-btn's own size, as the list's weight (two classes, from its `.deck-show .ctl`) did. */
+  .to-header,
+  .to-btn.to-burger,
+  .to-btn.to-share-btn {
+    font-size: var(--to-nav-font);
+    --to-scale: var(--to-nav-font);
+    --to-touch: calc(2.75 * var(--to-nav-font));
+    --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
+    --to-edge-e: max(var(--to-gutter), env(safe-area-inset-right));
+    --to-burger-w: calc(var(--to-edge-e) + var(--to-touch));
+  }
   /* ---- the Share dialog: one column of sections, hung from the top; a full-screen sheet on a phone ---- */
   .to-share-fit {
     display: flex;
@@ -1572,6 +1585,13 @@
     }
   }
   @media print {
+    /* Paper has no chrome: the header, the menu button and Share are not printed, as an editor's bar is not
+       (responsive.css). */
+    .to-header,
+    .to-burger,
+    .to-share-btn {
+      display: none !important;
+    }
     /* Paper flows on: the column is as long as what it holds. */
     to-chrome,
     .to-column,

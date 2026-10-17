@@ -71,8 +71,11 @@ test('where a placed document opens is the host’s answer, and a pasted link is
   expect(changes.at(-1)).not.toContain('1200');
 });
 
-/** A selector that names the page's root or body, or the site's shell: what the editors' stylesheet never names. */
-const PAGE = /(^|[\s>+~(,])(html|body|to-shell|to-chrome)(?=$|[\s.#:[>+~),])/;
+/**
+ * A selector that names the page's root or body, or the site's shell and the chrome's header, menu button and Share:
+ * what the editors' stylesheet never names.
+ */
+const PAGE = /(^|[\s>+~(,])(html|body|to-shell|to-chrome)(?=$|[\s.#:[>+~),])|\.to-(header|burger|share-btn)(?![\w-])/;
 /** Every style rule's selector in a list of rules, inside layers, media and nested rules alike. */
 const selectors = (rules: CSSRuleList): string[] =>
   [...rules].flatMap((r) => [...(r instanceof CSSStyleRule ? [r.selectorText] : []), ...('cssRules' in r ? selectors((r as CSSGroupingRule).cssRules) : [])]);
