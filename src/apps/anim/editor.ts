@@ -710,9 +710,13 @@ export class ToAnimEditor extends DocElement<AnimView> {
 
   render() {
     const tile = !!this.view.draw.tile;
+    // A motion shown read-only holds a Draw shown read-only: no bar of its own, nothing in it edited.
     return html`${
       this.mode === 'draw'
-        ? keyed(this.drawGen, html`<to-draw-editor class="anim-draw" ?data-tile=${tile} .value=${write(drawingOf(this.doc))} @docchange=${this.onDrawChange}></to-draw-editor>`)
+        ? keyed(
+            this.drawGen,
+            html`<to-draw-editor class="anim-draw" ?data-tile=${tile} ?readonly=${this.readOnly} .value=${write(drawingOf(this.doc))} @docchange=${this.onDrawChange}></to-draw-editor>`,
+          )
         : html`${this.readOnly ? nothing : this.renderBar()} ${this.renderStage()}${this.renderTime()}${this.renderProps()}
             <to-context class="anim-context" .label=${t('anim-shapes-in-hand')} .items=${this.contextItems()}></to-context>
             ${this.renderSettings()}`

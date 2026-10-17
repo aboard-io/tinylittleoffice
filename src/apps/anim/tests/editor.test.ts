@@ -668,3 +668,26 @@ test("the filmstrip's menu acts on the frame in hand: moved a frame earlier, dup
   for (let i = 0; i < 4; i++) await undo(el);
   expect(last()).toBe(LIFT);
 });
+
+test('a motion shown read-only is shown in Draw mode as well: Draw inside it is read-only, with no bar, and a key that would edit it changes nothing', async () => {
+  const { el, changes } = await editor(LIFT);
+  el.readOnly = true;
+  await quiet(el);
+  byWords(el, 'Draw').click();
+  await until(() => !!el.querySelector('to-draw-editor'), 'Draw mode never opened');
+  await quiet(el);
+  const draw = el.querySelector<HTMLElement & { shapes: unknown[]; picked: number[]; updateComplete: Promise<unknown> }>('to-draw-editor')!;
+  expect(draw.hasAttribute('readonly')).toBe(true);
+  expect(el.querySelector('to-bar')).toBeNull();
+  draw.picked = [0];
+  await draw.updateComplete;
+  draw.querySelector<HTMLElement>('.draw-wrap')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }));
+  await quiet(el);
+  expect(draw.shapes).toHaveLength(2);
+  expect(changes).toStrictEqual([]);
+  // Set editable again, Draw is Draw as ever.
+  el.readOnly = false;
+  await quiet(el);
+  expect(draw.hasAttribute('readonly')).toBe(false);
+  expect(draw.querySelector('to-bar')).not.toBeNull();
+});
