@@ -142,6 +142,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
         "import { mount, type Mounted } from 'tinylittleoffice/editors';",
         "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type SheetMark } from 'tinylittleoffice/kit';",
+        "import { COLORS, changesOf, ghostsOf, paint, pinComments, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
         "import 'tinylittleoffice/editors.css';",
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
@@ -173,6 +174,21 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         'registerApp(tally);',
         // A host's marks on a read-only sheet.
         "export const marked: SheetMark[] = [{ row: 0, text: '2', title: '2 comments' }, { row: 1, col: 2, text: '!' }];",
+        // Who did what, for a host whose documents several people write: versions by their authors, drawn over the words.
+        "const versions: Step[] = [{ author: 'a@x.co', text: '# Plan\\n' }, { author: 'b@x.co', text: '# Plans\\n', hash: 'v1' }];",
+        'export const changes: Change[] = changesOf(track(versions));',
+        "export const people: Mention[] = [{ name: 'Bea', detail: 'b@x.co' }];",
+        "const drawing: Drawing = { color: () => COLORS[0], initials: () => 'B', name: () => 'Bea', accepted: () => false, takenOutBy: (n) => n, cardChanged: 'Changed', rejected: 'rejected', restored: 'restored' };",
+        'export const redline = async (into: Element, frame: HTMLElement): Promise<Pinned[]> => {',
+        "  const words = wordsOf((await mount('write', versions[1].text, into, () => {})).editor);",
+        '  if (!words) return [];',
+        '  const tracked = track(versions);',
+        '  const ghosts: Map<number, Ghost[]> = ghostsOf(tracked, words.model, () => false, drawing);',
+        '  await words.showGhosts((i) => ghosts.get(i) ?? []);',
+        "  paint(words, tracked, ['a@x.co', 'b@x.co']);",
+        '  words.mentions = people;',
+        "  return pinComments(words, frame, [{ id: 'c1', quote: 'Plans' }]);",
+        '};',
       ].join('\n'),
     );
     writeFileSync(
@@ -181,11 +197,12 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { write } from 'tinylittleoffice/doc';",
         "import { tools } from 'tinylittleoffice/commands';",
         "import { mount } from 'tinylittleoffice/editors';",
-        "import { registerApp } from 'tinylittleoffice/kit';",
+        "import { registerApp, track } from 'tinylittleoffice/kit';",
         "write('# Plan');",
         'tools([], 7);',
         "void mount('write', '', 'main', () => {});",
         "registerApp('tally');",
+        "track('# Plan');",
       ].join('\n'),
     );
     const tsc = (project: string) => {
@@ -201,7 +218,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         .trim()
         .split('\n')
         .map((l) => /^(\S+)\((\d+),\d+\): error (TS\d+)/.exec(l)?.slice(1).join(' ')),
-    ).toStrictEqual(['bad.ts 5 TS2345', 'bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345']);
+    ).toStrictEqual(['bad.ts 5 TS2345', 'bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345', 'bad.ts 9 TS2345']);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');
     // The kit is the editors' file: resolved there, and that file exports every value the kit's source does (its last
