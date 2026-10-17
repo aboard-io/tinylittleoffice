@@ -84,7 +84,10 @@
  * A host may show words among the words that are not the document's (`showGhosts`, Ghost): the words someone took out,
  * and brackets and initials saying who did what (kit/text/redline.ts draws them so). They are drawn at their offsets,
  * not editable and passed over as a task's state is (data-said), and the caret is written back where it was in the
- * words. With none (the default) a block is drawn as its words and nothing else.
+ * words. A ghost the caret cannot stop on is reached by the keys: Alt+Enter names the edit the caret is in, or the
+ * nearest in its block, before the caret first (a lozenge `covers` its edit's words), in "text-ghost" ({ id, block,
+ * el }: GhostAt), for the host to open; in a block that shows none the key goes on. With none (the default) a block is
+ * drawn as its words and nothing else.
  *
  * Inside a read-only editor (kit/core/element.ts) the words are shown and not edited: not contenteditable, but still a
  * stop in the focus order (aria-readonly), and its keys are not answered here but Escape, which lets the bubble go.
@@ -97,7 +100,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { applyAll, hasClass, isAtomic, listNumbers, normalRuns, runLength, type Block, type Op, type Run } from '../../doc/index.ts';
 import { copyData, pasteFrom, readClip, writeClip } from './clipboard.ts';
 import { contextOf, runKey } from '../core/commands.ts';
-import { COMMENT, TEXT_COMMANDS } from './text-commands.ts';
+import { CHANGE_KEYS, COMMENT, TEXT_COMMANDS } from './text-commands.ts';
 import type { ToContext } from '../ui/context.ts';
 import { lookup } from '../core/app.ts';
 import { t } from '../core/i18n.ts';
@@ -272,9 +275,35 @@ export interface Ghost {
   /** Drawn as words taken out (`del`, the default) or as a mark of the host's own (`span`). */
   tag?: 'del' | 'span';
   /** Pieces drawn in place of `text`, each with its own class (and name): a line made of a mark and words. */
-  parts?: { text: string; cls?: string; id?: string; title?: string; style?: string }[];
+  parts?: { text: string; cls?: string; id?: string; title?: string; style?: string; covers?: [number, number] }[];
   /** Among ghosts at one offset, the order they are drawn in (as given, otherwise). */
   order?: number;
+  /**
+   * The words a named ghost (or part) stands for, from and to in its block (an edit's lozenge: kit/text/redline.ts):
+   * Alt+Enter with the caret among them, or else nearest them, names it to the host ("text-ghost").
+   */
+  covers?: [number, number];
+}
+/** What a host hears when the keys reach a ghost it named (Alt+Enter): its name, its block, and its element as drawn, to open a panel beside. */
+export interface GhostAt {
+  id: string;
+  block: number;
+  el: HTMLElement | null;
+}
+
+/**
+ * Of a block's ghosts, the named one the caret at `offset` is in (the narrowest whose words hold it), or else the
+ * nearest: before the caret first, then after it. Null where none covers any words.
+ */
+function ghostNear(ghosts: readonly Ghost[], offset: number): { id: string; from: number; to: number } | null {
+  type Near = { id: string; from: number; to: number };
+  const named: Near[] = ghosts.flatMap((g) => [g, ...(g.parts ?? [])]).flatMap((g) => (g.id && g.covers ? [{ id: g.id, from: g.covers[0], to: g.covers[1] }] : []));
+  // The least by `far`, then the narrowest (an edit inside another before the one around it), then the first.
+  const best = (list: Near[], far: (x: Near) => number) => [...list].sort((a, b) => far(a) - far(b) || a.to - a.from - (b.to - b.from) || a.from - b.from)[0] ?? null;
+  const inside = named.filter((x) => x.from <= offset && offset <= x.to);
+  if (inside.length) return best(inside, () => 0);
+  const before = named.filter((x) => x.to <= offset);
+  return before.length ? best(before, (x) => offset - x.to) : best(named, (x) => x.from - offset);
 }
 /** One of the people "@" offers (ToText's `mentions`): the name put in the words, and a line under it (an email). */
 export interface Mention {
@@ -843,8 +872,8 @@ export class ToText extends LitElement {
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (this.ownEvent(e) || e.isComposing || this.composing) return;
-    // Read-only: no key is the words', but Escape lets the bubble (a reader's Comment) go.
-    if (this.locked) return void (e.key === 'Escape' && this.escape(e));
+    // Read-only: no key is the words', but Escape, which lets the bubble (a reader's Comment) go, and a host's changes'.
+    if (this.locked) return void (e.key === 'Escape' ? this.escape(e) : runKey(e, CHANGE_KEYS, this));
     const chip = (e.target as HTMLElement).closest?.('.fn');
     if (chip && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
@@ -869,8 +898,9 @@ export class ToText extends LitElement {
         return void this.dispatchEvent(new CustomEvent<{ dir: 'back' | 'forward' }>('text-exit', { detail: { dir }, bubbles: true }));
       }
     }
-    // The words' commands (kit/text/text-commands.ts): the marks, Link, Tab and Shift+Tab on an item, Alt+Up/Down, Mod+Enter, Mod+A.
-    runKey(e, TEXT_COMMANDS, this);
+    // The words' commands (kit/text/text-commands.ts): the marks, Link, Tab and Shift+Tab on an item, Alt+Up/Down, Mod+Enter, Mod+A;
+    // and, where a host shows who did what, Alt+Enter.
+    if (!runKey(e, TEXT_COMMANDS, this)) runKey(e, CHANGE_KEYS, this);
   };
 
   /* ---------- what the words' commands do (kit/text/text-commands.ts) ---------- */
@@ -888,6 +918,19 @@ export class ToText extends LitElement {
     const r = model[ordered(sel)[0].block].k === 'li' ? shiftItems(model, sel, by) : null;
     if (r) this.emit(r.ops, r.sel, undefined, 'focus');
     return !!r;
+  }
+  /**
+   * Alt+Enter where a host shows who did what (`showGhosts`): the edit the caret is in, or else the nearest in its
+   * block, before the caret first (ghostNear, by the words each lozenge `covers`), named to the host in "text-ghost"
+   * (GhostAt) for it to open; false where the block shows none, and the key goes on.
+   */
+  openChange(): boolean {
+    const at = this._sel?.focus;
+    const found = at && this.ghosts ? ghostNear(this.ghosts(at.block), at.offset) : null;
+    if (!at || !found) return false;
+    const el = [...(this.blockEls()[at.block]?.querySelectorAll<HTMLElement>('[data-ghost]') ?? [])].find((x) => x.dataset.ghost === found.id) ?? null;
+    this.dispatchEvent(new CustomEvent<GhostAt>('text-ghost', { detail: { id: found.id, block: at.block, el }, bubbles: true }));
+    return true;
   }
   /** Mod+Enter on a task item ticks it (Docs' checklist key); anywhere else it is the host's (false). */
   tick(e?: Event): boolean {

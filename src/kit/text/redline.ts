@@ -161,7 +161,8 @@ const TEXT = /^(p|h[1-6]|li\d+o?|quote)$/;
  * Every edit drawn in the editor's words without being written there (kit/text/text.ts Ghost): an opening bracket in
  * its author's color, their lozenge right after it at the size of the words, the edit, and a closing bracket; the words
  * it took out in place, struck through in red; a paragraph taken out, a struck line of its own with its lozenge. A
- * lozenge's ghost is named "edit:" and its changes' ids, for the host to open. A settled change is not drawn.
+ * lozenge's ghost is named "edit:" and its changes' ids, for the host to open, and says the words its edit covers
+ * (`covers`), so the text editor finds it from the caret (Alt+Enter, "text-ghost"). A settled change is not drawn.
  */
 export function ghostsOf(tracked: Tracked[], blocks: readonly Block[], settled: (id: string) => boolean, d: Drawing): Map<number, Ghost[]> {
   const out = new Map<number, Ghost[]>();
@@ -186,7 +187,8 @@ export function ghostsOf(tracked: Tracked[], blocks: readonly Block[], settled: 
         style: `--c: ${d.color(g.del!)}`,
         parts: [
           { text: '[', cls: 'tx-br' },
-          lozenge([g.delId ?? ''], g.del!, g.rejected ? 'rejection' : undefined),
+          // Before the block's words: the edit Alt+Enter finds from its start, where nothing nearer is.
+          { ...lozenge([g.delId ?? ''], g.del!, g.rejected ? 'rejection' : undefined), covers: [0, 0] },
           { text: liveText(g), cls: 'tx-out', title: d.takenOutBy(d.name(g.del!)) },
           { text: ']', cls: 'tx-br' },
         ],
@@ -223,7 +225,7 @@ export function ghostsOf(tracked: Tracked[], blocks: readonly Block[], settled: 
     if (edits.some((e) => e.first < 0)) {
       const e = edits.find((x) => x.first < 0)!;
       put({ offset: 0, text: '[', tag: 'span', cls: 'tx-br', style: `--c: ${d.color(e.who)}` });
-      put({ offset: 0, tag: 'span', ...lozenge(e.ids, e.who) });
+      put({ offset: 0, tag: 'span', ...lozenge(e.ids, e.who), covers: [0, 0] });
       put({ offset: 0, text: ']', tag: 'span', cls: 'tx-br', style: `--c: ${d.color(e.who)}` });
     }
     // Edits may share a first or a last word (a block restyled by one person, words in it by another): the wider opens
@@ -242,11 +244,15 @@ export function ghostsOf(tracked: Tracked[], blocks: readonly Block[], settled: 
       [...edits].sort((a, b) => span(a) - span(b)),
       (e) => e.last,
     );
+    // Where each token begins among the words (those taken out are none of them), so a lozenge says the words its edit covers.
+    const starts: number[] = [];
+    b.toks.reduce((at, tok, i) => ((starts[i] = at), tok.del ? at : at + tok.t.length), 0);
+    const covers = (e: Edit): [number, number] => [starts[e.first], starts[e.last] + (b.toks[e.last].del ? 0 : b.toks[e.last].t.length)];
     let off = 0;
     b.toks.forEach((tok, i) => {
       for (const e of opens.get(i) ?? []) {
         put({ offset: off, text: '[', tag: 'span', cls: 'tx-br', style: `--c: ${d.color(e.who)}` });
-        put({ offset: off, tag: 'span', ...lozenge(e.ids, e.who, e.how ?? (b.rejected && b.fmtId && e.ids.includes(b.fmtId) ? 'rejection' : undefined)) });
+        put({ offset: off, tag: 'span', ...lozenge(e.ids, e.who, e.how ?? (b.rejected && b.fmtId && e.ids.includes(b.fmtId) ? 'rejection' : undefined)), covers: covers(e) });
       }
       if (tok.del) {
         if (tok.delId && !settled(tok.delId)) {

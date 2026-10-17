@@ -1920,6 +1920,8 @@ common-connections = Liaisons
 common-copy = Copier
 # en: 153d7a58b3a3e898fcbdd04c462af308414bd09d
 common-comment = Commenter
+# en: 849e384559ff16cb2dcddb75cdf0a07437bcc3f9
+common-open-this-change = Ouvrir cette modification
 # en: ba97113463234ae7bc314eae6a172572b35b1b71
 common-presentation-builder = Créateur de présentations
 # en: 20dcb3b3184067197035f08a5a3955d51fcd94a3

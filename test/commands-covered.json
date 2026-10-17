@@ -390,6 +390,7 @@
  "text.all",
  "text.bold",
  "text.bullets",
+ "text.change",
  "text.code",
  "text.comment",
  "text.copy",

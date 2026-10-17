@@ -1057,6 +1057,8 @@ common-connections = Connections
 common-copy = Copy
 # Comment on the words selected (a button in the selection's bar, where a host takes comments).
 common-comment = Comment
+# Alt+Enter in words a host shows its changes in (who put in or took out what): opens the change at the caret, to accept or reject it.
+common-open-this-change = Open this change
 common-presentation-builder = Presentation Builder
 common-diagram-maker = Diagram Maker
 common-drag-to-move = Drag to move

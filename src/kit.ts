@@ -52,8 +52,9 @@
  *   with the editor's (`diffLines`, kit/text/diff.ts); drawn over a mounted Word Processor's words (`wordsOf`) by
  *   kit/text/redline.ts: `paint` and `unpaint` (each person's words highlighted in their color, COLORS, under
  *   PREFIX), `ghostsOf` (the words taken out and the brackets and lozenges of initials, `initialsOf`, as Drawing says
- *   them) for the text editor's `showGhosts` (Ghost), and `pinComments` and `unpin` (a comment found by its quote,
- *   Pinned); and "@" offering the host's people as the text editor's `mentions` (Mention).
+ *   them) for the text editor's `showGhosts` (Ghost; Alt+Enter names the edit at the caret in "text-ghost", GhostAt),
+ *   and `pinComments` and `unpin` (a comment found by its quote, Pinned); and "@" offering the host's people as the
+ *   text editor's `mentions` (Mention).
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
 export { DocElement, firstAt, type DocOps, type DocPick, type Entry, type Picked } from './kit/core/element.ts';
@@ -69,7 +70,7 @@ export { ToMenu, type MenuItem } from './kit/ui/menu.ts';
 export { ToInsert } from './kit/ui/insert.ts';
 export { ToDialog } from './kit/ui/dialog.ts';
 export { reveal, scrollerOf, type Reveal } from './kit/ui/scroll.ts';
-export { ToText, type Ghost, type Mention, type TextOps } from './kit/text/text.ts';
+export { ToText, type Ghost, type GhostAt, type Mention, type TextOps } from './kit/text/text.ts';
 export {
   blockFrom,
   changesOf,

@@ -138,3 +138,12 @@ export const TEXT_COMMANDS = register([
   cmd('tick', 'common-check-or-uncheck-task', { keys: 'Mod+Enter', where: ['keys-only'], when: (x) => x.shape !== 'line', does: (x, e) => x.tick(e) }),
   cmd('all', 'common-select-all-words-of-box', { keys: 'Mod+A', where: ['keys-only'], does: (x) => x.selectAllKey() }),
 ]) as Command<ToText>[];
+
+/**
+ * The change at the caret (Alt+Enter, a thing's details, as the Calendar's task opens its dates with it), where a host
+ * shows who did what (`showGhosts`): the edit's lozenge named to the host, "text-ghost", to open (ToText openChange).
+ * Registered beside the words' commands, so docs/editing.md lists it, and not among TEXT_COMMANDS: the site shows no
+ * ghosts, and its shortcuts dialog lists no key it never answers.
+ */
+const CHANGE = cmd('change', 'common-open-this-change', { keys: 'Alt+Enter', where: ['keys-only'], when: (x) => !!x.ghosts, does: (x) => x.openChange() });
+export const CHANGE_KEYS = register([CHANGE]) as Command<ToText>[];
