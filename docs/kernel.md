@@ -504,10 +504,12 @@ column renamed follows its column; `force` is kept.
 
 **The rules.** Index transformation cannot know everything a document says, and two orders of one pair still differ in
 two places no op can reach: the head writes its keys in the order they were put in (two put in at once), and `apply`'s
-remapping leaves a range in a formula or a table's lock a row apart when it ends in rows one op takes out beside rows
-the other puts in at their edge (it grows a range over rows put in inside it and closes it over rows taken out of its
-end, and the two do not commute there: `=SUM(A1:A3)` comes out `A1:A3` one way and `A1:A2` the other, over the same
-rows). The server and its clients keep four rules:
+remapping leaves one end of a range in a formula or a table's lock apart by as many rows as were put in, when it ends
+in rows one op takes out beside rows the other puts in at their edge (it grows a range over rows put in inside it and
+closes it over rows taken out of its end, and the two do not commute there: one order's range takes in the rows put
+in and the other's stops short of them, so over one row taken out and one put in at its place `=SUM(A1:A3)` comes out
+`A1:A3` one way and `A1:A2` the other, and over two and two, `A1:A3` and `A1:A1`). The server and its clients keep
+four rules:
 
 1. **Crossing spans are refused.** A splice that takes out some of a moved span's blocks and some others, or into whose
    span a moved span lands, cannot be brought together with the move by one op on each side, which every pair of the
@@ -537,21 +539,35 @@ The properties (test/doc/sync.test.ts; 200 cases each, 2,000 under `npm run fuzz
 
 | property | how |
 |---|---|
-| TP1 for every pair of splices and moves on five blocks (13,924 pairs), of text ops on one block (2,025), and of table ops on a table of three rows and columns with formulas (6,400), compared by their writing, the head's keys in one order, a range at an edge as above | enumerated |
+| TP1 for every pair of splices and moves on five blocks (13,924 pairs), of text ops on one block (2,025), and of table ops on a table of three rows and columns with formulas, without a lock and with one (6,400 each), compared by their writing, the head's keys in one order, and a range at an edge apart only as above: one end, by exactly the rows put in, the rest of the document the same | enumerated |
 | TP1 for any two ops on any document the grammar makes, half of them on one text or table, or near each other | fuzzed |
 | a crossing is found by both transforms or neither, and only where no op on each side does what a splice and a move did (brute force), or where two moves cross (told by moving blocks) | both |
 | every transformed op fits the document it applies to, and is null only where the other took away what it acts on | both |
-| two to four clients and a server, interleaved at random, undo among the steps: every client ends with the server's document; the server's transform of a client's op is the client's own rebase of it; the server's op applied to a client's view is its recomputed document but in the two places above | fuzzed |
-| an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed where nothing later touched it | fuzzed |
+| two to four clients and a server, interleaved at random, undo among the steps, with ops as the grammar makes them and again with ops mostly on tables (about half of what the server appends): every client ends with the server's document; the server's transform of a client's op is the client's own rebase of it; the server's op applied to a client's view is its recomputed document but in the two places above (ranges apart only on an axis where an edge was met) | fuzzed |
+| an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed where nothing later touched it, for every kind of op: a move's blocks go back to the place they left, a deletion's blocks come back at it; with both mixes of ops | fuzzed |
 
 What the fuzz found on its first runs, each fixed or made a rule, with a test:
-the head's keys put in by two ops at once are written in the order each replica put them in (the documents compare
-with their keys in one order; replicas never differ, rule 4); a range ending in rows taken out beside rows put in at
-their edge ends a row apart in the two orders, which no placement of the rows mends (rule 4, and the case shown in a
-test); a move that moves nothing, transformed, kept indices past the document's end (it now moves nothing); the brute
-force first counted meetings that took out a block neither op took out, or undid both moves (a meeting must do what
-both did); crossing moves can sometimes meet with both spans whole (the union moved where both sent it, two spans
+the head's keys put in by two ops at once are written in the order each replica put them in (the documents compare with
+their keys in one order; replicas never differ, rule 4); a range ending in rows taken out beside rows put in at their
+edge ends apart in the two orders by the rows put in, which no placement of the rows mends (rule 4, and the case shown
+in a test); a move that moves nothing, transformed, kept indices past the document's end (it now moves nothing); the
+brute force first counted meetings that took out a block neither op took out, or undid both moves (a meeting must do
+what both did); crossing moves can sometimes meet with both spans whole (the union moved where both sent it, two spans
 swapped), and are refused all the same, a rule kept simple; and two ops at random met on one text or table in about
-three cases in a hundred, so the pairs are now made on one text or table, or beside the first op, and about four in
-ten meet on one block; TP1 holds over 20,000 cases. Rules 2 and 3 came from reading `apply` (a table keeps a column; `withMovedTable` moves the
-head's lock), each shown by a test.
+three cases in a hundred, so the pairs are now made on one text or table, or beside the first op, and about four in ten
+meet on one block; TP1 holds over 20,000 cases. Rules 2 and 3 came from reading `apply` (a table keeps a column;
+`withMovedTable` moves the head's lock), each shown by a test.
+
+What a review of the properties found, the same day: the undo was checked exactly only for ops on a block and splices
+that put blocks in, never a move or a splice that only took blocks out. It now follows the place such an op left
+between blocks, and calls it touched only where later ops leave no one place for it (blocks put in or a span moved
+there, a block beside it moved away, the blocks on both sides taken out and others put in); over 2,000 cases of each
+mix, about 460 undone moves and 170 deletions in all come back exactly, and the transform needed no change. The
+exemption for a range at an edge took any two ranges in a cell as alike and left the lock out; it now allows one end
+apart by exactly the rows put in, at their place, the lock compared too, and the table pairs run again on a table with
+a lock. That run found a fault in `apply`, not the transform: where a lock is a table's only attribute, rows or columns
+taken out that take all of it leave it as it was, so the two orders keep different stale locks (and, in one person's
+document, a lock on cells nobody locked). It is ops.ts's to mend in a change of its own, since the site uses `apply`;
+the locked table in the test carries an id meanwhile. And table ops were few among what the clients sent; the clients
+and the undo now run again with ops mostly on tables, in which a client's view met a range apart at an edge about a
+dozen times in 2,000 cases, and converge.
