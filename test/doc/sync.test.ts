@@ -1,8 +1,8 @@
 // Shared editing's properties (src/doc/sync.ts, docs/kernel.md §12): the first transformation property (TP1) for every
 // pair of operations, by enumeration on small documents and by fast-check from the grammar's generators; several
 // clients and a server, interleaved at random, ending with one document; and an undo transformed over what came
-// after it. Each fuzzed property runs 200 cases (2,000 under `npm run fuzz`); a failure names the shrunk case. The
-// documents are compared by their writing.
+// after it, exact for every kind of op that nothing later touched. Each fuzzed property runs 200 cases (2,000 under
+// `npm run fuzz`); a failure names the shrunk case. The documents are compared by their writing.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
 import {
@@ -654,10 +654,37 @@ function editsOn(d: Doc): fc.Arbitrary<Op[]> {
   return fc.integer({ min: 1, max: 4 }).chain((k) => step(d, k, null));
 }
 
+/** An op's kind as the undo property counts it: a splice that puts nothing in is one that only takes blocks out. */
+const kind = (o: Op): string => (o.op === 'splice' && !o.blocks.length ? 'take out' : o.op);
+
+/** Where a place between blocks is once `l` has applied; null where `l` leaves no one place for it (see untouched). */
+function placeOver(g: number, l: Op): number | null {
+  if (l.op === 'splice') {
+    if (g < l.at || (g === l.at && l.n)) return g; // before it, or before the blocks it replaces
+    if (g === l.at) return l.blocks.length ? null : g; // blocks put in at the place
+    if (g < l.at + l.n) return l.blocks.length ? null : l.at; // the blocks either side taken out, and others put in
+    return g + l.blocks.length - l.n;
+  }
+  if (l.op !== 'move' || !l.n || l.to === l.at) return g;
+  if (g > l.at && g < l.at + l.n) return l.to + g - l.at; // inside the moved span: with it
+  if (g === l.at || g === l.at + l.n) return null; // a block beside it moved away
+  const r = g < l.at ? g : g - l.n;
+  return r === l.to ? null : r < l.to ? r : r + l.n; // the span landed at it, or it stays among the rest
+}
+
 /**
- * The document an undo of `o` (made against d) gives back exactly when no op after it touched what it did: the later
- * ops' document with o's blocks, or its head's key, as they were before it. Null when a later op touched them (acted
- * on one of its blocks, took one out, put blocks in among them, moved one) or o is a move or a splice that put nothing in.
+ * The document an undo of `o` (made against d) gives back exactly when nothing after it touched what it changed, or
+ * null when something did. The later ops are followed over the blocks, each known by its index in d (one put in gets
+ * a new mark), and over the place between blocks that a splice taking blocks out, or a move, left:
+ *   - a head's key: as it was, unless a later op set it.
+ *   - an op on a block, or a splice that put blocks in: the blocks it acted on or replaced, as they were, where its own
+ *     are now. Touched when a later op acted on one of its blocks, took one out, moved one, or put blocks in among them.
+ *   - a splice that only took blocks out: they come back at the place it left. A move: its blocks, as the later ops
+ *     left them, go back to the place it took them from. The place is touched when a later op put blocks in at it or
+ *     moved a span there, moved a block beside it away (it was between two blocks no longer side by side), or took out
+ *     the blocks on both sides of it and put others in (it is before those or after, and neither is the exact one).
+ *     A move's blocks are touched when a later op took one out, put blocks in among them, or moved some apart or out
+ *     of order; one may act on them, or move them all, and the undo takes them back as they are.
  */
 function untouched(d: Doc, o: Op, later: Op[]): Doc | null {
   const end = applyAll(apply(d, o), later);
@@ -668,33 +695,50 @@ function untouched(d: Doc, o: Op, later: Op[]): Doc | null {
     else head[o.key] = d.head[o.key];
     return { head, blocks: end.blocks };
   }
-  if (o.op === 'move' || (o.op === 'splice' && !o.blocks.length)) return null;
-  const marked = o.op === 'splice' ? o.blocks.map((_, i) => o.at + i) : [o.at];
-  let ids = apply(d, o).blocks.map((_, i) => i);
+  if (o.op === 'move' && (!o.n || o.to === o.at)) return end;
   let fresh = -1;
+  /** The blocks' marks once `l` has applied. */
+  const after = (ids: number[], l: Op): number[] => {
+    if (l.op === 'splice') return [...ids.slice(0, l.at), ...l.blocks.map(() => fresh--), ...ids.slice(l.at + l.n)];
+    if (l.op !== 'move') return ids;
+    const rest = [...ids.slice(0, l.at), ...ids.slice(l.at + l.n)];
+    return [...rest.slice(0, l.to), ...ids.slice(l.at, l.at + l.n), ...rest.slice(l.to)];
+  };
+  const first = d.blocks.map((_, i) => i);
+  let ids = after(first, o);
+  // The blocks to put back as they were (or, for a move, to take back), and the place blocks go back to.
+  const marked = o.op === 'splice' ? ids.slice(o.at, o.at + o.blocks.length) : o.op === 'move' ? first.slice(o.at, o.at + o.n) : [o.at];
+  let place = o.op === 'splice' && !o.blocks.length ? o.at : o.op === 'move' ? (o.at < o.to ? o.at : o.at + o.n) : null;
+  const moving = o.op === 'move';
   const run = () => marked.map((m) => ids.indexOf(m));
   for (const l of later) {
     const at = run();
     if (l.op === 'splice' && (ids.slice(l.at, l.at + l.n).some((x) => marked.includes(x)) || (l.at > at[0] && l.at <= at[at.length - 1]))) return null;
-    if (l.op === 'move' && ids.slice(l.at, l.at + l.n).some((x) => marked.includes(x))) return null;
-    if (l.op !== 'head' && l.op !== 'splice' && l.op !== 'move' && marked.includes(ids[l.at])) return null;
-    if (l.op === 'splice') ids = [...ids.slice(0, l.at), ...l.blocks.map(() => fresh--), ...ids.slice(l.at + l.n)];
-    if (l.op === 'move') {
-      const rest = [...ids.slice(0, l.at), ...ids.slice(l.at + l.n)];
-      ids = [...rest.slice(0, l.to), ...ids.slice(l.at, l.at + l.n), ...rest.slice(l.to)];
+    if (!moving && l.op === 'move' && ids.slice(l.at, l.at + l.n).some((x) => marked.includes(x))) return null;
+    if (!moving && l.op !== 'head' && l.op !== 'splice' && l.op !== 'move' && marked.includes(ids[l.at])) return null;
+    if (place !== null) {
+      place = placeOver(place, l);
+      if (place === null) return null;
     }
+    ids = after(ids, l);
     const now = run();
-    if (now.some((p, i) => p !== now[0] + i)) return null; // a move landed among them
+    if (now.some((p, i) => p !== now[0] + i)) return null; // a move landed among them, or took some apart
   }
   const p = run()[0];
+  if (o.op === 'move') {
+    const rest = [...end.blocks.slice(0, p), ...end.blocks.slice(p + o.n)];
+    const g = place! <= p ? place! : place! - o.n;
+    return { head: end.head, blocks: [...rest.slice(0, g), ...end.blocks.slice(p, p + o.n), ...rest.slice(g)] };
+  }
+  if (o.op === 'splice' && place !== null) return { head: end.head, blocks: [...end.blocks.slice(0, place), ...d.blocks.slice(o.at, o.at + o.n), ...end.blocks.slice(place)] };
   const was = o.op === 'splice' ? d.blocks.slice(o.at, o.at + o.n) : [d.blocks[o.at]];
   return { head: end.head, blocks: [...end.blocks.slice(0, p), ...was, ...end.blocks.slice(p + marked.length)] };
 }
 
 test(
-  'property: an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed when nothing later touched it',
+  'property: an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed when nothing later touched it, for every kind of op',
   () => {
-    let exact = 0;
+    const exact: Record<string, number> = {};
     holds(
       'undo',
       sharedDoc.chain((d) => opOn(d).chain((o) => editsOn(apply(d, o)).map((later) => ({ d, o, later })))),
@@ -710,13 +754,14 @@ test(
         const undone = applyAll(now, back);
         const want = untouched(d, o, later);
         if (want) {
-          exact++;
+          exact[kind(o)] = (exact[kind(o)] ?? 0) + 1;
           expect(text(undone)).toBe(text(want));
         }
       },
     );
-    // Most cases are ones nothing later touched, which the property checks exactly.
-    expect(exact).toBeGreaterThan(RUNS / 4);
+    // Most cases are ones nothing later touched, which the property checks exactly, of each common kind of op.
+    expect(Object.values(exact).reduce((x, y) => x + y, 0)).toBeGreaterThan(RUNS / 4);
+    for (const k of ['head', 'text', 'splice', 'take out', 'move']) expect(exact[k] ?? 0, `undos of ${k} checked exactly: ${JSON.stringify(exact)}`).toBeGreaterThan(0);
   },
   LONG,
 );
