@@ -66,14 +66,14 @@ What an app still asked of the site itself, and what replaces it:
 
 An editor tells each change as the kernel's operations as well as its text (kit/core/element.ts): before each
 `docchange` it fires `docops` on itself, never bubbling, with `{ ops, base }`: the primitives the change applied (an
-edit's, an undo's inverse, a redo's; a deck written loosely, loosened as it arrives, with nothing to undo) and how many
-it had applied before them since it was given its value, which a page maps to its own version. `mount(app, text, into,
-onChange, { commands, context, onOps })` hands them to `onOps(ops, base)` and returns `{ editor, applyRemote }`.
-`applyRemote(ops)` takes in ops the page's server ordered, which the page has rebased over its own not yet told back
-(`rebase`, from `tinylittleoffice/doc`): applied with no step of the history and neither event fired, the view drawn
-again, the selection carried past them (the Word Processor's caret past blocks and words before it) or held within the
-document, and the history carried over them too, so an undo takes back only what was done here (where they cross, the
-history is let go). A page that takes the server's document again (a Conflict) gives it as a new `value`.
+edit's, an undo's inverse, a redo's; a deck loosened as it arrives) and how many it had applied before them since it was
+given its value, which a page maps to its own version. `mount(app, text, into, onChange, { commands, context, onOps })`
+hands them to `onOps(ops, base)` and returns `{ editor, applyRemote }`, no longer the editor itself (a page that kept
+the result as the element reads `.editor`). `applyRemote(ops)` takes in ops the page's server ordered, rebased over the
+page's own not yet told back (`rebase`, from `tinylittleoffice/doc`): applied with no step of the history and neither
+event fired, the view drawn again, and the history carried over them, so an undo takes back only what was done here
+(where they cross, it is let go). Only the Word Processor carries its caret and its undo's saved carets past them; the
+other apps hold theirs within the document. A page that takes the server's document again gives it as a new `value`.
 
 ## A page's own commands
 
