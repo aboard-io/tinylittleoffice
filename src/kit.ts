@@ -40,7 +40,8 @@
  * - drawing a page with no DOM (kit/draw/draw.ts): the colors, `rect`, `text`, `clip`, `wrapText`, `textWidth`, `xml`,
  *   `utf8` for a file's bytes; the icons (`icon`, `iconNamed`, `UI`);
  * - the Spreadsheet's words for a table: `cellAsShown`, a cell's value as its column shows it (money in its currency, a
- *   date as a date, a rich cell's words), and `tableAsCsv`, a document's first table as the Spreadsheet's CSV.
+ *   date as a date, a rich cell's words), and `tableAsCsv`, a document's first table as the Spreadsheet's CSV; and a
+ *   page's marks on a read-only sheet's rows and cells (its editor's `marks`, SheetMark).
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
 export { DocElement, firstAt, type DocOps, type DocPick, type Entry, type Picked } from './kit/core/element.ts';
@@ -64,6 +65,7 @@ export { choicesOf } from './kit/text/columns.ts';
 export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
 export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
 export { cellText as cellAsShown, sheetToCsv as tableAsCsv } from './apps/sheet/view.ts';
+export type { SheetMark } from './apps/sheet/editor.ts';
 export {
   css,
   html,

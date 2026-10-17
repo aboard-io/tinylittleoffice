@@ -141,7 +141,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { apply, parse, write, type Doc, type Op } from 'tinylittleoffice/doc';",
         "import { command, register, tools, type Command } from 'tinylittleoffice/commands';",
         "import { mount, type Mounted } from 'tinylittleoffice/editors';",
-        "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef } from 'tinylittleoffice/kit';",
+        "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type SheetMark } from 'tinylittleoffice/kit';",
         "import 'tinylittleoffice/editors.css';",
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
@@ -171,6 +171,8 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "export const tally: AppDef = defineApp({ id: 'tally', name: 'Tally', noun: 'tally', group: 'Plan', icon: [], blurb: 'Marks.', blank: () => '',",
         "  templates: async () => [], editor: async () => ({ tag: 'tally-editor' }), title: () => '', retitle: (doc) => doc, view: () => [{ w: 1, h: 1, svg: '' }] });",
         'registerApp(tally);',
+        // A host's marks on a read-only sheet.
+        "export const marked: SheetMark[] = [{ row: 0, text: '2', title: '2 comments' }, { row: 1, col: 2, text: '!' }];",
       ].join('\n'),
     );
     writeFileSync(
