@@ -58,7 +58,7 @@ test('the packages say what they are and where they live: the site stays unpubli
 test('a stranger finds the license and a brief README, and no other front matter', () => {
   expect(read('LICENSE')).toMatch(/^MIT License\n\nCopyright \(c\) 2026 Paul Ford\n/);
   expect(read('LICENSE').trim().split('\n').length).toBeLessThanOrEqual(21);
-  // Paul's README of 2026-10-13 lists the ten apps and a sample document for each; still one screen or two, no more.
+  // Paul's README of 2026-10-13 lists the apps and a sample document for each; still one screen or two, no more.
   expect(read('README.md').trim().split('\n').length).toBeLessThanOrEqual(90);
   expect(read('README.md')).not.toMatch(/security@/);
   for (const f of ['CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'SECURITY.md', '.github/PULL_REQUEST_TEMPLATE.md', '.github/ISSUE_TEMPLATE']) expect(existsSync(join(root, f)), f).toBe(false);

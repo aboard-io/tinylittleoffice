@@ -214,6 +214,21 @@ holding an arrow or `: ` (`~ A -- B -> C`) is read against the things there are,
 **trip** (Trip Planner): a table `Place | Lat:number | Lon:number | Note`. Head: `units: km` or `miles` (hours of
 driving where absent), `route: dots` for places that are not a route.
 
+**board** (Board): a table, a card a row. The lanes are the values of one column: the first named `Status` or
+`Stage`, else the first `:option` column, else the last. A card's title is the first column of words, its fields the
+other columns, typed as a sheet's. Head: `lanes:` the lanes in order, a comma between them (`\,` in a name), which
+keeps a lane no card is in; without it, the order the rows first name them. A row with an empty status is in a lane
+of no name.
+
+```
+---
+lanes: To do, Doing, Done
+---
+Task | Status:option | Owner | Due:date
+--- | --- | --- | ---
+Write the brief | Doing | Ana | 2027-03-01
+```
+
 ## Opening another app's reading
 
 The Download menu's "Open in" turns a document into another app's (a text as slides, an outline as a mind map, a
