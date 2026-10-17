@@ -3,7 +3,7 @@
  * site:dev` runs it) and the shortener (`wrangler dev -c backends/cloudflare/tinier/wrangler.jsonc`), on one local D1 with the migrations
  * applied. A document's Share, Bluesky with the preview on: the browser draws the first page, the Worker keeps it, the
  * compose box gets the link with /c/<id>; that page says the card in its tags, the picture decodes at 1200 by
- * 630, and the shortener's landing page with the same ?c= says it too. Desktop Chromium only (one Worker pair). Run on
+ * 630. Desktop Chromium only (one Worker pair). Run on
  * its own:
  *
  *   npx playwright test e2e/cards.spec.ts --project=desktop
@@ -98,12 +98,4 @@ test('a document shared to Bluesky with its preview: the card is kept, the /c/<i
     return [bitmap.width, bitmap.height];
   }, bytes);
   expect(size).toEqual([1200, 630]);
-
-  // The shortener's landing page with the same card.
-  const made = await request.post(`${tinier}/api`, { data: { c: 'abc', iv: 'xyz', ttl: 3600 } });
-  expect(made.status()).toBe(201);
-  const { id: short } = (await made.json()) as { id: string };
-  const landing = await (await request.get(`${tinier}/${short}?c=${id}`)).text();
-  expect(content(landing, 'og:title')).toBe('Garden &quot;plan&quot;');
-  expect(content(landing, 'og:image')).toBe(`${site}/card/${id}.png`);
 });

@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { fillHeaders } from '../scripts/headers.ts';
 import { assets, MAX_BODY, send, toRequest } from '../backends/node/http.ts';
 import { options, start } from '../backends/node/server.ts';
+import { png as wholePng } from './png.ts';
 
 /** A built site in small: the real _headers, filled as the build fills it, and a page or two. */
 const dist = mkdtempSync(join(tmpdir(), 'tlo-selfhost-'));
@@ -50,6 +51,7 @@ test('the files as Cloudflare serves them: a folder at its slash, 404.html for w
   expect(missing.status).toBe(404);
   expect(await missing.text()).toContain('Not here');
   expect((await get('/_headers')).status).toBe(404);
+  for (const path of ['//_headers', '/x/..%2F_headers', '/_redirects', '/./_headers']) expect((await get(path)).status, path).toBe(404);
   expect((await get('/%2e%2e/%2e%2e/etc/passwd')).status).toBe(404);
   expect((await get('/', { method: 'POST' })).status).toBe(404);
   const etag = (await get('/')).headers.get('etag')!;
@@ -87,7 +89,9 @@ test('the adapters: method, path, headers and body in; status, headers and body 
   server.close();
   // Behind a proxy that names the reader.
   const proxied = await through(async (req) => new Response(req.headers.get('cf-connecting-ip')), 'x-forwarded-for');
-  expect(await (await fetch(proxied.url, { headers: { 'x-forwarded-for': '5.6.7.8, 10.0.0.1' } })).text()).toBe('5.6.7.8');
+  // The proxy appended the address it saw; the first is whatever the client wrote (a review, 2026-10-17).
+  expect(await (await fetch(proxied.url, { headers: { 'x-forwarded-for': '5.6.7.8, 10.0.0.1' } })).text()).toBe('10.0.0.1');
+  expect(await (await fetch(proxied.url, { headers: { 'x-forwarded-for': '10.0.0.2' } })).text()).toBe('10.0.0.2');
   proxied.server.close();
 });
 
@@ -99,14 +103,8 @@ test('the environment: BRAKE_KEY required and said so; the site’s address, the
   expect(options({ BRAKE_KEY: 'k', SITE: 'https://office.example.org/' }).site).toBe('https://office.example.org');
 });
 
-/** A PNG of 1200 by 630 as far as the card's check reads it: its eight first bytes and the IHDR's width and height. */
-const png = () => {
-  const b = new Uint8Array(64);
-  b.set([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
-  new DataView(b.buffer).setUint32(16, 1200);
-  new DataView(b.buffer).setUint32(20, 630);
-  return btoa(String.fromCharCode(...b));
-};
+/** A PNG of 1200 by 630, whole as the card's check reads it (test/cards.test.ts png), as base64. */
+const png = () => btoa(String.fromCharCode(...wholePng(1200, 630, 200)));
 
 test('one process, two listeners: a short link made and read back, its landing page, and a preview card at /c/<id> on the app’s page', async () => {
   const SITE = 'http://office.test';
@@ -126,7 +124,11 @@ test('one process, two listeners: a short link made and read back, its landing p
 
     const site = at(running.site);
     expect(await (await fetch(`${site}/`)).text()).toContain('<title>Home');
-    const card = await fetch(`${site}/card`, { method: 'POST', body: JSON.stringify({ png: png(), title: 'Our plan', text: 'Words.', app: 'write' }) });
+    const card = await fetch(`${site}/card`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ png: png(), title: 'Our plan', text: 'Words.', app: 'write' }),
+    });
     expect(card.status).toBe(201);
     const { id: cid } = (await card.json()) as { id: string };
     const shared = await fetch(`${site}/c/${cid}`);

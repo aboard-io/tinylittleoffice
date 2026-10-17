@@ -9,7 +9,7 @@
  *
  *   POST   /api        {c, iv, ttl}   -> 201 {id, exp}
  *   GET    /api/<id>                  -> {c, iv, exp}   (404 once gone)
- *   GET    /<id>       the page that decrypts and redirects; with ?c=<card>, its tags say that preview card (cards.ts)
+ *   GET    /<id>       the page that decrypts and redirects
  *   GET    /           what this is
  *   GET    /robots.txt every fetcher let in
  *
@@ -18,7 +18,8 @@
  * honor robots.txt and must still read a shared link's preview (Paul, 2026-10-11).
  *
  * Every other method or path answers 404, as an unknown link does. The API's only answers are 201, 200, 400,
- * 404, 429 and 503.
+ * 404, 429 and 503. A link is made by a page of the site alone, as JSON: a page of another site, or a form, is refused
+ * before its body is read, so no request a stranger's page can send without asking is counted against the reader.
  *
  * What the server knows: ciphertext, an IV, an expiry, and that a request came. It cannot read a link. One
  * address may make a hundred links a UTC day (DAILY), counted under a keyed hash that says nothing of the address
@@ -29,8 +30,8 @@
  * This file is the whole of it apart from the brake, the cards and where the rows live (a Store): d1.ts keeps them
  * in D1, worker.ts runs it on Cloudflare; the tests give it Maps, and d1.ts node's SQLite.
  */
-import { braked, type Counter } from './brake.ts';
-import { cardId, newId, noEdge, withCard, type CardStore, type Edge } from '../cards/cards.ts';
+import { bodyText, braked, type Counter } from './brake.ts';
+import { newId, type CardStore } from '../cards/cards.ts';
 
 export interface Link {
   c: string;
@@ -71,8 +72,12 @@ const B64 = /^[A-Za-z0-9_~-]+$/;
 
 const valid = (s: string) => /^[a-z0-9]{7}$/.test(s);
 
+const HSTS = 'max-age=31536000; includeSubDomains';
 const json = (body: unknown, site: string, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store' } });
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'strict-transport-security': HSTS },
+  });
 const bad = (site: string) => json({ error: 'Bad request' }, site, 400);
 const gone = (site: string) => json({ error: 'No such link, or it has expired.' }, site, 404);
 const html = (page: string, status = 200) =>
@@ -84,7 +89,8 @@ const html = (page: string, status = 200) =>
       'cache-control': 'no-store, no-transform',
       'referrer-policy': 'no-referrer',
       'x-content-type-options': 'nosniff',
-      'content-security-policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'",
+      'strict-transport-security': HSTS,
+      'content-security-policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
     },
   });
 
@@ -99,10 +105,11 @@ async function read(store: Store, id: string, now: number): Promise<Link | null>
   return link;
 }
 
-/** The body of a request, as JSON, or null when it is not JSON or is far too big. */
+/** The body of a request, as JSON, or null when it is not sent as JSON, is not JSON, or is far too big. */
 async function body(req: Request): Promise<Record<string, unknown> | null> {
-  const text = await req.text();
-  if (text.length > MAX_BYTES * 2) return null;
+  if (!/^application\/json\b/i.test(req.headers.get('content-type') ?? '')) return null;
+  const text = await bodyText(req, MAX_BYTES * 2);
+  if (text === null) return null;
   try {
     const v = JSON.parse(text);
     return v && typeof v === 'object' ? (v as Record<string, unknown>) : null;
@@ -121,25 +128,26 @@ Allow: /
 
 /**
  * Answer one request. `key` is the brake's secret (BRAKE_KEY). `page` is the landing page with "{{id}}" where the id
- * goes, "{{site}}" where the site does and "{{sites}}" where every site `site` names does (SITE). `edge` keeps a landing page with a card (caches.default on Cloudflare).
- * Every answer is marked noindex.
+ * goes, "{{site}}" where the site does and "{{sites}}" where every site `site` names does (SITE). Every answer is marked
+ * noindex.
  */
-export async function handle(req: Request, store: Store, key: string, page: string, now = Date.now(), site = SITE, edge: Edge = noEdge): Promise<Response> {
-  const res = await answer(req, store, key, page, now, site, edge);
+export async function handle(req: Request, store: Store, key: string, page: string, now = Date.now(), site = SITE): Promise<Response> {
+  const res = await answer(req, store, key, page, now, site);
   res.headers.set('x-robots-tag', 'noindex');
   return res;
 }
 
-async function answer(req: Request, store: Store, key: string, page: string, now: number, sites: string, edge: Edge): Promise<Response> {
+async function answer(req: Request, store: Store, key: string, page: string, now: number, sites: string): Promise<Response> {
   const url = new URL(req.url);
   const all = sitesOf(sites);
   const site = all[0] ?? SITE;
   page = page.replaceAll('{{sites}}', all.join(',')).replaceAll('{{site}}', site);
-  // The origin the API answers: the asking page's, when it is one of the sites; else the site's own.
+  // The origin the API answers: the asking page's, when it is one of the sites; else the site's own. A page of any
+  // other site may read a link, never make one.
   const origins = all.map((s) => new URL(s).origin);
   const asking = req.headers.get('origin');
   const allow = asking && origins.includes(asking) ? asking : new URL(site).origin;
-  const res = await api(req, url, store, key, now, allow);
+  const res = await api(req, url, store, key, now, allow, !asking || origins.includes(asking));
   if (res) {
     if (origins.length > 1) res.headers.set('vary', 'origin');
     return res;
@@ -148,19 +156,14 @@ async function answer(req: Request, store: Store, key: string, page: string, now
   if (req.method === 'GET' && url.pathname === '/') return html(page.replace('{{id}}', ''));
   if (req.method === 'GET' && valid(url.pathname.slice(1))) {
     const id = url.pathname.slice(1);
-    const landing = async () => {
-      const link = await read(store, id, now);
-      return html(page.replace('{{id}}', link ? id : ''), link ? 200 : 404);
-    };
-    // Shared with a network with its preview: the page's tags say the card, whose picture the site serves.
-    const card = cardId(url.searchParams.get('c'));
-    return card ? withCard(req, card, store, edge, now, `${site}/card/${card}.png`, landing) : landing();
+    const link = await read(store, id, now);
+    return html(page.replace('{{id}}', link ? id : ''), link ? 200 : 404);
   }
   return html(page.replace('{{id}}', ''), 404);
 }
 
-/** The API's answers (OPTIONS, and anything under /api), each letting `site` read it; null for any other request. */
-async function api(req: Request, url: URL, store: Store, key: string, now: number, site: string): Promise<Response | null> {
+/** The API's answers (OPTIONS, and anything under /api), each letting `site` read it; null for any other request. `fromSite`: the asking page is one of the sites, or no page asked. */
+async function api(req: Request, url: URL, store: Store, key: string, now: number, site: string, fromSite: boolean): Promise<Response | null> {
   if (req.method === 'OPTIONS')
     return new Response(null, {
       status: 204,
@@ -168,6 +171,7 @@ async function api(req: Request, url: URL, store: Store, key: string, now: numbe
     });
 
   if (req.method === 'POST' && url.pathname === '/api') {
+    if (!fromSite) return bad(site);
     const b = await body(req);
     if (!b) return bad(site);
     const { c, iv, ttl } = b;
@@ -190,7 +194,7 @@ async function api(req: Request, url: URL, store: Store, key: string, now: numbe
 
   // Anything else under /api is a link that is not there (Paul, 2026-10-11: "There should be a 404"): a 405
   // would advertise an API that does not exist.
-  if (url.pathname.startsWith('/api')) {
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
     const id = url.pathname.slice(5);
     const link = req.method === 'GET' && valid(id) ? await read(store, id, now) : null;
     return link ? json({ c: link.c, iv: link.iv, exp: link.exp }, site) : gone(site);

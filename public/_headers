@@ -9,6 +9,7 @@
 # media-src of the list's (default-src 'self' holds frames, films and sounds to the site's own).
 /*
   X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
   Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {{img}}; font-src 'self'; connect-src 'self' data: {{connect}}; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors 'none'

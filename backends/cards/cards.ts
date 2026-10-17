@@ -2,21 +2,23 @@
  * Preview cards: the picture a link shared with a network previews with, by the person's choice (Paul, 2026-10-11:
  * "When we explicitly share with a social network from in the app, that's when we do this"). The person's browser
  * draws the document's first page as a PNG of 1200 by 630 (src/kit/share/card.ts) and posts it here with the
- * document's title and first words; the link it shares carries the card's id as `?c=<id>`, before the "#", where a
- * fetcher sees it. A card is not a link: it is kept readable, for a month, so a network can fetch it. The document
- * itself never comes here.
+ * document's title and first words; the link it shares carries the card's id in its path, `/c/<id>`, before the "#",
+ * where a fetcher sees it. A card is not a link: it is kept readable, for a month, so a network can fetch it. The
+ * document itself never comes here.
  *
- *   POST /card            {png, title, text, app}  -> 201 {id, exp}   (the site's Worker, backends/cards/site.ts)
+ *   POST /card            {png, title, text, app}  -> 201 {id, exp}   (the site's own page alone, as JSON; site.ts)
  *   GET  /card/<id>.png   the picture, immutable                      (404 once gone)
- *   GET  <a page>?c=<id>  the page, its head's tags saying the card    (the site's app pages and /, the shortener's landing page)
+ *   GET  /c/<id>          the card's app's page, its head's tags saying the card (site.ts cardPage)
  *
- * The body is JSON, the PNG in base64: the shortener's API is JSON too, one parser and one size check before it is
- * read, and the tests post it as they post a link. One module for both Workers: the site's (backends/cards/site.ts) and the
- * shortener's (tinier.ts), whose landing page previews the same way. What either reads from the database it keeps at
- * the edge (`Edge`, caches.default on Cloudflare): the picture for the card's life, a page for an hour, so a card is
- * read from D1 once however many fetchers come (Paul, 2026-10-11: "cache it, this is Cloudflare").
+ * The body is JSON, the PNG in base64: the shortener's API is JSON too, one bounded read and one parser before
+ * anything is looked at, and the tests post it as they post a link. The picture is read as a PNG whole, chunk by
+ * chunk with its checksums, before it is kept: what the site serves as a picture is at least a picture. What is read
+ * from the database is kept at the edge (`Edge`, caches.default on Cloudflare): the picture for the card's life, a
+ * page for an hour, so a card is read from D1 once however many fetchers come (Paul, 2026-10-11: "cache it, this is
+ * Cloudflare"). A card's id is twelve letters and digits, sixty bits, since nobody types one and a card is readable to
+ * whoever has its id; a short link's seven, which people type, are the shortener's own (tinier.ts).
  */
-import { braked, type Counter } from '../tinier/brake.ts';
+import { bodyText, braked, type Counter } from '../tinier/brake.ts';
 
 /** A card as a page's tags say it. */
 export interface Card {
@@ -48,28 +50,62 @@ export const CARD_H = 630;
 export const CARD_PNG_MAX = 400 * 1024;
 export const CARD_TITLE_MAX = 120;
 export const CARD_TEXT_MAX = 300;
+/** A card's id: twelve of the alphabet below, about sixty bits. */
+export const CARD_ID = 12;
 
-/** 32 letters and digits that are hard to misread: no l, 1, o or 0. A short link's id has the same shape. */
+/** 32 letters and digits that are hard to misread: no l, 1, o or 0. A short link's id is seven of them; a card's, CARD_ID. */
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
-export const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(7)), (b) => ALPHABET[b % 32]).join('');
-/** A card's id from `?c=`, or null when it is not one. */
-export const cardId = (s: string | null | undefined): string | null => (s && /^[a-z0-9]{7}$/.test(s) ? s : null);
+export const newId = (n = 7) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => ALPHABET[b % 32]).join('');
 
 const said = (error: string, status: number) => new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
-/** The PNG's own width and height (its IHDR), or null when the bytes are not a PNG. */
+/** CRC-32 as PNG uses it (ISO 3309, the table-driven form), over some bytes. */
+const CRC = new Uint32Array(256).map((_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+export function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff;
+  for (const b of bytes) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+/**
+ * The PNG's own width and height (its IHDR), or null when the bytes are not a whole PNG: the eight bytes every PNG
+ * begins with, then chunks, each within the bytes with its CRC right, IHDR first and IEND last with nothing after.
+ */
 function pngSize(png: Uint8Array): { w: number; h: number } | null {
   const sig = [137, 80, 78, 71, 13, 10, 26, 10];
-  if (png.length < 24 || sig.some((b, i) => png[i] !== b)) return null;
+  if (png.length < 8 + 25 + 12 || sig.some((b, i) => png[i] !== b)) return null;
   const v = new DataView(png.buffer, png.byteOffset, png.byteLength);
-  return { w: v.getUint32(16), h: v.getUint32(20) };
+  let at = 8;
+  let size: { w: number; h: number } | null = null;
+  while (at + 12 <= png.length) {
+    const len = v.getUint32(at);
+    const type = String.fromCharCode(png[at + 4], png[at + 5], png[at + 6], png[at + 7]);
+    if (at + 12 + len > png.length || crc32(png.subarray(at + 4, at + 8 + len)) !== v.getUint32(at + 8 + len)) return null;
+    if (!size) {
+      if (type !== 'IHDR' || len !== 13) return null;
+      size = { w: v.getUint32(at + 8), h: v.getUint32(at + 12) };
+    }
+    at += 12 + len;
+    if (type === 'IEND') return at === png.length ? size : null;
+  }
+  return null;
 }
 
 /** What a POST says, read and held to the limits: the card, or the sentence that says what is wrong. */
 async function readCard(req: Request): Promise<(Card & { png: Uint8Array }) | string> {
-  const text = await req.text();
+  // The site's own page posts a card, as JSON: another site's page never does, nor a form (a request another site's
+  // page can send without asking is counted against the reader's address, not the page's: a review, 2026-10-17).
+  if (!/^application\/json\b/i.test(req.headers.get('content-type') ?? '')) return 'Bad request';
+  const origin = req.headers.get('origin');
+  const from = req.headers.get('sec-fetch-site');
+  if ((origin && origin !== new URL(req.url).origin) || (from && from !== 'same-origin' && from !== 'none')) return 'Bad request';
   // The PNG's base64 and the words, with room for the JSON around them.
-  if (text.length > Math.ceil(CARD_PNG_MAX / 3) * 4 + 4 * (CARD_TITLE_MAX + CARD_TEXT_MAX) + 1024) return 'The picture is over 400 KB.';
+  const text = await bodyText(req, Math.ceil(CARD_PNG_MAX / 3) * 4 + 4 * (CARD_TITLE_MAX + CARD_TEXT_MAX) + 1024);
+  if (text === null) return 'The picture is over 400 KB.';
   let b: Record<string, unknown>;
   try {
     b = JSON.parse(text);
@@ -105,7 +141,7 @@ export async function postCard(req: Request, store: CardStore, key: string, now:
   }
   const exp = now + CARD_TTL;
   for (let tries = 0; tries < 5; tries++) {
-    const id = newId();
+    const id = newId(CARD_ID);
     if (await store.putCard(id, { ...card, exp })) return new Response(JSON.stringify({ id, exp }), { status: 201, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
   }
   return said('Could not keep the card; try again.', 503);
@@ -113,20 +149,29 @@ export async function postCard(req: Request, store: CardStore, key: string, now:
 
 const IMMUTABLE = 'public, max-age=31536000, immutable';
 
-/** GET /card/<id>.png: the picture, from the edge when it is there, else from the database and put there for the card's life. */
-export async function cardPng(req: Request, id: string, store: CardStore, edge: Edge, now: number): Promise<Response> {
+/**
+ * What the edge holds under the request's address, as a Response of its own (a hit's headers cannot be changed, and
+ * a Worker that tried threw, 2026-10-17), or what `fill` gives, kept there too; null when it gives none.
+ */
+async function fromEdge(req: Request, edge: Edge, fill: () => Promise<Response | null>): Promise<Response | null> {
   const key = new Request(req.url);
   const hit = await edge.match(key);
-  if (hit) {
-    const res = new Response(hit.body, hit);
-    res.headers.set('cache-control', IMMUTABLE);
-    return res;
-  }
-  const row = await store.cardPng(id);
-  if (!row || row.exp < now) return new Response('No such card, or it has expired.', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
+  if (hit) return new Response(hit.body, hit);
+  const res = await fill();
+  if (res) await edge.put(key, res.clone());
+  return res;
+}
+
+/** GET /card/<id>.png: the picture, from the edge when it is there, else from the database and put there for the card's life; the fetcher told a year. */
+export async function cardPng(req: Request, id: string, store: CardStore, edge: Edge, now: number): Promise<Response> {
   const headers = { 'content-type': 'image/png', 'x-content-type-options': 'nosniff' };
-  await edge.put(key, new Response(row.png.slice(), { headers: { ...headers, 'cache-control': `public, max-age=${Math.max(0, Math.floor((row.exp - now) / 1000))}` } }));
-  return new Response(row.png.slice(), { headers: { ...headers, 'cache-control': IMMUTABLE } });
+  const res = await fromEdge(req, edge, async () => {
+    const row = await store.cardPng(id);
+    return row && row.exp >= now ? new Response(row.png.slice(), { headers: { ...headers, 'cache-control': `public, max-age=${Math.max(0, Math.floor((row.exp - now) / 1000))}` } }) : null;
+  });
+  if (!res) return new Response('No such card, or it has expired.', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
+  res.headers.set('cache-control', IMMUTABLE);
+  return res;
 }
 
 /** The tags a page's head carries that a card replaces: each written once by the build (index.html, scripts/seo.ts) and by the shortener's page. */
@@ -167,47 +212,23 @@ export function tagged(page: string, card: Card, image: string): string {
 }
 
 /**
- * A page asked for with `?c=<id>`: from the edge when it is there; else the page `page()` gives, its tags saying the
- * card, kept at the edge for an hour. An unknown or expired id is the page unchanged.
- */
-export async function withCard(req: Request, id: string, store: CardStore, edge: Edge, now: number, image: string, page: () => Promise<Response>): Promise<Response> {
-  const key = new Request(req.url);
-  const hit = await edge.match(key);
-  if (hit) return hit;
-  const card = await store.card(id);
-  if (!card || card.exp < now) return page();
-  const res = await page();
-  if (res.status !== 200 || !(res.headers.get('content-type') ?? '').startsWith('text/html')) return res;
-  return taggedPage(key, res, card, image, edge);
-}
-
-/**
  * The page a link shared with a network opens, `/c/<id>` (kit/share/card.ts withCardId): the card's app's own page
  * (`pageOf(app)`), its tags saying the card, kept at the edge for an hour. The document is the hash's, which never
  * reaches here; the shell moves the address to the app's page. An unknown or expired card, or a page that does not
- * come, is sent to `home` (a 302 keeps the hash, so the document still opens there).
+ * come, is sent to `home` (a 302 keeps the hash, so the document still opens there). no-transform, as the pages' own
+ * header says (public/_headers): without it Cloudflare wrote its analytics beacon into the page served at /c/<id>
+ * (seen live, 2026-10-15), a third party's script the policy blocks but the site never asks for.
  */
 export async function cardPage(req: Request, id: string, store: CardStore, edge: Edge, now: number, image: string, pageOf: (app: string) => Promise<Response>, home: string): Promise<Response> {
-  const key = new Request(req.url);
-  const hit = await edge.match(key);
-  if (hit) return hit;
-  const card = await store.card(id);
-  if (!card || card.exp < now) return Response.redirect(home, 302);
-  const res = await pageOf(card.app);
-  if (res.status !== 200 || !(res.headers.get('content-type') ?? '').startsWith('text/html')) return Response.redirect(home, 302);
-  return taggedPage(key, res, card, image, edge);
-}
-
-/**
- * A page's HTML with the card's tags, kept at the edge under `key` for an hour. no-transform, as the pages' own header
- * says (public/_headers): without it Cloudflare wrote its analytics beacon into the page served at /c/<id> (seen live,
- * 2026-10-15), a third party's script the policy blocks but the site never asks for.
- */
-async function taggedPage(key: Request, res: Response, card: Card, image: string, edge: Edge): Promise<Response> {
-  const headers = new Headers(res.headers);
-  headers.set('cache-control', 'public, max-age=3600, no-transform');
-  for (const h of ['content-length', 'etag', 'last-modified']) headers.delete(h);
-  const out = new Response(tagged(await res.text(), card, image), { status: 200, headers });
-  await edge.put(key, out.clone());
-  return out;
+  const res = await fromEdge(req, edge, async () => {
+    const card = await store.card(id);
+    if (!card || card.exp < now) return null;
+    const page = await pageOf(card.app);
+    if (page.status !== 200 || !(page.headers.get('content-type') ?? '').startsWith('text/html')) return null;
+    const headers = new Headers(page.headers);
+    headers.set('cache-control', 'public, max-age=3600, no-transform');
+    for (const h of ['content-length', 'etag', 'last-modified']) headers.delete(h);
+    return new Response(tagged(await page.text(), card, image), { status: 200, headers });
+  });
+  return res ?? Response.redirect(home, 302);
 }

@@ -8,7 +8,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type { SQL } from '../tinier/d1.ts';
 
-/** D1's prepare → bind → first or run, over a node:sqlite database; a statement is prepared once and kept. */
+/** D1's prepare → bind → first, run or all, over a node:sqlite database; a statement is prepared once and kept. */
 export function sqlite(db: DatabaseSync): SQL {
   const kept = new Map<string, ReturnType<DatabaseSync['prepare']>>();
   const statement = (query: string) => kept.get(query) ?? kept.set(query, db.prepare(query)).get(query)!;
@@ -17,6 +17,7 @@ export function sqlite(db: DatabaseSync): SQL {
       bind: (...values) => ({
         first: async <T>() => (statement(query).get(...(values as SQLInputValue[])) as T | undefined) ?? null,
         run: async () => ({ meta: { changes: Number(statement(query).run(...(values as SQLInputValue[])).changes) } }),
+        all: async <T>() => ({ results: statement(query).all(...(values as SQLInputValue[])) as T[] }),
       }),
     }),
   };

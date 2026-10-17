@@ -22,7 +22,8 @@ export default {
     return handleSite(req, {
       assets: env.ASSETS,
       store: new D1Store(env.DB),
-      key: brakeKey(env.BRAKE_KEY, 'backends/cloudflare/site/wrangler.jsonc', 'backends/cloudflare/site/.dev.vars', 'npm run site:dev'),
+      // The cards' counts under a key of their own beside the links', as the process keeps them (backends/node/server.ts), so one secret may serve both Workers.
+      key: `${brakeKey(env.BRAKE_KEY, 'backends/cloudflare/site/wrangler.jsonc', 'backends/cloudflare/site/.dev.vars', 'npm run site:dev')}\ncards`,
       edge: caches.default,
       now: Date.now(),
     });

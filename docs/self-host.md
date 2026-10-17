@@ -235,6 +235,6 @@ The settings (`.env.example` lists them; compose reads the checkout's `.env`):
 | `TINIER` | `http://localhost:8001` | the shortener's address as a browser reaches it, which Docker builds into the pages and their policy (`VITE_TINIER` to a build without Docker) |
 | `PORT`, `TINIER_PORT` | `8000`, `8001` | the two ports (in Docker, the ports on the host) |
 | `DB` | `data/tinier.sqlite` | the SQLite file (in Docker, `/data/tinier.sqlite` on the volume) |
-| `IP_HEADER` | none | behind a proxy, the header that names the reader's address (`x-forwarded-for`), so the brake counts each reader and not the proxy |
+| `IP_HEADER` | none | behind a proxy, the header that names the reader's address (`x-forwarded-for`): the last address in it, the one the proxy appended, so the brake counts each reader and not the proxy. With it set, let the two ports be reached through the proxy alone (`HOST=127.0.0.1`, or the proxy's network), since a client that reaches them directly names any address it likes |
 
 `SITE` and `TINIER` are written into the build: change them and build again.

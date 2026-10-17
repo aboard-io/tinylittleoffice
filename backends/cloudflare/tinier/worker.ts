@@ -21,7 +21,7 @@ declare global {
 
 export default {
   fetch(req, env) {
-    return handle(req, new D1Store(env.DB), brakeKey(env.BRAKE_KEY), PAGE, Date.now(), env.SITE || SITE, caches.default);
+    return handle(req, new D1Store(env.DB), brakeKey(env.BRAKE_KEY), PAGE, Date.now(), env.SITE || SITE);
   },
   scheduled(_controller, env, ctx) {
     ctx.waitUntil(new D1Store(env.DB).sweep(Date.now()));

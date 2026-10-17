@@ -11,11 +11,12 @@ import { apps, appOf } from '../src/kit/core/apps.ts';
 import { FONT, pageSvg } from '../src/kit/draw/draw.ts';
 import { CARD_H as DRAWN_H, CARD_W as DRAWN_W } from '../src/kit/draw/card.ts';
 import { CARD_PNG_MAX as CLIENT_PNG_MAX, CARD_TEXT, CARD_TITLE_MAX as CLIENT_TITLE_MAX, cardWords, withCardId } from '../src/kit/share/card.ts';
-import { CARD_H, CARD_PNG_MAX, CARD_TAGS, CARD_TEXT_MAX, CARD_TITLE_MAX, CARD_TTL, CARD_W, tagCount, type Edge } from '../backends/cards/cards.ts';
+import { CARD_H, CARD_ID, CARD_PNG_MAX, CARD_TAGS, CARD_TEXT_MAX, CARD_TITLE_MAX, CARD_TTL, CARD_W, tagCount, type Edge } from '../backends/cards/cards.ts';
 import { handleSite } from '../backends/cards/site.ts';
 import { handle } from '../backends/tinier/tinier.ts';
 import { DAILY } from '../backends/tinier/brake.ts';
 import { MemStore } from './memstore.ts';
+import { png } from './png.ts';
 
 const KEY = 'a-key-for-the-tests';
 const NOW = Date.UTC(2026, 9, 11, 12);
@@ -23,16 +24,6 @@ const DAY = 86_400_000;
 const SITE = 'https://tinylittleoffice.com';
 const SHELL = readFileSync(new URL('../index.html', import.meta.url), 'utf8').replaceAll('%VITE_SITE_URL%', `${SITE}/`);
 
-/** The first bytes of a PNG of w by h (what the server reads of it), padded to `size`. */
-function png(w = 1200, h = 630, size = 2000): Uint8Array {
-  const b = new Uint8Array(size);
-  b.set([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
-  const v = new DataView(b.buffer);
-  v.setUint32(16, w);
-  v.setUint32(20, h);
-  for (let i = 24; i < size; i++) b[i] = i % 251;
-  return b;
-}
 const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64');
 const body = (o: Partial<{ png: string; title: string; text: string; app: string }> = {}) => JSON.stringify({ png: b64(png()), title: 'Plans', text: 'The first words.', app: 'write', ...o });
 
@@ -68,7 +59,8 @@ test('a card is kept for a month under a new id and its picture handed back as i
   const made = await ask(post(body()));
   expect(made.status).toBe(201);
   const { id, exp } = (await made.json()) as { id: string; exp: number };
-  expect(id).toMatch(/^[abcdefghijkmnpqrstuvwxyz23456789]{7}$/);
+  expect(id).toMatch(new RegExp(`^[abcdefghijkmnpqrstuvwxyz23456789]{${CARD_ID}}$`));
+  expect(CARD_ID).toBe(12);
   expect(exp).toBe(NOW + 30 * DAY);
   expect(CARD_TTL).toBe(30 * DAY);
   expect(store.cards.get(id)).toMatchObject({ app: 'write', title: 'Plans', text: 'The first words.', exp });
@@ -100,11 +92,29 @@ test('what a card may be: a PNG of 1200 by 630 of at most 400 KB, a title of 120
   await refused(body({ png: b64(png(1200, 630, 900 * 1024)) }), 'The picture is over 400 KB.');
   await refused(body({ png: b64(png(1200, 600)) }), 'A card is a PNG of 1200 by 630.');
   await refused(body({ png: b64(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>')) }), 'A card is a PNG of 1200 by 630.');
+  // A PNG whole, or nothing: a chunk's checksum wrong, the end cut off, bytes after the end, or a header alone.
+  const whole = png();
+  await refused(body({ png: b64(Uint8Array.from(whole, (b, i) => (i === 40 ? b ^ 1 : b))) }), 'A card is a PNG of 1200 by 630.');
+  await refused(body({ png: b64(whole.subarray(0, whole.length - 4)) }), 'A card is a PNG of 1200 by 630.');
+  await refused(body({ png: b64(new Uint8Array([...whole, 0])) }), 'A card is a PNG of 1200 by 630.');
+  await refused(body({ png: b64(whole.subarray(0, 33)) }), 'A card is a PNG of 1200 by 630.');
+  // From another site's page, or not as JSON, it is no card and not counted (the brake would count the reader).
+  const foreign: Record<string, string>[] = [
+    { 'content-type': 'text/plain', 'cf-connecting-ip': '1.2.3.4' },
+    { 'content-type': 'application/json', origin: 'https://evil.example', 'cf-connecting-ip': '1.2.3.4' },
+    { 'content-type': 'application/json', 'sec-fetch-site': 'cross-site', 'cf-connecting-ip': '1.2.3.4' },
+  ];
+  for (const headers of foreign) {
+    const res = await ask(new Request(`${SITE}/card`, { method: 'POST', headers, body: body() }));
+    expect(res.status, JSON.stringify(headers)).toBe(400);
+  }
   await refused(body({ png: 'not base64 !' }), 'Bad request');
   await refused(body({ app: '../etc' }), 'Bad request');
   await refused('not json', 'Bad request');
   expect(store.cards.size).toBe(0);
   expect(store.brakes.size).toBe(0);
+  // The site's own page, as the browser sends it: its origin and sec-fetch-site, as JSON.
+  expect((await ask(new Request(`${SITE}/card`, { method: 'POST', headers: { 'content-type': 'application/json', origin: SITE, 'sec-fetch-site': 'same-origin' }, body: body() }))).status).toBe(201);
   // At the limits it is kept: 120 characters of title, 300 of words, 400 KB of picture; an emoji is one character.
   expect((await ask(post(body({ title: '😀'.repeat(120), text: 'x'.repeat(300), png: b64(png(1200, 630, 400 * 1024)) })))).status).toBe(201);
 });
@@ -126,31 +136,6 @@ test('the brake: a hundred cards a day from one address, the 101st refused until
 
 /** A tag's content in a page. */
 const content = (page: string, name: string) => new RegExp(`<meta (?:property|name)="${name.replace(/[.:]/g, '\\$&')}" content="([^"]*)"`).exec(page)?.[1];
-
-test('an app page or the home page with ?c= carries the card in its tags, the title escaped, cacheable for an hour', async () => {
-  const store = new MemStore();
-  const ask = site(store);
-  const title = 'Q3 "plans" <draft> & more';
-  const { id } = (await (await ask(post(body({ title, text: 'Words with "quotes".', app: 'sheet' })))).json()) as { id: string };
-  for (const path of ['/', '/sheet/', '/write/']) {
-    const res = await ask(get(`${path}?c=${id}`));
-    expect(res.status, path).toBe(200);
-    expect(res.headers.get('cache-control')).toBe('public, max-age=3600, no-transform');
-    expect(res.headers.get('content-type')).toMatch(/^text\/html/);
-    const page = await res.text();
-    const esc = 'Q3 &quot;plans&quot; &lt;draft&gt; &amp; more';
-    expect(content(page, 'og:title')).toBe(esc);
-    expect(content(page, 'og:image:alt')).toBe(esc);
-    expect(content(page, 'twitter:title')).toBe(esc);
-    expect(content(page, 'og:description')).toBe('Words with &quot;quotes&quot;.');
-    expect(content(page, 'twitter:description')).toBe('Words with &quot;quotes&quot;.');
-    expect(content(page, 'og:image')).toBe(`${SITE}/card/${id}.png`);
-    expect(content(page, 'twitter:image')).toBe(`${SITE}/card/${id}.png`);
-    expect([content(page, 'og:image:width'), content(page, 'og:image:height'), content(page, 'twitter:card')]).toEqual(['1200', '630', 'summary_large_image']);
-    for (const tag of CARD_TAGS) expect(tagCount(page, tag), tag).toBe(1);
-    expect(page).not.toContain(title);
-  }
-});
 
 // The page a shared link opens (2026-10-15): the card's app's page, tagged, at /c/<id>; the one page the Worker runs for.
 test('/c/<id> is the card’s app’s page with the card in its tags, cached an hour; unknown, expired or malformed goes home, keeping the hash', async () => {
@@ -189,7 +174,7 @@ test('/c/<id> is the card’s app’s page with the card in its tags, cached an 
   expect((await ask(new Request(`${SITE}/c/${id}`, { method: 'POST' }))).status).toBe(404);
 });
 
-test('an unknown or expired card, or none, serves the page as built; another query is the page too', async () => {
+test('a page with ?c= (the links made before 2026-10-15), or any other query, is the page as built', async () => {
   const store = new MemStore();
   const { id } = (await (await site(store)(post(body()))).json()) as { id: string };
   for (const [path, now] of [
@@ -216,7 +201,7 @@ test('the edge: a card and a page with it are read from the database once, howev
   store.card = (i) => (reads++, card(i));
   store.cardPng = (i) => (reads++, cardPng(i));
   const pages: string[] = [];
-  for (let i = 0; i < 3; i++) pages.push(await (await ask(get(`/deck/?c=${id}`))).text());
+  for (let i = 0; i < 3; i++) pages.push(await (await ask(get(`/c/${id}`))).text());
   expect(reads).toBe(1);
   expect(new Set(pages).size).toBe(1);
   // The edge keeps the picture for the card's life; the fetcher is told a year, immutable.
@@ -227,29 +212,26 @@ test('the edge: a card and a page with it are read from the database once, howev
   }
   expect(reads).toBe(2);
   expect(edge.kept.get(`${SITE}/card/${id}.png`)!.headers.get('cache-control')).toBe(`public, max-age=${30 * 86400}`);
-  expect(edge.kept.get(`${SITE}/deck/?c=${id}`)!.headers.get('cache-control')).toBe('public, max-age=3600, no-transform');
+  expect(edge.kept.get(`${SITE}/c/${id}`)!.headers.get('cache-control')).toBe('public, max-age=3600, no-transform');
 });
 
-test("the shortener's landing page with ?c= carries the card's tags the same way, the picture the site's; without, its own", async () => {
+test("the shortener's landing page carries the site's own card, each tag once, whatever its query", async () => {
   const store = new MemStore();
   const page = readFileSync(new URL('../backends/tinier/page.html', import.meta.url), 'utf8');
   for (const tag of CARD_TAGS) expect(tagCount(page, tag), tag).toBe(1);
   const { id: card } = (await (await site(store)(post(body({ title: 'Trip <notes>', text: 'Day one.' })))).json()) as { id: string };
-  const made = await handle(new Request('https://tinier.tinylittleoffice.com/api', { method: 'POST', body: JSON.stringify({ c: 'abc', iv: 'xyz', ttl: 3600 }) }), store, KEY, page, NOW);
+  const made = await handle(
+    new Request('https://tinier.tinylittleoffice.com/api', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ c: 'abc', iv: 'xyz', ttl: 3600 }) }),
+    store,
+    KEY,
+    page,
+    NOW,
+  );
   const { id } = (await made.json()) as { id: string };
-  const res = await handle(new Request(`https://tinier.tinylittleoffice.com/${id}?c=${card}`), store, KEY, page, NOW);
-  expect(res.status).toBe(200);
-  expect(res.headers.get('x-robots-tag')).toBe('noindex');
-  const text = await res.text();
-  expect(content(text, 'og:title')).toBe('Trip &lt;notes&gt;');
-  expect(content(text, 'og:description')).toBe('Day one.');
-  expect(content(text, 'og:image')).toBe(`${SITE}/card/${card}.png`);
-  expect(content(text, 'twitter:image')).toBe(`${SITE}/card/${card}.png`);
+  const text = await (await handle(new Request(`https://tinier.tinylittleoffice.com/${id}?c=${card}`), store, KEY, page, NOW)).text();
+  expect(content(text, 'og:image')).toBe(`${SITE}/og.png`);
+  expect(content(text, 'og:title')).toBe('Tiny Little Office');
   expect(text).toContain(`const id = '${id}'`);
-  // An unknown card: the page as it is, previewing as the site.
-  const plain = await (await handle(new Request(`https://tinier.tinylittleoffice.com/${id}?c=zzzzzzz`), store, KEY, page, NOW)).text();
-  expect(content(plain, 'og:image')).toBe(`${SITE}/og.png`);
-  expect(content(plain, 'og:title')).toBe('Tiny Little Office');
 });
 
 test('the sweep forgets expired cards with expired links; a card a month old is gone', async () => {

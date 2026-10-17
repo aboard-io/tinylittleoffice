@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>tinier · Tiny Little Office</title>
-<!-- What a link previews with: the site's own card; a short link shared with a network with its preview carries "?c=<id>", and these tags then say that card (cards.ts). -->
+<!-- What a link previews with: the site's own card. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tiny Little Office">
 <meta property="og:title" content="Tiny Little Office">
@@ -52,11 +52,15 @@
     const un = (s) => Uint8Array.from(atob(s.replace(/[-~]/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
-    // Every copy of the site this shortener serves (tinier.ts SITE: the site, and its mirror on GitHub Pages).
+    // Every copy of the site this shortener serves (tinier.ts SITE: the site, and its mirror on GitHub Pages), as the
+    // browser would read the address (".." resolved, the host in lower case); a site at its host's root takes its www too.
     const sites = '{{sites}}'.split(',');
-    if (!sites.some((site) => [site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/')))) return fail('That link does not go to Tiny Little Office.');
+    let href = '';
+    try { href = new URL(plain).href; } catch (e) { return fail('That link does not go to Tiny Little Office.'); }
+    const under = (site) => href.startsWith(site + '/') || (new URL(site).pathname === '/' && href.startsWith(site.replace('://', '://www.') + '/'));
+    if (!sites.some(under)) return fail('That link does not go to Tiny Little Office.');
     // Everyone arrives knowing how long the link has left (s, x), in the fragment's query, which the site strips from every link it shares.
-    const to = plain.includes('#') ? plain + '?s=' + id + '&x=' + exp : plain;
+    const to = href.includes('#') ? href + '?s=' + id + '&x=' + exp : href;
     a.href = to; go.hidden = false;
     p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + '.';
     location.replace(to);

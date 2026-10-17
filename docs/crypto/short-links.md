@@ -44,7 +44,7 @@ POST /api        {c, iv, ttl}   → 201 {id, exp}
 GET  /api/<id>                  → {c, iv, exp}      (404 once gone)
 ```
 
-Anything else under `/api` answers 404 with the body an unknown link gets, as if there were nothing there; the API's only answers are 201, 200, 400, 404, 429 and 503. `ttl` is 3600, 86400, 604800 or 2592000 seconds; any other is refused.
+Anything else under `/api` answers 404 with the body an unknown link gets, as if there were nothing there; the API's only answers are 201, 200, 400, 404, 429 and 503. `ttl` is 3600, 86400, 604800 or 2592000 seconds; any other is refused. A link is made by a page of the site alone, sent as JSON: a request from another site's page, or a form's, is refused before its body is read, so no request a stranger's page can send without asking is counted against the reader's address. Every answer carries `Strict-Transport-Security`.
 
 ## What tinier stores
 

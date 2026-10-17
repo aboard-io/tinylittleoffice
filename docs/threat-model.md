@@ -43,7 +43,8 @@ Mastodon, X, LinkedIn or the device's share sheet) with "Show a preview of the f
 turned off, sends a picture of the document's first page, its title and its first 200 characters to the site's
 `/card`, and the link shared carries the card's id in its path (`/c/<id>`, before the `#`): the one page the site's
 Worker serves, the app's page with the card's tags, which the shell moves to the app's own address as it opens. The
-card is not encrypted, because the network must read it: it is kept readable for a month, to anyone with its id,
+card is not encrypted, because the network must read it: it is kept readable for a month, to anyone with its id (twelve
+letters and digits, about sixty bits: nobody types one, so nobody can guess one),
 then deleted. (Until 2026-10-15 the id rode as `?c=` on the app's page and the Worker ran for every page, past the
 free plan's requests a day on launch day; such a link still opens, the shell reading the hash, and previews as the
 app's card.) The document itself and its link are never sent. Edit link, Present link and Email make no card, nor does a
@@ -142,6 +143,11 @@ link's are as long as the compressed document plus a fixed overhead.
 **Which app a document is.** The app's name is in the path (`/text/`), which the host sees, and in the
 route (`#/v1/text/…`). A password's tag does not cover it: someone who changes a sealed
 link's app name changes what opens it, not what it says.
+
+**The cards, to a stranger.** A card is a picture of up to 400 KB (a PNG whole, read chunk by chunk with its checksums
+before it is kept), a title and 300 characters, readable for a month to whoever has its id, served from the site's own
+address, a hundred a day from one address: only a page of the site itself may post one (another site's page, or a
+form, is refused before it is read), so the hundred are the poster's own and never a reader's.
 
 **The shortener, to a stranger.** It is a store of up to 16 KB of opaque bytes per link, a hundred links a
 day per address, kept up to a month, readable by whoever has the id, and never opened anywhere but the site:

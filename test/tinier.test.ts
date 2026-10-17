@@ -41,7 +41,8 @@ test('tinier: a link is kept for its time, handed back as it came, and then gone
   const page = await handle(req('GET', `/${id}`), store, KEY, PAGE, NOW + 1000);
   expect(page.status).toBe(200);
   expect(await page.text()).toBe(`<p>${id}</p>`);
-  expect(page.headers.get('content-security-policy')).toMatch(/default-src 'none'/);
+  expect(page.headers.get('content-security-policy')).toMatch(/default-src 'none'.*frame-ancestors 'none'; base-uri 'none'; form-action 'none'/);
+  for (const res of [page, got, made]) expect(res.headers.get('strict-transport-security')).toBe('max-age=31536000; includeSubDomains');
 
   // Past its time it is gone, and asking for it is what removes it.
   const late = await handle(req('GET', `/api/${id}`), store, KEY, PAGE, exp + 1);
@@ -76,6 +77,34 @@ test('tinier: what it refuses; the lifetimes are an hour, a day, a week and a mo
   const store = new MemStore();
   const bad = async (body: unknown, status: number) => expect((await handle(post(body), store, KEY, PAGE, NOW)).status, JSON.stringify(body)).toBe(status);
   await bad('not json', 400);
+  // Not sent as JSON, or from another site's page: refused before it is read, and never counted.
+  expect(
+    (
+      await handle(
+        new Request('https://tinier.test/api', { method: 'POST', headers: { 'content-type': 'text/plain', 'cf-connecting-ip': '1.2.3.4' }, body: JSON.stringify(LINK) }),
+        store,
+        KEY,
+        PAGE,
+        NOW,
+      )
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await handle(
+        new Request('https://tinier.test/api', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: 'https://evil.example', 'cf-connecting-ip': '1.2.3.4' },
+          body: JSON.stringify(LINK),
+        }),
+        store,
+        KEY,
+        PAGE,
+        NOW,
+      )
+    ).status,
+  ).toBe(400);
+  expect(store.brakes.size).toBe(0);
   await bad({ c: 'abc', iv: 'xyz', ttl: 99 }, 400); // a lifetime that is not on the menu
   await bad({ c: 'abc', iv: 'xyz', ttl: 365 * 86400 }, 400); // a year is no longer on it
   await bad({ c: 'has spaces', iv: 'xyz', ttl: 3600 }, 400); // not base64url
@@ -90,6 +119,11 @@ test('tinier: what it refuses; the lifetimes are an hour, a day, a week and a mo
   expect([...TTLS].sort()).toEqual([3600, 86400, 7 * 86400, 30 * 86400].sort());
   expect([...TTLS].sort()).toEqual(EXPIRIES.map((e) => e.seconds).sort()); // the client's menu is the server's
   expect((await handle(req('GET', '/api/nothere'), store, KEY, PAGE)).status).toBe(404);
+  // The API is /api and /api/<id>, nothing beside: a path that only begins so is the landing page's 404.
+  const { id: made } = (await (await handle(post(LINK), store, KEY, PAGE, NOW)).json()) as { id: string };
+  expect((await handle(req('GET', `/apiX${made}`), store, KEY, PAGE, NOW)).status).toBe(404);
+  expect((await handle(req('GET', `/apiX${made}`), store, KEY, PAGE, NOW)).headers.get('content-type')).toMatch(/^text\/html/);
+  expect((await handle(req('GET', `/api/${made}`), store, KEY, PAGE, NOW)).status).toBe(200);
   expect((await handle(req('GET', '/api/../etc'), store, KEY, PAGE)).status).toBe(404);
   expect((await handle(req('GET', '/'), store, KEY, PAGE)).status).toBe(200);
   expect((await handle(req('GET', '/nope'), store, KEY, PAGE)).status).toBe(404);
@@ -193,9 +227,12 @@ test("tinier on D1: production's four columns and the brakes table, and the Work
   expect(rows.length).toBe(100);
   const got = await handle(req('GET', `/api/${rows[0].id}`), store, KEY, PAGE, noon);
   expect(await got.json()).toEqual({ c: LINK.c, iv: LINK.iv, exp: noon + 3_600_000 });
-  // One row for the address that day, its count past the hundred, and nothing of the address in it.
+  // One row for the address that day, its count at the hundred (nothing past it is written: the 101st and every
+  // request after it are refused without a write), and nothing of the address in it.
   const brakes = db.prepare('SELECT * FROM brakes').all();
-  expect(brakes).toEqual([{ h: await brakeHash(KEY, dayOf(noon), '1.2.3.4'), n: 101, day: dayOf(noon) }]);
+  expect(brakes).toEqual([{ h: await brakeHash(KEY, dayOf(noon), '1.2.3.4'), n: 100, day: dayOf(noon) }]);
+  expect((await handle(post(LINK), store, KEY, PAGE, noon + 1)).status).toBe(429);
+  expect(db.prepare('SELECT n FROM brakes').get()).toEqual({ n: 100 });
   expect(JSON.stringify(brakes)).not.toContain('1.2.3.4');
   // Two days on, the sweep leaves no link (each lived an hour) and no count.
   await store.sweep(noon + 2 * DAY);
@@ -258,14 +295,15 @@ test('tinier: SITE may name the site and its mirror, comma-separated; the API an
     if (origin) r.headers.set('origin', origin);
     return r;
   };
-  for (const [origin, allowed] of [
-    ['https://aboard-io.github.io', 'https://aboard-io.github.io'],
-    ['https://tinylittleoffice.com', 'https://tinylittleoffice.com'],
-    ['https://elsewhere.example', 'https://tinylittleoffice.com'],
-    [null, 'https://tinylittleoffice.com'],
+  for (const [origin, allowed, status] of [
+    ['https://aboard-io.github.io', 'https://aboard-io.github.io', 201],
+    ['https://tinylittleoffice.com', 'https://tinylittleoffice.com', 201],
+    // A page of any other site may read a link, never make one (a review, 2026-10-17).
+    ['https://elsewhere.example', 'https://tinylittleoffice.com', 400],
+    [null, 'https://tinylittleoffice.com', 201],
   ] as const) {
     const res = await handle(from(origin), new MemStore(), KEY, PAGE, NOW, both);
-    expect(res.status, String(origin)).toBe(201);
+    expect(res.status, String(origin)).toBe(status);
     expect(res.headers.get('access-control-allow-origin'), String(origin)).toBe(allowed);
     expect(res.headers.get('vary')).toBe('origin');
   }
@@ -291,7 +329,14 @@ test('tinier: SITE may name the site and its mirror, comma-separated; the API an
   for (const [long, goes] of [
     ['https://aboard-io.github.io/tinylittleoffice/write/#/v1/write/yA', true],
     ['https://tinylittleoffice.com/write/#/v1/write/yA', true],
+    ['https://www.tinylittleoffice.com/write/#/v1/write/yA', true],
     ['https://aboard-io.github.io/another/#/v1/write/yA', false],
+    // The address as the browser reads it: ".." resolved, so a link under the mirror's path cannot lead out of it.
+    ['https://aboard-io.github.io/tinylittleoffice/../another/#/v1/write/yA', false],
+    // A site under a path takes no www of its host's.
+    ['https://www.aboard-io.github.io/tinylittleoffice/write/#/v1/write/yA', false],
+    ['https://tinylittleoffice.com.evil.example/write/#/v1/write/yA', false],
+    ['javascript:alert(1)', false],
   ] as const) {
     const sealed = await sealShortAt(long, raw, iv);
     let went = '';

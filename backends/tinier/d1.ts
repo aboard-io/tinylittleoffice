@@ -1,5 +1,5 @@
 /** The shortener's rows in Cloudflare D1 (backends/tinier/migrations/): the Store tinier.ts asks for, and the cards the site's Worker keeps there too. */
-import { dayOf } from './brake.ts';
+import { DAILY, dayOf } from './brake.ts';
 import type { Card } from '../cards/cards.ts';
 import type { Link, Store } from './tinier.ts';
 
@@ -10,6 +10,7 @@ export interface SQL {
     bind(...values: Value[]): {
       first<T>(): Promise<T | null>;
       run(): Promise<{ meta: { changes: number } }>;
+      all<T>(): Promise<{ results: T[] }>;
     };
   };
 }
@@ -29,10 +30,13 @@ export class D1Store implements Store {
   async drop(id: string) {
     await this.db.prepare('DELETE FROM links WHERE id = ?').bind(id).run();
   }
-  /** One statement, so two requests at once cannot both be counted as the hundredth. */
+  /** One statement, so two requests at once cannot both be counted as the hundredth; past the day's hundred nothing is written, and the row stays at it. */
   async count(h: string, day: number) {
-    const row = await this.db.prepare('INSERT INTO brakes (h, n, day) VALUES (?, 1, ?) ON CONFLICT (h) DO UPDATE SET n = n + 1 RETURNING n').bind(h, day).first<{ n: number }>();
-    return row?.n ?? 1;
+    const row = await this.db
+      .prepare('INSERT INTO brakes (h, n, day) VALUES (?, 1, ?) ON CONFLICT (h) DO UPDATE SET n = n + 1 WHERE brakes.n < ? RETURNING n')
+      .bind(h, day, DAILY)
+      .first<{ n: number }>();
+    return row?.n ?? DAILY + 1;
   }
   async card(id: string) {
     return (await this.db.prepare('SELECT app, title, text, exp FROM cards WHERE id = ?').bind(id).first<Card>()) ?? null;

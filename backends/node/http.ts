@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { extname, join, normalize, sep } from 'node:path';
+import { extname, join, normalize, relative, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { createGzip } from 'node:zlib';
 import { headersFor } from '../../scripts/headers.ts';
@@ -19,12 +19,14 @@ export const MAX_BODY = 1024 * 1024;
 /**
  * A node request as a Request at `origin`, its body read whole (null when it is over MAX_BODY). The address that
  * asked goes in cf-connecting-ip, where Cloudflare puts it and the brake reads it (backends/tinier/brake.ts): the socket's,
- * or `ipHeader`'s when a proxy in front names it; whatever the client sent under that name is dropped.
+ * or `ipHeader`'s when a proxy in front names it. A proxy appends the address it saw to whatever the client sent under
+ * that name, so the last one is the proxy's word and the first the client's (a review, 2026-10-17); whatever the client
+ * sent under cf-connecting-ip is dropped.
  */
 export async function toRequest(req: IncomingMessage, origin: string, ipHeader = ''): Promise<Request | null> {
   const headers = new Headers();
   for (let i = 0; i < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i], req.rawHeaders[i + 1]);
-  const ip = (ipHeader && headers.get(ipHeader)?.split(',')[0].trim()) || req.socket.remoteAddress || '';
+  const ip = (ipHeader && headers.get(ipHeader)?.split(',').pop()?.trim()) || req.socket.remoteAddress || '';
   headers.set('cf-connecting-ip', ip);
   const method = req.method ?? 'GET';
   let body: Uint8Array<ArrayBuffer> | undefined;
@@ -112,17 +114,20 @@ export function assets(dir: string): { fetch(req: Request): Promise<Response> } 
       }
       const local = normalize(join(dir, path));
       // Cloudflare never serves the headers file itself; nor is anything outside the build.
-      const inside = path.startsWith('/') && !path.includes('\0') && (local + sep).startsWith(normalize(dir + sep)) && !/^\/_(headers|redirects)$/.test(path);
+      // The path as the file is found, "//_headers" and "/x/../_headers" alike: what the guard and the headers' rules see.
+      const rel = relative(dir, local).split(sep).join('/');
+      const served = `/${rel}${rel && path.endsWith('/') ? '/' : ''}`;
+      const inside = path.startsWith('/') && !path.includes('\0') && (local + sep).startsWith(normalize(dir + sep)) && !/^\/_(headers|redirects)$/.test(served);
       if (inside && (req.method === 'GET' || req.method === 'HEAD')) {
         if (path.endsWith('/')) {
           const index = file(join(local, 'index.html'));
-          if (index) return serve(req, path, index);
+          if (index) return serve(req, served, index);
         } else {
           const exact = file(local);
-          if (exact) return serve(req, path, exact);
+          if (exact) return serve(req, served, exact);
           if (file(join(local, 'index.html'))) return new Response(null, { status: 307, headers: { location: `${url.pathname}/${url.search}` } });
           const html = file(`${local}.html`);
-          if (html) return serve(req, path, html);
+          if (html) return serve(req, served, html);
         }
       }
       const missing = file(join(dir, '404.html'));

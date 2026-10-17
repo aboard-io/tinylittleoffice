@@ -1,9 +1,10 @@
 /**
- * The daily brake both Workers keep: one address may make a hundred things a UTC day (DAILY), a short link at the
- * shortener (tinier.ts) and a preview card at the site (cards.ts) each counted the same way. The count is kept under
- * base64url(sha256(key ‖ day ‖ address)), where the key is a secret of each Worker's deployment (BRAKE_KEY), so the
- * row says nothing of the address to anyone without the key, and with it only that the address made something that
- * day. The sweep forgets the counts of every day but today and yesterday.
+ * The daily brake every service keeps: one address may make a hundred things a UTC day (DAILY), a short link at the
+ * shortener (tinier.ts), a preview card at the site (cards/cards.ts) and a journal (journal/journal.ts) each counted
+ * the same way. The count is kept under base64url(sha256(key ‖ day ‖ address)), where the key is a secret of each
+ * Worker's deployment (BRAKE_KEY), so the row says nothing of the address to anyone without the key, and with it only
+ * that the address made something that day. The sweep forgets the counts of every day but today and yesterday. And
+ * the one bounded read of a request's body (bodyText), which every service does before it parses anything.
  */
 
 /** Where an address's count is kept: one more under `h` on `day`, and the count now, this one included. */
@@ -33,6 +34,38 @@ export const b64 = (bytes: ArrayBuffer) =>
 /** What an address is counted under on a day: base64url(sha256(key ‖ day ‖ address)), which says nothing without the key. */
 export async function brakeHash(key: string, day: number, address: string): Promise<string> {
   return b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${key}\n${day}\n${address}`)));
+}
+
+/**
+ * A request's body as text, read no further than `most` bytes: null past them (the rest is never read), or for a body
+ * that is not UTF-8. The Workers would otherwise hold a body whole before looking at its size (a review, 2026-10-17).
+ */
+export async function bodyText(req: Request, most: number): Promise<string | null> {
+  const reader = req.body?.getReader();
+  if (!reader) return '';
+  const parts: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > most) {
+      await reader.cancel();
+      return null;
+    }
+    parts.push(value);
+  }
+  const all = new Uint8Array(size);
+  let at = 0;
+  for (const p of parts) {
+    all.set(p, at);
+    at += p.length;
+  }
+  try {
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(all);
+  } catch {
+    return null;
+  }
 }
 
 /**

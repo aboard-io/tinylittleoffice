@@ -91,7 +91,7 @@ export async function start(o: Options): Promise<{ site: Server; tinier: Server;
   const site = await listen(o.port, (req) =>
     WORKER_FIRST.test(new URL(req.url).pathname) ? handleSite(req, { assets: files, store, key: cardKey, edge: noEdge, now: Date.now() }) : files.fetch(req),
   );
-  const tinier = await listen(o.tinierPort, (req) => handle(req, store, o.key, page, Date.now(), o.site, noEdge));
+  const tinier = await listen(o.tinierPort, (req) => handle(req, store, o.key, page, Date.now(), o.site));
   // The Worker's cron, "17 * * * *": expired links and cards, and the counts of days before yesterday.
   const sweep = setInterval(() => void store.sweep(Date.now()), 3_600_000);
   sweep.unref();
