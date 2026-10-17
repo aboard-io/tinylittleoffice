@@ -119,7 +119,7 @@ tools(registered(), 'team'); // [{ name: 'lead.create', description: 'Create a l
 import { mount, host } from 'tinylittleoffice/editors';
 import 'tinylittleoffice/editors.css';
 Object.assign(host, { link: (app, text) => `/doc/${save(app, text)}` }); // where a placed document opens
-const editor = await mount('write', text, main, (next) => save(next)); // the editor, drawn; told every edit
+const { editor } = await mount('write', text, main, (next) => save(next)); // the editor, drawn; told every edit
 ```
 
 ## The skill

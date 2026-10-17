@@ -118,6 +118,9 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler', lib: ['ES2022', 'DOM'], types: [], strict: true, skipLibCheck: true, noEmit: true },
       files,
     });
+    // The README's mount, as a page would copy it, checked with the rest: it must take what mount returns.
+    const shown = readFileSync(join(PKG, 'README.md'), 'utf8').match(/^const .+ = await mount\(.+$/m)?.[0];
+    expect(shown).toBeDefined();
     writeFileSync(join(app, 'tsconfig.json'), JSON.stringify(tsconfig(['use.ts'])));
     writeFileSync(join(app, 'tsconfig.bad.json'), JSON.stringify(tsconfig(['use.ts', 'bad.ts'])));
     writeFileSync(
@@ -141,6 +144,10 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         '  return editor;',
         '};',
         "export const url: string = link('write', text);",
+        'declare const main: Element;',
+        'declare const save: (next: string) => void;',
+        shown!,
+        'export const drawn: HTMLElement = editor;',
       ].join('\n'),
     );
     writeFileSync(
