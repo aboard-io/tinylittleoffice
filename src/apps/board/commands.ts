@@ -3,7 +3,8 @@
  * or a lane after the one in hand, and the hand-off, the cards opened in the Spreadsheet), a lane's menu (Rename lane,
  * Add a card, Move left, Move right, Delete lane), the board's own items in the bar under chosen cards (Open, which
  * edits a card's fields in a dialog, and Move to…, a menu of the lanes: a phone's way across, having no drag), the
- * card's dialog's Delete, and the keys (docs/editing.md §6). On chosen cards Mod+Left/Right, and the standard's
+ * card's dialog's Delete, and the keys (docs/editing.md §6, and the Board's line of §8, which says them for a person;
+ * its generated table lists them). On chosen cards Mod+Left/Right, and the standard's
  * Mod+Alt+Left/Right, carry them to the lane on that side, and Alt+Enter opens one. In a card's title Alt+Up/Down move
  * the card along its lane, Mod+Alt+Left/Right carry it across (Mod+Left/Right stay the caret's: a line's start and end
  * on a Mac, a word on Windows), Up and Down go to the card before or after, Left at the title's start and Right at its

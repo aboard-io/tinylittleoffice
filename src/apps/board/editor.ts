@@ -8,18 +8,15 @@
  *
  * The title follows docs/editing.md §6: Enter at its end makes the next card in the lane, at its start a card above it,
  * in the middle splits it; Backspace at the start of an empty card takes it away, else joins it to the card before
- * (where it has no fields to lose), and Delete at the end joins the next in; Up and Down go from card to card in the
- * lane, Left at its start and Right at its end to the card beside it in the next lane, Alt+Up/Down move the card along
- * it, Mod+Alt+Left/Right carry it to the lane before or after, Mod+D duplicates it, the caret kept where it was. Cards
- * are rows of the kit's rows.ts: a tap on the grip (or a finger held on it), Escape or Shift+Up/Down in the title choose
- * them whole, and chosen cards are moved, duplicated, copied (a table as TLO and our HTML), cut, pasted and deleted
- * from the keys or the bar under them, which also opens one and carries them to any lane (Move to…, a menu of the
- * lanes: a phone's way across); Mod+Left/Right carry them to the lane beside. A card opened (Alt+Enter, Open, a double
- * click or tap outside its title) shows its row's every cell as a field in a dialog (kit/ui/dialog.ts, as the
- * Calendar's entries: the cells are fields that are not all words, a date, an amount, a choice), each asking for the
- * keyboard the Spreadsheet's cell would and an option column offering the words it holds; Done writes them as one
- * step, the lane a card moved. The grip carries a card into any lane by a drag (pointer events, never HTML5
- * drag-and-drop), a ghost of it under the pointer and the place it would land drawn, the board scrolled at its edges.
+ * (where it has no fields to lose), and Delete at the end joins the next in. A card's other keys, and how one is
+ * opened and carried across, are written once, in the Board's line of docs/editing.md §8, and declared in commands.ts.
+ * Cards are rows of the kit's rows.ts: a tap on the grip (or a finger held on it), Escape or Shift+Up/Down in the
+ * title choose them whole, and chosen cards are moved, duplicated, copied (a table as TLO and our HTML), cut, pasted
+ * and deleted from the keys or the bar under them. A card opened shows its row's every cell as a field in a dialog
+ * (kit/ui/dialog.ts, as the Calendar's entries: the cells are fields that are not all words, a date, an amount, a
+ * choice); Done writes the fields typed, and those alone, as one step (Opened, below). The grip carries a card into any
+ * lane by a drag (pointer events, never HTML5 drag-and-drop), a ghost of it under the pointer and the place it would
+ * land drawn, the board scrolled at its edges.
  * Every edit carries where the caret or the chosen cards were, so an undo puts them back. Every change is operations on
  * the document's table and head (model.ts). The bar holds Insert ▾ (a card, a lane), the cards opened in the
  * Spreadsheet, the count, undo and redo.
