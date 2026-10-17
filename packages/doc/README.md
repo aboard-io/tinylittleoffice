@@ -106,7 +106,9 @@ as the site (docs/library.md), through four more entry points, each built by `np
   `registerApp` to put it beside the suite's apps and `addStrings` for its words, then `mount` as for any app; the
   commands, the kit's elements, its drawing and Lit itself, all from the editors' own file (`dist/editors.js`, so there
   is one Lit and one registry). The app of cards in lanes is the first built this way, a package of its own
-  (docs/library.md, An app built outside).
+  (docs/library.md, An app built outside). And who did what in a document several people write: `track` and
+  `changesOf` from its versions by their authors, drawn over a Word Processor's words with `ghostsOf`, `paint` and
+  `pinComments`, and "@" offering the page's people (docs/library.md, Tracked changes and comments for a host).
 
 Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/` (the stylesheet's, empty,
 is `editors.css.d.ts`), and a TypeScript program reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`

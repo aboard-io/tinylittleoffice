@@ -456,7 +456,7 @@ folders, and nothing sits beside them. Every file begins by saying what it does;
 
 - [core/](../src/kit/core/): the contract between an app and the shell, and the link: the app definition and the registry, the shell, commands and keys, the strings, the store, the route, the codec, what an app asks of its page (host), an editor put on a page that is not the site (mount), the one voice (`toast()`, which the page's toast shows).
 - [ui/](../src/kit/ui/): the elements round a document and the chrome: the bar, the menus and dialogs, the drawer, find, home, Insert, the toast, the size of everything and the theme.
-- [text/](../src/kit/text/): the editor's model and its commands: `<to-text>`, its operations, the clipboard, history, rows and columns, the diff, and a document's text layer.
+- [text/](../src/kit/text/): the editor's model and its commands: `<to-text>`, its operations, the clipboard, history, rows and columns, the diff, who did what in a document several people write (tracked changes, and their drawing over the words), and a document's text layer.
 - [draw/](../src/kit/draw/): drawing pages and what is drawn on them: the page, charts, the icons and emoji, QR codes, the mark, a preview card's picture, motion and steps.
 - [file/](../src/kit/file/): a document as a file, in and out: every export, PDF, GIF, WebM, zip, XLSX, CSV, ICS, and opening a file dropped on the page.
 - [share/](../src/kit/share/): sharing, sealing and keeping: short links, preview cards, passwords and sealing, privacy, the library of kept documents and its search, and the site kept for offline (the service worker under Save in browser).

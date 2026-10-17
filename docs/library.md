@@ -92,6 +92,76 @@ What an app still asked of the site itself, and what replaces it:
     it and reads its ops, runs its command, shows it read-only and speaks Spanish. The app of cards in lanes, which
     this branch had added to the suite, left it to be the first such app, a package of its own: see An app built
     outside.
+12. **Tracked changes and comments for a host.** Done: who did what in a document several people write, as the
+    Contract Editor shows it (Paul, 2026-10-17: "the way it shows who did what is good"), is the kit's:
+    kit/text/changes.ts says it and kit/text/redline.ts draws it over a mounted Word Processor, with the text editor's
+    hooks for them (`showGhosts` and `Ghost`, `mentions` and `Mention`) and their colors in editors.css
+    (src/styles/changes.css). test/changes.test.ts tracks versions and fuzzes them from the kernel's grammar;
+    test/browser/changes.test.ts mounts a Word Processor with the kit alone, tracks two people's versions and draws
+    them, pins a comment by its quote and offers "@" people: see Tracked changes and comments for a host.
+
+## Tracked changes and comments for a host
+
+A host whose documents several people write (Atlas's shared documents) shows who did what: the words each person put
+in, in their color; the words they took out, in place and struck through; each edit bracketed in its author's color
+with a lozenge of their initials; and comments beside the words they are about. `tinylittleoffice/kit` serves it in two
+modules, kit/text/changes.ts, which says who did what and is pure, and kit/text/redline.ts, which draws it over a
+mounted Word Processor's words without writing anything into them.
+
+- **What the host gives.** Its versions of a document in order, each a `Step`: its author (the string the host names a
+  person by, an email), its TLO text, a hash that names its changes (`<hash>:0` is the first it made) and its place in
+  the host's log (`seq`). If any change was accepted or rejected, which ones and when (`track`'s `rejectedBy(id, seq)`
+  and `reviewedBy(id, seq)`): a rejection stays in sight as a change of its own, and a change reviewed is closed, so an
+  edit beside it is another. The words being typed and not yet saved are a version too, the last tracking taken one
+  version further (`trackOn`). And its people: their order, a person's color their place in it (`COLORS`), their
+  names (`initialsOf`), and what the drawing says in the host's language (`Drawing`).
+- **What it gets.** `track(versions)` is the document as `Tracked` blocks of `Tok`s: each word with who put it in and
+  who took it out, and each word, block and head field restyled with who restyled it and what it was. `changesOf` is
+  each person's changes in reading order (`Change`: what it put in, took out and restyled, and whether it is an edit,
+  a rejection, words put back or a restyling alone), to list and to accept or reject. A rejection is the host's own
+  edit, made like any other; the helpers that put a block back as it was are served with the rest (`blockFrom`,
+  `kindTo`, `lookTo`, `runOf`, `restylings`).
+- **What is drawn.** Over the words of a mounted Word Processor (`wordsOf(editor)`, its `<to-text>`), never in them.
+  `ghostsOf(tracked, words.model, settled, drawing)` gives each block's ghosts, which `words.showGhosts()` draws: the
+  words taken out, struck through; the brackets; the lozenge, filled while the edit waits for this reader and named
+  `edit:` and its changes' ids (`data-ghost`) for the host to open; a paragraph taken out, a line of its own. Then
+  `paint(words, tracked, order)` highlights each person's words, and their restyling with dots, by the CSS Custom
+  Highlight API. The caret, the copy and the IME pass over the ghosts, and the caret is written back where it was in the
+  words, so a host draws again whenever the words or the versions change, typing or not: the ghosts first, awaited,
+  then the paint. A change the host calls `settled` is drawn as plain words, or, taken out, not at all. The highlights
+  are named `tlo-by-0` and on (`PREFIX`), which `tinylittleoffice/editors.css` colors; a host that names its own
+  (`paint`'s last argument) colors them itself. A browser with no highlights gets the ghosts alone.
+- **Comments.** A comment is anchored by its quote, the words it is about as they read when it was made, and by the
+  version that was the head then. `pinComments(words, frame, comments)` finds each quote in the words as they are now,
+  highlights it (`tlo-by-comment`) and says how far below `frame`'s top its note goes; a comment whose words are gone
+  is not pinned, and the host lists it with the rest. Found by its words rather than kept at a place, a comment needs
+  no index carried through the edits after it: nothing is transformed, on the server or on the page.
+- **"@" for its people.** `words.mentions = people.map((p) => ({ name: p.name, detail: p.email }))`, and "@" with
+  letters offers them as ":" offers icons, the one picked put in by name. With none, "@" is a letter like any other.
+
+A page that gives none of it, no ghosts and no people, is drawn as before, and the site's pages give none. The
+Contract Editor, an app on a branch of its own, made these modules, and is to be rebased onto them; its review panel
+(the redline, Accept and Reject) stays its own, and so does what it has beside them: two people's edits of one version
+merged, its log and its server.
+
+```ts
+import { COLORS, ghostsOf, initialsOf, mount, paint, pinComments, track, wordsOf, type Step } from 'tinylittleoffice/kit';
+const { editor } = await mount('write', versions.at(-1)!.text, main, save);
+const words = wordsOf(editor)!;
+const order = people.map((p) => p.email);
+const initials = initialsOf(people);
+words.mentions = people.map((p) => ({ name: p.name, detail: p.email }));
+async function draw(versions: Step[]) {
+  const tracked = track(versions);
+  const ghosts = ghostsOf(tracked, words.model, () => false, {
+    color: (who) => COLORS[order.indexOf(who) % COLORS.length], initials: (who) => initials.get(who) ?? '?', name: nameOf,
+    accepted: () => false, takenOutBy: (name) => `Taken out by ${name}`, cardChanged: 'Changed', rejected: 'rejected', restored: 'restored',
+  });
+  await words.showGhosts(ghosts.size ? (i) => ghosts.get(i) ?? [] : null);
+  paint(words, tracked, order);
+  pinComments(words, main, comments);
+}
+```
 
 ## An app built outside
 
