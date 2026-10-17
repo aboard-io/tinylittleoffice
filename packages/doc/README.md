@@ -94,9 +94,12 @@ as the site (docs/library.md), through two more entry points, each built by `npm
   than English, the trip's map) is in `dist/editors/` beside it. Lit and the rest are inside, as on the site.
 
 ```js
-import { parse, write, apply, invert } from 'tinylittleoffice/doc';
+import { parse, write, apply, applyAll, invert } from 'tinylittleoffice/doc';
 const doc = parse('# Plan\n\nShip it.\n');
-write(apply(doc, { op: 'head', key: 'title', value: 'Plan' })); // the canonical TLO text
+const op = { op: 'head', key: 'title', value: 'Plan' };
+const next = apply(doc, op);
+write(next); // the canonical TLO text
+write(applyAll(next, invert(doc, op))); // the undo: invert gives the ops that put it back
 
 import { mount, host } from 'tinylittleoffice/editors';
 import 'tinylittleoffice/editors.css';
