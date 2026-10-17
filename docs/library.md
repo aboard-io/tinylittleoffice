@@ -64,6 +64,8 @@ What an app still asked of the site itself, and what replaces it:
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
    on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, a board's `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
+   An outline's fold button picks its item too, and folds nothing: a fold is the document's own (`{.shut}`), so a
+   read-only outline shows the folds it was given. A motion's Draw mode is a read-only Draw.
 9. **A toast with an action.** Done: `toast(words, { action: { label, does } })` draws a button after the words, the
    toast held while it has the focus (kit/core/say.ts, kit/ui/toast.ts).
 10. **The fonts in the package.** Done: build:lib copies the faces editors.css names, and their license, into

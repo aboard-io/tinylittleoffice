@@ -359,6 +359,20 @@ test('a board mounted read-only: a card activated is picked with its row, by a c
   expect(editor.value).toBe(board);
 });
 
+test('an outline mounted read-only: its fold button picks the item as the row does, and folds nothing, a fold being the document’s', async () => {
+  const outline = '- Plan\n  - Book the room\n- Ship\n';
+  const { editor, changes, picks } = await shown('outline', outline);
+  const fold = editor.querySelector<HTMLButtonElement>('.ol-fold')!;
+  expect(fold.getAttribute('aria-expanded')).toBe('true');
+  fold.click();
+  editor.querySelectorAll<HTMLElement>('.ol-row[data-at]')[2].click();
+  await editor.updateComplete;
+  expect(picks.map((p) => p.item)).toStrictEqual([0, 2]);
+  expect(editor.querySelector('.ol-fold')!.getAttribute('aria-expanded')).toBe('true');
+  expect(changes).toStrictEqual([]);
+  expect(editor.value).toBe(outline);
+});
+
 test('a bare page’s toast offers an action: a button after the words, named by its label, held while it has the focus, and pressed it runs', async () => {
   document.body.innerHTML = '<main class="to-main"></main><to-toast></to-toast>';
   await mount('write', '', document.querySelector('main')!, () => {});

@@ -593,7 +593,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const move = ops.find((o) => o.op === 'move');
     return move && move.op === 'move' ? move.to : at;
   }
-  /** Read-only, an item activated (its row, anything on it) is picked (kit/core/element.ts): its block, and its place among the items, from 0. */
+  /** Read-only, an item activated (its row, anything on it, its fold button too: a fold is the document's own, so it stays as given) is picked (kit/core/element.ts): its block, and its place among the items, from 0. */
   protected pickOf(el: Element): Picked | null {
     const row = el.closest<HTMLElement>('.ol-row[data-at]');
     const at = Number(row?.dataset.at ?? -1);
