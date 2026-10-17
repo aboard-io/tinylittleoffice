@@ -7,6 +7,7 @@ import {
   backspace,
   blockLength,
   caret,
+  carrySel,
   charAt,
   clampPos,
   forwardDelete,
@@ -378,4 +379,24 @@ test('a linked word is words: its marks show the link, and pasted into words it 
   // A bare address pasted alone is words too, in the line where it was put, its spaces kept.
   const bare = insertBlocks([{ k: 'p', runs: [{ t: 'see  now' }] }], caret(0, 4), [{ k: 'p', runs: [{ t: 'https://www.youtube.com/watch?v=abc' }] }]);
   expect(applyAll({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'see  now' }] }] }, bare.ops).blocks).toEqual([{ k: 'p', runs: [{ t: 'see https://www.youtube.com/watch?v=abc now' }] }]);
+});
+
+test('a selection carried over another’s ops: past blocks put in or taken out before it, with its block through a move, past words before it', () => {
+  const p = { k: 'p', runs: [{ t: 'New.' }] } as Block;
+  // Blocks put in before its block, at it, and after it; blocks taken out before it; its own block taken out.
+  expect(carrySel(caret(2, 3), [{ op: 'splice', at: 0, n: 0, blocks: [p, p] }])).toEqual(caret(4, 3));
+  expect(carrySel(caret(2, 3), [{ op: 'splice', at: 2, n: 0, blocks: [p] }])).toEqual(caret(3, 3));
+  expect(carrySel(caret(2, 3), [{ op: 'splice', at: 3, n: 0, blocks: [p] }])).toEqual(caret(2, 3));
+  expect(carrySel(caret(2, 3), [{ op: 'splice', at: 0, n: 2, blocks: [] }])).toEqual(caret(0, 3));
+  expect(carrySel(caret(2, 3), [{ op: 'splice', at: 1, n: 2, blocks: [] }])).toEqual(caret(1, 0));
+  // Its block replaced by one: it stays in it.
+  expect(carrySel(caret(2, 3), [{ op: 'splice', at: 2, n: 1, blocks: [p] }])).toEqual(caret(2, 3));
+  // A move: with its block, and past a span moved from before it to after it.
+  expect(carrySel(caret(2, 3), [{ op: 'move', at: 2, n: 1, to: 0 }])).toEqual(caret(0, 3));
+  expect(carrySel(caret(2, 3), [{ op: 'move', at: 0, n: 1, to: 3 }])).toEqual(caret(1, 3));
+  // Words: put in before it, at it (it stays before them), replaced around it (to their end), in another block.
+  expect(carrySel(caret(2, 3), [{ op: 'text', at: 2, from: 0, to: 0, runs: [{ t: 'ab' }] }])).toEqual(caret(2, 5));
+  expect(carrySel(caret(2, 3), [{ op: 'text', at: 2, from: 3, to: 3, runs: [{ t: 'ab' }] }])).toEqual(caret(2, 3));
+  expect(carrySel(caret(2, 3), [{ op: 'text', at: 2, from: 1, to: 5, runs: [{ t: 'x' }] }])).toEqual(caret(2, 2));
+  expect(carrySel(caret(2, 3), [{ op: 'text', at: 1, from: 0, to: 0, runs: [{ t: 'ab' }] }])).toEqual(caret(2, 3));
 });

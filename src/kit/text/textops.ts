@@ -58,6 +58,37 @@ export function clampPos(blocks: Block[], p: Pos): Pos {
 /** A selection held within the blocks, and never resting on a card (another document, a table, a rule). */
 export const clampSel = (blocks: Block[], s: Sel): Sel => ({ anchor: skipCard(blocks, s.anchor), focus: skipCard(blocks, s.focus) });
 
+/**
+ * A selection carried over ops someone else applied (docs/kernel.md §12), as the kernel's transform carries an op on a
+ * block, plainly: past blocks put in or taken out before its block, with its block through a move, and past words put
+ * in or taken out before it in its block (a place where words were put in stays before them; one inside words
+ * replaced goes to their end). A place inside blocks taken out goes to what follows them. Held within the document
+ * after with `clampSel`.
+ */
+export function carrySel(s: Sel, ops: Op[]): Sel {
+  const carry = (p: Pos): Pos => {
+    for (const op of ops) {
+      if (op.op === 'splice') {
+        if (p.block >= op.at + op.n) p = { block: p.block + op.blocks.length - op.n, offset: p.offset };
+        else if (p.block >= op.at && p.block >= op.at + op.blocks.length) p = { block: op.at + op.blocks.length, offset: 0 };
+      } else if (op.op === 'move') {
+        let b = p.block;
+        if (b >= op.at && b < op.at + op.n) b = op.to + b - op.at;
+        else {
+          if (b >= op.at + op.n) b -= op.n;
+          if (b >= op.to) b += op.n;
+        }
+        p = { block: b, offset: p.offset };
+      } else if (op.op === 'text' && op.at === p.block && p.offset > op.from) {
+        const put = runLength(op.runs);
+        p = { block: p.block, offset: p.offset >= op.to ? p.offset + put - (op.to - op.from) : op.from + put };
+      }
+    }
+    return p;
+  };
+  return { anchor: carry(s.anchor), focus: carry(s.focus) };
+}
+
 /** The nearest text block at or after `i` (dir 1) or at or before it (dir -1), or -1. */
 function textBlock(blocks: Block[], i: number, dir: 1 | -1): number {
   for (let j = i; j >= 0 && j < blocks.length; j += dir) if (isText(blocks[j])) return j;

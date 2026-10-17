@@ -274,8 +274,9 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   }
 
   protected willUpdate(changed: PropertyValues<this>) {
-    if (changed.has('value') || !this.loaded) this.take(this.value ?? '');
+    const loosened = changed.has('value') || !this.loaded ? this.take(this.value ?? '') : [];
     super.willUpdate(changed);
+    this.arrive(loosened);
     if (this.cur >= this.count) this.cur = this.count - 1;
     // The slide on show follows the slides chosen.
     const r = this.rows.range;
@@ -284,21 +285,23 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   }
   /** The slide the range last reached: the slide on show follows it when it moves, and is free while it stays. */
   private seenFocus: number | null = null;
-  /** A value from outside: ours is nothing new; the same blocks with another head is the head edited (undoable); anything else is another document, loosened if written loosely. */
-  private take(text: string) {
-    if (this.loaded && (this.ours(text) || text === write(this.doc))) return;
+  /**
+   * A value from outside: ours is nothing new; the same blocks with another head is the head edited (undoable); anything
+   * else is another document, loosened if written loosely: the ops that loosen it, which DocElement applies (`arrive`)
+   * once it has read the document (told as an edit is, and no step to undo).
+   */
+  private take(text: string): Op[] {
+    if (this.loaded && (this.ours(text) || text === write(this.doc))) return [];
     const parsed = parse(text);
     if (this.loaded && parsed.blocks.length === this.doc.blocks.length && write({ head: {}, blocks: parsed.blocks }) === write({ head: {}, blocks: this.doc.blocks })) {
       const keys = new Set([...Object.keys(this.doc.head), ...Object.keys(parsed.head)]);
       this.edit([...keys].filter((k) => this.doc.head[k] !== parsed.head[k]).map((key): Op => ({ op: 'head', key, value: parsed.head[key] })));
-      return;
+      return [];
     }
     if (this.loaded) this.cur = 0;
     this.loaded = true;
     const next = loosen(parsed);
-    if (next === parsed) return;
-    this.value = write(next);
-    this.dispatchEvent(new CustomEvent<string>('docchange', { detail: this.value, bubbles: true }));
+    return next === parsed ? [] : [{ op: 'splice', at: 0, n: parsed.blocks.length, blocks: next.blocks }];
   }
   /** Where the selection is now, for an edit to carry to its undo. */
   private mark(): Mark {

@@ -111,7 +111,8 @@ export interface Handoff {
 
 /**
  * The editor element an app's `editor()` names: given the document as `value`, it fires "docchange" with
- * the new text in `detail` on every edit. The shell writes it into the link. Undo and redo are the
+ * the new text in `detail` on every edit (and before it "docops", the edit's operations, for a page that shares
+ * the document: kit/core/element.ts). The shell writes it into the link. Undo and redo are the
  * kernel's (docs/kernel.md §6): the shell only forwards Mod+Z and Mod+Shift+Z as "docundo"/"docredo"
  * events on this element. Once a document is first drawn (not in display mode, not locked) the shell calls
  * `focusFirst()`: the focus goes where a person starts (docs/editing.md §1), without scrolling the page.

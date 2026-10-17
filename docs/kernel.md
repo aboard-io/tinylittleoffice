@@ -483,7 +483,9 @@ every client; a client rebases the ops it has sent or not yet sent over each op 
 Every replica applies the server's order (`applyEdits(snapshot, edits)`), so all end with one document, and the
 transformation is what keeps an op meaning what its author meant once others land before it. One order asks one
 property of it, TP1: for a and b made against one document, a then `transform(b, a, 'right')` is b then
-`transform(a, b, 'left')`. Nothing in it names the DOM, and the site imports none of it.
+`transform(a, b, 'left')`. Nothing in it names the DOM. The site's page calls none of it; its editors carry `transform`
+for a page that shares a document (kit/core/element.ts `applyRemote` carries the history over another's ops, and
+docs/library.md says what a page does).
 
 **The cases** (the matrix is the file's header, one line a pair). `side` is an op's place in the order (the server
 transforms what it receives as `'right'`): where two ops set one thing the later wins, where both put something in at

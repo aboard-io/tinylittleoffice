@@ -38,7 +38,7 @@ import { UI } from '../../kit/draw/icons.ts';
 import { language, t } from '../../kit/core/i18n.ts';
 import { noteIndex, noteMarks, type ToNotes } from '../../kit/draw/notes.ts';
 import { askDocLink } from '../../kit/ui/insert-dialogs.ts';
-import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/text/textops.ts';
+import { blockLength, caret, carrySel, insertBlocks, isWords, type Sel } from '../../kit/text/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text/text.ts';
 import {
   PAPERS,
@@ -186,6 +186,19 @@ export class ToWriteEditor extends DocElement<Doc> {
       if (sel) this.text.sel = sel;
       else this.text.sel = caret(Math.max(0, firstAt(entry)), 0);
     });
+  }
+  /** Another's ops: the caret carried over them, and the card in hand with it (let go where it is gone). */
+  protected followed(ops: Op[]) {
+    this.text?.carry(ops, this.doc.blocks);
+    if (this.cardAt < 0) return;
+    const at = carrySel(caret(this.cardAt, 0), ops).focus.block;
+    this.cardAt = this.isCard(at) ? at : -1;
+  }
+  /** An edit's mark carried in place (a burst's mark is the one it goes on writing): the caret before it and after it. */
+  protected carryMark(mark: unknown, before: Op[], after: Op[]) {
+    const m = mark as Mark;
+    if (m.before) m.before = carrySel(m.before, before);
+    if (m.after) m.after = carrySel(m.after, after);
   }
   /** Once this and the text are drawn. */
   private async drawn() {

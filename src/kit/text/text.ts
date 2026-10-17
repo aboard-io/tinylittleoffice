@@ -93,6 +93,7 @@ import {
   backspace,
   blockLength,
   caret,
+  carrySel,
   charAt,
   clampSel,
   collapsed,
@@ -395,6 +396,18 @@ export class ToText extends LitElement {
     this.pendingSel = 'focus';
     // Drawn and nothing pending: written now; otherwise updated() writes it after the draw.
     if (this.hasUpdated && !this.isUpdatePending) this.flushSel();
+  }
+  /**
+   * Ops someone else applied to the blocks (a shared document: DocElement's `applyRemote`): the selection carried over
+   * them and held within `blocks`, the blocks as they are after; written back once they are drawn, where the box has
+   * the focus, and never taking it.
+   */
+  carry(ops: Op[], blocks: Block[]) {
+    if (!this._sel || this.whole) return;
+    this._sel = clampSel(blocks, carrySel(this._sel, ops));
+    this.pendingSel ??= 'keep';
+    // Drawn again after the host hands the blocks down (it asked first), so the selection is written over them.
+    this.requestUpdate();
   }
   /** The marks at the caret (what a bar shows pressed). */
   get marks(): Fmt {
