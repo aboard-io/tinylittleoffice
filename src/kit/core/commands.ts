@@ -82,6 +82,11 @@ export interface Command<C = any> {
   swatch?: (c?: C) => string;
   /** The heading a menu item sits under (Insert ▾'s "A new document"), through t(). */
   heading?: Words<C>;
+  /**
+   * In force only where a page holding the editor asks for it (the changes a host shows among the words), never on the
+   * site: docs/editing.md lists it, saying so, and the skill's keys, which drive the site, leave it out.
+   */
+  host?: true;
   /** A row of data (a theme, an ink, a new document of each app), not a command a person learns: drawn and offered by the drawer's search, but left out of the generated tables. */
   data?: boolean;
   /** Needs nothing in hand: shown in the drawer's This document too, so a phone reaches it while the bar is away (reading). */

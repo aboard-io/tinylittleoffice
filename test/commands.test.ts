@@ -188,4 +188,14 @@ describe('what the registry writes', () => {
     const skill = await makeSkill();
     for (const a of apps().filter((x) => all.some((c) => c.scope === x.id && c.keys))) expect(skill).toContain(`**${a.name}**:`);
   });
+  test('a host’s command (in force only where a page holding the editor asks for it) is in the tables, saying so, and never in the skill, which drives the site', async () => {
+    const hosts = all.filter((c) => c.host);
+    expect(hosts.map((c) => c.id)).toContain('text.change');
+    const skill = await makeSkill();
+    const tables = editingTables();
+    for (const c of hosts) {
+      expect(skill, c.id).not.toContain(` ${labelOf(c)}`);
+      expect(tables, c.id).toContain(`| ${labelOf(c)} | keys only, a host’s page alone |`);
+    }
+  });
 });

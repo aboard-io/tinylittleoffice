@@ -49,6 +49,7 @@ const whereOf = (c: Command) =>
     ...c.where.map((w) => (w === 'keys-only' ? 'keys only' : w === 'bar' ? (c.menu ? `bar (${c.menu} ▾)` : 'bar') : w.startsWith('menu:') ? `${w.slice(5)} ▾` : w)),
     ...(c.at ? [`at: ${c.at}`] : []),
     ...(c.document && !c.where.includes('drawer') ? ['drawer on a phone'] : []),
+    ...(c.host ? ['a host’s page alone'] : []),
   ].join(', ');
 const keysOf = (c: Command) =>
   c.keys
@@ -78,7 +79,8 @@ export function skillCommands(): string {
   const all = allCommands();
   return scopes()
     .map((s) => {
-      const keyed = all.filter((c) => c.scope === s.id && c.keys && !c.data);
+      // (A host's command is never in force on the site the skill drives.)
+      const keyed = all.filter((c) => c.scope === s.id && c.keys && !c.data && !c.host);
       return keyed.length
         ? `- **${s.name}**: ${keyed
             .map(

@@ -220,7 +220,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `Alt+ArrowDown` | Move down | keys only |
 | `Mod+Enter` | Check or uncheck a task | keys only |
 | `Mod+A` | Select all (this field first, then the whole document) | keys only |
-| `Alt+Enter` | Open this change | keys only |
+| `Alt+Enter` | Open this change | keys only, a host’s page alone |
 
 ### Rows chosen whole (`rows`)
 
