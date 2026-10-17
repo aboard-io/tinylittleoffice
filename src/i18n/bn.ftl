@@ -1164,6 +1164,8 @@ icons-search-by-name-or-by = নাম বা অর্থ ধরে (“টা�
 icons-no-icon = আইকন নেই
 # en: 1935c7dc9183bd8f7d4987f70ff5592b29d45397
 common-icon-or-emoji = আইকন বা ইমোজি
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+common-people = লোকজন
 # en: 1699cec34f8ca2d63e0b366fc1fe83d5de3a0c13
 icons-search-icons-and-emoji = আইকন ও ইমোজি খুঁজুন
 # en: da588993ff27cbb60e3c1cecefb192d389748ef0
@@ -1692,6 +1694,8 @@ outline-connection-from-from-to-to = { $from } থেকে { $to }-তে স�
 common-connections = সংযোগ
 # en: af74f7c5362aaee985bf8cda3dd75fc80751ce51
 common-copy = কপি
+# en: 153d7a58b3a3e898fcbdd04c462af308414bd09d
+common-comment = মন্তব্য
 # en: ba97113463234ae7bc314eae6a172572b35b1b71
 common-presentation-builder = প্রেজেন্টেশন বিল্ডার
 # en: 20dcb3b3184067197035f08a5a3955d51fcd94a3

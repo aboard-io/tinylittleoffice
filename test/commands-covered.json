@@ -391,6 +391,7 @@
  "text.bold",
  "text.bullets",
  "text.code",
+ "text.comment",
  "text.copy",
  "text.cut",
  "text.down",
