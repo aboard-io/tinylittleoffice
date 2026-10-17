@@ -15,6 +15,7 @@
  * text or on a slide is worked out in place, as a sheet's is.
  */
 import type { ColType, Doc } from './model.ts';
+import { writeInline } from './tlo.ts';
 import { dayToYmd, firstTable, namedCells, refToRC, tableAt, ymdString, ymdToDay, type Table } from './table.ts';
 
 /** Every function the engine knows: name, example arguments, what it does. */
@@ -277,8 +278,17 @@ function rangeCells(a: string, b: string): [number, number][] {
 const MONEY_BEFORE = /^([+-]?)\s*(?:[a-z]{3}|[^\d\s.+-]{1,3})\s*(?=[+-]?\.?\d)/i;
 const MONEY_AFTER = /(?<=[\d.])\s*(?:[a-z]{3}|[^\d\s.+-]{1,3})$/i;
 
-/** A cell as typed, read as its column's type: a number, a date's day number, a check's 1 or 0, or the words themselves. Empty is null. */
+/**
+ * A cell as typed, read as its column's type: a number, a date's day number, a check's 1 or 0, or the words themselves.
+ * Empty is null. An apostrophe before words that would otherwise read as something else (a formula, a number, a date)
+ * keeps them words, the apostrophe not among them, as in Excel and Sheets (asWords); before words that read as
+ * themselves it is theirs ("'Tis"). A rich column's words are inline Markdown, whose own escape is a backslash.
+ */
 export function parseLiteral(raw: string, type: string = 'text', today = todaySerial): CellValue {
+  if (raw.startsWith("'") && type !== 'rich') {
+    const rest = raw.slice(1);
+    if (rest.trim() && (rest.startsWith('=') || parseLiteral(rest, type, today) !== rest)) return rest;
+  }
   const s = raw.trim();
   if (s === '') return null;
   if (type === 'check') return /^(x|y|yes|true|1|done|☑|✓|✔)$/i.test(s) ? 1 : 0;
@@ -298,6 +308,22 @@ export function parseLiteral(raw: string, type: string = 'text', today = todaySe
   const n = type === 'money' ? plain.replace(MONEY_BEFORE, '$1').replace(MONEY_AFTER, '') : plain;
   if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(n) && (n === s || type === 'money' || type === 'number' || type === 'percent')) return type === 'percent' ? parseFloat(n) / 100 : parseFloat(n);
   return raw;
+}
+
+/**
+ * Words written as a cell of a column of `type` that reads back as those words whatever they start with (docs/kernel.md
+ * §5, Words that look like something else). In a rich column, as inline Markdown (writeInline) with a backslash before
+ * a "=" at their start, the inline form's own escape ("\=SUM(1)"); in any other, as they are where they read as
+ * themselves already, else with an apostrophe before them ("'=SUM(1)", "'007"), which parseLiteral reads past. Words of
+ * nothing but spaces are an empty cell, as they are.
+ */
+export function asWords(words: string, type: string = 'text'): string {
+  if (!words.trim()) return words;
+  if (type === 'rich') {
+    const md = writeInline([{ t: words }]);
+    return md.startsWith('=') ? `\\${md}` : md;
+  }
+  return words.startsWith('=') || parseLiteral(words, type) !== words ? `'${words}` : words;
 }
 
 /** Every cell of a table worked out, as `today`'s date has it. A cell past the rows is null. */

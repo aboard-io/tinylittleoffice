@@ -40,8 +40,10 @@
  * - drawing a page with no DOM (kit/draw/draw.ts): the colors, `rect`, `text`, `clip`, `wrapText`, `textWidth`, `xml`,
  *   `utf8` for a file's bytes; the icons (`icon`, `iconNamed`, `UI`);
  * - the Spreadsheet's words for a table: `cellAsShown`, a cell's value as its column shows it (money in its currency, a
- *   date as a date, a rich cell's words), and `tableAsCsv`, a document's first table as the Spreadsheet's CSV; and a
- *   page's marks on a read-only sheet's rows and cells (its editor's `marks`, SheetMark);
+ *   date as a date, a rich cell's words), `tableAsCsv`, a document's first table as the Spreadsheet's CSV, and
+ *   `asWords`, words written as a cell that reads back as those words whatever they start with ("'=SUM(1)": the
+ *   kernel's, served here too); and a page's marks on a read-only sheet's rows and cells (its editor's `marks`,
+ *   SheetMark);
  * - who did what, for a host whose documents several people write (docs/library.md, Tracked changes and comments for
  *   a host): `track` and `trackOn` (its versions by their authors, Step, to Tracked blocks of Toks), `changesOf` (each
  *   person's changes, Change), and the helpers that put a block back as it was (`blockFrom`, `kindTo`, `lookOf`,
@@ -100,6 +102,7 @@ export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
 export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
 export { cellText as cellAsShown, sheetToCsv as tableAsCsv } from './apps/sheet/view.ts';
 export type { SheetMark } from './apps/sheet/editor.ts';
+export { asWords } from './doc/index.ts';
 export {
   css,
   html,

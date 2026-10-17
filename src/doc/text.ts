@@ -88,8 +88,9 @@ function tableNode(doc: Doc, at: number): TextNode {
     b.cols.map((col, c) => {
       const raw = row[c] ?? '';
       if (col.type === 'rich') return plainText(parseInline(raw));
-      if (!raw.trim().startsWith('=') && WORDS.has(col.type)) return raw;
       const v = values[r]?.[c];
+      // Words as written ("007" stays "007"), the apostrophe that keeps them words left out ("'=SUM(1)": asWords).
+      if (!raw.trim().startsWith('=') && WORDS.has(col.type)) return typeof v === 'string' ? v : raw;
       return v === undefined ? raw : formatCell(v, col.type, col.currency || doc.head.currency);
     }),
   );

@@ -2,6 +2,7 @@
 // evaluate(doc, at) over a Write document holding a table.
 import { expect, test } from 'vitest';
 import {
+  asWords,
   dateToSerial,
   evaluate,
   evaluateTable,
@@ -122,6 +123,21 @@ test('typed columns: dates are numbers, and each type reads and shows its own wa
   expect(parseLiteral('12', 'number')).toBe(12);
   // A type the sheet has no use for reads as words.
   expect(values(grid([['10:30', 'x']], ['time', 'icon']))[0]).toStrictEqual(['10:30', 'x']);
+});
+
+test('words that look like a formula, a number or a date are kept words by an apostrophe before them, as Excel and Sheets keep them', () => {
+  // The apostrophe is not among the words; before words that read as themselves it is theirs.
+  expect(values(grid([["'=SUM(1)", "'007", "'Tis", "''=x", "'", '=SUM(1)']], ['text', 'text', 'text', 'text', 'text', 'number']))[0]).toStrictEqual(['=SUM(1)', '007', "'Tis", "'=x", "'", 1]);
+  expect(values(grid([["'2027-03-01", "'12.5%", "'x", "'5"]], ['date', 'percent', 'check', 'number']))[0]).toStrictEqual(['2027-03-01', '12.5%', 'x', '5']);
+  // asWords writes them so: an apostrophe only where the words would read as something else.
+  expect(['=SUM(1)', '007', "'Tis", "'=x", 'Rent', '  '].map((w) => asWords(w))).toStrictEqual(["'=SUM(1)", "'007", "'Tis", "''=x", 'Rent', '  ']);
+  expect([asWords('2027-03-01', 'date'), asWords('2027-03-01'), asWords('x', 'check')]).toStrictEqual(["'2027-03-01", '2027-03-01', "'x"]);
+  // A rich cell is inline Markdown, whose own escape keeps a "=" at its start from a formula.
+  expect([asWords('=SUM(1)', 'rich'), asWords("'Tis", 'rich')]).toStrictEqual(['\\=SUM(1)', "'Tis"]);
+  expect(values(grid([['\\=SUM(1)']], ['rich']))[0]).toStrictEqual(['\\=SUM(1)']);
+  // Through the format the cell is as it was written.
+  const doc = parse("A | B:date | C:rich\n--- | --- | ---\n'=SUM(1) | '2027-03-01 | \\\\=SUM(1)\n");
+  expect(tableAt(doc, 0)!.rows[0]).toStrictEqual(["'=SUM(1)", "'2027-03-01", '\\=SUM(1)']);
 });
 
 test('date math, as of a given day', () => {

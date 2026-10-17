@@ -5,7 +5,7 @@
  * editor.ts, the drawing view.ts, the commands model.ts.
  */
 import { Table2 } from 'lucide';
-import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
+import { apply, asWords, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/core/app.ts';
 import { utf8, pageSvg } from '../../kit/draw/draw.ts';
 import { t } from '../../kit/core/i18n.ts';
@@ -62,11 +62,16 @@ export default defineApp({
   handoffs: [{ to: 'cal', label: () => t('sheet-put-dated-rows-on-calendar'), convert: sheetToCal }],
 });
 
-/** The sheet as a workbook: the table and its values (a rich cell's words, without their marks). */
+/**
+ * The sheet as a workbook: the table and its values, a rich cell's its words without their marks (and kept from being
+ * read as a formula where they begin with "=": asWords).
+ */
 function xlsx(doc: Doc): Uint8Array {
   const v = readSheet(parse(doc));
-  const rows = v.table.rows.map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' && !x.startsWith('=') ? cellText(x, 'rich') : x)));
-  return tableToXlsx({ ...v.table, rows }, { values: v.values, named: v.named }, null, v.currency);
+  const words = (r: number, c: number) => v.cols[c]?.type === 'rich' && !(v.table.rows[r]?.[c] ?? '').startsWith('=');
+  const rows = v.table.rows.map((row, r) => row.map((x, c) => (words(r, c) ? asWords(cellText(x, 'rich')) : x)));
+  const values = v.values.map((row, r) => row.map((x, c) => (words(r, c) && typeof x === 'string' ? cellText(x, 'rich') : x)));
+  return tableToXlsx({ ...v.table, rows }, { values, named: v.named }, null, v.currency);
 }
 
 /** The sheet's chart, drawn; the sheet itself where it has none. */
