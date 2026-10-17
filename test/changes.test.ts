@@ -207,8 +207,8 @@ describe('tracked changes', () => {
 });
 
 /** The last version's text with the changes `ids` of its tracking rejected (rejectOps), as the format writes it; null where they cannot be. */
-function rejecting(v: Step[], ids: (all: string[]) => string[], rejectedBy?: (id: string, seq: number) => boolean) {
-  const t = track(v, rejectedBy);
+function rejecting(v: Step[], ids: (all: string[]) => string[], rejectedBy?: (id: string, seq: number) => boolean, reviewedBy?: (id: string, seq: number) => boolean) {
+  const t = track(v, rejectedBy, reviewedBy);
   const doc = parse(v.at(-1)!.text);
   const ops = rejectOps(t, doc.blocks, ids(changesOf(t).map((c) => c.id)));
   return ops && write(applyAll(doc, ops));
@@ -269,6 +269,44 @@ describe('the edit that rejects a change', () => {
     expect(rejecting(steps, () => ['v2:0'])).toBe('Due in days.\n');
     // Both: the taking out and the putting back, the words as they were.
     expect(rejecting(steps, () => ['v1:0', 'v2:0'])).toBe('Due in 30 days.\n');
+  });
+
+  test('words accepted and then taken out by the person who put them in: a change, and rejecting it puts them back', () => {
+    // Version 1's words accepted before version 2 (its place in the list): they are anyone's words now.
+    const reviewed = (id: string, seq: number) => id.startsWith('v1:') && seq >= 2;
+    const said = [
+      { author: A, text: 'Hello.\n', hash: 'v0' },
+      { author: B, text: 'Hello there.\n', hash: 'v1' },
+    ];
+    const words = [...said, { author: B, text: 'Hello.\n', hash: 'v2' }];
+    expect(changesOf(track(words, undefined, reviewed)).map((c) => [c.id, c.put, c.took])).toEqual([
+      ['v1:0', ' there', ''],
+      ['v2:0', '', ' there'],
+    ]);
+    expect(rejecting(words, () => ['v2:0'], undefined, reviewed)).toBe('Hello there.\n');
+    // Nobody having reviewed them, they were only ever a draft of version 1's: simply gone.
+    expect(changesOf(track(words))).toEqual([]);
+    // A paragraph put in, accepted and taken out again by the same person; and words they took out, accepted, put back.
+    const para = [
+      { author: A, text: 'Terms.\n', hash: 'v0' },
+      { author: B, text: 'Terms.\n\nNotices.\n', hash: 'v1' },
+      { author: B, text: 'Terms.\n', hash: 'v2' },
+    ];
+    expect(changesOf(track(para, undefined, reviewed)).map((c) => [c.id, c.styles.join(' ')])).toEqual([
+      ['v1:0', '+block:p'],
+      ['v2:0', '-block:p'],
+    ]);
+    expect(rejecting(para, () => ['v2:0'], undefined, reviewed)).toBe(para[1].text);
+    const back = [
+      { author: A, text: 'Hello there.\n', hash: 'v0' },
+      { author: B, text: 'Hello.\n', hash: 'v1' },
+      { author: B, text: 'Hello there.\n', hash: 'v2' },
+    ];
+    expect(changesOf(track(back, undefined, reviewed)).map((c) => [c.id, c.put, c.took])).toEqual([
+      ['v2:0', ' there', ''],
+      ['v1:0', '', ' there'],
+    ]);
+    expect(rejecting(back, () => ['v2:0'], undefined, reviewed)).toBe('Hello.\n');
   });
 
   test('a change no part of the tracking could place is undone by hand alone: none is made', () => {
@@ -477,6 +515,36 @@ describe('properties', () => {
         );
         expect(back, 'a rejection for every change').not.toBeNull();
         expect(same(applyAll(now, back!))).toBe(canon(versions[0].text));
+      });
+    },
+    LONG,
+  );
+
+  test(
+    'versions one after another, each reviewed before the next and by anyone, the same person or not: rejecting the last one’s changes gives back the one before it',
+    () => {
+      const chain = fc.tuple(arbitraryEdits(6, true), fc.integer({ min: 2, max: 4 }), fc.array(fc.boolean(), { minLength: 5, maxLength: 5 }));
+      holds('a chain of versions, the last rejected', chain, ([{ doc, ops }, parts, who]) => {
+        const size = Math.ceil(ops.length / parts);
+        const versions = [{ author: who[0] ? 'a' : 'b', text: write(doc), hash: 'v0' }];
+        let d = doc;
+        for (let k = 0; k * size < ops.length; k++) {
+          d = applyAll(d, ops.slice(k * size, (k + 1) * size));
+          versions.push({ author: who[k + 1] ? 'a' : 'b', text: write(d), hash: `v${k + 1}` });
+        }
+        const last = versions.length - 1;
+        // Every change accepted before the version after the one that made it.
+        const t = track(versions, undefined, (id, seq) => Number(id.slice(1, id.indexOf(':'))) < seq);
+        const now = parse(versions[last].text);
+        const back = rejectOps(
+          t,
+          now.blocks,
+          changesOf(t)
+            .map((c) => c.id)
+            .filter((id) => id.startsWith(`v${last}:`)),
+        );
+        expect(back, 'a rejection for every change').not.toBeNull();
+        expect(same(applyAll(now, back!))).toBe(canon(versions[last - 1].text));
       });
     },
     LONG,

@@ -4,9 +4,10 @@
  * took out each word, and who changed its formatting. Each version is compared with the one before it, block by block
  * (each block by its kind and its words) and, inside a block that changed, word by word. A word put in carries its
  * author and the change that put it in; a word taken out stays, carrying who took it out, so it can be drawn struck
- * through; a word someone put in and then took out again themself is simply gone. A change rejected stays in sight as
- * a change of its own (its words struck through as rejected, or words taken out put back as restored), for its author
- * and everyone else to accept: the host says which changes were rejected, and which reviewed, before each version.
+ * through; a word someone put in and then took out again themself, before anyone reviewed it, is simply gone. A
+ * change rejected stays in sight as a change of its own (its words struck through as rejected, or words taken out put
+ * back as restored), for its author and everyone else to accept: the host says which changes were rejected, and which
+ * reviewed, before each version.
  * Formatting is tracked as words are (Paul, 2026-10-16: "When I bold and change formatting you should track that as a
  * change"): a word whose marks change (bold, italic, underline, struck, highlighted, code, a link) and a block whose
  * kind or alignment changes, its words the same, carry who changed them and what they were, to be drawn, accepted or
@@ -256,11 +257,11 @@ function retoken(b: Tracked, next: Read, by: string, mint: () => string, rejecte
       touch();
       run ||= goesOn() || mint();
       const nt = now[j++];
-      // Words put back where they were taken out: by whoever took them out, the taking out undone; by anyone else, a
-      // change of its own (a deletion rejected), shown as words restored.
+      // Words put back where they were taken out: by whoever took them out, nobody having reviewed it, the taking out
+      // undone; by anyone else, or after a review, a change of its own (a deletion rejected), shown as words restored.
       if (k < was.length && was[k].del && was[k].t === nt.t) {
         const { del: who, delId, ...back } = was[k++];
-        out.push(who === by ? { ...back, m: nt.m } : { ...back, m: nt.m, ins: by, insId: run, restored: true, from: { del: who!, delId, m: back.m } });
+        out.push(who === by && open(delId) ? { ...back, m: nt.m } : { ...back, m: nt.m, ins: by, insId: run, restored: true, from: { del: who!, delId, m: back.m } });
       } else out.push({ t: nt.t, m: nt.m, ins: by, insId: run });
       continue;
     }
@@ -285,11 +286,11 @@ function retoken(b: Tracked, next: Read, by: string, mint: () => string, rejecte
       }
       continue;
     }
-    // Taken out: gone if its own author takes it out again, else struck through as theirs who took it out (a rejection,
-    // where they rejected the change that put it in).
+    // Taken out: gone if its own author takes it out again before anyone has reviewed it, else struck through as theirs
+    // who took it out (a rejection, where they rejected the change that put it in). Words accepted are anyone's words.
     touch();
     run ||= goesOn() || mint();
-    if (tok.ins !== by) out.push({ ...tok, del: by, delId: run, ...(rejected(tok.insId) ? { rejected: true as const } : {}) });
+    if (tok.ins !== by || !open(tok.insId)) out.push({ ...tok, del: by, delId: run, ...(rejected(tok.insId) ? { rejected: true as const } : {}) });
   }
   flushDead();
   return { ...b, toks: out };
@@ -414,10 +415,10 @@ export function trackOn(
       }
     };
     // Paired by kind, in order: a heading's change is the heading's, not the paragraph after it. A block taken out is
-    // struck through where it was, unless its own author takes out what they alone put in.
+    // struck through where it was, unless its own author takes out what they alone put in and nobody has reviewed.
     const strike = (g: Tracked) => {
       touch();
-      if (g.ins !== by) out.push({ ...g, del: by, delId: mint(), ...(rejected(g.insId) ? { rejected: true as const } : {}) });
+      if (g.ins !== by || !open(g.insId)) out.push({ ...g, del: by, delId: mint(), ...(rejected(g.insId) ? { rejected: true as const } : {}) });
     };
     const left = [...gone];
     for (const n of come) {

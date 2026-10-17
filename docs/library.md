@@ -123,7 +123,8 @@ being its text layer.
   person by, an email), its TLO text, a hash that names its changes (`<hash>:0` is the first it made) and its place in
   the host's log (`seq`). If any change was accepted or rejected, which ones and when (`track`'s `rejectedBy(id, seq)`
   and `reviewedBy(id, seq)`): a rejection stays in sight as a change of its own, and a change reviewed is closed, so an
-  edit beside it is another. The words being typed and not yet saved are a version too, the last tracking taken one
+  edit beside it is another, and words its author takes out again, reviewed, are taken out as a change (unreviewed,
+  they are simply gone). The words being typed and not yet saved are a version too, the last tracking taken one
   version further (`trackOn`). And its people: their order, a person's color their place in it (`COLORS`), their
   names (`initialsOf`), and what the drawing says in the host's language (`Drawing`).
 - **What it gets.** `track(versions)` is the document as `Tracked` blocks of `Tok`s: each word with who put it in and
