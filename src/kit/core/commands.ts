@@ -6,7 +6,8 @@
  * an app's its own commands.ts beside its editor (reached through AppDef.commands). Everything else is drawn or
  * checked from these:
  *
- * - the bars (bar.ts `cmdTool`), the menus (`menuOf`), the context bars and the selection bubble (`entryOf`);
+ * - the bars (bar.ts `cmdTool`, `cmdBtn`), the menus (`cmdMenu`, its rows `drawnIn`), the context bars and the
+ *   selection bubble (`contextOf`);
  * - the keys: each scope's element answers its own keydown with `runKey(e, its commands, its context)`, inner first
  *   (the words inside an app inside the page), and a key an inner scope took is not an outer one's;
  * - the shortcuts dialog and the drawer's search for anything (kit/ui/drawer.ts), which read the registry as the page runs;
