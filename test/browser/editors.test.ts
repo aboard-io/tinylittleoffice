@@ -7,7 +7,6 @@
 import { html, render } from 'lit';
 import { expect, test } from 'vitest';
 import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup, toast, type DocPick, type Picked } from '../../src/editors.ts';
-import { trace } from '../../src/kit/core/commands.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
 import { applyAll, invertAll, parse, plainText, rebase, write, type Op } from '../../src/doc/index.ts';
@@ -176,52 +175,46 @@ test('where a placed document opens is the host’s answer, and a pasted link is
 });
 
 test('a page’s own commands: declared as the kit’s, drawn by its bar, and a key typed in the words that no scope inside takes is the page’s', async () => {
-  // The page's scope is this test's, not the site's: its runs are kept out of the map the registry's lint reads
-  // (test/commands-covered.json), which holds the site's commands to a test.
-  const ran = trace.ran;
-  trace.ran = (id) => void (id.startsWith('host.') || ran?.(id));
-  try {
-    /** The page's context: Atlas's board, with a record in hand. */
-    const board = { record: 'r1', done: [] as string[] };
-    type Board = typeof board;
-    // Words of the page's own, not messages of en.ftl: a function of the context.
-    const open = command<Board>({
-      id: 'host.open',
-      scope: 'host',
-      label: (b) => `Open ${b?.record ?? 'record'}`,
-      keys: 'Mod+Shift+9',
-      where: ['bar'],
-      does: (b) => void b.done.push(`open ${b.record}`),
-    });
-    // Bound to a key the words take: the inner scope wins, and this never runs from inside them.
-    const bolder = command<Board>({ id: 'host.bolder', scope: 'host', label: () => 'Bolder', keys: 'Mod+B', where: ['keys-only'], does: (b) => void b.done.push('bolder') });
-    register([open, bolder]);
-    document.body.innerHTML = '<main></main><div class="page-bar"></div>';
-    const { editor } = await mount('write', '', document.querySelector('main')!, () => {}, { commands: inScope('host'), context: board });
-    words(editor).focus();
-    const press = (init: KeyboardEventInit) => {
-      const e = new KeyboardEvent('keydown', { ctrlKey: true, bubbles: true, cancelable: true, ...init });
-      words(editor).dispatchEvent(e);
-      return e;
-    };
-    expect(press({ key: '(', code: 'Digit9', shiftKey: true }).defaultPrevented).toBe(true);
-    expect(board.done).toStrictEqual(['open r1']);
-    // Mod+B is the words' (bold): taken inside, it never reaches the page's scope.
-    expect(press({ key: 'b', code: 'KeyB' }).defaultPrevented).toBe(true);
-    expect(board.done).toStrictEqual(['open r1']);
-    // Mod+S is the site's Keep, which a bare page has nothing for: the kit passes it on, and it stays the browser's.
-    expect(press({ key: 's', code: 'KeyS' }).defaultPrevented).toBe(false);
+  // The page's scope is this test's, not the site's: test/browser/setup.ts keeps its runs out of the map the registry's
+  // lint reads (test/commands-covered.json), which holds the site's commands to a test.
+  /** The page's context: Atlas's board, with a record in hand. */
+  const board = { record: 'r1', done: [] as string[] };
+  type Board = typeof board;
+  // Words of the page's own, not messages of en.ftl: a function of the context.
+  const open = command<Board>({
+    id: 'host.open',
+    scope: 'host',
+    label: (b) => `Open ${b?.record ?? 'record'}`,
+    keys: 'Mod+Shift+9',
+    where: ['bar'],
+    does: (b) => void b.done.push(`open ${b.record}`),
+  });
+  // Bound to a key the words take: the inner scope wins, and this never runs from inside them.
+  const bolder = command<Board>({ id: 'host.bolder', scope: 'host', label: () => 'Bolder', keys: 'Mod+B', where: ['keys-only'], does: (b) => void b.done.push('bolder') });
+  register([open, bolder]);
+  document.body.innerHTML = '<main></main><div class="page-bar"></div>';
+  const { editor } = await mount('write', '', document.querySelector('main')!, () => {}, { commands: inScope('host'), context: board });
+  words(editor).focus();
+  const press = (init: KeyboardEventInit) => {
+    const e = new KeyboardEvent('keydown', { ctrlKey: true, bubbles: true, cancelable: true, ...init });
+    words(editor).dispatchEvent(e);
+    return e;
+  };
+  expect(press({ key: '(', code: 'Digit9', shiftKey: true }).defaultPrevented).toBe(true);
+  expect(board.done).toStrictEqual(['open r1']);
+  // Mod+B is the words' (bold): taken inside, it never reaches the page's scope.
+  expect(press({ key: 'b', code: 'KeyB' }).defaultPrevented).toBe(true);
+  expect(board.done).toStrictEqual(['open r1']);
+  // Mod+S is the site's Keep, which a bare page has nothing for: the kit passes it on, and it stays the browser's.
+  expect(press({ key: 's', code: 'KeyS' }).defaultPrevented).toBe(false);
 
-    // The page's bar, drawn by the kit's cmdTool: the command's words in this context, and a click runs it.
-    board.record = 'r2';
-    render(html`<to-bar>${cmdTool(open, board)}</to-bar>`, document.querySelector<HTMLElement>('.page-bar')!);
-    const button = document.querySelector<HTMLButtonElement>('.page-bar button.cmd-host-open')!;
-    expect(button.getAttribute('aria-label')).toBe('Open r2');
-    button.click();
-    expect(board.done).toStrictEqual(['open r1', 'open r2']);
-  } finally {
-    trace.ran = ran;
-  }
+  // The page's bar, drawn by the kit's cmdTool: the command's words in this context, and a click runs it.
+  board.record = 'r2';
+  render(html`<to-bar>${cmdTool(open, board)}</to-bar>`, document.querySelector<HTMLElement>('.page-bar')!);
+  const button = document.querySelector<HTMLButtonElement>('.page-bar button.cmd-host-open')!;
+  expect(button.getAttribute('aria-label')).toBe('Open r2');
+  button.click();
+  expect(board.done).toStrictEqual(['open r1', 'open r2']);
 });
 
 /**

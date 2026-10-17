@@ -1,5 +1,7 @@
-// Every browser test file: the commands it runs (src/kit/core/commands.ts `trace`) are added, when it ends, to the map the
-// registry's lint reads (test/commands-covered.json; vitest.config.ts recordCommands).
+// Every browser test file: the site's commands it runs (src/kit/core/commands.ts `trace`) are added, when it ends, to the
+// map the registry's lint reads (test/commands-covered.json; vitest.config.ts recordCommands). A command a test declares
+// for a page (its `host` scope) or for an app built outside the suite (test/browser/kit.test.ts) is not the site's, and
+// is left out: the site's scopes are the kit's, the words', the rows' and each of the suite's apps'.
 import { afterAll } from 'vitest';
 import { commands } from 'vitest/browser';
 import { trace } from '../../src/kit/core/commands.ts';
@@ -9,7 +11,11 @@ import { theme } from '../../src/kit/ui/theme.ts';
 const ran = new Set<string>();
 trace.ran = (id) => void ran.add(id);
 afterAll(async () => {
-  if (ran.size) await (commands as unknown as { recordCommands(ids: string[]): Promise<void> }).recordCommands([...ran]);
+  if (!ran.size) return;
+  const { apps } = await import('../../src/kit/core/apps.ts');
+  const site = new Set(['kit', 'text', 'rows', ...apps().map((a) => a.id)]);
+  const ids = [...ran].filter((id) => site.has(id.slice(0, id.indexOf('.'))));
+  if (ids.length) await (commands as unknown as { recordCommands(ids: string[]): Promise<void> }).recordCommands(ids);
 });
 
 // The size of everything and the theme are kept on the device in either state (kit/core/store.ts), and this origin's
