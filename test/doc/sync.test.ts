@@ -1,8 +1,9 @@
 // Shared editing's properties (src/doc/sync.ts, docs/kernel.md §12): the first transformation property (TP1) for every
 // pair of operations, by enumeration on small documents and by fast-check from the grammar's generators; several
 // clients and a server, interleaved at random, ending with one document; and an undo transformed over what came
-// after it, exact for every kind of op that nothing later touched. Each fuzzed property runs 200 cases (2,000 under
-// `npm run fuzz`); a failure names the shrunk case. The documents are compared by their writing.
+// after it, exact for every kind of op that nothing later touched. The clients and the undo run twice, with ops as the
+// grammar makes them and with ops mostly on tables. Each fuzzed property runs 200 cases (2,000 under `npm run fuzz`);
+// a failure names the shrunk case. The documents are compared by their writing.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
 import {
@@ -23,7 +24,7 @@ import {
   type Ordered,
   type TableBlock,
 } from '../../src/doc/index.ts';
-import { arbitraryDoc, arbitraryOp, RUNS } from './tlo-grammar.ts';
+import { arbitraryDoc, arbitraryOp, arbitraryTable, RUNS, sayableDoc } from './tlo-grammar.ts';
 
 /** Long enough for RUNS cases of the slowest property. */
 const LONG = Math.max(10_000, RUNS * 60);
@@ -79,6 +80,27 @@ function twoOn(d: Doc): fc.Arbitrary<[Op, Op]> {
     ...(held.length ? [fc.constantFrom(...held).chain((k) => fc.tuple(onBlock(d, k), onBlock(d, k)))] : []),
   );
 }
+
+/** A shared document with a table put in among its blocks. */
+const tabled = fc
+  .tuple(sharedDoc, arbitraryTable(), fc.nat())
+  .map(([d, t, i]) => sayableDoc({ head: d.head, blocks: [...d.blocks.slice(0, i % (d.blocks.length + 1)), t, ...d.blocks.slice(i % (d.blocks.length + 1))] }));
+/** An op on one of the document's tables three times in four, while it has one; else any op. */
+function tableOp(d: Doc): fc.Arbitrary<Op> {
+  const tables = d.blocks.flatMap((b, k) => (b.k === 'table' ? [k] : []));
+  return tables.length ? fc.oneof({ weight: 3, arbitrary: fc.constantFrom(...tables).chain((k) => onBlock(d, k)) }, { weight: 1, arbitrary: opOn(d) }) : opOn(d);
+}
+/**
+ * What the clients and the undo are fuzzed from: documents and ops as the grammar makes them, where few ops the server
+ * appends are on tables; and documents with a table and ops mostly on tables, so that rows, columns and cells meet each
+ * other in runs of ops carried over runs. `tables` is the least share of the appended ops on tables; `exact`, the least
+ * share of undos checked exactly (later ops on a table mostly touch it), and the kinds of op (each group of them) whose
+ * undo is checked exactly at least once over the property's cases.
+ */
+const MIXES = [
+  { name: 'any op', docs: sharedDoc, op: opOn, tables: 0, exact: { share: 1 / 4, kinds: [['head'], ['text'], ['splice'], ['take out'], ['move']] } },
+  { name: 'mostly table ops', docs: tabled, op: tableOp, tables: 1 / 4, exact: { share: 1 / 10, kinds: [['cells', 'rows', 'cols', 'col']] } },
+];
 
 /**
  * A document as text, its head's keys in one order: the head is a set of keys, and two keys put in at once are written
@@ -467,9 +489,10 @@ interface Client {
  * against its own view (or undoes one of its own: the op's inverse, from the view it was made against, rebased over
  * every op its view took after it); the server takes a client's next op, rebases it over everything appended after its
  * base, applies and appends it (or refuses it: rule 1 or 2), and tells every client; a client takes the server's next
- * message, its pending ops rebased over another's op. Then every queue drains. Returns the clients and the server.
+ * message, its pending ops rebased over another's op. Then every queue drains. A client's ops come from `op`, or near
+ * its last. Returns the clients, the server and counts of what happened.
  */
-function simulate(d: Doc, g: fc.GeneratorValue) {
+function simulate(d: Doc, g: fc.GeneratorValue, op: (d: Doc) => fc.Arbitrary<Op>) {
   const server = { doc: d, log: [] as Ordered[] };
   let count = 0;
   const clients: Client[] = Array.from({ length: g(fc.integer, { min: 2, max: 4 }) }, (_, i) => ({
@@ -483,7 +506,7 @@ function simulate(d: Doc, g: fc.GeneratorValue) {
     seen: [],
     mine: [],
   }));
-  const stats = { made: 0, undone: 0, refused: 0, dropped: 0, startedAgain: 0, crossed: 0, ranges: 0 };
+  const stats = { made: 0, undone: 0, refused: 0, dropped: 0, startedAgain: 0, crossed: 0, ranges: 0, served: {} as Record<string, number> };
   const startAgain = (c: Client) => {
     Object.assign(c, { view: c.known, pending: [], sent: null, seen: [], mine: [] });
     stats.startedAgain++;
@@ -535,6 +558,7 @@ function simulate(d: Doc, g: fc.GeneratorValue) {
       c.inbox.push({ dropped: edit.id });
       return;
     }
+    stats.served[op.op] = (stats.served[op.op] ?? 0) + 1;
     const ordered: Ordered = { ...edit, op, seq: server.log.length + 1 };
     server.log.push(ordered);
     server.doc = doc;
@@ -610,7 +634,7 @@ function simulate(d: Doc, g: fc.GeneratorValue) {
     const c = clients[g(fc.integer, { min: 0, max: clients.length - 1 })];
     const step = g(fc.constantFrom, 'make', 'make', 'make', 'serve', 'serve', 'receive', 'receive', 'receive', 'undo');
     if (step === 'make') {
-      make(c, [g(() => fc.oneof(opOn(c.view), ...(c.seen.length ? [near(c.view, c.seen[c.seen.length - 1])] : [])))]);
+      make(c, [g(() => fc.oneof(op(c.view), ...(c.seen.length ? [near(c.view, c.seen[c.seen.length - 1])] : [])))]);
       stats.made++;
     } else if (step === 'serve') serve(c);
     else if (step === 'receive') receive(c);
@@ -627,30 +651,36 @@ function simulate(d: Doc, g: fc.GeneratorValue) {
   return { clients, server, stats };
 }
 
-test(
-  'property: two to four clients and a server, interleaved at random, end with one document',
-  () => {
-    holds('convergence', fc.tuple(sharedDoc, fc.gen()), ([d, g]) => {
-      const { clients, server } = simulate(d, g);
-      for (const c of clients) {
-        expect(c.pending).toStrictEqual([]);
-        expect(write(c.view)).toBe(write(server.doc));
-        expect(write(c.known)).toBe(write(server.doc));
-      }
-      // The document is the first one with the server's edits applied in order.
-      expect(write(applyEdits(d, server.log))).toBe(write(server.doc));
-      expect(server.log.map((e) => e.seq)).toStrictEqual(server.log.map((_, i) => i + 1));
-    });
-  },
-  LONG,
-);
+for (const mix of MIXES)
+  test(
+    `property: two to four clients and a server, interleaved at random, end with one document (${mix.name})`,
+    () => {
+      const served: Record<string, number> = {};
+      holds('convergence', fc.tuple(mix.docs, fc.gen()), ([d, g]) => {
+        const { clients, server, stats } = simulate(d, g, mix.op);
+        for (const [k, n] of Object.entries(stats.served)) served[k] = (served[k] ?? 0) + n;
+        for (const c of clients) {
+          expect(c.pending).toStrictEqual([]);
+          expect(write(c.view)).toBe(write(server.doc));
+          expect(write(c.known)).toBe(write(server.doc));
+        }
+        // The document is the first one with the server's edits applied in order.
+        expect(write(applyEdits(d, server.log))).toBe(write(server.doc));
+        expect(server.log.map((e) => e.seq)).toStrictEqual(server.log.map((_, i) => i + 1));
+      });
+      const all = Object.values(served).reduce((x, y) => x + y, 0);
+      const tables = ['cells', 'rows', 'cols', 'col'].reduce((x, k) => x + (served[k] ?? 0), 0);
+      expect(tables, JSON.stringify(served)).toBeGreaterThanOrEqual(all * mix.tables);
+    },
+    LONG,
+  );
 
 /* ---------- undo ---------- */
 
-/** Ops made one after another from a document: one to four, each at random or near the one before. */
-function editsOn(d: Doc): fc.Arbitrary<Op[]> {
+/** Ops made one after another from a document: one to four, each from `op` or near the one before. */
+function editsOn(d: Doc, op: (d: Doc) => fc.Arbitrary<Op>): fc.Arbitrary<Op[]> {
   const step = (x: Doc, left: number, last: Op | null): fc.Arbitrary<Op[]> =>
-    left ? (last ? fc.oneof(opOn(x), near(x, last)) : opOn(x)).chain((op) => step(apply(x, op), left - 1, op).map((rest) => [op, ...rest])) : fc.constant([]);
+    left ? (last ? fc.oneof(op(x), near(x, last)) : op(x)).chain((o) => step(apply(x, o), left - 1, o).map((rest) => [o, ...rest])) : fc.constant([]);
   return fc.integer({ min: 1, max: 4 }).chain((k) => step(d, k, null));
 }
 
@@ -735,36 +765,41 @@ function untouched(d: Doc, o: Op, later: Op[]): Doc | null {
   return { head: end.head, blocks: [...end.blocks.slice(0, p), ...was, ...end.blocks.slice(p + marked.length)] };
 }
 
-test(
-  'property: an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed when nothing later touched it, for every kind of op',
-  () => {
-    const exact: Record<string, number> = {};
-    holds(
-      'undo',
-      sharedDoc.chain((d) => opOn(d).chain((o) => editsOn(apply(d, o)).map((later) => ({ d, o, later })))),
-      ({ d, o, later }) => {
-        const now = applyAll(apply(d, o), later);
-        let back: Op[];
-        try {
-          back = rebase(invert(d, o), later);
-        } catch (e) {
-          if (e instanceof Conflict) return;
-          throw e;
-        }
-        const undone = applyAll(now, back);
-        const want = untouched(d, o, later);
-        if (want) {
-          exact[kind(o)] = (exact[kind(o)] ?? 0) + 1;
-          expect(text(undone)).toBe(text(want));
-        }
-      },
-    );
-    // Most cases are ones nothing later touched, which the property checks exactly, of each common kind of op.
-    expect(Object.values(exact).reduce((x, y) => x + y, 0)).toBeGreaterThan(RUNS / 4);
-    for (const k of ['head', 'text', 'splice', 'take out', 'move']) expect(exact[k] ?? 0, `undos of ${k} checked exactly: ${JSON.stringify(exact)}`).toBeGreaterThan(0);
-  },
-  LONG,
-);
+for (const mix of MIXES)
+  test(
+    `property: an op undone under later ops (its inverse rebased over them) applies, and gives back exactly what it changed when nothing later touched it, for every kind of op (${mix.name})`,
+    () => {
+      const exact: Record<string, number> = {};
+      holds(
+        'undo',
+        mix.docs.chain((d) => mix.op(d).chain((o) => editsOn(apply(d, o), mix.op).map((later) => ({ d, o, later })))),
+        ({ d, o, later }) => {
+          const now = applyAll(apply(d, o), later);
+          let back: Op[];
+          try {
+            back = rebase(invert(d, o), later);
+          } catch (e) {
+            if (e instanceof Conflict) return;
+            throw e;
+          }
+          const done = applyAll(now, back);
+          const want = untouched(d, o, later);
+          if (want) {
+            exact[kind(o)] = (exact[kind(o)] ?? 0) + 1;
+            expect(text(done)).toBe(text(want));
+          }
+        },
+      );
+      // Many cases are ones nothing later touched, which the property checks exactly, of each common kind of op.
+      expect(Object.values(exact).reduce((x, y) => x + y, 0)).toBeGreaterThan(RUNS * mix.exact.share);
+      for (const ks of mix.exact.kinds)
+        expect(
+          ks.reduce((x, k) => x + (exact[k] ?? 0), 0),
+          `undos of ${ks.join(', ')} checked exactly: ${JSON.stringify(exact)}`,
+        ).toBeGreaterThan(0);
+    },
+    LONG,
+  );
 
 /* ---------- the rules and the cases, each shown once ---------- */
 
