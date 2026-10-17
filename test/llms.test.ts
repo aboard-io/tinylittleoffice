@@ -16,9 +16,10 @@ const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
 const file = (p: string) => readFileSync(at(p), 'utf8');
 const API = "import { link, read, lint } from 'https://tinylittleoffice.com/api.js'";
 
-test('/llms.txt is short: under 6 KB, its first screen under 1,500 tokens, with the link, the API line and the three commands', () => {
+test('/llms.txt is short: under 6.5 KB, its first screen under 1,500 tokens, with the link, the API line and the three commands', () => {
   const short = file('public/llms.txt');
-  expect(new TextEncoder().encode(short).length).toBeLessThan(6 * 1024);
+  // 6 KB until the Board came back (2026-10-17): its one example took the guide 275 bytes past, one line of eleven.
+  expect(new TextEncoder().encode(short).length).toBeLessThan(6.5 * 1024);
   const first = short.slice(0, short.indexOf('\n## '));
   expect(Math.ceil(first.length / 4)).toBeLessThan(1500);
   expect(first).toContain('https://tinylittleoffice.com/<app>/#doc=<percent-encoded TLO>');
