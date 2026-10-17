@@ -5,7 +5,24 @@
 // documents are compared by their writing.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { apply, applyAll, applyEdits, Conflict, invert, parse, rebase, runLength, transform, write, type Block, type Doc, type Edit, type Op, type Ordered } from '../../src/doc/index.ts';
+import {
+  apply,
+  applyAll,
+  applyEdits,
+  Conflict,
+  invert,
+  parse,
+  rebase,
+  runLength,
+  transform,
+  write,
+  type Block,
+  type Doc,
+  type Edit,
+  type Op,
+  type Ordered,
+  type TableBlock,
+} from '../../src/doc/index.ts';
 import { arbitraryDoc, arbitraryOp, RUNS } from './tlo-grammar.ts';
 
 /** Long enough for RUNS cases of the slowest property. */
@@ -70,34 +87,77 @@ function twoOn(d: Doc): fc.Arbitrary<[Op, Op]> {
  */
 const text = (d: Doc): string => write({ head: Object.fromEntries(Object.entries(d.head).sort(([a], [b]) => (a < b ? -1 : 1))), blocks: d.blocks });
 
-/**
- * Whether two documents differ only in where a range ends, in a formula or a table's lock: what rows (columns) put in
- * at an edge of rows (columns) taken out leave a row apart in the two orders (remapRefs and remapLock grow a range
- * over rows put in inside it, and close it over rows taken out of its end, and the two do not commute there).
- */
-function rangesOnly(x: Doc, y: Doc): boolean {
-  if (x.blocks.length !== y.blocks.length) return false;
-  const range = (v: string) => v.startsWith('=') && /[A-Za-z]\d+:[A-Za-z]\d+/.test(v);
-  const unlocked = (b: Block) => {
-    const kv = { ...b.a?.kv };
-    delete kv.lock;
-    return JSON.stringify({ ...b, a: { ...b.a, kv }, rows: [] });
-  };
-  return x.blocks.every((b, i) => {
-    const c = y.blocks[i];
-    if (write({ head: {}, blocks: [b] }) === write({ head: {}, blocks: [c] })) return true;
-    if (b.k !== 'table' || c.k !== 'table' || unlocked(b) !== unlocked(c) || b.rows.length !== c.rows.length) return false;
-    return b.rows.every((row, r) => row.every((v, k) => v === c.rows[r][k] || (range(v) && range(c.rows[r][k]))));
+/** A range's rows and columns, from 0: [first row, first column, last row, last column]. */
+type Box = [number, number, number, number];
+type Axis = 'r' | 'c';
+
+/** A formula's or a lock's ranges, and the rest of it with a mark where each was. */
+function ranges(s: string): { rest: string; boxes: Box[] } {
+  const boxes: Box[] = [];
+  const col = (c: string) => c.toUpperCase().charCodeAt(0) - 65;
+  const rest = s.replace(/\b([A-Za-z])(\d{1,4}):([A-Za-z])(\d{1,4})\b/g, (_, c0: string, r0: string, c1: string, r1: string) => {
+    boxes.push([+r0 - 1, col(c0), +r1 - 1, col(c1)]);
+    return '\u0001';
   });
+  return { rest, boxes };
 }
 
-/** Whether one op puts rows (columns) in at an edge of rows (columns) the other takes out, of one table. */
-function atEdge(a: Op, b: Op): boolean {
-  const lines = (o: Op) => (o.op === 'rows' ? { at: o.at, axis: 'r', p: o.r, k: o.n, put: !!o.rows } : o.op === 'cols' ? { at: o.at, axis: 'c', p: o.c, k: o.n, put: !!o.cols } : null);
+/** Whether two ranges are the same on the axis other than `axis` (their columns, for rows). */
+const across = (u: Box, v: Box, axis: Axis): boolean => (axis === 'r' ? u[1] === v[1] && u[3] === v[3] : u[0] === v[0] && u[2] === v[2]);
+
+/**
+ * Rows (columns) one op put in at an edge of rows (columns) the other took out of the table at `at`: once both have
+ * applied, in either order, the m put in lie at [p, p + m), where the rows taken out began.
+ */
+interface Edge {
+  at: number;
+  axis: Axis;
+  p: number;
+  m: number;
+}
+
+/** The edge where one op puts rows (columns) in at an edge of rows (columns) the other takes out of one table, or null. */
+function atEdge(a: Op, b: Op): Edge | null {
+  const lines = (o: Op) =>
+    o.op === 'rows' ? { at: o.at, axis: 'r' as const, p: o.r, k: o.n, put: !!o.rows } : o.op === 'cols' ? { at: o.at, axis: 'c' as const, p: o.c, k: o.n, put: !!o.cols } : null;
   const [x, y] = [lines(a), lines(b)];
-  if (!x || !y || x.at !== y.at || x.axis !== y.axis || x.put === y.put) return false;
+  if (!x || !y || x.at !== y.at || x.axis !== y.axis || x.put === y.put) return null;
   const [put, out] = x.put ? [x, y] : [y, x];
-  return put.p === out.p || put.p === out.p + out.k;
+  return put.p === out.p || put.p === out.p + out.k ? { at: put.at, axis: put.axis, p: out.p, m: put.k } : null;
+}
+
+/**
+ * Whether two ranges are what an edge leaves apart in the two orders (remapRefs and remapLock grow a range over rows
+ * put in inside it and close it over rows taken out of its end, and the two do not commute there): the same on the
+ * other axis and at one end, and at the end that lay in the rows taken out, one order's stops short of the rows put
+ * in and the other's takes them in. A first row at p + m or p, a last at p - 1 or p + m - 1: exactly m apart.
+ */
+function edgeApart(u: Box, v: Box, e: Edge): boolean {
+  const [s, t] = e.axis === 'r' ? [0, 2] : [1, 3];
+  const two = (x: number, y: number, a: number, b: number) => (x === a && y === b) || (x === b && y === a);
+  return across(u, v, e.axis) && ((u[s] === v[s] && two(u[t], v[t], e.p - 1, e.p + e.m - 1)) || (u[t] === v[t] && two(u[s], v[s], e.p, e.p + e.m)));
+}
+
+/**
+ * Whether two documents differ only in ranges, in a table's formulas or its lock, each pair that differs one `apart`
+ * allows (`k`, the table's index): the head, every other block, a table's columns, attributes and rows, and every
+ * formula's words and single cells are the same.
+ */
+function rangesOnly(x: Doc, y: Doc, apart: (k: number, u: Box, v: Box) => boolean): boolean {
+  const head = (d: Doc) => text({ head: d.head, blocks: [] });
+  if (head(x) !== head(y) || x.blocks.length !== y.blocks.length) return false;
+  return x.blocks.every((b, k) => {
+    const c = y.blocks[k];
+    if (write({ head: {}, blocks: [b] }) === write({ head: {}, blocks: [c] })) return true;
+    if (b.k !== 'table' || c.k !== 'table' || b.rows.length !== c.rows.length) return false;
+    const same = (s: string, z: string) => {
+      const [one, two] = [ranges(s), ranges(z)];
+      return one.rest === two.rest && one.boxes.length === two.boxes.length && one.boxes.every((u, i) => u.join() === two.boxes[i].join() || apart(k, u, two.boxes[i]));
+    };
+    const bare = (t: TableBlock) => JSON.stringify({ ...t, a: { ...t.a, kv: { ...t.a?.kv, lock: '' } }, rows: [] });
+    const cell = (v: string, w: string) => v === w || (v.startsWith('=') && same(v, w));
+    return bare(b) === bare(c) && same(b.a?.kv?.lock ?? '', c.a?.kv?.lock ?? '') && b.rows.every((row, r) => row.length === c.rows[r].length && row.every((v, i) => cell(v, c.rows[r][i])));
+  });
 }
 
 /** A table pushed past Z, or left with no column (rule 2): what two ops can do together, and either order throws. */
@@ -266,8 +326,8 @@ function movesCross(n: number, a: Op, b: Op): boolean {
 /**
  * TP1 for one pair, made against `d`: a then b-over-a is b then a-over-b. Null when it holds; else what fails. Both
  * transforms find the spans crossing or neither, and then the moves cross, or no one op on each side does what a splice
- * and a move did; each transformed op fits
- * the document it applies to; a null is a removal; and an order that throws for a table's columns throws both ways.
+ * and a move did; each transformed op fits the document it applies to; a null is a removal; an order that throws for
+ * a table's columns throws both ways; and the two documents are the same, but for ranges an edge leaves apart.
  */
 function square(d: Doc, a: Op, b: Op): string | null {
   const ba = tried(b, a, 'right');
@@ -287,7 +347,8 @@ function square(d: Doc, a: Op, b: Op): string | null {
   const two = after(d, [b, ab]);
   if (one instanceof Error || two instanceof Error) return one instanceof Error && two instanceof Error ? null : `one order throws: ${String(one instanceof Error ? one : two)}`;
   const [w1, w2] = [text(one), text(two)];
-  if (w1 === w2 || (atEdge(a, b) && rangesOnly(one, two))) return null;
+  const edge = atEdge(a, b);
+  if (w1 === w2 || (edge && rangesOnly(one, two, (k, u, v) => k === edge.at && edgeApart(u, v, edge)))) return null;
   return `the orders differ:\n${w1}\n--- (b first)\n${w2}\nb over a: ${JSON.stringify(ba)}\na over b: ${JSON.stringify(ab)}`;
 }
 
@@ -333,8 +394,8 @@ test('TP1 for every pair of text ops on one block', () => {
   expect(pairs(d, ops('P'), ops('R'))).toStrictEqual([]);
 });
 
-test('TP1 for every pair of table ops on a table of three rows and three columns, formulas and all', () => {
-  const d = parse('| A:number | B | C |\n| --- | --- | --- |\n| 1 | =A1+B1 | =SUM(A1:A3) |\n| 2 | =A2*2 | =C1 |\n| 3 | x | =B3+A1 |\n\nAfter\n');
+test('TP1 for every pair of table ops on a table of three rows and three columns, formulas and all, with a lock and without', () => {
+  const sheet = (lock: string) => parse(`| A:number | B | C |\n| --- | --- | --- |\n| 1 | =A1+B1 | =SUM(A1:A3) |\n| 2 | =A2*2 | =C1 |\n| 3 | x | =B3+A1 |\n${lock}\nAfter\n`);
   const ops = (w: string): Op[] => {
     const out: Op[] = [];
     for (let r = 0; r <= 3; r++) for (const rows of [[[`=A${r + 1}`, w, '=SUM(A1:C3)']], [[w], ['=B2', '', w]]]) out.push({ op: 'rows', at: 0, r, n: rows.length, rows });
@@ -355,7 +416,13 @@ test('TP1 for every pair of table ops on a table of three rows and three columns
           for (const force of [false, true]) out.push({ op: 'cells', at: 0, r, c, values, ...(force ? { force: true as const } : {}) });
     return out;
   };
-  expect(pairs(d, ops('p'), ops('q'))).toStrictEqual([]);
+  expect(pairs(sheet(''), ops('p'), ops('q'))).toStrictEqual([]);
+  // A locked range ends in rows and columns others take out, and its cells are written only when forced. The table has
+  // an id beside its lock: where the lock is a table's only attribute, apply leaves it as it was when rows or columns
+  // taken out take all of it, and the two orders keep different stale locks (ops.ts's to mend, not the transform's).
+  const locked = sheet('{#t lock=A1:B2}\n');
+  expect((locked.blocks[0] as TableBlock).a?.kv?.lock).toBe('A1:B2');
+  expect(pairs(locked, ops('p'), ops('q'))).toStrictEqual([]);
 }, 60_000);
 
 /* ---------- fuzzed from the grammar ---------- */
@@ -497,11 +564,14 @@ function simulate(d: Doc, g: fc.GeneratorValue) {
     try {
       let theirs: Op | null = m.op;
       const next: Client['pending'] = [];
+      const edges = new Set<Axis>();
       for (const p of c.pending) {
         if (!theirs) {
           next.push(p);
           continue;
         }
+        const edge = atEdge(p.op, theirs);
+        if (edge) edges.add(edge.axis);
         const moved = transform(p.op, theirs, 'right');
         theirs = transform(theirs, p.op, 'left');
         if (moved) next.push({ ...p, op: moved });
@@ -516,10 +586,15 @@ function simulate(d: Doc, g: fc.GeneratorValue) {
         c.known,
         next.map((p) => p.op),
       );
-      // TP1 along the way: the server's op carried over the pending ones and applied to the view is the same document.
+      // TP1 along the way: the server's op carried over the pending ones and applied to the view is the same document,
+      // but in ranges whose ends differ on an axis where it met rows (columns) put in at an edge of rows (columns)
+      // taken out. (Ops after that edge carry the two ranges on, so how far apart they end is no longer the edge's.)
       const shown = theirs ? apply(c.view, theirs) : c.view;
       if (text(shown) !== text(view)) {
-        expect(rangesOnly(shown, view), `${text(shown)}\n---\n${text(view)}`).toBe(true);
+        expect(
+          rangesOnly(shown, view, (_, u, v) => [...edges].some((axis) => across(u, v, axis))),
+          `${text(shown)}\n---\n${text(view)}`,
+        ).toBe(true);
         stats.ranges++;
       }
       Object.assign(c, { pending: next, view, seen: theirs ? [...c.seen, theirs] : c.seen });
@@ -739,10 +814,12 @@ test('rule 3, the reason for it: rows put in a sheet’s first table move the he
   expect([parse(one).head.lock, parse(two).head.lock]).toStrictEqual(['A2', 'A3']);
 });
 
-test('what TP1 leaves to the server’s order: a range ending in rows taken out, beside rows put in, ends a row apart; and the head’s keys in the order they were put in', () => {
+test('what TP1 leaves to the server’s order: a range ending in rows taken out, beside rows put in, ends as many rows apart as were put in; and the head’s keys in the order they were put in', () => {
   const d = parse('| A:number |\n| --- |\n| 1 |\n| 2 |\n| 3 |\n| =SUM(A1:A3) |\n');
   const [one, two] = orders(d, { op: 'rows', at: 0, r: 2, n: 1, rows: [['9']] }, { op: 'rows', at: 0, r: 2, n: 1 });
   expect([one.split('\n')[5], two.split('\n')[5]]).toStrictEqual(['| =SUM(A1:A3) |', '| =SUM(A1:A2) |']);
+  const [three, four] = orders(d, { op: 'rows', at: 0, r: 1, n: 2, rows: [['9'], ['9']] }, { op: 'rows', at: 0, r: 1, n: 2 });
+  expect([three.split('\n')[5], four.split('\n')[5]]).toStrictEqual(['| =SUM(A1:A3) |', '| =SUM(A1:A1) |']);
   expect(orders(parse('x\n'), { op: 'head', key: 'title', value: 'T' }, { op: 'head', key: 'by', value: 'B' })).toStrictEqual(['---\ntitle: T\nby: B\n---\nx\n', '---\nby: B\ntitle: T\n---\nx\n']);
 });
 

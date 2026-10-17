@@ -61,9 +61,10 @@
  * Two orders of one pair still differ in two places, which no transformation of the ops can reach: the head's keys,
  * written in the order they were put in (two keys put in at once, or one taken out while another sets it), and a range
  * in a formula or a table's lock that ends in rows (columns) one op takes out, beside rows (columns) the other puts in
- * at their edge, which apply's remapping leaves a row apart (it grows a range over rows put in inside it and closes it
- * over rows taken out of its end, and the two do not commute there). What index transformation cannot know is left to
- * rules the server and its clients keep (docs/kernel.md §12):
+ * at their edge: apply's remapping grows a range over rows put in inside it and closes it over rows taken out of its
+ * end, the two do not commute there, and one order's range takes in the rows put in where the other's stops short of
+ * them, that end apart by as many rows as were put in. What index transformation cannot know is left to rules the
+ * server and its clients keep (docs/kernel.md §12):
  *
  *   1. Crossing spans. A splice that takes out some of a moved span's blocks and some others, or into whose span a
  *      moved span lands, and two moves whose spans overlap without one holding the other, or that each land inside the
