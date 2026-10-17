@@ -2,10 +2,11 @@
 // into its cell (a burst one undo, the caret back with it); Enter, Backspace and Delete in a title; the keys (Up/Down,
 // Left/Right at a title's ends, Alt+Up/Down, Mod+Alt+Left/Right, Mod+D); a lane's name kept on Enter, put back by Escape,
 // and renamed from its menu; Insert ▾ and a lane's menu; cards chosen whole with the bar under them (Open, Move to…),
-// Mod+Left/Right, the clipboard; a card opened, its fields typed in a dialog and kept as one step; a drag by the grip
+// Mod+Left/Right, the clipboard; a card opened, its fields typed in a dialog and kept as one step (those typed alone, an
+// edit from elsewhere kept); a drag by the grip
 // into another lane with its ghost, and undone; a finger held on the grip; the hand-off to the Spreadsheet; on a wide
-// screen the lanes in a row that scrolls sideways, and at phone width one under another, a finger tall, the page never
-// wider; and every card and lane named.
+// screen the lanes in a row that scrolls sideways, and at phone width one under another, a finger tall, the bars one
+// row, the page never wider; and every card and lane named.
 import { expect, test, vi } from 'vitest';
 import { page } from 'vitest/browser';
 // The cascade's order is declared by the stylesheet, so it comes before the app's own (as in main.ts).
@@ -508,6 +509,30 @@ test('a card opened (Alt+Enter, Open, a double click) is its fields in a dialog;
   await settle(el);
   expect(last()).toBe(HEAD + A + C);
   expect(drawn(el)[0]).toEqual(['To do', []]);
+});
+
+test('Done writes the fields typed alone: what an edit from elsewhere changed while the dialog was open stays', async () => {
+  const head = '---\nlanes: To do, Doing, Done\n---\nTask | Status:option | Owner | Due:date\n--- | --- | --- | ---\n';
+  const rest = 'Book the room | To do | Ben | 2026-11-02\n';
+  const { el, last } = await editor(head + 'Write the brief | Doing | Ana | 2026-11-01\n' + rest);
+  await caretIn(el, title(el, 1, 0));
+  key(title(el, 1, 0).tx, 'Enter', { altKey: true });
+  const dialog = () => el.querySelector<ToDialog>('to-dialog.board-dialog')!;
+  await until(() => !!dialog().dialog?.open);
+  await settle(el);
+  const inputs = () => dialog().querySelectorAll<HTMLInputElement>('.board-field input');
+  // A date asks for the order it is typed in, in the page's language.
+  expect(inputs()[2].placeholder).toBe('YYYY-MM-DD');
+  inputs()[1].value = 'Ana Lee';
+  inputs()[1].dispatchEvent(new Event('input', { bubbles: true }));
+  await settle(el);
+  // Someone else renames the card, moves it to Done and changes its date; then Done here.
+  el.value = head + 'Write the whole brief | Done | Ana | 2026-11-09\n' + rest;
+  await settle(el);
+  inputs()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await until(() => !dialog().dialog?.open);
+  await settle(el);
+  expect(last()).toBe(head + 'Write the whole brief | Done | Ana Lee | 2026-11-09\n' + rest);
 });
 
 test('a finger held on the grip chooses the card, the bar under it up; it is no drag after', async () => {

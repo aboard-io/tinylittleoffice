@@ -80,10 +80,16 @@ interface Over {
   lane: number;
   pos: number;
 }
-/** A card opened in its dialog: its row, its cells as typed (by column), the lane chosen, a rich cell's words as typed, and where the focus goes back to (the card chosen, or its title's caret). */
+/**
+ * A card opened in its dialog: its row, its cells as shown and typed (by column), the columns the person touched (the
+ * lane's when a lane is chosen), the lane chosen, a rich cell's words as typed, and where the focus goes back to (the
+ * card chosen, or its title's caret). Done writes the touched columns alone, so an edit from elsewhere to a field
+ * nobody touched here, synced while the dialog was open, is not put back.
+ */
 interface Opened {
   row: number;
   values: Record<number, string>;
+  touched: Set<number>;
   lane: string;
   rich: Map<number, Block>;
   back: 'rows' | number | 'end';
@@ -672,7 +678,7 @@ export class ToBoardEditor extends DocElement<View> {
     const cells = (this.doc.blocks[this.view.at] as TableBlock).rows[row];
     const back = this.rows.range ? 'rows' : this.cur === row ? this.caretIn(row) : 'end';
     this.rows.release();
-    this.opened = { row, values: Object.fromEntries(this.view.cols.map((_, i) => [i, cells[i] ?? ''])), lane: this.laneOf(c).name, rich: new Map(), back };
+    this.opened = { row, values: Object.fromEntries(this.view.cols.map((_, i) => [i, cells[i] ?? ''])), touched: new Set(), lane: this.laneOf(c).name, rich: new Map(), back };
     void this.updateComplete.then(async () => {
       const dialog = this.querySelector<ToDialog>('to-dialog.board-dialog');
       if (!dialog) return;
@@ -682,9 +688,9 @@ export class ToBoardEditor extends DocElement<View> {
     });
     return true;
   }
-  /** A field typed: kept in the draft, nothing written until Done. */
+  /** A field typed: kept in the draft, and the column marked as touched; nothing written until Done. */
   private put(c: number, value: string) {
-    if (this.opened) this.opened = { ...this.opened, values: { ...this.opened.values, [c]: value } };
+    if (this.opened) this.opened = { ...this.opened, values: { ...this.opened.values, [c]: value }, touched: new Set(this.opened.touched).add(c) };
   }
   /** A rich cell's words typed (as the Spreadsheet's rich cells: the marks kept, written as the cell's inline words). */
   private onRichOps(e: CustomEvent<TextOps>, c: number) {
@@ -702,13 +708,13 @@ export class ToBoardEditor extends DocElement<View> {
     if (!b) o.rich.set(c, (b = { k: 'p', runs: parseInline(o.values[c] ?? '') }));
     return b;
   }
-  /** Done: the cells as typed and the lane chosen, one step (the card moved to the end of a new lane). */
+  /** Done: the cells typed and the lane chosen, those alone, one step (the card moved to the end of a new lane). */
   private doneCard = () => {
     const o = this.opened;
     const c = o && this.cardAt(o.row);
     if (!o || !c) return this.querySelector<ToDialog>('to-dialog.board-dialog')?.close();
-    const cells = setCells(this.doc, o.row, o.values);
-    const lane = this.view.lanes.find((l) => l.name === o.lane);
+    const cells = setCells(this.doc, o.row, Object.fromEntries([...o.touched].map((k) => [k, o.values[k] ?? ''])));
+    const lane = o.touched.has(this.view.laneCol) ? this.view.lanes.find((l) => l.name === o.lane) : undefined;
     const moved = lane && lane.name !== this.laneOf(c).name ? moveCard(applyAll(this.doc, cells), o.row, lane.name, lane.cards.length) : [];
     if (cells.length || moved.length) this.edit([...cells, ...moved], undefined, { row: o.row, offset: 0 });
     this.landed = moved.length ? (this.view.lanes.find((l) => l.name === o.lane)?.cards.at(-1)?.row ?? o.row) : o.row;
@@ -748,7 +754,7 @@ export class ToBoardEditor extends DocElement<View> {
     const value = o.values[c] ?? '';
     const id = `${this.uid}-f${c}`;
     if (c === v.laneCol)
-      return html`<label class="board-field"><span>${name}</span><select @change=${(e: Event) => this.opened && (this.opened = { ...this.opened, lane: (e.target as HTMLSelectElement).value })}>
+      return html`<label class="board-field"><span>${name}</span><select @change=${(e: Event) => this.opened && (this.opened = { ...this.opened, lane: (e.target as HTMLSelectElement).value, touched: new Set(this.opened.touched).add(c) })}>
           ${v.lanes.map((l) => html`<option value=${l.name} ?selected=${l.name === o.lane}>${l.name || '–'}</option>`)}
         </select></label>`;
     if (col.type === 'check')
