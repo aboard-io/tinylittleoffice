@@ -438,7 +438,7 @@ class Model {
     const next = applyAll(this.doc, kept.ops);
     expect(applyAll(next, invertAll(this.doc, kept.ops))).toStrictEqual(this.doc);
     this.doc = next;
-    this.sel = e.sel;
+    this.sel = kept.sel;
     this.held = kept.held;
     const h = this.held;
     this.fmt = h && this.sel.anchor.block === h.block && this.sel.anchor.offset === h.to ? h.fmt : marksOf(this.blocks, this.sel);
@@ -579,6 +579,32 @@ test('settle widens a text op over the marks the format lets go of, and its inve
   expect(sayableBlock(p)).toBe(p);
 });
 
+test('lines joined to a heading by Backspace or Delete, or pasted into it, are a paragraph after it, and the caret follows', () => {
+  // The format writes a heading as one line ("## AB\nC" reads as a heading and a paragraph), as setKind splits one.
+  const L = blocks('## A {.center}\n\nB\nC\nD\n\nE\n');
+  const m = new Model(write({ head: {}, blocks: L }), caret(1, 0));
+  m.do(backspace(m.blocks, m.sel, 'doc'));
+  expect(m.blocks.map((b) => b.k)).toEqual(['h', 'p', 'p']);
+  expect(m.tlo).toBe('## AB {.center}\n\nC\nD {.center}\n\nE\n');
+  expect(m.sel).toEqual(caret(0, 1));
+  m.readsBack();
+  // Delete at the heading's end does the same.
+  const f = new Model(write({ head: {}, blocks: L }), caret(0, 1));
+  f.do(forwardDelete(f.blocks, f.sel));
+  expect(f.tlo).toBe(m.tlo);
+  f.readsBack();
+  // Lines pasted into a heading as words: the caret after them is in the paragraph, at the last line's end.
+  const p = new Model('## Head\n\nAfter\n', caret(0, 2));
+  p.do(insertRuns(p.blocks, p.sel, [{ t: 'x\ny', b: true }]));
+  expect(p.tlo).toBe('## He**x**\n\n**y**ad\n\nAfter\n');
+  expect(p.sel).toEqual(caret(1, 1));
+  p.readsBack();
+  // A selection follows the lines it was in, and the blocks after the split are one further on (undo: Model.do).
+  const e = backspace(L, caret(1, 0), 'doc') as Edit;
+  expect(settle(L, e.ops, sel([0, 1], [0, 4])).sel).toEqual(sel([0, 1], [1, 1]));
+  expect(settle(L, e.ops, sel([1, 1])).sel).toEqual(sel([2, 1]));
+});
+
 test(
   'property: whatever the editor does to a document, it holds what the text reads back as, and an undo takes it back exactly',
   () => {
@@ -629,9 +655,11 @@ test(
           m.do(k());
           // Every block of words is as the format keeps it.
           for (const b of m.blocks) expect(sayableBlock(b), m.tlo).toBe(b);
-          // A heading holding a line break (a paragraph of lines joined to it by Backspace, or pasted into it) is
-          // written as a heading and a paragraph after it: no matter of spaces, and not this property's (2026-10-17).
-          if (m.blocks.some((b) => b.k === 'h' && b.runs.some((x) => x.t.includes('\n')))) break;
+          // A heading is one line: lines joined to it by Backspace or pasted into it are a paragraph after it.
+          expect(
+            m.blocks.some((b) => b.k === 'h' && b.runs.some((x) => x.t.includes('\n'))),
+            m.tlo,
+          ).toBe(false);
           // What the editor holds is what the text says, but for an item's depth, which the format reads by indent
           // (an item is at most one deeper than the one before it): no matter of spaces either.
           expect(level(parse(m.tlo)), m.tlo).toStrictEqual(level(m.doc));

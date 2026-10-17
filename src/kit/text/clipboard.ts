@@ -300,8 +300,9 @@ const NO_BACKGROUND = /^(?:|transparent|initial|inherit|unset|none|white|#fff(?:
  * `mso-list:Ignore` span dropped), Slack's flat lists that say their depth
  * (`data-stringify-indent`), and a paragraph that opens with a bullet glyph
  * (Mail, TextEdit). Links are kept for http(s), mailto and tel only.
+ * Words come as the format keeps them, with `kept` false as they were marked.
  */
-export function htmlToBlocks(html: string): Block[] {
+export function htmlToBlocks(html: string, kept = true): Block[] {
   const root = new DOMParser().parseFromString(html, 'text/html').body;
   const blocks: Block[] = [];
   type Cur = { k: 'p' | 'li' | 'h' | 'quote'; level?: number; depth?: number; ord?: true; runs: Run[] };
@@ -338,10 +339,9 @@ export function htmlToBlocks(html: string): Block[] {
       c.depth = 0;
     }
     if (!runs.length) return;
-    // (A mark on the spaces at its ends, "<b>a </b>b", is let go of there, as the format writes it: sayableRuns.)
-    if (c.k === 'h') blocks.push(sayableBlock({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs }));
-    else if (c.k === 'li') blocks.push(sayableBlock({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs }));
-    else blocks.push(sayableBlock({ k: c.k, runs }));
+    if (c.k === 'h') blocks.push({ k: 'h', level: (c.level ?? 2) as 1 | 2 | 3 | 4 | 5 | 6, runs });
+    else if (c.k === 'li') blocks.push({ k: 'li', depth: c.depth ?? 0, ...(c.ord ? { ord: true } : {}), runs });
+    else blocks.push({ k: c.k, runs });
   };
   const addText = (raw: string, m: Marks) => {
     const t = (pre ? raw : raw.replace(/[ \t\r\n ]+/g, ' ')).replace(INVISIBLE, '');
@@ -482,8 +482,11 @@ export function htmlToBlocks(html: string): Block[] {
   close();
   // An item is at most one deeper than the item before it, and an item after words begins at the margin: the depth
   // the text can say (a list copied from the middle of another starts deep).
+  // A mark on the spaces at a block's ends, "<b>a </b>b", is let go of there, as the format writes it (sayableRuns),
+  // unless the blocks go where an editor keeps its words so (`kept` false: words put into a block take its marks' edges).
   let depth = -1;
   return blocks.map((b) => {
+    if (kept) b = sayableBlock(b);
     if (b.k !== 'li') return ((depth = -1), b);
     const d = Math.min(b.depth, depth + 1);
     depth = d;
@@ -540,12 +543,14 @@ function asWords(b: Block, shape: Shape): Block[] {
  * by spaces. What the host cannot show becomes words first (asWords); in a document, only for a paste from
  * elsewhere (`foreign`): our own copy pastes back as it was. A block comes as the format keeps it (sayableBlock: no mark
  * on a space at its edge), whole blocks being what a host may put in as they are; words alone go where the editor
- * keeps them so.
+ * keeps them so, and so do blocks with `kept` false: the editor's paste, whose first and last blocks' words join the
+ * words where they go, settled there with them (an underlined "a " pasted before an underlined word is one underline).
  */
-export function fitBlocks(blocks: Block[], shape: Shape, foreign = false): Pasted {
-  if (shape === 'doc') return { blocks: (foreign ? blocks.flatMap((b) => asWords(b, shape)) : blocks).map(sayableBlock) };
+export function fitBlocks(blocks: Block[], shape: Shape, foreign = false, kept = true): Pasted {
+  const said = kept ? sayableBlock : <B extends Block>(b: B): B => b;
+  if (shape === 'doc') return { blocks: (foreign ? blocks.flatMap((b) => asWords(b, shape)) : blocks).map(said) };
   const words = blocks.flatMap((b) => asWords(b, shape)).filter(isText);
-  if (shape === 'lines') return { blocks: words.map((b): Block => sayableBlock(b.k === 'li' || b.k === 'p' ? b : { k: 'p', runs: b.runs })) };
+  if (shape === 'lines') return { blocks: words.map((b): Block => said(b.k === 'li' || b.k === 'p' ? b : { k: 'p', runs: b.runs })) };
   const runs: Run[] = [];
   words.forEach((b, i) => {
     if (i) runs.push({ t: ' ' });
@@ -568,16 +573,19 @@ function readPlain(md: string): Block[] {
   return parse(md).blocks.map((b) => ('runs' in b && b.runs.some((r) => r.ic) ? { ...b, runs: words(b.runs) } : b));
 }
 
-/** What a paste's data becomes, by the rules at the top of this file. Null when there is nothing to paste. */
-export function pasteFrom(data: { text: string; html: string }, shape: Shape): Pasted | null {
+/**
+ * What a paste's data becomes, by the rules at the top of this file. Null when there is nothing to paste. With `kept`
+ * false (the editor's own paste, which settles what it makes) the words keep the marks on their edge spaces (fitBlocks).
+ */
+export function pasteFrom(data: { text: string; html: string }, shape: Shape, kept = true): Pasted | null {
   const text = data.text.replace(/\r\n?/g, '\n');
   const html = data.html;
   if (html.includes(MARKER)) {
     const blocks = parse(clipText({ text, html })).blocks;
     // Words from within one block: their own runs, spaces at the ends and all.
     const runs = blocks.length <= 1 ? carriedRuns(html) : null;
-    if (runs) return fitBlocks([{ ...(blocks[0] && isText(blocks[0]) ? blocks[0] : { k: 'p' as const }), runs }], shape);
-    return fitBlocks(blocks, shape);
+    if (runs) return fitBlocks([{ ...(blocks[0] && isText(blocks[0]) ? blocks[0] : { k: 'p' as const }), runs }], shape, false, kept);
+    return fitBlocks(blocks, shape, false, kept);
   }
   const trimmed = text.trim();
   if (shape === 'doc' && !/\s/.test(trimmed)) {
@@ -585,18 +593,18 @@ export function pasteFrom(data: { text: string; html: string }, shape: Shape): P
     if (fence) return { blocks: [fence] };
   }
   if (html.trim()) {
-    const blocks = htmlToBlocks(html);
-    if (blocks.length) return fitBlocks(blocks, shape, true);
+    const blocks = htmlToBlocks(html, kept);
+    if (blocks.length) return fitBlocks(blocks, shape, true, kept);
   }
   const plain = text.replace(INVISIBLE, '');
   if (!plain) return null;
   const md = bulletsToItems(plain);
-  if (plain.includes('\n')) return fitBlocks(readPlain(md), shape, true);
+  if (plain.includes('\n')) return fitBlocks(readPlain(md), shape, true, kept);
   // One line is read as Markdown too: "• one" is an item, "# Title" a heading, "**bold**" bold. Words that hold no
   // syntax stay exactly as they were, spaces and all (and "2026. A year" is a year, not an item numbered 2026).
   const [b, ...more] = readPlain(md);
   if (!b || more.length) return { runs: [{ t: plain }] };
-  if ((b.k === 'li' || b.k === 'h') && b.runs.length && !(b.k === 'li' && b.ord && !/^\s*\d{1,3}[.)]/.test(md))) return fitBlocks([b], shape, true);
+  if ((b.k === 'li' || b.k === 'h') && b.runs.length && !(b.k === 'li' && b.ord && !/^\s*\d{1,3}[.)]/.test(md))) return fitBlocks([b], shape, true, kept);
   if (b.k === 'p' && plainText(b.runs) !== plain.trim()) return { runs: b.runs };
   return { runs: [{ t: plain }] };
 }

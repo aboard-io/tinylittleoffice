@@ -100,7 +100,8 @@ Why runs in the model rather than text with runs derived: every view would other
    `sayableRuns(runs, quote)` is what reading a block's writing gives back: no mark on a space at a run's ends, a
    line break unmarked, a link's spaces at a line's ends outside it (a quote keeps a line's start), an icon unmarked,
    a note's words balanced, and out of code what a backtick span cannot hold. The editor keeps every block it edits
-   so (`settle`, §4), so `parse(write(model))` is the model it holds, an item's depth by indent aside. A space
+   so (`settle`, §4), and a heading as the one line the format gives it, so `parse(write(model))` is the model it
+   holds, an item's depth by indent aside. A space
    between two marked words may hold the mark (`**a b**`); a link keeps a space inside a line. What a person sees of a
    bold or an italic space is the same either way; an underline, a highlight or code now stops at the word, and the
    marks typed with the space stay in force (§4), so typing a bold sentence writes it whole.
@@ -237,9 +238,14 @@ a word an IME composes there; with Bold turned off first it is `**a** b`. Backsp
 bold, and so does the caret after a word taken out behind a bold space. The caret moved away lets the held marks go,
 and a link's space let go at a line's end is not held (a space ends a link, docs/editing.md). A selection's marks are
 those of its words, not the spaces at its edges, so "word " made bold shows Bold pressed and Bold again unbolds it. A
-paste's blocks come as the format keeps them (`fitBlocks`, `htmlToBlocks`). Ops someone else made are applied as
-they arrive (`applyRemote`); a transformed op can rarely leave a mark on a space whose neighbor another took away,
-which the text, the server's document (§12, rule 4), says without it.
+paste's words are settled where they land, with the words around them (`pasteFrom(…, false)`), so an underlined
+"a " pasted before an underlined word is one underline; a host that puts pasted blocks in whole gets them as the
+format keeps them (`fitBlocks`, `htmlToBlocks`). A heading is one line, as setKind makes one: lines joined to it by
+Backspace or Delete, or pasted into it, are a paragraph after it, the caret with them. Ops someone else made are applied
+as they arrive (`applyRemote`), and a transformed op can leave a mark on a space whose neighbor another took away
+(here "c" taken out of a bold "a b c", there "b": a bold space after "a", a plain one after that), so the blocks such
+ops make, and an undo's or a redo's, are settled as they land (kit/core/element.ts `sayableAfter`), as the text, the
+server's document (§12, rule 4), says them.
 
 ### Rendering and reconciliation
 

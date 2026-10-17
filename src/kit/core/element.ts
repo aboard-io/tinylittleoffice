@@ -13,7 +13,7 @@
  * For a page that shares editing (docs/kernel.md §12, docs/library.md) every change is also told as its operations, in
  * a "docops" event before the "docchange", and `applyRemote()` takes another's operations in: applied with no step
  * of the history and nothing told, the history carried over them by the kernel's transform, so an undo here takes
- * back only what was done here.
+ * back only what was done here. Its words land as the text says them (`sayableAfter`).
  *
  * A page that only shows a document sets `readonly` (the attribute, or `readOnly`): nothing of it is edited. The editor
  * draws no bar, its words are not editable, an edit, an undo and a typed, pasted, cut or dropped thing are refused, and
@@ -23,9 +23,28 @@
  * still land (`applyRemote`), and a new `value` is still a new document.
  */
 import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
-import { applyAll, invertAll, parse, transform, write, type Doc, type Op } from '../../doc/index.ts';
+import { applyAll, invertAll, isText, parse, sayableRuns, transform, write, type Doc, type Op } from '../../doc/index.ts';
 import { cmdTool } from '../ui/bar.ts';
 import { REDO, UNDO } from './keys.ts';
+
+/**
+ * `doc` after ops not made here (another's, or an undo's carried over them) applied to `before`, its words as its text
+ * reads them back (sayableRuns): the editor settles what it makes (kit/text/textops.ts `settle`), but a transformed op
+ * can leave a mark on a space whose neighbor another took away, which the text, the server's document (docs/kernel.md
+ * §12, rule 4), says without it. Only the blocks the ops made are looked at.
+ */
+function sayableAfter(before: Doc, doc: Doc): Doc {
+  const was = new Set(before.blocks);
+  let changed = false;
+  const blocks = doc.blocks.map((b) => {
+    if (was.has(b) || !isText(b)) return b;
+    const runs = sayableRuns(b.runs, b.k === 'quote');
+    if (runs === b.runs) return b;
+    changed = true;
+    return { ...b, runs };
+  });
+  return changed ? { ...doc, blocks } : doc;
+}
 
 /** A change, as the shell and a host hear it: the text in `detail`, and the edit's burst key (none for an undo, a redo or an edit that stands alone), so a host that holds this editor inside it (the Animator holds the Drawing Tool) keeps the same bursts in its own log. */
 export type DocChange = CustomEvent<string> & { key?: string };
@@ -243,7 +262,7 @@ export abstract class DocElement<V> extends LitElement {
    */
   applyRemote(ops: Op[]) {
     if (!ops.length) return;
-    this.doc = applyAll(this.doc, ops);
+    this.doc = sayableAfter(this.doc, applyAll(this.doc, ops));
     this.applied += ops.length;
     try {
       this.carryStack(this.undo, 'inverse', ops);
@@ -299,7 +318,7 @@ export abstract class DocElement<V> extends LitElement {
     if (!entry) return;
     e.preventDefault();
     if (this.carried.delete(entry)) entry.ops = invertAll(this.doc, entry.inverse);
-    this.doc = applyAll(this.doc, entry.inverse);
+    this.doc = sayableAfter(this.doc, applyAll(this.doc, entry.inverse));
     this.redo.push(entry);
     this.emit(entry.inverse);
     this.undone(entry, false);
@@ -310,7 +329,7 @@ export abstract class DocElement<V> extends LitElement {
     if (!entry) return;
     e.preventDefault();
     if (this.carried.delete(entry)) entry.inverse = invertAll(this.doc, entry.ops);
-    this.doc = applyAll(this.doc, entry.ops);
+    this.doc = sayableAfter(this.doc, applyAll(this.doc, entry.ops));
     this.undo.push(entry);
     this.emit(entry.ops);
     this.undone(entry, true);

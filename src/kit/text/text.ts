@@ -705,6 +705,7 @@ export class ToText extends LitElement {
     const kept = settle(this.blocks, ops, sel);
     if (!kept.ops.length) return;
     ops = kept.ops;
+    sel = kept.sel;
     this.held = kept.held;
     this._sel = sel;
     this.whole = false;
@@ -831,7 +832,8 @@ export class ToText extends LitElement {
     this.emit(e.ops, e.sel);
   }
   private paste(data: { text: string; html: string }, sel: Sel) {
-    let got = pasteFrom(data, this.shape);
+    // (Words as they were marked: what they make where they go is settled whole, emit.)
+    let got = pasteFrom(data, this.shape, false);
     if (!got) return;
     if (this.marksOnly && 'runs' in got) got = { runs: got.runs.filter((r) => r.fn === undefined).map(({ href: _href, ...r }) => r) };
     const e = 'runs' in got ? insertRuns(this.model, sel, got.runs) : insertBlocks(this.model, sel, got.blocks);

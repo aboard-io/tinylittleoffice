@@ -411,7 +411,7 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
   const splits: number[] = [];
   span.forEach((b, i) => {
     if (!isText(b)) return void out.push(b);
-    const a: Attrs = { ...b.a, cls: (b.a?.cls ?? []).filter((c) => c !== 'title') };
+    const a = notTitle(b.a);
     const nl = heading ? lineEnd(b.runs) : -1;
     const runs = nl < 0 ? b.runs : sliceRuns(b.runs, 0, nl);
     switch (want) {
@@ -433,7 +433,7 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
         return void out.push(withAttrs({ k: 'li', depth: b.k === 'li' ? b.depth : 0, ...(want === 'ol' ? { ord: true } : {}), runs: b.runs }, a));
     }
     if (nl >= 0) {
-      out.push(withAttrs({ k: 'p', runs: sliceRuns(b.runs, nl + 1, runLength(b.runs)) }, a));
+      out.push(linesAfter(b, nl));
       splits.push(from + i);
     }
   });
@@ -445,6 +445,12 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
   };
   return { ops: [{ op: 'splice', at: from, n: to - from, blocks: out }], sel: splits.length ? { anchor: moved(sel.anchor), focus: moved(sel.focus) } : sel };
 }
+
+/** A block's attributes but the title's class. */
+const notTitle = (a: Attrs | undefined): Attrs => ({ ...a, cls: (a?.cls ?? []).filter((c) => c !== 'title') });
+
+/** The lines of a block after its first (`nl`, the first line break) as a paragraph: what a heading cannot hold. */
+const linesAfter = (b: TextBlock, nl: number): Block => withAttrs({ k: 'p', runs: sliceRuns(b.runs, nl + 1, runLength(b.runs)) }, notTitle(b.a));
 
 /** The offset of the first line break among the runs, or -1. */
 function lineEnd(runs: Run[]): number {
@@ -687,10 +693,11 @@ function heldAt(made: Block[], kept: Block[], sel: Sel): Held | null {
  * words they leave is what its text reads back as, so the editor holds what `parse(write(model))` gives, and a server
  * that keeps the text and applies the same ops holds the same words (Atlas, 2026-10-17). A splice's blocks go in so;
  * a `text` op that would leave a mark on a space at its edge reaches over the marks let go of (its words and their
- * places stay as they were, so the selection after it does too), and one that then changes nothing goes. `held` is
- * what was let go of just before the caret `sel`, if it is one.
+ * places stay as they were, so the selection after it does too), and one that then changes nothing goes. A heading
+ * left holding a line break is split as setKind splits one, and `sel` (the selection after the ops) follows. `held` is
+ * what was let go of just before the caret, if it is one.
  */
-export function settle(blocks: Block[], ops: Op[], sel?: Sel): { ops: Op[]; held: Held | null } {
+export function settle<S extends Sel | undefined>(blocks: Block[], ops: Op[], sel?: S): { ops: Op[]; held: Held | null; sel: S } {
   let kept: Doc = { head: {}, blocks };
   let made = kept;
   const out: Op[] = [];
@@ -700,7 +707,26 @@ export function settle(blocks: Block[], ops: Op[], sel?: Sel): { ops: Op[]; held
     if (said) out.push(said);
     kept = said === op ? made : said ? apply(kept, said) : kept;
   }
-  return { ops: out, held: sel ? heldAt(made.blocks, kept.blocks, sel) : null };
+  let held = sel ? heldAt(made.blocks, kept.blocks, sel) : null;
+  // A heading is one line (setKind): one left holding a line break (a paragraph of lines joined to it by Backspace,
+  // lines pasted into it) is its first line, and the lines after it a paragraph, as the format reads them; the
+  // selection follows them. The last first, so each split leaves the places of those before it.
+  let at: Sel | undefined = sel;
+  for (let i = kept.blocks.length - 1; i >= 0; i--) {
+    const b = kept.blocks[i];
+    const nl = b.k === 'h' ? lineEnd(b.runs) : -1;
+    if (b.k !== 'h' || nl < 0) continue;
+    const split: Op[] = [
+      { op: 'text', at: i, from: nl, to: runLength(b.runs), runs: [] },
+      { op: 'splice', at: i + 1, n: 0, blocks: [sayableBlock(linesAfter(b, nl))] },
+    ];
+    for (const op of split) kept = apply(kept, op);
+    out.push(...split);
+    const moved = (p: Pos): Pos => (p.block > i ? { ...p, block: p.block + 1 } : p.block === i && p.offset > nl ? { block: i + 1, offset: p.offset - nl - 1 } : p);
+    if (at) at = { anchor: moved(at.anchor), focus: moved(at.focus) };
+    if (held && held.block >= i) held = null;
+  }
+  return { ops: out, held, sel: at as S };
 }
 
 /**

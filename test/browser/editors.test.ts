@@ -9,7 +9,7 @@ import { expect, test } from 'vitest';
 import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup, toast, type DocPick, type Picked } from '../../src/editors.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
-import { applyAll, invertAll, parse, plainText, rebase, write, type Op } from '../../src/doc/index.ts';
+import { apply, applyAll, invertAll, parse, plainText, rebase, transform, write, type Op } from '../../src/doc/index.ts';
 import { tick, until } from './wait.ts';
 
 /** The page's own host: Atlas's documents open at its own addresses, and only its links name a document. */
@@ -138,6 +138,30 @@ test('another’s ops land with nothing told, the caret carried past them, and a
   expect(editor.value).toBe('Zero.\n');
   expect(editor.text.sel!.focus.block).toBe(0);
   expect(editor.text.sel!.focus.offset).toBeLessThanOrEqual(5);
+});
+
+test('another’s op that leaves a mark on a space at its edge lands as the text says it: the editor holds the server’s words', async () => {
+  // "a b c" bold. Here "c" is taken out (settled: the space before it let go of the bold); at once another takes out
+  // "b", which alone leaves the bold inside "a  c". The server orders ours first and the other's after it, unchanged:
+  // together they leave a bold space after "a" with a plain one after it, which the text writes "**a**  ".
+  const start = '**a b c**\n';
+  const { editor, applyRemote, heard } = await shared(start, 0, 5);
+  words(editor).dispatchEvent(new InputEvent('beforeinput', { inputType: 'deleteContentBackward', bubbles: true, cancelable: true, composed: true }));
+  await until(() => heard.length >= 2, 'the deletion was never told');
+  const local = heard.flatMap((h) => (typeof h === 'string' ? [] : h.ops));
+  const theirs: Op = { op: 'text', at: 0, from: 2, to: 3, runs: [] };
+  const over = transform(theirs, local[0], 'right')!;
+  // The server keeps the text: each op applied to what its text reads back as.
+  const server = write(apply(parse(write(applyAll(parse(start), local))), over));
+  applyRemote([over]);
+  await editor.updateComplete;
+  await editor.text.updateComplete;
+  expect(editor.value).toBe(server);
+  expect(editor.text.blocks).toStrictEqual(parse(server).blocks);
+  // An undo here still applies, and leaves the words as the text says them.
+  undoKey(editor);
+  await until(() => heard.length > 2, 'the undo was never told');
+  expect(editor.text.blocks).toStrictEqual(parse(editor.value).blocks);
 });
 
 test('a deck written loosely is loosened as it arrives: told as ops like any change, and nothing to undo', async () => {
