@@ -103,6 +103,9 @@ export default defineConfig(({ mode }) => ({
             // The entry may carry exports its lazy parts share with it, rather than be a facade over a third file.
             preserveEntrySignatures: 'allow-extension' as const,
             checks: { ineffectiveDynamicImport: false },
+            // The stylesheet's faces at the site's /fonts/… are left as they are, unresolved and unwarned, for the
+            // fonts plugin (tinyoffice-lib-fonts) to copy and name beside it.
+            external: [/^\/fonts\//],
             output: {
               minify: true,
               chunkFileNames: (chunk: { facadeModuleId: string | null; name: string }) => `editors/${chunk.facadeModuleId ? fileOf(chunk.facadeModuleId) : chunk.name}-[hash].js`,
