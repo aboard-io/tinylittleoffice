@@ -1,6 +1,7 @@
 // The sheet as a view of the document, and each command as the ops it produces: under node, no DOM.
 import { expect, test } from 'vitest';
 import { createHash } from 'node:crypto';
+import { strFromU8, unzipSync } from 'fflate';
 import { pageSvg } from '../../../kit/draw/draw.ts';
 import { applyAll, parse, tableAt, write, type Doc } from '../../../doc/index.ts';
 import { chartData, suggestChart } from '../../../kit/draw/chart.ts';
@@ -273,6 +274,16 @@ test('CSV and Excel: the names over the columns, then the values; formulas in Ex
   const svg = new TextDecoder().decode(def.exports!.find((x) => x.ext === 'chart.svg')!.build(MODEL, { def, title: '', link: '' }) as Uint8Array);
   expect(svg).toContain('<svg');
   expect(svg).toContain('<path');
+});
+
+test('words kept words (an apostrophe, a rich cell’s \\=) are words in the CSV and the workbook, never a formula there', () => {
+  const kept = "Item | Note:rich | Total:number\n--- | --- | ---\n'=SUM(1) | \\\\=SUM(2) | =1+1\n";
+  expect(sheetToCsv(parse(kept), ',')).toBe('Item,Note,Total\r\n=SUM(1),=SUM(2),2\r\n');
+  const book = def.exports!.find((x) => x.ext === 'xlsx')!.build(kept, { def, title: '', link: '' }) as Uint8Array;
+  const sheet = strFromU8(unzipSync(book)['xl/worksheets/sheet1.xml']);
+  // The words as inline strings, without the apostrophe or the backslash; the one formula, a formula.
+  expect([...sheet.matchAll(/<t xml:space="preserve">([^<]*)<\/t>/g)].map((m) => m[1])).toStrictEqual(['Item', 'Note', 'Total', '=SUM(1)', '=SUM(2)']);
+  expect([...sheet.matchAll(/<f>([^<]*)<\/f>/g)].map((m) => m[1])).toStrictEqual(['1+1']);
 });
 
 test('charts: labels from the first column, a series a column of numbers, flows from From | To | Amount; the suggestion', () => {
