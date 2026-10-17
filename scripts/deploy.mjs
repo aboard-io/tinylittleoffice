@@ -161,8 +161,8 @@ console.log(`\nDeployed ${head.slice(0, 7)}.`);
  * log. A version with a part after "-" (1.0.0-next) goes under that dist-tag, as npm asks of a prerelease, and then
  * latest is moved to it as well: while every version is a prerelease the newest is the one to install (Paul,
  * 2026-10-12: "Latest is better"). The package is built first, whole: the command line and its API (npm run
- * build:cli) and the library, the kernel and the editors (npm run build:lib, docs/library.md). A failure here comes
- * after the site is deployed, and says so.
+ * build:cli) and the library, the kernel, the commands and the editors (npm run build:lib, docs/library.md). A
+ * failure here comes after the site is deployed, and says so.
  */
 function publishCli() {
   const what = 'the command line, on npm';

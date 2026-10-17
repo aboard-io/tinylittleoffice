@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { domNames, importsOf } from './lints.ts';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const PKG = join(ROOT, 'packages/doc');
@@ -21,15 +22,23 @@ test('the package is the site’s version, public, named tinylittleoffice, with 
   expect(pkg.files).toEqual(expect.arrayContaining(['dist/tinyoffice.js', 'dist/api.js', 'dist/skill', 'examples', 'schema', 'README.md']));
 });
 
-test('the package serves the library: the kernel, the editors and their stylesheet, beside the API', () => {
-  expect(pkg.exports).toMatchObject({ '.': './dist/api.js', './doc': './dist/doc.js', './editors': './dist/editors.js', './editors.css': './dist/editors.css' });
-  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors']));
-  // The kernel has no side effects to keep; the editors define their elements and the stylesheet styles the page.
+test('the package serves the library: the kernel, the commands, the editors and their stylesheet, beside the API', () => {
+  expect(pkg.exports).toMatchObject({
+    '.': './dist/api.js',
+    './doc': './dist/doc.js',
+    './commands': './dist/commands.js',
+    './editors': './dist/editors.js',
+    './editors.css': './dist/editors.css',
+  });
+  expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'dist/editors']));
+  // The kernel and the commands have no side effects to keep; the editors define their elements and the stylesheet
+  // styles the page.
   expect(pkg.sideEffects).not.toContain('./dist/doc.js');
+  expect(pkg.sideEffects).not.toContain('./dist/commands.js');
   expect(pkg.sideEffects).toEqual(expect.arrayContaining(['./dist/editors.js', './dist/editors.css', './dist/editors/*']));
 });
 
-test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API and the kernel import, and the editors are there', { timeout: 600_000 }, () => {
+test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API, kernel and commands import, and the editors are there', { timeout: 600_000 }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-npm-'));
   try {
     const npm = (args: string[], cwd: string) => execFileSync('npm', [...args, '--cache', join(dir, 'cache'), '--no-audit', '--no-fund', '--loglevel=error'], { cwd, encoding: 'utf8' });
@@ -79,6 +88,23 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       '# Plan\n\nSail it.\n',
       '# Plan\n\nSail it.\n',
       '# Plan\n\nShip it.\n',
+    ]);
+    // The commands, as a program serves them: one file that imports nothing and names no browser global
+    // (vite.lib.config.ts answers what the registry's modules ask of a page "none"), a command declared, served as a
+    // tool to the actor it names, its words in English with nothing set up, and documented.
+    const commandsJs = readFileSync(join(app, 'node_modules/tinylittleoffice/dist/commands.js'), 'utf8');
+    expect(importsOf(commandsJs)).toStrictEqual([]);
+    expect(domNames(commandsJs)).toStrictEqual([]);
+    const commands = [
+      "import { command, register, registered, tools, docsOf } from 'tinylittleoffice/commands';",
+      "const input = { type: 'object', properties: { company: { type: 'string' } } };",
+      "register([command({ id: 'records.create', scope: 'records', label: 'bar-bold', where: ['keys-only'], input, who: ['team'], does: () => 1 })]);",
+      "console.log(JSON.stringify([tools(registered(), 'team'), tools(registered(), 'guest'), docsOf(registered()).includes('- Scope: `records`')]));",
+    ].join('\n');
+    expect(JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', commands], { cwd: app, encoding: 'utf8' }))).toStrictEqual([
+      [{ name: 'records.create', description: 'Bold', inputSchema: { type: 'object', properties: { company: { type: 'string' } } } }],
+      [],
+      true,
     ]);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');

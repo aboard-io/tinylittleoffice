@@ -82,12 +82,18 @@ The guide an agent reads first is `/llms.txt` (short); the guide to every app's 
 ## As a library
 
 A program or a page that keeps documents of its own, in a database rather than in links, builds on the same modules
-as the site (docs/library.md), through two more entry points, each built by `npm run build:lib`
+as the site (docs/library.md), through three more entry points, each built by `npm run build:lib`
 (vite.lib.config.ts):
 
 - `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
   operations and their inverses, tables and formulas, and the document as JSON. One file, no dependencies, no DOM:
   Node 24, a Worker or a page.
+- `tinylittleoffice/commands`, `dist/commands.js`: the command registry for a program (src/commands.ts). A command is
+  declared as the editors' are, and may carry what a program reads of it: `input` and `output` as JSON Schema objects,
+  `who` may run it, `reads` when it changes nothing, and `doc`, a sentence saying what it does. `tools(commands, actor)`
+  is the tool list an assistant or an MCP server serves that actor (`{ name, description, inputSchema }`), and
+  `docsOf(commands)` their documentation as Markdown. One file, no dependencies, no DOM; a label that is a message's
+  id is said in English.
 - `tinylittleoffice/editors`, `dist/editors.js`: every app's editor element, the registry, and the host an app asks
   where a document opens (src/editors.ts), with no shell, no link and no library of kept documents. Its stylesheet is
   `tinylittleoffice/editors.css`, one file; what is fetched only when asked for (an app's templates, a language other
@@ -100,6 +106,11 @@ const op = { op: 'head', key: 'title', value: 'Plan' };
 const next = apply(doc, op);
 write(next); // the canonical TLO text
 write(applyAll(next, invert(doc, op))); // the undo: invert gives the ops that put it back
+
+import { command, register, registered, tools } from 'tinylittleoffice/commands';
+register([command({ id: 'lead.create', scope: 'records', label: () => 'New lead', where: ['keys-only'], who: ['team'],
+  input: { type: 'object', properties: { company: { type: 'string' } } }, doc: 'Create a lead.', does: (ctx) => ctx.create() })]);
+tools(registered(), 'team'); // [{ name: 'lead.create', description: 'Create a lead.', inputSchema: { … } }]
 
 import { mount, host } from 'tinylittleoffice/editors';
 import 'tinylittleoffice/editors.css';

@@ -52,6 +52,9 @@ What an app still asked of the site itself, and what replaces it:
    board), and draws and answers it with the kit's functions: see A page's own commands.
 5. **A bare page that holds `<to-write-editor>`** with a host of its own, and a test that types in it and reads the
    `docchange`. Done when the site is unchanged (every test, walk and budget) and the bare page works.
+6. **Commands for a program.** Done: src/commands.ts, served as `tinylittleoffice/commands` (dist/commands.js), the
+   registry with a program's half and the two derivations Atlas's docs/commands.md asks of it: see Commands for a
+   program.
 
 ## A page's own commands
 
@@ -87,6 +90,34 @@ asked (test/commands.test.ts holds that `labelOf` gives them). A page's commands
 site's registry, which scripts/commands.ts loads under node for docs/editing.md's tables and the lints (every label a
 message of en.ftl, every command run by a test, no key bound twice in a chain of scopes), never holds them: those lints
 are the site's, and a page keeps its own keys clear of the site's (docs/editing.md's tables list every key bound).
+
+## Commands for a program
+
+Atlas serves its commands to programs as well as pages: an API, an assistant's tools, an MCP server, the
+documentation (its docs/commands.md). The kernel of that is this registry, and `tinylittleoffice/commands`
+(src/commands.ts, built to dist/commands.js: one file, no imports, no DOM, for Node 24 or a page) serves it: `command`,
+`register`, `registered`, `inScope`, `live`, `run`, `labelOf`, `keysText`, and the types `Command`, `Schema`, `Where`
+and `Words`, with nothing that draws. A command may carry its program's half beside its words and keys:
+
+- `input` and `output`, JSON Schema objects (`Schema`): what it takes and gives back, which the API, the tools and a
+  fuzz read. Atlas writes them with Zod and hands the kernel `z.toJSONSchema()` of them.
+- `who`, the actors that may run it (`team`, `atlas`); without it, no program may, and it is a page's alone.
+- `reads: true` when it changes nothing; `doc`, one sentence saying what it does.
+
+Two pure derivations come from a list of them. `tools(commands, actor)` is the tool list an assistant or an MCP server
+serves that actor: for each command whose `who` names it, `{ name: id, description: doc ?? its words, inputSchema:
+input ?? { type: 'object' } }`, MCP's field names. `docsOf(commands)` is a Markdown page: every command in the list's
+order, what it does, its scope, who, whether it reads, its input and its output. Running them, the log and undo are
+the program's own (Atlas's `serve()`).
+
+A label that is a message's id is said by `t()` in the language in use, and a program chooses none: it gets English,
+whose messages ride in commands.js, so `tools()` describes a command without a `doc` in English with nothing set up.
+What the registry's modules ask of a page (the platform, which spells keys a Mac's way; the root, which takes a
+language) the build answers "none" (vite.lib.config.ts), so `keysText` spells keys as on Windows wherever a program
+runs, unless asked for a Mac's; test/lints.test.ts holds that those modules name a browser global only behind a
+`typeof` of it, and test/package.test.ts that commands.js names none. commands.js holds a registry of its own: a page
+that draws commands with `tinylittleoffice/editors` declares them there, and the site's registry (scripts/commands.ts)
+never holds a program's.
 
 ## Theming
 

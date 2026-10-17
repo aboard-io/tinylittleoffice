@@ -24,6 +24,7 @@
   "exports": {
     ".": "./dist/api.js",
     "./doc": "./dist/doc.js",
+    "./commands": "./dist/commands.js",
     "./editors": "./dist/editors.js",
     "./editors.css": "./dist/editors.css",
     "./examples/*.json": "./examples/*.json",
@@ -44,6 +45,7 @@
     "dist/api.js",
     "dist/tinyoffice.js",
     "dist/doc.js",
+    "dist/commands.js",
     "dist/editors.js",
     "dist/editors.css",
     "dist/editors",

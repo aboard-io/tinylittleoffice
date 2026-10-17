@@ -6,14 +6,17 @@
  *   --mode doc       dist/doc.js: the kernel (src/kernel.ts) and everything it imports in one file, no dependencies
  *                    left outside it and no DOM, for Node 24 and anything newer that runs ES modules;
  *                    `import { parse, write, apply } from 'tinylittleoffice/doc'`
+ *   --mode commands  dist/commands.js: the command registry for a program (src/commands.ts), what declares, runs
+ *                    and serves commands (the tools, the documentation), with English's messages for their words; one
+ *                    file as doc.js is, no dependencies and no DOM; `import { tools } from 'tinylittleoffice/commands'`
  *   --mode editors   dist/editors.js: the editors for a page that is not the site (src/editors.ts), bundled as the
  *                    site bundles its app file (vite.config.ts fileOf: Lit, the kit and every app in the one file),
  *                    with its stylesheet whole beside it as dist/editors.css, and what the site fetches lazily (an
  *                    app's templates, a language other than English, the trip's map and its worker) as files of
  *                    their own under dist/editors/, fetched by the page when asked for
  *
- * `npm run build:lib` makes both, after `npm run build:cli` or before it: neither build empties the folder, each
- * removes only its own files from the last build. The deploy makes both before it publishes, and
+ * `npm run build:lib` makes all three, after `npm run build:cli` or before it: no build empties the folder, each
+ * removes only its own files from the last build. The deploy makes all three before it publishes, and
  * test/package.test.ts packs the package and installs it.
  *
  * The stylesheet names the site's fonts by the site's paths (/fonts/…), left as they are: a page serves them there, or
@@ -32,6 +35,15 @@ export default defineConfig(({ mode }) => ({
   publicDir: false,
   logLevel: 'warn',
   plugins: [
+    {
+      // A program chooses no language, and commands.js carries English alone: each other language the strings' module
+      // could fetch is one module that throws, which kit/core/i18n.ts reads as a language not fetched (English stays).
+      name: 'tinyoffice-lib-english-only',
+      apply: 'build',
+      enforce: 'pre',
+      resolveId: (id: string) => (mode === 'commands' && /\/i18n\/(?!en\.)[^/]+\.ftl\?raw$/.test(id) ? '\0english-only' : undefined),
+      load: (id: string) => (id === '\0english-only' ? "export default (() => {\n  throw new Error('commands.js carries English alone');\n})();" : undefined),
+    },
     ftlBare(),
     {
       // The library's own files from the last build go before this one writes, and nothing else in the folder: the
@@ -39,7 +51,7 @@ export default defineConfig(({ mode }) => ({
       name: 'tinyoffice-lib-clean',
       apply: 'build',
       buildStart() {
-        if (mode === 'doc') rmSync(resolve(DIST, 'doc.js'), { force: true });
+        if (mode === 'doc' || mode === 'commands') rmSync(resolve(DIST, `${mode}.js`), { force: true });
         else for (const f of ['editors.js', 'editors.css', 'editors']) rmSync(resolve(DIST, f), { recursive: true, force: true });
       },
     },
@@ -48,15 +60,15 @@ export default defineConfig(({ mode }) => ({
     outDir: DIST,
     emptyOutDir: false,
     copyPublicDir: false,
-    ...(mode === 'doc'
+    ...(mode === 'doc' || mode === 'commands'
       ? {
           target: 'node24',
           minify: false,
-          ssr: resolve(import.meta.dirname, 'src/kernel.ts'),
+          ssr: resolve(import.meta.dirname, mode === 'doc' ? 'src/kernel.ts' : 'src/commands.ts'),
           rollupOptions: {
             // No "//#region <path>" notes, which name where the modules were on the building machine.
             experimental: { attachDebugInfo: 'none' as const },
-            output: { entryFileNames: 'doc.js', codeSplitting: false },
+            output: { entryFileNames: `${mode}.js`, codeSplitting: false },
           },
         }
       : {
@@ -85,6 +97,11 @@ export default defineConfig(({ mode }) => ({
           },
         }),
   },
+  // A program has no page: what the registry's modules ask of one behind a typeof (the device's platform, which
+  // spells keys a Mac's way; the page's root, which takes a language) is answered "none" here, and those branches go.
+  // keysText then spells keys as on Windows wherever the program runs (Node has a navigator of its own), unless asked
+  // for a Mac's, and commands.js names no browser global (test/package.test.ts).
+  ...(mode === 'commands' ? { define: { navigator: 'undefined', document: 'undefined' } } : {}),
   // The packages' production builds (Lit's, for one, warns of its development build on every run otherwise).
   ssr: { noExternal: true, target: 'node' as const, resolve: { conditions: ['node', 'production', 'import', 'module', 'default'] } },
 }));

@@ -414,7 +414,10 @@ export const DOM_NAMES = new Set(['window', 'document', 'navigator', 'localStora
 /** The page's address and its history: the host's to read (kit/core/host.ts), never an app's. */
 export const ADDRESS_NAMES = new Set(['location', 'history']);
 
-/** The lines of a source that name the browser's globals (not as a property, `x.document`, or as a key, `{ document: … }`): `names`, the kernel's by default. */
+/**
+ * The lines of a source that name the browser's globals (not as a property, `x.document`, as a key,
+ * `{ document: … }`, or as an optional member of a type, `document?: boolean`): `names`, the kernel's by default.
+ */
 export function domNames(source: string, names: Set<string> = DOM_NAMES): Bare[] {
   const lineOf = liner(source);
   const toks = tokensOf(source);
@@ -425,7 +428,8 @@ export function domNames(source: string, names: Set<string> = DOM_NAMES): Bare[]
         names.has(t.text) &&
         toks[i - 1]?.k !== K.DotToken &&
         toks[i - 1]?.k !== K.QuestionDotToken &&
-        !(toks[i + 1]?.k === K.ColonToken && (toks[i - 1]?.k === K.OpenBraceToken || toks[i - 1]?.k === K.CommaToken)),
+        !(toks[i + 1]?.k === K.ColonToken && (toks[i - 1]?.k === K.OpenBraceToken || toks[i - 1]?.k === K.CommaToken)) &&
+        !(toks[i + 1]?.k === K.QuestionToken && toks[i + 2]?.k === K.ColonToken),
     )
     .map((t) => ({ line: lineOf(t.start), words: t.text }));
 }

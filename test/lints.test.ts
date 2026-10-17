@@ -10,7 +10,7 @@ import { describe, expect, test } from 'vitest';
 import { fetchedAtOnce, lazyImports, measure, overBudget, readBudgets, shapeOf, type Sizes } from '../scripts/budgets.ts';
 import { deadExports } from '../scripts/dead.ts';
 import { staleFiles } from '../scripts/generated.ts';
-import { ADDRESS_NAMES, ALLOWED, KIT_FOLDERS, NOT_WORDS, WAIT_MS, bareWords, domNames, graphProblems, kitProblems, timedWaits, type Module } from './lints.ts';
+import { ADDRESS_NAMES, ALLOWED, KIT_FOLDERS, NOT_WORDS, WAIT_MS, bareWords, domNames, edgesOf, graphProblems, kitProblems, timedWaits, type Module } from './lints.ts';
 
 const ROOT = join(import.meta.dirname, '..');
 const FIXTURES = join(import.meta.dirname, 'fixtures/lints');
@@ -110,6 +110,53 @@ describe('no DOM in the model: the kernel (src/doc) never names window, document
   });
   test('src/doc names none', () => {
     expect(found(tree)).toStrictEqual([]);
+  });
+});
+
+/**
+ * The browser globals the commands entry's modules ask for, each only behind a `typeof` test of it, by file and name,
+ * with what it is. The library's build of the entry (vite.lib.config.ts, --mode commands) answers each "none", so
+ * commands.js names none (test/package.test.ts). A new one fails, and one no longer named fails until it is taken off.
+ */
+const COMMANDS_ASK: Record<string, string> = {
+  'src/kit/core/commands.ts: navigator': 'MAC, whether keys are spelled a Mac’s way: a program spells them as on Windows',
+  'src/kit/core/i18n.ts: document': 'the page’s root taking the language chosen, which a program never chooses',
+  'src/kit/core/i18n.ts: navigator': 'the browser’s languages, the default of browserLanguage, which a program never calls',
+};
+
+describe('no DOM in the commands entry: src/commands.ts and what it imports name a browser global only where they ask whether there is one', () => {
+  /** The modules an entry runs: itself and every module of `mods` it imports, not as a type and not lazily, on down. */
+  const closure = (mods: Module[], entry: string): Module[] => {
+    const byPath = new Map(mods.map((m) => [m.path, m]));
+    const seen = new Set<string>();
+    const walk = (path: string) => {
+      const m = byPath.get(path);
+      if (!m || seen.has(path)) return;
+      seen.add(path);
+      for (const e of edgesOf(m)) if (!e.type && !e.lazy) walk(e.to);
+    };
+    walk(entry);
+    return mods.filter((m) => seen.has(m.path));
+  };
+  const asked = (mods: Module[]) => [...new Set(mods.flatMap((m) => domNames(m.source).map((d) => `${m.path}: ${d.words}`)))].sort();
+  test('the closure is followed through value imports, and a name is found', () => {
+    const mods: Module[] = [
+      { path: 'src/e.ts', source: "export { a } from './a.ts';\nimport type { T } from './t.ts';\nconst l = () => import('./l.ts');" },
+      { path: 'src/a.ts', source: "import { b } from './b.ts';\nexport const a = b;" },
+      { path: 'src/b.ts', source: 'export const b = typeof navigator;\nexport interface B { document?: boolean }' },
+      { path: 'src/t.ts', source: 'export type T = typeof window;' },
+      { path: 'src/l.ts', source: 'export const l = document;' },
+    ];
+    expect(asked(closure(mods, 'src/e.ts'))).toStrictEqual(['src/b.ts: navigator']);
+  });
+  test('its modules name only the globals listed, each behind a typeof test of it', () => {
+    const mods = closure(tree, 'src/commands.ts');
+    expect(mods.map((m) => m.path)).toContain('src/kit/core/commands.ts');
+    expect(asked(mods)).toStrictEqual(Object.keys(COMMANDS_ASK).sort());
+    for (const key of Object.keys(COMMANDS_ASK)) {
+      const [path, name] = key.split(': ');
+      expect(mods.find((m) => m.path === path)!.source, key).toMatch(new RegExp(`typeof ${name}\\b`));
+    }
   });
 });
 

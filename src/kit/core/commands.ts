@@ -13,7 +13,10 @@
  * - the shortcuts dialog and the drawer's search for anything (kit/ui/drawer.ts), which read the registry as the page runs;
  * - docs/editing.md's tables and the skill's list of commands (scripts/commands.ts, `npm run commands`);
  * - the graph lints (test/commands.test.ts): no key bound twice in one chain of scopes unless allowed, every bar
- *   command reachable by its keys or the bar's arrows, every label a message of en.ftl, every command run by a test.
+ *   command reachable by its keys or the bar's arrows, every label a message of en.ftl, every command run by a test;
+ * - for a program rather than a page (src/commands.ts, `tinylittleoffice/commands`): the tools an assistant or an MCP
+ *   server serves (`tools`), from what a command takes (`input`, a JSON Schema) and who may run it (`who`), and a page
+ *   of documentation (`docsOf`). The site's commands carry none of these; a program's declare them.
  *
  * A command's words are a message's id (src/i18n/en.ftl), put through t() when drawn (a function of the context only where they say what
  * is in hand), and a scope declares its commands through its maker (`commandsOf`), terse, since an app's load with it.
@@ -35,6 +38,9 @@ import { t } from './i18n.ts';
 export type Words<C, R = string> = string | ((c?: C) => R);
 /** Words drawn in this context (none in hand: undefined). */
 export const say = <C, R extends string | undefined>(w: Words<C, R> | undefined, c?: C): R | string | undefined => (typeof w === 'string' ? t(w) : w?.(c));
+
+/** A JSON Schema object (what an API, an assistant's tools and a fuzz read): what a command takes, or gives back. */
+export type Schema = Record<string, unknown>;
 
 /** Where a command is drawn: the app's bar, a menu of it (`menu:align`), the context bar, the drawer's This document, in the document itself (a row's number, a task's options), or nowhere (a key alone). */
 export type Where = 'bar' | `menu:${string}` | 'context' | 'drawer' | 'in-doc' | 'keys-only';
@@ -88,6 +94,16 @@ export interface Command<C = any> {
   pinned?: boolean;
   /** Done. `false`: it did not apply here after all (Tab where no item can move), and the key goes on. */
   does: (c: C, e?: Event) => unknown;
+  /** What it takes, for a program that runs it (an API, an assistant): a JSON Schema object. */
+  input?: Schema;
+  /** What it gives back, for that program: a JSON Schema object. */
+  output?: Schema;
+  /** Who may run it from a program ("team", "atlas"): the whole of authorization. Absent: no one, a page's alone. */
+  who?: readonly string[];
+  /** It reads and changes nothing (a program need not log it). */
+  reads?: true;
+  /** One sentence saying what it does, for a tool's description and the documentation (its words, without one). */
+  doc?: string;
 }
 
 /** A command typed for its context: an identity, for inference. */
@@ -110,6 +126,38 @@ export function register(cmds: readonly Command[]): readonly Command[] {
 export const registered = (): Command[] => [...all.values()];
 /** The commands of one scope, in the order they were declared. */
 export const inScope = (scope: string): Command[] => registered().filter((c) => c.scope === scope);
+
+/* ---------- for a program ---------- */
+
+/**
+ * The tools an assistant or an MCP server serves to an actor: each command `actor` is among the `who` of, as MCP
+ * names a tool's fields, in the order given. The description is the command's `doc`, or its words as t() says them
+ * (English in a program, which chooses no language); the parameters are its `input`, or an object of nothing.
+ */
+export const tools = (cmds: readonly Command[], actor: string): { name: string; description: string; inputSchema: Schema }[] =>
+  cmds.filter((c) => c.who?.includes(actor)).map((c) => ({ name: c.id, description: c.doc ?? labelOf(c), inputSchema: c.input ?? { type: 'object' } }));
+
+/** A schema as the documentation shows it: a block of JSON, or "nothing". */
+const schemaText = (s: Schema | undefined): string[] => (s ? ['```json', JSON.stringify(s, null, 2), '```'] : ['Nothing.']);
+
+/**
+ * The documentation of the commands given, as Markdown, in their order: each one's id, what it does (`doc`, or its
+ * words), its scope, who may run it, whether it reads only, and what it takes and gives back.
+ */
+export function docsOf(cmds: readonly Command[]): string {
+  const out = ['# Commands', ''];
+  for (const c of cmds) {
+    out.push(`## \`${c.id}\``, '', c.doc ?? labelOf(c), '');
+    out.push(
+      `- Scope: \`${c.scope}\``,
+      `- Who: ${c.who?.length ? c.who.map((w) => `\`${w}\``).join(', ') : 'no program (a page’s alone)'}`,
+      `- Reads: ${c.reads ? 'yes, and changes nothing' : 'no, it writes'}`,
+      '',
+    );
+    out.push('Input:', '', ...schemaText(c.input), '', 'Output:', '', ...schemaText(c.output), '');
+  }
+  return out.join('\n');
+}
 
 /* ---------- running ---------- */
 
