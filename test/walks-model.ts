@@ -32,7 +32,7 @@ export const FAMILIES: Record<string, string[]> = {
   text: ['write', 'outline', 'deck'],
   grid: ['sheet', 'cal', 'calc'],
   canvas: ['draw', 'diagram', 'anim'],
-  lists: ['trip'],
+  lists: ['trip', 'board'],
 };
 /** The scopes in force in every app: the page's, the words', the rows'. */
 export const SHARED_SCOPES = ['kit', 'text', 'rows'];

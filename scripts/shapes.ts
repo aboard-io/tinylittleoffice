@@ -189,6 +189,17 @@ export const SHAPES: Record<string, Shape[]> = {
     { id: 'units', name: 'distances', for: 'how far, in km or miles: units: km', has: (d) => !!d.head.units && d.head.route !== 'dots' },
     { id: 'dots', name: 'places on their own', for: 'a map of places, no route: route: dots', has: (d) => d.head.route === 'dots' },
   ],
+  board: [
+    {
+      id: 'lanes',
+      name: 'cards in lanes',
+      for: 'a card a row of a table, its lane the Status (or Stage) column: Task | Status:option',
+      has: (d) => (tables(d)[0]?.rows.length ?? 0) >= 2 && new Set(tables(d)[0].rows.map((r) => r[tables(d)[0].cols.findIndex((c) => /^(status|stage)$/i.test(c.name))] ?? '')).size >= 2,
+    },
+    { id: 'order', name: 'lanes in order', for: 'every lane, an empty one too, in its place: lanes: To do, Doing, Done in the head', has: (d) => !!d.head.lanes && tables(d).length >= 1 },
+    { id: 'fields', name: 'fields on a card', for: 'more about each card: the other columns, typed (Owner, Due:date)', has: (d) => (tables(d)[0]?.cols.length ?? 0) >= 4 && column(d, 'date') },
+    { id: 'money', name: 'a money field', for: 'what a deal is worth: Value:money', has: (d) => column(d, 'money') },
+  ],
 };
 
 /** The apps whose rows or lines name each other by place (a drawing's joins, an animation's shapes, a calculator's names): their examples are whole templates, never cut. */

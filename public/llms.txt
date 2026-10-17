@@ -8,7 +8,7 @@ The document is TLO (Markdown with a few additions), percent-encoded after `#doc
 https://tinylittleoffice.com/<app>/#doc=<percent-encoded TLO>
 ```
 
-`<app>` is one of `write`, `outline`, `deck`, `sheet`, `calc`, `draw`, `diagram`, `anim`, `cal`, `trip`. `&title=` names it, `&by=` says who made it, and `&lang=` (`es`, `zh-hant`…) opens the page in one of the site's languages. The words may be in any language or script, right to left too: write for the reader. Emoji are words, put the character in; `:name:` is one of Lucide's icons in the line, and first in a slide's headline it is the slide's icon; `code` is set in monospace. Keep a link under 2,000 characters and to the shapes shown: a hand-written link is checked by nothing.
+`<app>` is one of `write`, `outline`, `deck`, `sheet`, `calc`, `draw`, `diagram`, `anim`, `cal`, `trip`, `board`. `&title=` names it, `&by=` says who made it, and `&lang=` (`es`, `zh-hant`…) opens the page in one of the site's languages. The words may be in any language or script, right to left too: write for the reader. Emoji are words, put the character in; `:name:` is one of Lucide's icons in the line, and first in a slide's headline it is the slide's icon; `code` is set in monospace. Keep a link under 2,000 characters and to the shapes shown: a hand-written link is checked by nothing.
 
 With a runtime: `import { link, read, lint } from 'https://tinylittleoffice.com/api.js'` in a browser, Deno or Bun; `npx tinylittleoffice` in Node, where `skill --into ~/.claude/skills` installs this guide for Claude Code. To learn a shape by example:
 
@@ -30,6 +30,7 @@ https://tinylittleoffice.com/llms/<app>.txt is a page on one app; https://tinyli
 - `anim` Animator, a shape that moves: <https://tinylittleoffice.com/anim/#doc=---%0Atitle%3A+Lift+off%0Aframes%3A+24%0Afps%3A+8%0Aalt%3A+A+rocket+lifts+off+and+flies+up+and+away+to+the+right%2C+under+the+words+Lift+off.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0At+%7C+4+%7C+20+%7C+20+%7C+4+%7C+04+%7C+Lift+off%0Ai+%7C+8+%7C+36+%7C+8+%7C+8+%7C+0b+%7C+rocket%0A%0AShape+%7C+Keys%0A---+%7C+---%0A0+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+23%2C0%2C-80%2C0%2C1%2C0%2Ci%0A1+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+23%2C200%2C-200%2C80%2C1%2C-30%2Cd>
 - `cal` Calendar, things on days: <https://tinylittleoffice.com/cal/#doc=-+2026-12-23+to+2027-01-01%3A+Winter+break%0A-+2027-01-04%3A+Classes+start+again>
 - `trip` Trip Planner, a route: <https://tinylittleoffice.com/trip/#doc=Place+%7C+Lat%3Anumber+%7C+Lon%3Anumber+%7C+Note%0A---+%7C+---+%7C+---+%7C+---%0AGlencoe+%7C+56.6826+%7C+-5.1023+%7C+The+Lost+Valley+walk%2C+three+hours%0AGlasgow+%7C+55.8642+%7C+-4.2518+%7C+Drop+the+car+at+the+airport>
+- `board` Board, cards in lanes: <https://tinylittleoffice.com/board/#doc=Candidate+%7C+Stage%3Aoption+%7C+Role+%7C+Next+step%3Adate%0A---+%7C+---+%7C+---+%7C+---%0AOmar+Haddad+%7C+Offer+%7C+Product+manager+%7C+2026-11-10%0AGrace+Kim+%7C+Hired+%7C+Engineer+%7C+2026-11-17>
 
 ## A document inside a document
 

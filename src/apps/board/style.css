@@ -1,0 +1,155 @@
+/* Board: the lanes side by side, as many as the column holds at about 15rem each, the rest wrapping under them, and one
+   to a row on a phone, so the words reflow with the size of everything and nothing scrolls sideways. A lane is a tinted
+   panel: its name (typed where it is drawn), its count and its menu, then its cards. A card is a small sheet: its grip
+   (a tap chooses it, a drag carries it to any lane), its title, its fields under it in a smaller ink. Every control is a
+   finger wide; a card carried leaves a faded copy where it was, and a line shows where it would land. */
+@layer apps {
+  to-board-editor {
+    display: block;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    align-items: start;
+    gap: 0.75rem;
+    padding: 0.25rem 0 1rem;
+    /* A double tap selects a word; it never zooms the page. */
+    touch-action: manipulation;
+  }
+  /* Chosen cards hold the focus here; the cards themselves show it. */
+  .board:focus {
+    outline: none;
+  }
+  .board.carrying {
+    user-select: none;
+  }
+  .board-lane {
+    min-width: 0;
+    padding: 0.375rem 0.375rem 0.5rem;
+    background: var(--to-surface-2);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+  }
+  .board-lane.over {
+    border-color: var(--to-accent);
+  }
+  .board-head {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .board-head .board-lane-name {
+    flex: 1;
+    min-width: 0;
+  }
+  .board-lane-name .tx,
+  .board-title .tx {
+    min-height: 2.25rem;
+    padding: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: var(--to-radius-sm);
+    color: var(--to-ink);
+    line-height: 1.5;
+  }
+  .board-lane-name .tx {
+    font: 600 1rem var(--to-font);
+  }
+  .board-title .tx {
+    font: 1rem var(--to-font);
+  }
+  .board-lane-name .tx:hover,
+  .board-title .tx:hover {
+    border-color: var(--to-border);
+  }
+  .board-lane-name .tx:focus,
+  .board-title .tx:focus {
+    border-color: var(--to-accent);
+    background: var(--to-input-bg);
+  }
+  .board-count {
+    padding: 0 0.25rem;
+    color: var(--to-ink-3);
+    font: 600 0.875rem var(--to-font);
+  }
+  .board-cards {
+    display: grid;
+    gap: 0.375rem;
+    list-style: none;
+    margin: 0.25rem 0 0;
+    padding: 0;
+  }
+  .board-card {
+    display: grid;
+    grid-template-columns: var(--to-touch) minmax(0, 1fr);
+    align-items: start;
+    padding: 0.125rem 0.375rem 0.25rem 0;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .board-card.sel {
+    border-color: var(--to-accent);
+  }
+  .board-card.ranged {
+    background: var(--to-accent-soft);
+    box-shadow: inset 0.1875rem 0 0 var(--to-accent);
+  }
+  .board-card.dragging {
+    opacity: 0.45;
+  }
+  /* Where a carried card would land: a line above the card it would go before, or under a lane's last card. */
+  .board-card.before {
+    box-shadow: 0 -0.25rem 0 -0.0625rem var(--to-accent);
+  }
+  .board-cards.end > .board-card:last-child:not(.dragging),
+  .board-none.end {
+    box-shadow: 0 0.25rem 0 -0.0625rem var(--to-accent);
+  }
+  .board-grip {
+    width: var(--to-touch);
+    height: var(--to-touch);
+    color: var(--to-ink-3);
+    cursor: grab;
+  }
+  .board-grip[aria-pressed='true'] {
+    color: var(--to-accent);
+  }
+  .board-main {
+    min-width: 0;
+    padding-top: 0.25rem;
+  }
+  .board-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+    margin: 0 0 0.125rem;
+    padding: 0 0.4375rem;
+    color: var(--to-ink-2);
+    font-size: 0.8125rem;
+  }
+  .board-fields > div {
+    display: flex;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .board-fields dt {
+    color: var(--to-ink-3);
+  }
+  .board-fields dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .board-none {
+    margin: 0.25rem 0 0;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+  .board-total {
+    display: flex;
+    align-items: center;
+    height: var(--to-touch);
+    margin-left: auto;
+    padding: 0 0.375em;
+    white-space: nowrap;
+  }
+}

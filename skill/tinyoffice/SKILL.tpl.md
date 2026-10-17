@@ -71,7 +71,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 - Numbers, a table, a chart, a model: `sheet`. A quick sum or a conversion: `calc`.
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
-- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
+- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`. Work moving through stages (a pipeline, a project, hiring): `board`.
 - Anything else visual: `draw`; moving: `anim`.
 
 ## Words
@@ -194,6 +194,14 @@ A table `Place | Lat:number | Lon:number | Note`, in decimal degrees. `units: km
 {{tpl:trip:portugal}}
 
 {{templates:trip}} {{exports:trip}}
+
+### board: cards in lanes by their status
+
+A table, a card a row: the first column of words is its title, the others its fields, and the column named `Status` or `Stage` (else the first `:option` column, else the last) says which lane it is in. `lanes: To do, Doing, Done` in the head puts the lanes in that order and keeps a lane with no cards; a comma in a lane's name is written `\,`. Without it the lanes come in the order the rows first name them. Type the columns as a sheet's (`Value:money`, `Due:date`): a card shows them as the Spreadsheet does, and the same text opens in the Spreadsheet.
+
+{{tpl:board:pipeline}}
+
+{{templates:board}} {{exports:board}}
 
 ## Every app's files
 

@@ -76,15 +76,16 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `anim` | Animator | Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes. |
 | `cal` | Calendar | Days and times on a month, a year or a schedule, in any time zone. |
 | `trip` | Trip Planner | A route on a map: stops in order, each with a note, and how far between them. |
+| `board` | Board | Cards in lanes by their status, each card a row of a table. |
 
-Before writing for an app, read its reference, which says what it reads and gives one of its own templates as the example: [write](references/write.md), [outline](references/outline.md), [deck](references/deck.md), [sheet](references/sheet.md), [calc](references/calc.md), [draw](references/draw.md), [diagram](references/diagram.md), [anim](references/anim.md), [cal](references/cal.md), [trip](references/trip.md). The files every document downloads, short links, the API and the command line are in [references/api.md](references/api.md); the keys that drive the editors in a browser are in [references/editors.md](references/editors.md).
+Before writing for an app, read its reference, which says what it reads and gives one of its own templates as the example: [write](references/write.md), [outline](references/outline.md), [deck](references/deck.md), [sheet](references/sheet.md), [calc](references/calc.md), [draw](references/draw.md), [diagram](references/diagram.md), [anim](references/anim.md), [cal](references/cal.md), [trip](references/trip.md), [board](references/board.md). The files every document downloads, short links, the API and the command line are in [references/api.md](references/api.md); the keys that drive the editors in a browser are in [references/editors.md](references/editors.md).
 
 ## Choosing an app
 
 - Numbers, a table, a chart, a model: `sheet`. A quick sum or a conversion: `calc`.
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
-- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
+- Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`. Work moving through stages (a pipeline, a project, hiring): `board`.
 - Anything else visual: `draw`; moving: `anim`.
 
 ## The skill

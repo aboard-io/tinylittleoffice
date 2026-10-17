@@ -13,7 +13,7 @@ import { drawn, raster } from '../../kit/draw/raster.ts';
 import { tableToXlsx } from '../../kit/file/xlsx.ts';
 import { readSheet } from './model.ts';
 import { cellText, chartOf, sheetPages, sheetToCsv } from './view.ts';
-import { sheetToCal } from './convert.ts';
+import { sheetToBoard, sheetToCal } from './convert.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 /** The document's name: its title head field. */
@@ -59,7 +59,10 @@ export default defineApp({
     },
   ],
   commands: () => import('./commands.ts'),
-  handoffs: [{ to: 'cal', label: () => t('sheet-put-dated-rows-on-calendar'), convert: sheetToCal }],
+  handoffs: [
+    { to: 'cal', label: () => t('sheet-put-dated-rows-on-calendar'), convert: sheetToCal },
+    { to: 'board', label: () => t('sheet-put-rows-on-board'), convert: sheetToBoard },
+  ],
 });
 
 /** The sheet as a workbook: the table and its values (a rich cell's words, without their marks). */

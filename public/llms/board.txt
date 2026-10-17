@@ -1,0 +1,27 @@
+# Board (`board`), Tiny Little Office
+
+Cards in lanes by their status, each card a row of a table. A document is a link: https://tinylittleoffice.com/board/#doc=<percent-encoded TLO>
+
+A table, a card a row: the first column of words is its title, the others its fields, and the column named `Status` or `Stage` (else the first `:option` column, else the last) says which lane it is in. `lanes: To do, Doing, Done` in the head puts the lanes in that order and keeps a lane with no cards; a comma in a lane's name is written `\,`. Without it the lanes come in the order the rows first name them. Type the columns as a sheet's (`Value:money`, `Due:date`): a card shows them as the Spreadsheet does, and the same text opens in the Spreadsheet.
+
+Templates: Project board, Sales pipeline, Hiring, Content calendar. Its own files: `.csv`.
+
+## Shapes
+
+- `lanes` cards in lanes, a card a row of a table, its lane the Status (or Stage) column: Task | Status:option
+- `order` lanes in order, every lane, an empty one too, in its place: lanes: To do, Doing, Done in the head
+- `fields` fields on a card, more about each card: the other columns, typed (Owner, Due:date)
+- `money` a money field, what a deal is worth: Value:money
+
+## Example: cards in lanes
+
+```
+Candidate | Stage:option | Role | Next step:date
+--- | --- | --- | ---
+Omar Haddad | Offer | Product manager | 2026-11-10
+Grace Kim | Hired | Engineer | 2026-11-17
+```
+
+As a link: <https://tinylittleoffice.com/board/#doc=Candidate+%7C+Stage%3Aoption+%7C+Role+%7C+Next+step%3Adate%0A---+%7C+---+%7C+---+%7C+---%0AOmar+Haddad+%7C+Offer+%7C+Product+manager+%7C+2026-11-10%0AGrace+Kim+%7C+Hired+%7C+Engineer+%7C+2026-11-17>
+
+Every shape as a document, a link and JSON: https://tinylittleoffice.com/examples/board.json. The whole description: https://tinylittleoffice.com/llms-full.txt

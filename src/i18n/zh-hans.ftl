@@ -1253,6 +1253,8 @@ sheet-edit-cell-caret-at-its = 编辑单元格，光标置于末尾
 sheet-put-back-what-cell-held = 恢复单元格的值
 # en: 2b69414b3787eaa8a38f2f1a9c4a48aff7dd78a5
 sheet-put-dated-rows-on-calendar = 把带日期的行放到日历上
+# en: 8176189f8be90b48f852836e7872ab326b9908eb
+sheet-put-rows-on-board = 把行放到看板上，每行一张卡片
 
 ## downloads: hand-offs to another app (kit/file/exports.ts)
 
@@ -3211,3 +3213,75 @@ find-not-found = 未找到
 menu-nothing-starts-q = 没有与“{ $q }”匹配的结果
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = 与“{ $q }”匹配的结果
+
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = 看板
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = 看板
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = 按状态把卡片排在各列，每张卡片是表格中的一行。
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = 状态
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = 待办
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = 进行中
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = 已完成
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = 没有卡片
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+       *[other] { $n } 张卡片
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = 在电子表格中打开这些卡片
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = 卡片
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = 列
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = 列选项
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = { $lane }的选项
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = 添加卡片
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = 删除列
+# en: 7090c242fb9b97684094b7dc8f802a991283c07c
+board-move-to-lane = 移到{ $lane }
+# en: 64335add8762bba21015395f18232cc14689050c
+board-move-to-lane-before = 移到上一列
+# en: 7f67c2a11578b4e6e660fbab94657203a08d1a79
+board-move-to-lane-after = 移到下一列
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = 把卡片移到上一列或下一列
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = 列名
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = 新列
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = { $lane }中卡片 { $n } 的标题
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = { $lane }中的卡片 { $n }：点按选择，拖动移动
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = 选中的卡片
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = 项目看板
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = 待办、进行中和已完成，每项任务都有负责人和截止日期。
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = 销售漏斗
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = 从新线索到成交或丢单的商机，附金额和预计成交日期。
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = 招聘
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = 从投递到录用的候选人，附职位和下一步。
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = 内容日历
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = 从创意到发布的内容，附渠道、作者和日期。

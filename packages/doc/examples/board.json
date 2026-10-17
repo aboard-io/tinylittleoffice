@@ -1,0 +1,206 @@
+{
+  "app": "board",
+  "name": "Board",
+  "shapes": [
+    {
+      "id": "lanes",
+      "name": "cards in lanes",
+      "for": "a card a row of a table, its lane the Status (or Stage) column: Task | Status:option",
+      "from": "template hiring",
+      "text": "Candidate | Stage:option | Role | Next step:date\n--- | --- | --- | ---\nOmar Haddad | Offer | Product manager | 2026-11-10\nGrace Kim | Hired | Engineer | 2026-11-17\n",
+      "link": "https://tinylittleoffice.com/board/#doc=Candidate+%7C+Stage%3Aoption+%7C+Role+%7C+Next+step%3Adate%0A---+%7C+---+%7C+---+%7C+---%0AOmar+Haddad+%7C+Offer+%7C+Product+manager+%7C+2026-11-10%0AGrace+Kim+%7C+Hired+%7C+Engineer+%7C+2026-11-17",
+      "json": {
+        "head": {},
+        "blocks": [
+          {
+            "k": "table",
+            "cols": [
+              {
+                "name": "Candidate",
+                "type": "text"
+              },
+              {
+                "name": "Stage",
+                "type": "option"
+              },
+              {
+                "name": "Role",
+                "type": "text"
+              },
+              {
+                "name": "Next step",
+                "type": "date"
+              }
+            ],
+            "rows": [
+              [
+                "Omar Haddad",
+                "Offer",
+                "Product manager",
+                "2026-11-10"
+              ],
+              [
+                "Grace Kim",
+                "Hired",
+                "Engineer",
+                "2026-11-17"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "order",
+      "name": "lanes in order",
+      "for": "every lane, an empty one too, in its place: lanes: To do, Doing, Done in the head",
+      "from": "template project",
+      "text": "---\nlanes: To do, Doing, Done\n---\nTask | Status:option | Owner | Due:date\n--- | --- | --- | ---\nPlan the launch party | To do | Priya | 2026-11-20\nSend the thank-you notes | To do | Maya | 2026-11-30\n",
+      "link": "https://tinylittleoffice.com/board/#doc=---%0Alanes%3A+To+do%2C+Doing%2C+Done%0A---%0ATask+%7C+Status%3Aoption+%7C+Owner+%7C+Due%3Adate%0A---+%7C+---+%7C+---+%7C+---%0APlan+the+launch+party+%7C+To+do+%7C+Priya+%7C+2026-11-20%0ASend+the+thank-you+notes+%7C+To+do+%7C+Maya+%7C+2026-11-30",
+      "json": {
+        "head": {
+          "lanes": "To do, Doing, Done"
+        },
+        "blocks": [
+          {
+            "k": "table",
+            "cols": [
+              {
+                "name": "Task",
+                "type": "text"
+              },
+              {
+                "name": "Status",
+                "type": "option"
+              },
+              {
+                "name": "Owner",
+                "type": "text"
+              },
+              {
+                "name": "Due",
+                "type": "date"
+              }
+            ],
+            "rows": [
+              [
+                "Plan the launch party",
+                "To do",
+                "Priya",
+                "2026-11-20"
+              ],
+              [
+                "Send the thank-you notes",
+                "To do",
+                "Maya",
+                "2026-11-30"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "fields",
+      "name": "fields on a card",
+      "for": "more about each card: the other columns, typed (Owner, Due:date)",
+      "from": "template hiring",
+      "text": "Candidate | Stage:option | Role | Next step:date\n--- | --- | --- | ---\nOmar Haddad | Offer | Product manager | 2026-11-10\nGrace Kim | Hired | Engineer | 2026-11-17\n",
+      "link": "https://tinylittleoffice.com/board/#doc=Candidate+%7C+Stage%3Aoption+%7C+Role+%7C+Next+step%3Adate%0A---+%7C+---+%7C+---+%7C+---%0AOmar+Haddad+%7C+Offer+%7C+Product+manager+%7C+2026-11-10%0AGrace+Kim+%7C+Hired+%7C+Engineer+%7C+2026-11-17",
+      "json": {
+        "head": {},
+        "blocks": [
+          {
+            "k": "table",
+            "cols": [
+              {
+                "name": "Candidate",
+                "type": "text"
+              },
+              {
+                "name": "Stage",
+                "type": "option"
+              },
+              {
+                "name": "Role",
+                "type": "text"
+              },
+              {
+                "name": "Next step",
+                "type": "date"
+              }
+            ],
+            "rows": [
+              [
+                "Omar Haddad",
+                "Offer",
+                "Product manager",
+                "2026-11-10"
+              ],
+              [
+                "Grace Kim",
+                "Hired",
+                "Engineer",
+                "2026-11-17"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "money",
+      "name": "a money field",
+      "for": "what a deal is worth: Value:money",
+      "from": "template pipeline",
+      "text": "Deal | Stage:option | Company | Value:money | Close:date\n--- | --- | --- | --- | ---\nBrand refresh | Won | Flatiron Coffee | 18000 | 2026-10-30\nApp prototype | Lost | Canal Street Labs | 40000 | 2026-10-21\n",
+      "link": "https://tinylittleoffice.com/board/#doc=Deal+%7C+Stage%3Aoption+%7C+Company+%7C+Value%3Amoney+%7C+Close%3Adate%0A---+%7C+---+%7C+---+%7C+---+%7C+---%0ABrand+refresh+%7C+Won+%7C+Flatiron+Coffee+%7C+18000+%7C+2026-10-30%0AApp+prototype+%7C+Lost+%7C+Canal+Street+Labs+%7C+40000+%7C+2026-10-21",
+      "json": {
+        "head": {},
+        "blocks": [
+          {
+            "k": "table",
+            "cols": [
+              {
+                "name": "Deal",
+                "type": "text"
+              },
+              {
+                "name": "Stage",
+                "type": "option"
+              },
+              {
+                "name": "Company",
+                "type": "text"
+              },
+              {
+                "name": "Value",
+                "type": "money"
+              },
+              {
+                "name": "Close",
+                "type": "date"
+              }
+            ],
+            "rows": [
+              [
+                "Brand refresh",
+                "Won",
+                "Flatiron Coffee",
+                "18000",
+                "2026-10-30"
+              ],
+              [
+                "App prototype",
+                "Lost",
+                "Canal Street Labs",
+                "40000",
+                "2026-10-21"
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

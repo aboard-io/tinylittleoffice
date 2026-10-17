@@ -33,7 +33,7 @@ with a keyboard (those have a button or a bar item too).
 | Undo, Redo | The last two tools of every app's bar (`undoTools()` from DocElement), disabled when there is nothing to undo. Under a finger they are pinned (the registry's `pinned`): held at the bar's inline end, outside its scroll, so a phone always has Undo on screen while the bar is; on a bar under 360px Undo alone. The shell forwards the keys only when the focus is in the app's editor, never from a dialog, a popover, the header or a field of the kit's own | — |
 
 Rules:
-- **A document opens with the focus where a person starts**, without scrolling, whether it is new (from the home page, the menu, a template) or opened from a link: the Word Processor: the caret at the start of the first words block; the Spreadsheet: cell A1, its words selected as a keyboard move leaves them; the Presentation Builder: the first slide's headline; the Outliner: the first row's words; the Calculator: the entry line; the Drawing Tool: the canvas (the select tool, nothing chosen); the Animator: the stage; the Diagram Maker: the picture (nothing being edited); the Calendar: today's day (else the shown month's first; a Gantt chart's first task); the Trip Planner: the first stop's name, else the map. Never the title box, never the body. Display mode and a locked document focus nothing (unlocked, the document takes the focus). On a phone the same: iOS raises no keyboard without a tap, and the caret is there when it does. The editor's `focusFirst()` (docs/kernel.md §3) does it.
+- **A document opens with the focus where a person starts**, without scrolling, whether it is new (from the home page, the menu, a template) or opened from a link: the Word Processor: the caret at the start of the first words block; the Spreadsheet: cell A1, its words selected as a keyboard move leaves them; the Presentation Builder: the first slide's headline; the Outliner: the first row's words; the Calculator: the entry line; the Drawing Tool: the canvas (the select tool, nothing chosen); the Animator: the stage; the Diagram Maker: the picture (nothing being edited); the Calendar: today's day (else the shown month's first; a Gantt chart's first task); the Trip Planner: the first stop's name, else the map; the Board: the first card's title, else the first lane's name. Never the title box, never the body. Display mode and a locked document focus nothing (unlocked, the document takes the focus). On a phone the same: iOS raises no keyboard without a tap, and the caret is there when it does. The editor's `focusFirst()` (docs/kernel.md §3) does it.
 - **Mod** is ⌘ on Apple devices and Ctrl elsewhere; tooltips write it the way the device does (`tip()` in bar.ts).
 - A shortcut means the same in every app. Nothing takes a shortcut from this table for another purpose.
 - An app's single-letter tool keys (the Drawing Tool's V R E D L A T K P F) work only when the canvas has the focus and no words are being edited; they never fire inside a text box, an input or a popover.
@@ -104,7 +104,7 @@ Rules:
 - Wheel with Mod (or a pinch) zooms; the wheel alone scrolls.
 - Everything drawn is undoable in one step per gesture (a drag is one step, not one per pixel).
 
-## 6. Things in rows and columns (Calendar entries, Trip Planner stops, Presentation Builder slides, Diagram Maker nodes)
+## 6. Things in rows and columns (Calendar entries, Trip Planner stops, Board cards, Presentation Builder slides, Diagram Maker nodes)
 
 - A tap on a thing's handle (its grip, bullet or thumbnail) selects it; Shift+arrows extend; on a touch screen a handle pressed and held for half a second extends to its row (a second tap chooses afresh, as a mouse's does). A selected thing has the contextual bar in this order: Edit, Move up, Move down, Indent/Bring out where things nest, Duplicate | Copy, Cut, Paste | Delete. Delete/Backspace, Mod+D, Mod+C/X/V, Alt+Up/Down and Mod+A act on the selection. Enter, a double tap, or a tap on its words edits them in place. The kit's `rows.ts` is the one implementation of this (the Outliner's), used by every app with rows.
 - Alt+Up/Down moves the thing among its siblings, keeping the caret in the same field; Mod+Alt+Left/Right moves it across columns where there are any; drag by the handle does the same with a drawn target, by pointer events (never HTML5 drag-and-drop, which iOS starts only from a long press).
@@ -639,5 +639,22 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown` | Nudge selected shapes | keys only, at: pin |
 | `Delete`, `Backspace` | Delete | keys only, at: pin |
 | `Escape` | Close or deselect | keys only, at: pin |
+
+### Board (`board`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Card | insert ▾ |
+|  | Lane | insert ▾ |
+|  | Add a card | lane ▾ |
+|  | Move left | lane ▾ |
+|  | Move right | lane ▾ |
+|  | Delete lane | lane ▾ |
+| `Mod+Alt+ArrowLeft` | Move to the lane before | context, at: rows |
+| `Mod+Alt+ArrowRight` | Move to the lane after | context, at: rows |
+| `Mod+Alt+ArrowLeft`, `Mod+Alt+ArrowRight` | Move the card to the lane before or after | keys only, at: words |
+| `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: words |
+| `ArrowUp`, `ArrowDown` | Next or previous | keys only, at: words |
+| `Mod+D` | Duplicate | keys only, at: words |
 
 <!-- commands:end -->
