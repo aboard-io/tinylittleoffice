@@ -49,7 +49,7 @@ A document is a head and a list of blocks. Eight kinds of block:
 | `li` | `- words`, `1. words`, `- [ ] words`, `- [x] words` | Nested by two spaces. |
 | `quote` | `> words` | A note: a speaker's note, a page's aside. |
 | `hr` | `---` | A break: the next slide, page or card. `--- {.rule}` is a horizontal rule, a line that breaks nothing (the Word Processor's). |
-| `table` | `Name | Price:money` / `--- | ---` / rows | Cells are raw strings (formulas start with `=`). Written without outer pipes. |
+| `table` | `Name | Price:money` / `--- | ---` / rows | Cells are raw strings (formulas start with `=`; an apostrophe before words keeps them words, `'=SUM(1)`, `'007`, as in a spreadsheet). Written without outer pipes. |
 | `fence` | ```` ```<lang> ```` … ```` ``` ```` | `lang` names an app: another document, its whole TLO text. Else text kept as written. |
 | `edge` | `~ A -> B: label` | A connection by the things' words (or `#id`): `->`, `<-`, `<->`, `--`. |
 

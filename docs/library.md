@@ -122,7 +122,9 @@ suite's repository: an app built outside it, cards in lanes first, is made with 
   in a scope named by its id and answered with `runKey` in its own keydown, as the suite's are (kit/core/commands.ts).
   It draws with the kit's elements and helpers: `<to-bar>`, `<to-menu>`, `<to-insert>`, `<to-dialog>`, `<to-text>`,
   `Rows`, `reveal`; its pages, for print, files and thumbnails, with the kit's drawing (`rect`, `text`, `wrapText`, the
-  colors) and, for a table, the Spreadsheet's words (`cellAsShown`, a cell as its column shows it, and `tableAsCsv`).
+  colors) and, for a table, the Spreadsheet's words (`cellAsShown`, a cell as its column shows it, and `tableAsCsv`);
+  words a program puts in a cell are written with `asWords` (the kernel's, from `tinylittleoffice/doc` too), so words
+  that start with `=` or read as a number stay words (`'=SUM(1)`: docs/kernel.md §5).
 - **One of everything.** `tinylittleoffice/kit` is the editors' own file at run time: the package's "./kit" names
   dist/editors.js, typed by dist/types/kit.d.ts, and src/editors.ts exports everything src/kit.ts does
   (test/kit-entry.test.ts reads both; test/package.test.ts finds every value in the built file and resolves "./kit" to

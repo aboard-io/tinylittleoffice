@@ -970,3 +970,15 @@ test('read-only, a page’s marks are drawn at the end of a row’s first cell o
   await el.updateComplete;
   expect(drawn()).toBe(before);
 });
+
+test('words kept words by an apostrophe are shown as the words, and the cell in hand shows the apostrophe, as a spreadsheet’s formula bar does', async () => {
+  const { el, changes } = await editor("Item | Code\n--- | ---\n'=SUM(1) | '007\n");
+  expect([cell(el, 'A1').value, cell(el, 'B1').value]).toStrictEqual(['=SUM(1)', '007']);
+  // Words, not a number: on the left, as words are.
+  expect(cell(el, 'B1').classList.contains('num')).toBe(false);
+  cell(el, 'A1').focus();
+  await el.updateComplete;
+  expect(cell(el, 'A1').value).toBe("'=SUM(1)");
+  expect(el.querySelector<HTMLInputElement>('.sheet-fx .fx')!.value).toBe("'=SUM(1)");
+  expect(changes).toStrictEqual([]);
+});

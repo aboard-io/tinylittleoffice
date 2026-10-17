@@ -3,7 +3,25 @@
 // generated cases (2,000 under `npm run fuzz`); a failure names the shrunk counterexample.
 import fc from 'fast-check';
 import { expect, test } from 'vitest';
-import { applyAll, evaluateTable, invert, invertAll, pages, parse, sayableRuns, write, type ColType, type Doc, type Table } from '../../src/doc/index.ts';
+import {
+  applyAll,
+  asWords,
+  COLUMN_TYPES,
+  evaluateTable,
+  invert,
+  invertAll,
+  pages,
+  parse,
+  parseInline,
+  parseLiteral,
+  plainText,
+  sayableRuns,
+  write,
+  type ColType,
+  type Doc,
+  type Table,
+  type TableBlock,
+} from '../../src/doc/index.ts';
 import { apply } from '../../src/doc/ops.ts';
 import { decodeDoc, encodeDoc, packDoc, toBase64Url } from '../../src/kit/core/codec.ts';
 import { arbitraryDoc, arbitraryEdits, arbitraryOp, arbitraryText, readGrammar, RULES, RUNS, TLO_EBNF, textOf } from './tlo-grammar.ts';
@@ -204,6 +222,33 @@ test(
       const t = table([...rows, ...refs.map((col) => col)]);
       const { values } = evaluateTable(t);
       for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) expect(values[4 + c][r], `=${COLS[c]}${r + 1}`).toStrictEqual(values[r][c]);
+    });
+  },
+  LONG,
+);
+
+test(
+  'property: words written as a cell (asWords) are never a formula, the format keeps the cell, and it reads back as the words, whatever they start with, in every column',
+  () => {
+    // Words that begin as a formula, a number, a date, an escape or a mark would, and words that do not.
+    const lead = fc.constantFrom('', '=', "'", "''", "'=", '\\', '\\=', ' ', '$', '-', '+', '#', '0', '007', '1e3', '50%', '2027-03-01', '3/1/2027', 'today', 'x', '**', '[a](b)', '|');
+    const words = fc
+      .tuple(lead, fc.string({ maxLength: 6 }), fc.constantFrom('', ' ', '0', '%', '=', "'"))
+      .map(([a, b, c]) => a + b + c)
+      .filter((w) => !!w.trim() && !/[\n\r]/.test(w));
+    const types = [...COLUMN_TYPES.map((c) => c.id), 'rich' as ColType];
+    holds('asWords reads back as the words', fc.tuple(words, fc.constantFrom(...types)), ([w, type]) => {
+      const raw = asWords(w, type);
+      expect(raw.startsWith('='), 'never a formula').toBe(false);
+      const doc: Doc = { head: {}, blocks: [{ k: 'table', cols: [{ name: 'A', type }], rows: [[raw]] }] };
+      const kept = (parse(write(doc)).blocks[0] as TableBlock).rows[0][0];
+      expect(kept, 'the format keeps the cell').toBe(raw);
+      const v = evaluateTable({ cols: [{ name: 'A', type }], rows: [[kept]], lock: [], chart: '' }).values[0][0];
+      // A rich cell's words are its inline Markdown's (a number alone in one is a number, as in any cell).
+      if (type === 'rich') expect(plainText(parseInline(kept))).toBe(w);
+      else expect(v).toBe(w);
+      // Words that read as themselves are written as they are.
+      if (type !== 'rich' && !w.startsWith('=') && parseLiteral(w, type) === w) expect(raw).toBe(w);
     });
   },
   LONG,

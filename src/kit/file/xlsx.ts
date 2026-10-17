@@ -72,7 +72,8 @@ export function tableToXlsx(t: Table, ev: Evaluated, created: number | null = nu
       } else if (typeof v === 'number' && isFinite(v) && types[c] !== 'check') {
         cells += `<c r="${ref}"${styleOf(c)}><v>${v}</v></c>`;
       } else {
-        cells += str(ref, raw);
+        // Words as they read: an apostrophe that keeps them from a formula or a number is not among them (asWords).
+        cells += str(ref, typeof v === 'string' ? v : raw);
       }
     }
     data += `<row r="${r + 1 + off}">${cells}</row>`;
