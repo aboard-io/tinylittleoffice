@@ -2,7 +2,7 @@
 import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { t, register, setLanguage, browserLanguage, directionOf, languages } from '../src/kit/core/i18n.ts';
+import { t, addStrings, register, setLanguage, browserLanguage, directionOf, languages } from '../src/kit/core/i18n.ts';
 import { apply, commandKeys, englishHash, languageFiles, main, placeholders, rulesFor, sheet, usedKeys, withMissing, work, MARK } from '../scripts/i18n-extract.ts';
 import { flatMessages, readFtl } from '../scripts/ftl.ts';
 import { british } from './british.ts';
@@ -55,6 +55,25 @@ drawer-find-app-template-or-command = Znajdź aplikację
   expect(t('shell-menu')).toBe('Menu');
   await setLanguage(null);
   expect(t('drawer-find-app-template-or-command')).toBe('Find app, template, or command');
+});
+
+test('an outside app’s words are added beside the site’s, to English and to a language loaded before or after, and replace none', async () => {
+  addStrings('en', 'tally-name = Tally\ntally-n-marks = { $n ->\n    [one] one mark\n   *[other] { $n } marks\n}\nshell-menu = Not the menu\n');
+  expect([t('tally-name'), t('tally-n-marks', { n: 3 }), t('shell-menu')]).toStrictEqual(['Tally', '3 marks', 'Menu']);
+  // Loaded later: a language whose file arrives after the words were added to it gets them with its own.
+  let fetched = 0;
+  register('sv', async () => (fetched++, 'shell-menu = Meny\n'));
+  addStrings('sv', 'tally-name = Räkning\n');
+  expect(fetched).toBe(0);
+  await setLanguage('sv');
+  expect([t('shell-menu'), t('tally-name'), t('tally-n-marks', { n: 1 })]).toStrictEqual(['Meny', 'Räkning', 'one mark']);
+  // Loaded already: added at once, and an id the language has keeps its message.
+  addStrings('sv', 'tally-n-marks = { $n } streck\nshell-menu = Inte menyn\n');
+  expect([t('tally-n-marks', { n: 2 }), t('shell-menu')]).toStrictEqual(['2 streck', 'Meny']);
+  await setLanguage(null);
+  // A code the site has no file for is no language for the words added to it.
+  addStrings('tlh', 'tally-name = Qagh\n');
+  expect(languages()).not.toContain('tlh');
 });
 
 test('the browser language is matched to what is present', () => {

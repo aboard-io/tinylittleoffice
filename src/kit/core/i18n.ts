@@ -20,6 +20,14 @@
  * Fluent's bidi isolation (U+2068 and U+2069 round each placeable) is off: the page's root takes the language's
  * direction (`dir`), the placeables are the document's own words and numbers, and the marks would be characters in
  * every string copied, measured and compared, where none were before.
+ *
+ * An app built outside the suite (docs/library.md, An app built outside) brings its own words: `addStrings(code,
+ * source)` adds a Fluent source to a language beside the site's messages, English included, and t() finds them as it
+ * finds the site's. Added to a language not loaded yet, they wait for it and join its messages when its file arrives;
+ * added to one loaded, they join at once; added to a code the site has no file for, they make no language of it.
+ * Nothing is replaced: an id the language has already keeps its message, so an app's ids carry a prefix of its own
+ * (`tally-…`), as each app's here carry its id. Words are added before an editor that says them is drawn, since
+ * nothing draws again for them.
  */
 import { FluentBundle, FluentResource, type FluentVariable } from '@fluent/bundle';
 
@@ -85,10 +93,13 @@ export function onLanguage(cb: () => void): () => void {
   return () => listeners.delete(cb);
 }
 
-/** A language's messages, as a bundle: the file read, the bidi marks off (above). */
+/** The Fluent sources added to each language from outside the site (addStrings), in the order added. */
+const added = new Map<string, string[]>();
+
+/** A language's messages, as a bundle: the file read, then what was added to it (addStrings), the bidi marks off (above). */
 function bundleOf(code: string, source: string): FluentBundle {
   const b = new FluentBundle(code, { useIsolating: false });
-  b.addResource(new FluentResource(source));
+  for (const s of [source, ...(added.get(code) ?? [])]) b.addResource(new FluentResource(s));
   return b;
 }
 /** en.ftl from the disk, where node runs this file as it is and no glob brought it (never in a page, which has the glob's). */
@@ -108,6 +119,18 @@ if (englishSource !== undefined) bundles.set('en', bundleOf('en', englishSource)
 export function register(code: string, source: string | Loader) {
   if (typeof source === 'function') loaders.set(code, source);
   else bundles.set(code, bundleOf(code, source));
+}
+
+/**
+ * Messages added to a language, as a Fluent source (an app built outside the suite: the header): kept, so the language
+ * gets them whenever its bundle is made, and added at once to the bundle there is. An id already there keeps its
+ * message. English is made here if no file brought it (a program run from source with no en.ftl beside it).
+ */
+export function addStrings(code: string, source: string) {
+  added.set(code, [...(added.get(code) ?? []), source]);
+  const b = bundles.get(code);
+  if (b) b.addResource(new FluentResource(source));
+  else if (code === 'en') bundles.set('en', bundleOf('en', ''));
 }
 
 /**
