@@ -1404,7 +1404,8 @@ export class ToText extends LitElement {
     const own = this.card?.(b, at);
     // A host's ghosts on a card are drawn at its head: a card holds no words for them to sit among.
     const ghosts = this.ghosts?.(at) ?? [];
-    if (own) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${ghosts.map((g) => this.ghost(g))}${own}</div>`;
+    if (own && ghosts.length) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${ghosts.map((g) => this.ghost(g))}${own}</div>`;
+    if (own) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${own}</div>`;
     switch (b.k) {
       case 'hr':
         return html`<div class="tx-card" data-k="hr" contenteditable="false" tabindex="0" role="separator"><hr /></div>`;
