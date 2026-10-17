@@ -6,6 +6,7 @@
 // The caret stays where it was in the words as the ghosts are drawn again, and a letter typed goes there; a comment is
 // pinned by its quote; "@" offers the host's people. And a page that gives none of it (no ghosts, no people) has its
 // words drawn as ever, "@" a letter like any other: the site's pages give none, so the site is as it was.
+// (A unit test cannot say so: the unit project runs under node, with no DOM for Lit to draw in.)
 import { expect, test } from 'vitest';
 import '../../src/editors.css';
 import {
@@ -83,8 +84,8 @@ async function type(words: ToText, s: string) {
     await tick();
   }
 }
-/** The box's drawing without Lit's markers, to compare one draw with another. */
-const drawnHtml = (words: ToText) => words.tx.innerHTML.replace(/<!--[^]*?-->/g, '');
+/** The box's drawing without Lit's markers, to compare one draw with another; a card's menus, which it fills as they open, left empty. */
+const drawnHtml = (words: ToText) => words.tx.innerHTML.replace(/<!--[^]*?-->/g, '').replace(/(<to-menu[^>]*>)[^]*?(<\/to-menu>)/g, '$1$2');
 
 test('two versions by two people: the second’s words painted in their color, the words they took out in place, struck through, with a lozenge of their initials', async () => {
   const { editor, words, changes } = await mounted();
@@ -175,13 +176,25 @@ test('"@" offers the host’s people and puts in the one picked by name; with no
   await until(() => changes.at(-1) === 'Ask @b Bob Brown\n', 'the person picked was never put in');
 });
 
+/** A page with every kind of block and run the Word Processor draws, its cards among them (a rule, a table, a sheet). */
+const RICH =
+  'Plain :star: words with a note[^1] and **bold _it_** `code` ~~gone~~ ==hi== [link](https://x.co).\n\n- [ ] a task\n- [x] done\n  - nested\n\n1. one\n2. two\n\n> quote\n\n--- {.rule}\n\nA | B:number\n--- | ---\nx | 1\n\n```sheet\nA | B\n--- | ---\n1 | 2\n```\n\n[^1]: The note.\n';
+
 test('with no ghosts given, the words are drawn as they were before any were: drawn and taken away, nothing is left', async () => {
-  const { words } = await mounted();
+  const { words } = await mounted(RICH);
   const before = drawnHtml(words);
   expect(words.ghosts).toBeNull();
   expect(words.querySelector('[data-ghost], .tx-ghost')).toBeNull();
-  await show(words, track(VERSIONS));
+  // A card with its own drawing holds that drawing alone, no place kept for ghosts: one marker of Lit's, as before.
+  const own = [...words.querySelectorAll<HTMLElement>('.tx-card-own')];
+  expect(own.length).toBeGreaterThan(1);
+  const markers = () => own.map((c) => [...c.childNodes].filter((n) => n.nodeType === Node.COMMENT_NODE).length);
+  expect(markers().every((n) => n === 1)).toBe(true);
+  await words.showGhosts(() => [{ offset: 0, text: 'out', cls: 'tx-out' }]);
   expect(drawnHtml(words)).not.toBe(before);
+  await words.showGhosts(null);
+  expect(drawnHtml(words)).toBe(before);
+  await show(words, track(VERSIONS));
   await words.showGhosts(null);
   unpaint();
   expect(drawnHtml(words)).toBe(before);
