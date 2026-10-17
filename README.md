@@ -51,6 +51,11 @@ Utterly fine with AI agents.
 2. `npx tinylittleoffice` with a runtime ([packages/doc](packages/doc/README.md));
 3. And, for Claude Code, the [skill](skill/tinyoffice/SKILL.md) (a short SKILL.md and a reference an app), installed with `npx tinylittleoffice skill --into ~/.claude/skills`.
 
+## As a library
+
+The kernel, the commands and the editors serve a page that keeps documents of its own ([packages/doc](packages/doc/README.md)), and `tinylittleoffice/kit` an app of your own beside the suite's ([docs/library.md](docs/library.md)).
+The first app built that way is a library of its own: cards in lanes, moved by their status.
+
 ## Developers
 
 Node 24 or later.

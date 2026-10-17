@@ -3,7 +3,10 @@
 Tiny Little Office is becoming a library other pages build on, first among them Atlas (github.com/aboard-io/atlas,
 its docs/plan.md): its documents are built with the kernel and edited with these editors, kept in Postgres rather than in
 links. The site stays what it is, and is the library's first user: whatever an editor needs from the page it is in, the
-site gives it the way any other page would.
+site gives it the way any other page would. And an app need not be the suite's: one built outside it, on
+`tinylittleoffice/kit`, registers beside the suite's apps and is mounted as they are (An app built outside). The
+first is the app of cards in lanes, which Paul made a library of its own (2026-10-17: "our separate library on top of
+the new tinylittleoffice library").
 
 ## What a page that holds an editor needs
 
@@ -38,17 +41,19 @@ What an app still asked of the site itself, and what replaces it:
    trip's map and its worker, is in dist/editors/ beside them. The site's build keeps its own entry; both are built
    from the same modules. test/package.test.ts packs and installs the package and runs the kernel from it; the
    stylesheet names the fonts the package carries beside it (./fonts/…): see Theming. The package is typed: build:lib
-   writes the declarations of `/doc`, `/editors` and `/commands` (step 6) and of the API into dist/types
+   writes the declarations of `/doc`, `/editors`, `/commands` (step 6) and `/kit` (step 11) and of the API into dist/types
    (tsconfig.lib.json), which each export names first, `/editors.css` has an empty one of its own
    (packages/doc/editors.css.d.ts), and test/package.test.ts type-checks a strict program that imports all of them
    against them as installed (with `skipLibCheck`, since the commands' declarations name Lucide's `IconNode` and the
    editors' name Lit's and Lucide's types, which are bundled in, not installed).
 
-   `tinylittleoffice/editors` exports, besides the commands' functions (A page's own commands): `setup`, `mount` and
-   `editorTag` (an app's element, ready to create); `host`; `apps` and `appOf` (the registry); `setLanguage`,
-   `chosenLanguage`, `languages` and `t`; `setTheme` and `theme`; `keepSize` and `size`; `toast`; `pageCommands` (the
-   site's page keys, for a page that draws a bar of its own); and the types `AppDef`, `Editor`, `DocChange`, `DocOps`,
-   `DocPick`, `Picked`, `Host`, `Placed`, `Theme` and `Action` (a toast's).
+   `tinylittleoffice/editors` exports everything `tinylittleoffice/kit` does (step 11: among it the commands'
+   functions, A page's own commands; `setup`, `mount` and `editorTag`, an app's element ready to create, from
+   kit/core/mount.ts; `host`; `appOf` and `registerApp`; `setLanguage`, `t` and `addStrings`; `toast`; and the types
+   `AppDef`, `Editor`, `DocChange`, `DocOps`, `DocPick`, `Picked`, `Mounted`, `Host`, `Placed` and `Action`, a
+   toast's), and beside it what only a page sets: `apps` (the suite's, in order), `chosenLanguage` and `languages`,
+   `setTheme`, `theme` and the type `Theme`, `keepSize` and `size`, and `pageCommands` (the site's page keys, for a page
+   that draws a bar of its own).
 3. **The stylesheet for a page that is not the site.** Done: src/editors.css is everything an editor needs (the
    fonts, the tokens, the kit, the text editor, the rules by width and by a person's settings, and each app's own sheet,
    which its editor brings), and src/styles/page.css is the site's page and chrome (`html` and `body`, `<to-shell>`,
@@ -81,6 +86,61 @@ What an app still asked of the site itself, and what replaces it:
    toast held while it has the focus (kit/core/say.ts, kit/ui/toast.ts).
 10. **The fonts in the package.** Done: build:lib copies the faces editors.css names, and their license, into
     dist/fonts/, and editors.css names them there (`./fonts/…`).
+11. **An app built outside.** Done: `tinylittleoffice/kit` (src/kit.ts) is what an app's author needs to make an app
+    as the suite's are made; `registerApp` puts it in the registry after the suite's, and `addStrings` gives it its
+    words in any language; test/browser/kit.test.ts builds one with the kit and the kernel alone, mounts it, types in
+    it and reads its ops, runs its command, shows it read-only and speaks Spanish. The app of cards in lanes, which
+    this branch had added to the suite, left it to be the first such app, a package of its own: see An app built
+    outside.
+
+## An app built outside
+
+An app is a definition and an editor element (What a page that holds an editor needs), and nothing in that needs the
+suite's repository: an app built outside it, cards in lanes first, is made with `tinylittleoffice/kit` and the kernel
+(`tinylittleoffice/doc`) and put beside the suite's apps by the page that holds it.
+
+- **The registry.** `registerApp(def)` (kit/core/apps.ts) puts a definition after the suite's, and from then on
+  `appOf(def.id)` is it: `editorTag` loads its editor and registers its commands, `mount` draws it with a document in
+  it (and `onOps`, `applyRemote` and `readOnly`, as for any app), and a document of it placed in another is drawn by
+  its own `view`. An id the registry knows already (a suite app's, the QR code's and the locked document's, or one
+  registered before) throws. `apps()` keeps meaning the suite's apps, since everything that lists it is the site's: the
+  home page, the routes and the pages the build writes, Insert ▾'s new documents, the drawer, the API, the skill. The
+  site never calls `registerApp`.
+- **The words.** `addStrings(code, source)` (kit/core/i18n.ts) adds a Fluent source to a language beside the site's
+  messages, English included, and `t()` finds them. Added to a language not yet loaded, the words wait and join its
+  messages when its file comes; added to one loaded, they join at once. Nothing is replaced: an id the language has
+  keeps its message, so an app's ids carry a prefix of its own (`tally-…`), as each suite app's carry its id. A word
+  missing in a language is said in English, as the site's are. An editor that draws again when the language changes
+  listens with `onLanguage`.
+- **The editor.** It extends `DocElement` (kit/core/element.ts): `read(doc)` gives the view, `edit(ops)` changes the
+  document (history, `docops`, `docchange` and `applyRemote` come with it), `pickOf(el)` names the item a read-only
+  editor's page is told of, `undoTools()` are the bar's last two buttons. Its commands are declared with `commandsOf`
+  in a scope named by its id and answered with `runKey` in its own keydown, as the suite's are (kit/core/commands.ts).
+  It draws with the kit's elements and helpers: `<to-bar>`, `<to-menu>`, `<to-insert>`, `<to-dialog>`, `<to-text>`,
+  `Rows`, `reveal`; its pages, for print, files and thumbnails, with the kit's drawing (`rect`, `text`, `wrapText`, the
+  colors) and, for a table, the Spreadsheet's words (`cellAsShown`, a cell as its column shows it, and `tableAsCsv`).
+- **One of everything.** `tinylittleoffice/kit` is the editors' own file at run time: the package's "./kit" names
+  dist/editors.js, typed by dist/types/kit.d.ts, and src/editors.ts exports everything src/kit.ts does
+  (test/kit-entry.test.ts reads both; test/package.test.ts finds every value in the built file and resolves "./kit" to
+  it). A second entry built beside the first would carry Lit and the kit twice, and with them two registries of apps,
+  of commands and of words, and two LitElement bases: an app registered in one would be unknown to `mount` in the
+  other. Built as one file there is one of each, whichever of the two a page imports. So Lit is served from the kit
+  (`LitElement`, `html`, `css`, `svg`, `nothing`, `render`, and the directives the kit uses, Lit's `live` as
+  `liveValue`), and an app imports Lit from there, never from `lit`, which would be a second Lit. The kit's
+  declarations name Lit's types: an app that wants them installs `lit` at the kit's version (3.3.3) as a development
+  dependency, for its types alone, as test/package.test.ts's program does; without it they read as `any` under
+  `skipLibCheck`, and an element of its own is no `HTMLElement` to the checker. The kernel is a file of its own,
+  `tinylittleoffice/doc`, whose functions keep nothing between calls, so the editors' copy of it and an app's never
+  disagree; they cost their bytes twice.
+- **The page.** A page that holds an outside app registers it, adds its words and mounts it before anything draws it:
+
+```ts
+import { registerApp, addStrings, mount } from 'tinylittleoffice/kit';
+import tally, { words } from 'tally'; // the app's package: its definition, and its Fluent sources by language
+for (const [code, source] of Object.entries(words)) addStrings(code, source);
+registerApp(tally);
+const { editor } = await mount('tally', text, main, save, { onOps: send });
+```
 
 ## Shared editing from a page
 

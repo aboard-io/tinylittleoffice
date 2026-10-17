@@ -82,7 +82,7 @@ The guide an agent reads first is `/llms.txt` (short); the guide to every app's 
 ## As a library
 
 A program or a page that keeps documents of its own, in a database rather than in links, builds on the same modules
-as the site (docs/library.md), through three more entry points, each built by `npm run build:lib`
+as the site (docs/library.md), through four more entry points, each built by `npm run build:lib`
 (vite.lib.config.ts):
 
 - `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
@@ -102,10 +102,16 @@ as the site (docs/library.md), through three more entry points, each built by `n
   faces, IBM Plex, are in `dist/fonts/` with their license (the SIL Open Font License), and the stylesheet names them
   there, `./fonts/…`: a page serves that folder beside `editors.css`, at the same path relative to it (a bundler that
   copies the stylesheet's assets does it), or sets the fonts to faces of its own (docs/library.md, Theming).
+- `tinylittleoffice/kit`: an app of your own beside the suite's (src/kit.ts): `defineApp`, `DocElement` for its editor,
+  `registerApp` to put it beside the suite's apps and `addStrings` for its words, then `mount` as for any app; the
+  commands, the kit's elements, its drawing and Lit itself, all from the editors' own file (`dist/editors.js`, so there
+  is one Lit and one registry). The app of cards in lanes is the first built this way, a package of its own
+  (docs/library.md, An app built outside).
 
 Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/` (the stylesheet's, empty,
 is `editors.css.d.ts`), and a TypeScript program reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`
-and the editors' name the types of Lit and Lucide, which are bundled in, not installed.
+and the editors' name the types of Lit and Lucide, which are bundled in, not installed. An app built on the kit, whose
+editor is a `LitElement`, installs `lit` at the kit's version (3.3.3) for its types alone, and imports Lit from the kit.
 
 ```js
 import { parse, write, apply, applyAll, invert } from 'tinylittleoffice/doc';

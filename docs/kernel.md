@@ -454,7 +454,7 @@ says in the order it says it, and the pages are a picture of it.
 `src/kit/` is what every app shares: the shell that holds an app, the editor, drawing, files, and sharing. It is six
 folders, and nothing sits beside them. Every file begins by saying what it does; this section says where a file goes.
 
-- [core/](../src/kit/core/): the contract between an app and the shell, and the link: the app definition and the registry, the shell, commands and keys, the strings, the store, the route, the codec, what an app asks of its page (host), the one voice (`toast()`, which the page's toast shows).
+- [core/](../src/kit/core/): the contract between an app and the shell, and the link: the app definition and the registry, the shell, commands and keys, the strings, the store, the route, the codec, what an app asks of its page (host), an editor put on a page that is not the site (mount), the one voice (`toast()`, which the page's toast shows).
 - [ui/](../src/kit/ui/): the elements round a document and the chrome: the bar, the menus and dialogs, the drawer, find, home, Insert, the toast, the size of everything and the theme.
 - [text/](../src/kit/text/): the editor's model and its commands: `<to-text>`, its operations, the clipboard, history, rows and columns, the diff, and a document's text layer.
 - [draw/](../src/kit/draw/): drawing pages and what is drawn on them: the page, charts, the icons and emoji, QR codes, the mark, a preview card's picture, motion and steps.
