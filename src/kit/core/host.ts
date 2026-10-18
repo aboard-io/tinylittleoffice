@@ -31,10 +31,12 @@ export interface Host {
 /** The site this page is on ("https://tinylittleoffice.com/"), or '' where there is no page. */
 const siteHere = (): string => (typeof location !== 'undefined' && location.origin !== 'null' ? siteOf(location.href, (id) => !!lookup.appOf(id)) : '');
 
-/** The host every app asks: the site's, until a page that holds an editor puts its own in (`Object.assign(host, …)`). */
-export const host: Host = {
-  link: (lang, body, opts = {}) =>
-    opts.display && lang !== LOCKED_LANG ? siteHere() + routeHash(lang, encodeDoc(body), '', true, null, opts.lang ?? null) : placedLink(lang, body, encodeDoc, siteHere()),
+/**
+ * The site's answers, for the site at `site()`: a document opens at its own link there, and a link of any site names
+ * its document. A page that shows the editors on an address of its own (the Storybook) gives the site's address here.
+ */
+export const siteHost = (site: () => string): Host => ({
+  link: (lang, body, opts = {}) => (opts.display && lang !== LOCKED_LANG ? site() + routeHash(lang, encodeDoc(body), '', true, null, opts.lang ?? null) : placedLink(lang, body, encodeDoc, site())),
   read(words) {
     const s = words.trim();
     if (!/^https?:\/\/\S+#\/v\d+\//.test(s)) return null;
@@ -48,4 +50,7 @@ export const host: Host = {
     const text = decodeDoc(payload);
     return payload && !text ? null : { lang: app, body: text };
   },
-};
+});
+
+/** The host every app asks: the site's, until a page that holds an editor puts its own in (`Object.assign(host, …)`). */
+export const host: Host = siteHost(siteHere);
