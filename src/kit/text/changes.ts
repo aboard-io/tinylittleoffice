@@ -227,6 +227,63 @@ const liveText = (b: Tracked) =>
     .map((x) => x.t)
     .join('');
 
+/**
+ * Two blocks' tokens compared, word by word, and made to read as a person reads an edit: where only spaces stand
+ * between changes, or words restyled beside them (an italic hint written over, which shares its spaces and perhaps a
+ * word with what replaces it), those are part of the change, taken out and put in again; and in each stretch of
+ * changes the words taken out come first, together, then the words put in. So a hint replaced is one replacement,
+ * not a word taken out and a word put in by turns.
+ */
+function tidy(was: readonly Tok[], now: readonly Tok[]): { kind: ' ' | '-' | '+' }[] {
+  type E = { kind: ' ' | '-' | '+'; a?: number; b?: number };
+  let ia = 0;
+  let ib = 0;
+  let list: E[] = diffLines(
+    was.map((x) => x.t),
+    now.map((x) => x.t),
+  ).map((c) => (c.kind === ' ' ? { kind: c.kind, a: ia++, b: ib++ } : c.kind === '-' ? { kind: c.kind, a: ia++ } : { kind: c.kind, b: ib++ }));
+  const restyled = (e: E) => (was[e.a!].m ?? '') !== (now[e.b!].m ?? '');
+  const loose = (e: E) => e.kind === ' ' && (!was[e.a!].t.trim() || restyled(e));
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let i = 0; i < list.length; i++) {
+      if (!loose(list[i])) continue;
+      let j = i;
+      while (j < list.length && loose(list[j])) j++;
+      const before = i > 0 && list[i - 1].kind !== ' ';
+      const after = j < list.length && list[j].kind !== ' ';
+      const edge = i === 0 || j === list.length;
+      if ((before && after) || ((before || after) && edge && list.slice(i, j).some(restyled))) {
+        list = [
+          ...list.slice(0, i),
+          ...list.slice(i, j).flatMap((e): E[] => [
+            { kind: '-', a: e.a },
+            { kind: '+', b: e.b },
+          ]),
+          ...list.slice(j),
+        ];
+        changed = true;
+        break;
+      }
+      i = j;
+    }
+  }
+  // Each stretch of changes: what it took out, then what it put in.
+  const out: E[] = [];
+  for (let i = 0; i < list.length;) {
+    if (list[i].kind === ' ') {
+      out.push(list[i++]);
+      continue;
+    }
+    let j = i;
+    while (j < list.length && list[j].kind !== ' ') j++;
+    const stretch = list.slice(i, j);
+    out.push(...stretch.filter((e) => e.kind === '-'), ...stretch.filter((e) => e.kind === '+'));
+    i = j;
+  }
+  return out;
+}
+
 /** A block's tokens brought to `next`'s words and marks, `by` putting in, taking out and restyling; `touch` hears of each. */
 function retoken(b: Tracked, next: Read, by: string, mint: () => string, rejected: (id?: string) => boolean, open: (id?: string) => boolean, touch: () => void): Tracked {
   const was = b.toks;
@@ -252,10 +309,7 @@ function retoken(b: Tracked, next: Read, by: string, mint: () => string, rejecte
     if (after?.fmt === by && open(after.fmtId)) return after.fmtId!;
     return '';
   };
-  for (const c of diffLines(
-    alive.map((x) => x.t),
-    now.map((x) => x.t),
-  )) {
+  for (const c of tidy(alive, now)) {
     if (c.kind === '+') {
       touch();
       run ||= goesOn() || mint();
