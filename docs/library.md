@@ -105,6 +105,37 @@ What an app still asked of the site itself, and what replaces it:
     kernel's grammar; test/browser/changes.test.ts mounts a Word Processor with the kit alone, tracks two people's
     versions and draws them, pins a comment by its quote, has the bubble's Comment tell the host and offers "@"
     people: see Tracked changes and comments for a host.
+13. **A Storybook.** Done: every element and every app's editor alone, as a host holds them: see The Storybook.
+
+## The Storybook
+
+Every element the kit and the apps define, and every app's editor, alone on a page that is not the site, as a host
+holds them: `npm run storybook` serves it at http://0.0.0.0:6006, and `npm run build-storybook` writes it to
+storybook-static/ (ignored by git). It is Storybook 10.6.2 with the web-components renderer, since the elements are
+Lit's (.storybook/main.ts), on a Vite config of its own (.storybook/vite.config.ts), so nothing of the site's build runs
+and the site never bundles it. Every story imports src/editors.ts and editors.css, as a page does, and is set up once
+(`setup`), with the host's links on tinylittleoffice.com (`siteHost`, kit/core/host.ts). The toolbar's Theme is the
+kit's `setTheme` and its Language `setLanguage`. A story's documents are the apps' own templates, never made up for it.
+
+- **Foundations.** Colors (every token of tokens.css, and the pairs of ink and ground), Type, Shape, Icons (the
+  interface's, the library's search, the picker) and Emoji.
+- **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the
+  menus, Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the
+  preview, the locked card, the doc link dialog, the size of everything. Text: `<to-text>` alone, who did what (the
+  redline, a person's changes accepted, rejections, a reviewer, a panel of `changesOf` with Accept and Reject),
+  comments pinned by their quote and made from the bubble, "@" for people, and Compare. Draw: footnotes, charts,
+  cards, QR codes, tiles.
+- **Apps.** Each app's editor over one of its templates, editable and read-only, blank, two people sharing one
+  document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small.
+- **Site.** The site's own page (the shell, the chrome, the drawer, the home page, an app's templates, Share, Privacy),
+  with the site's page.css on while each is shown (`parameters.page`): what a host draws for itself, shown for what it is.
+- **Packages.** The Board, from its own checkout where one is beside this one (`BOARD_DIR` names it, or .storybook/vite.config.ts looks under ../projects/), the
+  kit and the kernel answered by this tree's source, so neither package installs the other; without it, its stories say so.
+
+A lint (test/lints.test.ts) holds that every tag `customElements.define` gives in src/ is a story's component, or
+named in a story's `parameters.covers`, so a new element comes with a story. `node scripts/check-stories.ts` opens
+every story of the built Storybook in Chromium (or of a running one, given its address) and fails on any error said or
+thrown.
 
 ## Tracked changes and comments for a host
 

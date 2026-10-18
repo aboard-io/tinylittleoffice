@@ -65,6 +65,7 @@ npm install
 npm run dev      # the site at http://localhost:4178
 npm test         # every test, under Node and in Chromium
 npm run build    # the site as it ships
+npm run storybook  # every element and editor alone, at http://localhost:6006 (docs/library.md)
 ```
 
 How it is made, what it protects against and how to run your own copy are in [docs/](docs/README.md): the
