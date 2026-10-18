@@ -92,7 +92,6 @@
     inset-inline: 0;
     top: calc(var(--i) * var(--to-dt-row-h));
     height: var(--to-dt-row-h);
-    border-bottom: 1px solid var(--to-border);
   }
   .to-dt-row:hover > .to-dt-cell,
   .to-dt-row[aria-selected='true'] > .to-dt-cell {
@@ -112,6 +111,10 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     background: var(--to-surface);
+  }
+  /* A line under each row, drawn by its cells, whose grounds would cover the row's own. */
+  .to-dt-row > .to-dt-cell {
+    border-bottom: 1px solid var(--to-border);
   }
   .to-dt-head > .to-dt-cell {
     background: var(--to-surface-2);
@@ -146,7 +149,7 @@
     margin: 0;
     accent-color: var(--to-accent);
   }
-  .to-dt-boolean {
+  .to-dt-t-boolean {
     justify-content: center;
   }
   .to-dt-sort {
@@ -409,7 +412,7 @@
     border-bottom: 1px solid var(--to-border);
   }
   .to-ph-main {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     display: flex;
     align-items: center;
     gap: 0.5em;

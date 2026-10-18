@@ -610,7 +610,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         return html`<div
           role="gridcell"
           id="${this.uid}-${r}-${c}"
-          class="to-dt-cell to-dt-${type} ${num ? 'to-dt-num' : ''} ${i === 0 ? 'to-dt-pin' : ''} ${editing ? 'to-dt-editing' : ''}"
+          class="to-dt-cell to-dt-t-${type} ${num ? 'to-dt-num' : ''} ${i === 0 ? 'to-dt-pin' : ''} ${editing ? 'to-dt-editing' : ''}"
           data-r=${r}
           data-c=${c}
           aria-colindex=${c + 1}
