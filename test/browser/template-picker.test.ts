@@ -40,3 +40,33 @@ test('every app’s templates under its name; Escape lets it go, and it resolves
   expect(await picked).toBeNull();
   expect(document.querySelector('to-template-picker')).toBeNull();
 });
+
+test('a few apps: a menu of them first, then the one chosen’s templates, a way back, and the template chosen handed back', async () => {
+  const picked = pickTemplate(['write', 'deck', 'sheet', 'outline']);
+  await until(() => options().length === 4 && document.activeElement === options()[0], 'the apps were never offered');
+  expect(options().map((o) => o.querySelector('.to-option-words > span')!.textContent)).toStrictEqual(['write', 'deck', 'sheet', 'outline'].map((id) => appOf(id)!.name));
+  expect(document.querySelector('to-template-picker .to-tp-back')).toBeNull();
+  expect(document.querySelector('to-template-picker h2')!.textContent).toBe('Templates');
+  // By the keys: Down to the deck, Enter: its templates, Blank first, the first in hand.
+  await userEvent.keyboard('{ArrowDown}{Enter}');
+  const decks = await appOf('deck')!.templates();
+  await until(() => options().length === decks.length + 1 && document.activeElement === options()[0], 'the deck’s templates never came');
+  expect(document.querySelector('to-template-picker h2')!.textContent).toBe(`${appOf('deck')!.name} Templates`);
+  // Back to the apps, the deck in hand; then the sheet's, and one chosen.
+  document.querySelector<HTMLButtonElement>('to-template-picker .to-tp-back')!.click();
+  await until(() => options().length === 4 && document.activeElement === options()[1], 'back did not come to the deck');
+  options()[2].click();
+  const sheets = await appOf('sheet')!.templates();
+  await until(() => options().length === sheets.length + 1);
+  options()[1].click();
+  expect(await picked).toStrictEqual({ app: 'sheet', id: sheets[0].id, title: sheets[0].name, text: sheets[0].doc });
+});
+
+test('a list of one app is that app’s templates, no menu', async () => {
+  const picked = pickTemplate(['write']);
+  const tpls = await appOf('write')!.templates();
+  await until(() => options().length === tpls.length + 1, 'the templates never arrived');
+  expect(document.querySelector('to-template-picker .to-tp-app')).toBeNull();
+  await userEvent.keyboard('{Escape}');
+  expect(await picked).toBeNull();
+});

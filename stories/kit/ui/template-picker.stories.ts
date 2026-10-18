@@ -3,6 +3,12 @@ import { action } from 'storybook/actions';
 import { html } from 'lit';
 import { apps, pickTemplate, type PickedTemplate } from '../../../src/editors.ts';
 import '../../../src/kit/ui/template-picker.ts';
+import type { ToTemplatePicker } from '../../../src/kit/ui/template-picker.ts';
+import { registerBoard } from '../../../src/board.ts';
+
+/** A host's few apps, as Atlas keeps documents of them: the Board among them, registered as a page registers it. */
+registerBoard();
+const FEW = ['write', 'deck', 'sheet', 'outline', 'board'];
 
 interface PickerArgs {
   app: string;
@@ -42,6 +48,34 @@ export const Open: StoryObj<PickerArgs> = {
     el.setAttribute('app', app);
     el.addEventListener('templatepick', (e) => action('templatepick')((e as CustomEvent).detail));
     requestAnimationFrame(() => void (el as HTMLElement & { show(): Promise<unknown> }).show());
+    return el;
+  },
+};
+/**
+ * A host that keeps documents of a few apps (`pickTemplate(['write', 'deck', 'sheet', 'outline', 'board'])`): a menu
+ * of them first, each its icon, name and line; one chosen, its templates, with a way back to the apps.
+ */
+export const FewApps: StoryObj<PickerArgs> = {
+  argTypes: { app: { table: { disable: true } } },
+  render: () => {
+    const shown = document.createElement('pre');
+    shown.className = 'sb-caption';
+    const pick = async () => {
+      const picked = await pickTemplate(FEW);
+      action('templatepick')(picked);
+      shown.textContent = picked ? `${picked.app} / ${picked.id}: ${picked.title}` : 'Let go';
+    };
+    return html`<button type="button" class="to-btn" @click=${pick}><span>New document</span></button>${shown}`;
+  },
+};
+/** The few apps' menu, open as the story is shown. */
+export const FewAppsOpen: StoryObj<PickerArgs> = {
+  argTypes: { app: { table: { disable: true } } },
+  render: () => {
+    const el = document.createElement('to-template-picker') as ToTemplatePicker;
+    el.apps = FEW;
+    el.addEventListener('templatepick', (e) => action('templatepick')((e as CustomEvent).detail));
+    requestAnimationFrame(() => void el.show());
     return el;
   },
 };

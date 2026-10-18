@@ -708,6 +708,27 @@
     align-items: start;
     padding-inline: 0.5em;
   }
+  /* A few apps offered first: each its icon, its name and its line. */
+  .to-tp-app {
+    align-items: center;
+  }
+  .to-tp-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75em;
+    height: 2.75em;
+    color: var(--to-accent);
+    background: var(--to-accent-soft);
+    border-radius: var(--to-radius);
+  }
+  .to-tp-back {
+    margin-inline-end: auto;
+  }
+  .to-tp-back + h2 {
+    flex: 1;
+  }
   .to-tp-dialog to-preview {
     width: 6em;
     height: 4.5em;

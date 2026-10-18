@@ -3356,6 +3356,8 @@ search-n-found = { $n ->
 search-nothing-found = 沒有符合「{ $q }」的結果
 # en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
 header-breadcrumbs = 導覽路徑
+# en: 4cebf6eb94e9c19167d02308623d15bc597b63cd
+template-picker-all-apps = 返回應用程式清單
 # en: 3dfae1ccc665881b5464634d32ae1c7a301ac757
 field-edit-name = 編輯{ $name }
 

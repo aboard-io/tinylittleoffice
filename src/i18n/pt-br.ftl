@@ -3443,6 +3443,8 @@ search-n-found = { $n ->
 search-nothing-found = Nenhum resultado para “{ $q }”
 # en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
 header-breadcrumbs = Trilha de navegação
+# en: 4cebf6eb94e9c19167d02308623d15bc597b63cd
+template-picker-all-apps = Voltar aos apps
 # en: 3dfae1ccc665881b5464634d32ae1c7a301ac757
 field-edit-name = Editar { $name }
 

@@ -319,11 +319,13 @@ is a link, one without a button, either told in `crumbpick`, `{ index, crumb }`,
 ## A template picker
 
 `pickTemplate(app?)` (kit/ui/template-picker.ts) opens the templates of `app` (every suite app's, under their names,
-without it) in a dialog over the page, each drawn small from its own document (`<to-preview>`), Blank first where the
+without it; given a list of app ids, `pickTemplate(['write', 'deck', 'sheet', 'outline', 'board'])`, a menu of those
+apps first, each its icon, its name and its line, and then the one chosen's templates, with a button back to the apps;
+a list of one is that app) in a dialog over the page, each drawn small from its own document (`<to-preview>`), Blank first where the
 app's templates carry no blank of their own, and resolves with the one chosen, `{ app, id, title, text }`
 (PickedTemplate: Blank's id is `blank`, its title the app's "Untitled …"), or null when it is let go. It opens and
 navigates to nothing: the page keeps the document as it keeps its own (a CRM built on the library writes an exploration
-from one). Its keys are a menu's (kit/ui/menu.ts). `<to-template-picker app="write">` is the same for a page that places
+from one). Its keys are a menu's (kit/ui/menu.ts). `<to-template-picker app="write">` (or its `apps`, the list) is the same for a page that places
 it itself: its `show()` resolves as `pickTemplate` does, and the one chosen is told in `templatepick` too.
 
 ```ts
