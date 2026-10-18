@@ -7,7 +7,8 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { html } from 'lit';
 import { action } from 'storybook/actions';
-import { lockWith, pack } from '../../src/kit/share/privacy.ts';
+import { pack } from '../../src/kit/share/crypt.ts';
+import { lockWith } from '../../src/kit/share/privacy.ts';
 import type { ToPrivacy } from '../../src/kit/ui/privacy-dialog.ts';
 import '../../src/kit/ui/privacy-dialog.ts';
 import { templatesOf } from '../support.ts';

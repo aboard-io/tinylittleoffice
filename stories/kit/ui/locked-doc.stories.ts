@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { html } from 'lit';
 import { routeHash } from '../../../src/kit/core/route.ts';
-import { lockWith, pack } from '../../../src/kit/share/privacy.ts';
+import { pack } from '../../../src/kit/share/crypt.ts';
+import { lockWith } from '../../../src/kit/share/privacy.ts';
 import '../../../src/kit/ui/locked-doc.ts';
 import { templatesOf } from '../../support.ts';
 
