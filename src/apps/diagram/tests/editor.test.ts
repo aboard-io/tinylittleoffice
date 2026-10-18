@@ -5,7 +5,7 @@
 // the words add, join and take away; a drag puts one thing under another; the kind menu; undo; and at phone width the
 // bar is one row, the page never wider, the words on the thing.
 import { expect, test } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import '../../../styles.css';
 import '../editor.ts';
 import type { ToDiagramEditor } from '../editor.ts';
@@ -918,6 +918,23 @@ test('a new thing starts with its words in hand, on every kind: a tap on empty s
     await key(el, 'Escape');
     if (isOpen(el)) await key(el, 'Escape');
   }
+});
+
+test('a letter typed on the ghost makes it real, and its words take the letter (Paul, 2026-10-18)', async () => {
+  const { el, last } = await editor(ORG);
+  tapNow(thing(el, 'Eve Marsh'));
+  await settle(el);
+  action(el, 'Add below').click();
+  await settle(el);
+  await type(el, 'Flo');
+  input(line(el), 'insertParagraph');
+  await settle(el);
+  expect(document.activeElement).toBe(el.querySelector('.dg-pic g.dg-thing.ghost'));
+  await userEvent.keyboard('Gus');
+  await settle(el);
+  expect(el.querySelector('.dg-pic g.dg-thing.ghost')).toBeNull();
+  expect(held(el)).toBe('Gus');
+  expect(last()).toContain('    - Flo\n    - Gus\n');
 });
 
 test('Enter and the Add items open the next thing focused, its words offered and chosen; a table is offered by name, chosen whole so typing replaces it', async () => {

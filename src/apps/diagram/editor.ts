@@ -942,12 +942,15 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.isComposing) return;
     const at = e.target as Element;
-    // On the ghost, Enter or Space makes it real; any other key lets it go.
+    // On the ghost, Enter or Space makes it real; so does a letter typed, which the words then take, as the focus
+    // is in them before the key types (Paul, 2026-10-18: "and I start typing, make the ghost item real then too").
+    // Any other key lets it go.
     if (this.ghost) {
       if (at.closest?.('g.ghost') && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
         return this.realize();
       }
+      if (at.closest?.('g.ghost') && e.key.length === 1 && !e.ctrlKey && !e.metaKey) return this.realize();
       if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) this.dropGhost();
       return;
     }
