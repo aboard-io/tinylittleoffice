@@ -3491,6 +3491,10 @@ board-lane-needs-a-name = לעמודה צריך להיות שם.
 board-lane-name-taken = כבר יש עמודה בשם { $lane }.
 # en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
 board-double-click-to-rename = לחיצה כפולה לשינוי השם
+# en: 141ee07375861e5bb346745bbb11f74b0fcee117
+board-double-tap-to-rename = הקשה כפולה לשינוי השם
+# en: b0979c4915315a19ae77b53a28bf2ff42ac97034
+board-add-lane = הוספת עמודה
 # en: c6196faeecf27e09514f0812df5e4b0f18a49465
 board-lane-total = סה״כ { $sum }
 # same

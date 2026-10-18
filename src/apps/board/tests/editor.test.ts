@@ -1476,3 +1476,105 @@ test('a card’s fields as the page says (cardFields): which columns, in its ord
   await settle(el);
   expect(card().querySelector('.board-line')!.textContent).toBe('Hudson Bakery');
 });
+
+test('a lane’s kind, as the page says it (laneTone): its tone drawn, won tinted and lost quieter, a kind of the page’s own on data-tone', async () => {
+  const { el } = await editor();
+  el.laneTone = (name) => (name === 'Done' ? 'won' : name === 'To do' ? 'lost' : name === 'Doing' ? 'paused' : null);
+  await settle(el);
+  expect(lanes(el).map((l) => l.dataset.tone)).toStrictEqual(['lost', 'paused', 'won']);
+  const ground = (i: number) => getComputedStyle(lanes(el)[i]).backgroundColor;
+  expect(ground(2)).not.toBe(ground(1));
+  expect(ground(0)).not.toBe(ground(1));
+  expect(getComputedStyle(lanes(el)[2]).boxShadow).not.toBe('none');
+  el.laneTone = null;
+  await settle(el);
+  expect(lanes(el).every((l) => !l.hasAttribute('data-tone'))).toBe(true);
+});
+
+test('Add lane after the last lane: a lane at the end, its name a field, told first; carried only, the page’s own lanes, told and made by none', async () => {
+  const { el, heard } = await editor();
+  const told: unknown[] = [];
+  el.addEventListener('laneadd', (e) => told.push((e as CustomEvent).detail));
+  const add = () => el.querySelector<HTMLButtonElement>('.board-add-lane');
+  expect(add()!.textContent!.trim()).toBe('Add lane');
+  // Last in the board, after the lanes.
+  expect(add()!.previousElementSibling).toBe(lanes(el)[2]);
+  add()!.click();
+  await settle(el);
+  expect(told).toStrictEqual([{ name: 'New lane', at: 3 }]);
+  expect(drawn(el).map((l) => l[0])).toStrictEqual(['To do', 'Doing', 'Done', 'New lane']);
+  expect(laneName(el, 3).tx.getAttribute('contenteditable')).toBe('true');
+  await undo(el);
+  await settle(el);
+  // Carried only, no lane is added here: no button, until the page makes its lanes itself.
+  heard.length = 0;
+  el.carryOnly = true;
+  await settle(el);
+  expect(add()).toBeNull();
+  el.ownLanes = true;
+  await settle(el);
+  add()!.click();
+  await settle(el);
+  expect(told.at(-1)).toStrictEqual({ name: 'New lane', at: 3 });
+  expect(lanes(el)).toHaveLength(3);
+  expect(heard).toStrictEqual([]);
+  el.readOnly = true;
+  await settle(el);
+  expect(add()).toBeNull();
+});
+
+test('startRename(i): lane i’s name a field, from a page’s own control; nothing where the lanes may not be changed', async () => {
+  const { el } = await editor();
+  el.startRename(2);
+  await settle(el);
+  expect(laneName(el, 2).tx.getAttribute('contenteditable')).toBe('true');
+  expect(el.renaming).toBe(2);
+  const carried = (await editor()).el;
+  carried.carryOnly = true;
+  await settle(carried);
+  carried.startRename(1);
+  await settle(carried);
+  expect(carried.renaming).toBe(-1);
+});
+
+test('a lane’s name says how to rename it on this device; a finger’s double tap renames it, a single tap does not', async () => {
+  const { el } = await editor();
+  expect(laneName(el, 0).getAttribute('title')).toBe('Double-click to rename');
+  const real = window.matchMedia;
+  window.matchMedia = ((q: string) => ({ ...real.call(window, q), matches: q.includes('coarse') })) as typeof window.matchMedia;
+  try {
+    el.requestUpdate();
+    await settle(el);
+    expect(laneName(el, 0).getAttribute('title')).toBe('Double-tap to rename');
+  } finally {
+    window.matchMedia = real;
+  }
+  const tap = (x: number) => laneName(el, 1).dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', clientX: x, clientY: 10 }));
+  tap(10);
+  await settle(el);
+  expect(el.renaming).toBe(-1);
+  tap(14);
+  await settle(el);
+  expect(el.renaming).toBe(1);
+  // Two taps far apart are two taps.
+  const other = (await editor()).el;
+  const far = (x: number) => laneName(other, 1).dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', clientX: x, clientY: 10 }));
+  far(10);
+  far(200);
+  await settle(other);
+  expect(other.renaming).toBe(-1);
+});
+
+test('at phone width the bar’s every button is on the screen, Undo and Redo too, the count left to the lanes', async () => {
+  await page.viewport(390, 844);
+  try {
+    const { el } = await editor();
+    const bar = el.querySelector<HTMLElement>('to-bar.board-bar')!;
+    expect(bar.querySelector<HTMLElement>('.board-total')!.offsetWidth).toBe(0);
+    expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth + 1);
+    for (const b of bar.querySelectorAll<HTMLElement>('button')) if (b.offsetWidth) expect(b.getBoundingClientRect().right).toBeLessThanOrEqual(bar.getBoundingClientRect().right + 1);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+  } finally {
+    await page.viewport(1100, 800);
+  }
+});

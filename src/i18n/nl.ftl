@@ -3493,6 +3493,10 @@ board-lane-needs-a-name = Een kolom heeft een naam nodig.
 board-lane-name-taken = Er is al een kolom met de naam { $lane }.
 # en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
 board-double-click-to-rename = Dubbelklik om te hernoemen
+# en: 141ee07375861e5bb346745bbb11f74b0fcee117
+board-double-tap-to-rename = Tik twee keer om te hernoemen
+# en: b0979c4915315a19ae77b53a28bf2ff42ac97034
+board-add-lane = Een kolom toevoegen
 # en: c6196faeecf27e09514f0812df5e4b0f18a49465
 board-lane-total = Totaal { $sum }
 # en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869

@@ -29,7 +29,7 @@ import './apps/board/editor.ts';
 
 export { board };
 export * from './apps/board/model.ts';
-export type { LaneEvent, LaneEvents, PickedCard, ToBoardEditor } from './apps/board/editor.ts';
+export type { LaneEvent, LaneEvents, LaneTone, PickedCard, ToBoardEditor } from './apps/board/editor.ts';
 
 /** The Board put beside the suite's apps. Once: a second call does nothing. */
 export function registerBoard(): void {

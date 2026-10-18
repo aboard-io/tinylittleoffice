@@ -3576,6 +3576,10 @@ board-lane-needs-a-name = Kolumna musi mieć nazwę.
 board-lane-name-taken = Kolumna o nazwie { $lane } już istnieje.
 # en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
 board-double-click-to-rename = Kliknij dwukrotnie, aby zmienić nazwę
+# en: 141ee07375861e5bb346745bbb11f74b0fcee117
+board-double-tap-to-rename = Stuknij dwukrotnie, aby zmienić nazwę
+# en: b0979c4915315a19ae77b53a28bf2ff42ac97034
+board-add-lane = Dodaj kolumnę
 # en: c6196faeecf27e09514f0812df5e4b0f18a49465
 board-lane-total = Razem { $sum }
 # en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869

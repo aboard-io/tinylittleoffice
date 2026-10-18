@@ -48,20 +48,26 @@ export const Templates = templates('board');
  * under it, its value, its close date and its owner's initials, from the columns' types alone; each lane its count and
  * the sum of its values. Drag a card from anywhere on it; double-click a lane's name to rename it.
  */
-export const Pipeline: AppStory = { args: { template: 'pipeline' } };
+export const Pipeline: AppStory = {
+  args: { template: 'pipeline' },
+  render: (_args, ctx) => editorBox('board', pipeline(ctx), { ready: (m) => ((m.editor as unknown as ToBoardEditor).laneTone = toneOf) }),
+};
+/** A pipeline's stages by kind, as a CRM knows them: Won won, Lost lost (`laneTone`), each drawn so. */
+const toneOf = (name: string) => (name === 'Won' ? 'won' : name === 'Lost' ? 'lost' : null);
 
 /**
  * The same pipeline as a CRM's page shows it: its cards carried and nothing else changed (`carry-only`), picked to
  * open (`pickable`: "docpick"), its lanes the CRM's own records (`own-lanes`: renamed, moved, added and deleted only by
- * the page, which hears "lanerename" and the rest), and its cards' faces said by the page (`cardFields`): the company,
- * the value, the close date and the owner as a quiet name and value.
+ * the page, which hears "lanerename" and the rest: Add lane, after the last, tells "laneadd" and adds nothing), its
+ * stages' kinds (`laneTone`: Won and Lost), and its cards' faces said by the page (`cardFields`): the company, the
+ * value, the close date and the owner as a quiet name and value.
  */
 const CARD_FIELDS: CardField[] = [{ column: 'Company', as: 'line' }, { column: 'Value' }, { column: 'Close' }, { column: 'Owner', as: 'text' }];
 export const PipelineForAHost: AppStory = {
   argTypes: { template: { table: { disable: true } }, readOnly: { table: { disable: true } } },
   render: (_args, ctx) =>
     editorBox('board', pipeline(ctx), {
-      ready: (m) => Object.assign(m.editor as unknown as ToBoardEditor, { carryOnly: true, pickable: true, ownLanes: true, cardFields: CARD_FIELDS }),
+      ready: (m) => Object.assign(m.editor as unknown as ToBoardEditor, { carryOnly: true, pickable: true, ownLanes: true, cardFields: CARD_FIELDS, laneTone: toneOf }),
     }),
 };
 

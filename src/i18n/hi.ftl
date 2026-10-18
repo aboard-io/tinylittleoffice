@@ -3443,6 +3443,10 @@ board-lane-needs-a-name = कॉलम का एक नाम होना च�
 board-lane-name-taken = { $lane } नाम का कॉलम पहले से है।
 # en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
 board-double-click-to-rename = नाम बदलने के लिए डबल-क्लिक करें
+# en: 141ee07375861e5bb346745bbb11f74b0fcee117
+board-double-tap-to-rename = नाम बदलने के लिए दो बार टैप करें
+# en: b0979c4915315a19ae77b53a28bf2ff42ac97034
+board-add-lane = कॉलम जोड़ें
 # en: c6196faeecf27e09514f0812df5e4b0f18a49465
 board-lane-total = कुल { $sum }
 # same

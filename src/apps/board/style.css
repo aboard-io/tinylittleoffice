@@ -56,6 +56,26 @@
   .board-lane.over {
     border-color: var(--to-accent);
   }
+  /* A lane's kind, as the page says it (laneTone): won, the success color's tint and a rule along its top; lost, quieter. */
+  .board-lane[data-tone='won'] {
+    background: color-mix(in oklab, var(--to-success) 12%, var(--to-surface-2));
+    border-color: color-mix(in oklab, var(--to-success) 25%, var(--to-border));
+    box-shadow: inset 0 0.1875rem 0 var(--to-success);
+  }
+  .board-lane[data-tone='lost'] {
+    background: color-mix(in oklab, var(--to-ink-3) 10%, var(--to-surface-2));
+    box-shadow: inset 0 0.1875rem 0 var(--to-ink-3);
+  }
+  .board-lane[data-tone='lost'] .board-card {
+    opacity: 0.8;
+  }
+  /* Add lane, after the last lane: as wide as a lane where they stand side by side. */
+  .board-add-lane {
+    flex: 0 0 auto;
+    color: var(--to-ink-2);
+    background: none;
+    border-style: dashed;
+  }
   /* The lane's head: its name, its count and its menu on one line; its sum under them. */
   .board-head {
     display: flex;
@@ -391,5 +411,11 @@
     margin-left: auto;
     padding: 0 0.375em;
     white-space: nowrap;
+  }
+  /* The bar on a phone: the count goes (each lane says its own), so Undo and Redo stay in sight. */
+  @container board (max-width: 26rem) {
+    .board-total {
+      display: none;
+    }
   }
 }

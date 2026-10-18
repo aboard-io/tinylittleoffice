@@ -3374,6 +3374,10 @@ board-lane-needs-a-name = 열에는 이름이 있어야 합니다.
 board-lane-name-taken = { $lane }(이)라는 열이 이미 있습니다.
 # en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
 board-double-click-to-rename = 두 번 클릭해 이름 바꾸기
+# en: 141ee07375861e5bb346745bbb11f74b0fcee117
+board-double-tap-to-rename = 두 번 탭해 이름 바꾸기
+# en: b0979c4915315a19ae77b53a28bf2ff42ac97034
+board-add-lane = 열 추가
 # en: c6196faeecf27e09514f0812df5e4b0f18a49465
 board-lane-total = 합계 { $sum }
 # same

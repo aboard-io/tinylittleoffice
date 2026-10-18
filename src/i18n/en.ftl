@@ -1935,6 +1935,10 @@ board-lane-needs-a-name = A lane needs a name.
 board-lane-name-taken = There is already a lane called { $lane }.
 # A hint on a lane's name under the pointer: how to rename it.
 board-double-click-to-rename = Double-click to rename
+# The same hint on a phone or a tablet, where a lane's name is renamed by tapping it twice.
+board-double-tap-to-rename = Double-tap to rename
+# A button after the last lane of a board: a new lane at the end.
+board-add-lane = Add lane
 # Under a lane's name: the sum of its cards' amounts ($sum is an amount already written with its currency, "$30,000").
 board-lane-total = Total { $sum }
 # A date field’s placeholder: the order a date is typed in (year, month, day, as digits), in the letters the language names them by.

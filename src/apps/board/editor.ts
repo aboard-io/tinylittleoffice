@@ -65,6 +65,13 @@
  * bubbling and cancelable (LaneEvent). A page that calls `preventDefault()` refuses it, or makes it through its own
  * command and gives the board its new document; a page that sets `own-lanes` makes them all itself, and the board only
  * tells them, carried only too (where its lanes' names, their menus and Rename are then offered).
+ *
+ * Wherever a lane may be changed, Add lane is a button after the last lane (a "laneadd" at the end, carried only and
+ * the page's own lanes too), and `startRename(i)` makes lane `i`'s name a field from the page's own control. A page
+ * that says what kind each lane is (`laneTone(name)`: won, lost, neutral, or a kind of its own) has it drawn: a lane
+ * won tinted the success color, a lost one quieter, each kind its `data-tone` for a page's own rules. Its name's hint
+ * says how to rename it on this device: a double click under a mouse, a double tap under a finger (which is heard as
+ * one: two taps on the name, near each other in place and time).
  */
 import { ArrowDown, ArrowUp, CalendarDays, Copy, Ellipsis } from 'lucide';
 import { applyAll, COL_NAMES, parse, parseInline, plainText, transform, write, writeInline, type Block, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
@@ -132,6 +139,11 @@ export type PickedCard = { at: number; row: number };
  * `from` to place `to`; "lanedelete" lane `name` and the `cards` it takes with it. A page that refuses it, or makes it
  * itself, calls `preventDefault()`.
  */
+/** What kind a lane is, as a page says it (`laneTone`): won, lost, neutral, or a kind of the page's own, drawn by its own rules on `data-tone`. */
+export type LaneTone = 'won' | 'lost' | 'neutral' | (string & {});
+/** Two taps this near in place (CSS px) and time (ms) are a double tap. */
+const TAP_PX = 24;
+const TAP_MS = 400;
 export interface LaneEvents {
   lanerename: { from: string; to: string };
   laneadd: { name: string; at: number };
@@ -247,6 +259,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     over: { state: true },
     ownLanes: { type: Boolean, attribute: 'own-lanes', reflect: true },
     cardFields: { attribute: false },
+    laneTone: { attribute: false },
     carrying: { state: true },
     lifting: { state: true },
     menuAt: { state: true },
@@ -265,6 +278,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
    * person or badge), in this order; null (the default) for the columns' types to say (`cardFieldsOf`), [] for the title alone.
    */
   declare cardFields: CardField[] | null;
+  /** What kind each lane is, by its name (a stage won, lost): drawn by the board as the lane's tone; null for none. */
+  declare laneTone: ((name: string) => LaneTone | null | undefined) | null;
   /** The card a finger or a pen holds, lifted, ready to be carried, by its row; -1 for none. */
   declare lifting: number;
   /** The lane whose name is a field, being renamed, by its place; -1 for none. */
@@ -293,6 +308,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
   private drafts = new Map<string, Block>();
   private ones = new WeakMap<Block, Block[]>();
   private press: Press | null = null;
+  /** A finger's last tap on a lane's name: which lane, where and when, for a double tap. */
+  private tapped: { lane: number; x: number; y: number; at: number } | null = null;
   private point = { x: 0, y: 0 };
   private scrolling = 0;
   /** A drag just ended, or a hold chose the card: the click that follows it is not a tap. */
@@ -329,6 +346,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.carryOnly = false;
     this.ownLanes = false;
     this.cardFields = null;
+    this.laneTone = null;
     this.cur = -1;
     this.carrying = -1;
     this.lifting = -1;
@@ -717,7 +735,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.laneError = '';
     this.requestUpdate();
   }
-  /** Rename lane: its name, where it is drawn, a field, its words chosen to type over. */
+  /**
+   * Rename lane: lane `i`'s name (its place among the lanes), where it is drawn, a field, its words chosen to type over,
+   * as a double click on it does; for a page's own control too. Nothing where the lanes may not be changed.
+   */
   startRename(i: number) {
     if (!this.lanesChange || !this.view.lanes[i]) return;
     void this.focusLane(i, true);
@@ -776,6 +797,23 @@ export class ToBoardEditor extends DocElement<BoardView> {
       void this.focusTitle(this.view.lanes[i].cards[0].row, 'end');
     }
   }
+  /** A finger's or a pen's tap on a lane's name: a second one near the first, soon after it, renames the lane (a double tap). */
+  private laneTap(e: PointerEvent, i: number) {
+    if (e.pointerType === 'mouse' || this.renaming === i || !this.lanesChange) return;
+    const now = performance.now();
+    const was = this.tapped;
+    this.tapped = { lane: i, x: e.clientX, y: e.clientY, at: now };
+    if (was && was.lane === i && now - was.at < TAP_MS && Math.hypot(e.clientX - was.x, e.clientY - was.y) < TAP_PX) {
+      this.tapped = null;
+      this.startRename(i);
+    }
+  }
+  /** How a lane is renamed on this device, said on its name: a double click, or under a finger a double tap. */
+  private renameHint(): string {
+    const touch = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+    return touch ? t('board-double-tap-to-rename') : t('board-double-click-to-rename');
+  }
+
   private onFocusOut = (e: FocusEvent) => {
     const from = (e.target as HTMLElement).closest?.('.board-lane-name');
     const i = from ? Number(from.closest<HTMLElement>('.board-lane')!.dataset.lane) : -1;
@@ -809,14 +847,17 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const made = this.view.lanes.find((l) => l.name === name)?.cards.at(-1);
     if (made) void this.focusTitle(made.row, 0);
   }
-  /** Insert ▾ Lane: a lane after the one in hand (else at the end), named "New lane" (made unique), its name chosen to type over. */
-  insertLane() {
+  /**
+   * Insert ▾ Lane: a lane after the one in hand (else at the end), named "New lane" (made unique), its name chosen to
+   * type over; Add lane, after the last lane, `atEnd`. Told first ("laneadd"); made unless the page makes it.
+   */
+  insertLane(atEnd = false) {
     this.rows.release();
     const names = this.view.lanes.map((l) => l.name);
     const base = t('board-new-lane');
     let name = base;
     for (let n = 2; names.includes(name); n++) name = `${base} ${n}`;
-    const at = this.curLane >= 0 && this.curLane < names.length ? this.curLane + 1 : names.length;
+    const at = !atEnd && this.curLane >= 0 && this.curLane < names.length ? this.curLane + 1 : names.length;
     if (!this.tell('laneadd', { name, at })) return;
     this.edit(addLane(this.doc, name, at));
     this.startRename(this.view.lanes.findIndex((l) => l.name === name));
@@ -1532,7 +1573,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const money = moneyColumn(this.view);
     const renaming = this.renaming === i;
     const sum = money >= 0 ? moneyShort(laneSum(this.view, i, money), this.currencyOf(money)) : '';
-    return html`<section class="board-lane ${slot >= 0 ? 'over' : ''}" data-lane=${i} aria-label=${l.name || t('board-lane')}>
+    const tone = l.name ? this.laneTone?.(l.name) : null;
+    return html`<section class="board-lane ${slot >= 0 ? 'over' : ''}" data-lane=${i} data-tone=${tone || nothing} aria-label=${l.name || t('board-lane')}>
       <header class="board-head ${renaming ? 'renaming' : ''}" ?readonly=${!renaming} @focusin=${() => (this.curLane = i)} @keydown=${(e: KeyboardEvent) => this.laneKey(e, i)}>
         <to-text
           class="board-lane-name"
@@ -1540,9 +1582,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
           no-bubble
           .blocks=${this.laneBlocks(l)}
           label=${renaming ? t('board-lane-name') : l.name || t('board-lane')}
-          title=${this.lanesChange && !renaming ? t('board-double-click-to-rename') : nothing}
+          title=${this.lanesChange && !renaming ? this.renameHint() : nothing}
           placeholder=${t('board-lane-name')}
           @dblclick=${() => this.renaming !== i && this.startRename(i)}
+          @pointerup=${(e: PointerEvent) => this.laneTap(e, i)}
           @text-ops=${(e: CustomEvent<TextOps>) => this.onLaneOps(e, l)}
           @text-enter=${(e: Event) => (e.stopPropagation(), this.laneEnter(l, i))}
           @text-escape=${(e: Event) => this.resetLane(e, l, i)}
@@ -1604,7 +1647,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
             ${this.undoTools()}
           </to-bar>`
     }
-      <div class="board ${this.carrying >= 0 ? 'carrying' : ''}" role="group" tabindex="-1" aria-label=${t('board-board')}>${v.lanes.map((l, i) => this.lane(l, i))}</div>
+      <div class="board ${this.carrying >= 0 ? 'carrying' : ''}" role="group" tabindex="-1" aria-label=${t('board-board')}>
+        ${v.lanes.map((l, i) => this.lane(l, i))}
+        ${this.lanesChange ? html`<button type="button" class="to-btn board-add-lane" @click=${() => this.insertLane(true)}>${icon(UI.plus, 18)}<span>${t('board-add-lane')}</span></button>` : nothing}
+      </div>
       ${this.carryOnly ? this.carriedContext() : this.rows.renderContext()}
       ${
         !this.lanesChange

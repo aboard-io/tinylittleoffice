@@ -3398,6 +3398,10 @@ board-lane-needs-a-name = 列には名前が必要です。
 board-lane-name-taken = { $lane } という名前の列はすでにあります。
 # en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
 board-double-click-to-rename = ダブルクリックで名前を変更
+# en: 141ee07375861e5bb346745bbb11f74b0fcee117
+board-double-tap-to-rename = ダブルタップで名前を変更
+# en: b0979c4915315a19ae77b53a28bf2ff42ac97034
+board-add-lane = 列を追加
 # en: c6196faeecf27e09514f0812df5e4b0f18a49465
 board-lane-total = 合計 { $sum }
 # same

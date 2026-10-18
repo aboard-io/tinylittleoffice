@@ -650,9 +650,22 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
     line, a column named Owner, Author, Assignee… a person, then each other by its type, four at most. `[]` shows the
     title alone. Each lane shows its count and, where the table has a column of money, the sum of its first one
     (`moneyColumn`, `laneSum`).
-  - **A lane renamed where it is drawn**: a double click on its name, Enter or F2 on it, or its menu's Rename lane make
-    it a field, its words chosen; Enter keeps it, Escape lets it go, the focus leaving keeps it, and a name that is
-    empty or another lane's is refused and said under it (role=alert).
+  - **A lane renamed where it is drawn**: a double click on its name (a double tap under a finger: two taps on it
+    within 400ms and 24px), Enter or F2 on it, or its menu's Rename lane make it a field, its words chosen; Enter keeps
+    it, Escape lets it go, the focus leaving keeps it, and a name that is empty or another lane's is refused and said
+    under it (role=alert). The name's hint says the way that fits the device: "Double-click to rename" under a mouse,
+    "Double-tap to rename" where the pointer is coarse and nothing hovers. `startRename(i)` does the same from a page's
+    own control, `i` the lane's place among the lanes; it does nothing where the lanes may not be changed (read-only, or
+    carried only without `own-lanes`).
+  - **Add lane**: a button after the last lane, wherever a lane may be changed (carried only with `own-lanes` too),
+    which adds "New lane" at the end, its name a field, told first as `laneadd` `{ name, at }` (`at` the lanes' count);
+    a page that makes its lanes itself hears it and adds its own.
+  - **A lane's kind** (`laneTone`, a property: `(name) => LaneTone | null`, LaneTone `'won' | 'lost' | 'neutral'` or a
+    kind of the page's own): drawn on the lane as `data-tone`; won is tinted the success color with a rule along its
+    top, lost quieter (a gray rule, its cards a little faded), neutral and none as any lane, and any other kind is the
+    page's to draw by its own rules on `[data-tone]`.
+  - **The bar on a phone**: where the board is narrower than 26rem the bar's count of cards goes (each lane says its
+    own), so Insert, the Spreadsheet's button, Undo and Redo are all on the screen.
   - **A lane's change, told first** (`LaneEvents`, `LaneEvent`): before a lane is renamed, added, moved or deleted the
     board fires, bubbling and cancelable, `lanerename` `{ from, to }`, `laneadd` `{ name, at }`, `lanemove`
     `{ name, from, to }` (places among the named lanes) or `lanedelete` `{ name, cards }` (how many cards go with it).
