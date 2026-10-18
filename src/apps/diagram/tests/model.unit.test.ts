@@ -421,6 +421,22 @@ describe('commands as ops', () => {
     const two = layout(doc('lanes', '- Desk: Ask?\n  - Desk: Yes\n  - Desk: No\n- Desk: Done\n')).shapes.filter((x) => x.hit?.k === 'line');
     expect(two.map((b) => Math.round((b.x - two[0].x) / 176))).toEqual([0, 1, 2, 3]);
   });
+  test('swimlanes made a mind map keep every relationship: the flow as nesting, the rest as connections, the lanes in the words (Paul, 2026-10-18)', () => {
+    const lanes = doc(
+      'lanes',
+      '- Patient:\n- NP:\n- EHR:\n- Patient: Arrives\n- NP: Triage\n- EHR: Record\n- NP: Ready?\n  - NP: Treat\n  - NP: Wait\n- Patient: Leaves\n\n~ Triage <-> Record\n~ Ready? -> Wait: No\n',
+    );
+    const mind = applyAll(lanes, setKind(lanes, 'mind'));
+    expect(write(mind)).toBe(
+      '---\nkind: mind\n---\n- Patient: Arrives\n  - NP: Triage\n    - EHR: Record\n    - NP: Ready?\n      - NP: Treat\n        - Patient: Leaves\n      - NP: Wait\n\n~ NP: Ready? -> NP: Wait: No\n~ NP: Wait -> Patient: Leaves\n',
+    );
+    // Every connection is drawn; and back to swimlanes, the same lanes, the same flow.
+    expect(new Set(layout(mind).shapes.flatMap((x) => (x.hit?.k === 'edge' ? [x.hit.at] : []))).size).toBe(edgesOf(mind).length);
+    const back = applyAll(mind, setKind(mind, 'lanes'));
+    expect(lanesOf(back).lanes).toEqual(['Patient', 'NP', 'EHR']);
+    // Any other change of kind is the kind alone.
+    expect(setKind(mind, 'org')).toEqual([{ op: 'head', key: 'kind', value: 'org' }]);
+  });
   test('a thing takes a shape by its line’s class, Draw’s names, in every kind that draws boxes; set and taken off from its row', () => {
     const mind = doc('mind', '- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do\n');
     const kinds = (d: Doc) => layout(d).shapes.flatMap((x) => (x.hit?.k === 'line' ? [x.k] : []));

@@ -13,7 +13,7 @@ import { t } from '../../kit/core/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
-import { asLabel, edgesOf, kindOf, labelOf, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, stepNamed, type Hit, type KindId, type Line } from './model.ts';
+import { asLabel, edgesOf, kindOf, labelOf, lanesFlow, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
 export type DShape = Shape & {
@@ -282,43 +282,7 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   const ROW = 88;
   const { lanes, steps } = lanesOf(doc);
   if (!lanes.length) return frame([]);
-  // The flow: each connection, as the way it reads (a "<-" from its far end); then each step to the next, unless a
-  // connection already leads out of it or into the next (a branch, a step reached another way). A "<->" is an
-  // exchange beside the flow: the step it goes to, joined by those alone (a record looked up), is passed over by it.
-  const all = linesOf(doc);
-  const index = (name: string) => ((l) => (l ? steps.findIndex((x) => x.line.at === l.at) : -1))(stepNamed(all, name));
-  const joined = edgesOf(doc).flatMap((e) => {
-    const [a, b] = [index(e.from), index(e.to)];
-    return a >= 0 && b >= 0 && a !== b ? [{ e, a, b }] : [];
-  });
-  const flows = joined.flatMap(({ e, a, b }) => (e.dir === '<-' ? [[b, a]] : e.dir === '<->' ? [] : [[a, b]]));
-  const both = joined.filter(({ e }) => e.dir === '<->');
-  const aside = (i: number) => both.some(({ b }) => b === i) && !joined.some(({ e, a, b }) => e.dir !== '<->' && (a === i || b === i));
-  // The flow by itself, as a mind map branches (Paul, 2026-10-18): a step leads to the steps indented under it, in
-  // parallel; one with none leads on to the next step on the margin after the one it is under (where its branch
-  // rejoins). Not where a connection already does: between a step and one under it, or out of the one or into the next.
-  const depth = steps.map((s) => s.line.depth);
-  const under = (i: number) => {
-    const kids: number[] = [];
-    for (let j = i + 1; j < steps.length && depth[j] > depth[i]; j++) if (depth[j] === depth[i] + 1 && !aside(j)) kids.push(j);
-    return kids;
-  };
-  const top = (i: number) => {
-    while (depth[i] > 0 && i > 0) i--;
-    return i;
-  };
-  const onward = (i: number) => {
-    for (let j = top(i) + 1; j < steps.length; j++) if (depth[j] === 0 && !aside(j)) return j;
-    return -1;
-  };
-  const tied = (i: number, j: number) => joined.some(({ a, b }) => (a === i && b === j) || (a === j && b === i));
-  const auto: [number, number][] = steps.flatMap((_, i): [number, number][] => {
-    if (aside(i)) return [];
-    const kids = under(i);
-    if (kids.length) return kids.filter((j) => !tied(i, j)).map((j): [number, number] => [i, j]);
-    const j = onward(i);
-    return j >= 0 && !flows.some(([a, b]) => a === i || b === j) ? [[i, j]] : [];
-  });
+  const { joined, flows, both, aside, auto } = lanesFlow(doc);
   const into = (i: number) => auto.some(([, b]) => b === i) || flows.some(([, b]) => b === i) || both.some(({ a, b }) => a === i || b === i);
   const out = (i: number) => auto.some(([a]) => a === i) || flows.some(([a]) => a === i) || both.some(({ a, b }) => a === i || b === i);
   // Each step's column (Paul, 2026-10-18: "Stack"): one past the furthest step before it that leads into it, so

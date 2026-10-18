@@ -516,6 +516,50 @@ class Builder {
 }
 
 /** Line l given this key (its words before ": ", as written), in place of the one it had. */
+/**
+ * A swimlane's flow, its steps (its lines with words, in order) numbered: each connection as the way it reads (a
+ * "<-" from its far end); and the flow by itself, as a mind map branches (Paul, 2026-10-18): a step leads to the
+ * steps indented under it, in parallel; one with none leads on to the next step on the margin after the one it is
+ * under (where its branch rejoins). Not where a connection already does: between a step and one under it, or out of
+ * the one or into the next. A "<->" is an exchange beside the flow: the step it goes to, joined by those alone (a
+ * record looked up), is passed over by it.
+ */
+export function lanesFlow(doc: Doc) {
+  const all = linesOf(doc);
+  const steps = all.filter((l) => l.words.words || l.words.icon);
+  const index = (name: string) => ((l) => (l ? steps.findIndex((x) => x.at === l.at) : -1))(stepNamed(all, name));
+  const joined = edgesOf(doc).flatMap((e) => {
+    const [a, b] = [index(e.from), index(e.to)];
+    return a >= 0 && b >= 0 && a !== b ? [{ e, a, b }] : [];
+  });
+  const flows = joined.flatMap(({ e, a, b }): [number, number][] => (e.dir === '<-' ? [[b, a]] : e.dir === '<->' ? [] : [[a, b]]));
+  const both = joined.filter(({ e }) => e.dir === '<->');
+  const aside = (i: number) => both.some(({ b }) => b === i) && !joined.some(({ e, a, b }) => e.dir !== '<->' && (a === i || b === i));
+  const depth = steps.map((l) => l.depth);
+  const under = (i: number) => {
+    const kids: number[] = [];
+    for (let j = i + 1; j < steps.length && depth[j] > depth[i]; j++) if (depth[j] === depth[i] + 1 && !aside(j)) kids.push(j);
+    return kids;
+  };
+  const top = (i: number) => {
+    while (depth[i] > 0 && i > 0) i--;
+    return i;
+  };
+  const onward = (i: number) => {
+    for (let j = top(i) + 1; j < steps.length; j++) if (depth[j] === 0 && !aside(j)) return j;
+    return -1;
+  };
+  const tied = (i: number, j: number) => joined.some(({ a, b }) => (a === i && b === j) || (a === j && b === i));
+  const auto: [number, number][] = steps.flatMap((_, i): [number, number][] => {
+    if (aside(i)) return [];
+    const kids = under(i);
+    if (kids.length) return kids.filter((j) => !tied(i, j)).map((j): [number, number] => [i, j]);
+    const j = onward(i);
+    return j >= 0 && !flows.some(([a, b]) => a === i || b === j) ? [[i, j]] : [];
+  });
+  return { steps, joined, flows, both, aside, auto };
+}
+
 /** A step with its lane's name, "Who: what they do", whether its line names the lane or follows the one before. */
 const laneName = (lines: Line[], l: Line): string => ((lane) => (lane ? `${lane}: ${l.words.words}` : l.words.words))(laneOf(lines, l.at));
 /** A step's name, as a connection names it: its words, or with its lane's where another step has the same words. */
@@ -787,7 +831,39 @@ export function tidy(doc: Doc, at: number): Op[] {
 }
 
 /** The kind of diagram, as the head says it. */
-export const setKind = (doc: Doc, kind: KindId): Op[] => (kindOf(doc) === kind && doc.head.kind === kind ? [] : [{ op: 'head', key: 'kind', value: kind }]);
+export function setKind(doc: Doc, kind: KindId): Op[] {
+  if (kindOf(doc) === kind && doc.head.kind === kind) return [];
+  const head: Op = { op: 'head', key: 'kind', value: kind };
+  return kindOf(doc) === 'lanes' && isTree(kind) ? [...lanesAsTree(doc), head] : [head];
+}
+
+/**
+ * A swimlane made a tree (a mind map, an org chart, a family tree), which reads only its nesting (Paul, 2026-10-18:
+ * "The conversion from swimlanes to mindmap loses most of the relationships"): each step under the first step before
+ * it that leads into it (a look-up under the step it is looked up from), and every other way the flow goes a
+ * connection ("~ A -> B"). Its connections stay, named as a tree names things, by the whole line ("Desk: Ready?"),
+ * but for one without words the tree now draws; its steps keep their lanes in their words, so swimlanes again have
+ * them back; the lines that only name a lane go.
+ */
+function lanesAsTree(doc: Doc): Op[] {
+  const { steps, joined, flows, both, auto } = lanesFlow(doc);
+  if (!steps.length) return [];
+  const leads: [number, number][] = [...auto, ...flows, ...both.map(({ a, b }): [number, number] => [a, b])];
+  const parent = steps.map((_, j) => Math.min(Infinity, ...leads.filter(([a, b]) => b === j && a < j).map(([a]) => a)));
+  const order: [number, number][] = [];
+  const walk = (i: number, depth: number) => {
+    order.push([i, depth]);
+    steps.forEach((_, j) => parent[j] === i && walk(j, depth + 1));
+  };
+  steps.forEach((_, i) => parent[i] === Infinity && walk(i, 0));
+  const name = (i: number) => steps[i].all.words;
+  const tree = (a: number, b: number) => parent[b] === a || parent[a] === b;
+  const lines = order.map(([i, depth]) => ({ ...(doc.blocks[steps[i].at] as Extract<Block, { k: 'li' }>), depth }));
+  const kept = joined.filter(({ e, a, b }) => e.label || !tree(a, b)).map(({ e, a, b }) => edgeBlock(doc, e, { from: name(a), to: name(b) }));
+  const more = auto.filter(([a, b]) => !tree(a, b)).map(([a, b]): Block => ({ k: 'edge', from: name(a), to: name(b), dir: '->' }));
+  const rest = doc.blocks.filter((b, at) => b.k !== 'li' && !(b.k === 'edge' && joined.some(({ e }) => e.at === at)));
+  return [{ op: 'splice', at: 0, n: doc.blocks.length, blocks: [...lines, ...rest, ...kept, ...more] }];
+}
 
 /* ---------- a thing whole: copied, pasted, duplicated, moved ---------- */
 
