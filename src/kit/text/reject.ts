@@ -151,6 +151,11 @@ export function rejectOps(tracked: readonly Tracked[], blocks: readonly Block[],
       if (of(b.insId) || of(b.fmtId) || b.toks.some((x) => of(x.insId) || of(x.delId) || of(x.fmtId))) return null;
       continue;
     }
+    // A block put back whole: taken out again, unless the taking out it undid is rejected too.
+    if (b.restored && of(b.insId) && !of(b.from?.delId)) {
+      ops.push({ ti, block: ei, from: Infinity, op: { op: 'splice', at: ei, n: 1, blocks: [] } });
+      continue;
+    }
     // A whole block put in: taken out (one put back whole, unless the taking out it undid is rejected too).
     if (of(b.insId) && !(b.restored && of(b.from?.delId)) && b.toks.every((x) => of(x.insId) || x.del)) {
       ops.push({ ti, block: ei, from: Infinity, op: { op: 'splice', at: ei, n: 1, blocks: [] } });

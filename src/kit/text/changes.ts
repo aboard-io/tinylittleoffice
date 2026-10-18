@@ -503,7 +503,9 @@ export function trackOn(
           const id = mint();
           const r = restyle(undead, n, by, mint, rejected, open, touch);
           const from = { del: who!, ...(delId ? { delId } : {}) };
-          out.push({ ...r, ins: by, insId: id, restored: true, from, toks: r.toks.map((x) => (x.del ? x : { ...x, ins: by, insId: id, restored: true as const, from: { ...from, m: x.m } })) });
+          // A card is put back whole, its source as it is now; a block of words, word by word, as words put back are.
+          if (n.src !== undefined) out.push({ ...r, ins: by, insId: id, restored: true, from, src: n.src, wasSrc: n.src });
+          else out.push({ ...r, ins: by, insId: id, restored: true, from, toks: r.toks.map((x) => (x.del ? x : { ...x, ins: by, insId: id, restored: true as const, from: { ...from, m: x.m } })) });
           continue;
         }
         // A block put in right after one this person put in, still unreviewed (Enter, and on typing), is the same edit.
