@@ -11,7 +11,8 @@
  * It is a combobox (ARIA's): the words in the field, Down and Up through the hits and the actions (around the ends),
  * Enter to choose, Escape to close the list and then to clear the field. A hit or an action chosen is told in
  * `searchpick`, cancelable, `{ query, hit }` or `{ query, action }` (SearchPick); a hit with an address is a link,
- * opened as a link is unless the page prevents it.
+ * opened as a link is unless the page prevents it. A hit `disabled` is listed and never chosen: drawn quiet
+ * (`aria-disabled`), passed over by Down, Up and Enter, a click on it nothing.
  *
  * Inline (the default) it is a field with the hits under it, for a page's header; `dialog` makes it a button that
  * looks like the field and opens the search in a dialog over the page. `hotkey` opens it (or puts the focus in the
@@ -36,6 +37,8 @@ export interface SearchHit {
   /** An icon (Lucide's), or a few letters or an emoji; else its kind's. */
   icon?: IconNode | string;
   href?: string;
+  /** Listed but not chosen (a thing found with nowhere to open): drawn quiet, passed over by the keys, a click does nothing. */
+  disabled?: boolean;
 }
 
 /** A kind of thing: its name as a group's heading ("People"), and its icon. */
@@ -234,24 +237,37 @@ export class ToSearch extends LitElement {
     this.clear();
     this.close();
   }
+  /** The next row that can be chosen from `from`, `by` 1 or -1 round the ends; -1 where none can. */
+  private step(rows: Row[], from: number, by: 1 | -1): number {
+    const k = rows.length;
+    for (let n = 1; n <= k; n++) {
+      const i = (((from + by * n) % k) + k) % k;
+      if (!rows[i].hit?.disabled) return i;
+    }
+    return -1;
+  }
   private onKey = (e: KeyboardEvent) => {
     if (e.isComposing) return;
     const rows = this.rows();
     const k = rows.length;
     switch (e.key) {
-      case 'ArrowDown':
-        if (!k) return;
+      case 'ArrowDown': {
+        const to = k ? this.step(rows, this.at < 0 ? -1 : this.at, 1) : -1;
+        if (to < 0) return;
         this.open = true;
-        this.at = this.at < 0 ? 0 : (this.at + 1) % k;
+        this.at = to;
         break;
-      case 'ArrowUp':
-        if (!k) return;
+      }
+      case 'ArrowUp': {
+        const to = k ? this.step(rows, this.at < 0 ? k : this.at, -1) : -1;
+        if (to < 0) return;
         this.open = true;
-        this.at = this.at < 0 ? k - 1 : (this.at - 1 + k) % k;
+        this.at = to;
         break;
+      }
       case 'Enter': {
-        const at = this.at >= 0 ? this.at : this.status === 'done' ? 0 : -1;
-        if (!rows[at]) return;
+        const at = this.at >= 0 ? this.at : this.status === 'done' ? this.step(rows, -1, 1) : -1;
+        if (!rows[at] || rows[at].hit?.disabled) return;
         this.choose(rows[at], undefined, at);
         break;
       }
@@ -310,6 +326,11 @@ export class ToSearch extends LitElement {
         <span class="to-sb-mark" aria-hidden="true">${icon(row.action.icon ?? UI.plus, 18)}</span><span class="to-sb-words"><span>${row.action.label}</span></span>
       </div>`;
     const hit = row.hit;
+    if (hit.disabled)
+      return html`<div id=${id} role="option" class="to-sb-hit to-sb-off" aria-selected="false" aria-disabled="true" @pointerdown=${keep}>
+        <span class="to-sb-mark" aria-hidden="true">${this.mark(hit)}</span>
+        <span class="to-sb-words"><span>${hit.title}</span>${hit.subtitle ? html`<small>${hit.subtitle}</small>` : nothing}</span>
+      </div>`;
     const words = html`<span class="to-sb-mark" aria-hidden="true">${this.mark(hit)}</span>
       <span class="to-sb-words"><span>${hit.title}</span>${hit.subtitle ? html`<small>${hit.subtitle}</small>` : nothing}</span>
       ${on ? html`<span class="to-sb-mark" aria-hidden="true">${icon(CornerDownLeft, 14)}</span>` : nothing}`;

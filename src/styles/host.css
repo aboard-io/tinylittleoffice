@@ -440,6 +440,17 @@
   .to-sb-words > small {
     color: var(--to-ink-3);
   }
+  /* A hit listed but not chosen: quiet, no pointer, no highlight. */
+  .to-sb-off {
+    color: var(--to-ink-3);
+    cursor: default;
+  }
+  .to-sb-hit.to-sb-off:hover {
+    background: none;
+  }
+  .to-sb-off .to-sb-mark {
+    color: var(--to-ink-3);
+  }
   .to-sb-create {
     color: var(--to-accent);
     border-top: 1px solid var(--to-border);

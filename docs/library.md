@@ -274,6 +274,9 @@ and how many were, to a screen reader.
   list and then clears the field.
 - **Its event.** `searchpick` (SearchPick: `{ query, hit }` or `{ query, action }`), cancelable. A hit with an `href` is a
   link, opened as one is unless the page prevents it; a page that routes itself prevents it and goes there itself.
+- **A hit listed, not chosen.** A hit with `disabled: true` (one with nowhere to open) is listed in its group and
+  counted, drawn quiet and `aria-disabled`; Down and Up pass over it, Enter with nothing in hand chooses the first hit
+  that can be chosen, and a click on it does nothing.
 - **Inline or a dialog.** Inline (the default) it is a field with the hits in a popover under it, for a header;
   `dialog` makes it a button drawn as the field that opens the search in a dialog. `hotkey` opens it (or puts the
   focus in the field) with Mod+K from anywhere on the page; a page sets it on one box. `placeholder` and `label` are

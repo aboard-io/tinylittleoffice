@@ -170,3 +170,35 @@ test('as a dialog: a button that opens it, Mod+K from anywhere, Escape closes it
   await userEvent.keyboard('{Escape}');
   await until(() => !el.querySelector('dialog')!.open, 'Escape did not close it');
 });
+
+test('a hit listed but not chosen (disabled): drawn quiet, passed over by the keys, a click on it nothing', async () => {
+  const hits: SearchHit[] = [
+    { kind: 'company', id: 'c1', title: 'Clear Channel Outdoor', disabled: true },
+    { kind: 'person', id: 'p1', title: 'Clea Duvall' },
+    { kind: 'person', id: 'p2', title: 'Cleo Park', disabled: true },
+  ];
+  const { el, picks } = await box({ create: null }, async () => hits);
+  await type(el, 'Cle');
+  await until(() => el.querySelectorAll('[role=option]').length === 3, 'the hits never came');
+  const off = [...el.querySelectorAll<HTMLElement>('[role=option][aria-disabled=true]')].map((o) => o.textContent!.trim());
+  expect(off).toStrictEqual(['Cleo Park', 'Clear Channel Outdoor']);
+  expect(getComputedStyle(el.querySelector('.to-sb-off')!).color).not.toBe(getComputedStyle(el.querySelector('.to-sb-hit:not(.to-sb-off)')!).color);
+  // Enter with nothing in hand chooses the first that can be; Down and Up go round the others.
+  const active = () => el.querySelector(`#${el.input!.getAttribute('aria-activedescendant')}`)?.textContent?.trim();
+  await userEvent.keyboard('{ArrowDown}');
+  await until(() => active() === 'Clea Duvall');
+  await userEvent.keyboard('{ArrowDown}');
+  expect(active()).toBe('Clea Duvall');
+  await userEvent.keyboard('{ArrowUp}');
+  expect(active()).toBe('Clea Duvall');
+  el.querySelector<HTMLElement>('.to-sb-off')!.click();
+  expect(picks).toStrictEqual([]);
+  await userEvent.keyboard('{Enter}');
+  expect(picks.map((p) => p.hit?.id)).toStrictEqual(['p1']);
+  // Every hit disabled: Enter chooses nothing.
+  const none = await box({ create: null }, async () => hits.filter((h) => h.disabled));
+  await type(none.el, 'Cle');
+  await until(() => none.el.querySelectorAll('[role=option]').length === 2);
+  await userEvent.keyboard('{Enter}{ArrowDown}{Enter}');
+  expect(none.picks).toStrictEqual([]);
+});

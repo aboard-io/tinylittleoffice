@@ -8,12 +8,16 @@ import { fold } from '../../../src/kit/share/search.ts';
 import '../../../src/kit/ui/search-box.ts';
 import { templatesOf } from '../../support.ts';
 
+/** The apps a page opens, in the story where the rest have nowhere to open. */
+const OPENS = ['write', 'sheet', 'deck'];
 type Loaded = { loaded: { hits: SearchHit[]; kinds: Record<string, SearchKind> } };
 interface SearchArgs {
   dialog: boolean;
   hotkey: boolean;
   /** How the page's search answers. */
   answer: 'at once' | 'slowly' | 'failing';
+  /** Only the Word Processor's, the Spreadsheet's and the Presentation Builder's open: the rest listed, not chosen. */
+  nowhere?: boolean;
 }
 
 /**
@@ -44,7 +48,10 @@ const meta = {
       new Promise((ok, no) => {
         signal.addEventListener('abort', () => action('aborted')(q));
         const words = fold(q).split(/\s+/).filter(Boolean);
-        const found = hits.filter((h) => words.every((w) => fold(`${h.title} ${h.subtitle ?? ''}`).includes(w))).slice(0, 30);
+        const found = hits
+          .filter((h) => words.every((w) => fold(`${h.title} ${h.subtitle ?? ''}`).includes(w)))
+          .slice(0, 30)
+          .map((h) => (args.nowhere && !OPENS.includes(h.kind) ? { ...h, href: undefined, disabled: true } : h));
         if (args.answer === 'failing') setTimeout(() => no(new Error('down')), 300);
         else setTimeout(() => ok(found), args.answer === 'slowly' ? 1200 : 0);
       });
@@ -73,3 +80,9 @@ export const Dialog: StoryObj<SearchArgs> = { args: { dialog: true } };
 export const Slow: StoryObj<SearchArgs> = { args: { answer: 'slowly' } };
 /** The page's search fails: the box says so. */
 export const Failing: StoryObj<SearchArgs> = { args: { answer: 'failing' } };
+/**
+ * A page that opens only some kinds: the Word Processor's, the Spreadsheet's and the Presentation Builder's templates.
+ * The rest are found and listed, so a person sees they exist, but are not chosen (`disabled`): drawn quiet, passed
+ * over by Down, Up and Enter, a click on one nothing. Type "plan".
+ */
+export const NowhereToOpen: StoryObj<SearchArgs> = { args: { nowhere: true } };
