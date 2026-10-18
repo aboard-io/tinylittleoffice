@@ -275,14 +275,6 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   const ROW = 88;
   const { lanes, steps } = lanesOf(doc);
   if (!lanes.length) return frame([]);
-  const width = LABEL + Math.max(1, steps.length) * COL + 12;
-  // The lanes lie behind everything: a band and its name each.
-  const bands: DShape[] = lanes.flatMap((lane, i) => {
-    const c = COLOR_CYCLE[i % COLOR_CYCLE.length];
-    const band = shape('r', 0, i * ROW, width, ROW - 8, '', 1, c);
-    band.region = lane;
-    return [band, shape('t', 8, i * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, lane ? asLabel(lane) : '—', 0, c, undefined, { k: 'lane', name: lane })];
-  });
   // The flow: each connection, as the way it reads (a "<-" from its far end); then each step to the next, unless a
   // connection already leads out of it or into the next (a branch, a step reached another way). A "<->" is an
   // exchange beside the flow: the step it goes to, joined by those alone (a record looked up), is passed over by it.
@@ -322,11 +314,33 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   });
   const into = (i: number) => auto.some(([, b]) => b === i) || flows.some(([, b]) => b === i) || both.some(({ a, b }) => a === i || b === i);
   const out = (i: number) => auto.some(([a]) => a === i) || flows.some(([a]) => a === i) || both.some(({ a, b }) => a === i || b === i);
+  // Each step's column (Paul, 2026-10-18: "Stack"): one past the furthest step before it that leads into it, so
+  // branches side by side share columns and the step they rejoin at comes after the longest; a look-up beside the
+  // flow, its partner's; a step nothing before it leads into, the next after the step before it. Two steps of one
+  // lane never share a column: the later moves on one.
+  const col: number[] = [];
+  const taken = new Set<string>();
+  steps.forEach((s, i) => {
+    const partner = both.find(({ b }) => b === i)?.a;
+    const from = [...auto, ...flows].filter(([a, b]) => b === i && a < i).map(([a]) => col[a] + 1);
+    let c = aside(i) && partner !== undefined && partner < i ? col[partner] : from.length ? Math.max(...from) : i ? col[i - 1] + 1 : 0;
+    while (taken.has(`${lanes.indexOf(s.lane)} ${c}`)) c++;
+    taken.add(`${lanes.indexOf(s.lane)} ${c}`);
+    col.push(c);
+  });
+  const width = LABEL + Math.max(1, ...col.map((c) => c + 1)) * COL + 12;
+  // The lanes lie behind everything: a band and its name each.
+  const bands: DShape[] = lanes.flatMap((lane, i) => {
+    const c = COLOR_CYCLE[i % COLOR_CYCLE.length];
+    const band = shape('r', 0, i * ROW, width, ROW - 8, '', 1, c);
+    band.region = lane;
+    return [band, shape('t', 8, i * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, lane ? asLabel(lane) : '—', 0, c, undefined, { k: 'lane', name: lane })];
+  });
   // A step that asks a question is a decision; one the flow starts or ends at, a start or an end; any other, a task.
   const boxes = steps.map((s, i) => {
     const w = s.line.words;
     const k = w.words.endsWith('?') ? 'h' : !into(i) || !out(i) ? 'o' : 'r';
-    return shape(k, LABEL + i * COL + 12, lanes.indexOf(s.lane) * ROW + 14, COL - 28, ROW - 36, labelOf(w), 0, undefined, undefined, {
+    return shape(k, LABEL + col[i] * COL + 12, lanes.indexOf(s.lane) * ROW + 14, COL - 28, ROW - 36, labelOf(w), 0, undefined, undefined, {
       k: 'line',
       at: s.line.at,
       part: 'words',
@@ -378,7 +392,13 @@ function elbow(a: DShape, b: DShape, boxes: DShape[], dir: Dir, label = '', hit?
   // The gap under a's lane, or over it, toward b.
   const lane = by >= ay ? a.y + a.h + 18 : a.y - 18;
   let pts: [number, number][];
-  if (b.x > a.x + a.w) {
+  if (b.x < a.x + a.w && a.x < b.x + b.w) {
+    // One over the other in a column: straight up or down, or beside the column where a step is in the way.
+    const [x, y1, y2] = by > ay ? [a.x + a.w / 2, a.y + a.h, b.y] : [a.x + a.w / 2, a.y, b.y + b.h];
+    const blocked = boxes.some((q) => q !== a && q !== b && q.x < x && x < q.x + q.w && Math.min(y1, y2) < q.y + q.h && q.y < Math.max(y1, y2));
+    const side = a.x + a.w + GAP;
+    pts = blocked ? path(a.x + a.w, ay, side, ay, side, by, b.x + b.w, by) : path(x, y1, x, y2);
+  } else if (b.x > a.x + a.w) {
     const [x1, x2, xIn, xOut] = [a.x + a.w, b.x, b.x - GAP, a.x + a.w + GAP];
     if (ay === by && clear(ay, x1, x2)) pts = path(x1, ay, x2, by);
     else if (clear(ay, x1, xIn)) pts = path(x1, ay, xIn, ay, xIn, by, x2, by);

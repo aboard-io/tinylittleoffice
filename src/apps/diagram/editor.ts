@@ -27,7 +27,7 @@
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { apply, applyAll, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, applyAll, family, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { cmdMenu, cmdTool } from '../../kit/ui/bar.ts';
 import { contextOf, drawnIn, runKey } from '../../kit/core/commands.ts';
 import COMMANDS, { PICTURE, WORDS } from './commands.ts';
@@ -919,17 +919,25 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     over?.classList.add('over');
   };
   /**
-   * Where a step of a swimlane let go at (x, y) would go: the lane under it, and its place among the other steps,
-   * as many as stand to the left of the point; with where the line that shows it is drawn, between two steps.
+   * Where a step of a swimlane let go at (x, y) would go: the lane under it, and before the nearest step to the right
+   * of the point (in the column steps stand in side by side, the one nearest it up or down), as its sibling; past
+   * the last, at the end. `slot` is that step's place among the others in their order, as placeStep takes it, the
+   * dragged one's branches left out; `at` where the line that shows it is drawn, in the gap before that step.
    */
   private slotAt(x: number, y: number, i: number): { lane: string | undefined; slot: number; at: number; band?: DShape } {
     const shapes = this.view.d.shapes;
-    const steps = shapes.filter((s, j) => j !== i && s.hit?.k === 'line').sort((a, b) => a.x - b.x);
-    const slot = steps.filter((s) => s.x + s.w / 2 < x).length;
+    const me = shapes[i]?.hit;
+    const from = me?.k === 'line' ? me.at : -1;
+    const end = from >= 0 ? family(this.doc, from) : -1;
+    const at = (s: DShape) => (s.hit?.k === 'line' ? s.hit.at : -1);
+    const others = shapes.filter((s) => s.hit?.k === 'line' && (at(s) < from || at(s) >= end)).sort((a, b) => at(a) - at(b));
+    const right = others.filter((s) => s.x + s.w / 2 > x);
+    const near = Math.min(...right.map((s) => s.x));
+    const next = right.filter((s) => s.x === near).sort((a, b) => Math.abs(a.y + a.h / 2 - y) - Math.abs(b.y + b.h / 2 - y))[0];
     const gap = 14;
-    const at = !steps.length ? x : slot ? steps[slot - 1].x + steps[slot - 1].w + gap : steps[0].x - gap;
+    const line = next ? next.x - gap : others.length ? Math.max(...others.map((s) => s.x + s.w)) + gap : x;
     const lane = regionAt(this.view.d, x, y);
-    return { lane, slot, at, band: shapes.find((s) => s.region !== undefined && s.region === lane) };
+    return { lane, slot: next ? others.indexOf(next) : others.length, at: line, band: shapes.find((s) => s.region !== undefined && s.region === lane) };
   }
   private showSlot(x: number, y: number, i: number) {
     const line = this.querySelector<SVGLineElement>('.dg-slot');

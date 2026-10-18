@@ -445,6 +445,26 @@ test('swimlanes wider than the column keep a readable size and scroll across; a 
   expect(w3.scrollWidth).toBeLessThanOrEqual(w3.clientWidth + 1);
 });
 
+test('stacked, a step let go just before one of the steps side by side goes before that one, its sibling, in the lane let go in (Paul, 2026-10-18)', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Desk: Ask?\n  - Lab: Yes\n  - Ops: No\n- Desk: Done\n');
+  const box = (w: string) => thing(el, w).getBoundingClientRect();
+  // Yes and No stand in one column.
+  expect(Math.round(box('Yes').left)).toBe(Math.round(box('No').left));
+  const g = thing(el, 'Done').querySelector('.dg-grip')!;
+  const to = { clientX: box('No').left - 4, clientY: box('No').top + box('No').height / 2 };
+  g.dispatchEvent(new PointerEvent('pointerdown', { ...center(g), button: 0, pointerId: 6, bubbles: true }));
+  g.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 6, bubbles: true }));
+  // The line that shows where sits in the gap before No, along No's lane.
+  const slot = el.querySelector<SVGLineElement>('.dg-slot')!;
+  expect(slot.hasAttribute('hidden')).toBe(false);
+  const r = slot.getBoundingClientRect();
+  expect(r.left).toBeLessThan(box('No').left);
+  expect(r.top).toBeLessThanOrEqual(box('No').top);
+  g.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 6, bubbles: true }));
+  await settle(el);
+  expect(last()).toBe('---\nkind: lanes\n---\n- Desk: Ask?\n  - Lab: Yes\n  - Ops: Done\n  - Ops: No\n');
+});
+
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
   const { el, last } = await editor('---\nkind: venn\n---\n- Fast: espresso\n- Cheap: walking\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;

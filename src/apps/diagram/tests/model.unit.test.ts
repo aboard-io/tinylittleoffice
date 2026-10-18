@@ -393,6 +393,34 @@ describe('commands as ops', () => {
     expect(run(d, demoteThing(d, { k: 'line', at: 4, part: 'words' })!.ops)).toContain('- Lab: Test it\n  - Desk: Done\n');
     expect(run(d, promoteThing(d, { k: 'line', at: 2, part: 'words' })!.ops)).toContain('  - Desk: Ship it\n- Lab: Fix it\n  - Lab: Test it\n');
   });
+  test('swimlanes stack: branches side by side share columns, a step where they rejoin comes after the longest, a look-up sits by its step (Paul, 2026-10-18: "Stack")', () => {
+    const hospital = doc(
+      'lanes',
+      '- Patient: Arrives\n- NP: Triage\n- EHR: Retrieve record\n- NP: Doctor needed?\n  - NP: Treat\n  - Nurse: Prepare\n    - Doctor: Treat patient\n      - EHR: Update record\n- Nurse: Instruct\n- Patient: Leaves\n\n' +
+        '~ Triage <-> Retrieve record\n~ Doctor: Treat patient <-> Update record\n',
+    );
+    const d = layout(hospital);
+    const boxes = d.shapes.filter((x) => x.hit?.k === 'line');
+    const x0 = boxes[0].x;
+    expect(boxes.map((b) => `${Math.round((b.x - x0) / 176)} ${b.text}`)).toEqual([
+      '0 Arrives',
+      '1 Triage',
+      '1 Retrieve record',
+      '2 Doctor needed?',
+      '3 Treat',
+      '3 Prepare',
+      '4 Treat patient',
+      '4 Update record',
+      '5 Instruct',
+      '6 Leaves',
+    ]);
+    // A look-up in its step's column is joined by a line straight down.
+    const look = d.shapes.find((x) => x.k === 'w' && x.hit?.k === 'edge')!;
+    expect(look.pts).toEqual([0, 0, 0, 100]);
+    // Two steps of one lane never share a column: the later moves on.
+    const two = layout(doc('lanes', '- Desk: Ask?\n  - Desk: Yes\n  - Desk: No\n- Desk: Done\n')).shapes.filter((x) => x.hit?.k === 'line');
+    expect(two.map((b) => Math.round((b.x - two[0].x) / 176))).toEqual([0, 1, 2, 3]);
+  });
   test('a thing takes a shape by its line’s class, Draw’s names, in every kind that draws boxes; set and taken off from its row', () => {
     const mind = doc('mind', '- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do\n');
     const kinds = (d: Doc) => layout(d).shapes.flatMap((x) => (x.hit?.k === 'line' ? [x.k] : []));
