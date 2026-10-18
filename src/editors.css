@@ -1,9 +1,9 @@
 /* The editors' stylesheet, for a page that is not the site (docs/library.md): everything an editor needs and nothing
    of the site's page. The cascade is the site's, said once: tokens under everything, then the kit, then each app's own
    sheet (an editor brings its own, as it does on the site), then what changes by width, then what changes for a
-   person's settings. Three sheets are here and not in the site's: what the site's body gives its editors
-   (standalone.css), and who did what, drawn over the words for a host that shares a document (changes.css) and listed
-   beside them with its comments (review.css). No rule for the body and none for the shell, and none for the root but the tokens (its custom
+   person's settings. Four sheets are here and not in the site's: what the site's body gives its editors
+   (standalone.css), who did what, drawn over the words for a host that shares a document (changes.css) and listed
+   beside them with its comments (review.css), and the elements a host's own pages are made of, its table, its search, its header and its template picker (host.css). No rule for the body and none for the shell, and none for the root but the tokens (its custom
    properties, and its color-scheme with the theme): the page keeps its own (page.css is the site's). Every rule is in a layer, so a page's own rules outside one
    outrank them all. The npm package serves it as `tinylittleoffice/editors.css` (vite.lib.config.ts). */
 @layer tokens, kit, apps, responsive, a11y;
@@ -14,5 +14,6 @@
 @import './styles/text.css';
 @import './styles/changes.css';
 @import './styles/review.css';
+@import './styles/host.css';
 @import './styles/responsive.css';
 @import './styles/a11y.css';

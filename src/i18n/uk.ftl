@@ -3425,3 +3425,113 @@ comments-answering = { $name } відповідає…
 comments-people = Люди
 # en: 0f87ce5a3cbdf6796c6f152204e44b143201290f
 comments-write = { $what }… @ — згадати людей
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# en: 4816c01fcfc82e618ba8d4f9f2d5cca84f36a4c1
+table-filter-rows = Фільтр рядків
+# en: f648af13b3a158a514634b7a27501c621e4f9c87
+table-add-row = Додати рядок
+# en: 45b553017087942f58e36f1963f58398aaa93cef
+table-select-all-rows = Вибрати всі рядки
+# en: 9320afbefdcf309b4b763224769937b3936d517a
+table-select-name = Вибрати { $name }
+# en: e892255d168b0ccc00b895b653a7ff8d9a7ab4f0
+table-no-rows = Поки що нічого немає
+# en: 7dc03a2b77e86b5ce3279f1239cf7eed2c3e31dd
+table-no-rows-match = Немає відповідних рядків
+# en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
+table-sort-hint = Сортувати за цим стовпцем. Shift+клік — сортувати й за ним.
+# en: bce06414177f72ab70e6387b6af9f8ceef0d6049
+search-label = Шукати
+# en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd
+search-searching = Пошук…
+# en: 938206ae8c35210570eff0f625f7174736ab50d3
+search-failed = Пошук не вдався. Спробуйте ще раз.
+# en: 445b04c118dbe3becf81b1490e4f09218cd85a09
+search-n-found = { $n ->
+        [one] { $n } результат
+        [few] { $n } результати
+        [many] { $n } результатів
+       *[other] { $n } результату
+    }
+# en: 1c8d7da8241f46e35847a6ee94585aa15c895038
+search-nothing-found = Немає збігів для «{ $q }»
+# en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
+header-breadcrumbs = Навігаційний ланцюжок
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = Дошка
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = дошка
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = Картки в колонках за статусом, кожна картка — рядок таблиці.
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = Статус
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = Зробити
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = У роботі
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = Готово
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = Немає карток
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+        [one] { $n } картка
+        [few] { $n } картки
+        [many] { $n } карток
+       *[other] { $n } картки
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = Відкрити картки в електронній таблиці
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = Картка
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = Колонка
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = Параметри колонки
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = Параметри колонки { $lane }
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = Додати картку
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = Видалити колонку
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = Перенести в…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = Перейменувати колонку
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = Сусідня картка в попередній або наступній колонці
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = Перенести картку в попередню або наступну колонку
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = Назва колонки
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = РРРР-ММ-ДД
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = Нова колонка
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = Назва картки { $n } у { $lane }
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = Картка { $n } у { $lane }: торкніться, щоб вибрати, перетягніть, щоб перемістити
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = Вибрані картки
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = Дошка проєкту
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = Зробити, у роботі й готово: у кожного завдання відповідальний і строк.
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = Воронка продажів
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = Угоди від вхідних до виграних чи програних, із сумою та датою закриття.
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = Наймання
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = Кандидати від відгуку до наймання, з посадою та наступним кроком.
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = Контент-план
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = Матеріали від ідеї до публікації, з каналом, автором і датою.

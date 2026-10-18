@@ -1,0 +1,534 @@
+/* The elements a host's own pages are made of (docs/library.md): the typed table (<to-table>, kit/ui/table.ts, its
+   classes to-dt-), the search box (<to-search>, kit/ui/search-box.ts, to-sb-), the page's header (<to-header>,
+   kit/ui/header.ts, to-ph-) and the template picker (<to-template-picker>, kit/ui/template-picker.ts, which wears the
+   home page's templates dialog: kit.css). Only the editors' stylesheet (editors.css) has this sheet: the site's pages
+   draw none of them. The table is document, in rem; its bar, the search box and the header are nav, in em, at the
+   nav's size (kit.css's list, said again here for these). */
+@layer kit {
+  :is(.to-dt-bar, to-search, to-header, .to-tp-dialog) {
+    font-size: var(--to-nav-font);
+    --to-scale: var(--to-nav-font);
+    --to-touch: calc(2.75 * var(--to-nav-font));
+    --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
+  }
+
+  /* ---- the table: a bar over a box that scrolls, its headings stuck to the top, its first column to the start ---- */
+  to-table {
+    display: block;
+    min-width: 0;
+    --to-dt-row-h: 2.75rem;
+  }
+  .to-dt-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    padding-block-end: 0.5em;
+  }
+  .to-dt-filter {
+    flex: 1 1 12em;
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+    min-height: var(--to-touch);
+    padding: 0 0.625em;
+    color: var(--to-ink-3);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius);
+  }
+  .to-dt-filter input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    color: var(--to-ink);
+    font: inherit;
+    background: transparent;
+    border: 0;
+  }
+  .to-dt-filter input:focus {
+    outline: none;
+  }
+  .to-dt-filter:focus-within {
+    outline: 0.125em solid var(--to-accent);
+    outline-offset: 0.125em;
+  }
+  .to-dt-add {
+    margin-inline-start: auto;
+  }
+  .to-dt-box {
+    position: relative;
+    overflow: auto;
+    overscroll-behavior: contain;
+    max-height: var(--to-dt-h, min(36rem, 75vh));
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .to-dt-grid {
+    min-width: max(100%, var(--to-dt-least));
+  }
+  .to-dt-head,
+  .to-dt-row {
+    display: grid;
+    grid-template-columns: var(--to-dt-cols);
+    min-width: 100%;
+  }
+  .to-dt-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    color: var(--to-ink-3);
+    font-size: 0.8125rem;
+    background: var(--to-surface-2);
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-dt-body {
+    position: relative;
+    height: calc(var(--to-dt-n) * var(--to-dt-row-h));
+  }
+  .to-dt-row {
+    position: absolute;
+    inset-inline: 0;
+    top: calc(var(--i) * var(--to-dt-row-h));
+    height: var(--to-dt-row-h);
+  }
+  .to-dt-row:hover > .to-dt-cell,
+  .to-dt-row[aria-selected='true'] > .to-dt-cell {
+    background: var(--to-surface-2);
+  }
+  .to-dt-row[aria-selected='true'] > .to-dt-cell {
+    background: color-mix(in oklab, var(--to-accent-soft) 60%, var(--to-surface));
+  }
+  .to-dt-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    height: var(--to-dt-row-h);
+    padding: 0 0.625rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: var(--to-surface);
+  }
+  /* A line under each row, drawn by its cells, whose grounds would cover the row's own. */
+  .to-dt-row > .to-dt-cell {
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-dt-head > .to-dt-cell {
+    background: var(--to-surface-2);
+  }
+  .to-dt-cell:focus-visible {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
+  }
+  .to-dt-num {
+    justify-content: flex-end;
+    font-variant-numeric: tabular-nums;
+  }
+  /* The boxes and the first column stay at the start as the rest scrolls under them. */
+  .to-dt-pin {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+  }
+  .to-dt-box-cell {
+    justify-content: center;
+    padding: 0;
+  }
+  .to-dt-box-cell + .to-dt-pin {
+    inset-inline-start: 2.75rem;
+  }
+  .to-dt-pin:not(.to-dt-box-cell) {
+    border-inline-end: 1px solid var(--to-border);
+  }
+  .to-dt-check {
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    accent-color: var(--to-accent);
+  }
+  .to-dt-t-boolean {
+    justify-content: center;
+  }
+  .to-dt-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    max-width: 100%;
+    height: 100%;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .to-dt-sort > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .to-dt-sort:hover {
+    color: var(--to-ink);
+  }
+  .to-dt-sort small {
+    font-size: 0.6875rem;
+  }
+  .to-dt-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    color: var(--to-accent);
+    font: inherit;
+    text-align: start;
+    text-decoration: none;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .to-dt-link > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .to-dt-link:hover > span:last-child {
+    text-decoration: underline;
+  }
+  .to-dt-initial {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--to-accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--to-accent-soft);
+    border-radius: 50%;
+  }
+  .to-dt-editing {
+    padding: 0.125rem;
+    overflow: visible;
+  }
+  .to-dt-editor {
+    width: 100%;
+    height: 100%;
+    padding: 0 0.5rem;
+    color: var(--to-ink);
+    font: inherit;
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-accent);
+    border-radius: var(--to-radius-sm);
+  }
+  .to-dt-editor[aria-invalid='true'] {
+    border-color: var(--to-danger);
+  }
+  .to-dt-empty {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    color: var(--to-ink-3);
+    text-align: center;
+  }
+
+  /* ---- the search box: a field with its results under it, or a button that opens them in a dialog ---- */
+  to-search {
+    display: block;
+    position: relative;
+    min-width: 0;
+  }
+  .to-sb-field,
+  .to-sb-open {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    min-height: var(--to-touch);
+    padding: 0 0.75em;
+    color: var(--to-ink-3);
+    font: inherit;
+    text-align: start;
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius);
+  }
+  .to-sb-open {
+    cursor: pointer;
+  }
+  .to-sb-open > span {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .to-sb-open kbd {
+    padding: 0 0.375em;
+    font-size: 0.8125em;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .to-sb-field:focus-within {
+    outline: 0.125em solid var(--to-accent);
+    outline-offset: 0.125em;
+  }
+  .to-sb-field input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    color: var(--to-ink);
+    font: inherit;
+    font-size: calc(0.9375 * var(--to-scale));
+    background: transparent;
+    border: 0;
+  }
+  .to-sb-field input:focus {
+    outline: none;
+  }
+  /* The results under an inline field: a popover, placed beside the field (menu.ts place). */
+  .to-sb-pop {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0.25em;
+    width: max(var(--to-sb-w, 20em), 20em);
+    max-width: calc(100vw - 1em);
+    max-height: 70vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    color: var(--to-ink);
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow-pop);
+  }
+  .to-sb-dialog .to-dialog-inner {
+    width: min(40em, calc(100vw - 2em));
+  }
+  .to-sb-dialog .to-sb-list {
+    max-height: min(60vh, 30em);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-top: 0.5em;
+  }
+  .to-sb-list {
+    margin: 0;
+    padding: 0;
+  }
+  .to-sb-group {
+    padding-block-end: 0.25em;
+  }
+  .to-sb-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5em;
+    margin: 0;
+    padding: 0.5em 0.625em 0.25em;
+    color: var(--to-ink-3);
+    font-size: 0.8125em;
+    font-weight: 600;
+  }
+  .to-sb-head small {
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .to-sb-hit {
+    display: flex;
+    align-items: center;
+    gap: 0.625em;
+    min-height: var(--to-touch);
+    padding: 0.25em 0.625em;
+    color: var(--to-ink);
+    text-decoration: none;
+    border-radius: var(--to-radius-sm);
+    cursor: pointer;
+  }
+  .to-sb-hit[aria-selected='true'] {
+    background: var(--to-accent-soft);
+  }
+  .to-sb-hit:not([aria-selected='true']):hover {
+    background: var(--to-surface-2);
+  }
+  .to-sb-mark {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75em;
+    height: 1.75em;
+    color: var(--to-ink-2);
+  }
+  .to-sb-words {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .to-sb-words > span,
+  .to-sb-words > small {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .to-sb-words > small {
+    color: var(--to-ink-3);
+  }
+  .to-sb-create {
+    color: var(--to-accent);
+    border-top: 1px solid var(--to-border);
+    border-radius: 0;
+  }
+  .to-sb-said {
+    margin: 0;
+    padding: 0.75em 0.625em;
+    color: var(--to-ink-3);
+  }
+  .to-sb-said:empty {
+    display: none;
+  }
+  .to-sb-quiet {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* ---- the page's header: the way back and the title, then the search, then the page's actions ---- */
+  to-header {
+    display: block;
+    container: to-ph / inline-size;
+  }
+  .to-ph {
+    display: flex;
+    align-items: center;
+    gap: 0.5em 1em;
+    min-height: var(--to-header-h);
+    padding: 0.5em var(--to-gutter);
+    background: var(--to-surface);
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-ph-main {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    min-width: 0;
+  }
+  .to-ph-titles {
+    flex: 1;
+    min-width: 0;
+  }
+  .to-ph-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--to-ink-3);
+    font-size: 0.8125em;
+  }
+  .to-ph-crumbs li {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .to-ph-crumbs li + li::before {
+    content: '/';
+    padding: 0 0.375em;
+    color: var(--to-border-strong);
+  }
+  .to-ph-crumbs a,
+  .to-ph-crumbs button {
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-decoration: none;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .to-ph-crumbs a:hover,
+  .to-ph-crumbs button:hover {
+    color: var(--to-ink);
+    text-decoration: underline;
+  }
+  .to-ph-title {
+    margin: 0;
+    overflow: hidden;
+    font-size: calc(1.25 * var(--to-scale));
+    font-weight: 600;
+    line-height: var(--to-line-label);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .to-ph-title input {
+    width: 100%;
+    margin-inline-start: -0.25em;
+    padding: 0 0.25em;
+    color: var(--to-ink);
+    font: inherit;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--to-radius-sm);
+  }
+  .to-ph-title input:hover,
+  .to-ph-title input:focus {
+    background: var(--to-input-bg);
+    border-color: var(--to-border);
+  }
+  .to-ph-search {
+    flex: 0 1 22em;
+    min-width: 0;
+  }
+  .to-ph-actions {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+  }
+  .to-ph-search:empty,
+  .to-ph-actions:empty {
+    display: none;
+  }
+  /* Narrow, the search takes a row of its own under the title and the actions. */
+  @container to-ph (width < 40em) {
+    .to-ph {
+      flex-wrap: wrap;
+    }
+    .to-ph-search {
+      order: 1;
+      flex: 1 1 100%;
+    }
+  }
+
+  /* ---- the template picker: the home page's templates dialog, each app's templates under its name ---- */
+  .to-tp-dialog .to-listbox {
+    display: block;
+  }
+  .to-tp-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18.75em, 1fr));
+    gap: 0.25em;
+    padding-block-end: 0.5em;
+  }
+  .to-tp-group > h3 {
+    grid-column: 1 / -1;
+    margin: 0.5em 0.5em 0;
+    color: var(--to-ink-3);
+    font-size: 0.875em;
+    font-weight: 600;
+  }
+  .to-tp-group > .to-option {
+    min-width: 0;
+    align-items: start;
+    padding-inline: 0.5em;
+  }
+  .to-tp-dialog to-preview {
+    width: 6em;
+    height: 4.5em;
+  }
+}

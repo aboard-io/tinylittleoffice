@@ -41,6 +41,7 @@ export type { Cells, Chart, Range, Table } from './table.ts';
 export {
   clearCells,
   COL_NAMES,
+  compareCells,
   copyCells,
   dayToYmd,
   fillCells,

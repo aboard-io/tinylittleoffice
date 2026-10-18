@@ -1,0 +1,274 @@
+/* Board: the lanes side by side, about 16rem each, the board scrolling sideways on its own where they are more than the
+   column holds; where the board is narrower than two lanes (a phone, or the size of everything grown by a pinch: the
+   container's rem is the root's, so it follows the size) they stack, a lane the column's width, so the words reflow and
+   the page never scrolls sideways. A lane is a tinted panel: its name (typed where it is drawn), its count and its menu,
+   then its cards. A card is a small sheet: its grip (a tap chooses it, a finger held on it too, a drag carries it to any
+   lane), its title, its fields under it in a smaller ink. Every control is a finger wide; a card carried leaves a faded
+   copy where it was, a ghost of it follows the pointer, and a line shows where it would land. A card opened is a
+   dialog of its fields, a row each. A board carried only shows its words and does not offer them to be typed.
+
+   The editor brings it, as each app's editor brings its own; the library's build serves it as a stylesheet of its own,
+   tinylittleoffice/board.css, beside tinylittleoffice/editors.css rather than in it (vite.lib.config.ts), drawn with
+   that sheet's tokens (--to-surface, --to-touch…). Its rules are in the `apps` layer, as each suite app's own sheet
+   is; the layers' order is said first, the same order editors.css gives them, so the cascade is the same whichever of
+   the two the page loads first and a page's own rules outside a layer outrank both. */
+@layer tokens, kit, apps, responsive, a11y;
+@layer apps {
+  to-board-editor {
+    display: block;
+    container: board / inline-size;
+  }
+  .board {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.25rem 0 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    /* A double tap selects a word; it never zooms the page. */
+    touch-action: manipulation;
+  }
+  /* Chosen cards hold the focus here; the cards themselves show it. */
+  .board:focus {
+    outline: none;
+  }
+  .board.carrying {
+    user-select: none;
+  }
+  .board-lane {
+    flex: 0 0 16rem;
+    min-width: 0;
+    padding: 0.375rem 0.375rem 0.5rem;
+    background: var(--to-surface-2);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+  }
+  .board-lane.over {
+    border-color: var(--to-accent);
+  }
+  .board-head {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .board-head .board-lane-name {
+    flex: 1;
+    min-width: 0;
+  }
+  .board-lane-name .tx,
+  .board-title .tx {
+    min-height: 2.25rem;
+    padding: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: var(--to-radius-sm);
+    color: var(--to-ink);
+    line-height: 1.5;
+  }
+  .board-lane-name .tx {
+    font: 600 1rem var(--to-font);
+  }
+  .board-title .tx {
+    font: 1rem var(--to-font);
+  }
+  .board-lane-name .tx:hover,
+  .board-title .tx:hover {
+    border-color: var(--to-border);
+  }
+  .board-lane-name .tx:focus,
+  .board-title .tx:focus {
+    border-color: var(--to-accent);
+    background: var(--to-input-bg);
+  }
+  /* Carried only, the words are shown and not typed: no field's border under the pointer, nor its ground (a read-only board keeps the look it had). */
+  to-board-editor[carry-only] :is(.board-lane-name, .board-title) .tx:hover {
+    border-color: transparent;
+  }
+  to-board-editor[carry-only] :is(.board-lane-name, .board-title) .tx:focus {
+    background: none;
+  }
+  .board-count {
+    padding: 0 0.25rem;
+    color: var(--to-ink-3);
+    font: 600 0.875rem var(--to-font);
+  }
+  .board-cards {
+    display: grid;
+    gap: 0.375rem;
+    list-style: none;
+    margin: 0.25rem 0 0;
+    padding: 0;
+  }
+  .board-card {
+    display: grid;
+    grid-template-columns: var(--to-touch) minmax(0, 1fr);
+    align-items: start;
+    padding: 0.125rem 0.375rem 0.25rem 0;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .board-card.sel {
+    border-color: var(--to-accent);
+  }
+  .board-card.ranged {
+    background: var(--to-accent-soft);
+    box-shadow: inset 0.1875rem 0 0 var(--to-accent);
+  }
+  .board-card.dragging {
+    opacity: 0.45;
+  }
+  /* Where a carried card would land: a line above the card it would go before, or under a lane's last card. */
+  .board-card.before {
+    box-shadow: 0 -0.25rem 0 -0.0625rem var(--to-accent);
+  }
+  .board-cards.end > .board-card:last-child:not(.dragging),
+  .board-none.end {
+    box-shadow: 0 0.25rem 0 -0.0625rem var(--to-accent);
+  }
+  /* Pickable, a card is a thing to open, but for a title typed in, whose words are the caret's. */
+  to-board-editor[pickable] .board-card {
+    cursor: pointer;
+  }
+  to-board-editor[pickable] .board-title .tx[contenteditable='true'] {
+    cursor: text;
+  }
+  .board-grip {
+    width: var(--to-touch);
+    height: var(--to-touch);
+    color: var(--to-ink-3);
+    cursor: grab;
+  }
+  .board-grip[aria-pressed='true'] {
+    color: var(--to-accent);
+  }
+  .board-main {
+    min-width: 0;
+    padding-top: 0.25rem;
+  }
+  .board-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+    margin: 0 0 0.125rem;
+    padding: 0 0.4375rem;
+    color: var(--to-ink-2);
+    font-size: 0.8125rem;
+  }
+  .board-fields > div {
+    display: flex;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+  .board-fields dt {
+    color: var(--to-ink-3);
+  }
+  .board-fields dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .board-none {
+    margin: 0.25rem 0 0;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+  /* The ghost of a carried card, on the page's body under the pointer. */
+  .board-ghost {
+    position: fixed;
+    z-index: 30;
+    padding: 0.5rem 0.75rem;
+    overflow: hidden;
+    color: var(--to-ink);
+    font: 1rem var(--to-font);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: var(--to-surface);
+    border: 1px solid var(--to-accent);
+    border-radius: var(--to-radius-sm);
+    box-shadow: var(--to-shadow);
+    opacity: 0.92;
+    pointer-events: none;
+    rotate: 2deg;
+  }
+  /* The menus a lane's button and the bar under chosen cards open have no button of their own. */
+  .board-menu > button,
+  .board-moveto > button {
+    display: none;
+  }
+  /* A card opened: its fields, a row each, its name before it. */
+  .board-form {
+    display: grid;
+    gap: 0.75em;
+  }
+  .board-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375em 0.625em;
+  }
+  .board-field > span:first-child {
+    flex: 0 0 7em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--to-ink-2);
+  }
+  .board-field.board-check > span {
+    flex: 1;
+    color: var(--to-ink);
+  }
+  .board-field input[type='text'],
+  .board-field select,
+  .board-field to-text {
+    flex: 1 1 10em;
+    min-width: 0;
+  }
+  .board-field input[type='text'],
+  .board-field select,
+  .board-field to-text .tx {
+    min-height: var(--to-touch);
+    padding: 0 0.5em;
+    font: inherit;
+    font-size: var(--to-scale);
+    color: var(--to-ink);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+  }
+  /* Carried only, the fields a card's dialog shows and does not change are words, not boxes to type in. */
+  .board-form[readonly] :is(input[type='text'], to-text .tx) {
+    background: none;
+    border-color: transparent;
+  }
+  .board-field to-text .tx {
+    padding: 0.5em;
+    line-height: 1.375em;
+  }
+  .board-field to-text .tx p {
+    margin: 0;
+  }
+  .board-actions {
+    justify-content: flex-end;
+  }
+  .board-actions .board-delete {
+    margin-right: auto;
+    color: var(--to-danger);
+  }
+  /* Narrower than two lanes: one under another, each the column's width. */
+  @container board (max-width: 34rem) {
+    .board {
+      flex-direction: column;
+      align-items: stretch;
+      overflow-x: visible;
+    }
+    .board-lane {
+      flex: none;
+    }
+  }
+  .board-total {
+    display: flex;
+    align-items: center;
+    height: var(--to-touch);
+    margin-left: auto;
+    padding: 0 0.375em;
+    white-space: nowrap;
+  }
+}

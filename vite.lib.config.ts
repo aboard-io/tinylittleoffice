@@ -9,6 +9,9 @@
  *   --mode commands  dist/commands.js: the command registry for a program (src/commands.ts), what declares, runs
  *                    and serves commands (the tools, the documentation), with English's messages for their words; one
  *                    file as doc.js is, no dependencies and no DOM; `import { tools } from 'tinylittleoffice/commands'`
+ *   --mode board-model  dist/board-model.js: the Board's model alone (src/apps/board/model.ts), pure and with no DOM,
+ *                    for a server that makes and changes boards; one file as doc.js is, whose kernel it imports from
+ *                    ./doc.js rather than holding a second copy; `import { boardDoc } from 'tinylittleoffice/board/model'`
  *   --mode editors   dist/editors.js: the editors for a page that is not the site (src/editors.ts), bundled as the
  *                    site bundles its app file (vite.config.ts fileOf: Lit, the kit and every app in the one file),
  *                    with its stylesheet whole beside it as dist/editors.css, and what the site fetches lazily (an
@@ -16,10 +19,15 @@
  *                    their own under dist/editors/, fetched by the page when asked for; it is
  *                    `tinylittleoffice/kit` too (src/kit.ts, for an app built outside the suite), whose names
  *                    src/editors.ts exports, so one file serves both and a page that imports the two has one Lit,
- *                    one registry of apps and one of commands (docs/library.md, An app built outside)
+ *                    one registry of apps and one of commands (docs/library.md, An app built outside). Beside it,
+ *                    a second entry: dist/board.js, the Board (src/board.ts), an app of the library's that the site
+ *                    does not list (docs/library.md, The library's own apps). Its modules are its own file, never the
+ *                    editors': editors.js holds what its own entry reaches, and board.js imports from it what the
+ *                    two share, so the page has one Lit and one registry. Its stylesheet is board.css, beside
+ *                    editors.css rather than in it, so a page with no board loads none of it
  *
- * `npm run build:lib` makes all three, after `npm run build:cli` or before it: no build empties the folder, each
- * removes only its own files from the last build. The deploy makes all three before it publishes, and
+ * `npm run build:lib` makes all four, after `npm run build:cli` or before it: no build empties the folder, each
+ * removes only its own files from the last build. The deploy makes all four before it publishes, and
  * test/package.test.ts packs the package and installs it.
  *
  * The stylesheet names the site's fonts by the site's paths (/fonts/…); the editors' build carries the faces it names
@@ -29,12 +37,38 @@
 import { defineConfig } from 'vite';
 import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import type { Plugin } from 'vite';
 import { ftlBare } from './scripts/ftl-plugin.ts';
 import { fileOf } from './vite.config.ts';
 
 const DIST = resolve(import.meta.dirname, 'packages/doc/dist');
 /** Where the site keeps its faces (served at /fonts/…). */
 const FONTS = resolve(import.meta.dirname, 'public/fonts');
+/** The kernel's module, which board-model.js imports from the package's own doc.js. */
+const KERNEL = resolve(import.meta.dirname, 'src/doc/index.ts');
+/** A module of an app the library serves on its own entry (src/board.ts, src/apps/board/): never in editors.js. */
+const OWN_ENTRY = /\/src\/(board\.ts|apps\/board\/)/;
+
+/**
+ * What the editors' entry reaches, read once the build has every module and before it makes its files: the modules
+ * editors.js may hold. A module only the Board reaches (its own, and Lucide's icons no suite app draws) is left to
+ * board.js, so editors.js is the bytes it would be without the Board, but for what it exports to board.js.
+ */
+const reached = new Set<string>();
+const reach = (): Plugin => ({
+  name: 'tinyoffice-lib-reach',
+  apply: 'build',
+  buildEnd() {
+    reached.clear();
+    const walk = (id: string) => {
+      if (reached.has(id) || OWN_ENTRY.test(id.replaceAll('\\', '/'))) return;
+      reached.add(id);
+      const info = this.getModuleInfo(id);
+      for (const next of [...(info?.importedIds ?? []), ...(info?.dynamicallyImportedIds ?? [])]) walk(next);
+    };
+    walk(resolve(import.meta.dirname, 'src/editors.ts'));
+  },
+});
 
 export default defineConfig(({ mode }) => ({
   base: './',
@@ -50,15 +84,17 @@ export default defineConfig(({ mode }) => ({
       resolveId: (id: string) => (mode === 'commands' && /\/i18n\/(?!en\.)[^/]+\.ftl\?raw$/.test(id) ? '\0english-only' : undefined),
       load: (id: string) => (id === '\0english-only' ? "export default (() => {\n  throw new Error('commands.js carries English alone');\n})();" : undefined),
     },
-    ftlBare(),
+    // The library's own apps' words ride in the editors' languages (scripts/ftl-plugin.ts); every other build leaves them out.
+    ftlBare({ library: mode === 'editors' }),
+    ...(mode === 'editors' ? [reach()] : []),
     {
       // The library's own files from the last build go before this one writes, and nothing else in the folder: the
       // command line's api.js, tinyoffice.js and skill/ stay.
       name: 'tinyoffice-lib-clean',
       apply: 'build',
       buildStart() {
-        if (mode === 'doc' || mode === 'commands') rmSync(resolve(DIST, `${mode}.js`), { force: true });
-        else for (const f of ['editors.js', 'editors.css', 'editors', 'fonts']) rmSync(resolve(DIST, f), { recursive: true, force: true });
+        if (mode !== 'editors') rmSync(resolve(DIST, `${mode}.js`), { force: true });
+        else for (const f of ['editors.js', 'editors.css', 'board.js', 'board.css', 'editors', 'fonts']) rmSync(resolve(DIST, f), { recursive: true, force: true });
       },
     },
     {
@@ -80,27 +116,34 @@ export default defineConfig(({ mode }) => ({
     outDir: DIST,
     emptyOutDir: false,
     copyPublicDir: false,
-    ...(mode === 'doc' || mode === 'commands'
+    ...(mode !== 'editors'
       ? {
           target: 'node24',
           minify: false,
-          ssr: resolve(import.meta.dirname, mode === 'doc' ? 'src/kernel.ts' : 'src/commands.ts'),
+          ssr: resolve(import.meta.dirname, { doc: 'src/kernel.ts', commands: 'src/commands.ts', 'board-model': 'src/apps/board/model.ts' }[mode] ?? 'src/kernel.ts'),
           rollupOptions: {
             // No "//#region <path>" notes, which name where the modules were on the building machine.
             experimental: { attachDebugInfo: 'none' as const },
-            output: { entryFileNames: `${mode}.js`, codeSplitting: false },
+            // The Board's model takes the kernel from the package's doc.js, which a program has already.
+            ...(mode === 'board-model' ? { external: (id: string) => id === KERNEL || id === './doc.js' } : {}),
+            output: { entryFileNames: `${mode}.js`, codeSplitting: false, ...(mode === 'board-model' ? { paths: (id: string) => (id === KERNEL ? './doc.js' : id) } : {}) },
           },
         }
       : {
           target: 'es2022',
           // The map's worker beside the lazy files, not in an assets/ folder of its own.
           assetsDir: 'editors',
-          // One stylesheet, editors.css, beside the one file, as the site has one beside its app file.
-          cssCodeSplit: false,
+          // A stylesheet an entry: editors.css beside the one file, as the site has one beside its app file, and
+          // board.css beside the Board's (no lazy file brings a sheet of its own).
+          cssCodeSplit: true,
           // No preload helper: the lazy files need nothing the editors' file does not hold.
           modulePreload: false,
           chunkSizeWarningLimit: 4096,
-          lib: { entry: resolve(import.meta.dirname, 'src/editors.ts'), formats: ['es' as const], fileName: () => 'editors.js', cssFileName: 'editors' },
+          lib: {
+            entry: { editors: resolve(import.meta.dirname, 'src/editors.ts'), board: resolve(import.meta.dirname, 'src/board.ts') },
+            formats: ['es' as const],
+            fileName: (_format: string, name: string) => `${name}.js`,
+          },
           rollupOptions: {
             experimental: { attachDebugInfo: 'none' as const },
             // The entry may carry exports its lazy parts share with it, rather than be a facade over a third file.
@@ -112,10 +155,11 @@ export default defineConfig(({ mode }) => ({
             output: {
               minify: true,
               chunkFileNames: (chunk: { facadeModuleId: string | null; name: string }) => `editors/${chunk.facadeModuleId ? fileOf(chunk.facadeModuleId) : chunk.name}-[hash].js`,
-              assetFileNames: (asset: { names: string[] }) => (asset.names.some((n) => n.endsWith('.css')) ? 'editors.css' : 'editors/[name]-[hash][extname]'),
+              assetFileNames: (asset: { names: string[] }) => (asset.names.some((n) => n.endsWith('.css')) ? '[name][extname]' : 'editors/[name]-[hash][extname]'),
               // Every module the site puts in its app file is one group, the entry's: the bundler splits off only the
               // templates, the languages and the map (vite.config.ts says why the map is left out of every group).
-              codeSplitting: { groups: [{ name: 'editors', test: (id: string) => fileOf(id) === 'app' }] },
+              // The Board's are its own entry's (reach, above).
+              codeSplitting: { groups: [{ name: 'editors', test: (id: string) => fileOf(id) === 'app' && (reached.has(id) || !id.startsWith('/')) }] },
             },
           },
         }),

@@ -4,9 +4,9 @@ Tiny Little Office is becoming a library other pages build on, first among them 
 its docs/plan.md): its documents are built with the kernel and edited with these editors, kept in Postgres rather than in
 links. The site stays what it is, and is the library's first user: whatever an editor needs from the page it is in, the
 site gives it the way any other page would. And an app need not be the suite's: one built outside it, on
-`tinylittleoffice/kit`, registers beside the suite's apps and is mounted as they are (An app built outside). The
-first is the app of cards in lanes, which Paul made a library of its own (2026-10-17: "our separate library on top of
-the new tinylittleoffice library").
+`tinylittleoffice/kit`, registers beside the suite's apps and is mounted as they are (An app built outside). And the
+library has an app of its own that the site does not list: the Board, cards in lanes by their status (The library's
+own apps).
 
 ## What a page that holds an editor needs
 
@@ -93,9 +93,7 @@ What an app still asked of the site itself, and what replaces it:
 11. **An app built outside.** Done: `tinylittleoffice/kit` (src/kit.ts) is what an app's author needs to make an app
     as the suite's are made; `registerApp` puts it in the registry after the suite's, and `addStrings` gives it its
     words in any language; test/browser/kit.test.ts builds one with the kit and the kernel alone, mounts it, types in
-    it and reads its ops, runs its command, shows it read-only and speaks Spanish. The app of cards in lanes, which
-    this branch had added to the suite, left it to be the first such app, a package of its own: see An app built
-    outside.
+    it and reads its ops, runs its command, shows it read-only and speaks Spanish: see An app built outside.
 12. **Tracked changes and comments for a host.** Done: who did what in a document several people write, as the
     Contract Editor shows it (Paul, 2026-10-17: "the way it shows who did what is good"), is the kit's:
     kit/text/changes.ts says it and kit/text/redline.ts draws it over a mounted Word Processor, with the text editor's
@@ -106,7 +104,17 @@ What an app still asked of the site itself, and what replaces it:
     versions and draws them, pins a comment by its quote, has the bubble's Comment tell the host and offers "@"
     people: see Tracked changes and comments for a host.
 13. **A Storybook.** Done: every element and every app's editor alone, as a host holds them: see The Storybook.
-14. **What the Storybook found.** Done (2026-10-18, for Atlas, which built them by hand: its web/src/redline.ts,
+14. **The library's own apps.** Done: the Board is in src/apps/board/ as the suite's apps are, served on entries of
+    its own (`tinylittleoffice/board`, `/board/model`, `/board.css`) and in no list of the site's: see The library's
+    own apps.
+15. **What a host's own pages are made of.** Done: the elements Atlas's lists, header and search are built from
+    (Atlas's docs/next.md: "Lists are typed tables", "One search at the top of every page"), in the kit and served by
+    `tinylittleoffice/kit` and `/editors` with their types: a typed table (`<to-table>`), a search box (`<to-search>`),
+    a page's header (`<to-header>`) and a template picker (`pickTemplate`). Their rules are src/styles/host.css, which
+    only editors.css imports, and nothing of the site's imports them, so the site's files and budgets are as they were.
+    test/table.test.ts and test/browser/table.test.ts, search-box.test.ts, header.test.ts and template-picker.test.ts
+    hold them: see A typed table, A search box, A page's header and A template picker.
+16. **What the Storybook found.** Done (2026-10-18, for Atlas, which built them by hand: its web/src/redline.ts,
     margin.ts, comment-box.ts and the review half of tracking.ts): the review panel and the margin as components, the
     redraw that awaits the ghosts, a quote from the selection, a color for everyone, "docremote" (Tracked changes and
     comments for a host, The components); five drawing bugs, each with its test (a paragraph taken out last never
@@ -128,22 +136,154 @@ kit's `setTheme` and its Language `setLanguage`. A story's documents are the app
   interface's, the library's search, the picker) and Emoji.
 - **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the
   menus, Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the
-  preview, the locked card, the doc link dialog, the size of everything. Text: `<to-text>` alone, who did what (the
-  redline, a person's changes accepted, rejections, a reviewer), the review panel (`<to-review-panel>`: alone, for a
-  reader, reviewed, twelve people's colors, and beside the words with Accept and Reject), the margin (`<to-comments>`:
-  threads pinned by their quote, over who did what, for a reader, made from the bubble, and asking Atlas, answered in
-  the thread with a tracked change), "@" for people, and Compare. Draw: footnotes, charts, cards, QR codes, tiles.
+  preview, the locked card, the doc link dialog, the size of everything, a page's header, the template picker. Data:
+  the typed table (the Spreadsheet's membership roll, editable, refused, 5,000 rows, empty, narrow) and the search box
+  (inline, in a dialog, slow, failing). Text: `<to-text>` alone, who did what (the redline, a person's changes
+  accepted, rejections, a reviewer), the review panel (`<to-review-panel>`: alone, for a reader, reviewed, twelve
+  people's colors, and beside the words with Accept and Reject), the margin (`<to-comments>`: threads pinned by their
+  quote, over who did what, for a reader, made from the bubble, and asking Atlas, answered in the thread with a
+  tracked change), "@" for people, and Compare. Draw: footnotes, charts, cards, QR codes, tiles.
 - **Apps.** Each app's editor over one of its templates, editable and read-only, blank, two people sharing one
-  document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small.
+  document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small. The Board's
+  among them, registered by its stories as a page registers it (`registerBoard`), its words drawn as the library's
+  editors draw them (the Storybook's Vite builds the languages with `library: true`).
 - **Site.** The site's own page (the shell, the chrome, the drawer, the home page, an app's templates, Share, Privacy),
   with the site's page.css on while each is shown (`parameters.page`): what a host draws for itself, shown for what it is.
-- **Packages.** The Board, from its own checkout where one is beside this one (`BOARD_DIR` names it, or .storybook/vite.config.ts looks under ../projects/), the
-  kit and the kernel answered by this tree's source, so neither package installs the other; without it, its stories say so.
 
 A lint (test/lints.test.ts) holds that every tag `customElements.define` gives in src/ is a story's component, or
 named in a story's `parameters.covers`, so a new element comes with a story. `node scripts/check-stories.ts` opens
 every story of the built Storybook in Chromium (or of a running one, given its address) and fails on any error said or
 thrown.
+
+## A typed table
+
+`<to-table>` (kit/ui/table.ts) is a host's records as rows: a person's people, companies, events, tasks and projects,
+a pipeline seen as a table. It is not a document: the page holds the rows and hears what is done to them. What a
+column's cells hold, and so how each is shown, sorted and edited, is kit/ui/table-model.ts's, which is pure and
+reuses the Spreadsheet's words: a number with its commas and money in its currency (the kernel's `formatCell` and
+`formatMoney`), an amount typed as "$1,200" or "1,200 USD" read as a money cell reads it (`parseLiteral`), words ordered
+as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` for both), a date in the page's language
+(kit/core/dates.ts), and a quick search that folds case and accents as the library's does (kit/share/search.ts).
+
+- **What it takes.** `rows`, each with an `id` (TableRow); `columns` (TableColumn): `key` and `label`, and a `type`
+  (ColumnType): `text`, `number`, `money` (with `currency`, a code or a symbol), `date` ("2027-03-01", a Date or ms),
+  `datetime`, `boolean`, `enum` (its `options`, EnumOption: a value, words and a color, in the order a sort keeps),
+  `link` and `person` (`{ label, href }`, or words and the column's `href(row)`), `tags`, or `custom` (`render(value,
+  row)` draws it, `compare` orders it, `text` gives its words); `editable`, `hidden`, `sortable`, `width` (a grid
+  track) on any. `sort` (SortBy[], the first the primary), `query` and `filter(row)`, `hiddenColumns`, `selected`
+  (ids). Attributes: `selectable` (a box a row, and one for all), `addable` (Add row, or `add-label`'s words),
+  `filterable` (a field that sets `query`), `hideable` (the Columns menu), `label` (the grid's name), `empty` (what
+  an empty table says). A child with `slot="toolbar"` is drawn first in the bar over the table: a page's My and All.
+- **Its events.** All bubble. `sortchange` `{ sort }`; `columnschange` `{ hidden }`; `selection` `{ ids }`;
+  `rowpick` `{ id, row }` (a cell activated that is not edited); `cellpick` `{ id, column, value, row }` (a link with
+  no address, a person); `rowadd`. `rowchange` (RowChange: `{ id, column, value, before, row, wait }`) is cancelable:
+  the edit is shown at once, and a page that refuses it calls `preventDefault()`, or hands `wait` a promise that
+  rejects or comes back false (a server's answer), and the cell goes back. A kept edit is shown until the page gives
+  its rows again, which are then the truth.
+- **Sorting.** A click on a heading sorts by it, ascending, descending, then not at all; Shift and a click sorts by it
+  as well, after the others (its place shown beside its arrow). Each type by its own order: amounts and times as
+  numbers, a status by its options' order, a box unticked first, words as a reader orders them ("Item 2" before
+  "Item 10"); an empty cell last whichever way; rows that tie in the page's order.
+- **Keys.** A grid, as ARIA has it (`role=grid`, `aria-rowcount`, `aria-rowindex`, `aria-colindex`, `aria-sort`,
+  `aria-selected`, `aria-readonly`): one cell takes Tab; the arrows walk the cells and the headings, Home and End the
+  row's ends (Mod: the table's), Page Up and Page Down a screenful; Enter edits a cell (F2 too, a double click, or a
+  click on the cell in hand), follows its link, or picks its row; on a heading it sorts (Shift: as well); Space ticks
+  a row's box, a cell's box or the box for all. In an editor (a number field, a date or a moment field, a status's
+  options, words), Enter keeps the edit, Tab keeps it and moves on, Escape lets it go; words that are not a number in
+  a number's column are not kept, and the field says so.
+- **Its size.** The table scrolls in a box of its own, as the Spreadsheet's grid does (the page never scrolls:
+  kit/ui/scroll.ts): its headings stuck to the top, the boxes and the first column to the start. At a phone's width
+  it scrolls sideways in that box, the names in sight, rather than becoming cards, since a card a row would be a
+  height a row and the rows are drawn by their one height. Only the rows in sight are drawn, and eight more each way,
+  each `--to-dt-row-h` tall (2.75rem), so 5,000 rows cost what fifty do. The box is `--to-dt-h` tall at most (36rem,
+  or three quarters of the screen) unless the page sets its height; a page that lets it grow with no limit draws every
+  row. In Chromium, test/browser/table.test.ts's 5,000 rows are drawn in about 70ms, sorted by money in about 30ms and
+  by a date and then a name in about 60ms, filtered in about 300ms the first time (every row's words written once,
+  its dates among them) and under 10ms for each letter after, scrolled to the end in about 30ms and walked there by
+  Mod+End in about 120ms.
+
+```ts
+import { type RowChange, type TableColumn } from 'tinylittleoffice/kit';
+const columns: TableColumn<Person>[] = [
+  { key: 'name', label: 'Name', type: 'person', href: (p) => `/people/${p.id}`, editable: true },
+  { key: 'company', label: 'Company', type: 'link', value: (p) => ({ label: p.company.name, href: `/companies/${p.company.id}` }) },
+  { key: 'stage', label: 'Stage', type: 'enum', editable: true, options: STAGES },
+  { key: 'value', label: 'Value', type: 'money', currency: 'USD', editable: true },
+  { key: 'met', label: 'Last met', type: 'date' },
+];
+const table = Object.assign(document.createElement('to-table'), { columns, rows: people, label: 'People' });
+table.toggleAttribute('selectable', true);
+table.addEventListener('rowchange', (e) => {
+  const { id, column, value } = (e as CustomEvent<RowChange<Person>>).detail;
+  (e as CustomEvent<RowChange<Person>>).detail.wait(run('person.update', { id, [column]: value }));
+});
+table.addEventListener('rowpick', (e) => open((e as CustomEvent).detail.id));
+```
+
+## A search box
+
+`<to-search>` (kit/ui/search-box.ts) is one search across every kind of thing a host keeps. The page gives `search(q,
+signal)`, an async function answering with hits (SearchHit: `kind`, `id`, `title`, and `subtitle`, `icon` and `href`
+where it has them); the box asks it a moment after the last key (`delay`, 150ms; nothing under `min` letters, 1), and
+aborts the question before, whose answer is never shown. It draws the hits grouped by kind, the kinds in the order
+`kinds` names them (SearchKind: a heading and an icon), each with its count, then the actions `create(q)` offers for
+what was typed (SearchAction: "Add “Clea” as a company", the page's offer to make what it does not know). While the
+answer is coming it says Searching…; an answer that fails, that the search did not work; none, that nothing was found;
+and how many were, to a screen reader.
+
+- **Its keys.** A combobox, as ARIA has it: the words in the field, Down and Up through the hits and the actions,
+  around the ends (`aria-activedescendant`), Enter chooses (the first, where nothing is in hand), Escape closes the
+  list and then clears the field.
+- **Its event.** `searchpick` (SearchPick: `{ query, hit }` or `{ query, action }`), cancelable. A hit with an `href` is a
+  link, opened as one is unless the page prevents it; a page that routes itself prevents it and goes there itself.
+- **Inline or a dialog.** Inline (the default) it is a field with the hits in a popover under it, for a header;
+  `dialog` makes it a button drawn as the field that opens the search in a dialog. `hotkey` opens it (or puts the
+  focus in the field) with Mod+K from anywhere on the page; a page sets it on one box. `placeholder` and `label` are
+  the page's words for the field (else Search).
+
+```ts
+import { type SearchPick, type Searcher } from 'tinylittleoffice/kit';
+const search: Searcher = (q, signal) => fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.json());
+const box = Object.assign(document.createElement('to-search'), { search, kinds: { person: { label: 'People' }, company: { label: 'Companies' } },
+  create: (q: string) => [{ id: 'company.create', label: `Add “${q}” as a company` }] });
+box.toggleAttribute('hotkey', true);
+box.addEventListener('searchpick', (e) => {
+  const pick = (e as CustomEvent<SearchPick>).detail;
+  if (pick.action) create(pick.action.id, pick.query);
+});
+```
+
+## A page's header
+
+`<to-header>` (kit/ui/header.ts) is a page's header in the site's look for a page with no `<to-shell>`: the way back up,
+the page's title, and room for the page's search and actions. It takes `heading` (the title), `editable` (the title a
+field: Enter or leaving it keeps new words, told in `titlechange`, `{ title }`; Escape puts the old ones back; empty
+words are none), `level` (the heading's, 1) and `crumbs` (Crumb: `{ label, href? }`, from the top: one with an address
+is a link, one without a button, either told in `crumbpick`, `{ index, crumb }`, cancelable). Its slots
+(kit/ui/slots.ts: a child given with `slot="<name>"`, moved there, never copied) are `start` (before the title),
+`search` (a `<to-search>`) and `actions`. On a narrow page (under 40em of its own) the search takes a row of its own.
+
+```html
+<to-header heading="Clear Channel Digital Strategy" editable>
+  <to-search slot="search" hotkey></to-search>
+  <button slot="actions" class="to-btn primary">New task</button>
+</to-header>
+```
+
+## A template picker
+
+`pickTemplate(app?)` (kit/ui/template-picker.ts) opens the templates of `app` (every suite app's, under their names,
+without it) in a dialog over the page, each drawn small from its own document (`<to-preview>`), Blank first where the
+app's templates carry no blank of their own, and resolves with the one chosen, `{ app, id, title, text }`
+(PickedTemplate: Blank's id is `blank`, its title the app's "Untitled …"), or null when it is let go. It opens and
+navigates to nothing: the page keeps the document as it keeps its own (Atlas writes an exploration from one). Its keys
+are a menu's (kit/ui/menu.ts). `<to-template-picker app="write">` is the same for a page that places it itself: its
+`show()` resolves as `pickTemplate` does, and the one chosen is told in `templatepick` too.
+
+```ts
+const picked = await pickTemplate('write');
+if (picked) await run('document.create', { project, title: picked.title, text: picked.text });
+```
 
 ## Tracked changes and comments for a host
 
@@ -328,8 +468,10 @@ panel.addEventListener('review-reject', (e) => reject(e.detail.ids));
 ## An app built outside
 
 An app is a definition and an editor element (What a page that holds an editor needs), and nothing in that needs the
-suite's repository: an app built outside it, cards in lanes first, is made with `tinylittleoffice/kit` and the kernel
-(`tinylittleoffice/doc`) and put beside the suite's apps by the page that holds it.
+suite's repository: an app built outside it is made with `tinylittleoffice/kit` and the kernel
+(`tinylittleoffice/doc`) and put beside the suite's apps by the page that holds it. The Board was the first, a package
+of its own on the kit (2026-10-17), until it came into the library (The library's own apps); test/browser/kit.test.ts
+builds one now, with the kit and the kernel alone, as Tally below is built.
 
 - **The registry.** `registerApp(def)` (kit/core/apps.ts) puts a definition after the suite's, and from then on
   `appOf(def.id)` is it: `editorTag` loads its editor and registers its commands, `mount` draws it with a document in
@@ -376,6 +518,50 @@ for (const [code, source] of Object.entries(words)) addStrings(code, source);
 registerApp(tally);
 const { editor } = await mount('tally', text, main, save, { onOps: send });
 ```
+
+## The library's own apps
+
+An app of the library's is made as the suite's are, in src/apps/<id>/ with the suite's shape (def.ts, model.ts,
+editor.ts, view.ts, commands.ts, templates.ts and templates.md, style.css, tests/), but the site does not list it: it is
+in no list of kit/core/apps.ts, so the home page, the routes, the pages the build writes, Insert ▾, the drawer, the API
+and the skill never name it, and the site's build reaches none of its modules. A page registers it, as it would an app
+built outside, and mounts it as any app. There is one, the Board (Paul, 2026-10-18: "go ahead and add [the Board] to the
+kit, even if we don't use it in the production build more broadly"): cards in lanes by their status, each card a row of
+a table, so a board and a spreadsheet are two views of one table (src/apps/board/model.ts says how a table is read as
+lanes). Before it came here it was a package of its own on the kit, and its source came in whole.
+
+- **`tinylittleoffice/board`** (dist/board.js, src/board.ts): its definition (`board`), its editor element
+  (`<to-board-editor>`, `ToBoardEditor`, defined as the file loads), `registerBoard()`, which puts it after the suite's
+  apps once and does nothing when called again (where `registerApp` would throw), and everything the model serves; the
+  type of a pick (`PickedCard`). `install` is `registerBoard` by its package's old name. dist/board.js is a second entry
+  of the editors' build (vite.lib.config.ts): what it shares with the editors (Lit, the kit, the kernel) it imports from
+  ./editors.js, so the page has one Lit and one registry, and its own modules, and Lucide's icons no suite app draws,
+  are never in editors.js. Its templates are fetched when asked for, as every app's are (dist/editors/templates-board-…).
+- **`tinylittleoffice/board/model`** (dist/board-model.js, src/apps/board/model.ts): the model alone, pure and with no
+  DOM, for a server that makes boards from its own records and changes them as ops (`boardDoc`, `boardOf`, `moveCard`,
+  `addCard`…). It imports the kernel from the package's own ./doc.js and nothing else (test/lints.test.ts holds the
+  source to it, test/package.test.ts the built file, and runs it under Node).
+- **`tinylittleoffice/board.css`** (dist/board.css, src/apps/board/style.css): its own stylesheet, in the editors'
+  `apps` layer, beside editors.css rather than in it. In editors.css it would be 907 bytes more, gzipped, on 31,021
+  (about 3%) for every page, a board on it or none; on its own it is 1,360 bytes, loaded by the pages that draw one.
+- **Its words** are a group of each language's file in src/i18n/ (`board-…`), checked as everyone's are (`npm run
+  i18n:check`), and ride in the editors' languages (dist/editors.js's English, and each language's file under
+  dist/editors/), so `registerBoard` adds none. Every other build, the site's first, leaves them out
+  (scripts/ftl-plugin.ts `LIBRARY_APPS`), and the site's files are the bytes they were before the Board came.
+- **Its tests** are its own (src/apps/board/tests/): the model and its properties under Node, and its editor, its view
+  and its languages on a bare page that registers it and mounts it with `mount`, as a host does. Its commands are not
+  in the site's registry (scripts/commands.ts), so docs/editing.md's tables and the skill do not list them;
+  docs/editing.md §8 says its keys in words.
+
+What its package of its own served, and where each is now; every name a page or a server used is kept, so a page
+moves by its import paths alone:
+
+| its package | the library |
+|---|---|
+| the root: `install`, `board`, the model, `ToBoardEditor`, `PickedCard` | `tinylittleoffice/board`: the same names, and `registerBoard` |
+| the root: `words` (each language's Fluent source, for `addStrings`) | gone: the words are in the editors' languages |
+| `/model` | `tinylittleoffice/board/model` |
+| its stylesheet | `tinylittleoffice/board.css` |
 
 ## Shared editing from a page
 

@@ -65,7 +65,12 @@
  *   (`quoteAt`, kit/text/quote.ts), a host's reviews and comments as its server keeps them (kit/text/review.ts:
  *   Review, `reviewsOf`, `covers`, Comment, `threadsOf`), and the components that list and draw them: the review panel
  *   (`<to-review-panel>`, `changeWords`, Person, ReviewAsk) and the margin (`<to-comments>`, CommentSend, and its box,
- *   `<to-comment-box>`).
+ *   `<to-comment-box>`);
+ * - what a host's own pages are made of (docs/library.md, A typed table and after): `<to-table>` (ToTable), its rows
+ *   typed by their columns (TableColumn, ColumnType, EnumOption, LinkValue, TableRow), sorted (SortBy) and edited in
+ *   place (RowChange); `<to-search>` (ToSearch), one search across every kind of thing (Searcher, SearchHit,
+ *   SearchKind, SearchAction, SearchPick); `<to-header>` (ToHeader), a page's header without the shell (Crumb); and
+ *   `pickTemplate` and `<to-template-picker>` (ToTemplatePicker), a template chosen and handed back (PickedTemplate).
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
 export { DocElement, firstAt, type DocOps, type DocPick, type DocRemote, type Entry, type Picked } from './kit/core/element.ts';
@@ -140,6 +145,11 @@ export { caret, type Pos, type Sel } from './kit/text/textops.ts';
 export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRange, type RowSpan, type RowsOptions } from './kit/text/rows.ts';
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';
 export { choicesOf } from './kit/text/columns.ts';
+export { ToTable, type RowChange } from './kit/ui/table.ts';
+export type { ColumnType, EnumOption, LinkValue, SortBy, TableColumn, TableRow } from './kit/ui/table-model.ts';
+export { ToSearch, type SearchAction, type SearchHit, type SearchKind, type SearchPick, type Searcher } from './kit/ui/search-box.ts';
+export { ToHeader, type Crumb } from './kit/ui/header.ts';
+export { pickTemplate, ToTemplatePicker, type PickedTemplate } from './kit/ui/template-picker.ts';
 export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
 export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, pageSvg, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
 export { CHART_KINDS, chartData, chartPage, suggestChart, type ChartData, type ChartKind, type Flow } from './kit/draw/chart.ts';

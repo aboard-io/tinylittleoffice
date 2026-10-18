@@ -32,6 +32,7 @@ import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { UNFILLED } from './sw-manifest.ts';
+import { LIBRARY_APPS } from './ftl-plugin.ts';
 
 export interface Sizes {
   app: number;
@@ -116,10 +117,13 @@ export function measure(dist: string): Sizes {
   };
 }
 
-/** The apps with templates and the languages but English, as the source in `root` has them: the files a build must hold. */
+/**
+ * The apps with templates and the languages but English, as the source in `root` has them: the files a build must hold.
+ * The library's own apps (the Board) are not the site's, and the site holds nothing of theirs.
+ */
 function sourceFiles(root = ROOT): { apps: string[]; langs: string[] } {
   return {
-    apps: readdirSync(join(root, 'src/apps')).filter((a) => existsSync(join(root, 'src/apps', a, 'templates.ts'))),
+    apps: readdirSync(join(root, 'src/apps')).filter((a) => existsSync(join(root, 'src/apps', a, 'templates.ts')) && !LIBRARY_APPS.includes(a)),
     langs: readdirSync(join(root, 'src/i18n'))
       .filter((f) => f.endsWith('.ftl') && f !== 'en.ftl')
       .map((f) => f.replace(/\.ftl$/, '')),

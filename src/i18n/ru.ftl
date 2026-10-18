@@ -3423,3 +3423,113 @@ comments-answering = { $name } отвечает…
 comments-people = Люди
 # en: 0f87ce5a3cbdf6796c6f152204e44b143201290f
 comments-write = { $what }… @ — упомянуть людей
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# en: 4816c01fcfc82e618ba8d4f9f2d5cca84f36a4c1
+table-filter-rows = Фильтр строк
+# en: f648af13b3a158a514634b7a27501c621e4f9c87
+table-add-row = Добавить строку
+# en: 45b553017087942f58e36f1963f58398aaa93cef
+table-select-all-rows = Выбрать все строки
+# en: 9320afbefdcf309b4b763224769937b3936d517a
+table-select-name = Выбрать { $name }
+# en: e892255d168b0ccc00b895b653a7ff8d9a7ab4f0
+table-no-rows = Пока ничего нет
+# en: 7dc03a2b77e86b5ce3279f1239cf7eed2c3e31dd
+table-no-rows-match = Нет подходящих строк
+# en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
+table-sort-hint = Сортировать по этому столбцу. Shift+щелчок — сортировать и по нему.
+# en: bce06414177f72ab70e6387b6af9f8ceef0d6049
+search-label = Искать
+# en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd
+search-searching = Ищем…
+# en: 938206ae8c35210570eff0f625f7174736ab50d3
+search-failed = Поиск не удался. Попробуйте ещё раз.
+# en: 445b04c118dbe3becf81b1490e4f09218cd85a09
+search-n-found = { $n ->
+        [one] { $n } результат
+        [few] { $n } результата
+        [many] { $n } результатов
+       *[other] { $n } результата
+    }
+# en: 1c8d7da8241f46e35847a6ee94585aa15c895038
+search-nothing-found = Нет совпадений для «{ $q }»
+# en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
+header-breadcrumbs = Навигационная цепочка
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = Доска
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = доска
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = Карточки в колонках по статусу, каждая карточка — строка таблицы.
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = Статус
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = Сделать
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = В работе
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = Готово
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = Нет карточек
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+        [one] { $n } карточка
+        [few] { $n } карточки
+        [many] { $n } карточек
+       *[other] { $n } карточки
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = Открыть карточки в электронной таблице
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = Карточка
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = Колонка
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = Параметры колонки
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = Параметры колонки { $lane }
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = Добавить карточку
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = Удалить колонку
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = Перенести в…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = Переименовать колонку
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = Соседняя карточка в предыдущей или следующей колонке
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = Перенести карточку в предыдущую или следующую колонку
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = Название колонки
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = ГГГГ-ММ-ДД
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = Новая колонка
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = Название карточки { $n } в { $lane }
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = Карточка { $n } в { $lane }: нажмите, чтобы выбрать, потяните, чтобы переместить
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = Выбранные карточки
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = Доска проекта
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = Сделать, в работе и готово: у каждой задачи ответственный и срок.
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = Воронка продаж
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = Сделки от входящих до выигранных или проигранных, с суммой и датой закрытия.
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = Найм
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = Кандидаты от отклика до найма, с должностью и следующим шагом.
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = Контент-план
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = Материалы от идеи до публикации, с каналом, автором и датой.
