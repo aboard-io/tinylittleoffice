@@ -6,7 +6,29 @@
 // an action.
 import { html, render } from 'lit';
 import { expect, test } from 'vitest';
-import { apps, cmdTool, command, editorTag, host, inScope, mount, register, setup, toast, type DocPick, type Picked } from '../../src/editors.ts';
+import {
+  apps,
+  cmdTool,
+  command,
+  editDoc,
+  editorTag,
+  find,
+  host,
+  inScope,
+  keepSize,
+  keepSizeAt,
+  keepThemeAt,
+  mount,
+  register,
+  setTheme,
+  setup,
+  theme,
+  toast,
+  type DocPick,
+  type DocRemote,
+  type Picked,
+  type ToFind,
+} from '../../src/editors.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
 import { apply, applyAll, invertAll, parse, plainText, rebase, transform, write, type Op } from '../../src/doc/index.ts';
@@ -407,4 +429,91 @@ test('Compare on a page with a host of its own: each side’s link and its Open 
     expect.stringMatching(/^https:\/\/atlas\.test\/open\/write/),
   ]);
   expect(links.slice(-2).some((l) => l === 'write:Was.')).toBe(true);
+});
+
+test('another’s ops that land say so in "docremote", once each, and a change made here never does', async () => {
+  const { editor, applyRemote, heard } = await shared('One.\n', 0, 4);
+  const remote: DocRemote['detail'][] = [];
+  editor.addEventListener('docremote', (e) => remote.push((e as DocRemote).detail));
+  const ops: Op[] = [{ op: 'splice', at: 0, n: 0, blocks: [{ k: 'p', runs: [{ t: 'Zero.' }] }] }];
+  const told = heard.length;
+  applyRemote(ops);
+  expect(remote).toStrictEqual([{ ops }]);
+  // Neither of the editor's own events: the page knows of these ops already.
+  expect(heard.length).toBe(told);
+  await type(editor, 'X');
+  await until(() => heard.length > told, 'the typing was never told');
+  expect(remote.length).toBe(1);
+  applyRemote([]);
+  expect(remote.length).toBe(1);
+});
+
+test('a page with no <to-toast> of its own still says a toast: one is put on the page the first time, and only one', async () => {
+  document.body.innerHTML = '<main></main>';
+  await setup();
+  toast('Saved.');
+  await until(() => document.querySelector('.to-toast.shown')?.textContent === 'Saved.', 'the toast was never shown');
+  toast('Saved again.');
+  await until(() => document.querySelector('.to-toast.shown')?.textContent === 'Saved again.');
+  expect(document.querySelectorAll('to-toast').length).toBe(1);
+});
+
+test('a placed document is edited in a dialog put where the page says, not always in its body', async () => {
+  document.body.innerHTML = '<section class="atlas-themed"></section>';
+  const into = document.querySelector('section')!;
+  await setup();
+  const done = editDoc({ app: 'write', text: 'Hello.\n', into });
+  await until(() => !!into.querySelector('to-doc-dialog dialog[open]'), 'the dialog never opened in the page’s element');
+  into.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
+  expect(await done).toBeNull();
+  expect(into.querySelector('to-doc-dialog')).toBeNull();
+});
+
+test('a page keeps the theme and the size under keys of its own, or nowhere, and the site’s keys are left alone', async () => {
+  const keys = ['to-theme', 'tinyoffice.size', 'atlas.theme', 'atlas.size'];
+  for (const k of keys) localStorage.removeItem(k);
+  try {
+    keepThemeAt('atlas.theme');
+    keepSizeAt('atlas.size');
+    setTheme('dark');
+    keepSize(1.5);
+    expect([localStorage.getItem('atlas.theme'), localStorage.getItem('atlas.size')]).toStrictEqual(['dark', '1.5']);
+    expect([localStorage.getItem('to-theme'), localStorage.getItem('tinyoffice.size')]).toStrictEqual([null, null]);
+    // Nowhere: chosen for the visit, written nowhere.
+    keepThemeAt(null);
+    keepSizeAt(null);
+    expect(theme()).toBe('auto');
+    setTheme('light');
+    keepSize(1.2);
+    expect(theme()).toBe('light');
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem('atlas.theme')).toBe('dark');
+    expect(localStorage.getItem('atlas.size')).toBe('1.5');
+  } finally {
+    keepThemeAt('to-theme');
+    keepSizeAt('tinyoffice.size');
+    setTheme('auto');
+    keepSize(1);
+    for (const k of keys) localStorage.removeItem(k);
+  }
+});
+
+test('Find over an editor a page mounted: placed by the editor, under its bar and at its right edge, never by the site’s', async () => {
+  document.body.innerHTML = '<div style="height: 120px"></div><div class="box" style="width: 600px; margin-left: 40px"></div>';
+  const { editor } = await mount('write', 'Pay the rent. Pay the bills.\n', document.querySelector('.box')!, () => {});
+  const bar: ToFind = await find(editor);
+  expect(bar.open).toBe(true);
+  expect(bar.dataset.near).toBe('');
+  const tools = editor.querySelector('to-bar')!.getBoundingClientRect();
+  const box = editor.getBoundingClientRect();
+  const at = bar.getBoundingClientRect();
+  expect(at.top).toBeGreaterThanOrEqual(tools.bottom);
+  expect(Math.round(at.right)).toBeLessThanOrEqual(Math.round(box.right));
+  bar.input!.value = 'pay';
+  bar.input!.dispatchEvent(new Event('input'));
+  await until(() => bar.count === 2, 'the words were never found');
+  // Asked again, the same bar.
+  expect(await find(editor)).toBe(bar);
+  expect(document.querySelectorAll('to-find').length).toBe(1);
+  bar.close();
 });

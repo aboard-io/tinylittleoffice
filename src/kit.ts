@@ -34,11 +34,17 @@
  *   (`live`, `run`, `runKey`), drawn (`cmdTool`, `cmdBtn`, `cmdMenu`, `drawnIn`, `contextOf`, `labelOf`, `keysText`);
  * - words (kit/core/i18n.ts): `t`, `addStrings` (an app's own Fluent source, to English and any other language),
  *   `language`, `setLanguage` and `onLanguage`; and `toast`, the one voice;
- * - what an editor draws with: the bar (`<to-bar>`, `btn`, `tool`), the menus (`<to-menu>`, `<to-insert>`, MenuItem),
- *   the dialog (`<to-dialog>`), the one editor of words (`<to-text>` and its TextOps), rows chosen whole (`Rows`),
- *   `reveal` and `scrollerOf`; the clipboard's `clipText` and `docToHtml`; an option column's `choicesOf`;
+ * - what an editor draws with: the bar (`<to-bar>`, `btn`, `tool`, and `dateNav`, back, what is on view, on and
+ *   Today), the menus (`<to-menu>`, `<to-insert>`, MenuItem), the dialog (`<to-dialog>`), the one editor of words
+ *   (`<to-text>` and its TextOps), rows chosen whole (`Rows`), `reveal` and `scrollerOf`; the clipboard's `clipText`
+ *   and `docToHtml`; an option column's `choicesOf`; and what the words draw around themselves, each its own element:
+ *   the context bar (`<to-context>`), the completions (`<to-complete>`), the link box (`<to-link-pop>`), a link's
+ *   preview (`<to-preview>`), a document locked with a password (`<to-locked-doc>`), the dialog a placed document is
+ *   edited in (`<to-doc-dialog>`, `editDoc`, `editTable`), the icon picker (`chooseIcon`), and Find (`<to-find>`, and
+ *   `find(target)`, which opens it over an editor of a page's own);
  * - drawing a page with no DOM (kit/draw/draw.ts): the colors, `rect`, `text`, `clip`, `wrapText`, `textWidth`, `xml`,
- *   `utf8` for a file's bytes; the icons (`icon`, `iconNamed`, `UI`);
+ *   `utf8` for a file's bytes, `pageSvg` (a Page as an SVG); the icons (`icon`, `iconNamed`, `UI`); a chart from a
+ *   table (kit/draw/chart.ts: `chartData`, `suggestChart`, `chartPage`, `CHART_KINDS`);
  * - the Spreadsheet's words for a table: `cellAsShown`, a cell's value as its column shows it (money in its currency, a
  *   date as a date, a rich cell's words), `tableAsCsv`, a document's first table as the Spreadsheet's CSV, and
  *   `asWords`, words written as a cell that reads back as those words whatever they start with ("'=SUM(1)": the
@@ -57,7 +63,7 @@
  *   text editor's `mentions` (Mention).
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
-export { DocElement, firstAt, type DocOps, type DocPick, type Entry, type Picked } from './kit/core/element.ts';
+export { DocElement, firstAt, type DocOps, type DocPick, type DocRemote, type Entry, type Picked } from './kit/core/element.ts';
 export { appOf, registerApp } from './kit/core/apps.ts';
 export { editorTag, mount, setup, type Mounted, type Own } from './kit/core/mount.ts';
 export { host, type Host, type Placed } from './kit/core/host.ts';
@@ -65,10 +71,18 @@ export { command, commandsOf, contextOf, drawnIn, inScope, keysText, labelOf, li
 export { addStrings, language, onLanguage, setLanguage, t } from './kit/core/i18n.ts';
 export { toast, type Action } from './kit/core/say.ts';
 export { ToToast } from './kit/ui/toast.ts';
-export { btn, cmdBtn, cmdMenu, cmdTool, tool, ToBar, type BtnOpts } from './kit/ui/bar.ts';
+export { btn, cmdBtn, cmdMenu, cmdTool, dateNav, tool, ToBar, type BtnOpts, type DateNavOpts } from './kit/ui/bar.ts';
 export { ToMenu, type MenuItem } from './kit/ui/menu.ts';
 export { ToInsert } from './kit/ui/insert.ts';
 export { ToDialog } from './kit/ui/dialog.ts';
+export { find, ToFind, type Findable, type Found } from './kit/ui/find.ts';
+export { ToLinkPop } from './kit/ui/link-pop.ts';
+export { ToContext, type ContextEntry, type ContextItem } from './kit/ui/context.ts';
+export { ToComplete, type Completion } from './kit/ui/complete.ts';
+export { ToPreview } from './kit/ui/preview.ts';
+export { ToLockedDoc } from './kit/ui/locked-doc.ts';
+export { editDoc, editTable, ToDocDialog } from './kit/ui/doc-dialog.ts';
+export { chooseIcon, type IconChoice } from './kit/ui/icons-picker.ts';
 export { reveal, scrollerOf, type Reveal } from './kit/ui/scroll.ts';
 export { ToText, type Ghost, type GhostAt, type Mention, type TextOps } from './kit/text/text.ts';
 export {
@@ -99,7 +113,8 @@ export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRan
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';
 export { choicesOf } from './kit/text/columns.ts';
 export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
-export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
+export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, pageSvg, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
+export { CHART_KINDS, chartData, chartPage, suggestChart, type ChartData, type ChartKind, type Flow } from './kit/draw/chart.ts';
 export { cellText as cellAsShown, sheetToCsv as tableAsCsv } from './apps/sheet/view.ts';
 export type { SheetMark } from './apps/sheet/editor.ts';
 export { asWords } from './doc/index.ts';

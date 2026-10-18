@@ -105,6 +105,11 @@ export class ToFind extends LitElement {
   declare count: number;
   /** Where to look: the editor. */
   target: Element | null = null;
+  /**
+   * Placed by the target alone (`find`, on a page that is not the site): at the top of what of the target is in view,
+   * under its bar where it draws one, at its right edge. Otherwise placed by the site's page (its column, its header).
+   */
+  near = false;
   private found: Found | null = null;
   /** What had the focus when the bar opened. */
   private from: HTMLElement | null = null;
@@ -148,6 +153,7 @@ export class ToFind extends LitElement {
   }
   /** Beside the app's bar, on the column's side of it: under it at the column's top, over it at the column's bottom (a phone's). */
   private place() {
+    if (this.near) return this.placeNear();
     const bar = this.target?.querySelector('to-bar')?.getBoundingClientRect();
     const col = this.target?.closest('main')?.getBoundingClientRect();
     if (bar && col && bar.top >= col.bottom - 1) {
@@ -156,6 +162,16 @@ export class ToFind extends LitElement {
     }
     const below = bar ? bar.bottom : (document.querySelector('.to-header')?.getBoundingClientRect().bottom ?? 0);
     this.style.top = `${Math.round(Math.max(0, below) + 4)}px`;
+  }
+  /** By the target (`near`): under its bar, or at its top, as far as either is in view; at its right edge. */
+  private placeNear() {
+    const t = this.target;
+    if (!t) return;
+    const box = t.getBoundingClientRect();
+    const bar = t.querySelector('to-bar')?.getBoundingClientRect();
+    const top = Math.max(0, bar && bar.height ? bar.bottom : box.top) + 4;
+    this.style.top = `${Math.round(Math.min(top, innerHeight - this.offsetHeight - 4))}px`;
+    this.style.right = `${Math.round(Math.max(4, innerWidth - box.right + 4))}px`;
   }
   /** Look again (the document may have changed) and show the `i`th. */
   private run(i: number) {
@@ -196,3 +212,29 @@ export class ToFind extends LitElement {
   }
 }
 customElements.define('to-find', ToFind);
+
+/**
+ * Find in `target` (an editor a page mounted) on a page that is not the site: the page's one <to-find> for it, made
+ * the first time and put at the end of the page's body (or in `into`), opened over the target and placed by it alone,
+ * never by the site's bar, column or header. Mod+F is the page's to bind (the editors leave it to the page); it calls
+ * this. The bar, open.
+ */
+export async function find(target: Element, into: Element = document.body): Promise<ToFind> {
+  let bar = into.querySelector<ToFind>(':scope > to-find[data-near]');
+  if (!bar) {
+    bar = document.createElement('to-find');
+    bar.dataset.near = '';
+    into.append(bar);
+  }
+  if (bar.target !== target) bar.close();
+  bar.target = target;
+  bar.near = true;
+  await bar.show();
+  return bar;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'to-find': ToFind;
+  }
+}
