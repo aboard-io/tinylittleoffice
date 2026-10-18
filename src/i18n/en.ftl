@@ -1782,6 +1782,9 @@ review-yours = Yours, waiting for the others
 review-reviewed = You reviewed it
 review-accepted = Accepted
 review-rejected = Rejected
+# The same, saying who gave the verdict: { $names } is a name, or names joined as a list ("Lee", "Lee and Ana").
+review-accepted-by = Accepted by { $names }
+review-rejected-by = Rejected by { $names }
 review-n-waiting = { $n ->
         [one] { $n } waiting
        *[other] { $n } waiting

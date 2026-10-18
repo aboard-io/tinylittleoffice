@@ -298,6 +298,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         'export const margin = (words: Parameters<typeof quoteAt>[0] & HTMLElement): ToComments => {',
         "  const el = document.createElement('to-comments');",
         "  Object.assign(el, { comments: notes, people: cast, me: 'a@x.co', canComment: true, ask: cast[1] });",
+        "  el.canDelete = (c: Comment): boolean => c.by === 'a@x.co' || c.by === 'assistant'; el.anchor = 'start';",
         "  el.addEventListener('comment-send', (e) => { const sent: CommentSend = (e as CustomEvent<CommentSend>).detail; const q: Quote | null = sent.quote ?? quoteAt(words); sent.done(!!q); });",
         "  el.addEventListener('review-accept', (e) => void (e as CustomEvent<ReviewAsk>).detail.ids);",
         '  return el;',

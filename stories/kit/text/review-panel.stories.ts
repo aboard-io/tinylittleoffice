@@ -46,7 +46,7 @@ export const Alone: Story = {
 /** A reader who may not review: where each change stands, and no Accept or Reject. */
 export const Reader: Story = { args: { canReview: false }, render: Alone.render };
 
-/** Some reviewed already, as the host's server gives them: Bob's first change accepted, Carol's taking out rejected by Alice. */
+/** Some reviewed already, as the host's server gives them: Bob's first change accepted, Carol's taking out rejected, each saying by whom (Alice). */
 export const Reviewed: Story = {
   render: (args) => {
     const changes = changesOf(track(VERSIONS));

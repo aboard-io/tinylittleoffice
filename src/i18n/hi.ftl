@@ -3292,6 +3292,10 @@ review-reviewed = आप देख चुके हैं
 review-accepted = स्वीकार किया गया
 # en: 27eeb7a291bfc566447d9cd928e98caf90f70ee6
 review-rejected = अस्वीकार किया गया
+# en: 664b4269aeb67f403d95cde6c1d30eb3f135b08f
+review-accepted-by = { $names } ने स्वीकार किया
+# en: 9e374afbcb1f0734401d4464d24993a8a3245d54
+review-rejected-by = { $names } ने अस्वीकार किया
 # en: 41b8f5693f30107a055b7507a7095b5ca0aa8fd9
 review-n-waiting = { $n ->
         [one] { $n } इंतज़ार में

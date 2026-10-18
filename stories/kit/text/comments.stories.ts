@@ -149,7 +149,9 @@ export const ReadOnlyThreads: Story = { args: { canComment: false, readOnly: tru
  * Asking the host's assistant: "@Assistant" in a comment, or Ask Assistant beside Comment, asks it; the thread says it
  * is answering, and its answer comes in the thread with the change it made, tracked as its own (a version of the
  * assistant's), to accept or reject there (a rejection the reader's edit, `rejectOps`). Here the story stands in for the
- * host's assistant: a comment that asks gets, a moment later, the quoted words in capitals and a reply saying so.
+ * host's assistant: a comment that asks gets, a moment later, the quoted words in capitals and a reply saying so. The
+ * change accepted or rejected says by whom ("Accepted by Alice Adams"), and the asker may delete the assistant's reply
+ * (`canDelete`).
  */
 export const AskTheAssistant: Story = {
   args: { redline: true },
@@ -200,6 +202,8 @@ export const AskTheAssistant: Story = {
     });
     const margin = frame.querySelector('to-comments')!;
     margin.canReview = true;
+    // Whoever asked may take the assistant's answer away, as well as their own comments (`canDelete`).
+    margin.canDelete = (c) => c.by === ALICE || c.by === ASSISTANT.id;
     for (const verdict of ['accept', 'reject'] as const)
       margin.addEventListener(`review-${verdict}`, (e) => {
         const { ids } = (e as CustomEvent<ReviewAsk>).detail;
@@ -238,4 +242,17 @@ export const Mentions: Story = {
         wordsOf(m.editor)!.mentions = PEOPLE.map((p) => ({ name: p.name, detail: p.email }));
       },
     }),
+};
+
+/**
+ * The margin in a frame narrower than 760px on a wide screen: a sheet by the width it and the words share, not the
+ * screen's, its button at the foot's start (`anchor="start"`), clear of a host's own button at the end.
+ */
+export const SheetAtTheStart: Story = {
+  render: (args) => {
+    const frame = commented(args);
+    Object.assign(frame.style, { maxWidth: '36rem', gridTemplateColumns: 'minmax(0, 1fr)' });
+    frame.querySelector('to-comments')!.anchor = 'start';
+    return frame;
+  },
 };

@@ -12,12 +12,13 @@
  * What it is given, in the shapes a host's server gives them (kit/text/review.ts): `changes`, `people` (Person: each
  * one's id as the versions name them, their name, and a color of their own if the host keeps one; otherwise their
  * place among `people`, kit/text/redline.ts colorAt), and where each change stands for `me`: from the host's `reviews`
- * (Review, as its server keeps them), or the host's own `standing`. `canReview` draws Accept and Reject: Accept on a
+ * (Review, as its server keeps them), or the host's own `standing`; a change accepted or rejected says by whom where the
+ * reviews say ("Accepted by Lee": their `by`, named as `people` name them). `canReview` draws Accept and Reject: Accept on a
  * change of someone else's waiting for this reader, Reject on any change still open. `current` marks the change a
  * lozenge named ("text-ghost": `show(id)` brings it into view and gives it the focus).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
-import { t } from '../core/i18n.ts';
+import { language, t } from '../core/i18n.ts';
 import type { Change } from '../text/changes.ts';
 import { colorOf } from '../text/redline.ts';
 import { reviewsOf, type Review, type Standing } from '../text/review.ts';
@@ -56,9 +57,32 @@ export function changeWords(c: Change): string {
   return t('review-changed');
 }
 
-/** Where a change stands, in words, for the reader. */
-const standingWords = (s: Standing): string =>
-  s === 'settled' ? t('review-accepted') : s === 'rejected' ? t('review-rejected') : s === 'yours' ? t('review-yours') : s === 'reviewed' ? t('review-reviewed') : t('review-waiting');
+/** Where a change stands, in words, for the reader; accepted or rejected, by whom where the host's reviews say (`by`, names). */
+const standingWords = (s: Standing, by: string[] = []): string => {
+  const names = by.length ? new Intl.ListFormat(language(), { type: 'conjunction' }).format(by) : '';
+  if (s === 'settled') return names ? t('review-accepted-by', { names }) : t('review-accepted');
+  if (s === 'rejected') return names ? t('review-rejected-by', { names }) : t('review-rejected');
+  return s === 'yours' ? t('review-yours') : s === 'reviewed' ? t('review-reviewed') : t('review-waiting');
+};
+
+/**
+ * Who gave a change the verdict it stands at, by name: the live reviews of it (or of its version whole) that accepted
+ * it where it is settled, that rejected it where it is rejected, each reviewer once, named as `people` (or the
+ * assistant, `also`) name them; none for a change still open, or where the host gave no reviews.
+ */
+export function reviewersOf(reviews: readonly Review[], id: string, standing: Standing, people: readonly Person[], also?: Person | null): string[] {
+  const verdict = standing === 'settled' ? 'accepted' : standing === 'rejected' ? 'rejected' : null;
+  if (!verdict || !reviews.length) return [];
+  const who = [
+    ...new Set(
+      reviewsOf(reviews)
+        .of(id)
+        .filter((r) => r.verdict === verdict)
+        .map((r) => r.by),
+    ),
+  ];
+  return who.map((w) => (also?.id === w ? also.name : (people.find((p) => p.id === w)?.name ?? w)));
+}
 
 /** Whether a change is still open to a verdict from this reader: Reject; and Accept, when it waits for them. */
 const open = (s: Standing) => s === 'waiting' || s === 'reviewed' || s === 'yours';
@@ -73,10 +97,18 @@ export const colorsOf = (people: readonly Person[]) => {
  * One change as a list draws it (the panel's, and a reply's changes in the margin, kit/ui/comments.ts): its words,
  * where it stands, and Accept and Reject where the reader may give them, each telling `ask`.
  */
-export function changeRow(c: Change, standing: Standing, canReview: boolean, ask: (verdict: 'accept' | 'reject', ids: string[]) => void, show?: () => void, current = false): TemplateResult {
+export function changeRow(
+  c: Change,
+  standing: Standing,
+  canReview: boolean,
+  ask: (verdict: 'accept' | 'reject', ids: string[]) => void,
+  show?: () => void,
+  current = false,
+  by: string[] = [],
+): TemplateResult {
   return html`<li class="to-review-change ${current ? 'to-review-current' : ''}" data-change=${c.id} data-standing=${standing} tabindex="-1">
     ${show ? html`<button type="button" class="to-review-what" @click=${show}>${changeWords(c)}</button>` : html`<p class="to-review-what">${changeWords(c)}</p>`}
-    <p class="to-review-state">${standingWords(standing)}</p>
+    <p class="to-review-state">${standingWords(standing, by)}</p>
     ${
       canReview && open(standing)
         ? html`<p class="to-review-acts">
@@ -169,7 +201,15 @@ export class ToReviewPanel extends LitElement {
           }
           <ol class="to-review-list">
             ${theirs.map((c) =>
-              changeRow(c, states.get(c.id)!, this.canReview, this.ask, () => this.dispatchEvent(new CustomEvent('review-show', { detail: { id: c.id }, bubbles: true })), c.id === this.current),
+              changeRow(
+                c,
+                states.get(c.id)!,
+                this.canReview,
+                this.ask,
+                () => this.dispatchEvent(new CustomEvent('review-show', { detail: { id: c.id }, bubbles: true })),
+                c.id === this.current,
+                reviewersOf(this.reviews, c.id, states.get(c.id)!, this.people),
+              ),
             )}
           </ol>
         </section>`;

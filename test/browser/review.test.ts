@@ -138,7 +138,27 @@ test('<to-review-panel>: changes by author in their colors, Accept and Reject on
   panel.reviews = [{ change_id: 'v1:0', by: A, verdict: 'accepted', at_seq: 1 }];
   panel.me = B;
   await panel.updateComplete;
-  expect([...panel.querySelectorAll('.to-review-state')].map((x) => x.textContent)).toEqual(['Accepted', 'Yours, waiting for the others', 'Yours, waiting for the others']);
+  expect([...panel.querySelectorAll('.to-review-state')].map((x) => x.textContent)).toEqual(['Accepted by Alice Adams', 'Yours, waiting for the others', 'Yours, waiting for the others']);
+  // Who rejected, and two who accepted, named as a list; a verdict taken back names nobody.
+  panel.reviews = [
+    { change_id: 'v1:*', by: A, verdict: 'accepted', at_seq: 1 },
+    { change_id: 'v1:0', by: 'carol@x.co', verdict: 'accepted', at_seq: 1 },
+    { change_id: 'v1:2', by: A, verdict: 'rejected', at_seq: 1 },
+    { change_id: 'v1:2', by: B, verdict: 'accepted', at_seq: 1, undone_at: '2026-10-18' },
+  ];
+  await panel.updateComplete;
+  expect([...panel.querySelectorAll('.to-review-state')].map((x) => x.textContent)).toEqual(['Accepted by Alice Adams and carol@x.co', 'Accepted by Alice Adams', 'Accepted by Alice Adams']);
+  panel.reviews = [{ change_id: 'v1:2', by: A, verdict: 'rejected', at_seq: 1 }];
+  await panel.updateComplete;
+  expect(panel.querySelector('[data-change="v1:2"] .to-review-state')!.textContent).toBe('Rejected by Alice Adams');
+  // The host's own standing, with no reviews: where it stands, by nobody.
+  panel.reviews = [];
+  panel.standing = () => 'settled';
+  await panel.updateComplete;
+  expect(panel.querySelector('.to-review-state')!.textContent).toBe('Accepted');
+  panel.standing = null;
+  panel.reviews = [{ change_id: 'v1:0', by: A, verdict: 'accepted', at_seq: 1 }];
+  await panel.updateComplete;
   expect(panel.querySelectorAll('.to-review-accept')).toHaveLength(0);
   // A reader who may not review: no Accept, no Reject.
   panel.canReview = false;
@@ -250,4 +270,54 @@ test('the bubble’s Comment says the words selected in "text-comment", as the m
   words.sel = { anchor: { block: 0, offset: 4 }, focus: { block: 0, offset: 12 } };
   COMMENT.does(words as ToText, undefined as never);
   expect(heard).toStrictEqual({ quote: 'the rent', block: 0, offset: 4 });
+});
+
+test('<to-comments>: Delete on the reader’s own, or on any the page allows (canDelete): an asker deletes the assistant’s reply', async () => {
+  await page.viewport(1100, 800);
+  const answered: Comment[] = [...NOTES, { id: 'c5', parent_id: 'c1', by: 'assistant', text: 'Tidied.', created_at: '2026-10-18T10:04:00Z' }];
+  const { el } = await margin(TEXT, answered);
+  el.querySelector<HTMLButtonElement>('[data-thread="c1"] .to-note-open')!.click();
+  await el.updateComplete;
+  const deletable = () => [...el.querySelectorAll('[data-thread="c1"] .to-comment')].filter((c) => c.querySelector('.to-comment-delete')).map((c) => c.getAttribute('data-comment'));
+  expect(deletable()).toStrictEqual(['c1']);
+  el.canDelete = (c) => c.by === A || c.by === 'assistant';
+  await el.updateComplete;
+  expect(deletable()).toStrictEqual(['c1', 'c5']);
+  const told: unknown[] = [];
+  el.addEventListener('comment-delete', (e) => told.push((e as CustomEvent).detail));
+  el.querySelector<HTMLButtonElement>('[data-comment="c5"] .to-comment-delete')!.click();
+  expect(told).toStrictEqual([{ id: 'c5' }]);
+  // A reader who may not comment deletes nothing, whatever the page allows.
+  el.canComment = false;
+  await el.updateComplete;
+  expect(deletable()).toStrictEqual([]);
+  unpin();
+});
+
+test('<to-comments>: beside or a sheet by the width of the frame it and the words share, not the screen’s; its button at the foot’s start or end', async () => {
+  await page.viewport(1100, 800);
+  try {
+    const { el } = await margin();
+    const row = document.querySelector<HTMLElement>('.row')!;
+    expect(el.hasAttribute('data-sheet')).toBe(false);
+    expect(el.beside).toBe(true);
+    // The frame narrowed on a wide screen: a sheet.
+    row.style.width = '600px';
+    await until(() => el.hasAttribute('data-sheet'), 'a narrow frame never made a sheet');
+    const toggle = el.querySelector<HTMLButtonElement>('.to-comments-toggle')!;
+    expect(getComputedStyle(toggle).display).not.toBe('none');
+    expect(toggle.getBoundingClientRect().right).toBeGreaterThan(1000);
+    el.anchor = 'start';
+    await el.updateComplete;
+    expect(toggle.getBoundingClientRect().left).toBeLessThan(40);
+    el.style.setProperty('--to-comments-toggle-x', '5rem');
+    expect(Math.round(toggle.getBoundingClientRect().left)).toBe(80);
+    // The page says: beside, however narrow.
+    el.style.setProperty('--to-comments-beside', '1');
+    row.style.width = '590px';
+    await until(() => !el.hasAttribute('data-sheet'), 'the page’s word was not kept');
+    expect(getComputedStyle(toggle).display).toBe('none');
+  } finally {
+    unpin();
+  }
 });

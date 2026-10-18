@@ -503,7 +503,9 @@ waiting for them.
 
 - **`<to-review-panel>`** (kit/ui/review-panel.ts): `changes` (`changesOf`), `people`, `me`, and `reviews` (or the
   host's own `standing(change)`), `can-review`, `current`. Every change by author, each author in their color with how
-  many wait for this reader, each change in words (`changeWords`: "Replaced “30” with “45”") with where it stands;
+  many wait for this reader, each change in words (`changeWords`: "Replaced “30” with “45”") with where it stands,
+  accepted or rejected by whom where the reviews say ("Accepted by Lee", "Rejected by Lee and Ana": the live reviews'
+  `by`, named as `people` name them; `reviewersOf`), and with no reviews (the host's own `standing`) by nobody;
   Accept on someone else's change waiting for the reader, Reject on any still open, and both for all of one person's.
   It tells "review-accept" and "review-reject" (`ReviewAsk`, `{ ids }`) and "review-show" (`{ id }`), bubbling, and
   changes nothing: an acceptance is the host's row, a rejection its row and its edit (`rejectOps`). `show(id)` brings
@@ -512,11 +514,18 @@ waiting for them.
   assistant, a Person), `words` (the editor's, `wordsOf`), and for the changes a reply made in answer `changes`
   with `reviews` (or `standing`) and `can-review`. Each open thread whose words are found is a note beside them at their
   height, a note that would meet the one above moved under it, placed again on "docchange", "docremote",
-  "text-redline", a scroll and a resize, the words drawn first; where there is no room (the stylesheet's
-  `--to-comments-beside`, 0 under 760px) it is a sheet over the page's foot, opened by a button that counts the open
-  threads. A note opens its thread (every comment by whom and when, Asks Assistant, the reply box, Resolve or Reopen,
-  Delete on the reader's own, Close or Escape); an assistant's reply lists the changes it made (its `change_ids`) as the
-  panel does, each with Accept and Reject; until the assistant has answered an ask, the thread says it is answering.
+  "text-redline", a scroll and a resize, the words drawn first; where there is no room it is a sheet over the page's
+  foot (`data-sheet` on the element), opened by a button that counts the open threads. There is room when the frame
+  the margin and the words share (their nearest common ancestor; with no words, the margin's parent) is 760px wide or
+  more: the margin's own container decides, measured, not the viewport; a page that decides itself sets
+  `--to-comments-beside` (1 beside, 0 a sheet) on the margin or round it. The sheet's button sits at the foot's end,
+  or its start with `anchor="start"`, `--to-comments-toggle-x` and `--to-comments-toggle-y` its distance from the side
+  and the foot, so it is clear of a host's own button. A note opens its thread (every comment by whom and when, Asks
+  Assistant, the reply box, Resolve or Reopen, Delete, Close or Escape); Delete is on the reader's own comments, or on
+  any that the page's `canDelete(comment)` allows (an asker may delete the assistant's reply), and never for a reader
+  who may not comment. An assistant's reply lists the changes it made (its `change_ids`) as the panel does, each with
+  Accept and Reject and by whom it was accepted or rejected; until the assistant has answered an ask, the thread says
+  it is answering.
   Threads on words since changed, on the whole document and resolved are listed apart. Given `words`, it marks the
   editor `data-comments`, so the bubble has Comment, and opens a box beside the words selected; New comment writes one
   on the whole document. It tells "comment-send" (`CommentSend`: `text`, `ask`, `mentions`, `parent_id`, `quote`, and

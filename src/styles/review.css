@@ -83,9 +83,9 @@
   }
 
   /* ---------- the margin ---------- */
+  /* Beside the words, or (data-sheet) a sheet over the page's foot: the margin decides by the width of the frame it and
+     the words share (comments.ts `beside`), unless the page sets --to-comments-beside (1 beside, 0 a sheet). */
   to-comments {
-    /* 1: the notes beside the words, at their pins; 0: a sheet over the page's foot (a phone). */
-    --to-comments-beside: 1;
     display: block;
     position: relative;
   }
@@ -246,40 +246,40 @@
   }
 
   /* ---------- on a phone: a sheet ---------- */
-  @media (max-width: 760px) {
-    to-comments {
-      --to-comments-beside: 0;
-    }
-    .to-comments-toggle {
-      display: inline-flex;
-      position: fixed;
-      inset-block-end: max(1rem, env(safe-area-inset-bottom));
-      inset-inline-end: 1rem;
-      z-index: 5;
-      box-shadow: var(--to-shadow-pop);
-    }
-    .to-comments-shut {
-      display: inline-flex;
-    }
-    .to-comments-in {
-      display: none;
-    }
-    .to-comments-in[data-open] {
-      display: block;
-      position: fixed;
-      inset-inline: 0;
-      inset-block-end: 0;
-      z-index: 6;
-      max-height: 70dvh;
-      overflow: auto;
-      padding: 1rem max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-bottom));
-      border-top: 1px solid var(--to-border);
-      border-radius: var(--to-radius) var(--to-radius) 0 0;
-      background: var(--to-surface);
-      box-shadow: var(--to-shadow-pop);
-    }
-    .to-comments-notes > .to-note {
-      position: static;
-    }
+  to-comments[data-sheet] .to-comments-toggle {
+    display: inline-flex;
+    position: fixed;
+    inset-block-end: var(--to-comments-toggle-y, max(1rem, env(safe-area-inset-bottom)));
+    inset-inline-end: var(--to-comments-toggle-x, 1rem);
+    z-index: 5;
+    box-shadow: var(--to-shadow-pop);
+  }
+  to-comments[data-sheet] .to-comments-shut {
+    display: inline-flex;
+  }
+  to-comments[data-sheet] .to-comments-in {
+    display: none;
+  }
+  to-comments[data-sheet] .to-comments-in[data-open] {
+    display: block;
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 6;
+    max-height: 70dvh;
+    overflow: auto;
+    padding: 1rem max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--to-border);
+    border-radius: var(--to-radius) var(--to-radius) 0 0;
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow-pop);
+  }
+  to-comments[data-sheet] .to-comments-notes > .to-note {
+    position: static;
+  }
+  /* Its button at the foot's start, where a host's own button is at the end. */
+  to-comments[data-sheet][anchor='start'] .to-comments-toggle {
+    inset-inline-start: var(--to-comments-toggle-x, 1rem);
+    inset-inline-end: auto;
   }
 }

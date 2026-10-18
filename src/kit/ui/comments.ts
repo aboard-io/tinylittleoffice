@@ -3,9 +3,11 @@
  * Tracked changes and comments for a host). Each open thread whose words are found is a note beside them, at their
  * height (kit/text/redline.ts `pinComments`), a note that would meet the one above it moved down under it, placed again
  * whenever the words move: an edit here or another's ("docchange", "docremote"), who did what drawn again
- * ("text-redline", kit/text/redline.ts `drawChanges`), a scroll, a width. Where there is no room beside the words (a
- * phone: the stylesheet's `--to-comments-beside`), the margin is a sheet over the page's foot, opened by a button that
- * says how many threads are open, the notes in the order their words read.
+ * ("text-redline", kit/text/redline.ts `drawChanges`), a scroll, a width. Where there is no room beside the words (the
+ * frame the margin and the words share under 760px wide, or a page's `--to-comments-beside: 0`), the margin is a sheet
+ * over the page's foot (`data-sheet`), opened by a button that says how many threads are open, the notes in the order
+ * their words read; the button sits at the foot's end, or its start (`anchor`), or where `--to-comments-toggle-x` and
+ * `--to-comments-toggle-y` put it.
  *
  * - A note opens its thread: the words it is about, every comment (by whom, in their color, and when), the box to
  *   reply (kit/ui/comment-box.ts, with "@" for the host's people), Resolve, and Close (or Escape). A reply of the
@@ -26,7 +28,8 @@
  * - "comment-send" (CommentSend): words for a new thread on `quote` (null: on the whole document) or a reply to
  *   `parent_id`, whether they ask the assistant, whom they name, and `done(ok)`, which the host calls once it has kept
  *   them (the box is emptied) or refused them (the words stay);
- * - "comment-resolve" `{ thread_id, resolved }`, "comment-delete" `{ id }` (a reader's own comment);
+ * - "comment-resolve" `{ thread_id, resolved }`, "comment-delete" `{ id }` (a reader's own comment, or any the page's
+ *   `canDelete(comment)` allows);
  * - "review-accept" and "review-reject" `{ ids }`, as the review panel tells them, for a reply's changes.
  */
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
@@ -38,7 +41,7 @@ import { covers, reviewsOf, threadsOf, type Comment, type Review, type Standing,
 import type { ToText } from '../text/text.ts';
 import './comment-box.ts';
 import type { BoxSend, ToCommentBox } from './comment-box.ts';
-import { changeRow, colorsOf, type Person, type ReviewAsk } from './review-panel.ts';
+import { changeRow, colorsOf, reviewersOf, type Person, type ReviewAsk } from './review-panel.ts';
 
 /** What "comment-send" carries (the header). */
 export interface CommentSend {
@@ -53,6 +56,8 @@ export interface CommentSend {
 /** A new thread being written: on the words of `quote`, or, null, on the whole document. */
 type Draft = { quote: Quote | null };
 const DRAFT = '\u0000draft';
+/** The width of the frame the margin and the words share at which the notes go beside the words; narrower, a sheet. */
+const BESIDE_PX = 760;
 
 export class ToComments extends LitElement {
   static properties = {
@@ -66,6 +71,8 @@ export class ToComments extends LitElement {
     me: {},
     canComment: { type: Boolean, attribute: 'can-comment' },
     canReview: { type: Boolean, attribute: 'can-review' },
+    canDelete: { attribute: false },
+    anchor: { reflect: true },
     prefix: {},
     open: { state: true },
     draft: { state: true },
@@ -85,6 +92,10 @@ export class ToComments extends LitElement {
   declare me: string;
   declare canComment: boolean;
   declare canReview: boolean;
+  /** Whether the reader may delete a comment (Delete drawn on it); null: their own alone. An asker may delete the assistant's reply to them, say. */
+  declare canDelete: ((comment: Comment) => boolean) | null;
+  /** Where the phone's sheet button sits along the page's foot: at its `end` (the default) or its `start`, clear of a host's own button. */
+  declare anchor: 'start' | 'end';
   /** The highlights' prefix for the comments' words (redline.ts PREFIX unless a page holding two documents names one apart). */
   declare prefix: string;
   /** The thread open, or ''. */
@@ -110,6 +121,8 @@ export class ToComments extends LitElement {
     this.me = '';
     this.canComment = false;
     this.canReview = false;
+    this.canDelete = null;
+    this.anchor = 'end';
     this.prefix = PREFIX;
     this.open = '';
     this.draft = null;
@@ -125,6 +138,10 @@ export class ToComments extends LitElement {
     window.addEventListener('resize', this.schedule);
     this.resizing = new ResizeObserver(this.schedule);
     this.resizing.observe(this);
+    void this.updateComplete.then(() => {
+      const frame = this.frameOf();
+      if (frame && this.isConnected) this.resizing?.observe(frame);
+    });
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -164,9 +181,23 @@ export class ToComments extends LitElement {
     await this.querySelector<ToCommentBox>('.to-draft to-comment-box')?.focusField();
   }
 
-  /** Whether there is room for the notes beside the words (the stylesheet says: `--to-comments-beside`). */
+  /**
+   * Whether there is room for the notes beside the words: where the page says (`--to-comments-beside`, 1 or 0, on the
+   * margin or round it), that; else whether the frame the margin and the words share (their nearest common ancestor;
+   * the margin's parent, with no words) is at least 760px wide. The margin's own container decides, not the viewport.
+   */
   get beside(): boolean {
-    return getComputedStyle(this).getPropertyValue('--to-comments-beside').trim() !== '0';
+    const said = getComputedStyle(this).getPropertyValue('--to-comments-beside').trim();
+    if (said) return said !== '0';
+    const frame = this.frameOf();
+    return !frame || frame.getBoundingClientRect().width >= BESIDE_PX;
+  }
+  /** The element the margin and the words are laid out in: their nearest common ancestor, or the margin's parent. */
+  private frameOf(): Element | null {
+    const words = this.words;
+    let at = this.parentElement;
+    if (words) while (at && !at.contains(words)) at = at.parentElement;
+    return at ?? this.parentElement;
   }
 
   /* ---------- the words, watched ---------- */
@@ -187,6 +218,8 @@ export class ToComments extends LitElement {
     editor.addEventListener('docchange', this.schedule);
     editor.addEventListener('docremote', this.schedule);
     this.resizing?.observe(words);
+    const frame = this.frameOf();
+    if (frame) this.resizing?.observe(frame);
     this.watched = {
       words,
       editor,
@@ -230,10 +263,12 @@ export class ToComments extends LitElement {
 
   /** The notes at their pins, each below the one above it, beside the words; in their order where there is no room. */
   private layout() {
+    const beside = this.beside;
+    this.toggleAttribute('data-sheet', !beside);
     const box = this.querySelector<HTMLElement>('.to-comments-notes');
     if (!box) return;
     const notes = [...box.querySelectorAll<HTMLElement>(':scope > [data-top]')];
-    if (!this.beside) {
+    if (!beside) {
       for (const n of notes) n.style.removeProperty('top');
       box.style.removeProperty('height');
       return;
@@ -371,7 +406,7 @@ export class ToComments extends LitElement {
         <span class="to-comment-who" style=${`--c: ${this.ask?.id === c.by ? (this.ask.color ?? color(c.by)) : color(c.by)}`}>${this.nameOf(c.by)}</span>
         ${c.to_assistant && this.ask ? html`<span class="to-comment-tag">${t('comments-asks', { name: this.ask.name })}</span>` : nothing}
         <span class="to-hint">${this.when(c.created_at)}</span>
-        ${c.by === this.me && this.canComment ? html`<button type="button" class="to-comment-delete" @click=${() => this.tell('comment-delete', { id: c.id })}>${t('common-delete')}</button>` : nothing}
+        ${this.canComment && (this.canDelete ? this.canDelete(c) : c.by === this.me) ? html`<button type="button" class="to-comment-delete" @click=${() => this.tell('comment-delete', { id: c.id })}>${t('common-delete')}</button>` : nothing}
       </p>
       <p class="to-comment-text">${c.text}</p>
       ${c.change_ids?.length ? this.made(c.change_ids) : nothing}
@@ -386,7 +421,10 @@ export class ToComments extends LitElement {
       ${ids.map((id) => {
         const parts = this.changes.filter((c) => covers(id, c.id));
         if (!parts.length) return html`<li class="to-review-change"><p class="to-review-what">${t('review-changed')}</p></li>`;
-        return parts.map((c) => changeRow(c, this.standing ? this.standing(c) : reviewed.standing(c.id, c.author, this.me), this.canReview, ask));
+        return parts.map((c) => {
+          const at = this.standing ? this.standing(c) : reviewed.standing(c.id, c.author, this.me);
+          return changeRow(c, at, this.canReview, ask, undefined, false, reviewersOf(this.reviews, c.id, at, this.people, this.ask));
+        });
       })}
     </ul>`;
   }
