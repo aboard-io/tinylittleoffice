@@ -13,7 +13,8 @@
  * For a page that shares editing (docs/kernel.md §12, docs/library.md) every change is also told as its operations, in
  * a "docops" event before the "docchange", and `applyRemote()` takes another's operations in: applied with no step
  * of the history and nothing told, the history carried over them by the kernel's transform, so an undo here takes
- * back only what was done here. Its words land as the text says them (`sayableAfter`).
+ * back only what was done here. Its words land as the text says them (`sayableAfter`), and the page hears that they
+ * did ("docremote", DocRemote) to draw again what it draws over them.
  *
  * A page that only shows a document sets `readonly` (the attribute, or `readOnly`): nothing of it is edited. The editor
  * draws no bar, its words are not editable, an edit, an undo and a typed, pasted, cut or dropped thing are refused, and
@@ -56,6 +57,14 @@ export type DocChange = CustomEvent<string> & { key?: string };
  * dialog's) says nothing of the document around it.
  */
 export type DocOps = CustomEvent<{ ops: Op[]; base: number }>;
+
+/**
+ * Another's ops taken in (`applyRemote`), as a page that draws over the editor hears it: "docremote" on the element,
+ * never bubbling, with the ops, once they are applied and the view asked to draw again, so a page that draws over
+ * the words (who did what, comments: kit/text/redline.ts) knows to draw again. Nothing else fires it: a change of the
+ * editor's own is "docops" and "docchange", and never this.
+ */
+export type DocRemote = CustomEvent<{ ops: Op[] }>;
 
 /** An item activated in a read-only editor: its block, and the app's own key for it (a calendar's day, an outline's item). */
 export type Picked = { at: number } & Record<string, number | string>;
@@ -247,7 +256,8 @@ export abstract class DocElement<V> extends LitElement {
   }
   /**
    * Another's ops (a page's shared document: docs/kernel.md §12), made on the document as it is here: applied, the view
-   * drawn again, with no step of the history and nothing told (the page knows). The history is carried over them, each
+   * drawn again, with no step of the history and no "docops" or "docchange" (the page knows); "docremote" says they
+   * landed, for what the page draws over the view. The history is carried over them, each
    * entry as the kernel's rebase gives it, so an undo takes back only what was done here; where they cross an entry
    * (the kernel's Conflict) the history is let go. Ops that do not apply, or that leave a document the text would not
    * read back as written, throw (the kernel's checkOp and keptDoc), and nothing changes.
@@ -267,6 +277,7 @@ export abstract class DocElement<V> extends LitElement {
     }
     this.takeUp(next, settled);
     this.followed(ops);
+    this.dispatchEvent(new CustomEvent('docremote', { detail: { ops } }) as DocRemote);
   }
   /**
    * A stack's entries carried over another's ops, the top first: each entry's `side` applies to the document as the

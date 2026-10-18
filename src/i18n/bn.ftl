@@ -3180,3 +3180,207 @@ open-opened-name = { $name } খোলা হয়েছে
 open-that-file-is-not-words = ছোট্টমোট্ট অফিস ওই ফাইলটি পড়তে পারে না।
 # en: 1d08903947cc83b648f8ad96b1e23466a2dbed11
 open-that-file-is-too-large = ফাইলটি খুব বড়।
+
+
+## who did what, listed for review beside a document several people write (kit/ui/review-panel.ts)
+
+# en: 8aa57de6dce6ee1c35c6aba7426503281876b258
+review-changes = পরিবর্তন
+# en: e6e3bb8760dfc9ea888b1967a09130f9c89fce15
+review-none = পর্যালোচনার মতো কোনো পরিবর্তন নেই।
+# en: 42e31dd677dc8b702293354c898041b64c77c442
+review-put-in-for = “{ $took }” বদলে “{ $put }” করা হয়েছে
+# en: f328a19b27f5338a00f443da396faccd6d9030a1
+review-put-in = “{ $words }” যোগ করা হয়েছে
+# en: a67a3c5917ce7d2467dc22ea5d88e34d7c253b5b
+review-took-out = “{ $words }” মুছে ফেলা হয়েছে
+# en: 0a327a9ace030c351cd61b21a1eff225ff12941c
+review-put-back = “{ $words }” ফিরিয়ে আনা হয়েছে
+# en: 309250888492d1a0aaebb8f6920e9776a0c0dcaa
+review-restyled = “{ $words }” ফরম্যাট করা হয়েছে
+# en: be485cefbc9f51f3315136dd5bb07ea3fa8d04c0
+review-put-in-line = একটি লাইন যোগ করা হয়েছে
+# en: 1f1fe15e0ff5fad870fa70dfa7d7c39cb13b807c
+review-took-out-line = একটি লাইন মুছে ফেলা হয়েছে
+# en: 7f356b013fff2debeaa8414c985236bd05276b21
+review-changed = ডকুমেন্ট বদলানো হয়েছে
+# en: 92da3da547e5dd5677b18922b1611f08c61f4681
+review-rejected-putting-back = একটি পরিবর্তন বাতিল করে “{ $words }” ফিরিয়ে আনা হয়েছে
+# en: b10117b3632f96b6169864b190e3c106a212dc2a
+review-rejected-taking-out = একটি পরিবর্তন বাতিল করে “{ $words }” সরানো হয়েছে
+# en: 30983f282a9a57909b378cd4134d143a067e0415
+review-rejected-restyling = একটি ফরম্যাট পরিবর্তন বাতিল করা হয়েছে
+# en: e235e19c7ec71b01d43fe842983f3a80c6212095
+review-waiting = আপনার অপেক্ষায়
+# en: 6b94b0a9cbfbb2fc3ce5081c50246ab3016e4c73
+review-yours = আপনার, অন্যদের অপেক্ষায়
+# en: a90ec4fbb1f4f2050856da437722dada4ab986dc
+review-reviewed = আপনি দেখেছেন
+# en: 61a0572c4893ef34311320d84c82df88bea83e11
+review-accepted = গৃহীত
+# en: 27eeb7a291bfc566447d9cd928e98caf90f70ee6
+review-rejected = বাতিল
+# en: 41b8f5693f30107a055b7507a7095b5ca0aa8fd9
+review-n-waiting = { $n ->
+        [one] { $n }টি অপেক্ষমাণ
+       *[other] { $n }টি অপেক্ষমাণ
+    }
+# en: bb54db510a92908a5a4df79fc1ad1eae8df50ec3
+review-accept = গ্রহণ
+# en: 2b03b59293b6fc7101306f5d9ae1e96327bb419a
+review-reject = বাতিল
+# en: 821d1f7909a5146fa98fd5228675c49e64c6e60b
+review-accept-all = সব গ্রহণ
+# en: 35c291a4ab2f675bdb9437918790287fcfec88fa
+review-reject-all = সব বাতিল
+# en: 76cc08ef327763a9a7b47697d90d71a69acbed05
+review-accept-all-by = { $name }-এর সব পরিবর্তন গ্রহণ করুন
+# en: 56db173f938aff6b5e405bb416ba178d4d344159
+review-reject-all-by = { $name }-এর সব পরিবর্তন বাতিল করুন
+
+## comments beside a document's words (kit/ui/comments.ts, kit/ui/comment-box.ts)
+
+# en: fce06e20e5f7f74aacccab40b59b75a56c8f7305
+comments-comments = মন্তব্য
+# en: af65ae0e9f04990618e53d608489530582356c11
+comments-new = নতুন মন্তব্য
+# en: 207b24fc9b9276a4b2709de85e55eb8adbba3806
+comments-none = এখনও কোনো মন্তব্য নেই।
+# en: 4a88284dee66496310481a76d3d91ba0a1099aea
+comments-select-words = কিছু শব্দ বাছাই করে “মন্তব্য” বেছে নিন, সেগুলো নিয়ে কথা বলতে।
+# en: 570aad8456c6d9321e051c22879ae5833cf0cfde
+comments-words-changed = যে শব্দ পরে বদলে গেছে
+# en: 64d379f0d0c939707ccfbb7245f744611def8c96
+comments-whole-document = পুরো ডকুমেন্টে
+# en: d999aeb0545fa93c44c82d1abb928c06e3590523
+comments-resolved = সমাধান হয়েছে
+# en: ac7f958cc028becfb4b2bec9c474bd2d5e8b6095
+comments-resolve = সমাধান
+# en: 61e05da2a47259dbae5eb58fad4b1af04dd69e07
+comments-reopen = আবার খুলুন
+# en: 6c2bb735a46a8ff307fe2e638d581295b2a49e09
+comments-reply = উত্তর
+# en: 3a71e78cdb4d792bb688c8dbba093a0bda884647
+comments-n-replies = { $n ->
+        [one] { $n }টি উত্তর
+       *[other] { $n }টি উত্তর
+    }
+# en: 911d801f12b06712dee871fc5f647eacc04e430f
+comments-by = { $name }-এর মন্তব্য
+# en: 23b48bef02ad4d2437d3f19ab9df708fac256c00
+comments-ask = { $name }কে জিজ্ঞাসা করুন
+# en: 9dd346ebb60f70ca00c786e8697e934709bf0a73
+comments-asks = { $name }কে জিজ্ঞাসা করছেন
+# en: 13ff50a2189f50a0c931f16e02b060b37ec0208e
+comments-answering = { $name } উত্তর দিচ্ছেন…
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+comments-people = মানুষজন
+# en: 0f87ce5a3cbdf6796c6f152204e44b143201290f
+comments-write = { $what }… @ দিয়ে কাউকে ডাকুন
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# en: 4816c01fcfc82e618ba8d4f9f2d5cca84f36a4c1
+table-filter-rows = সারি ফিল্টার করুন
+# en: f648af13b3a158a514634b7a27501c621e4f9c87
+table-add-row = সারি যোগ করুন
+# en: 45b553017087942f58e36f1963f58398aaa93cef
+table-select-all-rows = সব সারি বাছাই করুন
+# en: 9320afbefdcf309b4b763224769937b3936d517a
+table-select-name = { $name } বাছাই করুন
+# en: e892255d168b0ccc00b895b653a7ff8d9a7ab4f0
+table-no-rows = এখানে এখনো কিছু নেই
+# en: 7dc03a2b77e86b5ce3279f1239cf7eed2c3e31dd
+table-no-rows-match = কোনো সারি মেলেনি
+# en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
+table-sort-hint = এই কলাম অনুযায়ী সাজান। Shift-ক্লিক করে এটি অনুযায়ীও সাজান।
+# en: bce06414177f72ab70e6387b6af9f8ceef0d6049
+search-label = খুঁজুন
+# en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd
+search-searching = খোঁজা হচ্ছে…
+# en: 938206ae8c35210570eff0f625f7174736ab50d3
+search-failed = খোঁজা যায়নি। আবার চেষ্টা করুন।
+# en: 445b04c118dbe3becf81b1490e4f09218cd85a09
+search-n-found = { $n ->
+        [one] { $n } টি পাওয়া গেছে
+       *[other] { $n } টি পাওয়া গেছে
+    }
+# en: 1c8d7da8241f46e35847a6ee94585aa15c895038
+search-nothing-found = “{ $q }”-এর কোনো মিল নেই
+# en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
+header-breadcrumbs = নেভিগেশন পথ
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = বোর্ড
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = বোর্ড
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = স্ট্যাটাস অনুযায়ী কলামে কার্ড, প্রতিটি কার্ড একটি টেবিলের এক সারি।
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = স্ট্যাটাস
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = করতে হবে
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = চলছে
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = হয়ে গেছে
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = কোনো কার্ড নেই
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+        [one] { $n } টি কার্ড
+       *[other] { $n } টি কার্ড
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = কার্ডগুলো স্প্রেডশিটে খুলুন
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = কার্ড
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = কলাম
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = কলামের অপশন
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = { $lane }-এর অপশন
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = কার্ড যোগ করুন
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = কলাম মুছুন
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = কলামে সরান…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = কলামের নাম বদলান
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = আগের বা পরের কলামের পাশের কার্ড
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = কার্ডটি আগের বা পরের কলামে সরান
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = কলামের নাম
+# same
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = YYYY-MM-DD
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = নতুন কলাম
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = { $lane }-এ কার্ড { $n }-এর শিরোনাম
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = { $lane }-এ কার্ড { $n }: বাছাই করতে ট্যাপ করুন, সরাতে টানুন
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = বাছাই করা কার্ড
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = প্রজেক্ট বোর্ড
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = করতে হবে, চলছে আর হয়ে গেছে, প্রতিটি কাজের দায়িত্বে কে আর শেষ তারিখ কবে।
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = সেলস পাইপলাইন
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = নতুন আগ্রহ থেকে জেতা বা হারা পর্যন্ত ডিল, তার মূল্য আর বন্ধের তারিখসহ।
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = নিয়োগ
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = আবেদন থেকে নিয়োগ পর্যন্ত প্রার্থীরা, পদ আর পরের ধাপসহ।
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = কনটেন্ট ক্যালেন্ডার
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = আইডিয়া থেকে প্রকাশ পর্যন্ত লেখা, চ্যানেল, লেখক আর তারিখসহ।

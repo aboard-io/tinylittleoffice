@@ -4,7 +4,9 @@
 // editors are a page's, so only their files are looked for here; test/browser/editors.test.ts mounts one. The kit, for
 // an app built outside the suite, is the editors' file at run time, so here it resolves to that file and the file
 // exports every name the kit's source does; test/browser/kit.test.ts builds an app with it. A TypeScript program's
-// check reads the declarations build:lib writes (tsconfig.lib.json), against the package as installed.
+// check reads the declarations build:lib writes (tsconfig.lib.json), against the package as installed. The Board, an
+// app of the library's the site does not list, is served on entries of its own: its model runs here under Node, and its
+// page's file is looked at as the editors' are (test/browser/board.test.ts registers it from the built file).
 import { test, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
@@ -27,7 +29,7 @@ test('the package is the site’s version, public, named tinylittleoffice, with 
   expect(readFileSync(join(PKG, 'LICENSE'), 'utf8')).toBe(readFileSync(join(ROOT, 'LICENSE'), 'utf8'));
 });
 
-test('the package serves the library: the kernel, the commands, the editors, their stylesheet and the kit, beside the API, each typed', () => {
+test('the package serves the library: the kernel, the commands, the editors, their stylesheet, the kit and the Board, beside the API, each typed', () => {
   // Each module's declarations first, as TypeScript reads the conditions in order (tsconfig.lib.json emits them).
   expect(pkg.exports).toStrictEqual({
     '.': { types: './dist/types/api.d.ts', default: './dist/api.js' },
@@ -36,16 +38,22 @@ test('the package serves the library: the kernel, the commands, the editors, the
     './editors': { types: './dist/types/editors.d.ts', default: './dist/editors.js' },
     // The kit is the editors' own file, typed by its own declarations: one Lit and one registry for an app built outside.
     './kit': { types: './dist/types/kit.d.ts', default: './dist/editors.js' },
+    // The Board, for a page (its def, its editor, registerBoard), its model alone for a server, and its stylesheet.
+    './board': { types: './dist/types/board.d.ts', default: './dist/board.js' },
+    './board/model': { types: './dist/types/apps/board/model.d.ts', default: './dist/board-model.js' },
     './editors.css': { types: './editors.css.d.ts', default: './dist/editors.css' },
+    './board.css': { types: './board.css.d.ts', default: './dist/board.css' },
     './examples/*.json': './examples/*.json',
     './package.json': './package.json',
   });
   expect(pkg.files).toEqual(expect.arrayContaining(['dist/doc.js', 'dist/commands.js', 'dist/editors.js', 'dist/editors.css', 'editors.css.d.ts', 'dist/editors', 'dist/fonts', 'dist/types']));
+  expect(pkg.files).toEqual(expect.arrayContaining(['dist/board.js', 'dist/board-model.js', 'dist/board.css', 'board.css.d.ts']));
   // The kernel and the commands have no side effects to keep; the editors define their elements and the stylesheet
   // styles the page.
   expect(pkg.sideEffects).not.toContain('./dist/doc.js');
   expect(pkg.sideEffects).not.toContain('./dist/commands.js');
-  expect(pkg.sideEffects).toEqual(expect.arrayContaining(['./dist/editors.js', './dist/editors.css', './dist/editors/*']));
+  expect(pkg.sideEffects).not.toContain('./dist/board-model.js');
+  expect(pkg.sideEffects).toEqual(expect.arrayContaining(['./dist/editors.js', './dist/editors.css', './dist/editors/*', './dist/board.js', './dist/board.css']));
 });
 
 test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives one, installs the skill, the API, kernel and commands import typed, editors are there', { timeout: 180_000 }, () => {
@@ -141,6 +149,31 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       [],
       true,
     ]);
+    // The Board's model, as a server makes and changes boards with it (Atlas's pipeline): one file that imports the
+    // package's own kernel and nothing else, names no browser global, and needs nothing of the editors. A board built
+    // from records, read back, a card moved as ops and taken back as a move.
+    const boardModelJs = readFileSync(join(app, 'node_modules/tinylittleoffice/dist/board-model.js'), 'utf8');
+    expect(importsOf(boardModelJs).map((i) => i.spec)).toStrictEqual(['./doc.js']);
+    expect(domNames(boardModelJs)).toStrictEqual([]);
+    const boardModel = [
+      "import { boardDoc, boardOf, moveBack, moveCard, blankBoard } from 'tinylittleoffice/board/model';",
+      "import { applyAll, column, write } from 'tinylittleoffice/doc';",
+      "const doc = boardDoc(['Inbound', 'Won'], [column('Deal'), column('Stage:option')], [['Website', 'Inbound'], ['Retainer', 'Won']]);",
+      "const ops = moveCard(doc, 0, 'Won', 1);",
+      'const after = applyAll(doc, ops);',
+      'const back = moveBack(doc, ops);',
+      'console.log(JSON.stringify([write(doc), boardOf(after).lanes.map((l) => [l.name, l.cards.map((c) => c.title)]), blankBoard(), back.map((o) => o.op), write(applyAll(after, back)) === write(doc)]));',
+    ].join('\n');
+    expect(JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', boardModel], { cwd: app, encoding: 'utf8' }))).toStrictEqual([
+      '---\nlanes: Inbound, Won\n---\nDeal | Stage:option\n--- | ---\nWebsite | Inbound\nRetainer | Won\n',
+      [
+        ['Inbound', []],
+        ['Won', ['Retainer', 'Website']],
+      ],
+      '---\nlanes: To do, Doing, Done\n---\nTitle | Status:option\n--- | ---\n',
+      ['rows', 'rows', 'cells'],
+      true,
+    ]);
     // The types, as a TypeScript program that holds documents sees them: a consumer importing from every subpath checks
     // clean under strict, and a second file that misuses each fails, error by error, so the check is reading the
     // package's declarations rather than taking every name as any. skipLibCheck, as Atlas sets it: the declarations name
@@ -168,7 +201,20 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type GhostAt, type SheetMark } from 'tinylittleoffice/kit';",
         "import { COLORS, changesOf, ghostsOf, paint, pinComments, rejectOps, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
         "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
+        "import { pickTemplate, type Crumb, type PickedTemplate, type RowChange, type SearchHit, type SearchPick, type Searcher, type SortBy, type TableColumn, type TableRow, type ToHeader, type ToSearch, type ToTable } from 'tinylittleoffice/editors';",
         "import 'tinylittleoffice/editors.css';",
+        // The Board, as Atlas holds it: registered, its editor asked for a pick and carried only, its model on its own.
+        "import { board, install, registerBoard, boardOf, type BoardView, type PickedCard, type ToBoardEditor } from 'tinylittleoffice/board';",
+        "import { ENGLISH_LANES, boardColumns, boardDoc, moveCard, type ColumnNames } from 'tinylittleoffice/board/model';",
+        "import 'tinylittleoffice/board.css';",
+        'registerBoard();',
+        'install();',
+        "export const names: ColumnNames = { title: 'Titre', status: 'Statut' };",
+        'export const view: BoardView = boardOf(boardDoc(ENGLISH_LANES, boardColumns(names)));',
+        'export const ask = (editor: ToBoardEditor): ToBoardEditor => ((editor.pickable = true), (editor.carryOnly = true), editor);',
+        'export const picked = (e: CustomEvent<PickedCard>): number => e.detail.row;',
+        "export const boardOps: Op[] = moveCard(boardDoc(['A'], boardColumns()), 0, 'A', 0);",
+        'export const boardId: string = board.id;',
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
         "const op: Op = { op: 'text', at: 1, from: 0, to: 4, runs: [{ t: 'Sail' }] };",
@@ -218,6 +264,65 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         '  words.mentions = people;',
         "  return pinComments(words, frame, [{ id: 'c1', quote: 'Plans' }]);",
         '};',
+        // What the words draw around themselves, Find over a page's own editor, the dialogs, the icons, the charts.
+        "import { CHART_KINDS, ToComplete, ToContext, ToDocDialog, ToFind, ToLinkPop, ToLockedDoc, ToPreview, chartData, chartPage, chooseIcon, dateNav, editDoc, editTable, find, pageSvg, suggestChart } from 'tinylittleoffice/kit';",
+        "import type { ChartData, ChartKind, Completion, ContextEntry, ContextItem, DateNavOpts, DocRemote, Findable, Flow, Found, IconChoice } from 'tinylittleoffice/kit';",
+        "import { keepSizeAt, keepThemeAt } from 'tinylittleoffice/editors';",
+        'export const finding = async (editor: HTMLElement): Promise<number> => (await find(editor, document.body)).count;',
+        'export const findable: Findable = { find: (terms: string[]): Found => ({ count: terms.length, go: () => {} }) };',
+        'export const elements: (typeof HTMLElement)[] = [ToFind, ToLinkPop, ToContext, ToComplete, ToPreview, ToLockedDoc, ToDocDialog];',
+        "export const items: ContextEntry[] = [{ label: 'Bold', does: () => {} } satisfies ContextItem, '|'];",
+        'export const offered: Completion[] = [];',
+        'export const icon = (): Promise<string | null> => chooseIcon({ emoji: false } satisfies IconChoice);',
+        "export const nav: DateNavOpts = { label: 'March', prev: 'Back', next: 'On', onPrev: () => {}, onNext: () => {}, onToday: () => {} };",
+        'export const navDrawn = dateNav(nav);',
+        "export const edited = async (into: Element): Promise<string | null> => (await editTable({ k: 'table', cols: [], rows: [] }, into)) && editDoc({ app: 'write', text: '', into });",
+        "const sales: ChartData = chartData([['Jan', 1], ['Feb', 2]], ['Month', 'Sales']);",
+        'const kind: ChartKind = suggestChart(sales) || CHART_KINDS[0].id;',
+        'export const flows: Flow[] = sales.flows ?? [];',
+        "export const chart: string = pageSvg(chartPage(sales, kind, 'Sales'));",
+        'export const landed = (e: DocRemote): number => e.detail.ops.length;',
+        // Who reviewed what and who said what, as a host's server keeps them, and the components that draw them.
+        "import { ToCommentBox, ToComments, ToReviewPanel, changeWords, colorAt, colorOf, covers, drawChanges, quoteAt, reviewsOf, slotOf, threadsOf } from 'tinylittleoffice/kit';",
+        "import type { BoxSend, Comment, CommentSend, Person as Someone, Quote, Redraw, Review, ReviewAsk, Reviewed, Standing, Thread } from 'tinylittleoffice/kit';",
+        "const reviews: Review[] = [{ change_id: 'v1:*', by: 'a@x.co', verdict: 'accepted', at_seq: 1, undone_at: null }];",
+        'const reviewed: Reviewed = reviewsOf(reviews);',
+        "export const where: Standing = reviewed.standing('v1:0', 'b@x.co', 'a@x.co');",
+        "export const named: boolean = covers('v1:*', 'v1:0');",
+        "const notes: Comment[] = [{ id: 'c1', quote: 'Plans', by: 'a@x.co', text: 'Why?', to_atlas: false, created_at: '2026-10-18T10:00:00Z', resolved_at: null, deleted_at: null }];",
+        'export const threads: Thread[] = threadsOf(notes);',
+        "const cast: Someone[] = [{ id: 'a@x.co', name: 'Ana' }, { id: 'atlas', name: 'Atlas', color: colorAt(7) }];",
+        "export const hue: string = colorOf('a@x.co', cast.map((p) => p.id)) + slotOf('b@x.co');",
+        'export const said: string[] = changes.map(changeWords);',
+        'export const margin = (words: Parameters<typeof quoteAt>[0] & HTMLElement): ToComments => {',
+        "  const el = document.createElement('to-comments');",
+        "  Object.assign(el, { comments: notes, people: cast, me: 'a@x.co', canComment: true, ask: cast[1] });",
+        "  el.addEventListener('comment-send', (e) => { const sent: CommentSend = (e as CustomEvent<CommentSend>).detail; const q: Quote | null = sent.quote ?? quoteAt(words); sent.done(!!q); });",
+        "  el.addEventListener('review-accept', (e) => void (e as CustomEvent<ReviewAsk>).detail.ids);",
+        '  return el;',
+        '};',
+        "export const panel: ToReviewPanel = Object.assign(document.createElement('to-review-panel'), { changes, people: cast, reviews, me: 'a@x.co', canReview: true });",
+        "export const commentBox: ToCommentBox = document.createElement('to-comment-box');",
+        'export const boxed = (e: CustomEvent<BoxSend>): boolean => e.detail.ask;',
+        'export const draw = (words: Parameters<typeof drawChanges>[0], how: Redraw): Promise<void> => drawChanges(words, track(versions), how);',
+        "keepThemeAt('atlas.theme');",
+        'keepSizeAt(null);',
+        // A host's own pages: its records in a typed table, one search across them, its header, a template handed back.
+        'interface Person extends TableRow { name: string; deal: number; stage: string }',
+        "export const columns: TableColumn<Person>[] = [{ key: 'name', label: 'Name', type: 'person', editable: true }, { key: 'deal', label: 'Deal', type: 'money', currency: 'USD' },",
+        "  { key: 'stage', label: 'Stage', type: 'enum', options: [{ value: 'lead', color: 'gray' }] }];",
+        "export const sorted: SortBy[] = [{ key: 'deal', dir: 'desc' }];",
+        'export const roster = (into: Element): ToTable<Person> => {',
+        "  const table = document.createElement('to-table') as ToTable<Person>;",
+        "  Object.assign(table, { columns, rows: [{ id: 1, name: 'Ada', deal: 950, stage: 'lead' }], sort: sorted, selectable: true });",
+        "  table.addEventListener('rowchange', (e) => { const change = (e as CustomEvent<RowChange<Person>>).detail; if (change.column === 'deal') change.wait(Promise.resolve(true)); });",
+        '  into.append(table);',
+        '  return table;',
+        '};',
+        "export const search: Searcher = async (q, signal) => (signal.aborted ? [] : [{ kind: 'person', id: '1', title: q }] satisfies SearchHit[]);",
+        "export const box = (el: ToSearch): void => { el.search = search; el.kinds = { person: { label: 'People' } }; el.addEventListener('searchpick', (e) => void (e as CustomEvent<SearchPick>).detail.hit?.id); };",
+        "export const crumbs = (el: ToHeader, trail: Crumb[]): void => { el.crumbs = trail; el.heading = 'Projects'; };",
+        "export const start = async (): Promise<string> => { const picked: PickedTemplate | null = await pickTemplate('write'); return picked ? picked.text : ''; };",
       ].join('\n'),
     );
     writeFileSync(
@@ -228,12 +333,18 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { mount } from 'tinylittleoffice/editors';",
         "import { registerApp, track } from 'tinylittleoffice/kit';",
         "import { rejectOps } from 'tinylittleoffice/doc';",
+        "import { pickTemplate } from 'tinylittleoffice/kit';",
+        "import { registerBoard } from 'tinylittleoffice/board';",
+        "import { boardOf } from 'tinylittleoffice/board/model';",
         "write('# Plan');",
         'tools([], 7);',
         "void mount('write', '', 'main', () => {});",
         "registerApp('tally');",
         "track('# Plan');",
         "rejectOps([], 'v1:0', []);",
+        'void pickTemplate(7);',
+        "registerBoard('board');",
+        "boardOf('# Plan');",
       ].join('\n'),
     );
     const tsc = (project: string) => {
@@ -249,7 +360,17 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         .trim()
         .split('\n')
         .map((l) => /^(\S+)\((\d+),\d+\): error (TS\d+)/.exec(l)?.slice(1).join(' ')),
-    ).toStrictEqual(['bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345', 'bad.ts 9 TS2345', 'bad.ts 10 TS2345', 'bad.ts 11 TS2345']);
+    ).toStrictEqual([
+      'bad.ts 9 TS2345',
+      'bad.ts 10 TS2345',
+      'bad.ts 11 TS2345',
+      'bad.ts 12 TS2345',
+      'bad.ts 13 TS2345',
+      'bad.ts 14 TS2345',
+      'bad.ts 15 TS2345',
+      'bad.ts 16 TS2554',
+      'bad.ts 17 TS2345',
+    ]);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');
     // The kit is the editors' file: resolved there, and that file exports every value the kit's source does (its last
@@ -267,7 +388,33 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
     expect(kit.map((n) => n.name).filter((n) => !served.has(n))).toStrictEqual([]);
     expect(statSync(join(dist, 'editors.js')).size).toBeGreaterThan(500_000);
     expect(statSync(join(dist, 'editors.css')).size).toBeGreaterThan(50_000);
-    expect(readdirSync(join(dist, 'editors')).filter((f) => /^(map|templates-write|lang-fr)-/.test(f))).toHaveLength(3);
+    expect(readdirSync(join(dist, 'editors')).filter((f) => /^(map|templates-write|templates-board|lang-fr)-/.test(f))).toHaveLength(4);
+    // The Board's file takes its kit from the editors' (one Lit, one registry) and fetches its templates beside them;
+    // it exports its definition, registerBoard and the model, and its stylesheet is its own, in the editors' layers.
+    const boardJs = readFileSync(join(dist, 'board.js'), 'utf8');
+    expect([
+      ...new Set(
+        importsOf(boardJs)
+          .filter((i) => !i.lazy)
+          .map((i) => i.spec),
+      ),
+    ]).toStrictEqual(['./editors.js']);
+    expect(boardJs).toMatch(/import\(["'`]\.\/editors\/templates-board-[\w-]+\.js["'`]\)/);
+    const boardServes = new Set(
+      /export\{([^}]*)\};?\s*$/
+        .exec(boardJs)![1]
+        .split(',')
+        .map((p) => p.split(' as ').pop()!.trim()),
+    );
+    expect(['board', 'registerBoard', 'install', 'boardDoc', 'boardOf', 'moveCard', 'moveBack'].filter((n) => !boardServes.has(n))).toStrictEqual([]);
+    expect(resolved('tinylittleoffice/board')).toMatch(/\/dist\/board\.js$/);
+    expect(resolved('tinylittleoffice/board.css')).toMatch(/\/dist\/board\.css$/);
+    const boardCss = readFileSync(join(dist, 'board.css'), 'utf8');
+    expect(boardCss).toMatch(/@layer apps\{/);
+    expect(boardCss).toMatch(/\.board-lane\{/);
+    // The editors' file and stylesheet hold nothing of the Board's but its words (in every language's file).
+    expect(readFileSync(join(dist, 'editors.css'), 'utf8')).not.toContain('board-lane');
+    expect(readFileSync(join(dist, 'editors.js'), 'utf8')).not.toContain('to-board-editor');
     // The faces ride beside the stylesheet, which names each of them there (./fonts/…) and none at the site's /fonts/,
     // with the license the OFL asks to travel with them.
     const faces = [...readFileSync(join(dist, 'editors.css'), 'utf8').matchAll(/url\(['"]?([^)'"]+\.woff2)/g)].map((m) => m[1]);

@@ -34,11 +34,17 @@
  *   (`live`, `run`, `runKey`), drawn (`cmdTool`, `cmdBtn`, `cmdMenu`, `drawnIn`, `contextOf`, `labelOf`, `keysText`);
  * - words (kit/core/i18n.ts): `t`, `addStrings` (an app's own Fluent source, to English and any other language),
  *   `language`, `setLanguage` and `onLanguage`; and `toast`, the one voice;
- * - what an editor draws with: the bar (`<to-bar>`, `btn`, `tool`), the menus (`<to-menu>`, `<to-insert>`, MenuItem),
- *   the dialog (`<to-dialog>`), the one editor of words (`<to-text>` and its TextOps), rows chosen whole (`Rows`),
- *   `reveal` and `scrollerOf`; the clipboard's `clipText` and `docToHtml`; an option column's `choicesOf`;
+ * - what an editor draws with: the bar (`<to-bar>`, `btn`, `tool`, and `dateNav`, back, what is on view, on and
+ *   Today), the menus (`<to-menu>`, `<to-insert>`, MenuItem), the dialog (`<to-dialog>`), the one editor of words
+ *   (`<to-text>` and its TextOps), rows chosen whole (`Rows`), `reveal` and `scrollerOf`; the clipboard's `clipText`
+ *   and `docToHtml`; an option column's `choicesOf`; and what the words draw around themselves, each its own element:
+ *   the context bar (`<to-context>`), the completions (`<to-complete>`), the link box (`<to-link-pop>`), a link's
+ *   preview (`<to-preview>`), a document locked with a password (`<to-locked-doc>`), the dialog a placed document is
+ *   edited in (`<to-doc-dialog>`, `editDoc`, `editTable`), the icon picker (`chooseIcon`), and Find (`<to-find>`, and
+ *   `find(target)`, which opens it over an editor of a page's own);
  * - drawing a page with no DOM (kit/draw/draw.ts): the colors, `rect`, `text`, `clip`, `wrapText`, `textWidth`, `xml`,
- *   `utf8` for a file's bytes; the icons (`icon`, `iconNamed`, `UI`);
+ *   `utf8` for a file's bytes, `pageSvg` (a Page as an SVG); the icons (`icon`, `iconNamed`, `UI`); a chart from a
+ *   table (kit/draw/chart.ts: `chartData`, `suggestChart`, `chartPage`, `CHART_KINDS`);
  * - the Spreadsheet's words for a table: `cellAsShown`, a cell's value as its column shows it (money in its currency, a
  *   date as a date, a rich cell's words), `tableAsCsv`, a document's first table as the Spreadsheet's CSV, and
  *   `asWords`, words written as a cell that reads back as those words whatever they start with ("'=SUM(1)": the
@@ -54,7 +60,17 @@
  *   PREFIX), `ghostsOf` (the words taken out and the brackets and lozenges of initials, `initialsOf`, as Drawing says
  *   them) for the text editor's `showGhosts` (Ghost; Alt+Enter names the edit at the caret in "text-ghost", GhostAt),
  *   and `pinComments` and `unpin` (a comment found by its quote, Pinned); and "@" offering the host's people as the
- *   text editor's `mentions` (Mention);
+ *   text editor's `mentions` (Mention). Beside them: each person's color past the six, in either theme (`colorOf`,
+ *   `colorAt`, `slotOf`), the drawing whole with its ghosts awaited (`drawChanges`, Redraw), the selection as a quote
+ *   (`quoteAt`, kit/text/quote.ts), a host's reviews and comments as its server keeps them (kit/text/review.ts:
+ *   Review, `reviewsOf`, `covers`, Comment, `threadsOf`), and the components that list and draw them: the review panel
+ *   (`<to-review-panel>`, `changeWords`, Person, ReviewAsk) and the margin (`<to-comments>`, CommentSend, and its box,
+ *   `<to-comment-box>`);
+ * - what a host's own pages are made of (docs/library.md, A typed table and after): `<to-table>` (ToTable), its rows
+ *   typed by their columns (TableColumn, ColumnType, EnumOption, LinkValue, TableRow), sorted (SortBy) and edited in
+ *   place (RowChange); `<to-search>` (ToSearch), one search across every kind of thing (Searcher, SearchHit,
+ *   SearchKind, SearchAction, SearchPick); `<to-header>` (ToHeader), a page's header without the shell (Crumb); and
+ *   `pickTemplate` and `<to-template-picker>` (ToTemplatePicker), a template chosen and handed back (PickedTemplate);
  * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
  *   whichever of the `backends` owns the address (a link, a sealed link, a short link, a journal's: Backend, Opened,
  *   Ask), and `place` puts it in an editor on the page (Placement); a document several people edit at once is made by
@@ -63,7 +79,7 @@
  *   `SyncStore` (kit/share/sync.ts) of Kept documents.
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
-export { DocElement, firstAt, type DocOps, type DocPick, type Entry, type Picked } from './kit/core/element.ts';
+export { DocElement, firstAt, type DocOps, type DocPick, type DocRemote, type Entry, type Picked } from './kit/core/element.ts';
 export { appOf, registerApp } from './kit/core/apps.ts';
 export { editorTag, mount, setup, type Mounted, type Own } from './kit/core/mount.ts';
 export { host, type Host, type Placed } from './kit/core/host.ts';
@@ -71,10 +87,18 @@ export { command, commandsOf, contextOf, drawnIn, inScope, keysText, labelOf, li
 export { addStrings, language, onLanguage, setLanguage, t } from './kit/core/i18n.ts';
 export { toast, type Action } from './kit/core/say.ts';
 export { ToToast } from './kit/ui/toast.ts';
-export { btn, cmdBtn, cmdMenu, cmdTool, tool, ToBar, type BtnOpts } from './kit/ui/bar.ts';
+export { btn, cmdBtn, cmdMenu, cmdTool, dateNav, tool, ToBar, type BtnOpts, type DateNavOpts } from './kit/ui/bar.ts';
 export { ToMenu, type MenuItem } from './kit/ui/menu.ts';
 export { ToInsert } from './kit/ui/insert.ts';
 export { ToDialog } from './kit/ui/dialog.ts';
+export { find, ToFind, type Findable, type Found } from './kit/ui/find.ts';
+export { ToLinkPop } from './kit/ui/link-pop.ts';
+export { ToContext, type ContextEntry, type ContextItem } from './kit/ui/context.ts';
+export { ToComplete, type Completion } from './kit/ui/complete.ts';
+export { ToPreview } from './kit/ui/preview.ts';
+export { ToLockedDoc } from './kit/ui/locked-doc.ts';
+export { editDoc, editTable, ToDocDialog } from './kit/ui/doc-dialog.ts';
+export { chooseIcon, type IconChoice } from './kit/ui/icons-picker.ts';
 export { reveal, scrollerOf, type Reveal } from './kit/ui/scroll.ts';
 export { ToText, type Ghost, type GhostAt, type Mention, type TextOps } from './kit/text/text.ts';
 export {
@@ -99,7 +123,30 @@ export {
 } from './kit/text/changes.ts';
 export { rejectOps } from './kit/text/reject.ts';
 export { diffLines } from './kit/text/diff.ts';
-export { COLORS, ghostsOf, initialsOf, paint, pinComments, PREFIX, unpaint, unpin, wordsOf, type Drawing, type Painted, type Pinned } from './kit/text/redline.ts';
+export {
+  colorAt,
+  colorOf,
+  COLORS,
+  drawChanges,
+  ghostsOf,
+  initialsOf,
+  paint,
+  pinComments,
+  PREFIX,
+  slotOf,
+  unpaint,
+  unpin,
+  wordsOf,
+  type Drawing,
+  type Painted,
+  type Pinned,
+  type Redraw,
+} from './kit/text/redline.ts';
+export { quoteAt, type Quote } from './kit/text/quote.ts';
+export { covers, reviewsOf, threadsOf, type Comment, type Review, type Reviewed, type Standing, type Thread } from './kit/text/review.ts';
+export { changeWords, ToReviewPanel, type Person, type ReviewAsk } from './kit/ui/review-panel.ts';
+export { ToComments, type CommentSend } from './kit/ui/comments.ts';
+export { ToCommentBox, type BoxSend } from './kit/ui/comment-box.ts';
 export { caret, type Pos, type Sel } from './kit/text/textops.ts';
 export { backends, link, multiparty, open, place, sealed, short, type Ask, type Backend, type Opened, type Placement } from './kit/share/backends.ts';
 export { newShared, textAt, versions, type Version } from './kit/share/multiparty.ts';
@@ -108,8 +155,14 @@ export { SyncStore, type Kept } from './kit/share/sync.ts';
 export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRange, type RowSpan, type RowsOptions } from './kit/text/rows.ts';
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';
 export { choicesOf } from './kit/text/columns.ts';
+export { ToTable, type RowChange } from './kit/ui/table.ts';
+export type { ColumnType, EnumOption, LinkValue, SortBy, TableColumn, TableRow } from './kit/ui/table-model.ts';
+export { ToSearch, type SearchAction, type SearchHit, type SearchKind, type SearchPick, type Searcher } from './kit/ui/search-box.ts';
+export { ToHeader, type Crumb } from './kit/ui/header.ts';
+export { pickTemplate, ToTemplatePicker, type PickedTemplate } from './kit/ui/template-picker.ts';
 export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
-export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
+export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, pageSvg, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
+export { CHART_KINDS, chartData, chartPage, suggestChart, type ChartData, type ChartKind, type Flow } from './kit/draw/chart.ts';
 export { cellText as cellAsShown, sheetToCsv as tableAsCsv } from './apps/sheet/view.ts';
 export type { SheetMark } from './apps/sheet/editor.ts';
 export { asWords } from './doc/index.ts';

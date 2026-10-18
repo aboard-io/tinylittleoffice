@@ -5,8 +5,8 @@
  * its link alone (not the menu: Paul, 2026-10-12), each side a link pasted in; the address
  * holds both, "#/compare/<app>/<payload>/<app>/<payload>", so a comparison is a link too. Nothing leaves
  * the page. On a phone the rows stack: the old block, then the new one under it. kit/text/diff.ts compares the
- * blocks as TLO writes them. A page that is not the site gives the sides as `a` and `b`, and takes "compare-change"
- * to keep its address its own.
+ * blocks as TLO writes them. A page that is not the site gives the sides as `a` and `b`, takes "compare-change"
+ * to keep its address its own, and says where each side opens with its host's `link`.
  */
 import { LitElement, html, nothing } from 'lit';
 import { appOf } from '../core/apps.ts';
@@ -14,7 +14,7 @@ import { decodeDoc, withBreaks, withoutBreaks } from '../core/codec.ts';
 import { diff, tally, type Change } from '../text/diff.ts';
 import { icon, UI } from '../draw/icons.ts';
 import { t } from '../core/i18n.ts';
-import { routeHash } from '../core/route.ts';
+import { host } from '../core/host.ts';
 
 export interface Side {
   app: string;
@@ -102,12 +102,13 @@ export class ToCompare extends LitElement {
     const def = s ? appOf(s.app) : undefined;
     const text = s ? decodeDoc(s.payload) : '';
     const label = which === 'a' ? t('compare-first-link') : t('compare-second-link');
-    const href = s ? `${location.origin}${location.pathname}${routeHash(s.app, s.payload)}` : '';
+    // Where the document opens is the host's to say (kit/core/host.ts): on the site, its own link there.
+    const href = s ? host.link(s.app, text) : '';
     return html`<div class="cmp-side">
       <label class="to-field cmp-field"><span>${label}</span>
         <input type="url" class="cmp-${which}" placeholder=${which === 'a' ? t('compare-paste-link-to-document-as-it-was') : t('compare-paste-link-to-document-as')} .value=${href} @change=${(e: Event) => this.set(which, (e.target as HTMLInputElement).value, e.target as HTMLInputElement)} />
       </label>
-      ${def ? html`<p class="cmp-meta">${icon(def.icon, 16)}<b>${def.title(text) || t('common-untitled-noun', { noun: def.noun })}</b><span>· ${def.name}</span><a href=${routeHash(s!.app, s!.payload)}>${t('common-open')}</a></p>` : nothing}
+      ${def ? html`<p class="cmp-meta">${icon(def.icon, 16)}<b>${def.title(text) || t('common-untitled-noun', { noun: def.noun })}</b><span>· ${def.name}</span><a href=${href}>${t('common-open')}</a></p>` : nothing}
     </div>`;
   }
 

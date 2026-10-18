@@ -270,8 +270,9 @@ export interface Ghost {
   style?: string;
   /** A name the host finds it by again (data-ghost). */
   id?: string;
-  /** A whole block's worth: drawn as a line of its own before the block's words. */
+  /** A whole block's worth: drawn as a line of its own before the block's words, or, `after`, after them all. */
   block?: boolean;
+  after?: boolean;
   /** Drawn as words taken out (`del`, the default) or as a mark of the host's own (`span`). */
   tag?: 'del' | 'span';
   /** Pieces drawn in place of `text`, each with its own class (and name): a line made of a mark and words. */
@@ -1454,6 +1455,7 @@ export class ToText extends LitElement {
   /** Runs with a host's ghosts among them, each at its offset (a run split where one falls inside it). */
   private withGhosts(runs: Run[], notes: () => number, ghosts: Ghost[]): unknown[] {
     const sorted = ghosts
+      .filter((g) => !(g.block && g.after))
       .map((g, i) => [g, i] as const)
       .sort(([a, i], [b, j]) => a.offset - b.offset || Number(!!b.block) - Number(!!a.block) || (a.order ?? i) - (b.order ?? j))
       .map(([g]) => g);
@@ -1485,6 +1487,7 @@ export class ToText extends LitElement {
     flush(Infinity);
     const last = runs.at(-1);
     if (!last || (!isAtomic(last) && last.t.endsWith('\n'))) out.push(html`<br />`);
+    for (const g of ghosts) if (g.block && g.after) out.push(this.ghost(g));
     return out;
   }
   private renderCard(b: Block, at: number): TemplateResult {

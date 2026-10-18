@@ -6,7 +6,7 @@ import { t, addStrings, register, setLanguage, browserLanguage, directionOf, lan
 import { apply, commandKeys, englishHash, languageFiles, main, placeholders, rulesFor, sheet, usedKeys, withMissing, work, MARK } from '../scripts/i18n-extract.ts';
 import { flatMessages, readFtl } from '../scripts/ftl.ts';
 import { british } from './british.ts';
-import { bare } from '../scripts/ftl-plugin.ts';
+import { bare, LIBRARY_APPS } from '../scripts/ftl-plugin.ts';
 
 const root = join(import.meta.dirname, '..');
 const en = flatMessages(readFileSync(join(root, 'src/i18n/en.ftl'), 'utf8'), 'en');
@@ -169,6 +169,23 @@ test('a language as a page fetches it is its file without its comments, and says
     const shipped = bare(source);
     expect(shipped, code).not.toMatch(/^#/m);
     expect(flatMessages(shipped, code), code).toEqual(flatMessages(source, code));
+  }
+});
+
+test('the site’s build leaves out the messages of the library’s own apps, whole, and keeps every other; the library’s keeps them', async () => {
+  // The library's own apps are the apps under src/apps/ the site does not list (scripts/ftl-plugin.ts LIBRARY_APPS).
+  const { apps } = await import('../src/kit/core/apps.ts');
+  const site = new Set(apps().map((a) => a.id));
+  expect(readdirSync(join(root, 'src/apps')).filter((a) => !site.has(a))).toStrictEqual(LIBRARY_APPS);
+  for (const [code, path] of languageFiles(root)) {
+    const source = readFileSync(path, 'utf8');
+    const all = flatMessages(source, code);
+    const library = (id: string) => LIBRARY_APPS.some((a) => id.startsWith(`${a}-`));
+    expect(Object.keys(all).filter(library).length, code).toBeGreaterThan(30);
+    // A plural's lines go with its id's.
+    expect(flatMessages(bare(source, false), code), code).toEqual(Object.fromEntries(Object.entries(all).filter(([id]) => !library(id))));
+    expect(bare(source, false), code).not.toMatch(/^\s+\[one\][^\n]*card/m);
+    expect(flatMessages(bare(source, true), code), code).toEqual(all);
   }
 });
 

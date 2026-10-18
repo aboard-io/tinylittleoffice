@@ -127,6 +127,90 @@ describe('tracked changes', () => {
     ]);
   });
 
+  test('a change’s words read as they stand: what lies between two of its words is said, a space as a space', () => {
+    const said = (a: string, b: string) =>
+      changesOf(
+        track([
+          { author: A, text: a, hash: 'v0' },
+          { author: B, text: b, hash: 'v1' },
+        ]),
+      ).map((c) => [c.put, c.took, c.styled]);
+    // The hint's spaces stand, restyled by the same change: its words are not run together ("Designservices").
+    for (const [put, took] of said('*What this agreement is about*\n', 'Design services agreement\n')) {
+      expect(put).not.toMatch(/Designservices/);
+      expect(took).not.toMatch(/Whatthis/);
+    }
+    // Paragraphs put in as one change: a line between them.
+    expect(said('Keep.\n', 'Keep.\n\nOne.\n\nTwo.\n')).toEqual([['One.\nTwo.', '', '']]);
+  });
+
+  test('a paragraph put back whole, where it was taken out, is restored as a change, as words put back are', () => {
+    const base = { author: A, text: 'One.\n\nTwo **words**.\n\nThree.\n', hash: 'v0' };
+    const cut = { author: B, text: 'One.\n\nThree.\n', hash: 'v1' };
+    // Undone by whoever took it out, nobody having reviewed it: as it was.
+    expect(show([base, cut, { author: B, text: base.text, hash: 'v2' }])).toEqual(['p: One.', 'p: Two words.', 'p: Three.']);
+    // Put back by anyone else (a rejection, say): the block restored, the taking out it undid still Bob's, and its words
+    // with their own changes, none of them here.
+    const back = track([base, cut, { author: A, text: base.text, hash: 'v2' }]);
+    expect([back[1].restored, back[1].ins, back[1].insId, back[1].from]).toEqual([true, A, 'v2:0', { del: B, delId: 'v1:0' }]);
+    expect(back[1].toks.some((x) => x.insId || x.delId)).toBe(false);
+    expect(changesOf(back).map((c) => [c.id, c.author, c.kind, c.put, c.took])).toEqual([
+      ['v2:0', A, 'restore', 'Two words.', ''],
+      ['v1:0', B, 'edit', '', 'Two words.'],
+    ]);
+    const ghosts = ghostsOf(back, parse(base.text).blocks, () => false, drawing);
+    expect(ghosts.get(1)!.map((g) => g.text)).toEqual(['[', 'A restored', ']']);
+    // Nothing of it struck through elsewhere, and rejecting the restoring takes it out again.
+    expect([...ghosts.values()].flat().some((g) => g.cls?.includes('tx-gone'))).toBe(false);
+    expect(rejecting([base, cut, { author: A, text: base.text, hash: 'v2' }], () => ['v2:0'])).toBe(cut.text);
+    // Rejecting both, the restoring and the taking out it undid, leaves it standing.
+    expect(rejecting([base, cut, { author: A, text: base.text, hash: 'v2' }], () => ['v2:0', 'v1:0'])).toBe(base.text);
+  });
+
+  test('a block put back where one was taken out before, among blocks taken out now: each struck once, and rejecting it all gives back the version before', () => {
+    // The fuzz's counterexample, small: a rule moved (taken out above, put in below), then the paragraphs where it was
+    // replaced by a rule and a word, every change reviewed before the next version.
+    const v: Step[] = [
+      { author: B, text: 'A.\n\nB.\n\n---\n\nC.\n\nD.\n', hash: 'v0' },
+      { author: B, text: 'A.\n\nB.\n\nC.\n\nD.\n\n---\n', hash: 'v1' },
+      { author: B, text: 'A.\n\n---\n\nword\n\nD.\n\n---\n', hash: 'v2' },
+    ];
+    const reviewed = (id: string, seq: number) => Number(id.slice(1, id.indexOf(':'))) < seq;
+    const t = track(v, undefined, reviewed);
+    expect(t.filter((b) => !isHead(b) && b.toks.map((x) => x.t).join('') === 'B.')).toHaveLength(1);
+    expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v2:')), undefined, reviewed)).toBe(v[1].text);
+  });
+
+  test('a table put back whole where it was taken out is restored whole, and rejecting every change gives the first version back', () => {
+    // The fuzz's counterexample, small: a table moved down by one person and back up by another.
+    const table = '| Item | Qty |\n|---|---|\n| Pens | 2 |\n';
+    const v: Step[] = [
+      { author: A, text: `${table}\nOne.\n\nTwo.\n\nThree.\n`, hash: 'v0' },
+      { author: B, text: `One.\n\nTwo.\n\nThree.\n\n${table}`, hash: 'v1' },
+      { author: C, text: `${table}\nOne.\n\nTwo.\n\nThree.\n`, hash: 'v2' },
+    ];
+    const t = track(v);
+    expect(t.filter((b) => b.kind === 'table').map((b) => [b.restored ?? false, b.insId, b.delId])).toEqual([
+      [true, 'v2:0', undefined],
+      [false, 'v1:1', 'v2:1'],
+    ]);
+    expect(rejecting(v, (all) => all)).toBe(write(parse(v[0].text)));
+    expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v2:')))).toBe(write(parse(v[1].text)));
+  });
+
+  test('a paragraph put back whole keeps its words’ own changes: rejecting every change gives the first version back', () => {
+    // The fuzz's counterexample, small: Bob rewrites a word, Carol moves the paragraph down, Alice moves it back.
+    const v: Step[] = [
+      { author: A, text: 'Due in thirty days.\n\nX.\n\nY.\n', hash: 'v0' },
+      { author: B, text: 'Due in sixty days.\n\nX.\n\nY.\n', hash: 'v1' },
+      { author: C, text: 'X.\n\nY.\n\nDue in sixty days.\n', hash: 'v2' },
+      { author: A, text: 'Due in sixty days.\n\nX.\n\nY.\n', hash: 'v3' },
+    ];
+    expect(rejecting(v, (all) => all)).toBe(v[0].text);
+    // Bob's word is still Bob's, to reject alone.
+    expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v1:')))).toBe(v[0].text);
+  });
+
   test('a replacement is one change, with what it put in and what it took out, named by the version that made it', () => {
     const t = track([
       { author: A, text: 'Due in 30 days.\n', hash: 'h1' },
@@ -336,6 +420,29 @@ describe('drawn among the words', () => {
     expect(ghostsOf(t, parse('Payment is due in **45** days.\n').blocks, () => true, drawing).size).toBe(0);
   });
 
+  test('a hint written over is one replacement: the words taken out together, then the words put in, one bracket', () => {
+    // The contract template's italic hint, replaced (stories/kit/text/contract.ts): spaces and a word the two share.
+    const v = [
+      { author: A, text: '## *What this agreement is about*\n\nPaid by *who pays*.\n', hash: 'v0' },
+      { author: B, text: '## Design services agreement\n\nPaid by the client.\n', hash: 'v1' },
+    ];
+    const t = track(v);
+    expect(changesOf(t).map((c) => [c.put, c.took, c.styled])).toEqual([
+      ['Design services agreement', 'What this agreement is about', ''],
+      ['the client', 'who pays', ''],
+    ]);
+    const ghosts = ghostsOf(t, parse(v[1].text).blocks, () => false, drawing);
+    expect(ghosts.get(0)!.map((g) => g.text)).toEqual(['[', 'B', 'What this agreement is about', ']']);
+    expect(ghosts.get(1)!.map((g) => [g.offset, g.text])).toEqual([
+      [8, '['],
+      [8, 'B'],
+      [8, 'who pays'],
+      [18, ']'],
+    ]);
+    // A word bolded alone, between words that stand, is still a restyling of it.
+    expect(changesOf(track([v[1], { author: C, text: '## Design **services** agreement\n\nPaid by the client.\n', hash: 'v2' }])).map((c) => [c.kind, c.styled])).toEqual([['format', 'services']]);
+  });
+
   test('a paragraph taken out is a line of its own before the next, bracketed, its lozenge first', () => {
     const t = track([
       { author: A, text: 'One.\n\nTwo.\n', hash: 'v0' },
@@ -343,6 +450,17 @@ describe('drawn among the words', () => {
     ]);
     const [gone] = ghostsOf(t, parse('Two.\n').blocks, () => false, drawing).get(0)!;
     expect([gone.block, gone.cls, gone.parts!.map((p) => p.text)]).toEqual([true, 'tx-gone', ['[', 'C', 'One.', ']']]);
+  });
+
+  test('a paragraph taken out last, with no block after it, is a line of its own after the last block standing', () => {
+    const t = track([
+      { author: A, text: 'One.\n\nTwo.\n', hash: 'v0' },
+      { author: C, text: 'One.\n', hash: 'v1' },
+    ]);
+    const ghosts = ghostsOf(t, parse('One.\n').blocks, () => false, drawing).get(0) ?? [];
+    expect(ghosts.map((g) => [g.block, g.after, g.cls, g.parts?.map((p) => p.text)])).toEqual([[true, true, 'tx-gone tx-gone-after', ['[', 'C', 'Two.', ']']]]);
+    // At the words' end, drawn after everything there (an edit's closing bracket).
+    expect(ghosts[0].offset).toBe('One.'.length);
   });
 
   test('a person’s initials: the first letters of the first and last words of their name, more of the first where two would match', () => {

@@ -76,6 +76,12 @@ export interface Tracked {
   delId?: string;
   /** Taken out as a change was rejected (a block someone else put in). */
   rejected?: true;
+  /**
+   * Put back whole where it was taken out (`ins` is who put it back, `insId` the change): whose taking out it undid, and
+   * as which change. Its words keep their own changes.
+   */
+  restored?: true;
+  from?: { del: string; delId?: string };
   /** A restyling beneath this block's, by someone else, still open (Under). */
   under?: Under;
   /** A card (a table, another document, a rule): its source as written, and as it was before the changes open on it. */
@@ -224,6 +230,63 @@ const liveText = (b: Tracked) =>
     .map((x) => x.t)
     .join('');
 
+/**
+ * Two blocks' tokens compared, word by word, and made to read as a person reads an edit: where only spaces stand
+ * between changes, or words restyled beside them (an italic hint written over, which shares its spaces and perhaps a
+ * word with what replaces it), those are part of the change, taken out and put in again; and in each stretch of
+ * changes the words taken out come first, together, then the words put in. So a hint replaced is one replacement,
+ * not a word taken out and a word put in by turns.
+ */
+function tidy(was: readonly Tok[], now: readonly Tok[]): { kind: ' ' | '-' | '+' }[] {
+  type E = { kind: ' ' | '-' | '+'; a?: number; b?: number };
+  let ia = 0;
+  let ib = 0;
+  let list: E[] = diffLines(
+    was.map((x) => x.t),
+    now.map((x) => x.t),
+  ).map((c) => (c.kind === ' ' ? { kind: c.kind, a: ia++, b: ib++ } : c.kind === '-' ? { kind: c.kind, a: ia++ } : { kind: c.kind, b: ib++ }));
+  const restyled = (e: E) => (was[e.a!].m ?? '') !== (now[e.b!].m ?? '');
+  const loose = (e: E) => e.kind === ' ' && (!was[e.a!].t.trim() || restyled(e));
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let i = 0; i < list.length; i++) {
+      if (!loose(list[i])) continue;
+      let j = i;
+      while (j < list.length && loose(list[j])) j++;
+      const before = i > 0 && list[i - 1].kind !== ' ';
+      const after = j < list.length && list[j].kind !== ' ';
+      const edge = i === 0 || j === list.length;
+      if ((before && after) || ((before || after) && edge && list.slice(i, j).some(restyled))) {
+        list = [
+          ...list.slice(0, i),
+          ...list.slice(i, j).flatMap((e): E[] => [
+            { kind: '-', a: e.a },
+            { kind: '+', b: e.b },
+          ]),
+          ...list.slice(j),
+        ];
+        changed = true;
+        break;
+      }
+      i = j;
+    }
+  }
+  // Each stretch of changes: what it took out, then what it put in.
+  const out: E[] = [];
+  for (let i = 0; i < list.length;) {
+    if (list[i].kind === ' ') {
+      out.push(list[i++]);
+      continue;
+    }
+    let j = i;
+    while (j < list.length && list[j].kind !== ' ') j++;
+    const stretch = list.slice(i, j);
+    out.push(...stretch.filter((e) => e.kind === '-'), ...stretch.filter((e) => e.kind === '+'));
+    i = j;
+  }
+  return out;
+}
+
 /** A block's tokens brought to `next`'s words and marks, `by` putting in, taking out and restyling; `touch` hears of each. */
 function retoken(b: Tracked, next: Read, by: string, mint: () => string, rejected: (id?: string) => boolean, open: (id?: string) => boolean, touch: () => void): Tracked {
   const was = b.toks;
@@ -249,10 +312,7 @@ function retoken(b: Tracked, next: Read, by: string, mint: () => string, rejecte
     if (after?.fmt === by && open(after.fmtId)) return after.fmtId!;
     return '';
   };
-  for (const c of diffLines(
-    alive.map((x) => x.t),
-    now.map((x) => x.t),
-  )) {
+  for (const c of tidy(alive, now)) {
     if (c.kind === '+') {
       touch();
       run ||= goesOn() || mint();
@@ -397,6 +457,8 @@ export function trackOn(
     // order, each struck or paired as it comes, so nothing taken out moves past anything else taken out.
     const seq: { b: Tracked; dead: boolean }[] = [];
     const come: Read[] = [];
+    // The blocks taken out before, here: one may be put back.
+    while (k < doc.length && doc[k].del) seq.push({ b: doc[k++], dead: true });
     for (; c < changes.length && changes[c].kind !== ' '; c++) {
       if (changes[c].kind === '-') {
         while (k < doc.length && doc[k].del) seq.push({ b: doc[k++], dead: true });
@@ -427,6 +489,28 @@ export function trackOn(
       // (between kinds of text alone: a paragraph made a rule is a paragraph taken out and a rule put in).
       if (at < 0 && TEXT.test(n.kind)) at = left.findIndex((g) => TEXT.test(g.kind) && liveText(g) === n.text);
       if (at < 0) {
+        // A block taken out before, put back whole where it was: undone by whoever took it out, nobody having reviewed
+        // it; by anyone else, or after a review, restored, as words put back are.
+        const was = seq.slice(si).find((e) => e.dead && e.b.kind === n.kind && liveText(e.b) === n.text);
+        if (was) {
+          reach(was.b);
+          // What reaching it struck is no longer there to pair.
+          const passed = new Set(seq.slice(0, si).map((e) => e.b));
+          for (let i = left.length - 1; i >= 0; i--) if (passed.has(left[i])) left.splice(i, 1);
+          touch();
+          const { del: who, delId, rejected: _r, ...undead } = was.b;
+          if (who === by && open(delId)) {
+            out.push(restyle(undead, n, by, mint, rejected, open, touch));
+            continue;
+          }
+          const id = mint();
+          const r = restyle(undead, n, by, mint, rejected, open, touch);
+          const from = { del: who!, ...(delId ? { delId } : {}) };
+          // Put back whole, the block itself marked: its words keep who put each in and took each out, so that each
+          // of those changes is still its author's to accept or reject; a card keeps its source as it is now.
+          out.push({ ...r, ins: by, insId: id, restored: true, from, ...(n.src !== undefined ? { src: n.src, wasSrc: n.src } : {}) });
+          continue;
+        }
         // A block put in right after one this person put in, still unreviewed (Enter, and on typing), is the same edit.
         touch();
         const prev = out.at(-1);
@@ -492,15 +576,38 @@ export interface Change {
 export function changesOf(doc: readonly Tracked[]): Change[] {
   const out = new Map<string, Change>();
   const how = new Map<string, Set<Change['kind']>>();
+  // Where each change's words of each kind were last said: its block, and its token there.
+  const last = new Map<string, { bi: number; ti: number }>();
+  let bi = 0;
+  let ti = -1;
+  /**
+   * What lies between a change's last words of a kind and these, as they read: nothing where they touch; a line
+   * between blocks; a space where only spaces stand between (and the change's own other words: a replacement's put in
+   * between the words it took out); an ellipsis for words of no part of it.
+   */
+  const between = (id: string, kind: 'put' | 'took' | 'styled'): string => {
+    const was = last.get(`${id}\0${kind}`);
+    if (ti >= 0) last.set(`${id}\0${kind}`, { bi, ti });
+    if (!was || ti < 0) return '';
+    if (was.bi !== bi) return '\n';
+    const gap = doc[bi].toks
+      .slice(was.ti + 1, ti)
+      .filter((x) => (kind === 'took' ? x.insId !== id : !x.del))
+      .map((x) => x.t)
+      .join('');
+    return !gap ? '' : gap.trim() ? ' … ' : ' ';
+  };
   const add = (id: string | undefined, author: string | undefined, kind: 'put' | 'took' | 'styled', t: string, h: Change['kind'] = 'edit', styles: string[] = []) => {
     if (!id || !author) return;
     const c = out.get(id) ?? { id, author, put: '', took: '', styled: '', styles: [], kind: 'edit' };
-    c[kind] += t;
+    if (t) c[kind] += between(id, kind) + t;
     for (const st of styles) if (!c.styles.includes(st)) c.styles.push(st);
     out.set(id, c);
     how.set(id, (how.get(id) ?? new Set()).add(h));
   };
-  for (const b of doc) {
+  for (const [i, b] of doc.entries()) {
+    bi = i;
+    ti = -1;
     if (isHead(b)) {
       let now = b.look ?? '';
       for (const u of restylings(b)) {
@@ -511,7 +618,9 @@ export function changesOf(doc: readonly Tracked[]): Change[] {
     }
     // A block put in or taken out is a change even with no words in it (a rule, an empty line).
     // (A block put in stays its author's change though someone else has since taken it out.)
-    if (b.insId && b.ins) add(b.insId, b.ins, 'put', '', 'edit', [`+block:${b.kind}`]);
+    if (b.insId && b.ins) add(b.insId, b.ins, 'put', b.restored ? liveText(b) : '', b.restored ? 'restore' : 'edit', [`+block:${b.kind}`]);
+    // Put back whole: the taking out it undid stays its author's change.
+    if (b.from?.delId) add(b.from.delId, b.from.del, 'took', liveText(b), 'edit', [`-block:${b.kind}`]);
     if (b.delId && b.del) add(b.delId, b.del, 'took', '', b.rejected ? 'rejection' : 'edit', [`-block:${b.kind}`]);
     if (b.fmtId) {
       let kind = b.kind;
@@ -523,7 +632,8 @@ export function changesOf(doc: readonly Tracked[]): Change[] {
         look = u.wasLook ?? '';
       }
     }
-    for (const tok of b.toks) {
+    for (const [k, tok] of b.toks.entries()) {
+      ti = k;
       if (tok.fmtId && !tok.del) {
         let now = tok.m ?? '';
         for (const u of restylings(tok)) {

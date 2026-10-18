@@ -162,15 +162,19 @@ declare global {
   }
 }
 
-/** A document of an app, edited in the dialog: its text on Done, null on Cancel (or when no app goes by that name). */
-export async function editDoc(o: { app: string; text: string; heading?: string; sizing?: boolean }): Promise<string | null> {
+/**
+ * A document of an app, edited in the dialog: its text on Done, null on Cancel (or when no app goes by that name). The
+ * dialog is put in `into` while it is open (the page's body unless a page gives an element of its own: one its theme
+ * or its styles are on).
+ */
+export async function editDoc(o: { app: string; text: string; heading?: string; sizing?: boolean; into?: Element }): Promise<string | null> {
   const def = lookup.appOf(o.app);
   // A QR code is drawn, not edited (kit/draw/qr-picture.ts).
   if (!def || o.app === 'qr' || o.app === LOCKED_LANG) return null;
   const d = document.createElement('to-doc-dialog');
   d.heading = o.heading ?? '';
   d.sizing = !!o.sizing;
-  document.body.append(d);
+  (o.into ?? document.body).append(d);
   try {
     return await d.open(def, o.text);
   } finally {
@@ -178,9 +182,9 @@ export async function editDoc(o: { app: string; text: string; heading?: string; 
   }
 }
 
-/** A table block, edited in the Spreadsheet in the dialog, with its size: the block on Done, null on Cancel. */
-export async function editTable(table: TableBlock): Promise<TableBlock | null> {
-  const out = await editDoc({ app: 'sheet', text: write({ head: {}, blocks: [table] }), heading: t('common-table'), sizing: true });
+/** A table block, edited in the Spreadsheet in the dialog (put in `into`, as editDoc's), with its size: the block on Done, null on Cancel. */
+export async function editTable(table: TableBlock, into?: Element): Promise<TableBlock | null> {
+  const out = await editDoc({ app: 'sheet', text: write({ head: {}, blocks: [table] }), heading: t('common-table'), sizing: true, into });
   return out === null ? null : (tableIn(out) ?? table);
 }
 

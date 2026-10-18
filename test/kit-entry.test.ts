@@ -104,12 +104,22 @@ describe('an app registered from outside the suite', () => {
     expect(page.svg).toContain('<g id="tally-drawn"/>');
   });
 
-  test('never takes a name the registry knows: its own again, an app’s, the QR code’s or a locked document’s', () => {
-    for (const id of ['tally', 'write', QR_LANG, LOCKED_LANG]) expect(() => registerApp({ ...tally, id }), id).toThrow(`an app "${id}" is registered already`);
+  test('never takes a name the registry knows: its own for another app, an app’s, the QR code’s or a locked document’s', () => {
+    for (const id of ['write', QR_LANG, LOCKED_LANG]) expect(() => registerApp({ ...tally, id }), id).toThrow(`an app "${id}" is registered already`);
+    expect(() => registerApp({ ...tally, title: () => 'Another' })).toThrow('an app "tally" is registered already');
     expect(appOf('write')!.name).toBe('Word Processor');
   });
 
-  test('is never registered by the site: only the registry and the kit name registerApp in their code', () => {
+  test('the same app registered again is nothing to do: its module imported twice, or reloaded unchanged', () => {
+    registerApp(tally);
+    registerApp({ ...tally });
+    // A module loaded again makes its functions again, the same code.
+    registerApp({ ...tally, title: () => '', retitle: (doc) => doc });
+    expect(appOf('tally')).toBe(tally);
+    registerApp(appOf('write')!);
+  });
+
+  test('is never registered by the site: only the registry, the kit and the Board’s entry for a page (src/board.ts, which the site never imports) name registerApp in their code', () => {
     const code = (f: string) =>
       readFileSync(join(ROOT, f), 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -117,6 +127,6 @@ describe('an app registered from outside the suite', () => {
     const named = (readdirSync(join(ROOT, 'src'), { recursive: true }) as string[])
       .map((f) => `src/${f.replaceAll('\\', '/')}`)
       .filter((f) => f.endsWith('.ts') && !f.includes('/tests/') && /\bregisterApp\b/.test(code(f)));
-    expect(named.sort()).toStrictEqual(['src/kit.ts', 'src/kit/core/apps.ts']);
+    expect(named.sort()).toStrictEqual(['src/board.ts', 'src/kit.ts', 'src/kit/core/apps.ts']);
   });
 });

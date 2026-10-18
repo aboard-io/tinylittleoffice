@@ -23,16 +23,19 @@ import { initLanguage } from './i18n.ts';
 import { installPlainCopy } from '../text/clipboard.ts';
 import { pinchSizes } from '../ui/pinch.ts';
 import { initTheme } from '../ui/theme.ts';
+import { toastAnywhere } from '../ui/toast.ts';
 import { applySize } from '../ui/zoom.ts';
 
 let ready: Promise<void> | null = null;
 /**
  * What the page does once, before an editor is drawn: the theme on the root, the size of everything, a pinch outside
- * the spatial canvases, a plain copy from what is drawn rather than edited, and the language (the browser's, or the
- * one `setLanguage` chose). Idempotent: every mount awaits it.
+ * the spatial canvases, a plain copy from what is drawn rather than edited, a toast for a page with none of its own
+ * (kit/ui/toast.ts toastAnywhere), and the language (the browser's, or the one `setLanguage` chose). Idempotent: every
+ * mount awaits it.
  */
 export function setup(): Promise<void> {
   return (ready ??= (async () => {
+    toastAnywhere();
     initTheme();
     applySize();
     pinchSizes();

@@ -7,7 +7,7 @@ Tiny Little Office is; start here for how it is made and why.
 
 - [kernel.md](kernel.md): the document kernel, the one editor and the shell: the model, TLO as the one parser, the operations, the formula engine, and the kit's six folders and where a new file goes.
 - [editing.md](editing.md): the one editing standard every app keeps, by keyboard, pointer and finger.
-- [library.md](library.md): Tiny Little Office as a library other pages build on (Atlas first): the host an app asks instead of the address, the steps to entry points of its own, an app built outside the suite on the kit (cards in lanes first), who did what in a document several people write (tracked changes and comments), and the Storybook of every element and editor.
+- [library.md](library.md): Tiny Little Office as a library other pages build on (Atlas first): the host an app asks instead of the address, the steps to entry points of its own, an app built outside the suite on the kit, the library's own app that the site does not list (the Board: cards in lanes), who did what in a document several people write (tracked changes and comments), what a host's own pages are made of (a typed table, a search box, a header, a template picker), and the Storybook of every element and editor.
 - [tlo.md](tlo.md): the document format, as a person or a language model learns it.
 - [exports.md](exports.md): the files each app's documents become, and the apps they open in (generated).
 - [translation.md](translation.md): the twenty-one languages: how a string is written, translated and checked, and the type each is set in.

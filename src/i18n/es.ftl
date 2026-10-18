@@ -3298,3 +3298,210 @@ find-not-found = No se encontró
 menu-nothing-starts-q = Sin coincidencias para «{ $q }»
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = Coincidencias para «{ $q }»
+
+
+## who did what, listed for review beside a document several people write (kit/ui/review-panel.ts)
+
+# en: 8aa57de6dce6ee1c35c6aba7426503281876b258
+review-changes = Cambios
+# en: e6e3bb8760dfc9ea888b1967a09130f9c89fce15
+review-none = No hay cambios que revisar.
+# en: 42e31dd677dc8b702293354c898041b64c77c442
+review-put-in-for = Se reemplazó «{ $took }» por «{ $put }»
+# en: f328a19b27f5338a00f443da396faccd6d9030a1
+review-put-in = Se añadió «{ $words }»
+# en: a67a3c5917ce7d2467dc22ea5d88e34d7c253b5b
+review-took-out = Se eliminó «{ $words }»
+# en: 0a327a9ace030c351cd61b21a1eff225ff12941c
+review-put-back = Se restauró «{ $words }»
+# en: 309250888492d1a0aaebb8f6920e9776a0c0dcaa
+review-restyled = Se aplicó formato a «{ $words }»
+# en: be485cefbc9f51f3315136dd5bb07ea3fa8d04c0
+review-put-in-line = Se añadió una línea
+# en: 1f1fe15e0ff5fad870fa70dfa7d7c39cb13b807c
+review-took-out-line = Se eliminó una línea
+# en: 7f356b013fff2debeaa8414c985236bd05276b21
+review-changed = Se modificó el documento
+# en: 92da3da547e5dd5677b18922b1611f08c61f4681
+review-rejected-putting-back = Se rechazó un cambio y se restauró «{ $words }»
+# en: b10117b3632f96b6169864b190e3c106a212dc2a
+review-rejected-taking-out = Se rechazó un cambio y se quitó «{ $words }»
+# en: 30983f282a9a57909b378cd4134d143a067e0415
+review-rejected-restyling = Se rechazó un cambio de formato
+# en: e235e19c7ec71b01d43fe842983f3a80c6212095
+review-waiting = Esperando tu respuesta
+# en: 6b94b0a9cbfbb2fc3ce5081c50246ab3016e4c73
+review-yours = Tuyo, esperando a los demás
+# en: a90ec4fbb1f4f2050856da437722dada4ab986dc
+review-reviewed = Lo revisaste
+# en: 61a0572c4893ef34311320d84c82df88bea83e11
+review-accepted = Aceptado
+# en: 27eeb7a291bfc566447d9cd928e98caf90f70ee6
+review-rejected = Rechazado
+# en: 41b8f5693f30107a055b7507a7095b5ca0aa8fd9
+review-n-waiting = { $n ->
+        [one] { $n } pendiente
+        [many] { $n } pendientes
+       *[other] { $n } pendientes
+    }
+# en: bb54db510a92908a5a4df79fc1ad1eae8df50ec3
+review-accept = Aceptar
+# en: 2b03b59293b6fc7101306f5d9ae1e96327bb419a
+review-reject = Rechazar
+# en: 821d1f7909a5146fa98fd5228675c49e64c6e60b
+review-accept-all = Aceptar todo
+# en: 35c291a4ab2f675bdb9437918790287fcfec88fa
+review-reject-all = Rechazar todo
+# en: 76cc08ef327763a9a7b47697d90d71a69acbed05
+review-accept-all-by = Aceptar todos los cambios de { $name }
+# en: 56db173f938aff6b5e405bb416ba178d4d344159
+review-reject-all-by = Rechazar todos los cambios de { $name }
+
+## comments beside a document's words (kit/ui/comments.ts, kit/ui/comment-box.ts)
+
+# en: fce06e20e5f7f74aacccab40b59b75a56c8f7305
+comments-comments = Comentarios
+# en: af65ae0e9f04990618e53d608489530582356c11
+comments-new = Comentario nuevo
+# en: 207b24fc9b9276a4b2709de85e55eb8adbba3806
+comments-none = Aún no hay comentarios.
+# en: 4a88284dee66496310481a76d3d91ba0a1099aea
+comments-select-words = Selecciona palabras y elige Comentar para decir algo sobre ellas.
+# en: 570aad8456c6d9321e051c22879ae5833cf0cfde
+comments-words-changed = Sobre palabras que han cambiado desde entonces
+# en: 64d379f0d0c939707ccfbb7245f744611def8c96
+comments-whole-document = Sobre todo el documento
+# en: d999aeb0545fa93c44c82d1abb928c06e3590523
+comments-resolved = Resuelto
+# en: ac7f958cc028becfb4b2bec9c474bd2d5e8b6095
+comments-resolve = Resolver
+# en: 61e05da2a47259dbae5eb58fad4b1af04dd69e07
+comments-reopen = Reabrir
+# en: 6c2bb735a46a8ff307fe2e638d581295b2a49e09
+comments-reply = Responder
+# en: 3a71e78cdb4d792bb688c8dbba093a0bda884647
+comments-n-replies = { $n ->
+        [one] { $n } respuesta
+        [many] { $n } de respuestas
+       *[other] { $n } respuestas
+    }
+# en: 911d801f12b06712dee871fc5f647eacc04e430f
+comments-by = Comentarios de { $name }
+# en: 23b48bef02ad4d2437d3f19ab9df708fac256c00
+comments-ask = Preguntar a { $name }
+# en: 9dd346ebb60f70ca00c786e8697e934709bf0a73
+comments-asks = Pregunta a { $name }
+# en: 13ff50a2189f50a0c931f16e02b060b37ec0208e
+comments-answering = { $name } está respondiendo…
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+comments-people = Personas
+# en: 0f87ce5a3cbdf6796c6f152204e44b143201290f
+comments-write = { $what }… @ para mencionar personas
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# en: 4816c01fcfc82e618ba8d4f9f2d5cca84f36a4c1
+table-filter-rows = Filtrar filas
+# en: f648af13b3a158a514634b7a27501c621e4f9c87
+table-add-row = Añadir fila
+# en: 45b553017087942f58e36f1963f58398aaa93cef
+table-select-all-rows = Seleccionar todas las filas
+# en: 9320afbefdcf309b4b763224769937b3936d517a
+table-select-name = Seleccionar { $name }
+# en: e892255d168b0ccc00b895b653a7ff8d9a7ab4f0
+table-no-rows = Aún no hay nada
+# en: 7dc03a2b77e86b5ce3279f1239cf7eed2c3e31dd
+table-no-rows-match = Ninguna fila coincide
+# en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
+table-sort-hint = Ordenar por esta columna. Mayús+clic para ordenar también por ella.
+# en: bce06414177f72ab70e6387b6af9f8ceef0d6049
+search-label = Buscar
+# en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd
+search-searching = Buscando…
+# en: 938206ae8c35210570eff0f625f7174736ab50d3
+search-failed = La búsqueda no funcionó. Inténtalo de nuevo.
+# en: 445b04c118dbe3becf81b1490e4f09218cd85a09
+search-n-found = { $n ->
+        [one] { $n } resultado
+        [many] { $n } de resultados
+       *[other] { $n } resultados
+    }
+# en: 1c8d7da8241f46e35847a6ee94585aa15c895038
+search-nothing-found = Sin coincidencias para «{ $q }»
+# en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
+header-breadcrumbs = Ruta de navegación
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = Tablero
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = tablero
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = Tarjetas en columnas según su estado, cada tarjeta una fila de una tabla.
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = Estado
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = Por hacer
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = En curso
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = Hecho
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = Sin tarjetas
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+        [one] una tarjeta
+        [many] { $n } de tarjetas
+       *[other] { $n } tarjetas
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = Abrir las tarjetas en una hoja de cálculo
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = Tarjeta
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = Columna
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = Opciones de la columna
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = Opciones de { $lane }
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = Añadir una tarjeta
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = Eliminar columna
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = Mover a…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = Renombrar columna
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = La tarjeta de al lado en la columna anterior o siguiente
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = Mover la tarjeta a la columna anterior o siguiente
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = Nombre de la columna
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = AAAA-MM-DD
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = Columna nueva
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = Título de la tarjeta { $n } en { $lane }
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = Tarjeta { $n } en { $lane }: toca para seleccionar, arrastra para mover
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = Tarjetas seleccionadas
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = Tablero de proyecto
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = Por hacer, en curso y hecho, cada tarea con su responsable y su fecha límite.
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = Embudo de ventas
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = Oportunidades desde la entrada hasta ganada o perdida, con su valor y su fecha de cierre.
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = Contratación
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = Candidatos desde la solicitud hasta la contratación, con el puesto y el siguiente paso.
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = Calendario de contenidos
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = Piezas desde la idea hasta la publicación, con el canal, el autor y la fecha.

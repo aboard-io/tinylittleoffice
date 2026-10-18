@@ -1759,6 +1759,66 @@ compare-n-put-in = { $n ->
        *[other] { $n } added
     }
 
+## who did what, listed for review beside a document several people write (kit/ui/review-panel.ts)
+
+review-changes = Changes
+review-none = No changes to review.
+# A change described: the words it added, deleted or formatted, in quotes.
+review-put-in-for = Replaced “{ $took }” with “{ $put }”
+review-put-in = Added “{ $words }”
+review-took-out = Deleted “{ $words }”
+review-put-back = Restored “{ $words }”
+review-restyled = Formatted “{ $words }”
+review-put-in-line = Added a line
+review-took-out-line = Deleted a line
+review-changed = Changed the document
+# A rejection is a change of its own: undoing someone's addition, or bringing back what they deleted.
+review-rejected-putting-back = Rejected a change, restoring “{ $words }”
+review-rejected-taking-out = Rejected a change, removing “{ $words }”
+review-rejected-restyling = Rejected a formatting change
+# Where a change stands for the person reading.
+review-waiting = Waiting for you
+review-yours = Yours, waiting for the others
+review-reviewed = You reviewed it
+review-accepted = Accepted
+review-rejected = Rejected
+review-n-waiting = { $n ->
+        [one] { $n } waiting
+       *[other] { $n } waiting
+    }
+review-accept = Accept
+review-reject = Reject
+review-accept-all = Accept all
+review-reject-all = Reject all
+review-accept-all-by = Accept all of { $name }’s changes
+review-reject-all-by = Reject all of { $name }’s changes
+
+## comments beside a document's words (kit/ui/comments.ts, kit/ui/comment-box.ts)
+
+comments-comments = Comments
+comments-new = New comment
+comments-none = No comments yet.
+comments-select-words = Select words and choose Comment to say something about them.
+comments-words-changed = On words since changed
+comments-whole-document = On the whole document
+comments-resolved = Resolved
+comments-resolve = Resolve
+comments-reopen = Reopen
+comments-reply = Reply
+comments-n-replies = { $n ->
+        [one] { $n } reply
+       *[other] { $n } replies
+    }
+# A thread, for a screen reader: whose comment began it.
+comments-by = Comments by { $name }
+# The host's assistant (Atlas): a comment can ask it, and it answers in the thread.
+comments-ask = Ask { $name }
+comments-asks = Asks { $name }
+comments-answering = { $name } is answering…
+comments-people = People
+# The field's placeholder: "Comment… @ for people", "Reply… @ for people".
+comments-write = { $what }… @ for people
+
 ## files and zips dropped on the page (kit/file/open.ts)
 
 open-opened-name = Opened { $name }
@@ -1801,3 +1861,78 @@ find-not-found = Not found
 
 menu-nothing-starts-q = No matches for “{ $q }”
 menu-starting-q = Matches for “{ $q }”
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# The quick search over a table's rows: the field's words and its name.
+table-filter-rows = Filter rows
+# A button under a table of a host's records (people, companies) when the host gives no words of its own.
+table-add-row = Add row
+table-select-all-rows = Select all rows
+# A row's box; { $name } is the row's first cell: "Select Ada Lovelace".
+table-select-name = Select { $name }
+table-no-rows = Nothing here yet
+table-no-rows-match = No rows match
+# A column's heading, on hover: a click sorts by it, a click with the Shift key sorts by it as well as by the others.
+table-sort-hint = Sort by this column. Shift-click to sort by it as well.
+# The search across everything a host keeps (people, companies, projects): the field's name and its words while empty.
+search-label = Search
+search-searching = Searching…
+search-failed = The search didn’t work. Try again.
+search-n-found = { $n ->
+        [one] { $n } found
+       *[other] { $n } found
+    }
+search-nothing-found = Nothing found for “{ $q }”
+# The trail above a page's title, each step a page further up.
+header-breadcrumbs = Breadcrumbs
+
+## the Board
+
+# The app's name: a board of cards in lanes, a lane for each status.
+board-board = Board
+# A noun, lower case: what one document of the app is called ("New board", "Untitled board").
+board-board-lowercase = board
+board-cards-in-lanes-by-status = Cards in lanes by their status, each card a row of a table.
+# The heading over a new board's status column (a noun).
+board-status = Status
+# A new board's three lanes: what is still to do, what is being done, what is finished.
+board-to-do = To do
+board-doing = Doing
+board-done = Done
+board-no-cards = No cards
+board-n-cards = { $n ->
+        [one] one card
+       *[other] { $n } cards
+    }
+board-open-cards-in-spreadsheet = Open the cards in a spreadsheet
+# Insert ▾ items (nouns): a new card, a new lane.
+board-card = Card
+board-lane = Lane
+board-lane-options = Lane options
+board-options-for-lane = Options for { $lane }
+board-add-card = Add a card
+board-delete-lane = Delete lane
+# A button that opens a list of the lanes, to move the selected cards to one of them.
+board-move-to = Move to…
+# A lane’s menu item: its name becomes a field where it is drawn.
+board-rename-lane = Rename lane
+# A key in a card’s title: Left or Right at its end goes to the card beside it in the next lane over.
+board-card-in-lane-beside = The card beside it in the lane before or after
+board-move-card-to-lane-before-or = Move the card to the lane before or after
+board-lane-name = Lane name
+# A date field’s placeholder: the order a date is typed in (year, month, day, as digits), in the letters the language names them by.
+board-yyyy-mm-dd = YYYY-MM-DD
+# A lane just added, before it is named.
+board-new-lane = New lane
+board-title-of-card-n = Title of card { $n } in { $lane }
+board-card-n-tap-chooses-it = Card { $n } in { $lane }: tap to select, drag to move
+board-chosen-cards = Selected cards
+board-project-board = Project board
+board-to-do-doing-done-owner = To do, doing and done, each task with its owner and due date.
+board-sales-pipeline = Sales pipeline
+board-deals-from-inbound-to-won = Deals from inbound to won or lost, with their value and close date.
+board-hiring = Hiring
+board-candidates-from-application-to-hire = Candidates from application to hire, with the role and the next step.
+board-content-calendar = Content calendar
+board-pieces-from-idea-to-published = Pieces from idea to published, with the channel, the author and the date.
