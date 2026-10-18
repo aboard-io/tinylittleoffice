@@ -106,6 +106,13 @@ What an app still asked of the site itself, and what replaces it:
     versions and draws them, pins a comment by its quote, has the bubble's Comment tell the host and offers "@"
     people: see Tracked changes and comments for a host.
 13. **A Storybook.** Done: every element and every app's editor alone, as a host holds them: see The Storybook.
+14. **What a host's own pages are made of.** Done: the elements Atlas's lists, header and search are built from
+    (Atlas's docs/next.md: "Lists are typed tables", "One search at the top of every page"), in the kit and served by
+    `tinylittleoffice/kit` and `/editors` with their types: a typed table (`<to-table>`), a search box (`<to-search>`),
+    a page's header (`<to-header>`) and a template picker (`pickTemplate`). Their rules are src/styles/host.css, which
+    only editors.css imports, and nothing of the site's imports them, so the site's files and budgets are as they were.
+    test/table.test.ts and test/browser/table.test.ts, search-box.test.ts, header.test.ts and template-picker.test.ts
+    hold them: see A typed table, A search box, A page's header and A template picker.
 
 ## The Storybook
 
@@ -121,7 +128,9 @@ kit's `setTheme` and its Language `setLanguage`. A story's documents are the app
   interface's, the library's search, the picker) and Emoji.
 - **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the
   menus, Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the
-  preview, the locked card, the doc link dialog, the size of everything. Text: `<to-text>` alone, who did what (the
+  preview, the locked card, the doc link dialog, the size of everything, a page's header, the template picker. Data:
+  the typed table (the Spreadsheet's membership roll, editable, refused, 5,000 rows, empty, narrow) and the search box
+  (inline, in a dialog, slow, failing). Text: `<to-text>` alone, who did what (the
   redline, a person's changes accepted, rejections, a reviewer, a panel of `changesOf` with Accept and Reject),
   comments pinned by their quote and made from the bubble, "@" for people, and Compare. Draw: footnotes, charts,
   cards, QR codes, tiles.
@@ -136,6 +145,136 @@ A lint (test/lints.test.ts) holds that every tag `customElements.define` gives i
 named in a story's `parameters.covers`, so a new element comes with a story. `node scripts/check-stories.ts` opens
 every story of the built Storybook in Chromium (or of a running one, given its address) and fails on any error said or
 thrown.
+
+## A typed table
+
+`<to-table>` (kit/ui/table.ts) is a host's records as rows: a person's people, companies, events, tasks and projects,
+a pipeline seen as a table. It is not a document: the page holds the rows and hears what is done to them. What a
+column's cells hold, and so how each is shown, sorted and edited, is kit/ui/table-model.ts's, which is pure and
+reuses the Spreadsheet's words: a number with its commas and money in its currency (the kernel's `formatCell` and
+`formatMoney`), an amount typed as "$1,200" or "1,200 USD" read as a money cell reads it (`parseLiteral`), words ordered
+as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` for both), a date in the page's language
+(kit/core/dates.ts), and a quick search that folds case and accents as the library's does (kit/share/search.ts).
+
+- **What it takes.** `rows`, each with an `id` (TableRow); `columns` (TableColumn): `key` and `label`, and a `type`
+  (ColumnType): `text`, `number`, `money` (with `currency`, a code or a symbol), `date` ("2027-03-01", a Date or ms),
+  `datetime`, `boolean`, `enum` (its `options`, EnumOption: a value, words and a color, in the order a sort keeps),
+  `link` and `person` (`{ label, href }`, or words and the column's `href(row)`), `tags`, or `custom` (`render(value,
+  row)` draws it, `compare` orders it, `text` gives its words); `editable`, `hidden`, `sortable`, `width` (a grid
+  track) on any. `sort` (SortBy[], the first the primary), `query` and `filter(row)`, `hiddenColumns`, `selected`
+  (ids). Attributes: `selectable` (a box a row, and one for all), `addable` (Add row, or `add-label`'s words),
+  `filterable` (a field that sets `query`), `hideable` (the Columns menu), `label` (the grid's name), `empty` (what
+  an empty table says). A child with `slot="toolbar"` is drawn first in the bar over the table: a page's My and All.
+- **Its events.** All bubble. `sortchange` `{ sort }`; `columnschange` `{ hidden }`; `selection` `{ ids }`;
+  `rowpick` `{ id, row }` (a cell activated that is not edited); `cellpick` `{ id, column, value, row }` (a link with
+  no address, a person); `rowadd`. `rowchange` (RowChange: `{ id, column, value, before, row, wait }`) is cancelable:
+  the edit is shown at once, and a page that refuses it calls `preventDefault()`, or hands `wait` a promise that
+  rejects or comes back false (a server's answer), and the cell goes back. A kept edit is shown until the page gives
+  its rows again, which are then the truth.
+- **Sorting.** A click on a heading sorts by it, ascending, descending, then not at all; Shift and a click sorts by it
+  as well, after the others (its place shown beside its arrow). Each type by its own order: amounts and times as
+  numbers, a status by its options' order, a box unticked first, words as a reader orders them ("Item 2" before
+  "Item 10"); an empty cell last whichever way; rows that tie in the page's order.
+- **Keys.** A grid, as ARIA has it (`role=grid`, `aria-rowcount`, `aria-rowindex`, `aria-colindex`, `aria-sort`,
+  `aria-selected`, `aria-readonly`): one cell takes Tab; the arrows walk the cells and the headings, Home and End the
+  row's ends (Mod: the table's), Page Up and Page Down a screenful; Enter edits a cell (F2 too, a double click, or a
+  click on the cell in hand), follows its link, or picks its row; on a heading it sorts (Shift: as well); Space ticks
+  a row's box, a cell's box or the box for all. In an editor (a number field, a date or a moment field, a status's
+  options, words), Enter keeps the edit, Tab keeps it and moves on, Escape lets it go; words that are not a number in
+  a number's column are not kept, and the field says so.
+- **Its size.** The table scrolls in a box of its own, as the Spreadsheet's grid does (the page never scrolls:
+  kit/ui/scroll.ts): its headings stuck to the top, the boxes and the first column to the start. At a phone's width
+  it scrolls sideways in that box, the names in sight, rather than becoming cards, since a card a row would be a
+  height a row and the rows are drawn by their one height. Only the rows in sight are drawn, and eight more each way,
+  each `--to-dt-row-h` tall (2.75rem), so 5,000 rows cost what fifty do. The box is `--to-dt-h` tall at most (36rem,
+  or three quarters of the screen) unless the page sets its height; a page that lets it grow with no limit draws every
+  row. In Chromium, test/browser/table.test.ts's 5,000 rows are drawn in about 70ms, sorted by money in about 30ms and
+  by a date and then a name in about 60ms, filtered in about 300ms the first time (every row's words written once,
+  its dates among them) and under 10ms for each letter after, scrolled to the end in about 30ms and walked there by
+  Mod+End in about 120ms.
+
+```ts
+import { type RowChange, type TableColumn } from 'tinylittleoffice/kit';
+const columns: TableColumn<Person>[] = [
+  { key: 'name', label: 'Name', type: 'person', href: (p) => `/people/${p.id}`, editable: true },
+  { key: 'company', label: 'Company', type: 'link', value: (p) => ({ label: p.company.name, href: `/companies/${p.company.id}` }) },
+  { key: 'stage', label: 'Stage', type: 'enum', editable: true, options: STAGES },
+  { key: 'value', label: 'Value', type: 'money', currency: 'USD', editable: true },
+  { key: 'met', label: 'Last met', type: 'date' },
+];
+const table = Object.assign(document.createElement('to-table'), { columns, rows: people, label: 'People' });
+table.toggleAttribute('selectable', true);
+table.addEventListener('rowchange', (e) => {
+  const { id, column, value } = (e as CustomEvent<RowChange<Person>>).detail;
+  (e as CustomEvent<RowChange<Person>>).detail.wait(run('person.update', { id, [column]: value }));
+});
+table.addEventListener('rowpick', (e) => open((e as CustomEvent).detail.id));
+```
+
+## A search box
+
+`<to-search>` (kit/ui/search-box.ts) is one search across every kind of thing a host keeps. The page gives `search(q,
+signal)`, an async function answering with hits (SearchHit: `kind`, `id`, `title`, and `subtitle`, `icon` and `href`
+where it has them); the box asks it a moment after the last key (`delay`, 150ms; nothing under `min` letters, 1), and
+aborts the question before, whose answer is never shown. It draws the hits grouped by kind, the kinds in the order
+`kinds` names them (SearchKind: a heading and an icon), each with its count, then the actions `create(q)` offers for
+what was typed (SearchAction: "Add “Clea” as a company", the page's offer to make what it does not know). While the
+answer is coming it says Searching…; an answer that fails, that the search did not work; none, that nothing was found;
+and how many were, to a screen reader.
+
+- **Its keys.** A combobox, as ARIA has it: the words in the field, Down and Up through the hits and the actions,
+  around the ends (`aria-activedescendant`), Enter chooses (the first, where nothing is in hand), Escape closes the
+  list and then clears the field.
+- **Its event.** `searchpick` (SearchPick: `{ query, hit }` or `{ query, action }`), cancelable. A hit with an `href` is a
+  link, opened as one is unless the page prevents it; a page that routes itself prevents it and goes there itself.
+- **Inline or a dialog.** Inline (the default) it is a field with the hits in a popover under it, for a header;
+  `dialog` makes it a button drawn as the field that opens the search in a dialog. `hotkey` opens it (or puts the
+  focus in the field) with Mod+K from anywhere on the page; a page sets it on one box. `placeholder` and `label` are
+  the page's words for the field (else Search).
+
+```ts
+import { type SearchPick, type Searcher } from 'tinylittleoffice/kit';
+const search: Searcher = (q, signal) => fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.json());
+const box = Object.assign(document.createElement('to-search'), { search, kinds: { person: { label: 'People' }, company: { label: 'Companies' } },
+  create: (q: string) => [{ id: 'company.create', label: `Add “${q}” as a company` }] });
+box.toggleAttribute('hotkey', true);
+box.addEventListener('searchpick', (e) => {
+  const pick = (e as CustomEvent<SearchPick>).detail;
+  if (pick.action) create(pick.action.id, pick.query);
+});
+```
+
+## A page's header
+
+`<to-header>` (kit/ui/header.ts) is a page's header in the site's look for a page with no `<to-shell>`: the way back up,
+the page's title, and room for the page's search and actions. It takes `heading` (the title), `editable` (the title a
+field: Enter or leaving it keeps new words, told in `titlechange`, `{ title }`; Escape puts the old ones back; empty
+words are none), `level` (the heading's, 1) and `crumbs` (Crumb: `{ label, href? }`, from the top: one with an address
+is a link, one without a button, either told in `crumbpick`, `{ index, crumb }`, cancelable). Its slots
+(kit/ui/slots.ts: a child given with `slot="<name>"`, moved there, never copied) are `start` (before the title),
+`search` (a `<to-search>`) and `actions`. On a narrow page (under 40em of its own) the search takes a row of its own.
+
+```html
+<to-header heading="Clear Channel Digital Strategy" editable>
+  <to-search slot="search" hotkey></to-search>
+  <button slot="actions" class="to-btn primary">New task</button>
+</to-header>
+```
+
+## A template picker
+
+`pickTemplate(app?)` (kit/ui/template-picker.ts) opens the templates of `app` (every suite app's, under their names,
+without it) in a dialog over the page, each drawn small from its own document (`<to-preview>`), Blank first where the
+app's templates carry no blank of their own, and resolves with the one chosen, `{ app, id, title, text }`
+(PickedTemplate: Blank's id is `blank`, its title the app's "Untitled …"), or null when it is let go. It opens and
+navigates to nothing: the page keeps the document as it keeps its own (Atlas writes an exploration from one). Its keys
+are a menu's (kit/ui/menu.ts). `<to-template-picker app="write">` is the same for a page that places it itself: its
+`show()` resolves as `pickTemplate` does, and the one chosen is told in `templatepick` too.
+
+```ts
+const picked = await pickTemplate('write');
+if (picked) await run('document.create', { project, title: picked.title, text: picked.text });
+```
 
 ## Tracked changes and comments for a host
 

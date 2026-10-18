@@ -8,7 +8,7 @@
  * page offers for what was typed (`create(q)`: "Add “Clea” as a company", the host's offer to make what it does not
  * know). While the answer is coming it says so, and an answer that fails says that.
  *
- * It is a combobox (ARIA's): the words in the field, Down and Up through the hits and the actions (round the ends),
+ * It is a combobox (ARIA's): the words in the field, Down and Up through the hits and the actions (around the ends),
  * Enter to choose, Escape to close the list and then to clear the field. A hit or an action chosen is told in
  * `searchpick`, cancelable, `{ query, hit }` or `{ query, action }` (SearchPick); a hit with an address is a link,
  * opened as a link is unless the page prevents it.
