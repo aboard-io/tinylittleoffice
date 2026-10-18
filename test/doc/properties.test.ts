@@ -127,7 +127,7 @@ test(
   "property: a model with marks at its words' edges reads back as the format keeps it, and that reads back as itself",
   () => {
     // The generator breaks the rule that no mark holds a space at its ends, as an editor would before the format has
-    // its say (Atlas, 2026-10-17); sayableRuns is what the reader makes of the writing, so the editor that keeps its
+    // its say (2026-10-17); sayableRuns is what the reader makes of the writing, so the editor that keeps its
     // words so (kit/text/textops.ts settle) holds what any reader of the text holds.
     holds('parse(write(d)) = said(d)', arbitraryDoc(8, true), (d) => {
       const kept = said(d);

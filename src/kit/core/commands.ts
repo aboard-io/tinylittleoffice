@@ -103,7 +103,7 @@ export interface Command<C = any> {
   input?: Schema;
   /** What it gives back, for that program: a JSON Schema object. */
   output?: Schema;
-  /** Who may run it from a program ("team", "atlas"): the whole of authorization. Absent: no one, a page's alone. */
+  /** Who may run it from a program ("team", "assistant"): the whole of authorization. Absent: no one, a page's alone. */
   who?: readonly string[];
   /** It reads and changes nothing (a program need not log it). */
   reads?: true;

@@ -1,12 +1,11 @@
 # Tiny Little Office as a library
 
-Tiny Little Office is becoming a library other pages build on, first among them Atlas (github.com/aboard-io/atlas,
-its docs/plan.md): its documents are built with the kernel and edited with these editors, kept in Postgres rather than in
-links. The site stays what it is, and is the library's first user: whatever an editor needs from the page it is in, the
-site gives it the way any other page would. And an app need not be the suite's: one built outside it, on
-`tinylittleoffice/kit`, registers beside the suite's apps and is mounted as they are (An app built outside). And the
-library has an app of its own that the site does not list: the Board, cards in lanes by their status (The library's
-own apps).
+Tiny Little Office is becoming a library other pages build on: a host's documents are built with the kernel and edited
+with these editors, kept in the host's database rather than in links. The site stays what it is, and is the library's
+first user: whatever an editor needs from the page it is in, the site gives it the way any other page would. And an app
+need not be the suite's: one built outside it, on `tinylittleoffice/kit`, registers beside the suite's apps and is
+mounted as they are (An app built outside). And the library has an app of its own that the site does not list: the
+Board, cards in lanes by their status (The library's own apps).
 
 ## What a page that holds an editor needs
 
@@ -64,17 +63,17 @@ What an app still asked of the site itself, and what replaces it:
    sheet adds one rule the site's body makes needless (src/styles/standalone.css: the type and the ink on the
    editors and what they put on the page). test/browser/editors.test.ts holds that no rule of it names the root, the
    body or the shell, and that a page's own body keeps its own margin, ground and type.
-4. **A page's own commands.** Done: a page declares a scope of its own beside the kit's (Atlas's records, its
+4. **A page's own commands.** Done: a page declares a scope of its own beside the kit's (a CRM's records, its
    pipeline), and draws and answers it with the kit's functions: see A page's own commands.
 5. **A bare page.** Done: test/browser/editors.test.ts mounts `<to-write-editor>` on a bare page with a host of its
    own, types in it and reads the `docchange`.
 6. **Commands for a program.** Done: src/commands.ts, served as `tinylittleoffice/commands` (dist/commands.js), the
-   registry with a program's half and the two derivations Atlas's docs/commands.md asks of it: see Commands for a
+   registry with a program's half and the two derivations a host's program asks of it: see Commands for a
    program.
 7. **Editors speak in ops, and take remote ops.** Done: every editor tells each change as its operations and takes
-   another's in, for a page that shares a document: see Shared editing from a page. For the server that orders them
-   (Atlas's plan, phase 3), `tinylittleoffice/doc` serves `transform`, `rebase` and `applyEdits` (src/doc/sync.ts);
-   docs/kernel.md §12 is the design, its rules and its properties.
+   another's in, for a page that shares a document: see Shared editing from a page. For a host's server that orders
+   them, `tinylittleoffice/doc` serves `transform`, `rebase` and `applyEdits` (src/doc/sync.ts); docs/kernel.md §12 is
+   the design, its rules and its properties.
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
    on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
@@ -107,20 +106,19 @@ What an app still asked of the site itself, and what replaces it:
 14. **The library's own apps.** Done: the Board is in src/apps/board/ as the suite's apps are, served on entries of
     its own (`tinylittleoffice/board`, `/board/model`, `/board.css`) and in no list of the site's: see The library's
     own apps.
-15. **What a host's own pages are made of.** Done: the elements Atlas's lists, header and search are built from
-    (Atlas's docs/next.md: "Lists are typed tables", "One search at the top of every page"), in the kit and served by
-    `tinylittleoffice/kit` and `/editors` with their types: a typed table (`<to-table>`), a search box (`<to-search>`),
-    a page's header (`<to-header>`) and a template picker (`pickTemplate`). Their rules are src/styles/host.css, which
-    only editors.css imports, and nothing of the site's imports them, so the site's files and budgets are as they were.
+15. **What a host's own pages are made of.** Done: the elements a host's lists, header and search are built from (its
+    lists typed tables, one search at the top of every page), in the kit and served by `tinylittleoffice/kit` and
+    `/editors` with their types: a typed table (`<to-table>`), a search box (`<to-search>`), a page's header
+    (`<to-header>`) and a template picker (`pickTemplate`). Their rules are src/styles/host.css, which only editors.css
+    imports, and nothing of the site's imports them, so the site's files and budgets are as they were.
     test/table.test.ts and test/browser/table.test.ts, search-box.test.ts, header.test.ts and template-picker.test.ts
     hold them: see A typed table, A search box, A page's header and A template picker.
-16. **What the Storybook found.** Done (2026-10-18, for Atlas, which built them by hand: its web/src/redline.ts,
-    margin.ts, comment-box.ts and the review half of tracking.ts): the review panel and the margin as components, the
-    redraw that awaits the ghosts, a quote from the selection, a color for everyone, "docremote" (Tracked changes and
-    comments for a host, The components); five drawing bugs, each with its test (a paragraph taken out last never
-    drawn; one put back whole not drawn as restored; a change's words run together; a hint written over drawn word by
-    word; Compare's links made from the address); the kit's other elements exported; and a host's page arranged (A
-    host's page).
+16. **What the Storybook found.** Done (2026-10-18, for a host that had built them by hand: its redline, its margin, its
+    comment box and its reviews): the review panel and the margin as components, the redraw that awaits the ghosts, a
+    quote from the selection, a color for everyone, "docremote" (Tracked changes and comments for a host, The
+    components); five drawing bugs, each with its test (a paragraph taken out last never drawn; one put back whole not
+    drawn as restored; a change's words run together; a hint written over drawn word by word; Compare's links made from
+    the address); the kit's other elements exported; and a host's page arranged (A host's page).
 
 ## The Storybook
 
@@ -134,15 +132,15 @@ kit's `setTheme` and its Language `setLanguage`. A story's documents are the app
 
 - **Foundations.** Colors (every token of tokens.css, and the pairs of ink and ground), Type, Shape, Icons (the
   interface's, the library's search, the picker) and Emoji.
-- **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the
-  menus, Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the
-  preview, the locked card, the doc link dialog, the size of everything, a page's header, the template picker. Data:
-  the typed table (the Spreadsheet's membership roll, editable, refused, 5,000 rows, empty, narrow) and the search box
-  (inline, in a dialog, slow, failing). Text: `<to-text>` alone, who did what (the redline, a person's changes
-  accepted, rejections, a reviewer), the review panel (`<to-review-panel>`: alone, for a reader, reviewed, twelve
-  people's colors, and beside the words with Accept and Reject), the margin (`<to-comments>`: threads pinned by their
-  quote, over who did what, for a reader, made from the bubble, and asking Atlas, answered in the thread with a
-  tracked change), "@" for people, and Compare. Draw: footnotes, charts, cards, QR codes, tiles.
+- **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the menus,
+  Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the preview,
+  the locked card, the doc link dialog, the size of everything, a page's header, the template picker. Data: the typed
+  table (the Spreadsheet's membership roll, editable, refused, 5,000 rows, empty, narrow) and the search box (inline, in
+  a dialog, slow, failing). Text: `<to-text>` alone, who did what (the redline, a person's changes accepted, rejections,
+  a reviewer), the review panel (`<to-review-panel>`: alone, for a reader, reviewed, twelve people's colors, and beside
+  the words with Accept and Reject), the margin (`<to-comments>`: threads pinned by their quote, over who did what, for
+  a reader, made from the bubble, and asking the host's assistant, answered in the thread with a tracked change), "@"
+  for people, and Compare. Draw: footnotes, charts, cards, QR codes, tiles.
 - **Apps.** Each app's editor over one of its templates, editable and read-only, blank, two people sharing one
   document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small. The Board's
   among them, registered by its stories as a page registers it (`registerBoard`), its words drawn as the library's
@@ -276,9 +274,9 @@ is a link, one without a button, either told in `crumbpick`, `{ index, crumb }`,
 without it) in a dialog over the page, each drawn small from its own document (`<to-preview>`), Blank first where the
 app's templates carry no blank of their own, and resolves with the one chosen, `{ app, id, title, text }`
 (PickedTemplate: Blank's id is `blank`, its title the app's "Untitled …"), or null when it is let go. It opens and
-navigates to nothing: the page keeps the document as it keeps its own (Atlas writes an exploration from one). Its keys
-are a menu's (kit/ui/menu.ts). `<to-template-picker app="write">` is the same for a page that places it itself: its
-`show()` resolves as `pickTemplate` does, and the one chosen is told in `templatepick` too.
+navigates to nothing: the page keeps the document as it keeps its own (a CRM built on the library writes an exploration
+from one). Its keys are a menu's (kit/ui/menu.ts). `<to-template-picker app="write">` is the same for a page that places
+it itself: its `show()` resolves as `pickTemplate` does, and the one chosen is told in `templatepick` too.
 
 ```ts
 const picked = await pickTemplate('write');
@@ -287,16 +285,15 @@ if (picked) await run('document.create', { project, title: picked.title, text: p
 
 ## Tracked changes and comments for a host
 
-A host whose documents several people write (Atlas's shared documents) shows who did what: the words each person put
-in, in their color; the words they took out, in place and struck through; each edit bracketed in its author's color
-with a lozenge of their initials; and comments beside the words they are about. `tinylittleoffice/kit` serves it in two
-modules, kit/text/changes.ts, which says who did what and is pure, and kit/text/redline.ts, which draws it over a
-mounted Word Processor's words without writing anything into them. What is pure is served by `tinylittleoffice/doc`
-too, for a server that tracks with no Lit and no DOM: `track`, `trackOn`, `changesOf`, `rejectOps`, `diffLines`, the
-helpers that put a block back as it was (`blockFrom`, `kindTo`, `lookOf`, `lookTo`, `marksOf`, `runOf`,
-`restylings`, `isHead`, `OTHER`) and the types (`Step`, `Tracked`, `Tok`, `Change`, `Under`), the same functions the
-kit serves; the kit's `textOf` (a block's words as the editor counts them) is the kit's alone, the kernel's `textOf`
-being its text layer.
+A host whose documents several people write shows who did what: the words each person put in, in their color; the words
+they took out, in place and struck through; each edit bracketed in its author's color with a lozenge of their initials;
+and comments beside the words they are about. `tinylittleoffice/kit` serves it in two modules, kit/text/changes.ts,
+which says who did what and is pure, and kit/text/redline.ts, which draws it over a mounted Word Processor's words
+without writing anything into them. What is pure is served by `tinylittleoffice/doc` too, for a server that tracks with
+no Lit and no DOM: `track`, `trackOn`, `changesOf`, `rejectOps`, `diffLines`, the helpers that put a block back as it
+was (`blockFrom`, `kindTo`, `lookOf`, `lookTo`, `marksOf`, `runOf`, `restylings`, `isHead`, `OTHER`) and the types
+(`Step`, `Tracked`, `Tok`, `Change`, `Under`), the same functions the kit serves; the kit's `textOf` (a block's words as
+the editor counts them) is the kit's alone, the kernel's `textOf` being its text layer.
 
 - **What the host gives.** Its versions of a document in order, each a `Step`: its author (the string the host names a
   person by, an email), its TLO text, a hash that names its changes (`<hash>:0` is the first it made) and its place in
@@ -355,14 +352,15 @@ A page that gives none of it, no ghosts and no people, is drawn as before, and t
 Contract Editor, an app on a branch of its own, made these modules, and is to be rebased onto them; what it has beside
 them stays its own: two people's edits of one version merged, its log and its server.
 
-- **Everyone's color.** `colorOf(who, order)` is a person's color: their place in the host's `order` (`slotOf`), or,
-  for someone it does not name, a place past everyone's that their name alone picks, so they are one color wherever
-  they are drawn; `colorAt(place)` is the place's. The first six are `COLORS`, Okabe–Ito's; then as many as there are
-  people, each a hue a golden angle on from the one before at one of three depths in turn; and each, the first six too,
-  as near its hue as words in it read at 4.5:1 on the paper of either theme, darker in the light and lighter in the
-  dark, said as CSS's `light-dark()` (test/review.test.ts holds forty of them to it, and twenty-four apart). `paint`'s
-  `order` may be each person's place instead of a list (Atlas draws Atlas-for-someone in Atlas's color), and the kit
-  gives the page a highlight rule for every place it paints under its own prefix, so changes.css names none.
+- **Everyone's color.** `colorOf(who, order)` is a person's color: their place in the host's `order` (`slotOf`), or, for
+  someone it does not name, a place past everyone's that their name alone picks, so they are one color wherever they are
+  drawn; `colorAt(place)` is the place's. The first six are `COLORS`, Okabe–Ito's; then as many as there are people,
+  each a hue a golden angle on from the one before at one of three depths in turn; and each, the first six too, as near
+  its hue as words in it read at 4.5:1 on the paper of either theme, darker in the light and lighter in the dark, said
+  as CSS's `light-dark()` (test/review.test.ts holds forty of them to it, and twenty-four apart). `paint`'s `order` may
+  be each person's place instead of a list (a host may draw its assistant, working for someone, in the assistant's
+  color), and the kit gives the page a highlight rule for every place it paints under its own prefix, so changes.css
+  names none.
 - **A redraw that awaits the ghosts.** `drawChanges(words, tracked, { settled, drawing, order, prefix })` is the
   drawing whole: the words' update awaited, the ghosts given and awaited, then the paint, then "text-redline" from
   the words, bubbling, for whatever is placed by them (the margin). One draw at a time over one editor: asked again
@@ -400,19 +398,20 @@ async function draw(versions: Step[]) {
 
 Who did what listed, and the comments in the margin, are elements a host puts beside the words. They take data and
 tell what is asked in events, and own their layout and what a person does in them; storage is the host's. Their shapes
-are a host's server's (kit/text/review.ts), named as Atlas's names them, so its rows are handed in as they come:
+are a host's server's (kit/text/review.ts), named as a server's rows name them, so its rows are handed in as they come;
+a host whose rows name a field differently maps it (the flag on a comment that asks the assistant to `to_assistant`):
 
-| the kit's | Atlas's | read for |
+| the kit's | what a host's server keeps | read for |
 |---|---|---|
-| `Step` `{ author, text, hash?, seq? }` | `steps` (`document.steps`'s `Step`, its `from` beside) | `track` |
-| `Review` `{ id?, change_id, by, verdict, at_seq, why?, undone_at? }` | `reviews` (`reviewOut`, web/src/tracking.ts `Review`) | `reviewsOf`: `rejectedBy`, `reviewedBy`, `settled`, `standing`, `of` |
-| `Comment` `{ id, thread_id?, parent_id?, quote?, block?, offset?, by, text, to_atlas?, change_ids?, resolved_at?, created_at?, deleted_at? }` | `comments` (`commentOut`) | `threadsOf`, the margin |
-| `Person` `{ id, name, color? }` | a team member by id, a guest by email, `atlas` | names, colors, "@" |
+| `Step` `{ author, text, hash?, seq? }` | a document's versions, each by its author | `track` |
+| `Review` `{ id?, change_id, by, verdict, at_seq, why?, undone_at? }` | the verdicts on changes | `reviewsOf`: `rejectedBy`, `reviewedBy`, `settled`, `standing`, `of` |
+| `Comment` `{ id, thread_id?, parent_id?, quote?, block?, offset?, by, text, to_assistant?, change_ids?, resolved_at?, created_at?, deleted_at? }` | the comments, in threads | `threadsOf`, the margin |
+| `Person` `{ id, name, color? }` | a team member by id, a guest by email, the host's assistant | names, colors, "@" |
 
 A review names a change (`<hash>:<n>`) or a version's changes whole (`<hash>:*`, `covers`); one taken back still closed
-what it reviewed, and settles and rejects nothing; a change accepted by anyone is settled (Atlas's one redline).
+what it reviewed, and settles and rejects nothing; a change accepted by anyone is settled (one redline for everyone).
 `standing(id, author, me)` is where it stands for a reader (`Standing`): settled, rejected, theirs, reviewed by them, or
-waiting for them, as Atlas's web/src/changes.ts says it.
+waiting for them.
 
 - **`<to-review-panel>`** (kit/ui/review-panel.ts): `changes` (`changesOf`), `people`, `me`, and `reviews` (or the
   host's own `standing(change)`), `can-review`, `current`. Every change by author, each author in their color with how
@@ -422,12 +421,12 @@ waiting for them, as Atlas's web/src/changes.ts says it.
   changes nothing: an acceptance is the host's row, a rejection its row and its edit (`rejectOps`). `show(id)` brings
   a change into view and gives it the focus (a lozenge's "text-ghost").
 - **`<to-comments>`** (kit/ui/comments.ts), the margin: `comments`, `people`, `me`, `can-comment`, `ask` (the host's
-  assistant, a Person: Atlas), `words` (the editor's, `wordsOf`), and for the changes a reply made in answer `changes`
+  assistant, a Person), `words` (the editor's, `wordsOf`), and for the changes a reply made in answer `changes`
   with `reviews` (or `standing`) and `can-review`. Each open thread whose words are found is a note beside them at their
   height, a note that would meet the one above moved under it, placed again on "docchange", "docremote",
   "text-redline", a scroll and a resize, the words drawn first; where there is no room (the stylesheet's
   `--to-comments-beside`, 0 under 760px) it is a sheet over the page's foot, opened by a button that counts the open
-  threads. A note opens its thread (every comment by whom and when, Asks Atlas, the reply box, Resolve or Reopen,
+  threads. A note opens its thread (every comment by whom and when, Asks Assistant, the reply box, Resolve or Reopen,
   Delete on the reader's own, Close or Escape); an assistant's reply lists the changes it made (its `change_ids`) as the
   panel does, each with Accept and Reject; until the assistant has answered an ask, the thread says it is answering.
   Threads on words since changed, on the whole document and resolved are listed apart. Given `words`, it marks the
@@ -440,18 +439,17 @@ waiting for them, as Atlas's web/src/changes.ts says it.
   letters offering `people` (the assistant first), Comment or Reply, Ask, Cancel; "comment-box-send" (`BoxSend`).
 
 The words are the kit's, in every language (en.ftl's `review-` and `comments-` groups). Their sheet is
-src/styles/review.css, in editors.css alone. Atlas's web/src/redline.ts (its `Redline` and most of `Cast`), margin.ts,
-comment-box.ts and the review half of tracking.ts (`reviewedBy`, `rejectedBy`, `settled`, `reviewsOf`) and
-changes.ts (`describe`, `stateOf`) are these; what stays its own is its server's run rule (`stepOn`, tracking.ts's
-steps), doc-sync.ts (the order of operations, which `mount`'s `onOps` and `applyRemote` serve) and row-comments.ts
-(a Model row's thread, a box of the same kind with no words to pin to).
+src/styles/review.css, in editors.css alone. A host that built its own redline, margin, comment box and reviews (who
+reviewed, who rejected, what is settled, where a change stands) can replace them with these; what stays its own is its
+server's rule for the steps it keeps, the order of operations (which `mount`'s `onOps` and `applyRemote` serve) and a
+thread on what has no words to pin to (a record's, in a box of the same kind).
 
 ```ts
 import { changesOf, drawChanges, mount, reviewsOf, track, wordsOf, type Comment, type Review, type Step } from 'tinylittleoffice/kit';
 const { editor } = await mount('write', versions.at(-1)!.text, main, save, { onOps: send });
 const words = wordsOf(editor)!;
 const panel = Object.assign(document.createElement('to-review-panel'), { people, me, canReview: true });
-const margin = Object.assign(document.createElement('to-comments'), { people, me, canComment: true, ask: { id: 'atlas', name: 'Atlas' }, words });
+const margin = Object.assign(document.createElement('to-comments'), { people, me, canComment: true, ask: { id: 'assistant', name: 'Assistant' }, words });
 aside.append(margin, panel);
 async function draw(versions: Step[], reviews: Review[], comments: Comment[]) {
   const r = reviewsOf(reviews);
@@ -621,7 +619,7 @@ that origin in the service's `SITE`.
 ## A page's own commands
 
 A page's commands are declared as the kit's and the apps' are (kit/core/commands.ts: id, label, icon, keys, scope,
-where, when, does), in a scope of the page's own (`host`, `atlas`), and act on a context of its own: its pipeline, the
+where, when, does), in a scope of the page's own (`host`, `records`), and act on a context of its own: its pipeline, the
 record in hand. `tinylittleoffice/editors` exports what declares, draws and answers them, and nothing beside it:
 
 - declaring: `command`, `register`, `registered`, `inScope`, and the types `Command`, `Words` and `Where`;
@@ -655,22 +653,22 @@ are the site's, and a page keeps its own keys clear of the site's (docs/editing.
 
 ## Commands for a program
 
-Atlas serves its commands to programs as well as pages: an API, an assistant's tools, an MCP server, the
-documentation (its docs/commands.md). The kernel of that is this registry, and `tinylittleoffice/commands`
+A host may serve its commands to programs as well as pages: an API, an assistant's tools, an MCP server, the
+documentation. The kernel of that is this registry, and `tinylittleoffice/commands`
 (src/commands.ts, built to dist/commands.js: one file, no imports, no DOM, for Node 24 or a page) serves it: `command`,
 `register`, `registered`, `inScope`, `live`, `run`, `labelOf`, `keysText`, and the types `Command`, `Schema`, `Where`
 and `Words`, with nothing that draws. A command may carry its program's half beside its words and keys:
 
 - `input` and `output`, JSON Schema objects (`Schema`): what it takes and gives back, which the API, the tools and a
-  fuzz read. Atlas writes them with Zod and hands the kernel `z.toJSONSchema()` of them.
-- `who`, the actors that may run it (`team`, `atlas`); without it, no program may, and it is a page's alone.
+  fuzz read. A host may write them with Zod and hand the kernel `z.toJSONSchema()` of them.
+- `who`, the actors that may run it (`team`, `assistant`); without it, no program may, and it is a page's alone.
 - `reads: true` when it changes nothing; `doc`, one sentence saying what it does.
 
 Two pure derivations come from a list of them. `tools(commands, actor)` is the tool list an assistant or an MCP server
 serves that actor: for each command whose `who` names it, `{ name: id, description: doc ?? its words, inputSchema:
 input ?? { type: 'object' } }`, MCP's field names. `docsOf(commands)` is a Markdown page: every command in the list's
 order, what it does, its scope, who, whether it reads, its input and its output. Running them, the log and undo are
-the program's own (Atlas's `serve()`).
+the program's own.
 
 A label that is a message's id is said by `t()` in the language in use, and a program chooses none: it gets English,
 whose messages ride in commands.js, so `tools()` describes a command without a `doc` in English with nothing set up.

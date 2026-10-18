@@ -7,6 +7,6 @@ by the kernel so each round-trips byte for byte (tests/view.test.ts holds every 
 set anywhere.
 
 - **Project board** (`project`): To do, Doing and Done; a task a card, with its owner and the day it is due.
-- **Sales pipeline** (`pipeline`): Atlas's stages, Inbound, Qualifying, Proposal, Negotiating, Won and Lost; a deal a card, with the company, its value in dollars and the day it should close.
+- **Sales pipeline** (`pipeline`): a sales pipeline's stages, Inbound, Qualifying, Proposal, Negotiating, Won and Lost; a deal a card, with the company, its value in dollars and the day it should close.
 - **Hiring** (`hiring`): Applied, Phone screen, Interview, Offer and Hired; a candidate a card, with the role and the day of the next step.
 - **Content calendar** (`content`): Ideas, Writing, Editing, Scheduled and Published; a piece a card, with its channel, its author and the day it goes out (an idea has none yet).

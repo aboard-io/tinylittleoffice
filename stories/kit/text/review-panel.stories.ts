@@ -3,7 +3,7 @@
  * by author, each in their color, every change in words with where it stands for the reader, and Accept and Reject,
  * one change or all of one person's (docs/library.md, Tracked changes and comments for a host). The panel says what
  * was asked ("review-accept", "review-reject", "review-show") and changes nothing; the host keeps the reviews, here in
- * memory as Atlas's server would (kit/text/review.ts Review), and makes a rejection an edit of the reader's own
+ * memory as a host's server would (kit/text/review.ts Review), and makes a rejection an edit of the reader's own
  * (`rejectOps`), applied through `applyRemote` as a server hands it in. The sample is the contract (contract.ts).
  */
 import type { Meta, StoryObj } from '@storybook/web-components-vite';

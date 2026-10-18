@@ -37,7 +37,7 @@
  * which takes all of that from the editors' own file, so there is one Lit and one registry on the page (docs/library.md,
  * The library's own apps). Its stylesheet is style.css, which the library serves as board.css beside the editors'.
  *
- * A page that lets its cards be carried and nothing else be changed (Atlas's pipeline: a lead's stage changes there, the
+ * A page that lets its cards be carried and nothing else be changed (a CRM's pipeline: a lead's stage changes there, the
  * rest on the lead's own page) sets `carry-only`. A card is carried by its grip's drag, by the keys (Alt+Up/Down along
  * its lane and Mod+Alt+Left/Right across, in its title; on chosen cards Alt+Up/Down and Mod+Left/Right), by Move to…
  * and by its dialog's lane, and that is all: no bar and no lane's menu are drawn; the titles and the lanes' names are

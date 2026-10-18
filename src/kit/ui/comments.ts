@@ -16,8 +16,8 @@
  *   thread on them (kit/text/quote.ts Quote); New comment, at the top, one on the whole document.
  * - Threads whose words are no longer there are listed under "On words since changed", threads on the whole document
  *   under their own heading, resolved threads folded under Resolved.
- * - `ask`, the host's assistant (Atlas), is offered first by "@", and each box has Ask beside Comment: a comment that
- *   asks says so (`to_atlas`), and until a comment of the assistant's answers it the thread says it is answering.
+ * - `ask`, the host's assistant, is offered first by "@", and each box has Ask beside Comment: a comment that
+ *   asks says so (`to_assistant`), and until a comment of the assistant's answers it the thread says it is answering.
  *
  * Storage is the host's: the margin is given the comments as its server keeps them (kit/text/review.ts Comment, made
  * into threads by `threadsOf`), its people (Person), who reads (`me`), and for a reply's changes the tracked changes and
@@ -349,7 +349,7 @@ export class ToComments extends LitElement {
           ${th.comments.length > 1 ? html`<span class="to-hint to-note-more">${t('comments-n-replies', { n: th.comments.length - 1 })}</span>` : nothing}
         </button>
       </div>`;
-    const asking = this.ask ? th.comments.filter((c, i) => c.to_atlas && !th.comments.slice(i + 1).some((r) => r.by === this.ask!.id)) : [];
+    const asking = this.ask ? th.comments.filter((c, i) => c.to_assistant && !th.comments.slice(i + 1).some((r) => r.by === this.ask!.id)) : [];
     return html`<div class=${cls} data-thread=${th.id} data-top=${top ?? nothing} role="group" aria-label=${t('comments-by', { name: this.nameOf(first.by) })}>
       <div class="to-thread-head">
         <p class="to-note-quote">${th.quote ? `“${th.quote.split('\n')[0]}”` : t('comments-whole-document')}</p>
@@ -369,7 +369,7 @@ export class ToComments extends LitElement {
     return html`<li class="to-comment" data-comment=${c.id}>
       <p class="to-comment-head">
         <span class="to-comment-who" style=${`--c: ${this.ask?.id === c.by ? (this.ask.color ?? color(c.by)) : color(c.by)}`}>${this.nameOf(c.by)}</span>
-        ${c.to_atlas && this.ask ? html`<span class="to-comment-tag">${t('comments-asks', { name: this.ask.name })}</span>` : nothing}
+        ${c.to_assistant && this.ask ? html`<span class="to-comment-tag">${t('comments-asks', { name: this.ask.name })}</span>` : nothing}
         <span class="to-hint">${this.when(c.created_at)}</span>
         ${c.by === this.me && this.canComment ? html`<button type="button" class="to-comment-delete" @click=${() => this.tell('comment-delete', { id: c.id })}>${t('common-delete')}</button>` : nothing}
       </p>

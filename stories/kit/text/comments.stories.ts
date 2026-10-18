@@ -4,10 +4,10 @@
  * quotes (`pinComments`), the notes kept from meeting, placed again as the words move (an edit, a scroll, a width, who
  * did what drawn again); on a phone a sheet, opened by the button at the foot. A note opens its thread: every comment,
  * a reply (with "@" for the host's people), Resolve. Words selected bring up the bubble's Comment, which opens a box
- * beside them (kit/text/quote.ts `quoteAt`). The comments are the host's, kept here in memory as Atlas's server keeps
+ * beside them (kit/text/quote.ts `quoteAt`). The comments are the host's, kept here in memory as a host's server keeps
  * them (kit/text/review.ts Comment): the margin says what was asked ("comment-send", "comment-resolve",
- * "comment-delete") and the host keeps it, then hands the comments back. Asking Atlas, the host's assistant, is the
- * last story: a comment that asks it is answered in the thread, with a tracked change Atlas made in answer.
+ * "comment-delete") and the host keeps it, then hands the comments back. Asking the host's assistant is the last
+ * story: a comment that asks it is answered in the thread, with a tracked change the assistant made in answer.
  */
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { action } from 'storybook/actions';
@@ -68,8 +68,8 @@ const NOTES: Comment[] = [
   { id: 'c6', by: CAROL, text: 'Looks good overall.', created_at: at(6), resolved_at: at(7) },
 ];
 
-/** Atlas, the host's assistant, as the margin offers it. */
-const ATLAS: Person = { id: 'atlas', name: 'Atlas' };
+/** The host's assistant, as the margin offers it. */
+const ASSISTANT: Person = { id: 'assistant', name: 'Assistant' };
 
 /**
  * The contract in a Word Processor with the margin beside it, the host keeping its comments: a comment sent is kept
@@ -97,7 +97,7 @@ function commented(args: Args, given: Comment[] = NOTES, o: { ask?: Person; onSe
       parent_id: sent.parent_id,
       by: ALICE,
       text: sent.text,
-      to_atlas: sent.ask,
+      to_assistant: sent.ask,
       created_at: new Date().toISOString(),
       ...(sent.quote ? { quote: sent.quote.quote, block: sent.quote.block, offset: sent.quote.offset } : {}),
     };
@@ -146,12 +146,12 @@ export const FromTheBubble: Story = { render: (args) => commented(args, []) };
 export const ReadOnlyThreads: Story = { args: { canComment: false, readOnly: true }, render: (args) => commented(args) };
 
 /**
- * Asking Atlas, as Paul works with it (Atlas's docs/next.md, A morning with it): "@Atlas" in a comment, or Ask Atlas
- * beside Comment, asks it; the thread says it is answering, and its answer comes in the thread with the change it made,
- * tracked as its own (a version of Atlas's), to accept or reject there (a rejection the reader's edit, `rejectOps`). Here the story stands in for Atlas's job: a
- * comment that asks gets, a moment later, the quoted words in capitals and a reply saying so.
+ * Asking the host's assistant: "@Assistant" in a comment, or Ask Assistant beside Comment, asks it; the thread says it
+ * is answering, and its answer comes in the thread with the change it made, tracked as its own (a version of the
+ * assistant's), to accept or reject there (a rejection the reader's edit, `rejectOps`). Here the story stands in for the
+ * host's assistant: a comment that asks gets, a moment later, the quoted words in capitals and a reply saying so.
  */
-export const AskAtlas: Story = {
+export const AskTheAssistant: Story = {
   args: { redline: true },
   render: (args) => {
     let versions: Step[] = [...VERSIONS];
@@ -163,10 +163,10 @@ export const AskAtlas: Story = {
       const tracked = track(versions, r.rejectedBy, r.reviewedBy);
       margin.changes = changesOf(tracked);
       margin.reviews = [...reviews];
-      return drawChanges(wordsOf(m.editor)!, tracked, { settled: r.settled, drawing: drawingOf((ids) => ids.every(r.settled)), order: [...ORDER, ATLAS.id] });
+      return drawChanges(wordsOf(m.editor)!, tracked, { settled: r.settled, drawing: drawingOf((ids) => ids.every(r.settled)), order: [...ORDER, ASSISTANT.id] });
     };
     const frame = commented(args, NOTES.slice(0, 2), {
-      ask: ATLAS,
+      ask: ASSISTANT,
       onSend: (sent, kept, m, margin) => {
         if (!sent.ask) return;
         const thread = margin.threads.find((th) => th.comments.some((c) => c.id === kept.id))!;
@@ -181,7 +181,7 @@ export const AskAtlas: Story = {
           const reply: Comment = {
             id: `a${Date.now()}`,
             parent_id: kept.id,
-            by: ATLAS.id,
+            by: ASSISTANT.id,
             text: block < 0 ? 'I can only change words a thread is about.' : `Done: “${quote.toUpperCase()}”.`,
             created_at: new Date().toISOString(),
           };
@@ -190,8 +190,8 @@ export const AskAtlas: Story = {
             const ops: Op[] = [{ op: 'text', at: block, from, to: from + quote.length, runs: [{ t: quote.toUpperCase() }] }];
             m.applyRemote(ops);
             const seq = versions.length;
-            versions = [...versions, { author: ATLAS.id, text: write(applyAll(doc, ops)), hash: `atlas${seq}`, seq }];
-            reply.change_ids = [`atlas${seq}:*`];
+            versions = [...versions, { author: ASSISTANT.id, text: write(applyAll(doc, ops)), hash: `assistant${seq}`, seq }];
+            reply.change_ids = [`assistant${seq}:*`];
           }
           margin.comments = [...margin.comments, reply];
           void draw(m, margin);
@@ -206,7 +206,7 @@ export const AskAtlas: Story = {
         action(`review-${verdict}`)(ids);
         const m = held;
         if (!m) return;
-        // A rejection is the reader's edit: the words Atlas changed put back as they were (rejectOps), a version of Alice's.
+        // A rejection is the reader's edit: the words the assistant changed put back as they were (rejectOps), a version of Alice's.
         const r = reviewsOf(reviews);
         const ops =
           verdict === 'reject'

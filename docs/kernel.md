@@ -91,8 +91,8 @@ Why runs in the model rather than text with runs derived: every view would other
 3. **Columns at parse time.** A table's heading row becomes `cols: Column[]` via `column(h)`; `writeBlock` writes `columnText(c.name, c.type)`. Canonical headings (`Price:money`, `Time: 10am`) are byte-stable; `Price: money` is read leniently and written canonically.
 4. **Reference footnotes fold in `parse`.** `foldNotes` runs in the kernel for every app (`[^id]: note` paragraphs become inline notes). Canonical documents hold the inline form only.
 5. **Spaces at a mark's edge are outside the mark (2026-10-17).** A mark never holds a space at its ends and a line
-   break carries none: bold "a " before "b" is written `**a** b` and read back as bold "a" and a plain " b". Atlas,
-   whose server keeps the text while its editors keep the model, found the two disagreeing on which spaces were bold,
+   break carries none: bold "a " before "b" is written `**a** b` and read back as bold "a" and a plain " b". A host
+   whose server keeps the text while its editors keep the model found the two disagreeing on which spaces were bold,
    so an op made against an editor's runs need not apply alike to the server's parse. There were two ways to make
    them agree. The format could keep the edge space inside the mark, but no writing of it is Markdown: CommonMark
    closes no mark after a space, and our reader takes neither `**a **` nor `**a\ **` as bold (any other reader of a
@@ -523,8 +523,8 @@ compiled into the drawer's What is this? link at build; Paul, 2026-10-14). `test
 
 ## 12. Shared editing: operations in one order (2026-10-17)
 
-Several people, and Atlas, edit one document at once (docs/library.md; Atlas keeps a document as a snapshot and the
-operations after it, its docs/data.md). `src/doc/sync.ts` is the kernel's half: operational transformation with a
+Several people, and a host's assistant, edit one document at once (docs/library.md; a host may keep a document as a
+snapshot and the operations after it). `src/doc/sync.ts` is the kernel's half: operational transformation with a
 server as the one order of operations. A client sends an op with the version it was made against (`Edit`: id, author,
 base, op); the server transforms it over every op appended since, appends it with the next `seq` (`Ordered`) and tells
 every client; a client rebases the ops it has sent or not yet sent over each op it is told of (`rebase(pending, over)`).

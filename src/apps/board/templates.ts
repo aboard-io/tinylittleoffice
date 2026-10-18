@@ -31,7 +31,7 @@ const PIPELINE = board(
   ['Deal', 'Stage:option', 'Company', 'Value:money', 'Close:date'],
   ['Website redesign', 'Inbound', 'Hudson Bakery', '12000', '2026-12-15'],
   ['Office move', 'Inbound', 'Greenpoint Dental', '8500', '2027-01-10'],
-  ['Annual retainer', 'Qualifying', 'Atlas Law', '48000', '2026-12-01'],
+  ['Annual retainer', 'Qualifying', 'Harbor Law', '48000', '2026-12-01'],
   ['Spring catalog', 'Proposal', 'Bowery Outfitters', '22000', '2026-11-20'],
   ['Event series', 'Negotiating', 'Queens Museum Friends', '30000', '2026-11-14'],
   ['Brand refresh', 'Won', 'Flatiron Coffee', '18000', '2026-10-30'],

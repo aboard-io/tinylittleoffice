@@ -713,7 +713,7 @@ function oneLine(before: Doc, after: Doc, op: Op, splits: [number, number][]): O
 /**
  * An edit's ops as the format keeps what they make (docs/kernel.md §2, point 5): every block of
  * words they leave is what its text reads back as, so the editor holds what `parse(write(model))` gives, and a server
- * that keeps the text and applies the same ops holds the same words (Atlas, 2026-10-17). A splice's blocks go in so;
+ * that keeps the text and applies the same ops holds the same words (2026-10-17). A splice's blocks go in so;
  * a `text` op that would leave a mark on a space at its edge reaches over the marks let go of (its words and their
  * places stay as they were, so the selection after it does too), and one that then changes nothing goes. An op that
  * leaves a heading holding a line break leaves it one line and a paragraph after it (`oneLine`), and `sel` (the

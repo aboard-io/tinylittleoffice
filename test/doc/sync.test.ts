@@ -911,6 +911,6 @@ test('rebase: a client’s pending ops over what the server appended since; appl
   ];
   const moved = rebase(mine, [theirs]);
   expect(moved[0]).toStrictEqual({ op: 'text', at: 2, from: 8, to: 8, runs: [{ t: ' Soon.' }] });
-  const log: Edit[] = [{ id: 'e1', author: 'atlas', base: 0, op: theirs }, ...moved.map((op, i) => ({ id: `e${i + 2}`, author: 'ann', base: 0, op }))];
+  const log: Edit[] = [{ id: 'e1', author: 'assistant', base: 0, op: theirs }, ...moved.map((op, i) => ({ id: `e${i + 2}`, author: 'ann', base: 0, op }))];
   expect(write(applyEdits(d, log))).toBe('---\ntitle: Plan\n---\nIntro\n\n# Plan\n\nShip it. Soon.\n');
 });

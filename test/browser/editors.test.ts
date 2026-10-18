@@ -34,11 +34,11 @@ import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
 import { apply, applyAll, invertAll, parse, plainText, rebase, transform, write, type Op } from '../../src/doc/index.ts';
 import { tick, until } from './wait.ts';
 
-/** The page's own host: Atlas's documents open at its own addresses, and only its links name a document. */
+/** The page's own host: its documents open at its own addresses, and only its links name a document. */
 const links: string[] = [];
 Object.assign(host, {
-  link: (lang: string, body: string, opts?: { display?: boolean }) => (links.push(`${lang}:${body.trim()}`), `https://atlas.test/open/${lang}?n=${links.length}${opts?.display ? '&display' : ''}`),
-  read: (words: string) => (words.startsWith('atlas:') ? { lang: words.slice(6, words.indexOf('/')), body: words.slice(words.indexOf('/') + 1) } : null),
+  link: (lang: string, body: string, opts?: { display?: boolean }) => (links.push(`${lang}:${body.trim()}`), `https://host.test/open/${lang}?n=${links.length}${opts?.display ? '&display' : ''}`),
+  read: (words: string) => (words.startsWith('host:') ? { lang: words.slice(5, words.indexOf('/')), body: words.slice(words.indexOf('/') + 1) } : null),
 });
 
 const words = (el: Element) => el.querySelector<HTMLElement>('[contenteditable=true]')!;
@@ -208,13 +208,13 @@ test('where a placed document opens is the host’s answer, and a pasted link is
   await el.updateComplete;
   await until(() => !!el.querySelector('.ol-doc a'), 'the placed sheet was never drawn');
   const a = el.querySelector<HTMLAnchorElement>('.ol-doc a')!;
-  expect(a.href).toMatch(/^https:\/\/atlas\.test\/open\/sheet\?n=\d+$/);
+  expect(a.href).toMatch(/^https:\/\/host\.test\/open\/sheet\?n=\d+$/);
   // The sheet as the item holds it, its lines indented under the item: the host is given the text as the document has it.
   expect(links.at(-1)!.replace(/\n\s+/g, '\n')).toBe('sheet:Item | Cost:money\n--- | ---\nRent | 1200');
   // The page's own link to the same kind of document, pasted over the card: the host reads it, and the document under
   // the item is the one it names (the way an edit made in its own app comes back).
   const paste = new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: new DataTransfer() });
-  paste.clipboardData!.setData('text/plain', 'atlas:sheet/Item | Cost:money\n--- | ---\nRent | 1500\n');
+  paste.clipboardData!.setData('text/plain', 'host:sheet/Item | Cost:money\n--- | ---\nRent | 1500\n');
   el.querySelector('.ol-doc')!.dispatchEvent(paste);
   await until(() => changes.some((c) => c.includes('1500')), 'the pasted link never became the item’s document');
   expect(changes.at(-1)).not.toContain('1200');
@@ -223,7 +223,7 @@ test('where a placed document opens is the host’s answer, and a pasted link is
 test('a page’s own commands: declared as the kit’s, drawn by its bar, and a key typed in the words that no scope inside takes is the page’s', async () => {
   // The page's scope is this test's, not the site's: test/browser/setup.ts keeps its runs out of the map the registry's
   // lint reads (test/commands-covered.json), which holds the site's commands to a test.
-  /** The page's context: Atlas's board, with a record in hand. */
+  /** The page's context: a host's board, with a record in hand. */
   const board = { record: 'r1', done: [] as string[] };
   type Board = typeof board;
   // Words of the page's own, not messages of en.ftl: a function of the context.
@@ -423,10 +423,10 @@ test('Compare on a page with a host of its own: each side’s link and its Open 
   cmp.b = { app: 'write', payload: encodeDoc('Is.\n') };
   await cmp.updateComplete;
   const first = cmp.querySelector<HTMLInputElement>('.cmp-a')!;
-  expect(first.value).toMatch(/^https:\/\/atlas\.test\/open\/write\?n=\d+$/);
+  expect(first.value).toMatch(/^https:\/\/host\.test\/open\/write\?n=\d+$/);
   expect([...cmp.querySelectorAll<HTMLAnchorElement>('.cmp-meta a')].map((a) => a.href)).toEqual([
-    expect.stringMatching(/^https:\/\/atlas\.test\/open\/write/),
-    expect.stringMatching(/^https:\/\/atlas\.test\/open\/write/),
+    expect.stringMatching(/^https:\/\/host\.test\/open\/write/),
+    expect.stringMatching(/^https:\/\/host\.test\/open\/write/),
   ]);
   expect(links.slice(-2).some((l) => l === 'write:Was.')).toBe(true);
 });
@@ -459,7 +459,7 @@ test('a page with no <to-toast> of its own still says a toast: one is put on the
 });
 
 test('a placed document is edited in a dialog put where the page says, not always in its body', async () => {
-  document.body.innerHTML = '<section class="atlas-themed"></section>';
+  document.body.innerHTML = '<section class="host-themed"></section>';
   const into = document.querySelector('section')!;
   await setup();
   const done = editDoc({ app: 'write', text: 'Hello.\n', into });
@@ -470,14 +470,14 @@ test('a placed document is edited in a dialog put where the page says, not alway
 });
 
 test('a page keeps the theme and the size under keys of its own, or nowhere, and the site’s keys are left alone', async () => {
-  const keys = ['to-theme', 'tinyoffice.size', 'atlas.theme', 'atlas.size'];
+  const keys = ['to-theme', 'tinyoffice.size', 'host.theme', 'host.size'];
   for (const k of keys) localStorage.removeItem(k);
   try {
-    keepThemeAt('atlas.theme');
-    keepSizeAt('atlas.size');
+    keepThemeAt('host.theme');
+    keepSizeAt('host.size');
     setTheme('dark');
     keepSize(1.5);
-    expect([localStorage.getItem('atlas.theme'), localStorage.getItem('atlas.size')]).toStrictEqual(['dark', '1.5']);
+    expect([localStorage.getItem('host.theme'), localStorage.getItem('host.size')]).toStrictEqual(['dark', '1.5']);
     expect([localStorage.getItem('to-theme'), localStorage.getItem('tinyoffice.size')]).toStrictEqual([null, null]);
     // Nowhere: chosen for the visit, written nowhere.
     keepThemeAt(null);
@@ -487,8 +487,8 @@ test('a page keeps the theme and the size under keys of its own, or nowhere, and
     keepSize(1.2);
     expect(theme()).toBe('light');
     expect(document.documentElement.dataset.theme).toBe('light');
-    expect(localStorage.getItem('atlas.theme')).toBe('dark');
-    expect(localStorage.getItem('atlas.size')).toBe('1.5');
+    expect(localStorage.getItem('host.theme')).toBe('dark');
+    expect(localStorage.getItem('host.size')).toBe('1.5');
   } finally {
     keepThemeAt('to-theme');
     keepSizeAt('tinyoffice.size');

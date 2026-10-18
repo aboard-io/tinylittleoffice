@@ -13,7 +13,7 @@
  * The lane column, by the first rule that finds one: the first column named Status or Stage (in any case), else the
  * first column typed `option`, else the last column. The format has no type of its own for a status (the kernel's
  * types end at `option`), so the name comes first, being what a person or a model writes over such a column and what
- * Atlas's pipeline calls its stages; `option`, one of the words the column holds, is the type the Spreadsheet gives
+ * a sales pipeline calls its stages; `option`, one of the words the column holds, is the type the Spreadsheet gives
  * such a column (a blank board's is typed so, whatever its name in the reader's language); and the last column is
  * where a status sits in most tables pasted from elsewhere. The title is the first column of words (`text` or `rich`)
  * that is not the lane column, else the first other column.
@@ -52,7 +52,7 @@
  * Nothing here touches the DOM, and nothing here speaks a language: the names a board's table is born with (its title
  * column and its status column, where a document has no table yet) are given (`ColumnNames`, English where none are),
  * and so are a blank board's lanes. So the kernel is the one import, and a program under Node builds a board from its
- * own records and moves its cards with this file alone (`tinylittleoffice/board/model`, dist/board-model.js: Atlas's
+ * own records and moves its cards with this file alone (`tinylittleoffice/board/model`, dist/board-model.js: a CRM's
  * pipeline, its leads the cards and its stages the lanes), while the editor gives the names in the reader's language (def.ts, editor.ts).
  */
 import {

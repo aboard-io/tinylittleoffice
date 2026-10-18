@@ -697,11 +697,11 @@ test('the bar hands the cards to the Spreadsheet: the same table, opened where t
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   const link = host.link;
   const asked: [string, string][] = [];
-  host.link = (app: string, text: string) => (asked.push([app, text]), `https://atlas.test/open/${app}`);
+  host.link = (app: string, text: string) => (asked.push([app, text]), `https://host.test/open/${app}`);
   try {
     el.querySelector<HTMLButtonElement>('to-bar button[aria-label="Open the cards in a spreadsheet"]')!.click();
     expect(open).toHaveBeenCalledTimes(1);
-    expect(open.mock.calls[0][0]).toBe('https://atlas.test/open/sheet');
+    expect(open.mock.calls[0][0]).toBe('https://host.test/open/sheet');
     expect(asked).toStrictEqual([['sheet', BOARD]]);
   } finally {
     host.link = link;
@@ -844,7 +844,7 @@ test('not pickable, as a board is unless the page asks: a tap on a card chooses 
 const opsOf = (heard: Heard[]) => heard.flatMap((h) => (typeof h === 'string' ? [] : h.ops));
 /** An op a card's move makes (model.ts moveCard): its status cell (the second column, never forced), or its row taken out and put in again. */
 const aMove = (op: Op) => (op.op === 'cells' && op.at === 0 && op.c === 1 && op.values.length === 1 && op.values[0].length === 1 && !op.force) || (op.op === 'rows' && op.at === 0 && op.n === 1);
-/** Ops told one after another on `text`, read as a host that takes only moves reads them (Atlas's `movesOf`): each a move's, and every row put in one taken out as it was. */
+/** Ops told one after another on `text`, read as a host that takes only moves reads them: each a move's, and every row put in one taken out as it was. */
 function movesOnly(text: string, ops: Op[]): boolean {
   let doc = parse(text);
   const out: string[] = [];

@@ -10,7 +10,7 @@
  *   const create = command<Ctx>({ id: 'lead.create', scope: 'records', label: () => 'New lead', where: ['keys-only'],
  *     input: { type: 'object', properties: { company: { type: 'string' } }, required: ['company'] },
  *     output: { type: 'object', properties: { lead_id: { type: 'string' } } },
- *     who: ['team', 'atlas'], doc: 'Create a lead for a company.', does: (ctx) => ctx.createLead() });
+ *     who: ['team', 'assistant'], doc: 'Create a lead for a company.', does: (ctx) => ctx.createLead() });
  *   register([create]);
  *   tools(registered(), 'team');  // [{ name: 'lead.create', description: 'Create a lead for a company.', inputSchema }]
  *   docsOf(registered());         // the commands as Markdown, in the order registered

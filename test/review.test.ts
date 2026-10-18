@@ -1,6 +1,6 @@
 // What a host keeps of who reviewed what and who said what (kit/text/review.ts; docs/library.md, Tracked changes and
 // comments for a host), read for the tracking, the drawing and the panel: a host's rows handed in as its server gives
-// them (Atlas's `reviews` and `comments`), a version's changes named whole, a review taken back, the comments as
+// them (its `reviews` and `comments`), a version's changes named whole, a review taken back, the comments as
 // threads; and each person's color, past the six and in either theme (kit/text/redline.ts colorAt).
 import { describe, expect, test } from 'vitest';
 import { covers, reviewsOf, threadsOf, type Comment, type Review } from '../src/kit/text/review.ts';
@@ -51,16 +51,16 @@ describe('reviews', () => {
 });
 
 describe('comments as threads', () => {
-  // As Atlas's server gives them: times as strings, a reply's parent, a deleted one, a thread resolved.
+  // As a host's server gives them: times as strings, a reply's parent, a deleted one, a thread resolved.
   const rows: Comment[] = [
     {
       id: 'c3',
       thread_id: 'c1',
       parent_id: 'c2',
       quote: '',
-      by: 'atlas',
+      by: 'assistant',
       text: 'Done.',
-      to_atlas: false,
+      to_assistant: false,
       change_ids: ['7:*'],
       created_at: '2026-10-18T10:03:00Z',
       resolved_at: null,
@@ -68,7 +68,7 @@ describe('comments as threads', () => {
     },
     { id: 'c1', thread_id: 'c1', parent_id: null, quote: 'the rent', by: A, text: 'Too high?', created_at: '2026-10-18T10:00:00Z', resolved_at: null, deleted_at: null },
     { id: 'c4', parent_id: null, quote: 'Brooklyn', by: B, text: 'Queens', created_at: '2026-10-18T09:00:00Z', resolved_at: '2026-10-18T11:00:00Z' },
-    { id: 'c2', parent_id: 'c1', by: B, text: '@atlas lower it', to_atlas: true, created_at: '2026-10-18T10:01:00Z' },
+    { id: 'c2', parent_id: 'c1', by: B, text: '@assistant lower it', to_assistant: true, created_at: '2026-10-18T10:01:00Z' },
     { id: 'c5', parent_id: 'c4', by: A, text: 'gone', created_at: '2026-10-18T09:30:00Z', deleted_at: '2026-10-18T09:31:00Z' },
   ];
 

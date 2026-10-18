@@ -1,6 +1,6 @@
 /**
  * The Storybook (docs/library.md, The Storybook): every element of the kit and every app's editor, alone on a page that
- * is not the site, as Atlas will hold them. `npm run storybook` serves it at http://0.0.0.0:6006, and
+ * is not the site, as a host will hold them. `npm run storybook` serves it at http://0.0.0.0:6006, and
  * `npm run build-storybook` writes it to storybook-static/ (ignored by git). Its Vite is its own (.storybook/vite.config.ts),
  * never the site's, so nothing of the site's build runs and the site never bundles Storybook. The stories are in
  * stories/, one folder per part of the hierarchy.

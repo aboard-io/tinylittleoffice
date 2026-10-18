@@ -1811,7 +1811,7 @@ comments-n-replies = { $n ->
     }
 # A thread, for a screen reader: whose comment began it.
 comments-by = Comments by { $name }
-# The host's assistant (Atlas): a comment can ask it, and it answers in the thread.
+# The host's assistant: a comment can ask it, and it answers in the thread.
 comments-ask = Ask { $name }
 comments-asks = Asks { $name }
 comments-answering = { $name } is answering…

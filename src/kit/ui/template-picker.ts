@@ -3,7 +3,7 @@
  * back to the page, never opened (docs/library.md, A template picker). The home page's templates dialog (kit/ui/home.ts)
  * opens the document it is chosen in; this one gives it to the page that asked, as `{ app, id, title, text }`
  * (PickedTemplate: the app's id, the template's, its name, and its TLO text), for a host that keeps its documents
- * itself (Atlas writes an exploration from one).
+ * itself (a CRM built on the library writes an exploration from one).
  *
  * The templates are the registry's (`appOf(id).templates()`, an app built outside the suite's too), each drawn small
  * from its own document (<to-preview>), under its app's name, Blank first where the app's templates carry no blank of

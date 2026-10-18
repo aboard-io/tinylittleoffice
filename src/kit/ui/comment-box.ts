@@ -1,7 +1,7 @@
 /**
  * <to-comment-box>: where a comment is written, a new one or a reply in a thread (kit/ui/comments.ts, the margin): a
  * plain field, marked `data-comment-box` so the words' bubble offers no Comment inside it, with Comment (or Reply), Ask
- * (when the host has an assistant to ask: `ask`, "Ask Atlas"), and Cancel when there is something to cancel.
+ * (when the host has an assistant to ask: `ask`, "Ask Assistant"), and Cancel when there is something to cancel.
  *
  * - "@" with letters after it (at the start or after a space) offers the host's people under the field (`people`, the
  *   assistant first), as "@" offers them in the words (kit/text/text.ts `mentions`): Up and Down move, Enter or Tab puts
@@ -46,7 +46,7 @@ export class ToCommentBox extends LitElement {
   };
   /** The people "@" offers. */
   declare people: Person[];
-  /** The assistant a comment may ask (its name, "Atlas"), offered first by "@"; null for none. */
+  /** The assistant a comment may ask (its name, "Assistant"), offered first by "@"; null for none. */
   declare ask: Person | null;
   /** The field's name: "Comment", "Reply". */
   declare label: string;

@@ -77,7 +77,7 @@ test("a document with no space at a line's end writes exactly as it did", () => 
   for (const text of ['Words\n', '# Title {.title}\n\nOne\ntwo\n', '- a\n  - b\n', '> a\n>\n> b\n', 'A | B\n--- | ---\n1 | 2\n', '<br>\n', '#\n', '-\n']) expect(write(parse(text))).toBe(text);
 });
 
-// Atlas, 2026-10-17: its server keeps the text and its editors the model, and they disagreed on which spaces were bold.
+// 2026-10-17: a host's server kept the text and its editors the model, and they disagreed on which spaces were bold.
 // A mark ends before the spaces after it and begins after the ones before it, as Markdown has it ("**a **" is no bold);
 // the format writes a run "a " in bold before "b" as "**a** b", so a model holding the bold space does not come back.
 // The editor keeps its words as the format does (kit/text/textops.ts settle, test/textops.test.ts); sayableRuns says how.

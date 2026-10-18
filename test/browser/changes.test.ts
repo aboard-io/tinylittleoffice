@@ -154,10 +154,10 @@ test('a comment is pinned by its quote wherever its words are now, and highlight
   unpin();
   expect(CSS.highlights.has(`${PREFIX}comment`)).toBe(false);
   // A host may name its highlights itself, beside another's on the same page.
-  paint(words, track(VERSIONS), ORDER, () => false, 'atlas-');
-  expect(painted('atlas-1').join('')).toBe('45, net');
-  unpaint('atlas-');
-  expect(CSS.highlights.has('atlas-1')).toBe(false);
+  paint(words, track(VERSIONS), ORDER, () => false, 'host-');
+  expect(painted('host-1').join('')).toBe('45, net');
+  unpaint('host-');
+  expect(CSS.highlights.has('host-1')).toBe(false);
 });
 
 test('"@" offers the host’s people and puts in the one picked by name; with no people, "@" is a letter like any other', async () => {

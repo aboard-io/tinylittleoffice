@@ -158,7 +158,7 @@ const TEXT = 'The first line.\n\nThe second line.\n\nAnd the third line.\n\nThe 
 async function margin(text = TEXT, comments = NOTES) {
   const m = await mounted(text);
   const el = document.createElement('to-comments') as ToComments;
-  Object.assign(el, { comments, people: PEOPLE, me: A, canComment: true, ask: { id: 'atlas', name: 'Atlas' }, words: m.words });
+  Object.assign(el, { comments, people: PEOPLE, me: A, canComment: true, ask: { id: 'assistant', name: 'Assistant' }, words: m.words });
   m.aside.append(el);
   await until(() => el.querySelectorAll('.to-comments-notes > [data-top]').length === 2, 'the notes were never pinned');
   return { ...m, el };
@@ -196,9 +196,9 @@ test('<to-comments>: a thread opened, a reply sent to the host with its parent, 
   el.querySelector<HTMLButtonElement>('[data-thread="c1"] .to-note-open')!.click();
   await until(() => document.activeElement?.classList.contains('to-comment-field') ?? false, 'the reply box never took the focus');
   const field = document.activeElement as HTMLTextAreaElement;
-  field.value = 'Agreed, @Atlas tidy it';
+  field.value = 'Agreed, @Assistant tidy it';
   field.form!.requestSubmit(field.form!.querySelector<HTMLButtonElement>('.to-comment-send'));
-  expect(sent.map((s) => [s.text, s.parent_id, s.ask, s.mentions, s.quote])).toStrictEqual([['Agreed, @Atlas tidy it', 'c3', true, ['atlas'], null]]);
+  expect(sent.map((s) => [s.text, s.parent_id, s.ask, s.mentions, s.quote])).toStrictEqual([['Agreed, @Assistant tidy it', 'c3', true, ['assistant'], null]]);
   sent[0].done(true);
   await until(() => field.value === '');
   el.querySelector<HTMLButtonElement>('[data-thread="c1"] .to-thread-resolve')!.click();

@@ -17,7 +17,7 @@ const create = command<Board>({
   where: ['keys-only'],
   input,
   output,
-  who: ['team', 'atlas'],
+  who: ['team', 'assistant'],
   doc: 'Create a lead for a company.',
   does: (b) => b.made.push('lead'),
 });
@@ -36,7 +36,7 @@ describe('the commands entry', () => {
   });
 
   test('tools() serves an actor the commands it may run, as MCP names a tool’s fields', () => {
-    expect(tools(registered(), 'atlas')).toStrictEqual([{ name: 'records.create', description: 'Create a lead for a company.', inputSchema: input }]);
+    expect(tools(registered(), 'assistant')).toStrictEqual([{ name: 'records.create', description: 'Create a lead for a company.', inputSchema: input }]);
     expect(tools(registered(), 'team')).toStrictEqual([
       { name: 'records.create', description: 'Create a lead for a company.', inputSchema: input },
       { name: 'records.bold', description: 'Bold', inputSchema: { type: 'object' } },
@@ -55,7 +55,7 @@ describe('the commands entry', () => {
     const one = md.slice(md.indexOf('## `records.create`'), md.indexOf('## `records.bold`'));
     expect(one).toContain('Create a lead for a company.');
     expect(one).toContain('- Scope: `records`');
-    expect(one).toContain('- Who: `team`, `atlas`');
+    expect(one).toContain('- Who: `team`, `assistant`');
     expect(one).toContain('- Reads: no, it writes');
     expect(one).toContain(JSON.stringify(input, null, 2));
     expect(one).toContain(JSON.stringify(output, null, 2));

@@ -9,7 +9,7 @@ import { box } from '../../support.ts';
  * A page's own commands (docs/library.md, A page's own commands): declared as the kit's are, in a scope of the page's
  * own (`host`), drawn by the kit's functions in a <to-bar> of the page's, and given to `mount` with their context, so
  * their keys are answered inside the editor after the words', the app's and undo's. The context here is a record in
- * hand, as Atlas's would be.
+ * hand, as a CRM's would be.
  */
 interface Pipeline {
   record: { name: string; stage: string };

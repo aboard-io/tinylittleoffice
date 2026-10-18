@@ -1,6 +1,6 @@
 // A bare page with the Board on it, as a page that is not Tiny Little Office's site holds one (docs/library.md, The
 // library's own apps): the editors' stylesheet and the Board's, the Board registered (src/board.ts), the
-// page's own column padded by the gutter (`--to-gutter`, as the site's column and Atlas's are: an editor's bar reaches
+// page's own column padded by the gutter (`--to-gutter`, as the site's column and a host's are: an editor's bar reaches
 // across it to the column's edges), and `board()`, an editor of it mounted by the editors' `mount` (kit/core/mount.ts) with the
 // page's own callbacks; and the waits every browser file uses (until a test holds, until the page is quiet), which are
 // conditions, never times (the suite's own, test/browser/wait.ts, and the page at rest).

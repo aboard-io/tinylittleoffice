@@ -1,7 +1,7 @@
 /**
  * What the Site's stories share (stories/site/): the site's own page pieces, each drawn with the site's page.css on
  * (`parameters.page`), and an app chosen by a control, its document one of its own templates. A host that holds the
- * editors (Atlas) adopts none of these: it keeps its own page, its own header and its own dialogs, and gives an editor
+ * editors adopts none of these: it keeps its own page, its own header and its own dialogs, and gives an editor
  * its text with `mount` (Kit/Core/Mount).
  */
 import type { Meta } from '@storybook/web-components-vite';

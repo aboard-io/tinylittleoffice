@@ -492,7 +492,7 @@ test('an IME composition: the browser writes into the block, compositionend read
   expect(h.tlo).toBe('hello  world\n');
 });
 
-test('a space typed after a bold word is plain, as the text says it (Atlas, 2026-10-17): the editor holds what its writing reads back as', async () => {
+test('a space typed after a bold word is plain, as the text says it (2026-10-17): the editor holds what its writing reads back as', async () => {
   // Bold, a word, a space, bold off, a plain word: the space is not bold, in the model as in "**a** b".
   const h = await mount('');
   h.el.exec('b');

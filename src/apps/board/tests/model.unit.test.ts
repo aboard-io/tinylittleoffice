@@ -261,7 +261,7 @@ test('for any board, moving a card anywhere and inverting gives the document bac
 });
 
 /**
- * What a host that reads only moves reads (Atlas's `movesOf`): ops that are each a status cell written (`cells` on the
+ * What a host that reads only moves reads: ops that are each a status cell written (`cells` on the
  * lane column, never forced), `lanes:` or the lock written (`head`), or a row taken out or put in, every row put in
  * one that was taken out as it was (a formula aside, which rows moved around it point elsewhere); a splice only of a
  * table that keeps its own lock. Null where they are not.

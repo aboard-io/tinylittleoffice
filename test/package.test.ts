@@ -149,7 +149,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
       [],
       true,
     ]);
-    // The Board's model, as a server makes and changes boards with it (Atlas's pipeline): one file that imports the
+    // The Board's model, as a server makes and changes boards with it (a CRM's pipeline): one file that imports the
     // package's own kernel and nothing else, names no browser global, and needs nothing of the editors. A board built
     // from records, read back, a card moved as ops and taken back as a move.
     const boardModelJs = readFileSync(join(app, 'node_modules/tinylittleoffice/dist/board-model.js'), 'utf8');
@@ -176,7 +176,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
     ]);
     // The types, as a TypeScript program that holds documents sees them: a consumer importing from every subpath checks
     // clean under strict, and a second file that misuses each fails, error by error, so the check is reading the
-    // package's declarations rather than taking every name as any. skipLibCheck, as Atlas sets it: the declarations name
+    // package's declarations rather than taking every name as any. skipLibCheck, as a host sets it: the declarations name
     // Lit's and Lucide's types, which ride bundled in editors.js and are not installed beside it, and those read as any.
     const tsconfig = (files: string[]) => ({
       compilerOptions: { target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler', lib: ['ES2022', 'DOM'], types: [], strict: true, skipLibCheck: true, noEmit: true },
@@ -203,7 +203,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
         "import { pickTemplate, type Crumb, type PickedTemplate, type RowChange, type SearchHit, type SearchPick, type Searcher, type SortBy, type TableColumn, type TableRow, type ToHeader, type ToSearch, type ToTable } from 'tinylittleoffice/editors';",
         "import 'tinylittleoffice/editors.css';",
-        // The Board, as Atlas holds it: registered, its editor asked for a pick and carried only, its model on its own.
+        // The Board, as a host holds it: registered, its editor asked for a pick and carried only, its model on its own.
         "import { board, install, registerBoard, boardOf, type BoardView, type PickedCard, type ToBoardEditor } from 'tinylittleoffice/board';",
         "import { ENGLISH_LANES, boardColumns, boardDoc, moveCard, type ColumnNames } from 'tinylittleoffice/board/model';",
         "import 'tinylittleoffice/board.css';",
@@ -289,9 +289,9 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         'const reviewed: Reviewed = reviewsOf(reviews);',
         "export const where: Standing = reviewed.standing('v1:0', 'b@x.co', 'a@x.co');",
         "export const named: boolean = covers('v1:*', 'v1:0');",
-        "const notes: Comment[] = [{ id: 'c1', quote: 'Plans', by: 'a@x.co', text: 'Why?', to_atlas: false, created_at: '2026-10-18T10:00:00Z', resolved_at: null, deleted_at: null }];",
+        "const notes: Comment[] = [{ id: 'c1', quote: 'Plans', by: 'a@x.co', text: 'Why?', to_assistant: false, created_at: '2026-10-18T10:00:00Z', resolved_at: null, deleted_at: null }];",
         'export const threads: Thread[] = threadsOf(notes);',
-        "const cast: Someone[] = [{ id: 'a@x.co', name: 'Ana' }, { id: 'atlas', name: 'Atlas', color: colorAt(7) }];",
+        "const cast: Someone[] = [{ id: 'a@x.co', name: 'Ana' }, { id: 'assistant', name: 'Assistant', color: colorAt(7) }];",
         "export const hue: string = colorOf('a@x.co', cast.map((p) => p.id)) + slotOf('b@x.co');",
         'export const said: string[] = changes.map(changeWords);',
         'export const margin = (words: Parameters<typeof quoteAt>[0] & HTMLElement): ToComments => {',
@@ -305,7 +305,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "export const commentBox: ToCommentBox = document.createElement('to-comment-box');",
         'export const boxed = (e: CustomEvent<BoxSend>): boolean => e.detail.ask;',
         'export const draw = (words: Parameters<typeof drawChanges>[0], how: Redraw): Promise<void> => drawChanges(words, track(versions), how);',
-        "keepThemeAt('atlas.theme');",
+        "keepThemeAt('host.theme');",
         'keepSizeAt(null);',
         // A host's own pages: its records in a typed table, one search across them, its header, a template handed back.
         'interface Person extends TableRow { name: string; deal: number; stage: string }',
