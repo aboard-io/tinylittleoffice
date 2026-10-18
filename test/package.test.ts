@@ -168,6 +168,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type GhostAt, type SheetMark } from 'tinylittleoffice/kit';",
         "import { COLORS, changesOf, ghostsOf, paint, pinComments, rejectOps, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
         "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
+        "import { pickTemplate, type Crumb, type PickedTemplate, type RowChange, type SearchHit, type SearchPick, type Searcher, type SortBy, type TableColumn, type TableRow, type ToHeader, type ToSearch, type ToTable } from 'tinylittleoffice/editors';",
         "import 'tinylittleoffice/editors.css';",
         'interface Board { create(company: string): string }',
         "const doc: Doc = parse('# Plan\\n\\nShip it.\\n');",
@@ -218,6 +219,22 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         '  words.mentions = people;',
         "  return pinComments(words, frame, [{ id: 'c1', quote: 'Plans' }]);",
         '};',
+        // A host's own pages: its records in a typed table, one search across them, its header, a template handed back.
+        'interface Person extends TableRow { name: string; deal: number; stage: string }',
+        "export const columns: TableColumn<Person>[] = [{ key: 'name', label: 'Name', type: 'person', editable: true }, { key: 'deal', label: 'Deal', type: 'money', currency: 'USD' },",
+        "  { key: 'stage', label: 'Stage', type: 'enum', options: [{ value: 'lead', color: 'gray' }] }];",
+        "export const sorted: SortBy[] = [{ key: 'deal', dir: 'desc' }];",
+        'export const roster = (into: Element): ToTable<Person> => {',
+        "  const table = document.createElement('to-table') as ToTable<Person>;",
+        "  Object.assign(table, { columns, rows: [{ id: 1, name: 'Ada', deal: 950, stage: 'lead' }], sort: sorted, selectable: true });",
+        "  table.addEventListener('rowchange', (e) => { const change = (e as CustomEvent<RowChange<Person>>).detail; if (change.column === 'deal') change.wait(Promise.resolve(true)); });",
+        '  into.append(table);',
+        '  return table;',
+        '};',
+        "export const search: Searcher = async (q, signal) => (signal.aborted ? [] : [{ kind: 'person', id: '1', title: q }] satisfies SearchHit[]);",
+        "export const box = (el: ToSearch): void => { el.search = search; el.kinds = { person: { label: 'People' } }; el.addEventListener('searchpick', (e) => void (e as CustomEvent<SearchPick>).detail.hit?.id); };",
+        "export const crumbs = (el: ToHeader, trail: Crumb[]): void => { el.crumbs = trail; el.heading = 'Projects'; };",
+        "export const start = async (): Promise<string> => { const picked: PickedTemplate | null = await pickTemplate('write'); return picked ? picked.text : ''; };",
       ].join('\n'),
     );
     writeFileSync(
@@ -228,12 +245,14 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { mount } from 'tinylittleoffice/editors';",
         "import { registerApp, track } from 'tinylittleoffice/kit';",
         "import { rejectOps } from 'tinylittleoffice/doc';",
+        "import { pickTemplate } from 'tinylittleoffice/kit';",
         "write('# Plan');",
         'tools([], 7);',
         "void mount('write', '', 'main', () => {});",
         "registerApp('tally');",
         "track('# Plan');",
         "rejectOps([], 'v1:0', []);",
+        'void pickTemplate(7);',
       ].join('\n'),
     );
     const tsc = (project: string) => {
@@ -249,7 +268,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         .trim()
         .split('\n')
         .map((l) => /^(\S+)\((\d+),\d+\): error (TS\d+)/.exec(l)?.slice(1).join(' ')),
-    ).toStrictEqual(['bad.ts 6 TS2345', 'bad.ts 7 TS2345', 'bad.ts 8 TS2345', 'bad.ts 9 TS2345', 'bad.ts 10 TS2345', 'bad.ts 11 TS2345']);
+    ).toStrictEqual(['bad.ts 7 TS2345', 'bad.ts 8 TS2345', 'bad.ts 9 TS2345', 'bad.ts 10 TS2345', 'bad.ts 11 TS2345', 'bad.ts 12 TS2345', 'bad.ts 13 TS2345']);
     // The editors and their stylesheet, whole (never run under Node), and the files fetched only when asked for beside them.
     const dist = join(app, 'node_modules/tinylittleoffice/dist');
     // The kit is the editors' file: resolved there, and that file exports every value the kit's source does (its last

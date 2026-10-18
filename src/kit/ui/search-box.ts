@@ -226,11 +226,11 @@ export class ToSearch extends LitElement {
   }
 
   /** A row chosen: told to the page, and a hit with an address opened as a link is, unless the page prevented it. */
-  private choose(row: Row, e?: Event) {
+  private choose(row: Row, e?: Event, at = this.at) {
     const detail: SearchPick = row.hit ? { query: this.query, hit: row.hit } : { query: this.query, action: row.action! };
     const go = this.dispatchEvent(new CustomEvent<SearchPick>('searchpick', { detail, bubbles: true, composed: true, cancelable: true }));
     if (!go) e?.preventDefault();
-    else if (!e && row.hit?.href) this.querySelector<HTMLAnchorElement>(`#${this.uid}-o${this.rows().indexOf(row)}`)?.click();
+    else if (!e && row.hit?.href) this.querySelector<HTMLAnchorElement>(`#${this.uid}-o${at}`)?.click();
     this.clear();
     this.close();
   }
@@ -250,9 +250,9 @@ export class ToSearch extends LitElement {
         this.at = this.at < 0 ? k - 1 : (this.at - 1 + k) % k;
         break;
       case 'Enter': {
-        const row = rows[this.at] ?? (this.status === 'done' ? rows[0] : undefined);
-        if (!row) return;
-        this.choose(row);
+        const at = this.at >= 0 ? this.at : this.status === 'done' ? 0 : -1;
+        if (!rows[at]) return;
+        this.choose(rows[at], undefined, at);
         break;
       }
       case 'Escape':
