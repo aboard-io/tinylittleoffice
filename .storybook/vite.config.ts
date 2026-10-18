@@ -40,6 +40,8 @@ const version = (): Plugin => {
 
 export default defineConfig(({ mode }) => ({
   plugins: [ftlBare(), board(), version()],
+  // The site's public/ is the site's: the Storybook serves the faces alone (main.ts staticDirs).
+  publicDir: false,
   resolve: {
     alias: (boardHere ? { 'tinylittleoffice/kit': resolve(ROOT, 'src/kit.ts'), 'tinylittleoffice/doc': resolve(ROOT, 'src/kernel.ts') } : {}) as Record<string, string>,
     // The Board's Lucide is this tree's: one copy of its icons.
