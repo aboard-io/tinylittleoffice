@@ -831,6 +831,13 @@ test('a diagram shown as an outline: the list as the outline reads it, a role or
   );
   // A mind map is the tree itself; a bar in a mind map's words is words.
   expect(diagramToOutline(parse('---\nkind: mind\n---\n- Centre\n  - A | B\n  - C\n'))).toBe('- Centre\n  - A | B\n  - C\n');
+  // Swimlanes go as the tree their flow draws, as to a mind map, and every join finds its items in the outline.
+  const lanes = '---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Ready?\n  - Lab: Fix it\n  - Desk: Ship it\n- Desk: Done\n\n~ Ready? -> Fix it: No\n';
+  const outline = diagramToOutline(parse(lanes));
+  expect(outline).toBe('- Desk: Ready?\n  - Lab: Fix it\n    - Desk: Done\n  - Desk: Ship it\n\n~ Desk Ready? -> Lab Fix it: No\n~ Desk Ship it -> Desk Done\n');
+  const { readOutline, liveLinks } = await import('../../outline/model.ts');
+  const read = readOutline(parse(outline));
+  expect(liveLinks(read)).toHaveLength(read.links.length);
   // The hand-off is the first of the Diagram's, to the Outliner.
   expect(def.handoffs![0].to).toBe('outline');
   expect(def.handoffs![0].convert('---\nkind: net\n---\n- A\n- B\n\n~ A -> B: to\n')).toBe('- A\n- B\n\n~ A -> B: to\n');

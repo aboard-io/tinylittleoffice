@@ -1062,7 +1062,9 @@ export function demoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null 
  * name, "Ada Diaz (Chief executive)", which is how the outline writes a person (outline/model.ts personOf); the
  * kind stays behind, the title comes (Paul, 2026-10-11: a mind map had no way back to the outline).
  */
-export function diagramToOutline(doc: Doc): string {
+export function diagramToOutline(given: Doc): string {
+  // Swimlanes go as the tree their flow draws, every other way it goes a join, as they go to a mind map.
+  const doc = kindOf(given) === 'lanes' ? applyAll(given, lanesAsTree(given)) : given;
   const kind = kindOf(doc);
   const people = kind === 'org' || kind === 'family';
   const blocks = doc.blocks.filter((b): b is Extract<Block, { k: 'li' | 'edge' }> => b.k === 'li' || b.k === 'edge');
@@ -1071,6 +1073,9 @@ export function diagramToOutline(doc: Doc): string {
     const bar = words.indexOf(' | ');
     return people && bar >= 0 && !runs.some(isAtomic) ? [{ t: `${words.slice(0, bar).trim()} (${words.slice(bar + 3).trim()})` }] : runs;
   };
-  const out: Block[] = blocks.map((b) => (b.k === 'li' ? { ...b, runs: person(b.runs) } : b));
+  // A join names an item as the outline does, a colon in its words a space ("Desk: Ready?" is "Desk Ready?"), so
+  // nothing in a name ends it early (outline/model.ts edgeName).
+  const join = (n: string) => n.replace(/\s+(?:<->|->|<-|--)\s+/g, ' ').replace(/:\s/g, ' ').replace(/\s+/g, ' ').trim();
+  const out: Block[] = blocks.map((b) => (b.k === 'li' ? { ...b, runs: person(b.runs) } : { ...b, from: join(b.from), to: join(b.to) }));
   return write({ head: doc.head.title ? { title: doc.head.title } : {}, blocks: out });
 }
