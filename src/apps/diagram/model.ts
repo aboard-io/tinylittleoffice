@@ -7,7 +7,10 @@
  *                       "Ada + Charles | 1815" over their children. "~ A -- B: advises" joins any two of them
  *                       across the tree: a mind map's cross-link (a dashed curve; "->", "<-", "<->" arrows),
  *                       an org chart's or a family's dotted line ("godparent", "adopted").
- *   lanes               "- Who: what they do", a step a line, in order; a step ending in "?" is a decision.
+ *   lanes               "- Who: what they do", a step a line, in order; a step ending in "?" is a decision. Each
+ *                       step leads to the next unless connections say otherwise: "~ Ready? -> Ship it: Yes"
+ *                       branches, with a mind map's arrows and words; a step joins by its words, or by
+ *                       "Who: what they do" where two steps have the same words.
  *   timeline            "- When: what happened"; a span ("1990–1999") is an era, a band along the line.
  *   venn                "- Set: thing, thing"; "- A & B: what they share".
  *   seating             "- Table: Ann, Bob, Cy", seated round it in that order.
@@ -68,7 +71,7 @@ export const isTree = (k: KindId) => k === 'mind' || k === 'org' || k === 'famil
 /** Kinds whose line holds a list of things after its key: the people at a table, the things in a set. */
 export const isListed = (k: KindId) => k === 'venn' || k === 'seating';
 /** Kinds whose things may be joined by a connection of their own: across a tree, or a network's every line. */
-export const joins = (k: KindId) => isTree(k) || k === 'net';
+export const joins = (k: KindId) => isTree(k) || k === 'net' || k === 'lanes';
 
 /* ---------- reading ---------- */
 
@@ -243,7 +246,8 @@ function resolveEdge(b: Extract<Block, { k: 'edge' }>, at: number, known: (name:
 }
 /** Every connection of the document, its ends read against its things. */
 export function edgesOf(doc: Doc): Edge[] {
-  const names = new Set(linesOf(doc).map((l) => who(l.all.words)));
+  const lines = linesOf(doc);
+  const names = new Set(kindOf(doc) === 'lanes' ? lines.flatMap((l) => [who(l.words.words), who(laneName(lines, l))]) : lines.map((l) => who(l.all.words)));
   const known = (n: string) => names.has(who(n));
   return doc.blocks.flatMap((b, at) => (b.k === 'edge' ? [resolveEdge(b, at, known)] : []));
 }
@@ -433,9 +437,13 @@ export function removeThing(doc: Doc, hit: Hit): Op[] {
   }
   if (kind === 'lanes') {
     // The step after it that names no lane followed it: it is given the lane's name, so it stays.
-    const next = linesOf(doc).find((x) => x.at > l.at);
+    const lines = linesOf(doc);
+    const next = lines.find((x) => x.at > l.at);
     const keep = l.key && next && !next.key ? keyed(next, sliceRuns(l.runs, l.key.from, l.key.to)) : [];
-    return steady(doc, [...keep, { op: 'splice', at: hit.at, n: 1, blocks: [] }]);
+    // Its connections go with it, from the last back.
+    const joined = edgesOf(doc).filter((e) => stepNamed(lines, e.from)?.at === l.at || stepNamed(lines, e.to)?.at === l.at);
+    const gone = joined.reverse().map((e): Op => ({ op: 'splice', at: e.at, n: 1, blocks: [] }));
+    return steady(doc, [...gone, ...keep, { op: 'splice', at: hit.at, n: 1, blocks: [] }]);
   }
   return [{ op: 'splice', at: hit.at, n: 1, blocks: [] }];
 }
@@ -474,6 +482,18 @@ class Builder {
 }
 
 /** Line l given this key (its words before ": ", as written), in place of the one it had. */
+/** A step with its lane's name, "Who: what they do", whether its line names the lane or follows the one before. */
+const laneName = (lines: Line[], l: Line): string => ((lane) => (lane ? `${lane}: ${l.words.words}` : l.words.words))(laneOf(lines, l.at));
+/** A step's name, as a connection names it: its words, or with its lane's where another step has the same words. */
+export function stepName(lines: Line[], l: Line): string {
+  return lines.some((x) => x.at !== l.at && same(x.words.words, l.words.words)) ? laneName(lines, l) : l.words.words;
+}
+/** The step a connection names: by its lane and words first ("Doctor: Treat patient"), then by its words alone. */
+export function stepNamed(lines: Line[], name: string): Line | undefined {
+  const steps = lines.filter((l) => l.words.words || l.words.icon);
+  return steps.find((l) => same(laneName(lines, l), name)) ?? steps.find((l) => same(l.words.words, name));
+}
+
 /** The lane a step is in: the last "Who:" at or before it, or "" (the lane with no name) before any. */
 function laneOf(lines: Line[], at: number): string {
   return [...lines].reverse().find((x) => x.at <= at && x.key)?.key?.words ?? '';
@@ -626,7 +646,7 @@ export function connect(doc: Doc, from: string, to: string): Op[] {
   const [a, b] = [from.trim(), to.trim()];
   if (!a || !b || same(a, b)) return [];
   if (edgesOf(doc).some((e) => (same(e.from, a) && same(e.to, b)) || (same(e.from, b) && same(e.to, a)))) return [];
-  return [{ op: 'splice', at: doc.blocks.length, n: 0, blocks: [{ k: 'edge', from: nameOf(a), to: nameOf(b), dir: kindOf(doc) === 'net' ? '->' : '--' }] }];
+  return [{ op: 'splice', at: doc.blocks.length, n: 0, blocks: [{ k: 'edge', from: nameOf(a), to: nameOf(b), dir: kindOf(doc) === 'net' || kindOf(doc) === 'lanes' ? '->' : '--' }] }];
 }
 
 /** A connection's words, or its direction: the edge block replaced. */
@@ -655,6 +675,10 @@ export function follow(before: Doc, after: Doc, at: number): Op[] {
   const [was, now] = [before.blocks[at], after.blocks[at]];
   if (was?.k !== 'li' || now?.k !== 'li') return [];
   const [a, b] = [lineOf(was, at), lineOf(now, at)];
+  if (kind === 'lanes') {
+    const [x, y] = [linesOf(before), linesOf(after)];
+    return [...renameEdges(after, a.words.words, b.words.words), ...renameEdges(after, laneName(x, a), laneName(y, b))];
+  }
   if (joins(kind)) return renameEdges(after, a.all.words, b.all.words);
   if (kind === 'venn') {
     const [x, y] = [setNames(a.key?.src ?? ''), setNames(b.key?.src ?? '')];

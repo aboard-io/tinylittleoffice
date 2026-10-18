@@ -53,11 +53,13 @@ import {
   joins,
   kindOf,
   lineOf,
+  linesOf,
   demoteThing,
   moveAcross,
   moveThing,
   nextThing,
   placeStep,
+  stepName,
   newThing,
   partFor,
   promoteThing,
@@ -736,7 +738,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private nameOf(hit: Hit): string {
     if (hit.k === 'line') {
       const b = this.doc.blocks[hit.at];
-      return b?.k === 'li' ? lineOf(b, hit.at).all.words : '';
+      if (b?.k !== 'li') return '';
+      // A swimlane's step by its words, and its lane's where two steps have the same ones.
+      return this.view.kind === 'lanes' ? stepName(linesOf(this.doc), lineOf(b, hit.at)) : lineOf(b, hit.at).all.words;
     }
     return hit.k === 'edge' ? '' : hit.name;
   }

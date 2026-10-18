@@ -319,6 +319,23 @@ test('a step moves by its grip to where it is let go: its lane and its place; it
   expect(tapped.last()).toBe('---\nkind: lanes\n---\n- Asks\n- Answers\n- Lane 2: Step\n');
 });
 
+test('swimlanes: Join branches from a step, its words a label; two steps with the same words are joined by their lanes too', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Desk: Ready?\n- Desk: Ship it\n- Lab: Ship it\n');
+  await tap(el, thing(el, 'Ready?'));
+  action(el, 'Join').click();
+  await settle(el);
+  await tap(el, things(el).filter((g) => g.getAttribute('aria-label') === 'Ship it')[1]);
+  expect(last()).toContain('~ Ready? -> Lab: Ship it');
+  // Drawn at right angles, it opens to its words where it is tapped.
+  const edge = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.edge')!;
+  const lineOf = edge.querySelector('polyline, path')!;
+  const r = lineOf.getBoundingClientRect();
+  await tap(el, edge, { clientX: r.left + 2, clientY: r.top + 1 });
+  expect(isOpen(el)).toBe(true);
+  await type(el, 'No');
+  expect(last()).toContain('~ Ready? -> Lab: Ship it: No');
+});
+
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
   const { el, last } = await editor('---\nkind: venn\n---\n- Fast: espresso\n- Cheap: walking\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
