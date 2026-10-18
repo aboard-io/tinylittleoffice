@@ -476,8 +476,10 @@
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
   }
+  /* The title takes the room its words want and the search gives way first (it shrinks a hundred times faster), down to
+     its least; then the title wraps, or, a field, is drawn smaller. */
   .to-ph-main {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     gap: 0.5em;
@@ -527,15 +529,24 @@
     font-size: calc(1.25 * var(--to-scale));
     font-weight: 600;
     line-height: var(--to-line-label);
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  }
+  .to-ph-words {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
   }
   .to-ph-title input {
     width: 100%;
+    max-width: 100%;
     margin-inline-start: -0.25em;
     padding: 0 0.25em;
     color: var(--to-ink);
     font: inherit;
+    font-size: calc(1em * var(--to-ph-k, 1));
+    text-overflow: ellipsis;
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--to-radius-sm);
@@ -546,8 +557,8 @@
     border-color: var(--to-border);
   }
   .to-ph-search {
-    flex: 0 1 22em;
-    min-width: 0;
+    flex: 0 100 22em;
+    min-width: 12em;
   }
   .to-ph-actions {
     flex: none;
@@ -563,6 +574,9 @@
   @container to-ph (width < 40em) {
     .to-ph {
       flex-wrap: wrap;
+    }
+    .to-ph-main {
+      flex: 1 1 0;
     }
     .to-ph-search {
       order: 1;

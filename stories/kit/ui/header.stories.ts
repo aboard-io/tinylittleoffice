@@ -10,6 +10,8 @@ type Loaded = { loaded: { tpl: Template } };
 interface HeaderArgs {
   editable: boolean;
   search: boolean;
+  /** A long title: the template's name and its blurb. */
+  long?: boolean;
 }
 
 /**
@@ -27,7 +29,14 @@ const meta = {
     const { tpl } = (ctx as unknown as Loaded).loaded;
     const write = apps()[0];
     return html`<to-header
-      .heading=${tpl.name}
+      .heading=${
+        args.long
+          ? `${tpl.name}: ${tpl.blurb}, ${apps()
+              .slice(1, 4)
+              .map((a) => a.name)
+              .join(', ')}`
+          : tpl.name
+      }
       ?editable=${args.editable}
       .crumbs=${[{ label: 'Tiny Little Office', href: 'https://tinylittleoffice.com/' }, { label: write.name }]}
       @titlechange=${(e: CustomEvent) => action('titlechange')(e.detail.title)}
@@ -51,3 +60,10 @@ export const Header: StoryObj<HeaderArgs> = {};
 export const Plain: StoryObj<HeaderArgs> = { args: { editable: false, search: false } };
 /** At a phone's width: the search under the title and the actions. */
 export const Narrow: StoryObj<HeaderArgs> = { decorators: [(story) => html`<div style="max-width: 22rem">${story()}</div>`] };
+/**
+ * A long title at a wide page's width: it wraps to two lines before it is cut short, and the search beside it gives
+ * way first, down to its least.
+ */
+export const LongTitle: StoryObj<HeaderArgs> = { args: { editable: false, long: true } };
+/** The long title as a field, one line: drawn smaller, to three quarters of its size, before it is cut short. */
+export const LongTitleEditable: StoryObj<HeaderArgs> = { args: { editable: true, long: true } };

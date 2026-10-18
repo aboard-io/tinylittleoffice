@@ -298,6 +298,14 @@ is a link, one without a button, either told in `crumbpick`, `{ index, crumb }`,
 (kit/ui/slots.ts: a child given with `slot="<name>"`, moved there, never copied) are `start` (before the title),
 `search` (a `<to-search>`) and `actions`. On a narrow page (under 40em of its own) the search takes a row of its own.
 
+- **A title given while it is typed in.** A `heading` the page gives while the title's field has the focus (a route
+  changed under it) is the field's words from then on, Escape's too; leaving the field then tells no `titlechange`,
+  even where the focus left before the header drew again (the field's words were the old title's, not a new one), and
+  words half typed give way to it.
+- **A long title.** The title takes the room its words want, and the search beside it gives way first (it shrinks a
+  hundred times faster, down to 12em); then the title wraps to two lines before it is cut short. A title that is a
+  field is one line: it is drawn smaller, down to three quarters of its size, before it is cut short.
+
 ```html
 <to-header heading="Clear Channel Digital Strategy" editable>
   <to-search slot="search" hotkey></to-search>
