@@ -9,6 +9,7 @@ import { page } from 'vitest/browser';
 import '../../../styles.css';
 import '../editor.ts';
 import type { ToDiagramEditor } from '../editor.ts';
+import { withIcon } from '../model.ts';
 import type { ToText } from '../../../kit/text/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
 import { BASE, remScale } from '../../../kit/ui/zoom.ts';
@@ -334,6 +335,25 @@ test('swimlanes: Join branches from a step, its words a label; two steps with th
   expect(isOpen(el)).toBe(true);
   await type(el, 'No');
   expect(last()).toContain('~ Ready? -> Lab: Ship it: No');
+});
+
+test('an icon put on a thing whose words are open is drawn at once, beside them (Paul, 2026-10-18)', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n');
+  await tap(el, thing(el, 'Calls'));
+  expect(isOpen(el)).toBe(true);
+  const hit = { k: 'line', at: 0, part: 'words' } as const;
+  el.change(withIcon(el.doc, hit, 'rocket'), hit);
+  await settle(el);
+  expect(last()).toContain('- Sales: :rocket: Calls');
+  // Still open on it, and drawn on it: the icon's strokes, its words hidden under the open ones.
+  expect(isOpen(el)).toBe(true);
+  const g = thing(el, 'Calls');
+  expect(g.classList.contains('on')).toBe(true);
+  expect(g.querySelector('g[stroke-linecap="round"]')).not.toBeNull();
+  expect(getComputedStyle(g.querySelector('text')!).visibility).toBe('hidden');
+  // The words open sit where Draw sets them beside the icon: their middle right of the thing's.
+  const [box, open] = [g.getBoundingClientRect(), line(el).getBoundingClientRect()];
+  expect(open.left + open.width / 2).toBeGreaterThan(box.left + box.width / 2 + 5);
 });
 
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
@@ -841,7 +861,8 @@ test('every kind: a tap lays the words over the thing (drawn blank meanwhile), a
     await tap(el, g);
     expect(isOpen(el), kind).toBe(true);
     const at = el.querySelector<SVGGElement>(`.dg-pic g[data-i="${g.dataset.i}"]`)!;
-    expect(at.querySelectorAll('text').length, `${kind}: blank while typed on`).toBe(0);
+    // (Its words hidden, not taken away: an icon on it stays drawn.)
+    expect([...at.querySelectorAll('text')].filter((x) => getComputedStyle(x).visibility !== 'hidden').length, `${kind}: blank while typed on`).toBe(0);
     const [w, b] = [line(el).getBoundingClientRect(), at.getBoundingClientRect()];
     const [cx, cy] = [w.left + w.width / 2, w.top + w.height / 2];
     expect(cx > b.left - 4 && cx < b.right + 4 && cy > b.top - 4 && cy < b.bottom + 4, `${kind}: over ${label}`).toBe(true);

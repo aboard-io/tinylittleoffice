@@ -38,7 +38,7 @@ import { t } from '../../kit/core/i18n.ts';
 import type { TextOps, ToText } from '../../kit/text/text.ts';
 import { caret, insertRuns } from '../../kit/text/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
-import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
+import { arrowDefs, fitLabel, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
 import {
   charsOf,
@@ -340,7 +340,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const r = pic.getBoundingClientRect();
     const box = wrap.getBoundingClientRect();
     // Measured on the screen, set in the wrap's own lengths, which are the screen's.
-    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft, r.top - box.top + wrap.scrollTop, THEME);
+    // Beside an icon the words sit right of it, as Draw sets them: half the icon and its gap further on.
+    const f = fitLabel(s);
+    const by = f.big && s.k !== 't' ? ((f.laid.px * f.big + 6) / 2) * (r.width / d.w) : 0;
+    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft + by, r.top - box.top + wrap.scrollTop, THEME);
     Object.assign(el.style, w.style);
     el.classList.toggle('left', w.left);
     el.classList.toggle('wrap', w.wrap);
@@ -929,8 +932,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   private thing(s: DShape, i: number, all: DShape[], on: number) {
     const hit = s.hit;
-    // The thing whose words are being typed is drawn without them: the words over it hold them, nothing doubles.
-    const body = unsafeSVG(shapeSvg(i === on ? { ...s, text: '' } : s, all, THEME, !!hit));
+    // The thing whose words are being typed is drawn with them hidden (the stylesheet's .on text): the words over it
+    // hold them, nothing doubles, and its icon stays drawn, a new one at once (Paul, 2026-10-18).
+    const body = unsafeSVG(shapeSvg(s, all, THEME, !!hit));
     if (!hit) return svg`<g>${body}</g>`;
     const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) || hit.k === 'edge' ? t('diagram-connection') : t('diagram-empty'));
     // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.

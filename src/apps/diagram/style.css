@@ -82,6 +82,10 @@
   .dg-slot[hidden] {
     display: none;
   }
+  /* The thing whose words are open: its words are the editor's over it, its icon still drawn. */
+  .dg-thing.on text {
+    visibility: hidden;
+  }
   .dg-thing.dragging {
     opacity: 0.7;
     cursor: grabbing;
