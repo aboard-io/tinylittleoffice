@@ -59,10 +59,11 @@ export class ToToast extends LitElement {
   private regions(): HTMLElement[] {
     return [...document.querySelectorAll<HTMLElement>('dialog > .to-said'), ...this.querySelectorAll<HTMLElement>('.to-said')];
   }
-  private onToast = (e: Event) => {
-    const words = (e as CustomEvent<string>).detail;
+  private onToast = (e: Event) => this.say((e as CustomEvent<string>).detail, (e as CustomEvent<string> & { action?: Action }).action ?? null);
+  /** Shows and says `words`, with an action beside them or none: what a toast() heard does. */
+  say(words: string, action: Action | null = null) {
     this.message = words;
-    this.action = (e as CustomEvent<string> & { action?: Action }).action ?? null;
+    this.action = action;
     this.left = null;
     for (const r of this.regions()) r.textContent = '';
     cancelAnimationFrame(this.frame);
@@ -74,7 +75,7 @@ export class ToToast extends LitElement {
       if (region) region.textContent = words;
     });
     this.count(toastTime(words));
-  };
+  }
   private count(ms: number) {
     clearTimeout(this.timer);
     this.ends = Date.now() + ms;
@@ -120,3 +121,27 @@ export class ToToast extends LitElement {
   }
 }
 customElements.define('to-toast', ToToast);
+
+let heard = false;
+/**
+ * A page with no <to-toast> of its own still says what is said (kit/core/mount.ts `setup` listens): the first toast
+ * said while there is none on the page puts one at the end of its body, and it says the words; from then on that one
+ * hears them, as a page's own would. A page that draws its own is never given a second.
+ */
+export function toastAnywhere() {
+  if (heard || typeof window === 'undefined') return;
+  heard = true;
+  window.addEventListener(TOAST, (e) => {
+    if (document.querySelector('to-toast') || !document.body) return;
+    const el = document.createElement('to-toast');
+    document.body.append(el);
+    // It began to listen as this event was being heard, so it is told this one by hand.
+    el.say((e as CustomEvent<string>).detail, (e as CustomEvent<string> & { action?: Action }).action ?? null);
+  });
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'to-toast': ToToast;
+  }
+}

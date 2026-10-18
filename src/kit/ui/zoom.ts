@@ -26,10 +26,14 @@
  *
  * The nav has a natural limit: the bar, the header, the drawer, the dialogs, the context bar, the menus and the pills
  * grow with the size up to 120% (NAV_MAX) and no further, while the words, the cards and the pictures go on to 200%.
+ *
+ * A page that is not the site may keep the size under a key of its own, or not at all (`keepSizeAt`).
  */
-import { store } from '../core/store.ts';
+import { prefAt, store } from '../core/store.ts';
 
 const KEY = 'tinyoffice.size';
+/** Where the size is kept: the site's key through the store, or where a page said (`keepSizeAt`). */
+let where: { get(): string | null; set(v: string): void; remove(): void } = { get: () => store.get(KEY), set: (v) => store.set(KEY, v), remove: () => store.remove(KEY) };
 /** What the normal size draws at: at 100% a rem (and the nav's em) is this many times 16px. */
 export const BASE = 1.3;
 export const SIZE_MIN = 0.7;
@@ -70,11 +74,21 @@ function readDevice(): number {
   return deviceStart(px);
 }
 
+/**
+ * Where a page keeps the size of everything: on the device under its own `key`, or, null, nowhere (memory, for the
+ * visit). Called before anything asks for the size (before `setup`); the site's own key, "tinyoffice.size", is the
+ * default.
+ */
+export function keepSizeAt(key: string | null) {
+  where = prefAt(key);
+  kept = null;
+}
+
 /** The size chosen: 1 is the normal size. */
 export function size(): number {
   if (live !== null) return live;
   if (kept === null) {
-    const n = Number(store.get(KEY));
+    const n = Number(where.get());
     kept = Number.isFinite(n) && n > 0 ? clampSize(n) : fromDevice();
   }
   return kept;
@@ -106,8 +120,8 @@ export function keepSize(n: number): number {
   const k = clampSize(Math.round(n * 20) / 20);
   kept = k;
   // Where the device starts is not written down; 100% on an iPhone set to larger text is.
-  if (k === fromDevice()) store.remove(KEY);
-  else store.set(KEY, String(k));
+  if (k === fromDevice()) where.remove();
+  else where.set(String(k));
   applySize();
   return k;
 }

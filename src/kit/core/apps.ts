@@ -34,12 +34,29 @@ export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id ==
 lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === LOCKED_LANG ? lockedDoc : undefined);
 
 /**
+ * Whether two definitions are the same app: the same object, or (a module loaded twice, or again by a hot reload) the
+ * same fields, each the same value, and each function and getter the same code.
+ */
+function sameDef(a: object, b: object): boolean {
+  if (a === b) return true;
+  const [da, db] = [Object.getOwnPropertyDescriptors(a), Object.getOwnPropertyDescriptors(b)];
+  const keys = Object.keys(da);
+  if (keys.length !== Object.keys(db).length) return false;
+  const same = (x: unknown, y: unknown) =>
+    x === y || (typeof x === 'function' && typeof y === 'function' ? String(x) === String(y) : typeof x !== 'function' && typeof y !== 'function' && JSON.stringify(x) === JSON.stringify(y));
+  return keys.every((k) => k in db && same(da[k].value, db[k].value) && same(da[k].get, db[k].get));
+}
+
+/**
  * An app built outside the suite, put in the registry after the suite's: from now on `appOf(def.id)` is `def`. Its id
  * names nothing the registry knows (an app's, or the QR code's and the locked document's above), or this throws, so a
- * second registration of one id is an error rather than an app quietly replaced.
+ * second registration of one id is an error rather than an app quietly replaced; unless it is the same definition
+ * again (sameDef: the module imported twice, or reloaded unchanged), which is nothing to do.
  */
 export function registerApp(def: AppDef): void {
-  if (lookup.appOf(def.id)) throw new Error(`an app "${def.id}" is registered already`);
+  const known = lookup.appOf(def.id);
+  if (known && sameDef(known, def)) return;
+  if (known) throw new Error(`an app "${def.id}" is registered already`);
   ALL.push(def);
 }
 

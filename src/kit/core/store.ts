@@ -50,6 +50,20 @@ export const store = {
 };
 
 /**
+ * A page's own preference, kept where it says (kit/ui/theme.ts `keepThemeAt`, kit/ui/zoom.ts `keepSizeAt`): on the
+ * device under its key, whatever Private or Saved says, since it is the page's and not the site's; or, with no key, in
+ * memory for the visit alone.
+ */
+export function prefAt(key: string | null) {
+  const mine = new Map<string, string>();
+  return {
+    get: (): string | null => (key === null ? (mine.get('') ?? null) : (local()?.getItem(key) ?? null)),
+    set: (value: string) => void (key === null ? mine.set('', value) : local()?.setItem(key, value)),
+    remove: () => void (key === null ? mine.delete('') : local()?.removeItem(key)),
+  };
+}
+
+/**
  * Keep things from now on (what the visit has set so far comes along), or stop: every trace goes, from the device
  * and from memory alike, the size and the theme with the rest, so turning it on again starts from nothing (Paul,
  * 2026-10-12: "I turn save off and then back on and the documents it removed are still there"). Changed afterwards,
