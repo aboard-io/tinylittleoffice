@@ -316,8 +316,10 @@ const numberIn = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)%?$/.test(s.trim()) ? p
 export function compareCells(x: string, y: string): number {
   const nx = numberIn(x),
     ny = numberIn(y);
-  return !isNaN(nx) && !isNaN(ny) ? nx - ny : isNaN(nx) === isNaN(ny) ? x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' }) : isNaN(nx) ? 1 : -1;
+  return !isNaN(nx) && !isNaN(ny) ? nx - ny : isNaN(nx) === isNaN(ny) ? (words ??= new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })).compare(x, y) : isNaN(nx) ? 1 : -1;
 }
+/** The order of words compareCells keeps, made once (`localeCompare` with options makes one a call: a sort of thousands of rows waited on it). */
+let words: Intl.Collator | null = null;
 
 /**
  * The rows in order of column `c`, numbers before words, blanks last, as

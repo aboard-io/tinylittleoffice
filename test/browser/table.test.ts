@@ -324,6 +324,12 @@ test('5,000 rows: drawn, sorted, filtered, scrolled and walked to the end quickl
     await el.updateComplete;
   });
   expect(el.shownRows.length).toBe(52);
+  // The next letter typed finds each row's words kept.
+  await time('filter, a letter more', async () => {
+    el.query = '"company 42" person';
+    await el.updateComplete;
+  });
+  expect(el.shownRows.length).toBe(52);
   el.query = '';
   await el.updateComplete;
   const box = el.querySelector<HTMLElement>('.to-dt-box')!;
@@ -343,6 +349,7 @@ test('5,000 rows: drawn, sorted, filtered, scrolled and walked to the end quickl
   expect(times['sort by money']).toBeLessThan(500);
   expect(times['sort by date, then name']).toBeLessThan(500);
   expect(times.filter).toBeLessThan(1000);
+  expect(times['filter, a letter more']).toBeLessThan(250);
 });
 
 test('at a phone’s width the table scrolls sideways in its own box, the page never', async () => {

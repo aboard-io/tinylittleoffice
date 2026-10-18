@@ -255,12 +255,17 @@ export function nextSort(sort: readonly SortBy[], key: string, add = false): Sor
 /**
  * The rows a quick search keeps: those with every word of `query` (in any order, "words in quotes" together, case and
  * accents aside: the library's search) somewhere in the words of the columns given. An empty query keeps every row.
+ * `kept` holds each row's words, folded, between searches of the same columns (a person types a word a letter at a time).
  */
-export function searchRows<R extends TableRow>(rows: readonly R[], cols: readonly TableColumn<R>[], query: string): R[] {
+export function searchRows<R extends TableRow>(rows: readonly R[], cols: readonly TableColumn<R>[], query: string, kept?: WeakMap<R, string>): R[] {
   const terms = termsOf(query);
   if (!terms.length) return rows.slice();
   return rows.filter((row) => {
-    const words = fold(cols.map((c) => cellWords(c, row)).join('\n'));
+    let words = kept?.get(row);
+    if (words === undefined) {
+      words = fold(cols.map((c) => cellWords(c, row)).join('\n'));
+      kept?.set(row, words);
+    }
     return terms.every((t) => words.includes(t));
   });
 }

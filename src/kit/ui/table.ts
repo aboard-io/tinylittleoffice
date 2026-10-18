@@ -37,7 +37,7 @@ import { live } from 'lit/directives/live.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { ArrowDown, ArrowUp, Columns3 } from 'lucide';
 import { icon, UI } from '../draw/icons.ts';
-import { t } from '../core/i18n.ts';
+import { onLanguage, t } from '../core/i18n.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
 import { Slots } from './slots.ts';
@@ -132,6 +132,8 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   private view: R[] = [];
   /** The columns shown. */
   private shown: TableColumn<R>[] = [];
+  /** Each row's words, folded, for the quick search: kept while the columns shown and the language stay as they are. */
+  private words = new WeakMap<R, string>();
   /** Edits shown while the page has not given its rows again, by row and column. */
   private kept = new Map<string, unknown>();
   /** The row a box was last ticked on, where Shift and a click ticks from. */
@@ -141,6 +143,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   private boxH = 0;
   private sized: ResizeObserver | null = null;
   private frame = 0;
+  private unlisten = () => {};
 
   constructor() {
     super();
@@ -168,6 +171,11 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   }
   connectedCallback() {
     super.connectedCallback();
+    // Another language: the dates and the kit's words in it, and the search's words read again.
+    this.unlisten = onLanguage(() => {
+      this.words = new WeakMap();
+      this.requestUpdate();
+    });
     this.sized = new ResizeObserver(() => this.measure());
     void this.updateComplete.then(() => this.box && this.sized?.observe(this.box));
   }
@@ -175,6 +183,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     super.disconnectedCallback();
     this.sized?.disconnect();
     this.sized = null;
+    this.unlisten();
     cancelAnimationFrame(this.frame);
   }
 
@@ -202,10 +211,11 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     if (changed.has('columns') || changed.has('hiddenColumns')) {
       const off = new Set(this.hiddenColumns ?? this.columns.filter((c) => c.hidden).map((c) => c.key));
       this.shown = this.columns.filter((c) => !off.has(c.key));
+      this.words = new WeakMap();
     }
     if (['rows', 'columns', 'hiddenColumns', 'sort', 'query', 'filter'].some((k) => changed.has(k as keyof ToTable<R>))) {
       const kept = this.filter ? this.rows.filter(this.filter) : this.rows;
-      this.view = sortRows(searchRows(kept, this.shown, this.query), this.columns, this.sort);
+      this.view = sortRows(searchRows(kept, this.shown, this.query, this.words), this.columns, this.sort);
       const cols = this.shown.length + this.off;
       this.active = { r: Math.min(this.active.r, this.view.length - 1), c: Math.min(this.active.c, Math.max(0, cols - 1)) };
       if (this.editing && (this.editing.r >= this.view.length || this.editing.c >= cols)) this.editing = null;
