@@ -132,31 +132,58 @@ test('a tap opens the words over the thing; typing is text ops on its line, and 
   expect(document.activeElement).toBe(thing(el, 'Ben Okoro'));
 });
 
-test('Enter makes the next one, its words offered and chosen; a tap on empty space a new one, gone again on Escape', async () => {
+test('Enter on a thing there was is done with it; after a new one, Enter offers the next as a ghost, real if it is tapped next, else gone (Paul, 2026-10-18)', async () => {
   const { el, last } = await editor(ORG);
+  const n = things(el).length;
+  const ghost = () => el.querySelector<SVGGElement>('.dg-pic g.dg-thing.ghost');
+  // A thing there was: Enter closes its words, nothing added, nothing offered.
   await tap(el, thing(el, 'Eve Marsh'));
   await key(el, 'Enter');
-  expect(isOpen(el)).toBe(true);
-  expect(held(el)).toBe('Name');
-  expect(last()).toContain('  - Eve Marsh | Design\n  - Name\n');
-  await type(el, 'Flo');
-  expect(last()).toContain('  - Eve Marsh | Design\n  - Flo\n');
-  await key(el, 'Escape');
-  expect(last()).toBe(ORG);
-  const n = things(el).length;
-  // Empty space: a new thing, in the picture at once, its words over it; Escape takes it away.
-  const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
-  const r = pic.getBoundingClientRect();
-  await tap(el, pic, { clientX: r.left + 6, clientY: r.bottom - 6 });
-  expect(isOpen(el)).toBe(true);
-  expect(things(el)).toHaveLength(n + 1);
-  // The first Escape lets go of the words chosen, the next takes the new thing away.
-  await key(el, 'Escape');
-  expect(isOpen(el)).toBe(true);
-  await key(el, 'Escape');
   expect(isOpen(el)).toBe(false);
   expect(last()).toBe(ORG);
-  expect(things(el)).toHaveLength(n);
+  expect(ghost()).toBeNull();
+  // A new one (Add below), its words typed, then Enter: the next offered as a ghost, drawn but not in the document.
+  await tap(el, thing(el, 'Eve Marsh'));
+  action(el, 'Add below').click();
+  await settle(el);
+  await type(el, 'Flo');
+  await key(el, 'Enter');
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toContain('  - Eve Marsh | Design\n    - Flo\n');
+  expect(ghost()).not.toBeNull();
+  expect(ghost()!.getAttribute('aria-label')).toBe('Name');
+  expect(last().match(/- Name/)).toBeNull();
+  // Tapped: real, its words open and chosen.
+  await tap(el, ghost()!);
+  expect(isOpen(el)).toBe(true);
+  expect(held(el)).toBe('Name');
+  expect(ghost()).toBeNull();
+  await type(el, 'Gus');
+  expect(last()).toContain('    - Flo\n    - Gus\n');
+  // Enter again offers another; a tap anywhere else lets it go, the document as it was.
+  await key(el, 'Enter');
+  expect(ghost()).not.toBeNull();
+  const kept = last();
+  await tap(el, thing(el, 'Ada Diaz'));
+  expect(ghost()).toBeNull();
+  expect(last()).toBe(kept);
+  await key(el, 'Escape');
+  if (isOpen(el)) await key(el, 'Escape');
+  const shown = await editor(ORG);
+  expect(things(shown.el)).toHaveLength(n);
+  // Empty space: a new thing, in the picture at once, its words over it; Escape takes it away.
+  const pic = shown.el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const r = pic.getBoundingClientRect();
+  await tap(shown.el, pic, { clientX: r.left + 6, clientY: r.bottom - 6 });
+  expect(isOpen(shown.el)).toBe(true);
+  expect(things(shown.el)).toHaveLength(n + 1);
+  // The first Escape lets go of the words chosen, the next takes the new thing away.
+  await key(shown.el, 'Escape');
+  expect(isOpen(shown.el)).toBe(true);
+  await key(shown.el, 'Escape');
+  expect(isOpen(shown.el)).toBe(false);
+  expect(shown.last()).toBe(ORG);
+  expect(things(shown.el)).toHaveLength(n);
 });
 
 test('the buttons under the words: one under it, a picture, take it away', async () => {
@@ -467,6 +494,53 @@ test('stacked, a step let go just before one of the steps side by side goes befo
   g.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 6, bubbles: true }));
   await settle(el);
   expect(last()).toBe('---\nkind: lanes\n---\n- Desk: Ask?\n  - Lab: Yes\n  - Ops: Done\n  - Ops: No\n');
+});
+
+test('a swimlane’s own line between two steps is tapped like a connection: words typed make it one, none leave it as it was (Paul, 2026-10-18)', async () => {
+  const doc = '---\nkind: lanes\n---\n- Desk: Ready?\n- Lab: Ship it\n';
+  const { el, last } = await editor(doc);
+  const flow = () => el.querySelector<SVGGElement>('.dg-pic g.dg-thing.edge')!;
+  const mid = () => {
+    const p = flow().querySelector('polyline')!.getBoundingClientRect();
+    return { clientX: p.left + 2, clientY: p.top + 1 };
+  };
+  // Tapped and left: no step made, the document as it was.
+  await tap(el, flow(), mid());
+  expect(isOpen(el)).toBe(true);
+  expect(held(el)).toBe('');
+  await tap(el, el.querySelector('.dg-pic')!, { clientX: 2, clientY: 2 });
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toBe(doc);
+  // Tapped and Escape: as it was.
+  await tap(el, flow(), mid());
+  await key(el, 'Escape');
+  expect(last()).toBe(doc);
+  // Tapped and given words: a connection, the line drawn once with them.
+  await tap(el, flow(), mid());
+  await type(el, 'Yes');
+  expect(last()).toBe(doc + '\n~ Ready? -> Ship it: Yes\n');
+  await key(el, 'Enter');
+  expect(last()).toBe(doc + '\n~ Ready? -> Ship it: Yes\n');
+  expect(el.querySelectorAll('.dg-pic polyline:not([stroke="transparent"])')).toHaveLength(1);
+});
+
+test('swimlanes: after a new step, Enter offers the next in its lane as a ghost; tapped, it is real', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Desk: Ready?\n');
+  await tap(el, thing(el, 'Ready?'));
+  action(el, 'Add after').click();
+  await settle(el);
+  await type(el, 'Ship');
+  await key(el, 'Enter');
+  const ghost = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.ghost')!;
+  expect(ghost.getAttribute('aria-label')).toBe('Step');
+  expect(last()).toBe('---\nkind: lanes\n---\n- Desk: Ready?\n- Desk: Ship\n');
+  // In the lane, right of the step before it.
+  const [g, s] = [ghost.getBoundingClientRect(), thing(el, 'Ship').getBoundingClientRect()];
+  expect(Math.round(g.top)).toBe(Math.round(s.top));
+  expect(g.left).toBeGreaterThan(s.right);
+  await tap(el, ghost);
+  await type(el, 'Done');
+  expect(last()).toBe('---\nkind: lanes\n---\n- Desk: Ready?\n- Desk: Ship\n- Desk: Done\n');
 });
 
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
@@ -797,17 +871,15 @@ test('a new thing starts with its words in hand, on every kind: a tap on empty s
     await key(el, 'Escape');
     if (isOpen(el)) await key(el, 'Escape');
     expect(isOpen(el)).toBe(false);
-    // A thing's words, then Enter: the next one, focused. (A lane's name is not a thing: Enter is done with it.)
+    // A thing's words, then Enter: done with them, the focus on the thing.
     const first = kind === 'lanes' ? thing(el, 'Calls') : things(el).find((g) => !g.classList.contains('edge'))!;
     tapNow(first);
     expect(focusedNow(el), `${kind}: a tap on a thing`).toBe(true);
     await settle(el);
     input(line(el), 'insertParagraph');
-    expect(focusedNow(el), `${kind}: Enter`).toBe(true);
     await settle(el);
-    expect(focusedNow(el), `${kind}: Enter, drawn`).toBe(true);
-    await key(el, 'Escape');
-    if (isOpen(el)) await key(el, 'Escape');
+    expect(isOpen(el), `${kind}: Enter is done`).toBe(false);
+    expect(document.activeElement?.closest('g.dg-thing'), `${kind}: Enter, the focus on it`).not.toBeNull();
     // The Add item under a thing's words: one under it, one more, one after it.
     tapNow(things(el).find((g) => !g.classList.contains('edge'))!);
     await settle(el);
@@ -824,11 +896,18 @@ test('a new thing starts with its words in hand, on every kind: a tap on empty s
 
 test('Enter and the Add items open the next thing focused, its words offered and chosen; a table is offered by name, chosen whole so typing replaces it', async () => {
   const { el, last } = await editor(ORG);
+  // After a new thing, Enter offers the next as a ghost with the focus; Enter on it makes it real, focused, its words chosen.
   tapNow(thing(el, 'Eve Marsh'));
   await settle(el);
-  input(line(el), 'insertParagraph');
-  expect(focusedNow(el)).toBe(true);
+  action(el, 'Add below').click();
   await settle(el);
+  await type(el, 'Flo');
+  input(line(el), 'insertParagraph');
+  await settle(el);
+  const ghost = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.ghost')!;
+  expect(document.activeElement).toBe(ghost);
+  await press(el, ghost, 'Enter');
+  expect(focusedNow(el)).toBe(true);
   expect(held(el)).toBe('Name');
   expect(line(el).sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 4 } });
   await key(el, 'Escape');
@@ -840,7 +919,7 @@ test('Enter and the Add items open the next thing focused, its words offered and
   await settle(el);
   expect(line(el).placeholder).toBe('Name');
   await type(el, 'Gus');
-  expect(last()).toContain('  - Eve Marsh | Design\n  - Gus\n');
+  expect(last()).toContain('  - Eve Marsh | Design\n    - Flo\n  - Gus\n');
   await key(el, 'Escape');
   // Seating: a new table's name is chosen whole: the first letter typed replaces it, the ": " stays.
   const seats = await editor(SAMPLES.seating);

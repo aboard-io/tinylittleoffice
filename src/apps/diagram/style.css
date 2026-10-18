@@ -65,6 +65,13 @@
   .dg-thing.over {
     filter: drop-shadow(0 0 0.1875rem var(--to-accent)) drop-shadow(0 0 1px var(--to-accent));
   }
+  /* The thing Enter offers next: faint and dashed until it is tapped, and the lines that reach it with it. */
+  .ghost {
+    opacity: 0.45;
+  }
+  .ghost :is(rect, ellipse, polygon, path, polyline) {
+    stroke-dasharray: 4 3;
+  }
   /* Where a swimlane's step being dragged would go. */
   .dg-slot {
     stroke: var(--to-accent);

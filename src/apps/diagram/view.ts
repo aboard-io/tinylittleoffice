@@ -16,7 +16,14 @@ import { write, type Dir, type Doc } from '../../doc/index.ts';
 import { asLabel, edgesOf, kindOf, labelOf, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, stepNamed, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
-export type DShape = Shape & { hit?: Hit; region?: string };
+export type DShape = Shape & {
+  hit?: Hit;
+  region?: string;
+  /** A swimlane's line that its kind draws by itself, from line to line: tapped, it becomes a connection, to be given words. */
+  flow?: [number, number];
+  /** The thing Enter offers next, drawn but not in the document until it is tapped (the editor's). */
+  ghost?: boolean;
+};
 
 export interface Diagram {
   shapes: DShape[];
@@ -363,7 +370,10 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   });
   steps.forEach((s, i) => {
     band(s.lane);
-    for (const [from] of auto.filter(([, to]) => to === i)) shapes.push(...elbow(boxes[from], boxes[i], boxes, '->'));
+    for (const [from] of auto.filter(([, to]) => to === i)) {
+      const flow: [number, number] = [steps[from].line.at, s.line.at];
+      shapes.push(...elbow(boxes[from], boxes[i], boxes, '->').map((x): DShape => ({ ...x, flow })));
+    }
     shapes.push(boxes[i]);
     ends.push(shapes.length);
   });

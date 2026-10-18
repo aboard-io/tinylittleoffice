@@ -214,7 +214,23 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
 
   protected read(doc: Doc): DiagramView {
-    return { kind: kindOf(doc), d: layout(doc, true) };
+    const kind = kindOf(doc);
+    const g = this.ghost;
+    if (!g || g.doc !== doc) {
+      this.ghost = null;
+      return { kind, d: layout(doc, true) };
+    }
+    // The picture as it would be with the next thing in it, every shape naming the document's own lines and
+    // connections (those after the ghost one back by one), the ghost and the lines that reach it drawn as ghosts.
+    const at = g.draft.at;
+    const d = layout(applyAll(doc, commitDraft(g.draft, g.block)), true);
+    const back = (n: number) => (n > at ? n - 1 : n);
+    const shapes = d.shapes.map((x): DShape => {
+      if ((x.hit?.k === 'line' && x.hit.at === at) || x.flow?.includes(at)) return { ...x, hit: undefined, flow: undefined, ghost: true };
+      const hit = x.hit && (x.hit.k === 'line' || x.hit.k === 'edge') ? { ...x.hit, at: back(x.hit.at) } : x.hit;
+      return { ...x, hit, ...(x.flow ? { flow: [back(x.flow[0]), back(x.flow[1])] as [number, number] } : {}) };
+    });
+    return { kind, d: { ...d, shapes } };
   }
   connectedCallback() {
     super.connectedCallback();
@@ -391,15 +407,20 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    * A new thing: in the document at once, its words offered (the kind's "New idea", "Name", a table's next name)
    * and chosen, so the first letter typed replaces them; Escape takes it away again. The words open over it.
    */
-  openDraft(d: Draft) {
+  /** A draft's line with its words offered where none were given ("Step", "New idea"), and where they are. */
+  private offered(d: Draft): { block: Extract<Block, { k: 'li' }>; sel: [number, number] } {
     const kind = this.view.kind;
-    let block = d.block;
-    let [a, b] = d.sel;
-    if (a === b) {
-      const words = newWords(kind, isListed(kind) && !!lineOf(block, d.at).key);
-      block = { ...block, runs: normalRuns([...sliceRuns(block.runs, 0, a), { t: words }, ...sliceRuns(block.runs, a, runLength(block.runs))]) };
-      b = a + words.length;
-    }
+    const [a, b] = d.sel;
+    if (a !== b) return { block: d.block, sel: [a, b] };
+    const words = newWords(kind, isListed(kind) && !!lineOf(d.block, d.at).key);
+    const runs = normalRuns([...sliceRuns(d.block.runs, 0, a), { t: words }, ...sliceRuns(d.block.runs, a, runLength(d.block.runs))]);
+    return { block: { ...d.block, runs }, sel: [a, a + words.length] };
+  }
+  openDraft(d: Draft) {
+    const {
+      block,
+      sel: [a, b],
+    } = this.offered(d);
     this.session++;
     this.openText = write(this.doc);
     const mark: Mark = { before: null, after: null };
@@ -409,6 +430,54 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.targetFor(hit)?.tg;
     const at = tg ? tg.span[0] : 0;
     this.open(hit, [Math.max(0, a - at), Math.max(0, b - at)], false);
+    this.fresh = this.session;
+  }
+  /** The next thing offered as a ghost, the focus on it (where it adds one line; one more of a list is not offered). */
+  private offerNext(d: Draft | null) {
+    if (!d || d.n !== 0) return;
+    this.ghost = { doc: this.doc, draft: d, block: this.offered(d).block };
+    this.view = this.read(this.doc);
+    this.requestUpdate();
+    void this.updateComplete.then(() => this.querySelector<SVGGElement>('.dg-pic g.ghost[tabindex]')?.focus({ preventScroll: true }));
+  }
+  /** The ghost let go, if there is one: the picture as the document has it. */
+  private dropGhost() {
+    if (!this.ghost) return;
+    this.ghost = null;
+    this.view = this.read(this.doc);
+    this.requestUpdate();
+  }
+  /** The ghost tapped (or Enter on it): made real, its words open and chosen. */
+  private realize() {
+    const g = this.ghost;
+    if (!g) return;
+    this.dropGhost();
+    this.openDraft(g.draft);
+  }
+  /**
+   * A swimlane's own line tapped: a connection in the document from now, its words open to be typed. Closed with
+   * none, or with Escape, it is taken away again, and the document is as it was (Paul, 2026-10-18: "I cannot select a
+   * connection between steps").
+   */
+  private openFlow([from, to]: [number, number]) {
+    const lines = linesOf(this.doc);
+    const [a, b] = [lines.find((l) => l.at === from), lines.find((l) => l.at === to)];
+    if (!a || !b) return;
+    const before = write(this.doc);
+    const at = this.doc.blocks.length;
+    this.change([{ op: 'splice', at, n: 0, blocks: [{ k: 'edge', from: stepName(lines, a), to: stepName(lines, b), dir: '->' }] }], null);
+    this.open({ k: 'edge', at });
+    this.openText = before;
+    this.flowEdge = { at, before };
+  }
+  /** Back to the document as it was (`text`), by undoing: the words' Escape, a tapped line left without words. */
+  private restore(text: string) {
+    this.restoring = true;
+    try {
+      for (let n = 0; n < 200 && this.canUndo && write(this.doc) !== text; n++) this.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+    } finally {
+      this.restoring = false;
+    }
   }
   /** The thing drawn for the characters [a, b) of line `at`: the smallest part of it that holds them. */
   private hitOn(at: number, a: number, b: number): Hit {
@@ -439,6 +508,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       el.blocks = this.wordsBlocks;
     }
     this.ctx?.hide();
+    const flow = this.flowEdge;
+    this.flowEdge = null;
+    // A swimlane's own line, tapped and given no words (nor a plain line in place of its arrow), goes back to being one.
+    if (flow && tg.hit.k === 'edge' && tg.hit.at === flow.at) {
+      const e = edgesOf(this.doc).find((x) => x.at === flow.at);
+      if (e && !e.label && e.dir === '->') this.restore(flow.before);
+    }
     if (tidyUp && tg.at >= 0) this.edit(tidy(this.doc, tg.at));
   }
   /** Done: the words kept, the focus back on the thing they were opened on. */
@@ -503,9 +579,11 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       el.sel = r.sel;
       return;
     }
-    // A name typed (a lane's, a connection's words) is done with Enter: no step or thing comes of it.
-    if (tg.hit.k === 'edge' || tg.hit.k === 'lane') return this.shutAndFocus();
-    this.next(tg);
+    // Enter is done with the words (Paul, 2026-10-18: "When I'm editing a node and hit return don't auto-add the next
+    // node. Just let it sit"); after a new thing, the next is offered as a ghost, real only if it is tapped.
+    if (this.fresh !== this.session || tg.hit.k === 'edge' || tg.hit.k === 'lane') return this.shutAndFocus();
+    this.shut();
+    this.offerNext(nextThing(this.doc, tg.hit));
   };
   /** Done with these words, and the next thing like this one made, its words open (Enter; a comma ending a thing of a list). */
   private next(tg: Target) {
@@ -534,14 +612,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     e.stopPropagation();
     const was = this.openText;
     const hit = this.openHitAt;
-    if (was !== null && write(this.doc) !== was) {
-      this.restoring = true;
-      try {
-        for (let n = 0; n < 200 && this.canUndo && write(this.doc) !== was; n++) this.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
-      } finally {
-        this.restoring = false;
-      }
-    }
+    if (was !== null && write(this.doc) !== was) this.restore(was);
+    this.flowEdge = null;
     this.shut(false);
     void this.focusThing(hit);
   };
@@ -571,6 +643,15 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- the things to do to the thing open ---------- */
 
+  /**
+   * The thing Enter offers after a new one (Paul, 2026-10-18: "auto-add a ghost node. If I tap the ghost node next,
+   * then make it real. If I don't, then remove it"): drawn, never in the document, for the document it was made for.
+   */
+  private ghost: { doc: Doc; draft: Draft; block: Extract<Block, { k: 'li' }> } | null = null;
+  /** The session of words a new thing opened (a tap on empty space, Insert, Add, a ghost made real): Enter offers the next. */
+  private fresh = -1;
+  /** A swimlane's own line made a connection when tapped, to be given words: taken away again if it is given none. */
+  private flowEdge: { at: number; before: string } | null = null;
   /** The thing whose shapes the row shows in place of its things to do, while it does (Shape). */
   private shaping: Extract<Hit, { k: 'line' }> | null = null;
   /**
@@ -779,8 +860,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onClick = (e: MouseEvent) => {
     if (performance.now() < this.quietUntil || (e.target as Element).closest('.dg-words')) return;
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
-    const hit = g ? this.view.d.shapes[+g.dataset.i!]?.hit : undefined;
+    const shape = g ? this.view.d.shapes[+g.dataset.i!] : undefined;
+    const hit = shape?.hit;
+    // The ghost tapped is made real; anything else tapped lets it go first (the hit is already the document's).
+    if (shape?.ghost && this.ghost) return this.realize();
+    this.dropGhost();
     if (this.target) return this.shut();
+    if (shape?.flow && this.joining === null) return this.openFlow(shape.flow);
     if (this.joining !== null) return this.joinTo(hit);
     if (hit) return this.open(hit);
     const [x, y] = this.point(e);
@@ -818,8 +904,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
   /** A press outside the words, the things under them, the picture and the bar: the words close (kept), as a menu's would. */
   private onOutside = (e: PointerEvent) => {
-    if (!this.target) return;
     const at = e.target as Element | null;
+    // A press anywhere but the picture lets a ghost go (in the picture, the tap decides).
+    if (this.ghost && at && !this.wrap?.contains(at)) this.dropGhost();
+    if (!this.target) return;
     if (!at || this.wrap?.contains(at) || at.closest?.('to-context, dialog, [popover], to-bar')) return;
     this.shut();
   };
@@ -847,6 +935,15 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.isComposing) return;
     const at = e.target as Element;
+    // On the ghost, Enter or Space makes it real; any other key lets it go.
+    if (this.ghost) {
+      if (at.closest?.('g.ghost') && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        return this.realize();
+      }
+      if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) this.dropGhost();
+      return;
+    }
     if (at.closest('input, textarea, select, [contenteditable], to-text, dialog, [popover], to-bar, button')) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
@@ -1009,7 +1106,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const hit = s.hit;
     // The thing whose words are being typed is drawn with them hidden (the stylesheet's .on text): the words over it
     // hold them, nothing doubles, and its icon stays drawn, a new one at once (Paul, 2026-10-18).
-    const body = unsafeSVG(shapeSvg(s, all, THEME, !!hit));
+    const body = unsafeSVG(shapeSvg(s, all, THEME, !!hit || !!s.flow));
+    // The ghost: drawn faint, a tap (or Enter) away from being real; the lines that reach it, faint with it.
+    const box = s.k !== 'w' && s.k !== 'v' && s.k !== 't';
+    if (s.ghost && box) return svg`<g class="dg-thing ghost" data-i=${i} tabindex="0" role="button" aria-label=${s.text}>${body}</g>`;
+    if (s.ghost) return svg`<g class="ghost">${body}</g>`;
+    // A swimlane's own line: tapped, a connection to give words to.
+    if (s.flow) return svg`<g class="dg-thing edge" data-i=${i} tabindex="-1" role="button" aria-label=${t('diagram-connection')}>${body}</g>`;
     if (!hit) return svg`<g>${body}</g>`;
     const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) || hit.k === 'edge' ? t('diagram-connection') : t('diagram-empty'));
     // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.
