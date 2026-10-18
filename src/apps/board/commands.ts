@@ -1,7 +1,8 @@
 /**
  * The Board's commands (the kit's registry, kit/core/commands.ts), its editor the context: the bar (Insert ▾ a card
  * after the one in hand or a lane after the one in hand, and the hand-off, the cards opened in the Spreadsheet), a
- * lane's menu (Rename lane, Add a card, Move left, Move right, Delete lane), the board's own items in the bar under
+ * lane's menu (Rename lane, Add a card, Move left, Move right, Delete lane; carried only, where the page makes the
+ * lanes' changes, `own-lanes`, all but Add a card), the board's own items in the bar under
  * chosen cards (Open, which edits a card's fields in a dialog, and Move to…, a menu of the lanes: a phone's way across,
  * having no drag), the card's dialog's Delete, and the keys (the editing standard, docs/editing.md §6, and the
  * Board's line in §8, which says them for a person). On chosen cards Mod+Left/Right, and the
@@ -36,7 +37,7 @@ const BOARD: Command<B>[] = [
   cmd('view.sheet', 'board-open-cards-in-spreadsheet', { icon: Table2, where: ['bar'], document: true, does: (b) => b.openInSheet() }),
   cmd('lane', 'board-lane-options', { menu: 'lane', where: ['in-doc'], does: () => undefined }),
   cmd('lane.rename', 'board-rename-lane', { icon: SquarePen, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.renameMenuLane() }),
-  cmd('lane.card', 'board-add-card', { icon: UI.plus, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.addToLane(b.menuLane!.name) }),
+  cmd('lane.card', 'board-add-card', { icon: UI.plus, where: ['menu:lane'], when: (b) => !!b.menuLane && !b.carryOnly, does: (b) => b.addToLane(b.menuLane!.name) }),
   cmd('lane.left', 'common-move-left', { icon: ArrowLeft, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(-1), does: (b) => b.moveMenuLane(-1) }),
   cmd('lane.right', 'common-move-right', { icon: ArrowRight, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(1), does: (b) => b.moveMenuLane(1) }),
   cmd('lane.delete', 'board-delete-lane', { icon: UI.trash, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.deleteMenuLane() }),

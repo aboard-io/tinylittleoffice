@@ -3429,6 +3429,14 @@ board-card-in-lane-beside = पिछले या अगले कॉलम म
 board-move-card-to-lane-before-or = कार्ड को पिछले या अगले कॉलम में ले जाएँ
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
 board-lane-name = कॉलम का नाम
+# en: 4a1eabde691b377e61e564f2b21a56ce7c48f862
+board-lane-needs-a-name = कॉलम का एक नाम होना चाहिए।
+# en: f2eaf2b4b185176968749b50d7028a1c89357026
+board-lane-name-taken = { $lane } नाम का कॉलम पहले से है।
+# en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
+board-double-click-to-rename = नाम बदलने के लिए डबल-क्लिक करें
+# en: c6196faeecf27e09514f0812df5e4b0f18a49465
+board-lane-total = कुल { $sum }
 # same
 # en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
 board-yyyy-mm-dd = YYYY-MM-DD

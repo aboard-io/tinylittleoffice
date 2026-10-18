@@ -1921,6 +1921,14 @@ board-rename-lane = Rename lane
 board-card-in-lane-beside = The card beside it in the lane before or after
 board-move-card-to-lane-before-or = Move the card to the lane before or after
 board-lane-name = Lane name
+# Said under a lane's name being renamed, when the name typed is empty.
+board-lane-needs-a-name = A lane needs a name.
+# Said under a lane's name being renamed, when another lane already has the name typed.
+board-lane-name-taken = There is already a lane called { $lane }.
+# A hint on a lane's name under the pointer: how to rename it.
+board-double-click-to-rename = Double-click to rename
+# Under a lane's name: the sum of its cards' amounts ($sum is an amount already written with its currency, "$30,000").
+board-lane-total = Total { $sum }
 # A date field’s placeholder: the order a date is typed in (year, month, day, as digits), in the letters the language names them by.
 board-yyyy-mm-dd = YYYY-MM-DD
 # A lane just added, before it is named.

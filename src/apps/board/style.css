@@ -1,17 +1,23 @@
-/* Board: the lanes side by side, about 16rem each, the board scrolling sideways on its own where they are more than the
+/* Board: the lanes side by side, about 17rem each, the board scrolling sideways on its own where they are more than the
    column holds; where the board is narrower than two lanes (a phone, or the size of everything grown by a pinch: the
    container's rem is the root's, so it follows the size) they stack, a lane the column's width, so the words reflow and
-   the page never scrolls sideways. A lane is a tinted panel: its name (typed where it is drawn), its count and its menu,
-   then its cards. A card is a small sheet: its grip (a tap chooses it, a finger held on it too, a drag carries it to any
-   lane), its title, its fields under it in a smaller ink. Every control is a finger wide; a card carried leaves a faded
-   copy where it was, a ghost of it follows the pointer, and a line shows where it would land. A card opened is a
+   the page never scrolls sideways. A lane is a tinted panel: its name (a heading, a field while it is renamed), its
+   count, its menu and, under them, the sum of its amounts; then its cards.
+
+   A card is a small sheet with one order of reading (Paul, 2026-10-18: "badly designed with poor type and information
+   hierarchy"): its title first, the largest and the heaviest; the line under it (a deal's company) in a second ink;
+   quiet names and values; then a row of what it is worth and when, its chips, and the people at its end as round
+   initials, each in a hue of their own that keeps its contrast in either theme. The whole card is what a pointer
+   carries (no grip): it says so with its cursor, lifts under a finger held on it, and a carried card leaves its lane
+   while a ghost of it follows the pointer and a dashed slot its size shows where it would land. A card opened is a
    dialog of its fields, a row each. A board carried only shows its words and does not offer them to be typed.
 
    The editor brings it, as each app's editor brings its own; the library's build serves it as a stylesheet of its own,
    tinylittleoffice/board.css, beside tinylittleoffice/editors.css rather than in it (vite.lib.config.ts), drawn with
    that sheet's tokens (--to-surface, --to-touch…). Its rules are in the `apps` layer, as each suite app's own sheet
    is; the layers' order is said first, the same order editors.css gives them, so the cascade is the same whichever of
-   the two the page loads first and a page's own rules outside a layer outrank both. */
+   the two the page loads first and a page's own rules outside a layer outrank both. A page that gives its lanes a
+   height of their own sets --to-board-lane-h; a lane's cards then scroll inside it. */
 @layer tokens, kit, apps, responsive, a11y;
 @layer apps {
   to-board-editor {
@@ -32,13 +38,17 @@
   .board:focus {
     outline: none;
   }
-  .board.carrying {
+  .board.carrying,
+  .board.carrying * {
+    cursor: grabbing;
     user-select: none;
   }
   .board-lane {
-    flex: 0 0 16rem;
+    /* What a screen reader alone is told (.sr-only) is placed inside its lane, never past the board's scroll. */
+    position: relative;
+    flex: 0 0 17rem;
     min-width: 0;
-    padding: 0.375rem 0.375rem 0.5rem;
+    padding: 0.375rem 0.5rem 0.5rem;
     background: var(--to-surface-2);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
@@ -46,148 +56,259 @@
   .board-lane.over {
     border-color: var(--to-accent);
   }
+  /* The lane's head: its name, its count and its menu on one line; its sum under them. */
   .board-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0 0.375rem;
   }
   .board-head .board-lane-name {
     flex: 1;
     min-width: 0;
   }
-  .board-lane-name .tx,
-  .board-title .tx {
+  .board-lane-name .tx {
     min-height: 2.25rem;
     padding: 0.375rem;
     border: 1px solid transparent;
     border-radius: var(--to-radius-sm);
     color: var(--to-ink);
-    line-height: 1.5;
+    font: 600 1rem/1.5 var(--to-font);
   }
-  .board-lane-name .tx {
-    font: 600 1rem var(--to-font);
+  .board-head:not(.renaming) .board-lane-name .tx {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: default;
   }
-  .board-title .tx {
-    font: 1rem var(--to-font);
+  .board-lane-name .tx:focus-visible {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
   }
-  .board-lane-name .tx:hover,
-  .board-title .tx:hover {
-    border-color: var(--to-border);
-  }
-  .board-lane-name .tx:focus,
-  .board-title .tx:focus {
-    border-color: var(--to-accent);
+  /* Renamed, the name is a field where it is drawn. */
+  .board-head.renaming .board-lane-name .tx {
     background: var(--to-input-bg);
-  }
-  /* Carried only, the words are shown and not typed: no field's border under the pointer, nor its ground (a read-only board keeps the look it had). */
-  to-board-editor[carry-only] :is(.board-lane-name, .board-title) .tx:hover {
-    border-color: transparent;
-  }
-  to-board-editor[carry-only] :is(.board-lane-name, .board-title) .tx:focus {
-    background: none;
+    border-color: var(--to-accent);
+    outline: none;
   }
   .board-count {
-    padding: 0 0.25rem;
+    min-width: 1.5rem;
+    padding: 0 0.4375rem;
+    color: var(--to-ink-2);
+    font: 600 0.75rem/1.375rem var(--to-font);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-pill);
+  }
+  .board-more {
     color: var(--to-ink-3);
-    font: 600 0.875rem var(--to-font);
+    background: none;
+    border-color: transparent;
+  }
+  .board-more:hover {
+    color: var(--to-ink);
+  }
+  .board-sum {
+    order: 3;
+    flex: 1 0 100%;
+    padding: 0 0.4375rem 0.125rem;
+    color: var(--to-ink-2);
+    font: 400 0.8125rem/1.25 var(--to-font);
+    font-variant-numeric: tabular-nums;
+  }
+  .board-lane-error {
+    margin: 0.25rem 0.375rem 0;
+    color: var(--to-danger);
+    font-size: 0.8125rem;
   }
   .board-cards {
     display: grid;
-    gap: 0.375rem;
+    gap: 0.5rem;
     list-style: none;
-    margin: 0.25rem 0 0;
-    padding: 0;
+    max-height: var(--to-board-lane-h, none);
+    margin: 0.375rem -0.25rem 0;
+    padding: 0.125rem 0.25rem 0.25rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
+  /* A card: a sheet that a pointer carries from anywhere on it. */
   .board-card {
-    display: grid;
-    grid-template-columns: var(--to-touch) minmax(0, 1fr);
-    align-items: start;
-    padding: 0.125rem 0.375rem 0.25rem 0;
+    position: relative;
+    min-width: 0;
+    min-height: var(--to-touch);
+    padding: 0.625rem 0.75rem;
+    color: var(--to-ink);
+    font-family: var(--to-font);
     background: var(--to-surface);
     border: 1px solid var(--to-border);
-    border-radius: var(--to-radius-sm);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow);
+    cursor: grab;
+    -webkit-touch-callout: none;
+    transition:
+      border-color 0.12s,
+      box-shadow 0.12s,
+      scale 0.12s;
+  }
+  .board-card:hover {
+    border-color: var(--to-border-strong);
   }
   .board-card.sel {
     border-color: var(--to-accent);
   }
   .board-card.ranged {
     background: var(--to-accent-soft);
+    border-color: var(--to-accent);
     box-shadow: inset 0.1875rem 0 0 var(--to-accent);
   }
+  /* A finger held on it: the card lifts, ready to be carried. */
+  .board-card.lifting {
+    scale: 1.03;
+    border-color: var(--to-accent);
+    box-shadow: var(--to-shadow-pop);
+  }
+  /* Carried, the card leaves its lane (the same element all the drag) and a slot its size shows where it would land. */
   .board-card.dragging {
-    opacity: 0.45;
+    display: none;
   }
-  /* Where a carried card would land: a line above the card it would go before, or under a lane's last card. */
-  .board-card.before {
-    box-shadow: 0 -0.25rem 0 -0.0625rem var(--to-accent);
-  }
-  .board-cards.end > .board-card:last-child:not(.dragging),
-  .board-none.end {
-    box-shadow: 0 0.25rem 0 -0.0625rem var(--to-accent);
+  .board-slot {
+    background: var(--to-accent-soft);
+    border: 0.125rem dashed var(--to-accent);
+    border-radius: var(--to-radius);
   }
   /* Pickable, a card is a thing to open, but for a title typed in, whose words are the caret's. */
   to-board-editor[pickable] .board-card {
     cursor: pointer;
   }
-  to-board-editor[pickable] .board-title .tx[contenteditable='true'] {
+  .board-title .tx[contenteditable='true'] {
     cursor: text;
   }
-  .board-grip {
-    width: var(--to-touch);
-    height: var(--to-touch);
-    color: var(--to-ink-3);
-    cursor: grab;
+  .board-title .tx {
+    min-height: 0;
+    padding: 0;
+    color: var(--to-ink);
+    font: 600 1rem/1.375 var(--to-font);
+    overflow-wrap: anywhere;
+    border-radius: 0.125rem;
   }
-  .board-grip[aria-pressed='true'] {
-    color: var(--to-accent);
+  .board-title .tx:focus {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: 0.1875rem;
   }
-  .board-main {
-    min-width: 0;
-    padding-top: 0.25rem;
+  .board-title .tx[contenteditable='false'] {
+    cursor: inherit;
+  }
+  .board-line {
+    margin: 0.125rem 0 0;
+    color: var(--to-ink-2);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
   }
   .board-fields {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 0.75rem;
-    margin: 0 0 0.125rem;
-    padding: 0 0.4375rem;
-    color: var(--to-ink-2);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.0625rem 0.5rem;
+    margin: 0.5rem 0 0;
     font-size: 0.8125rem;
+    line-height: 1.4;
   }
   .board-fields > div {
-    display: flex;
-    gap: 0.25rem;
-    min-width: 0;
+    display: contents;
   }
   .board-fields dt {
     color: var(--to-ink-3);
   }
   .board-fields dd {
     margin: 0;
+    color: var(--to-ink-2);
     overflow-wrap: anywhere;
   }
-  .board-none {
-    margin: 0.25rem 0 0;
-    padding: 0.75rem 0.5rem;
-    text-align: center;
+  /* What it is worth and when, its chips, its people at the end. */
+  .board-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.625rem;
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
   }
-  /* The ghost of a carried card, on the page's body under the pointer. */
+  .board-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    color: var(--to-ink-2);
+    white-space: nowrap;
+  }
+  .board-money {
+    color: var(--to-ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .board-date svg {
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+    color: var(--to-ink-3);
+  }
+  .board-badge {
+    padding: 0 0.5rem;
+    background: var(--to-surface-2);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-pill);
+    font-size: 0.75rem;
+  }
+  .board-people {
+    display: flex;
+    margin-inline-start: auto;
+  }
+  .board-person {
+    --to-board-person-bg: hsl(var(--to-board-hue, 210) 70% 90%);
+    --to-board-person-ink: hsl(var(--to-board-hue, 210) 55% 26%);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--to-board-person-ink);
+    font: 600 0.6875rem/1 var(--to-font);
+    letter-spacing: 0.02em;
+    background: var(--to-board-person-bg);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0.125rem var(--to-surface);
+  }
+  .board-person + .board-person {
+    margin-inline-start: -0.375rem;
+  }
+  :root[data-theme='dark'] .board-person {
+    --to-board-person-bg: hsl(var(--to-board-hue, 210) 35% 30%);
+    --to-board-person-ink: hsl(var(--to-board-hue, 210) 80% 90%);
+  }
+  .board-none {
+    margin: 0.375rem 0 0;
+    padding: 0.875rem 0.5rem;
+    text-align: center;
+    border: 1px dashed var(--to-border);
+    border-radius: var(--to-radius);
+  }
+  /* The ghost of a carried card, on the page's body under the pointer: the card's face, tilted, lifted. */
   .board-ghost {
     position: fixed;
     z-index: 30;
-    padding: 0.5rem 0.75rem;
-    overflow: hidden;
-    color: var(--to-ink);
-    font: 1rem var(--to-font);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    background: var(--to-surface);
-    border: 1px solid var(--to-accent);
-    border-radius: var(--to-radius-sm);
-    box-shadow: var(--to-shadow);
-    opacity: 0.92;
+    margin: 0;
+    border-color: var(--to-accent);
+    box-shadow: var(--to-shadow-pop);
     pointer-events: none;
     rotate: 2deg;
+    cursor: grabbing;
+  }
+  .board-ghost .board-title .tx {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   /* The menus a lane's button and the bar under chosen cards open have no button of their own. */
   .board-menu > button,
@@ -253,7 +374,7 @@
     color: var(--to-danger);
   }
   /* Narrower than two lanes: one under another, each the column's width. */
-  @container board (max-width: 34rem) {
+  @container board (max-width: 34.75rem) {
     .board {
       flex-direction: column;
       align-items: stretch;

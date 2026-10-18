@@ -6,14 +6,17 @@
 // Alt+Up/Down, Mod+Alt+Left/Right, Mod+D); a lane's name kept on Enter, put back by Escape, and renamed from its menu;
 // Insert ▾ and a lane's menu; cards chosen whole with the bar under them (Open, Move to…), Mod+Left/Right, the
 // clipboard; a card opened, its fields typed in a dialog and kept as one step (those typed alone, an edit from elsewhere
-// kept); a drag by the grip into another lane with its ghost, told as ops, and undone; a finger held on the grip; the
+// kept); a card dragged from anywhere on it into another lane, a slot where it would land and its ghost, told as ops,
+// and undone; a mouse's threshold, a finger's press before it carries and its scroll before that, the edges scrolled; the
 // hand-off to the Spreadsheet where the page's host says documents open; on a wide screen the lanes in a row that
 // scrolls sideways, and at phone width one under another, a finger tall, the bars one row, the page never wider;
 // every card and lane named; another's ops taken in; read-only, no bar, nothing typed or carried, a card activated
 // picked; pickable, a card activated picked while it is still typed and carried, never when not asked for; and carried
 // only, no bar, no lane's menu and nothing typed, pasted, cut or added, every op told a card's move (a drag, the keys,
 // Move to…, the dialog's lane), an undo a move taken back or nothing, and a card picked there too. These are the
-// Board's tests as they were in its package of its own, and the proof that it is the same Board in the library.
+// Board's tests as they were in its package of its own, and the proof that it is the same Board in the library; and
+// what came after: a lane renamed where it is drawn (kept, let go, refused, and a page's own), the lanes' changes told
+// first, a card's fields as the page says or its columns' types do, and a lane's sum.
 import { expect, test, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { applyAll, parse, write, type Op } from '../../../doc/index.ts';
@@ -73,11 +76,16 @@ async function pick(el: ToBoardEditor, opener: HTMLElement, label: string) {
   item.click();
   await settle(el);
 }
-const grip = (el: HTMLElement, i: number, j: number) => cards(el, i)[j].querySelector<HTMLElement>('.board-grip')!;
+/** A card, the whole of it: what a pointer presses, taps and carries (there is no grip). */
+const grip = (el: HTMLElement, i: number, j: number) => cards(el, i)[j];
+/** A card's row of chips and people, a place on it outside its title. */
+const meta = (el: HTMLElement, i: number, j: number) => cards(el, i)[j].querySelector<HTMLElement>('.board-meta')!;
 async function tapGrip(el: ToBoardEditor, i: number, j: number, o: MouseEventInit = {}) {
   grip(el, i, j).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...o }));
   await settle(el);
 }
+const pointer = (on: Element, type: string, x: number, y: number, pointerId: number, pointerType = 'mouse') =>
+  on.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId, isPrimary: true, button: 0, pointerType, clientX: x, clientY: y }));
 const ranged = (el: HTMLElement) => [...el.querySelectorAll<HTMLElement>('.board-card.ranged')].map((c) => c.querySelector<ToText>('.board-title')!.tx.textContent!.trim());
 const contextButton = (el: HTMLElement, label: string) => [...el.querySelectorAll<HTMLButtonElement>('.board-context button')].find((b) => b.getAttribute('aria-label') === label)!;
 async function clip(el: ToBoardEditor, type: 'copy' | 'cut' | 'paste', on: HTMLElement, data: Record<string, string> = {}) {
@@ -87,7 +95,7 @@ async function clip(el: ToBoardEditor, type: 'copy' | 'cut' | 'paste', on: HTMLE
   await settle(el);
   return dt;
 }
-/** A drag by a card's grip: pressed on it, moved to (x, y), let go there. */
+/** A drag by a mouse: pressed on the card, moved to (x, y), let go there. */
 function drag(g: HTMLElement, x: number, y: number, pointerId: number) {
   const h = g.getBoundingClientRect();
   for (const [type, px, py] of [
@@ -120,7 +128,9 @@ test('the lanes and cards from the document: names, counts, titles, fields; the 
     ['Done', []],
   ]);
   expect(lanes(el).map((l) => l.querySelector('.board-count')!.textContent)).toEqual(['1', '2', '0']);
-  expect([...cards(el, 0)[0].querySelectorAll('.board-fields dt, .board-fields dd')].map((x) => x.textContent)).toEqual(['Owner', 'Ben']);
+  // Owner is a person: initials, the name said on hover and to a screen reader.
+  const ben = cards(el, 0)[0].querySelector<HTMLElement>('.board-person')!;
+  expect([ben.querySelector('[aria-hidden]')!.textContent, ben.title, ben.querySelector('.sr-only')!.textContent]).toEqual(['B', 'Owner: Ben', 'Owner: Ben']);
   expect(lanes(el)[2].querySelector('.board-none')!.textContent).toBe('No cards');
   expect(el.querySelector('.board-total')!.textContent).toBe('3 cards');
   expect(title(el, 1, 1).tx.getAttribute('aria-label')).toBe('Title of card 2 in Doing');
@@ -244,7 +254,7 @@ test('a card over a cell written "\'007" shows 007: in the document, and from a 
     ['Doing', ['Write the brief']],
     ['Done', []],
   ]);
-  expect([...cards(el, 0)[0].querySelectorAll('.board-fields dd')].map((x) => x.textContent)).toEqual(['1200']);
+  expect(cards(el, 0)[0].querySelector<HTMLElement>('.board-person')!.title).toBe('Owner: 1200');
   await caretIn(el, title(el, 1, 0));
   await clip(el, 'paste', title(el, 1, 0).tx, { 'text/plain': "Task | Status:option | Owner\n--- | --- | ---\n'008 | Doing | Ana\n'=SUM(1) | Doing |\n" });
   expect(drawn(el)[1]).toEqual(['Doing', ['Write the brief', '008', '=SUM(1)']]);
@@ -326,8 +336,22 @@ test('a card moved along its lane and across lanes is told as ops (docops) that 
   ).toBe(last());
 });
 
-test('a lane’s name is kept on Enter (its cards’ cells and lanes:), put back by Escape', async () => {
+/** A lane's name made a field by a double click, as a person renames it. */
+async function rename(el: ToBoardEditor, i: number) {
+  laneName(el, i).dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+  await settle(el);
+}
+
+test('a lane’s name is shown, and renamed where it is drawn: a double click, Enter or F2 make it a field; Enter keeps it (its cards’ cells and lanes:), Escape lets it go', async () => {
   const { el, last } = await editor();
+  // Shown, a heading: the focus takes it, typing does not.
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('false');
+  expect(laneName(el, 1).getAttribute('title')).toBe('Double-click to rename');
+  await rename(el, 1);
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('true');
+  expect(document.activeElement).toBe(laneName(el, 1).tx);
+  // Its words chosen whole, so what is typed replaces them.
+  expect(laneName(el, 1).sel).toMatchObject({ anchor: { offset: 0 }, focus: { offset: 5 } });
   await caretIn(el, laneName(el, 1));
   await type(el, () => laneName(el, 1), ' now');
   // Typed, nothing is written yet.
@@ -335,13 +359,144 @@ test('a lane’s name is kept on Enter (its cards’ cells and lanes:), put back
   input(laneName(el, 1), 'insertParagraph');
   await settle(el);
   expect(last()).toBe('---\nlanes: To do, Doing now, Done\n---\nTask | Status:option | Owner\n--- | --- | ---\nWrite the brief | Doing now | Ana\n' + B + 'Send invites | Doing now |\n');
-  expect(document.activeElement).toBe(title(el, 1, 0).tx);
+  // Kept, the name is shown again, the focus on it.
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('false');
+  expect(document.activeElement).toBe(laneName(el, 1).tx);
+  // Escape: what was typed goes, the name as it was.
+  key(laneName(el, 0).tx, 'Enter');
+  await settle(el);
+  expect(laneName(el, 0).tx.getAttribute('contenteditable')).toBe('true');
   await caretIn(el, laneName(el, 0));
   await type(el, () => laneName(el, 0), 'xx');
   key(laneName(el, 0).tx, 'Escape');
   await settle(el);
   expect(said(laneName(el, 0))).toBe('To do');
+  expect(laneName(el, 0).tx.getAttribute('contenteditable')).toBe('false');
   expect(last()).toContain('lanes: To do, Doing now, Done');
+  // F2 too; the focus leaving keeps what was typed.
+  key(laneName(el, 2).tx, 'F2');
+  await settle(el);
+  await caretIn(el, laneName(el, 2));
+  await type(el, () => laneName(el, 2), '!');
+  await caretIn(el, title(el, 0, 0));
+  expect(last()).toContain('lanes: To do, Doing now, Done!');
+  // Down on a name shown goes to its first card.
+  laneName(el, 1).tx.focus();
+  key(laneName(el, 1).tx, 'ArrowDown');
+  await settle(el);
+  expect(document.activeElement).toBe(title(el, 1, 0).tx);
+  await undo(el);
+  expect(last()).toContain('lanes: To do, Doing now, Done\n');
+});
+
+test('a lane’s name that is empty or another lane’s is refused and said; Enter keeps the field, the focus leaving puts the name back', async () => {
+  const { el, last } = await editor();
+  const said = () => lanes(el)[1].querySelector('.board-lane-error')?.textContent ?? '';
+  await rename(el, 1);
+  input(laneName(el, 1), 'deleteContentBackward');
+  await settle(el);
+  input(laneName(el, 1), 'insertParagraph');
+  await settle(el);
+  expect(said()).toBe('A lane needs a name.');
+  expect(lanes(el)[1].querySelector('.board-lane-error')!.getAttribute('role')).toBe('alert');
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('true');
+  expect(el.value).toBe(BOARD);
+  await type(el, () => laneName(el, 1), 'Done');
+  input(laneName(el, 1), 'insertParagraph');
+  await settle(el);
+  expect(said()).toBe('There is already a lane called Done.');
+  expect(el.value).toBe(BOARD);
+  // A name typed again takes the message away; the focus leaving a refused name puts the old one back, said.
+  await type(el, () => laneName(el, 1), '!');
+  expect(said()).toBe('');
+  laneName(el, 1).sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 5 } };
+  await type(el, () => laneName(el, 1), 'To do');
+  await caretIn(el, title(el, 0, 0));
+  expect(said()).toBe('There is already a lane called To do.');
+  expect(laneName(el, 1).tx.textContent!.trim()).toBe('Doing');
+  expect(last()).toBeUndefined();
+});
+
+test('a lane’s change is told first, and a page refuses it or makes it itself: lanerename, laneadd, lanemove, lanedelete; own-lanes makes none here', async () => {
+  const { el, last } = await editor();
+  const heard: [string, unknown][] = [];
+  let refuse = true;
+  for (const type of ['lanerename', 'laneadd', 'lanemove', 'lanedelete'])
+    el.addEventListener(type, (e) => {
+      heard.push([type, (e as CustomEvent).detail]);
+      expect(e.bubbles && e.cancelable).toBe(true);
+      if (refuse) e.preventDefault();
+    });
+  const menu = (i: number) => lanes(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
+  // Refused, each: the board as it was.
+  await rename(el, 1);
+  await type(el, () => laneName(el, 1), 'Active');
+  input(laneName(el, 1), 'insertParagraph');
+  await settle(el);
+  expect(said(laneName(el, 1))).toBe('Doing');
+  await pick(el, menu(0), 'Move right');
+  await pick(el, menu(2), 'Delete lane');
+  await caretIn(el, title(el, 1, 0));
+  await pick(el, el.querySelector<HTMLButtonElement>('to-insert > button')!, 'Lane');
+  expect(heard).toStrictEqual([
+    ['lanerename', { from: 'Doing', to: 'Active' }],
+    ['lanemove', { name: 'To do', from: 0, to: 1 }],
+    ['lanedelete', { name: 'Done', cards: 0 }],
+    ['laneadd', { name: 'New lane', at: 2 }],
+  ]);
+  expect(last()).toBeUndefined();
+  expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
+  // Let be, each is made.
+  refuse = false;
+  await rename(el, 1);
+  await type(el, () => laneName(el, 1), 'Active');
+  input(laneName(el, 1), 'insertParagraph');
+  await settle(el);
+  await pick(el, menu(0), 'Move right');
+  expect(drawn(el).map(([n]) => n)).toEqual(['Active', 'To do', 'Done']);
+  expect(heard.at(-1)).toStrictEqual(['lanemove', { name: 'To do', from: 0, to: 1 }]);
+  // own-lanes: told, never made here; the page gives the board its new document.
+  el.ownLanes = true;
+  await settle(el);
+  const before = last();
+  await pick(el, menu(2), 'Delete lane');
+  await rename(el, 0);
+  await type(el, () => laneName(el, 0), 'Live');
+  input(laneName(el, 0), 'insertParagraph');
+  await settle(el);
+  expect(heard.slice(-2)).toStrictEqual([
+    ['lanedelete', { name: 'Done', cards: 0 }],
+    ['lanerename', { from: 'Active', to: 'Live' }],
+  ]);
+  expect(last()).toBe(before);
+  expect(drawn(el).map(([n]) => n)).toEqual(['Active', 'To do', 'Done']);
+});
+
+test('carried only, a page that makes its lanes’ changes (own-lanes) has them offered and told: Rename and a lane’s menu, no card added, nothing changed here', async () => {
+  const { el, heard } = await editor();
+  const told: unknown[] = [];
+  el.addEventListener('lanerename', (e) => told.push((e as CustomEvent).detail));
+  Object.assign(el, { carryOnly: true });
+  await settle(el);
+  expect(el.querySelector('.board-more')).toBeNull();
+  await rename(el, 1);
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('false');
+  el.ownLanes = true;
+  await settle(el);
+  expect(el.querySelectorAll('.board-more')).toHaveLength(3);
+  lanes(el)[1].querySelector<HTMLButtonElement>('.board-more')!.click();
+  await until(() => !!document.querySelector('[popover]:popover-open'));
+  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
+  expect(items).toEqual(['Rename lane', 'Move left', 'Move right', 'Delete lane']);
+  (document.querySelector('[popover]:popover-open') as HTMLElement).hidePopover();
+  await rename(el, 1);
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('true');
+  await type(el, () => laneName(el, 1), 'Active');
+  input(laneName(el, 1), 'insertParagraph');
+  await settle(el);
+  expect(told).toStrictEqual([{ from: 'Doing', to: 'Active' }]);
+  expect(heard).toStrictEqual([]);
+  expect(el.value).toBe(BOARD);
 });
 
 test('Insert ▾ a card after the one in hand and a lane after the one in hand; a lane’s menu adds, moves and deletes', async () => {
@@ -361,6 +516,11 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   await pick(el, insert(), 'Lane');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'New lane', 'Done']);
   expect(last()).toContain('lanes: To do, Doing, New lane, Done');
+  // A new lane's name is a field at once, its words chosen to type over; Escape keeps the name it was given.
+  expect(laneName(el, 2).tx.getAttribute('contenteditable')).toBe('true');
+  expect(document.activeElement).toBe(laneName(el, 2).tx);
+  key(laneName(el, 2).tx, 'Escape');
+  await settle(el);
   const menu = (i: number) => lanes(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
   expect(menu(2).getAttribute('aria-label')).toBe('Options for New lane');
   await pick(el, menu(2), 'Move right');
@@ -376,11 +536,12 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   input(laneName(el, 2), 'insertParagraph');
   await settle(el);
   expect(last()).toContain('lanes: To do, Doing, Review, Done');
-  // Enter went on into the lane's first card, made for it.
-  expect(drawn(el)[2]).toEqual(['Review', ['']]);
+  // Kept, the name is shown and has the focus.
+  expect(document.activeElement).toBe(laneName(el, 2).tx);
+  expect(drawn(el)[2]).toEqual(['Review', []]);
   await pick(el, menu(2), 'Add a card');
-  expect(drawn(el)[2]).toEqual(['Review', ['', '']]);
-  expect(document.activeElement).toBe(title(el, 2, 1).tx);
+  expect(drawn(el)[2]).toEqual(['Review', ['']]);
+  expect(document.activeElement).toBe(title(el, 2, 0).tx);
   await pick(el, menu(2), 'Delete lane');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
   expect(last()).toContain('lanes: To do, Doing, Done');
@@ -388,7 +549,7 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Review', 'Done']);
 });
 
-test('a tap on the grip chooses the card with the bar under it; Move to… a lane, Mod+Left/Right carry the chosen; Delete takes them away', async () => {
+test('a tap on a card outside its title chooses it with the bar under it; Move to… a lane, Mod+Left/Right carry the chosen; Delete takes them away', async () => {
   const { el, last } = await editor();
   await tapGrip(el, 1, 0);
   await tapGrip(el, 1, 1, { shiftKey: true });
@@ -445,28 +606,45 @@ test('Mod+C/V on chosen cards: a table as TLO and our HTML out, cards back in; l
   expect(drawn(el)[0]).toEqual(['To do', ['Book the room', 'Buy pens', 'Buy paper']]);
 });
 
-test('a drag by the grip carries a card into another lane before the card under the pointer, the place drawn, told as ops', async () => {
+test('a card dragged from anywhere on it, no grip, by a mouse: into another lane before the card under the pointer, a slot where it would land, a ghost, told as ops', async () => {
   const { el, last, heard } = await editor();
-  const g = grip(el, 0, 0);
+  expect(el.querySelector('.board-grip, [data-board-handle]')).toBeNull();
+  // Pressed on its title's words, not yet typed in.
+  const g = title(el, 0, 0).tx;
   const h = g.getBoundingClientRect();
   const to = cards(el, 1)[1].getBoundingClientRect();
   const from = cards(el, 0)[0].getBoundingClientRect();
-  const at = (type: string, x: number, y: number) =>
-    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  const at = (type: string, x: number, y: number) => pointer(g, type, x, y, 7);
   at('pointerdown', h.left + 4, h.top + 4);
+  // The mouse's press is the board's: no caret, no words selected under it.
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: h.left + 4, clientY: h.top + 4 });
+  g.dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
   at('pointermove', to.left + 40, to.top + 4);
   await settle(el);
   expect(el.over).toEqual({ lane: 1, pos: 1 });
-  expect(cards(el, 0)[0].classList.contains('dragging')).toBe(true);
-  expect(cards(el, 1)[1].classList.contains('before')).toBe(true);
-  // A ghost of the card follows the pointer, kept from the hands of a screen reader.
+  // The card leaves its lane; a slot its height is where it would land, before Send invites.
+  expect(getComputedStyle(cards(el, 0)[0]).display).toBe('none');
+  const slot = lanes(el)[1].querySelector<HTMLElement>('.board-slot')!;
+  expect(slot.nextElementSibling).toBe(cards(el, 1)[1]);
+  expect(Math.abs(slot.getBoundingClientRect().height - from.height)).toBeLessThan(1.5);
+  expect(slot.getAttribute('aria-hidden')).toBe('true');
+  expect(lanes(el)[0].querySelector('.board-slot')).toBeNull();
+  // A ghost of the card's face follows the pointer, kept from the hands of a screen reader.
   const ghost = document.querySelector<HTMLElement>('.board-ghost')!;
-  expect(ghost.textContent).toBe('Book the room');
+  expect(ghost.querySelector('.board-title')!.textContent).toBe('Book the room');
+  expect(ghost.querySelector('.board-person')).not.toBeNull();
   expect(ghost.getAttribute('aria-hidden')).toBe('true');
-  expect(Math.abs(ghost.getBoundingClientRect().left - (to.left + 40 - (h.left + 4 - from.left)))).toBeLessThan(2);
+  expect(Math.abs(ghost.getBoundingClientRect().width - from.width)).toBeLessThan(6);
+  expect(Math.abs(parseFloat(ghost.style.left) - (to.left + 40 - (h.left + 4 - from.left)))).toBeLessThan(2);
   at('pointerup', to.left + 40, to.top + 4);
+  // The click the drag ends with is no tap: nothing chosen, no caret.
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+  el.querySelector('.board')!.dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
   await settle(el);
-  expect(document.querySelector('.board-ghost')).toBe(null);
+  expect(document.querySelector('.board-ghost, .board-slot')).toBe(null);
+  expect(ranged(el)).toEqual([]);
   expect(drawn(el)).toEqual([
     ['To do', []],
     ['Doing', ['Write the brief', 'Book the room', 'Send invites']],
@@ -477,21 +655,146 @@ test('a drag by the grip carries a card into another lane before the card under 
   const [ops, text] = heard.slice(-2) as [{ ops: Op[]; base: number }, string];
   expect(text).toBe(last());
   expect(write(applyAll(parse(BOARD), ops.ops))).toBe(text);
-  expect(getComputedStyle(grip(el, 1, 1)).touchAction).toBe('none');
   // One undo brings it back.
   await undo(el);
   expect(last()).toBe(BOARD);
   el.dispatchEvent(new CustomEvent('docredo', { cancelable: true }));
   await settle(el);
   expect(last()).toBe(HEAD + A + 'Book the room | Doing | Ben\n' + C);
-  // Into an empty lane, past its end.
+  // Into an empty lane, past its end, from the card's chips.
   const empty = lanes(el)[0].getBoundingClientRect();
-  drag(grip(el, 1, 0), empty.left + 40, empty.bottom - 6, 8);
+  drag(meta(el, 1, 0), empty.left + 40, empty.bottom - 6, 8);
   await settle(el);
   expect(drawn(el)[0]).toEqual(['To do', ['Write the brief']]);
+  // Escape lets a drag go: the card where it was.
+  const now = last();
+  const c = cards(el, 1)[0].getBoundingClientRect();
+  pointer(cards(el, 1)[0], 'pointerdown', c.left + 8, c.top + 8, 9);
+  pointer(cards(el, 1)[0], 'pointermove', empty.left + 40, empty.top + 60, 9);
+  await settle(el);
+  expect(el.carrying).toBeGreaterThanOrEqual(0);
+  key(el, 'Escape');
+  pointer(cards(el, 1)[0], 'pointerup', empty.left + 40, empty.top + 60, 9);
+  await settle(el);
+  expect(last()).toBe(now);
+  expect(document.querySelector('.board-ghost')).toBe(null);
 });
 
-test('a blank board: To do, Doing and Done, no cards; Enter in a lane’s name makes its first card', async () => {
+test('a mouse moves 6px before a press carries: less is a click, which puts the caret where it was in a title, or chooses the card', async () => {
+  const { el } = await editor();
+  const card = cards(el, 1)[0];
+  const r = card.getBoundingClientRect();
+  pointer(meta(el, 1, 0), 'pointerdown', r.left + 10, r.bottom - 10, 21);
+  pointer(meta(el, 1, 0), 'pointermove', r.left + 14, r.bottom - 10, 21);
+  await settle(el);
+  expect(el.carrying).toBe(-1);
+  expect(document.querySelector('.board-ghost')).toBe(null);
+  pointer(meta(el, 1, 0), 'pointermove', r.left + 17, r.bottom - 10, 21);
+  await settle(el);
+  expect(el.carrying).toBe(0);
+  pointer(meta(el, 1, 0), 'pointerup', r.left + 17, r.bottom - 10, 21);
+  el.querySelector('.board')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(el.value).toBe(BOARD);
+  // A click, moved less: the card chosen; on a title's words, the caret where it was clicked.
+  pointer(meta(el, 1, 0), 'pointerdown', r.left + 10, r.bottom - 10, 22);
+  pointer(meta(el, 1, 0), 'pointermove', r.left + 13, r.bottom - 8, 22);
+  pointer(meta(el, 1, 0), 'pointerup', r.left + 13, r.bottom - 8, 22);
+  meta(el, 1, 0).click();
+  await settle(el);
+  expect(ranged(el)).toEqual(['Write the brief']);
+  const x = title(el, 0, 0).tx;
+  const w = x.getBoundingClientRect();
+  const range = document.createRange();
+  const words = document.createTreeWalker(x, NodeFilter.SHOW_TEXT).nextNode()!;
+  range.setStart(words, 4);
+  range.setEnd(words, 5);
+  const p = range.getBoundingClientRect();
+  pointer(x, 'pointerdown', p.left + 1, w.top + w.height / 2, 23);
+  pointer(x, 'pointerup', p.left + 1, w.top + w.height / 2, 23);
+  x.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: p.left + 1, clientY: w.top + w.height / 2 }));
+  await settle(el);
+  expect(document.activeElement).toBe(x);
+  expect(title(el, 0, 0).sel?.focus.offset).toBe(4);
+  // Pressed in the words being typed, the press is the words': no drag.
+  pointer(x, 'pointerdown', p.left + 1, w.top + 4, 24);
+  pointer(x, 'pointermove', p.left + 80, w.top + 40, 24);
+  await settle(el);
+  expect(el.carrying).toBe(-1);
+  pointer(x, 'pointerup', p.left + 80, w.top + 40, 24);
+});
+
+test('a finger: moved at once it scrolls and carries nothing; held a moment the card lifts, the page no longer scrolls, and moved it is carried', async () => {
+  const { el, last } = await editor();
+  const card = () => cards(el, 1)[0];
+  const r = card().getBoundingClientRect();
+  const to = lanes(el)[2].getBoundingClientRect();
+  // Moved before the card lifts: the page's scroll, no press of the board's (the browser lets it go, pointercancel).
+  pointer(card(), 'pointerdown', r.left + 10, r.top + 10, 31, 'touch');
+  pointer(card(), 'pointermove', r.left + 10, r.top + 40, 31, 'touch');
+  pointer(card(), 'pointermove', to.left + 40, to.top + 60, 31, 'touch');
+  await settle(el);
+  expect(el.carrying).toBe(-1);
+  expect(el.lifting).toBe(-1);
+  pointer(card(), 'pointercancel', to.left + 40, to.top + 60, 31, 'touch');
+  // A short tap is still a tap: no lift, the card chosen by the click that follows.
+  pointer(card(), 'pointerdown', r.left + 10, r.top + 10, 32, 'touch');
+  pointer(card(), 'pointerup', r.left + 10, r.top + 10, 32, 'touch');
+  expect(el.lifting).toBe(-1);
+  // Held still, the card lifts; a touchmove then is the board's, not the page's scroll; and the card is carried.
+  pointer(card(), 'pointerdown', r.left + 10, r.top + 10, 33, 'touch');
+  await until(() => el.lifting === 0, 'the card never lifted');
+  await settle(el);
+  expect(card().classList.contains('lifting')).toBe(true);
+  const scroll = new TouchEvent('touchmove', { bubbles: true, cancelable: true });
+  card().dispatchEvent(scroll);
+  expect(scroll.defaultPrevented).toBe(true);
+  const menu = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+  card().dispatchEvent(menu);
+  expect(menu.defaultPrevented).toBe(true);
+  pointer(card(), 'pointermove', r.left + 10, r.top + 30, 33, 'touch');
+  pointer(card(), 'pointermove', to.left + 40, to.top + 60, 33, 'touch');
+  await settle(el);
+  expect(el.carrying).toBe(0);
+  pointer(card(), 'pointerup', to.left + 40, to.top + 60, 33, 'touch');
+  await settle(el);
+  expect(drawn(el)[2]).toEqual(['Done', ['Write the brief']]);
+  expect(last()).toBe(HEAD + 'Write the brief | Done | Ana\n' + B + C);
+  // A touchmove with no card lifted is the page's.
+  const free = new TouchEvent('touchmove', { bubbles: true, cancelable: true });
+  cards(el, 0)[0].dispatchEvent(free);
+  expect(free.defaultPrevented).toBe(false);
+});
+
+test('while a card is carried near an edge the board scrolls: its lanes sideways, and a lane’s cards where the page gives a lane a height', async () => {
+  await page.viewport(1100, 800);
+  const { el } = await editor((await def.templates!()).find((x) => x.id === 'pipeline')!.doc);
+  const board = el.querySelector<HTMLElement>('.board')!;
+  expect(board.scrollLeft).toBe(0);
+  const b = board.getBoundingClientRect();
+  const r = cards(el, 0)[0].getBoundingClientRect();
+  pointer(cards(el, 0)[0], 'pointerdown', r.left + 10, r.top + 10, 41);
+  pointer(cards(el, 0)[0], 'pointermove', b.right - 8, r.top + 30, 41);
+  await until(() => board.scrollLeft > 40, 'the lanes never scrolled');
+  pointer(cards(el, 0)[0], 'pointerup', b.right - 8, r.top + 30, 41);
+  await settle(el);
+  board.scrollLeft = 0;
+  // A lane of its own height: its cards scroll under a card held near its foot.
+  el.style.setProperty('--to-board-lane-h', '6rem');
+  await settle(el);
+  const list = lanes(el)[0].querySelector<HTMLElement>('.board-cards')!;
+  expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+  const l = list.getBoundingClientRect();
+  const c = cards(el, 1)[0].getBoundingClientRect();
+  pointer(cards(el, 1)[0], 'pointerdown', c.left + 10, c.top + 10, 42);
+  pointer(cards(el, 1)[0], 'pointermove', l.left + 30, l.bottom - 4, 42);
+  await until(() => list.scrollTop > 0, 'the lane never scrolled');
+  key(el, 'Escape');
+  pointer(cards(el, 1)[0], 'pointerup', l.left + 30, l.bottom - 4, 42);
+  await settle(el);
+});
+
+test('a blank board: To do, Doing and Done, no cards; the focus on the first lane’s name, which Enter renames', async () => {
   const { el, last } = await editor(def.blank());
   expect(def.blank()).toBe('---\nlanes: To do, Doing, Done\n---\nTitle | Status:option\n--- | ---\n');
   expect(drawn(el)).toEqual([
@@ -502,10 +805,13 @@ test('a blank board: To do, Doing and Done, no cards; Enter in a lane’s name m
   await el.focusFirst();
   await settle(el);
   expect(document.activeElement).toBe(laneName(el, 0).tx);
+  key(laneName(el, 0).tx, 'Enter');
+  await settle(el);
+  await type(el, () => laneName(el, 0), 'Ideas');
   input(laneName(el, 0), 'insertParagraph');
   await settle(el);
-  expect(parse(last()!).blocks[0]).toMatchObject({ k: 'table', rows: [['', 'To do']] });
-  expect(document.activeElement).toBe(title(el, 0, 0).tx);
+  expect(last()).toBe('---\nlanes: Ideas, Doing, Done\n---\nTitle | Status:option\n--- | ---\n');
+  expect(document.activeElement).toBe(laneName(el, 0).tx);
 });
 
 test('on a wide screen the lanes are a row that scrolls sideways on its own, the page never wider', async () => {
@@ -536,7 +842,7 @@ test('at phone width: the lanes stacked, the full width, cards a finger tall, 16
     expect(a.width).toBeGreaterThan(300);
     for (const x of el.querySelectorAll<HTMLElement>('.board-lane, .board-card')) expect(x.getBoundingClientRect().right).toBeLessThanOrEqual(390);
     for (const c of el.querySelectorAll<HTMLElement>('.board-card')) expect(c.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
-    for (const g of el.querySelectorAll<HTMLElement>('.board-grip')) expect(Math.min(g.getBoundingClientRect().width, g.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    for (const g of el.querySelectorAll<HTMLElement>('.board-more')) expect(Math.min(g.getBoundingClientRect().width, g.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
     for (const x of el.querySelectorAll<HTMLElement>('.board-title .tx, .board-lane-name .tx')) expect(parseFloat(getComputedStyle(x).fontSize)).toBeGreaterThanOrEqual(16);
     // The bar, and the bar under chosen cards, each one row inside the screen.
     const oneRow = (bar: HTMLElement) => {
@@ -564,14 +870,20 @@ test('a template opened draws its lanes and its cards, each card with its fields
     ['Doing', ['Draft the press release', 'Build the landing page']],
     ['Done', ['Write the launch brief', 'Book the photographer']],
   ]);
-  expect([...cards(el, 1)[0].querySelectorAll('.board-fields dt')].map((x) => x.textContent)).toEqual(['Owner', 'Due']);
+  // Owner a person, Due a day, short, in the reader's language.
+  const card = cards(el, 1)[0];
+  expect(card.querySelector<HTMLElement>('.board-person')!.title).toBe('Owner: Maya');
+  expect(card.querySelector<HTMLElement>('.board-date')!.title).toBe('Due: 2026-11-09');
+  expect(card.querySelector<HTMLElement>('.board-date')!.textContent!.replace('Due: ', '').trim()).toMatch(/^Nov 9(, 2026)?$/);
+  expect(card.querySelector('.board-fields')).toBeNull();
 });
 
-test('every lane and every card has a name: the lane’s, the card’s title; its grip and title say which card in which lane', async () => {
+test('every lane and every card has a name: the lane’s, the card’s title; the card and its title say which card in which lane', async () => {
   const { el } = await editor();
   expect(lanes(el).map((l) => l.getAttribute('aria-label'))).toEqual(['To do', 'Doing', 'Done']);
   expect([...el.querySelectorAll('.board-card')].map((c) => c.getAttribute('aria-label'))).toEqual(['Book the room', 'Write the brief', 'Send invites']);
-  for (const g of el.querySelectorAll('.board-grip, .board-more')) expect(g.getAttribute('aria-label')).toBeTruthy();
+  for (const g of el.querySelectorAll('.board-more')) expect(g.getAttribute('aria-label')).toBeTruthy();
+  expect(cards(el, 1)[1].getAttribute('aria-description')).toBe('Card 2 in Doing: tap to select, drag to move');
   for (const x of el.querySelectorAll<ToText>('to-text')) expect(x.tx.getAttribute('aria-label')).toBeTruthy();
   expect(el.querySelector('.board')!.getAttribute('aria-label')).toBe('Board');
 });
@@ -640,7 +952,7 @@ test('a card opened (Alt+Enter, Open, a double click) is its fields in a dialog;
   expect(ranged(el)).toEqual(['Book the room']);
   // A double click on the card's fields; the dialog's Delete takes it away.
   cards(el, 0)[0]
-    .querySelector('.board-fields')!
+    .querySelector('.board-meta')!
     .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
   await until(() => !!dialog().dialog?.open);
   await settle(el);
@@ -674,22 +986,26 @@ test('Done writes the fields typed alone: what an edit from elsewhere changed wh
   expect(last()).toBe(head + 'Write the whole brief | Done | Ana Lee | 2026-11-09\n' + rest);
 });
 
-test('a finger held on the grip chooses the card, the bar under it up; it is no drag after', async () => {
+test('a finger held half a second on a card chooses it, the bar under it up, and the click after is no tap; moved then, it is carried', async () => {
   const { el } = await editor();
   const g = grip(el, 1, 0);
   const h = g.getBoundingClientRect();
-  const at = (type: string, x: number, y: number) =>
-    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, isPrimary: true, button: 0, pointerType: 'touch', clientX: x, clientY: y }));
-  at('pointerdown', h.left + 4, h.top + 4);
-  // Half a second held, the card is chosen.
+  pointer(g, 'pointerdown', h.left + 4, h.top + 4, 9, 'touch');
   await until(() => ranged(el).length === 1);
   expect(ranged(el)).toEqual(['Write the brief']);
-  at('pointermove', h.left + 120, h.top + 60);
-  at('pointerup', h.left + 120, h.top + 60);
+  pointer(g, 'pointerup', h.left + 4, h.top + 4, 9, 'touch');
   g.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(el);
   expect(el.value).toBe(BOARD);
   expect(ranged(el)).toEqual(['Write the brief']);
+  // Held again, then moved: carried after all.
+  pointer(g, 'pointerdown', h.left + 4, h.top + 4, 10, 'touch');
+  await until(() => el.lifting === 0);
+  const to = lanes(el)[2].getBoundingClientRect();
+  pointer(g, 'pointermove', to.left + 40, to.top + 60, 10, 'touch');
+  pointer(g, 'pointerup', to.left + 40, to.top + 60, 10, 'touch');
+  await settle(el);
+  expect(drawn(el)[2]).toEqual(['Done', ['Write the brief']]);
 });
 
 test('the bar hands the cards to the Spreadsheet: the same table, opened where the page’s host says documents open', async () => {
@@ -752,7 +1068,7 @@ test('read-only: no bar and no lane menus, nothing typed or carried, and a card 
   expect(picks).toStrictEqual([{ at: 0, row: 2 }]);
   key(title(el, 0, 0).tx, 'Enter');
   expect(picks.at(-1)).toStrictEqual({ at: 0, row: 1 });
-  // A drag by the grip carries nothing.
+  // A drag carries nothing.
   const to = cards(el, 1)[0].getBoundingClientRect();
   drag(grip(el, 0, 0), to.left + 40, to.top + 4, 11);
   await settle(el);
@@ -761,7 +1077,7 @@ test('read-only: no bar and no lane menus, nothing typed or carried, and a card 
   expect(el.value).toBe(BOARD);
 });
 
-test('pickable, a card activated while the board can be changed is picked with its table and its row; a drag by the grip still carries it', async () => {
+test('pickable, a card activated while the board can be changed is picked with its table and its row; Shift and a click chooses it, a drag still carries it', async () => {
   const { el, last, heard } = await editor();
   const picks: Picked[] = [];
   el.addEventListener('docpick', (e) => picks.push((e as DocPick).detail));
@@ -769,7 +1085,7 @@ test('pickable, a card activated while the board can be changed is picked with i
   await settle(el);
   expect(el.hasAttribute('pickable')).toBe(true);
   // A click on a card's fields, or on the card around them: picked, and not chosen.
-  cards(el, 1)[0].querySelector<HTMLElement>('.board-fields')!.click();
+  cards(el, 1)[0].querySelector<HTMLElement>('.board-meta')!.click();
   cards(el, 0)[0].click();
   await settle(el);
   expect(picks).toStrictEqual([
@@ -779,7 +1095,7 @@ test('pickable, a card activated while the board can be changed is picked with i
   expect(ranged(el)).toEqual([]);
   // A double click on a card opens nothing: the pick was the page's.
   cards(el, 1)[0]
-    .querySelector('.board-fields')!
+    .querySelector('.board-meta')!
     .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
   await settle(el);
   expect(el.querySelector<ToDialog>('to-dialog.board-dialog')!.dialog?.open).toBeFalsy();
@@ -804,12 +1120,14 @@ test('pickable, a card activated while the board can be changed is picked with i
   expect(picks.at(-1)).toStrictEqual({ at: 0, row: 2 });
   expect(ranged(el)).toEqual(['Send invites']);
   expect(last()).toBe(BOARD);
-  // A tap on the grip chooses the card, and Enter picks it.
-  await tapGrip(el, 0, 0);
+  // Shift and a click chooses the card (a click alone picks it), and Enter picks it.
+  key(board, 'Escape');
+  await settle(el);
+  await tapGrip(el, 0, 0, { shiftKey: true });
   expect(ranged(el)).toEqual(['Book the room']);
   key(board, 'Enter');
   expect(picks.at(-1)).toStrictEqual({ at: 0, row: 1 });
-  // A drag by the grip carries it, told as ops.
+  // A drag carries it, told as ops, and picks nothing.
   const told = heard.length;
   const to = cards(el, 1)[1].getBoundingClientRect();
   drag(grip(el, 0, 0), to.left + 40, to.top + 4, 12);
@@ -825,7 +1143,7 @@ test('not pickable, as a board is unless the page asks: a tap on a card chooses 
   el.addEventListener('docpick', (e) => picks.push((e as DocPick).detail));
   expect(el.pickable).toBe(false);
   expect(el.hasAttribute('pickable')).toBe(false);
-  cards(el, 1)[0].querySelector<HTMLElement>('.board-fields')!.click();
+  cards(el, 1)[0].querySelector<HTMLElement>('.board-meta')!.click();
   await settle(el);
   expect(ranged(el)).toEqual(['Write the brief']);
   await caretIn(el, title(el, 0, 0));
@@ -916,23 +1234,23 @@ test('carried only: no bar and no lane menus, the words shown and not typed; typ
   await settle(el);
   expect(el.querySelector('to-bar.board-bar')).not.toBeNull();
   expect(el.querySelectorAll('.board-more')).toHaveLength(3);
-  for (const x of el.querySelectorAll<ToText>('to-text')) expect(x.tx.getAttribute('contenteditable')).toBe('true');
+  for (const x of el.querySelectorAll<ToText>('.board-title')) expect(x.tx.getAttribute('contenteditable')).toBe('true');
 });
 
-test('carried only, a title focused has no field’s ground; a read-only board’s keeps the look it had', async () => {
-  const ground = async (el: ToBoardEditor) => {
+test('a title focused is outlined, never given a field’s ground: typed, carried only and read-only alike', async () => {
+  const look = async (el: ToBoardEditor) => {
     title(el, 0, 0).tx.focus();
     await settle(el);
-    return getComputedStyle(title(el, 0, 0).tx).backgroundColor;
+    const css = getComputedStyle(title(el, 0, 0).tx);
+    return [css.backgroundColor, css.outlineStyle];
   };
   const { el: shown } = await board(BOARD, { readOnly: true });
-  const before = await ground(shown);
-  expect(before).not.toBe('rgba(0, 0, 0, 0)');
+  expect(await look(shown)).toEqual(['rgba(0, 0, 0, 0)', 'solid']);
   const { el } = await editor();
-  expect(await ground(el)).toBe(before);
+  expect(await look(el)).toEqual(['rgba(0, 0, 0, 0)', 'solid']);
   el.carryOnly = true;
   await settle(el);
-  expect(await ground(el)).toBe('rgba(0, 0, 0, 0)');
+  expect(await look(el)).toEqual(['rgba(0, 0, 0, 0)', 'solid']);
 });
 
 test('carried only, a card is carried by a drag, the keys, Move to… and its dialog’s lane, and every op told is its move; an undo takes one back', async () => {
@@ -957,7 +1275,7 @@ test('carried only, a card is carried by a drag, the keys, Move to… and its di
   el.querySelectorAll<HTMLButtonElement>('to-menu.board-moveto [role^=menuitem]')[0].click();
   await settle(el);
   expect(drawn(el)[0]).toEqual(['To do', ['Book the room', 'Write the brief']]);
-  // A drag by the grip, into Doing before Send invites.
+  // A drag, into Doing before Send invites.
   const to = cards(el, 1)[0].getBoundingClientRect();
   drag(grip(el, 0, 0), to.left + 40, to.top + 4, 13);
   await settle(el);
@@ -1078,14 +1396,14 @@ test('carried only, an undo of an edit made before is refused; a new document’
   expect(opsOf(heard.slice(told)).filter((op) => !aMove(op))).toStrictEqual([]);
 });
 
-test('carried only and pickable: a click on a card, its title too, and Enter on its title pick it; its grip still chooses and carries it', async () => {
+test('carried only and pickable: a click on a card, its title too, and Enter on its title pick it; Shift and a click chooses it, a drag carries it', async () => {
   const { el, last } = await editor();
   const picks: Picked[] = [];
   el.addEventListener('docpick', (e) => picks.push((e as DocPick).detail));
   Object.assign(el, { carryOnly: true, pickable: true });
   await settle(el);
   title(el, 1, 1).tx.click();
-  cards(el, 1)[0].querySelector<HTMLElement>('.board-fields')!.click();
+  cards(el, 1)[0].querySelector<HTMLElement>('.board-meta')!.click();
   title(el, 0, 0).tx.focus();
   key(title(el, 0, 0).tx, 'Enter');
   await settle(el);
@@ -1094,7 +1412,7 @@ test('carried only and pickable: a click on a card, its title too, and Enter on 
     { at: 0, row: 0 },
     { at: 0, row: 1 },
   ]);
-  await tapGrip(el, 0, 0);
+  await tapGrip(el, 0, 0, { shiftKey: true });
   expect(ranged(el)).toEqual(['Book the room']);
   // Enter on it, chosen whole, picks it too.
   key(el.querySelector<HTMLElement>('.board')!, 'Enter');
@@ -1104,4 +1422,57 @@ test('carried only and pickable: a click on a card, its title too, and Enter on 
   await settle(el);
   expect(last()).toBe(HEAD + A + 'Book the room | Doing | Ben\n' + C);
   expect(picks).toHaveLength(4);
+});
+
+test('a card’s face by its columns’ types: the title, the line under it, its amount, its day, its owner’s initials; a lane sums its amounts', async () => {
+  const { el } = await editor((await def.templates!()).find((x) => x.id === 'pipeline')!.doc);
+  const card = cards(el, 0)[0];
+  expect(said(title(el, 0, 0))).toBe('Website redesign');
+  expect(card.querySelector('.board-line')!.textContent).toBe('Hudson Bakery');
+  const money = card.querySelector<HTMLElement>('.board-money')!;
+  expect([money.title, money.textContent]).toEqual(['Value: $12,000.00', 'Value: $12,000']);
+  expect(card.querySelector<HTMLElement>('.board-date')!.title).toBe('Close: 2026-12-15');
+  const person = card.querySelector<HTMLElement>('.board-person')!;
+  expect([person.querySelector('[aria-hidden]')!.textContent, person.title]).toEqual(['MP', 'Owner: Maya Patel']);
+  // The same person, the same hue, on every card.
+  const hue = (c: HTMLElement) => c.querySelector<HTMLElement>('.board-person')!.style.getPropertyValue('--to-board-hue');
+  expect(hue(cards(el, 1)[0])).toBe(hue(card));
+  expect(hue(cards(el, 0)[1])).not.toBe(hue(card));
+  // The type: the title the largest and heaviest line, the line under it a second ink.
+  const big = getComputedStyle(title(el, 0, 0).tx);
+  const line = getComputedStyle(card.querySelector('.board-line')!);
+  expect(parseFloat(big.fontSize)).toBeGreaterThan(parseFloat(line.fontSize));
+  expect(Number(big.fontWeight)).toBeGreaterThanOrEqual(600);
+  expect(line.color).not.toBe(big.color);
+  // Each lane its sum, said to a screen reader; Won and Lost too.
+  const sums = () => lanes(el).map((l) => l.querySelector('.board-sum [aria-hidden]')!.textContent);
+  expect(sums()).toEqual(['$20,500', '$48,000', '$22,000', '$30,000', '$18,000', '$40,000']);
+  expect(lanes(el)[0].querySelector('.board-sum .sr-only')!.textContent).toBe('Total $20,500');
+  // A card carried, the sums follow it.
+  const to = lanes(el)[1].getBoundingClientRect();
+  drag(meta(el, 0, 0), to.left + 40, to.bottom - 6, 51);
+  await settle(el);
+  expect(sums().slice(0, 2)).toEqual(['$8,500', '$60,000']);
+  // A board with no money column sums nothing.
+  const { el: plain } = await editor();
+  expect(plain.querySelector('.board-sum')).toBeNull();
+});
+
+test('a card’s fields as the page says (cardFields): which columns, in its order, and how; [] the title alone; null the defaults again', async () => {
+  const { el } = await editor((await def.templates!()).find((x) => x.id === 'pipeline')!.doc);
+  el.cardFields = [{ column: 'Close' }, { column: 'owner', as: 'text' }, { column: 'Value', as: 'badge' }, { column: 'Company', as: 'person' }];
+  await settle(el);
+  const card = () => cards(el, 0)[0];
+  expect(card().querySelector('.board-line')).toBeNull();
+  expect([...card().querySelectorAll('.board-fields dt, .board-fields dd')].map((x) => x.textContent)).toEqual(['Owner', 'Maya Patel']);
+  expect([...card().querySelectorAll('.board-meta > .board-chip')].map((x) => x.className.replace('board-chip ', ''))).toEqual(['board-date', 'board-badge']);
+  expect(card().querySelector('.board-badge')!.textContent).toBe('Value $12,000.00');
+  expect(card().querySelector<HTMLElement>('.board-person')!.title).toBe('Company: Hudson Bakery');
+  el.cardFields = [];
+  await settle(el);
+  expect(card().querySelector('.board-line, .board-fields, .board-meta')).toBeNull();
+  expect(said(title(el, 0, 0))).toBe('Website redesign');
+  el.cardFields = null;
+  await settle(el);
+  expect(card().querySelector('.board-line')!.textContent).toBe('Hudson Bakery');
 });

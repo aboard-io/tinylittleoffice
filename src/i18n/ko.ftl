@@ -3360,6 +3360,14 @@ board-card-in-lane-beside = 이전 열이나 다음 열의 옆 카드
 board-move-card-to-lane-before-or = 카드를 이전 열이나 다음 열로 이동
 # en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
 board-lane-name = 열 이름
+# en: 4a1eabde691b377e61e564f2b21a56ce7c48f862
+board-lane-needs-a-name = 열에는 이름이 있어야 합니다.
+# en: f2eaf2b4b185176968749b50d7028a1c89357026
+board-lane-name-taken = { $lane }(이)라는 열이 이미 있습니다.
+# en: d1bef7e304cff6b5048ede1892d1cc9c4307b7fd
+board-double-click-to-rename = 두 번 클릭해 이름 바꾸기
+# en: c6196faeecf27e09514f0812df5e4b0f18a49465
+board-lane-total = 합계 { $sum }
 # same
 # en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
 board-yyyy-mm-dd = YYYY-MM-DD

@@ -2,9 +2,15 @@
  * <to-board-editor>: the Board app. The lanes are columns side by side, about 16rem each, that scroll sideways on a
  * wide screen; where the board is narrower than two lanes (a phone, or the size of everything grown by a pinch) they
  * stack, one under another the column's width, so the words reflow and the page never scrolls sideways. Each lane is
- * its name (typed where it is drawn, kept on Enter or when the focus leaves it, put back by Escape), how many cards it
- * holds, and a menu (Rename lane, Add a card, Move left, Move right, Delete lane). A card is its grip, its title (a
- * one-line <to-text> of its cell's words as the Spreadsheet shows them) and its fields under it, shown so too.
+ * its name, how many cards it holds, the sum of their amounts where the table has a column of money, and a menu (Rename
+ * lane, Add a card, Move left, Move right, Delete lane). A lane's name is renamed where it is drawn: a double click on
+ * it, Enter or F2 on it, or its menu's Rename makes it a field, its words chosen; Enter keeps the name, Escape lets it
+ * go, the focus leaving keeps it, and a name that is empty or another lane's is refused, said under the name.
+ *
+ * A card is its title (a one-line <to-text> of its cell's words as the Spreadsheet shows them), the line under it (a
+ * deal's company) and a few of its fields, each drawn as what it is (an amount, a day, a person's initials, a chip, a
+ * quiet name and value): which, and how, is the page's to say (`cardFields`), else the columns' types say
+ * (model.ts `cardFieldsOf`).
  *
  * The title is words both ways (model.ts): it holds what its cell shows ("'007" written, 007 shown), and what is typed
  * is written as words of the title column's type (`setTitle`, `addCard`: 007 typed is "'007", =1+1 typed stays words,
@@ -20,11 +26,18 @@
  * Shift+Up/Down in the title choose them whole, and chosen cards are moved, duplicated, copied (a table as TLO and our
  * HTML), cut, pasted and deleted from the keys or the bar under them. A card opened shows its row's every cell as a
  * field in a dialog (the kit's <to-dialog>, as the Calendar's entries: the cells are fields that are not all words, a
- * date, an amount, a choice); Done writes the fields typed, and those alone, as one step (Opened, below). The grip
- * carries a card into any lane by a drag (pointer events, never HTML5 drag-and-drop), a ghost of it under the pointer
- * and the place it would land drawn, the board scrolled at its edges.
+ * date, an amount, a choice); Done writes the fields typed, and those alone, as one step (Opened, below).
+ *
+ * A card is carried from anywhere on it, with no grip (Paul, 2026-10-18: "draggable without having a handle"), by
+ * pointer events, never HTML5 drag-and-drop: a mouse's press carries it once it has moved 6px, so a click is still a
+ * click (the caret in its title, the card chosen, or picked); a finger's or a pen's once it has been held still for a
+ * fifth of a second and then moves, so a finger that moves at once scrolls the page as ever (the card lifts when it may
+ * be carried; held half a second it is chosen, the standard's hold, and may still be carried). A title being typed in
+ * is the words', whose press selects them. While a card is carried a ghost of it follows the pointer, a slot its size
+ * shows where it would land, and the board, the column and a lane that scrolls on its own scroll near their edges.
+ * Escape lets it go where it was.
  * A page that opens what a card stands for asks for a pick (`pickable`): a card activated, a click or a tap on it outside
- * its grip and outside a title being typed, or Enter on it chosen whole, is a bubbling "docpick" with `{ at, row }`, as a
+ * a title being typed, or Enter on it chosen whole, is a bubbling "docpick" with `{ at, row }`, as a
  * read-only board's is, while its cards are still carried and typed; a double click on it opens nothing, the pick
  * having been the page's.
  * Every edit carries where the caret or the chosen cards were, so an undo puts them back. Every change is operations on
@@ -38,7 +51,7 @@
  * The library's own apps). Its stylesheet is style.css, which the library serves as board.css beside the editors'.
  *
  * A page that lets its cards be carried and nothing else be changed (a CRM's pipeline: a lead's stage changes there, the
- * rest on the lead's own page) sets `carry-only`. A card is carried by its grip's drag, by the keys (Alt+Up/Down along
+ * rest on the lead's own page) sets `carry-only`. A card is carried by a drag, by the keys (Alt+Up/Down along
  * its lane and Mod+Alt+Left/Right across, in its title; on chosen cards Alt+Up/Down and Mod+Left/Right), by Move to…
  * and by its dialog's lane, and that is all: no bar and no lane's menu are drawn; the titles and the lanes' names are
  * shown, not typed (the kit's words inside `[readonly]`); the bar under chosen cards holds Move up, Move down, Open,
@@ -46,8 +59,14 @@
  * refused before anything hears it, and `edit` writes nothing, a move being `moved`. So every op it tells is a move's
  * (model.ts `moveCard`), and an undo is a move taken back as a move (`moveBack`), from the board's own history of the
  * moves made while it is carried only; what was done before is out of an undo's reach.
+ *
+ * A page whose lanes are its own records (a CRM's stages) hears each change to a lane before it is made: "lanerename"
+ * `{ from, to }`, "laneadd" `{ name, at }`, "lanemove" `{ name, from, to }` and "lanedelete" `{ name, cards }`, each
+ * bubbling and cancelable (LaneEvent). A page that calls `preventDefault()` refuses it, or makes it through its own
+ * command and gives the board its new document; a page that sets `own-lanes` makes them all itself, and the board only
+ * tells them, carried only too (where its lanes' names, their menus and Rename are then offered).
  */
-import { ArrowDown, ArrowUp, Copy, Ellipsis, GripVertical } from 'lucide';
+import { ArrowDown, ArrowUp, CalendarDays, Copy, Ellipsis } from 'lucide';
 import { applyAll, COL_NAMES, parse, parseInline, plainText, transform, write, writeInline, type Block, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
 import { DocElement, type DocPick, type Entry } from '../../kit/core/element.ts';
 import { Rows, lastCopied, type RowItem, type RowRange, type RowSpan } from '../../kit/text/rows.ts';
@@ -58,7 +77,8 @@ import { choicesOf } from '../../kit/text/columns.ts';
 import { clipText, docToHtml, type Clip } from '../../kit/text/clipboard.ts';
 import { drawnIn, runKey } from '../../kit/core/commands.ts';
 import { host } from '../../kit/core/host.ts';
-import { html, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
+import { html, nothing, render, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { reveal, scrollerOf } from '../../kit/ui/scroll.ts';
 import { t } from '../../kit/core/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/ui/menu.ts';
@@ -69,12 +89,15 @@ import {
   addCard,
   addLane,
   boardOf,
+  cardFieldsOf,
   cardsTable,
   duplicateCards,
   moveBack,
   moveCard,
   moveCards,
   moveLane,
+  laneSum,
+  moneyColumn,
   pasteCards,
   removeCard,
   removeCards,
@@ -84,9 +107,12 @@ import {
   setTitle,
   type BoardView,
   type Card,
+  type CardField,
+  type Field,
   type Lane,
+  type ShownField,
 } from './model.ts';
-import { shownFields } from './view.ts';
+import { dayShort, hueOf, initials, moneyShort } from './fields.ts';
 import { columnNames } from './words.ts';
 import '../../kit/text/text.ts';
 import '../../kit/ui/bar.ts';
@@ -100,6 +126,19 @@ export const tag = 'to-board-editor';
 
 /** What a "docpick" says of a card picked: the table's block, and the card's row in it. */
 export type PickedCard = { at: number; row: number };
+/**
+ * What a change to a lane says before it is made, each a bubbling, cancelable event of the board's: "lanerename" a
+ * lane's name `from` to `to`; "laneadd" a lane `name` at place `at` among the lanes; "lanemove" lane `name` from place
+ * `from` to place `to`; "lanedelete" lane `name` and the `cards` it takes with it. A page that refuses it, or makes it
+ * itself, calls `preventDefault()`.
+ */
+export interface LaneEvents {
+  lanerename: { from: string; to: string };
+  laneadd: { name: string; at: number };
+  lanemove: { name: string; from: number; to: number };
+  lanedelete: { name: string; cards: number };
+}
+export type LaneEvent<K extends keyof LaneEvents = keyof LaneEvents> = CustomEvent<LaneEvents[K]>;
 /** Where the selection was when an edit began (the entry's mark): cards chosen whole, or the caret in a card's title. */
 type Mark = { range: RowRange<number> } | { row: number; offset: number };
 /** Where a carried card would land: lane `lane`, at place `pos` among its other cards. */
@@ -121,10 +160,29 @@ interface Opened {
   rich: Map<number, Block>;
   back: 'rows' | number | 'end';
 }
-/** How far a pointer moves before a press on a grip is a drag; how near an edge of what scrolls a drag scrolls it; how long a finger held on a grip chooses its card. */
+/**
+ * How far a mouse moves pressed on a card before it is carried (a click moves less); how far a finger or a pen; how
+ * long a finger or a pen is held still on a card before it may carry it (moved sooner, it scrolls the page); how long
+ * before the hold chooses the card; how near an edge of what scrolls a carried card scrolls it, and how fast at most.
+ */
 const SLOP = 6;
-const EDGE = 48;
+const TOUCH_SLOP = 8;
+const PRESS = 200;
 const HOLD = 500;
+const EDGE = 48;
+const SPEED = 18;
+/** A press on a card: the pointer, where it went down, the card, a finger's or a pen's, whether it may carry the card yet, has, or was held to choose it. */
+interface Press {
+  id: number;
+  x: number;
+  y: number;
+  row: number;
+  touch: boolean;
+  armed: boolean;
+  moved: boolean;
+  held: boolean;
+  timers: number[];
+}
 /** The keyboard a field asks a phone for, as the Spreadsheet's cell does: numbers for a number, digits for a date, letters for the rest. */
 const KEYBOARD: Partial<Record<ColType, string>> = { number: 'decimal', money: 'decimal', percent: 'decimal', date: 'numeric' };
 /** What a person does that would change a board carried only other than by a move, refused before anything hears it (as DocElement refuses it read-only). */
@@ -187,14 +245,34 @@ export class ToBoardEditor extends DocElement<BoardView> {
     carryOnly: { type: Boolean, attribute: 'carry-only', reflect: true },
     cur: { state: true },
     over: { state: true },
+    ownLanes: { type: Boolean, attribute: 'own-lanes', reflect: true },
+    cardFields: { attribute: false },
     carrying: { state: true },
+    lifting: { state: true },
     menuAt: { state: true },
     opened: { state: true },
+    renaming: { state: true },
+    laneError: { state: true },
   };
   /** A card activated is picked ("docpick", as read-only) while the board can still be changed: the page asks for it (the attribute `pickable`). */
   declare pickable: boolean;
   /** Its cards carried among the lanes and nothing else changed (the attribute `carry-only`): the header's last paragraph. */
   declare carryOnly: boolean;
+  /** The page makes every change to a lane itself (the attribute `own-lanes`): the board tells them (LaneEvents) and makes none. */
+  declare ownLanes: boolean;
+  /**
+   * Which fields a card shows, and how (model.ts `CardField`: a column by name or place, `as` line, text, money, date,
+   * person or badge), in this order; null (the default) for the columns' types to say (`cardFieldsOf`), [] for the title alone.
+   */
+  declare cardFields: CardField[] | null;
+  /** The card a finger or a pen holds, lifted, ready to be carried, by its row; -1 for none. */
+  declare lifting: number;
+  /** The lane whose name is a field, being renamed, by its place; -1 for none. */
+  declare renaming: number;
+  /** Why the name typed was refused, said under it; '' for nothing. */
+  declare laneError: string;
+  /** The lane whose name was refused, where `laneError` is said. */
+  private errorAt = -1;
   /** The card in hand (the caret's), by its row; -1 for none. */
   declare cur: number;
   /** The lane in hand (the caret's, in its name or a card), by its place; -1 for none. */
@@ -214,10 +292,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
   /** A card's title or a lane's name as its editor holds it (a space typed at the end the table does not keep; a name not yet kept). */
   private drafts = new Map<string, Block>();
   private ones = new WeakMap<Block, Block[]>();
-  private press: { id: number; x: number; y: number; row: number; moved: boolean; hold: number; held: boolean } | null = null;
+  private press: Press | null = null;
   private point = { x: 0, y: 0 };
   private scrolling = 0;
-  /** A drag just ended on the grip: the click that follows it is not a tap. */
+  /** A drag just ended, or a hold chose the card: the click that follows it is not a tap. */
   private dragged = false;
   /**
    * Carried only, the board's own history, of moves alone: the moves made, to be taken back (Mod+Z), each as the move
@@ -230,7 +308,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
   readonly rows = new Rows<number>(this, {
     rows: () => this.rowItems(),
     box: () => this.querySelector<HTMLElement>('.board'),
-    handle: '.board-grip',
+    // No handle: a card is pressed, carried and chosen by the board's own pointer (below), from anywhere on it.
+    handle: '[data-board-handle]',
     label: t('board-chosen-cards'),
     contextClass: 'board-context',
     current: () => (this.cardAt(this.cur) ? this.cur : null),
@@ -248,14 +327,29 @@ export class ToBoardEditor extends DocElement<BoardView> {
     super();
     this.pickable = false;
     this.carryOnly = false;
+    this.ownLanes = false;
+    this.cardFields = null;
     this.cur = -1;
     this.carrying = -1;
+    this.lifting = -1;
+    this.renaming = -1;
+    this.laneError = '';
     this.over = null;
     this.menuAt = -1;
     this.opened = null;
   }
   connectedCallback() {
     super.connectedCallback();
+    // First, capturing: the click a drag or a hold ends with is no tap, before a pick or a choose hears it.
+    this.addEventListener('click', this.onClickAfter, true);
+    this.addEventListener('pointerdown', this.down);
+    this.addEventListener('pointermove', this.move);
+    this.addEventListener('pointerup', this.up);
+    this.addEventListener('pointercancel', this.stop);
+    this.addEventListener('mousedown', this.onMouseDown);
+    this.addEventListener('contextmenu', this.onContextMenu);
+    // Not passive: a finger that may carry a card is not a finger that scrolls.
+    this.addEventListener('touchmove', this.onTouchMove, { passive: false });
     this.addEventListener('keydown', this.onKey);
     // Escape during a drag lets it go, before anything else hears the key.
     this.addEventListener('keydown', this.onEscape, true);
@@ -272,6 +366,14 @@ export class ToBoardEditor extends DocElement<BoardView> {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener('click', this.onClickAfter, true);
+    this.removeEventListener('pointerdown', this.down);
+    this.removeEventListener('pointermove', this.move);
+    this.removeEventListener('pointerup', this.up);
+    this.removeEventListener('pointercancel', this.stop);
+    this.removeEventListener('mousedown', this.onMouseDown);
+    this.removeEventListener('contextmenu', this.onContextMenu);
+    this.removeEventListener('touchmove', this.onTouchMove);
     this.removeEventListener('keydown', this.onKey);
     this.removeEventListener('keydown', this.onEscape, true);
     this.removeEventListener('paste', this.onPaste, true);
@@ -354,6 +456,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
   private onUnchanged = (e: Event) => {
     if (!this.carryOnly) return;
     const el = e.target;
+    // A lane's name being renamed where the page makes the lanes' changes (`own-lanes`): typed, then only told.
+    if (e.type === 'beforeinput' && el instanceof Element && el.closest('.board-head.renaming')) return;
     const page = el === document.body || el === document.documentElement;
     if (!(el instanceof Node && this.contains(el)) && !(page && this.rows.range)) return;
     e.preventDefault();
@@ -424,10 +528,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     await this.updateComplete;
     const first = this.view.cards[0];
     if (first) return this.focusTitle(first.row, 'end', false);
-    const x = this.querySelector<ToText>('.board-lane-name');
-    if (!x) return this.querySelector<HTMLElement>('to-insert button')?.focus({ preventScroll: true });
-    await x.updateComplete;
-    x.sel = caret(0, words(x.blocks).length);
+    if (!this.view.lanes.length) return this.querySelector<HTMLElement>('to-insert button')?.focus({ preventScroll: true });
+    return this.focusLane(0, false, false);
   }
   /** A card's title, once drawn, with the caret at `offset`. */
   async focusTitle(row: number, offset: number | 'end' = 'end', show = true) {
@@ -440,16 +542,19 @@ export class ToBoardEditor extends DocElement<BoardView> {
     x.sel = caret(0, offset === 'end' ? n : Math.min(offset, n));
     if (show) reveal(x.closest('.board-card'), { inline: true });
   }
-  /** A lane's name, once drawn, its words chosen whole (a new lane's, which typing replaces; one renamed), or the caret at their end. */
-  private async focusLane(i: number, whole = true) {
+  /** A lane's name, once drawn, focused: shown (a heading the keys rename), or a field with its words chosen whole to type over (`rename`). */
+  async focusLane(i: number, rename = false, show = true) {
     this.curLane = i;
+    if (rename) [this.renaming, this.laneError] = [i, ''];
     await this.updateComplete;
     const x = this.querySelector<ToText>(`.board-lane[data-lane="${i}"] .board-lane-name`);
     if (!x) return;
     await x.updateComplete;
-    const n = words(x.blocks).length;
-    x.sel = { anchor: { block: 0, offset: whole ? 0 : n }, focus: { block: 0, offset: n } };
-    reveal(x, { inline: true });
+    if (rename) {
+      const n = words(x.blocks).length;
+      x.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: n } };
+    } else x.tx.focus({ preventScroll: true });
+    if (show) reveal(x, { inline: true });
   }
 
   /* ---------- a card's title ---------- */
@@ -547,7 +652,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     if (!x || !s || !lane || s.anchor.offset !== s.focus.offset || s.focus.offset !== (side < 0 ? 0 : words(x.blocks).length)) return false;
     const to = lane.cards[Math.min(this.placeOf(c), lane.cards.length - 1)];
     if (to) void this.focusTitle(to.row, side < 0 ? 'end' : 0);
-    else void this.focusLane(c.lane + side, false);
+    else void this.focusLane(c.lane + side);
     return true;
   }
   /** Up and Down in a title: the card before or after in its lane, the caret where it was. */
@@ -596,40 +701,85 @@ export class ToBoardEditor extends DocElement<BoardView> {
 
   /* ---------- a lane's name ---------- */
 
+  /** Whether a page hears a lane's change and lets the board make it: told first (LaneEvents), made unless refused, or where the page makes them all (`own-lanes`) or the board is carried only. */
+  private tell<K extends keyof LaneEvents>(type: K, detail: LaneEvents[K]): boolean {
+    const go = this.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true, cancelable: true }));
+    return go && !this.ownLanes && !this.carryOnly;
+  }
+  /** Whether a lane's name may be changed here: not read-only, and not carried only unless the page makes the lanes' changes. */
+  get lanesChange(): boolean {
+    return !this.readOnly && (!this.carryOnly || this.ownLanes);
+  }
   private onLaneOps(e: CustomEvent<TextOps>, l: Lane) {
     e.stopPropagation();
     // A name is kept when it is done (Enter, or the focus leaving it): typed, it is a draft, never half a name on the cards.
     this.drafts.set(`lane:${l.name}`, plainBlock(words(applyAll({ head: {}, blocks: this.laneBlocks(l) }, e.detail.ops).blocks)));
+    this.laneError = '';
     this.requestUpdate();
   }
-  /** A lane's name as typed, kept: its cards' cells and `lanes:`. An empty name puts the old one back. */
-  private keepLane(l: Lane) {
+  /** Rename lane: its name, where it is drawn, a field, its words chosen to type over. */
+  startRename(i: number) {
+    if (!this.lanesChange || !this.view.lanes[i]) return;
+    void this.focusLane(i, true);
+  }
+  /**
+   * A lane's name as typed, kept (Enter, the focus leaving it): told first ("lanerename"), then its cards' cells and
+   * `lanes:` (model.ts `renameLane`). A name that is empty or another lane's is refused and said; the name stays a field
+   * (`stay`, Enter's) or goes back as it was (the focus leaving). True where the name is done with.
+   */
+  private keepLane(i: number, stay: boolean): boolean {
+    const l = this.view.lanes[i];
+    if (!l || this.renaming !== i) return true;
     const key = `lane:${l.name}`;
     const typed = this.drafts.get(key);
-    if (!typed) return;
-    const name = flat(words([typed]));
+    const name = typed ? flat(words([typed])) : l.name;
+    const refused = !name ? t('board-lane-needs-a-name') : name !== l.name && this.view.lanes.some((x) => x.name === name) ? t('board-lane-name-taken', { lane: name }) : '';
+    this.errorAt = i;
+    if (refused && stay) {
+      this.laneError = refused;
+      return false;
+    }
     this.drafts.delete(key);
-    if (name && name !== l.name) this.edit(renameLane(this.doc, l.name, name));
-    else this.requestUpdate();
-  }
-  /** Escape in a lane's name: what was there comes back. */
-  private resetLane(e: Event, l: Lane) {
-    e.stopPropagation();
-    this.drafts.delete(`lane:${l.name}`);
+    [this.renaming, this.laneError] = [-1, refused];
+    if (!refused && name !== l.name && this.tell('lanerename', { from: l.name, to: name })) this.edit(renameLane(this.doc, l.name, name));
     this.requestUpdate();
+    return true;
   }
-  /** Enter in a lane's name: kept, and the caret into its first card (a first card made in an empty lane). */
+  /** Escape in a lane's name being renamed: what was there comes back, the name shown and focused. */
+  private resetLane(e: Event, l: Lane, i: number) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (this.renaming !== i) return;
+    this.drafts.delete(`lane:${l.name}`);
+    [this.renaming, this.laneError] = [-1, ''];
+    void this.focusLane(i);
+  }
+  /** Enter in a lane's name being renamed: kept, and the name shown and focused again, wherever the lane now is; refused, it stays a field. */
   private laneEnter(l: Lane, i: number) {
-    this.keepLane(l);
-    const lane = this.view.lanes[i];
-    if (!lane) return;
-    if (lane.cards[0]) return void this.focusTitle(lane.cards[0].row, 'end');
-    this.addToLane(lane.name);
+    if (this.renaming !== i) return this.startRename(i);
+    const from = l.name;
+    if (!this.keepLane(i, true)) return;
+    const typed = this.view.lanes.findIndex((x) => x.name === from);
+    void this.focusLane(typed >= 0 ? typed : i);
+  }
+  /** The keys on a lane's name shown: Enter or F2 rename it, Down goes to its first card. */
+  private laneKey(e: KeyboardEvent, i: number) {
+    if (this.renaming === i || e.altKey || e.ctrlKey || e.metaKey || e.isComposing || e.defaultPrevented) return;
+    if (!(e.target as HTMLElement).closest?.('.board-lane-name')) return;
+    if (e.key === 'Enter' || e.key === 'F2') {
+      if (!this.lanesChange) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.startRename(i);
+    } else if (e.key === 'ArrowDown' && this.view.lanes[i]?.cards[0]) {
+      e.preventDefault();
+      void this.focusTitle(this.view.lanes[i].cards[0].row, 'end');
+    }
   }
   private onFocusOut = (e: FocusEvent) => {
     const from = (e.target as HTMLElement).closest?.('.board-lane-name');
-    const lane = from ? this.view.lanes[Number(from.closest<HTMLElement>('.board-lane')!.dataset.lane)] : undefined;
-    if (lane) this.keepLane(lane);
+    const i = from ? Number(from.closest<HTMLElement>('.board-lane')!.dataset.lane) : -1;
+    if (i >= 0 && i === this.renaming && !(e.relatedTarget instanceof Node && from!.contains(e.relatedTarget))) this.keepLane(i, false);
     const to = e.relatedTarget as Node | null;
     if (!to || !this.contains(to)) this.cur = -1;
   };
@@ -667,12 +817,13 @@ export class ToBoardEditor extends DocElement<BoardView> {
     let name = base;
     for (let n = 2; names.includes(name); n++) name = `${base} ${n}`;
     const at = this.curLane >= 0 && this.curLane < names.length ? this.curLane + 1 : names.length;
+    if (!this.tell('laneadd', { name, at })) return;
     this.edit(addLane(this.doc, name, at));
-    void this.focusLane(this.view.lanes.findIndex((l) => l.name === name));
+    this.startRename(this.view.lanes.findIndex((l) => l.name === name));
   }
-  /** Rename lane: the lane's name, where it is drawn, its words chosen to type over. */
+  /** The lane menu's Rename lane. */
   renameMenuLane() {
-    if (this.menuLane) void this.focusLane(this.menuAt);
+    if (this.menuLane) this.startRename(this.menuAt);
   }
   /** The hand-off: the same table, opened in the Spreadsheet in a tab of its own, where the page says documents open. */
   openInSheet() {
@@ -690,6 +841,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const l = this.menuLane;
     if (!l || !this.laneCanMove(by)) return;
     const at = this.view.lanes.filter((x) => x.name).indexOf(l);
+    if (!this.tell('lanemove', { name: l.name, from: at, to: at + by })) return;
     this.edit(moveLane(this.doc, l.name, at + by));
     this.menuAt = this.view.lanes.findIndex((x) => x.name === l.name);
   }
@@ -697,6 +849,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const l = this.menuLane;
     if (!l) return;
     const i = this.menuAt;
+    if (!this.tell('lanedelete', { name: l.name, cards: l.cards.length })) return;
     this.edit(removeLane(this.doc, l.name));
     this.menuAt = -1;
     const near = this.view.lanes[Math.min(i, this.view.lanes.length - 1)];
@@ -1026,62 +1179,109 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.pasteData(data, null);
   };
 
-  /* ---------- the grip: a drag across lanes, or a tap to choose the card ---------- */
+  /* ---------- a card carried: pressed anywhere on it, moved, let go in a lane ---------- */
 
-  private down = (e: PointerEvent, c: Card) => {
-    // The grip's drag is the board's (across lanes); the rows controller hears none of it.
-    e.stopPropagation();
-    if (e.button !== 0 || !e.isPrimary) return;
+  /** Words being typed where `el` is: an editable title or name with the focus, whose press is the words' own (a caret, a selection). */
+  private typing(el: Element): boolean {
+    const words = el.closest<ToText>('to-text');
+    return !!words && !words.locked && words.contains(document.activeElement);
+  }
+  /** A press on a card, outside its controls and outside words being typed: it may carry the card (`move`), or be a click (`cardTap`). */
+  private down = (e: PointerEvent) => {
+    if (this.laneError && this.renaming < 0) this.laneError = '';
+    if (e.button !== 0 || !e.isPrimary || this.readOnly || this.press) return;
+    const el = e.target instanceof Element ? e.target : null;
+    const box = el?.closest<HTMLElement>('.board-card');
+    if (!el || !box || !this.contains(box) || el.closest('button, a[href], input, select, textarea, [popover], dialog') || this.typing(el)) return;
+    const c = this.cardAt(Number(box.dataset.row));
+    if (!c) return;
     this.dragged = false;
-    const press = { id: e.pointerId, x: e.clientX, y: e.clientY, row: c.row, moved: false, hold: 0, held: false };
-    // A finger held still on the grip chooses the card, or extends the chosen ones to it (the standard's hold), and
-    // brings up the bar under them; it is never a drag after that.
-    if (e.pointerType === 'touch' || e.pointerType === 'pen')
-      press.hold = window.setTimeout(() => {
-        if (this.press !== press || press.moved) return;
-        press.held = true;
-        this.dragged = true;
-        this.rows.choose(press.row, true);
-      }, HOLD);
+    const touch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    const press: Press = { id: e.pointerId, x: e.clientX, y: e.clientY, row: c.row, touch, armed: !touch, moved: false, held: false, timers: [] };
+    if (touch)
+      press.timers.push(
+        // Held still a moment, the card lifts: it may be carried now, and the finger no longer scrolls (`onTouchMove`).
+        window.setTimeout(() => {
+          if (this.press !== press || press.moved) return;
+          press.armed = true;
+          this.lifting = press.row;
+        }, PRESS),
+        // Held still half a second, the card is chosen, or the chosen ones extended to it (the standard's hold); it may still be carried.
+        window.setTimeout(() => {
+          if (this.press !== press || press.moved) return;
+          press.held = true;
+          this.dragged = true;
+          this.rows.choose(press.row, true);
+        }, HOLD),
+      );
     this.press = press;
     this.point = { x: e.clientX, y: e.clientY };
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {
-      // A pointer that is not really down (a test's) cannot be captured; the grip hears it as long as it is over it.
-    }
+  };
+  /** A mouse's press on a card is the board's: no caret and no words selected under it, so it can carry the card (a click puts the caret where it was, `cardTap`). */
+  private onMouseDown = (e: MouseEvent) => {
+    const el = e.target instanceof Element ? e.target : null;
+    if (this.press && !this.press.touch && el?.closest('.board-card') && !this.typing(el)) e.preventDefault();
+  };
+  /** A finger that may carry a card does not scroll the page, nor bring up the browser's menu. */
+  private onTouchMove = (e: TouchEvent) => {
+    if (this.press?.armed && e.cancelable) e.preventDefault();
+  };
+  private onContextMenu = (e: Event) => {
+    if (this.press?.touch) e.preventDefault();
   };
   private move = (e: PointerEvent) => {
-    e.stopPropagation();
     const p = this.press;
     if (!p || e.pointerId !== p.id) return;
     this.point = { x: e.clientX, y: e.clientY };
-    if (p.held || (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < SLOP)) return;
-    e.preventDefault();
     if (!p.moved) {
-      clearTimeout(p.hold);
-      p.moved = true;
-      this.carrying = p.row;
-      this.rows.release();
-      this.lift(p.row, p.x, p.y);
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < (p.touch ? TOUCH_SLOP : SLOP)) return;
+      // A finger that moves before the card lifted is scrolling the page: no press of the board's.
+      if (!p.armed) return this.stop();
+      this.carryFrom(p);
     }
+    e.preventDefault();
     this.follow();
     this.aim();
     this.edges();
   };
-  /** The ghost: a copy of the carried card's face, as wide as the card, held where the pointer took it (x, y), that follows the pointer. */
+  /** The drag begins: the card lifted from its place (a slot its size there), a ghost of it under the pointer, the pointer the board's until it is let go. */
+  private carryFrom(p: Press) {
+    for (const x of p.timers) clearTimeout(x);
+    p.moved = true;
+    const c = this.cardAt(p.row);
+    const box = this.querySelector<HTMLElement>(`.board-card[data-row="${p.row}"]`);
+    // Words being typed elsewhere on the board keep what they hold; the focus goes to the board while the card is carried.
+    if (this.contains(document.activeElement)) this.querySelector<HTMLElement>('.board')?.focus({ preventScroll: true });
+    document.getSelection()?.removeAllRanges();
+    this.rows.release();
+    this.slotHeight = box ? box.getBoundingClientRect().height : 0;
+    this.lift(p.row, p.x, p.y);
+    this.carrying = p.row;
+    this.lifting = -1;
+    if (c) this.over = { lane: c.lane, pos: this.placeOf(c) };
+    try {
+      this.querySelector<HTMLElement>('.board')?.setPointerCapture(p.id);
+    } catch {
+      // A pointer that is not really down (a test's) cannot be captured; the board hears it as long as it is over it.
+    }
+  }
+  /** The carried card's height, which the slot where it would land takes. */
+  private slotHeight = 0;
+  /** The ghost: the carried card's face, as wide as the card, held where the pointer took it (x, y), following the pointer. */
   private lift(row: number, x: number, y: number) {
     const card = this.querySelector<HTMLElement>(`.board-card[data-row="${row}"]`);
-    if (!card) return;
+    const c = this.cardAt(row);
+    if (!card || !c) return;
     const r = card.getBoundingClientRect();
     const g = document.createElement('div');
-    g.className = 'board-ghost';
+    g.className = 'board-card board-ghost';
     g.setAttribute('aria-hidden', 'true');
-    g.textContent = this.cardAt(row)?.title || '–';
+    render(this.face(c, html`<div class="board-title"><div class="tx">${c.title || '–'}</div></div>`), g);
     g.style.width = `${Math.round(r.width)}px`;
     this.ghostAt = { dx: x - r.left, dy: y - r.top };
     document.body.append(g);
     this.ghost = g;
+    this.follow();
   }
   private ghostAt = { dx: 0, dy: 0 };
   private follow() {
@@ -1089,14 +1289,14 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.ghost.style.left = `${Math.round(this.point.x - this.ghostAt.dx)}px`;
     this.ghost.style.top = `${Math.round(this.point.y - this.ghostAt.dy)}px`;
   }
-  /** Where the carried card would land: the lane under the pointer, before the first of its other cards whose middle is below it. */
+  /** Where the carried card would land: the lane under the pointer, before the first of its other cards whose middle is below it; between lanes, where it was last. */
   private aim() {
     const { x, y } = this.point;
     const lane = document
       .elementsFromPoint(x, y)
       .map((el) => el.closest<HTMLElement>('.board-lane'))
       .find((el) => el && this.contains(el));
-    if (!lane) return void (this.over = null);
+    if (!lane) return;
     const i = Number(lane.dataset.lane);
     const cards = [...lane.querySelectorAll<HTMLElement>('.board-card')].filter((el) => Number(el.dataset.row) !== this.carrying);
     let pos = cards.findIndex((el) => {
@@ -1106,45 +1306,58 @@ export class ToBoardEditor extends DocElement<BoardView> {
     if (pos < 0) pos = cards.length;
     if (this.over?.lane !== i || this.over.pos !== pos) this.over = { lane: i, pos };
   }
-  /** Near the top or bottom of what scrolls (the column), or the sides of the board where its lanes scroll sideways, it scrolls to bring more of the board under the pointer. */
+  /**
+   * Near an edge of what scrolls, it scrolls to bring more of the board under the pointer, the faster the nearer: the
+   * column (or the page) up and down, the board's lanes sideways where they are wider than it, and a lane's cards where
+   * a page gives a lane a height of its own (`--to-board-lane-h`).
+   */
   private edges() {
     if (this.scrolling) return;
     const board = this.querySelector<HTMLElement>('.board');
     const sc = scrollerOf(board);
+    const speed = (d: number) => (d < EDGE ? Math.ceil(((EDGE - Math.max(0, d)) / EDGE) * SPEED) : 0);
     const step = () => {
       this.scrolling = 0;
       if (this.carrying < 0 || !sc.isConnected || !board) return;
-      const r = sc.getBoundingClientRect();
+      const { x, y } = this.point;
+      const r = sc === document.scrollingElement ? new DOMRect(0, 0, innerWidth, innerHeight) : sc.getBoundingClientRect();
       const b = board.getBoundingClientRect();
-      const by = this.point.y < r.top + EDGE ? -12 : this.point.y > r.bottom - EDGE ? 12 : 0;
-      const bx = board.scrollWidth > board.clientWidth ? (this.point.x < b.left + EDGE ? -12 : this.point.x > b.right - EDGE ? 12 : 0) : 0;
-      if (!by && !bx) return;
-      const before = [sc.scrollTop, board.scrollLeft];
+      const by = speed(y - r.top) ? -speed(y - r.top) : speed(r.bottom - y);
+      const bx = board.scrollWidth > board.clientWidth ? (speed(x - b.left) ? -speed(x - b.left) : speed(b.right - x)) : 0;
+      const list = document
+        .elementsFromPoint(x, y)
+        .map((el) => el.closest<HTMLElement>('.board-cards'))
+        .find((el) => el && this.contains(el) && el.scrollHeight > el.clientHeight + 1);
+      const l = list?.getBoundingClientRect();
+      const ly = list && l ? (speed(y - l.top) ? -speed(y - l.top) : speed(l.bottom - y)) : 0;
+      if (!by && !bx && !ly) return;
+      const before = [sc.scrollTop, board.scrollLeft, list?.scrollTop ?? 0];
       sc.scrollTop += by;
       board.scrollLeft += bx;
-      if (sc.scrollTop !== before[0] || board.scrollLeft !== before[1]) this.aim();
+      if (list) list.scrollTop += ly;
+      if (sc.scrollTop !== before[0] || board.scrollLeft !== before[1] || (list?.scrollTop ?? 0) !== before[2]) this.aim();
       this.scrolling = requestAnimationFrame(step);
     };
     this.scrolling = requestAnimationFrame(step);
   }
   private up = (e: PointerEvent) => {
-    e.stopPropagation();
     const p = this.press;
     if (!p || e.pointerId !== p.id) return;
     const over = this.over;
     this.stop();
-    if (p.held || !p.moved) return;
+    if (!p.moved) return;
     this.dragged = true;
     const c = this.cardAt(p.row);
     if (c && over) this.carry(c, over.lane, over.pos, false);
   };
   private stop = () => {
     if (this.press?.moved) this.dragged = true;
-    if (this.press) clearTimeout(this.press.hold);
+    for (const x of this.press?.timers ?? []) clearTimeout(x);
     this.press = null;
     this.ghost?.remove();
     this.ghost = null;
     this.carrying = -1;
+    this.lifting = -1;
     this.over = null;
     cancelAnimationFrame(this.scrolling);
     this.scrolling = 0;
@@ -1155,11 +1368,12 @@ export class ToBoardEditor extends DocElement<BoardView> {
     e.stopPropagation();
     this.stop();
   };
-  /** A tap (or Enter, Space) on the grip chooses the card; Shift extends the range. */
-  private tapGrip = (e: MouseEvent, c: Card) => {
-    e.stopPropagation();
-    if (this.dragged) return void (this.dragged = false);
-    this.rows.choose(c.row, e.shiftKey);
+  /** The click a drag, or a finger's hold, ends with is not a tap: nothing picks, chooses or puts a caret on it. */
+  private onClickAfter = (e: MouseEvent) => {
+    if (!this.dragged) return;
+    this.dragged = false;
+    e.preventDefault();
+    e.stopImmediatePropagation();
   };
   /** A card activated is picked (DocElement's "docpick", read-only; `onPickCard`, pickable): the table's block, and the card's row in it. */
   protected pickOf(el: Element): PickedCard | null {
@@ -1168,17 +1382,18 @@ export class ToBoardEditor extends DocElement<BoardView> {
   }
   /**
    * Pickable, a card activated while the board can be changed is picked as a read-only board's is: a bubbling "docpick"
-   * with `{ at, row }`. A click or a tap on the card, never on its grip (which chooses it and carries it), and never in
+   * with `{ at, row }`. A click or a tap on the card (not one a drag ends with: `onClickAfter`), and never in
    * words being typed (a title where titles are typed in: a click there is the caret's, and Enter makes a card); Enter
-   * on a title that is shown and not typed in; and Enter on cards chosen whole (Escape in a title, or a tap on the
-   * grip, chooses its card), the focus then on the board: the card they end at, the one Open opens. So a board whose
+   * on a title that is shown and not typed in; and Enter on cards chosen whole (Escape in a title chooses its card), the focus then on the board: the card they end at, the one Open opens. So a board whose
    * titles are typed is picked from the keys too. Read-only, the pick is DocElement's own.
    */
   private onPickCard = (e: Event) => {
     if (!this.pickable || this.readOnly) return;
     if (e instanceof KeyboardEvent && (e.key !== 'Enter' || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey)) return;
+    // Shift and a click chooses the card instead (`cardTap`): the pointer's way to choose one where a click picks.
+    if (e instanceof MouseEvent && e.shiftKey) return;
     const el = e.target instanceof Element ? e.target : null;
-    if (!el || el.closest('.board-grip, a[href], dialog, [popover]')) return;
+    if (!el || el.closest('a[href], dialog, [popover]')) return;
     const words = el.closest<ToText>('to-text');
     const chosen = e instanceof KeyboardEvent && this.rows.range && el.matches('.board') ? this.chosenOne() : undefined;
     if (!chosen && ((words && !words.locked) || (e instanceof KeyboardEvent && !words))) return;
@@ -1188,68 +1403,170 @@ export class ToBoardEditor extends DocElement<BoardView> {
     e.stopPropagation();
     this.dispatchEvent(new CustomEvent('docpick', { detail: pick, bubbles: true }) as DocPick);
   };
-  /** A tap on a card outside its title and grip (its fields, the space round them) chooses it, as a tap on its grip does; pickable, it is a pick, heard first (`onPickCard`). */
+  /**
+   * A click or a tap on a card: on its title, where titles are typed, the caret where it was (the mouse's press having
+   * been the board's, `onMouseDown`); anywhere else on it (its fields, the room round them, a title shown and not
+   * typed) the card chosen, Shift extending. Pickable, it is a pick, heard first (`onPickCard`).
+   */
   private cardTap(c: Card, e: MouseEvent) {
-    if ((e.target as HTMLElement).closest?.('to-text, button, input, a, [popover], dialog')) return;
-    this.rows.choose(c.row, e.shiftKey);
+    const el = e.target as HTMLElement;
+    const words = el.closest?.<ToText>('to-text');
+    if (words && !words.locked) {
+      if (!words.contains(document.activeElement)) void this.focusTitle(c.row, this.offsetAt(words, e.clientX, e.clientY), false);
+      return;
+    }
+    if (el.closest?.('button, input, a, [popover], dialog')) return;
+    // Pickable, a click picks; Shift and a click chooses the card, extending cards already chosen.
+    this.rows.choose(c.row, e.shiftKey && (!this.pickable || !!this.rows.range));
+  }
+  /** The place in a title's words under a point; their end where none is. */
+  private offsetAt(words: ToText, x: number, y: number): number | 'end' {
+    const doc = document as Document & { caretPositionFromPoint?(x: number, y: number): { offsetNode: Node; offset: number } | null };
+    const hit =
+      doc.caretPositionFromPoint?.(x, y) ??
+      (() => {
+        const r = document.caretRangeFromPoint?.(x, y);
+        return r ? { offsetNode: r.startContainer, offset: r.startOffset } : null;
+      })();
+    const pos = hit && words.tx.contains(hit.offsetNode) ? words.readPos(hit.offsetNode, hit.offset) : null;
+    return pos ? pos.offset : 'end';
   }
 
   /* ---------- drawing ---------- */
 
+  /** The fields cards show, and how, for the board as it is and the page's `cardFields`: worked out once a drawing. */
+  private shown: { view: BoardView; given: CardField[] | null; fields: ShownField[] } | null = null;
+  private shownFields(): ShownField[] {
+    const v = this.view;
+    if (this.shown?.view !== v || this.shown.given !== this.cardFields) this.shown = { view: v, given: this.cardFields, fields: cardFieldsOf(v, this.cardFields) };
+    return this.shown.fields;
+  }
+  /** A column's currency: its own, else the document's, else dollars. */
+  private currencyOf(col: number): string {
+    return this.view.cols[col]?.currency || this.doc.head.currency || '$';
+  }
+  /** One field on a card's face, drawn as it is shown (model.ts `CardFieldAs`); its column's name said to a screen reader where the face leaves it out. */
+  private chip(f: Field, as: ShownField['as']): TemplateResult {
+    const said = html`<span class="sr-only">${f.name}: </span>`;
+    if (as === 'money') {
+      const v = typeof f.value === 'number' && isFinite(f.value) ? moneyShort(f.value, this.currencyOf(f.col)) : f.shown;
+      return html`<span class="board-chip board-money" title=${`${f.name}: ${f.shown}`}>${said}${v}</span>`;
+    }
+    if (as === 'date') {
+      const v = dayShort(f.value) ?? f.shown;
+      return html`<span class="board-chip board-date" title=${`${f.name}: ${f.shown}`}>${icon(CalendarDays, 14)}${said}${v}</span>`;
+    }
+    if (as === 'person')
+      return html`<span class="board-person" style=${`--to-board-hue: ${hueOf(f.shown)}`} title=${`${f.name}: ${f.shown}`}
+        ><span aria-hidden="true">${initials(f.shown)}</span>${html`<span class="sr-only">${f.name}: ${f.shown}</span>`}</span
+      >`;
+    // A badge: a choice its words, a box ticked its name, a number its name and the number.
+    const type = this.view.cols[f.col]?.type;
+    const bare = type === 'option' || type === 'text' || type === 'rich' || !type;
+    const words = bare ? f.shown : type === 'check' ? (TICKED.test(f.raw.trim()) || f.value === 1 ? `✓ ${f.name}` : '') : `${f.name} ${f.shown}`;
+    return words ? html`<span class="board-chip board-badge" title=${`${f.name}: ${f.shown}`}>${bare ? said : nothing}${words}</span>` : html``;
+  }
+  /**
+   * A card's face under its title: the line (a deal's company), the quiet names and values, then the row of its
+   * amount, its day and its chips, the people at its end. The editor's cards and the ghost a drag carries are this.
+   */
+  private face(c: Card, title: TemplateResult): TemplateResult {
+    const by = new Map(c.fields.filter((f) => f.shown).map((f) => [f.col, f]));
+    const got = this.shownFields().flatMap((s) => (by.has(s.col) ? [{ f: by.get(s.col)!, as: s.as }] : []));
+    const line = got.find((x) => x.as === 'line');
+    const texts = got.filter((x) => x.as === 'text');
+    const meta = got.filter((x) => x.as === 'money' || x.as === 'date' || x.as === 'badge');
+    const people = got.filter((x) => x.as === 'person');
+    return html`${title}${line ? html`<p class="board-line">${line.f.shown}</p>` : nothing}${
+      texts.length ? html`<dl class="board-fields">${texts.map(({ f }) => html`<div><dt>${f.name}</dt><dd>${f.shown}</dd></div>`)}</dl>` : nothing
+    }${
+      meta.length || people.length
+        ? html`<div class="board-meta">${meta.map(({ f, as }) => this.chip(f, as))}${people.length ? html`<span class="board-people">${people.map(({ f }) => this.chip(f, 'person'))}</span>` : nothing}</div>`
+        : nothing
+    }`;
+  }
   private card(l: Lane, c: Card, j: number, i: number) {
-    const fields = shownFields(c);
     const ranged = this.rows.has(c.row);
-    const before =
-      this.carrying >= 0 && this.over?.lane === i && this.over.pos === j - (this.carrying >= 0 && l.cards.slice(0, j).some((x) => x.row === this.carrying) ? 1 : 0) && c.row !== this.carrying;
     const n = j + 1;
     const lane = l.name || '–';
+    const title = html`<to-text
+      class="board-title"
+      shape="line"
+      no-bubble
+      .blocks=${this.titleBlocks(c)}
+      label=${t('board-title-of-card-n', { n, lane })}
+      placeholder=${t('common-title')}
+      @text-ops=${(e: CustomEvent<TextOps>) => this.onTitleOps(e, c)}
+      @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(c))}
+      @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(c, e.detail.dir))}
+      @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}
+    ></to-text>`;
     return html`<li
-      class="board-card ${c.row === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${c.row === this.carrying ? 'dragging' : ''} ${before ? 'before' : ''}"
+      class="board-card ${c.row === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${c.row === this.carrying ? 'dragging' : ''} ${c.row === this.lifting ? 'lifting' : ''}"
       data-row=${c.row}
+      ?readonly=${this.carryOnly}
       aria-label=${c.title || '–'}
+      aria-description=${t('board-card-n-tap-chooses-it', { n, lane })}
       @focusin=${() => ((this.cur = c.row), (this.curLane = i))}
       @click=${(e: MouseEvent) => this.cardTap(c, e)}
-      @dblclick=${(e: MouseEvent) => !this.pickable && !(e.target as HTMLElement).closest?.('to-text') && this.openCard(c.row)}
+      @dblclick=${(e: MouseEvent) => !this.pickable && !(e.target as HTMLElement).closest?.('to-text:not([readonly] *)') && this.openCard(c.row)}
     >
-      <button type="button" class="to-btn to-tool board-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('board-card-n-tap-chooses-it', { n, lane })} title=${t('common-drag-to-move-tap-to')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.stop} @click=${(e: MouseEvent) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
-      <div class="board-main">
-        <to-text
-          class="board-title"
-          shape="line"
-          no-bubble
-          .blocks=${this.titleBlocks(c)}
-          label=${t('board-title-of-card-n', { n, lane })}
-          placeholder=${t('common-title')}
-          @text-ops=${(e: CustomEvent<TextOps>) => this.onTitleOps(e, c)}
-          @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(c))}
-          @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(c, e.detail.dir))}
-          @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}
-        ></to-text>
-        ${fields.length ? html`<dl class="board-fields">${fields.map((f) => html`<div><dt>${f.name}</dt><dd>${f.shown}</dd></div>`)}</dl>` : nothing}
-      </div>
+      ${this.face(c, title)}
     </li>`;
   }
+  /** Where the carried card would land in lane `i`, as a slot its height among the lane's cards: the place before which other card, or the end; -1 for none here. */
+  private slotIn(l: Lane, i: number): number {
+    if (this.carrying < 0 || this.over?.lane !== i) return -1;
+    return Math.min(this.over.pos, l.cards.filter((c) => c.row !== this.carrying).length);
+  }
   private lane(l: Lane, i: number) {
-    const end = this.carrying >= 0 && this.over?.lane === i && this.over.pos >= l.cards.filter((c) => c.row !== this.carrying).length;
-    return html`<section class="board-lane ${this.carrying >= 0 && this.over?.lane === i ? 'over' : ''}" data-lane=${i} aria-label=${l.name || t('board-lane')}>
-      <header class="board-head" @focusin=${() => (this.curLane = i)}>
+    const slot = this.slotIn(l, i);
+    // The lane's cards, the carried one among them (drawn, not shown: the same element all the drag) and the slot at its place among the others.
+    type Item = { card: Card; j: number } | 'slot';
+    const items: Item[] = [];
+    let k = 0;
+    l.cards.forEach((card, j) => {
+      if (card.row !== this.carrying && k++ === slot) items.push('slot');
+      items.push({ card, j });
+    });
+    if (slot >= 0 && !items.includes('slot')) items.push('slot');
+    const money = moneyColumn(this.view);
+    const renaming = this.renaming === i;
+    const sum = money >= 0 ? moneyShort(laneSum(this.view, i, money), this.currencyOf(money)) : '';
+    return html`<section class="board-lane ${slot >= 0 ? 'over' : ''}" data-lane=${i} aria-label=${l.name || t('board-lane')}>
+      <header class="board-head ${renaming ? 'renaming' : ''}" ?readonly=${!renaming} @focusin=${() => (this.curLane = i)} @keydown=${(e: KeyboardEvent) => this.laneKey(e, i)}>
         <to-text
           class="board-lane-name"
           shape="line"
           no-bubble
           .blocks=${this.laneBlocks(l)}
-          label=${t('board-lane-name')}
+          label=${renaming ? t('board-lane-name') : l.name || t('board-lane')}
+          title=${this.lanesChange && !renaming ? t('board-double-click-to-rename') : nothing}
           placeholder=${t('board-lane-name')}
+          @dblclick=${() => this.renaming !== i && this.startRename(i)}
           @text-ops=${(e: CustomEvent<TextOps>) => this.onLaneOps(e, l)}
           @text-enter=${(e: Event) => (e.stopPropagation(), this.laneEnter(l, i))}
-          @text-escape=${(e: Event) => this.resetLane(e, l)}
+          @text-escape=${(e: Event) => this.resetLane(e, l, i)}
           @text-exit=${(e: Event) => e.stopPropagation()}
           @text-selectall=${(e: Event) => e.stopPropagation()}
         ></to-text>
-        <span class="board-count">${l.cards.length}</span>
-        ${this.readOnly || this.carryOnly ? nothing : this.laneMore(l, i)}
+        <span class="board-count" aria-label=${t('board-n-cards', { n: l.cards.length })}>${l.cards.length}</span>
+        ${this.lanesChange ? this.laneMore(l, i) : nothing}
+        ${sum ? html`<span class="board-sum" title=${t('board-lane-total', { sum })}><span class="sr-only">${t('board-lane-total', { sum })}</span><span aria-hidden="true">${sum}</span></span>` : nothing}
       </header>
-      ${l.cards.length ? html`<ol class="board-cards ${end ? 'end' : ''}">${l.cards.map((c, j) => this.card(l, c, j, i))}</ol>` : html`<p class="to-hint board-none ${end ? 'end' : ''}">${t('board-no-cards')}</p>`}
+      ${this.laneError && this.errorAt === i ? html`<p class="board-lane-error" role="alert">${this.laneError}</p>` : nothing}
+      ${
+        items.length
+          ? html`<ol class="board-cards">
+              ${repeat(
+                items,
+                (x) => (x === 'slot' ? 'slot' : x.card.row),
+                (x) => (x === 'slot' ? html`<li class="board-slot" aria-hidden="true" style=${`height: ${Math.round(this.slotHeight)}px`}></li>` : this.card(l, x.card, x.j, i)),
+              )}
+            </ol>`
+          : nothing
+      }
+      ${l.cards.some((c) => c.row !== this.carrying) || slot >= 0 ? nothing : html`<p class="to-hint board-none">${t('board-no-cards')}</p>`}
     </section>`;
   }
   /**
@@ -1288,10 +1605,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
             ${this.undoTools()}
           </to-bar>`
     }
-      <div class="board ${this.carrying >= 0 ? 'carrying' : ''}" ?readonly=${this.carryOnly} role="group" tabindex="-1" aria-label=${t('board-board')}>${v.lanes.map((l, i) => this.lane(l, i))}</div>
+      <div class="board ${this.carrying >= 0 ? 'carrying' : ''}" role="group" tabindex="-1" aria-label=${t('board-board')}>${v.lanes.map((l, i) => this.lane(l, i))}</div>
       ${this.carryOnly ? this.carriedContext() : this.rows.renderContext()}
       ${
-        this.carryOnly
+        !this.lanesChange
           ? nothing
           : html`<to-menu class="board-menu" .label=${this.menuLane ? t('board-options-for-lane', { lane: this.menuLane.name || '–' }) : t('board-lane-options')} .items=${drawnIn(BOARD, 'menu:lane', this)}></to-menu>`
       }

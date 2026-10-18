@@ -32,7 +32,7 @@ const english = messagesOf(words.en);
 
 test('a group in every language the suite speaks; with every message English has, and no other', () => {
   expect(Object.keys(words).sort()).toStrictEqual([...languages()].sort());
-  expect(english.size).toBe(34);
+  expect(english.size).toBe(38);
   for (const [code, source] of Object.entries(words)) {
     const here = messagesOf(source);
     expect([...here.keys()].sort(), code).toStrictEqual([...english.keys()].sort());
