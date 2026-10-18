@@ -166,6 +166,20 @@ describe('tracked changes', () => {
     expect(rejecting([base, cut, { author: A, text: base.text, hash: 'v2' }], () => ['v2:0', 'v1:0'])).toBe(base.text);
   });
 
+  test('a block put back where one was taken out before, among blocks taken out now: each struck once, and rejecting it all gives back the version before', () => {
+    // The fuzz's counterexample, small: a rule moved (taken out above, put in below), then the paragraphs where it was
+    // replaced by a rule and a word, every change reviewed before the next version.
+    const v: Step[] = [
+      { author: B, text: 'A.\n\nB.\n\n---\n\nC.\n\nD.\n', hash: 'v0' },
+      { author: B, text: 'A.\n\nB.\n\nC.\n\nD.\n\n---\n', hash: 'v1' },
+      { author: B, text: 'A.\n\n---\n\nword\n\nD.\n\n---\n', hash: 'v2' },
+    ];
+    const reviewed = (id: string, seq: number) => Number(id.slice(1, id.indexOf(':'))) < seq;
+    const t = track(v, undefined, reviewed);
+    expect(t.filter((b) => !isHead(b) && b.toks.map((x) => x.t).join('') === 'B.')).toHaveLength(1);
+    expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v2:')), undefined, reviewed)).toBe(v[1].text);
+  });
+
   test('a replacement is one change, with what it put in and what it took out, named by the version that made it', () => {
     const t = track([
       { author: A, text: 'Due in 30 days.\n', hash: 'h1' },
