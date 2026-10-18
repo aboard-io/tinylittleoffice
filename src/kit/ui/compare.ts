@@ -5,7 +5,8 @@
  * its link alone (not the menu: Paul, 2026-10-12), each side a link pasted in; the address
  * holds both, "#/compare/<app>/<payload>/<app>/<payload>", so a comparison is a link too. Nothing leaves
  * the page. On a phone the rows stack: the old block, then the new one under it. kit/text/diff.ts compares the
- * blocks as TLO writes them.
+ * blocks as TLO writes them. A page that is not the site gives the sides as `a` and `b`, and takes "compare-change"
+ * to keep its address its own.
  */
 import { LitElement, html, nothing } from 'lit';
 import { appOf } from '../core/apps.ts';
@@ -18,6 +19,13 @@ import { routeHash } from '../core/route.ts';
 export interface Side {
   app: string;
   payload: string;
+}
+
+/** What "compare-change" carries: the two sides now, and the fragment that names them. */
+export interface CompareChange {
+  a: Side | null;
+  b: Side | null;
+  hash: string;
 }
 
 const LINKED = /#\/v\d+\/([a-z][a-z0-9-]*)(?:\.[A-Za-z0-9.]+)?\/([A-Za-z0-9_~+-]+)/;
@@ -75,11 +83,20 @@ export class ToCompare extends LitElement {
     box.setCustomValidity(link.trim() && !side ? t('compare-not-link-to-tiny-little') : '');
     box.reportValidity();
     if (link.trim() && !side) return;
-    location.hash = which === 'a' ? compareHash(side, this.b) : compareHash(this.a, side);
+    this.choose(which === 'a' ? side : this.a, which === 'a' ? this.b : side);
   }
-  private swap = () => {
-    location.hash = compareHash(this.b, this.a);
-  };
+  private swap = () => this.choose(this.b, this.a);
+  /**
+   * Two sides chosen (a link pasted, Swap): drawn at once, and said in "compare-change" (bubbling, cancelable, its
+   * detail the sides and their fragment). Unless the page takes it (preventDefault: a page whose address is its own),
+   * the fragment goes in the address, as the site's comparison is its link.
+   */
+  private choose(a: Side | null, b: Side | null) {
+    this.a = a;
+    this.b = b;
+    const hash = compareHash(a, b);
+    if (this.dispatchEvent(new CustomEvent<CompareChange>('compare-change', { detail: { a, b, hash }, bubbles: true, cancelable: true }))) location.hash = hash;
+  }
 
   private renderSide(which: 'a' | 'b', s: Side | null) {
     const def = s ? appOf(s.app) : undefined;
