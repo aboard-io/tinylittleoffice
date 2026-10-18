@@ -35,6 +35,7 @@ import { GENERATOR, docToHtml, pasteFrom } from '../../kit/text/clipboard.ts';
 import { type ContextEntry, type ToContext } from '../../kit/ui/context.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/core/element.ts';
 import { t } from '../../kit/core/i18n.ts';
+import { currentHash } from '../../kit/core/route.ts';
 import type { TextOps, ToText } from '../../kit/text/text.ts';
 import { caret, insertRuns } from '../../kit/text/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
@@ -834,6 +835,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   setKindTo(k: KindId) {
     this.shut();
     this.change(setKind(this.doc, k), null);
+    // Chosen once, never typed: into the link at once, not when typing would pause, so a reload straight after
+    // keeps it (a reload follows the address as it was when it began; Paul, 2026-10-18: "I switch to swimlanes. It
+    // works. I reload the URL, it's back to family tree").
+    currentHash();
   }
   /** A connection drawn as a plain line or an arrow. */
   toggleArrow(hit: Hit, arrow: boolean) {
