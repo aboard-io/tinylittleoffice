@@ -76,6 +76,9 @@ export interface Tracked {
   delId?: string;
   /** Taken out as a change was rejected (a block someone else put in). */
   rejected?: true;
+  /** Put back whole where it was taken out (`ins` is who put it back): whose taking out it undid, and as which change. */
+  restored?: true;
+  from?: { del: string; delId?: string };
   /** A restyling beneath this block's, by someone else, still open (Under). */
   under?: Under;
   /** A card (a table, another document, a rule): its source as written, and as it was before the changes open on it. */
@@ -397,6 +400,8 @@ export function trackOn(
     // order, each struck or paired as it comes, so nothing taken out moves past anything else taken out.
     const seq: { b: Tracked; dead: boolean }[] = [];
     const come: Read[] = [];
+    // The blocks taken out before, here: one may be put back.
+    while (k < doc.length && doc[k].del) seq.push({ b: doc[k++], dead: true });
     for (; c < changes.length && changes[c].kind !== ' '; c++) {
       if (changes[c].kind === '-') {
         while (k < doc.length && doc[k].del) seq.push({ b: doc[k++], dead: true });
@@ -427,6 +432,23 @@ export function trackOn(
       // (between kinds of text alone: a paragraph made a rule is a paragraph taken out and a rule put in).
       if (at < 0 && TEXT.test(n.kind)) at = left.findIndex((g) => TEXT.test(g.kind) && liveText(g) === n.text);
       if (at < 0) {
+        // A block taken out before, put back whole where it was: undone by whoever took it out, nobody having reviewed
+        // it; by anyone else, or after a review, restored, as words put back are.
+        const was = seq.slice(si).find((e) => e.dead && e.b.kind === n.kind && liveText(e.b) === n.text);
+        if (was) {
+          reach(was.b);
+          touch();
+          const { del: who, delId, rejected: _r, ...undead } = was.b;
+          if (who === by && open(delId)) {
+            out.push(restyle(undead, n, by, mint, rejected, open, touch));
+            continue;
+          }
+          const id = mint();
+          const r = restyle(undead, n, by, mint, rejected, open, touch);
+          const from = { del: who!, ...(delId ? { delId } : {}) };
+          out.push({ ...r, ins: by, insId: id, restored: true, from, toks: r.toks.map((x) => (x.del ? x : { ...x, ins: by, insId: id, restored: true as const, from: { ...from, m: x.m } })) });
+          continue;
+        }
         // A block put in right after one this person put in, still unreviewed (Enter, and on typing), is the same edit.
         touch();
         const prev = out.at(-1);
@@ -511,7 +533,9 @@ export function changesOf(doc: readonly Tracked[]): Change[] {
     }
     // A block put in or taken out is a change even with no words in it (a rule, an empty line).
     // (A block put in stays its author's change though someone else has since taken it out.)
-    if (b.insId && b.ins) add(b.insId, b.ins, 'put', '', 'edit', [`+block:${b.kind}`]);
+    if (b.insId && b.ins) add(b.insId, b.ins, 'put', '', b.restored ? 'restore' : 'edit', [`+block:${b.kind}`]);
+    // Put back whole: the taking out it undid stays its author's change.
+    if (b.from?.delId) add(b.from.delId, b.from.del, 'took', '', 'edit', [`-block:${b.kind}`]);
     if (b.delId && b.del) add(b.delId, b.del, 'took', '', b.rejected ? 'rejection' : 'edit', [`-block:${b.kind}`]);
     if (b.fmtId) {
       let kind = b.kind;

@@ -233,11 +233,11 @@ export function ghostsOf(tracked: Tracked[], blocks: readonly Block[], settled: 
     }
     const edits = editsIn(b, settled);
     // An empty line put in: its bracket and lozenge alone.
-    if (!b.toks.length && b.insId && b.ins && !settled(b.insId)) edits.push({ ids: [b.insId], who: b.ins, first: -1, last: -1 });
+    if (!b.toks.length && b.insId && b.ins && !settled(b.insId)) edits.push({ ids: [b.insId], who: b.ins, first: -1, last: -1, ...(b.restored ? { how: 'restore' as const } : {}) });
     if (edits.some((e) => e.first < 0)) {
       const e = edits.find((x) => x.first < 0)!;
       put({ offset: 0, text: '[', tag: 'span', cls: 'tx-br', style: `--c: ${d.color(e.who)}` });
-      put({ offset: 0, tag: 'span', ...lozenge(e.ids, e.who), covers: [0, 0] });
+      put({ offset: 0, tag: 'span', ...lozenge(e.ids, e.who, e.how), covers: [0, 0] });
       put({ offset: 0, text: ']', tag: 'span', cls: 'tx-br', style: `--c: ${d.color(e.who)}` });
     }
     // Edits may share a first or a last word (a block restyled by one person, words in it by another): the wider opens

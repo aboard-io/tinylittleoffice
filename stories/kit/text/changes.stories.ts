@@ -100,11 +100,7 @@ const rejected = (ids: string[]): Story => ({
 /** Alice rejects Bob's words on who it is between: his words are taken out again as rejected, the template's put back. */
 export const Rejected = rejected(changesWith((c) => c.put.includes('Bakery')));
 
-/**
- * Alice rejects Carol's taking out of the line on what is paid: the line is back, put in by Alice, beside Carol's taking
- * out, still drawn. (A paragraph put back whole is not paired with the one taken out, so it is not drawn as restored, as
- * words put back in a paragraph are.)
- */
+/** Alice rejects Carol's taking out of the line on what is paid: the line is back where it was, drawn as restored by Alice. */
 export const RejectedParagraph = rejected(changesWith((c) => c.took.includes('pays')));
 
 /** A reviewer who reads and does not edit: the same drawing over a read-only Word Processor; Alt+Enter still reaches an edit. */
