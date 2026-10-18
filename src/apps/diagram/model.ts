@@ -1075,7 +1075,12 @@ export function diagramToOutline(given: Doc): string {
   };
   // A join names an item as the outline does, a colon in its words a space ("Desk: Ready?" is "Desk Ready?"), so
   // nothing in a name ends it early (outline/model.ts edgeName).
-  const join = (n: string) => n.replace(/\s+(?:<->|->|<-|--)\s+/g, ' ').replace(/:\s/g, ' ').replace(/\s+/g, ' ').trim();
+  const join = (n: string) =>
+    n
+      .replace(/\s+(?:<->|->|<-|--)\s+/g, ' ')
+      .replace(/:\s/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   const out: Block[] = blocks.map((b) => (b.k === 'li' ? { ...b, runs: person(b.runs) } : { ...b, from: join(b.from), to: join(b.to) }));
   return write({ head: doc.head.title ? { title: doc.head.title } : {}, blocks: out });
 }
