@@ -65,6 +65,10 @@ test('rules: three or more -, * or _ with optional spaces → ---; a rule ends t
   // A rule ends with attributes as any block may (the fuzz found it read as words).
   expect(parse('--- {.big}\n').blocks).toStrictEqual([{ k: 'hr', a: { cls: ['big'] } }]);
   same('--- {.big}\n');
+  // So words that would read as a rule with attributes are written guarded, in a paragraph and in an item (#27).
+  expect(write(parse('\\***{.cls}\nword\n'))).toBe('\\***{.cls}\nword\n');
+  expect(parse('\\***{.cls}\nword\n').blocks).toStrictEqual([{ k: 'p', runs: [{ t: '***{.cls}\nword' }] }]);
+  expect(parse(write({ head: {}, blocks: [{ k: 'li', depth: 0, runs: [{ t: '- -{.c}' }] }] })).blocks).toStrictEqual([{ k: 'li', depth: 0, runs: [{ t: '- -{.c}' }] }]);
 });
 
 test('tables: header, separator, optional outer pipes, \\| and \\\\ escapes, <br> a newline, rows padded; edged when one column, when the first heading reads as a block, or when a row starts empty', () => {
