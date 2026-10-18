@@ -508,6 +508,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const el = this.wordsEl;
     if (el) {
       el.hidden = true;
+      // The caret goes with them: Safari keeps it in the hidden words, where the picture's next Backspace would delete
+      // what draws them, and nothing typed after shows (Paul, 2026-10-18).
+      if (el.contains(getSelection()?.anchorNode ?? null)) getSelection()?.removeAllRanges();
       el.blocks = this.wordsBlocks;
     }
     this.ctx?.hide();

@@ -920,6 +920,15 @@ test('a new thing starts with its words in hand, on every kind: a tap on empty s
   }
 });
 
+test('the words closed take the caret with them, so a Backspace on the picture never reaches what draws them (Safari; Paul, 2026-10-18)', async () => {
+  const { el } = await editor('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n');
+  await tap(el, thing(el, 'Calls'));
+  expect(line(el).contains(getSelection()!.anchorNode)).toBe(true);
+  await key(el, 'Enter');
+  expect(isOpen(el)).toBe(false);
+  expect(line(el).contains(getSelection()?.anchorNode ?? null)).toBe(false);
+});
+
 test('a letter typed on the ghost makes it real, and its words take the letter (Paul, 2026-10-18)', async () => {
   const { el, last } = await editor(ORG);
   tapNow(thing(el, 'Eve Marsh'));
