@@ -127,6 +127,23 @@ describe('tracked changes', () => {
     ]);
   });
 
+  test('a change’s words read as they stand: what lies between two of its words is said, a space as a space', () => {
+    const said = (a: string, b: string) =>
+      changesOf(
+        track([
+          { author: A, text: a, hash: 'v0' },
+          { author: B, text: b, hash: 'v1' },
+        ]),
+      ).map((c) => [c.put, c.took, c.styled]);
+    // The hint's spaces stand, restyled by the same change: its words are not run together ("Designservices").
+    for (const [put, took] of said('*What this agreement is about*\n', 'Design services agreement\n')) {
+      expect(put).not.toMatch(/Designservices/);
+      expect(took).not.toMatch(/Whatthis/);
+    }
+    // Paragraphs put in as one change: a line between them.
+    expect(said('Keep.\n', 'Keep.\n\nOne.\n\nTwo.\n')).toEqual([['One.\nTwo.', '', '']]);
+  });
+
   test('a paragraph put back whole, where it was taken out, is restored as a change, as words put back are', () => {
     const base = { author: A, text: 'One.\n\nTwo **words**.\n\nThree.\n', hash: 'v0' };
     const cut = { author: B, text: 'One.\n\nThree.\n', hash: 'v1' };
