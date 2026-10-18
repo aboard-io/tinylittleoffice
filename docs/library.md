@@ -4,9 +4,9 @@ Tiny Little Office is becoming a library other pages build on, first among them 
 its docs/plan.md): its documents are built with the kernel and edited with these editors, kept in Postgres rather than in
 links. The site stays what it is, and is the library's first user: whatever an editor needs from the page it is in, the
 site gives it the way any other page would. And an app need not be the suite's: one built outside it, on
-`tinylittleoffice/kit`, registers beside the suite's apps and is mounted as they are (An app built outside). The
-first is the app of cards in lanes, which Paul made a library of its own (2026-10-17: "our separate library on top of
-the new tinylittleoffice library").
+`tinylittleoffice/kit`, registers beside the suite's apps and is mounted as they are (An app built outside). And the
+library has an app of its own that the site does not list: the Board, cards in lanes by their status (The library's
+own apps).
 
 ## What a page that holds an editor needs
 
@@ -93,9 +93,7 @@ What an app still asked of the site itself, and what replaces it:
 11. **An app built outside.** Done: `tinylittleoffice/kit` (src/kit.ts) is what an app's author needs to make an app
     as the suite's are made; `registerApp` puts it in the registry after the suite's, and `addStrings` gives it its
     words in any language; test/browser/kit.test.ts builds one with the kit and the kernel alone, mounts it, types in
-    it and reads its ops, runs its command, shows it read-only and speaks Spanish. The app of cards in lanes, which
-    this branch had added to the suite, left it to be the first such app, a package of its own: see An app built
-    outside.
+    it and reads its ops, runs its command, shows it read-only and speaks Spanish: see An app built outside.
 12. **Tracked changes and comments for a host.** Done: who did what in a document several people write, as the
     Contract Editor shows it (Paul, 2026-10-17: "the way it shows who did what is good"), is the kit's:
     kit/text/changes.ts says it and kit/text/redline.ts draws it over a mounted Word Processor, with the text editor's
@@ -106,6 +104,9 @@ What an app still asked of the site itself, and what replaces it:
     versions and draws them, pins a comment by its quote, has the bubble's Comment tell the host and offers "@"
     people: see Tracked changes and comments for a host.
 13. **A Storybook.** Done: every element and every app's editor alone, as a host holds them: see The Storybook.
+14. **The library's own apps.** Done: the Board is in src/apps/board/ as the suite's apps are, served on entries of
+    its own (`tinylittleoffice/board`, `/board/model`, `/board.css`) and in no list of the site's: see The library's
+    own apps.
 
 ## The Storybook
 
@@ -126,11 +127,11 @@ kit's `setTheme` and its Language `setLanguage`. A story's documents are the app
   comments pinned by their quote and made from the bubble, "@" for people, and Compare. Draw: footnotes, charts,
   cards, QR codes, tiles.
 - **Apps.** Each app's editor over one of its templates, editable and read-only, blank, two people sharing one
-  document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small.
+  document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small. The Board's
+  among them, registered by its stories as a page registers it (`registerBoard`), its words drawn as the library's
+  editors draw them (the Storybook's Vite builds the languages with `library: true`).
 - **Site.** The site's own page (the shell, the chrome, the drawer, the home page, an app's templates, Share, Privacy),
   with the site's page.css on while each is shown (`parameters.page`): what a host draws for itself, shown for what it is.
-- **Packages.** The Board, from its own checkout where one is beside this one (`BOARD_DIR` names it, or .storybook/vite.config.ts looks under ../projects/), the
-  kit and the kernel answered by this tree's source, so neither package installs the other; without it, its stories say so.
 
 A lint (test/lints.test.ts) holds that every tag `customElements.define` gives in src/ is a story's component, or
 named in a story's `parameters.covers`, so a new element comes with a story. `node scripts/check-stories.ts` opens
@@ -230,8 +231,10 @@ async function draw(versions: Step[]) {
 ## An app built outside
 
 An app is a definition and an editor element (What a page that holds an editor needs), and nothing in that needs the
-suite's repository: an app built outside it, cards in lanes first, is made with `tinylittleoffice/kit` and the kernel
-(`tinylittleoffice/doc`) and put beside the suite's apps by the page that holds it.
+suite's repository: an app built outside it is made with `tinylittleoffice/kit` and the kernel
+(`tinylittleoffice/doc`) and put beside the suite's apps by the page that holds it. The Board was the first, a package
+of its own on the kit (2026-10-17), until it came into the library (The library's own apps); test/browser/kit.test.ts
+builds one now, with the kit and the kernel alone, as Tally below is built.
 
 - **The registry.** `registerApp(def)` (kit/core/apps.ts) puts a definition after the suite's, and from then on
   `appOf(def.id)` is it: `editorTag` loads its editor and registers its commands, `mount` draws it with a document in
@@ -278,6 +281,50 @@ for (const [code, source] of Object.entries(words)) addStrings(code, source);
 registerApp(tally);
 const { editor } = await mount('tally', text, main, save, { onOps: send });
 ```
+
+## The library's own apps
+
+An app of the library's is made as the suite's are, in src/apps/<id>/ with the suite's shape (def.ts, model.ts,
+editor.ts, view.ts, commands.ts, templates.ts and templates.md, style.css, tests/), but the site does not list it: it is
+in no list of kit/core/apps.ts, so the home page, the routes, the pages the build writes, Insert ▾, the drawer, the API
+and the skill never name it, and the site's build reaches none of its modules. A page registers it, as it would an app
+built outside, and mounts it as any app. There is one, the Board (Paul, 2026-10-18: "go ahead and add [the Board] to the
+kit, even if we don't use it in the production build more broadly"): cards in lanes by their status, each card a row of
+a table, so a board and a spreadsheet are two views of one table (src/apps/board/model.ts says how a table is read as
+lanes). Before it came here it was a package of its own on the kit, and its source came in whole.
+
+- **`tinylittleoffice/board`** (dist/board.js, src/board.ts): its definition (`board`), its editor element
+  (`<to-board-editor>`, `ToBoardEditor`, defined as the file loads), `registerBoard()`, which puts it after the suite's
+  apps once and does nothing when called again (where `registerApp` would throw), and everything the model serves; the
+  type of a pick (`PickedCard`). `install` is `registerBoard` by its package's old name. dist/board.js is a second entry
+  of the editors' build (vite.lib.config.ts): what it shares with the editors (Lit, the kit, the kernel) it imports from
+  ./editors.js, so the page has one Lit and one registry, and its own modules, and Lucide's icons no suite app draws,
+  are never in editors.js. Its templates are fetched when asked for, as every app's are (dist/editors/templates-board-…).
+- **`tinylittleoffice/board/model`** (dist/board-model.js, src/apps/board/model.ts): the model alone, pure and with no
+  DOM, for a server that makes boards from its own records and changes them as ops (`boardDoc`, `boardOf`, `moveCard`,
+  `addCard`…). It imports the kernel from the package's own ./doc.js and nothing else (test/lints.test.ts holds the
+  source to it, test/package.test.ts the built file, and runs it under Node).
+- **`tinylittleoffice/board.css`** (dist/board.css, src/apps/board/style.css): its own stylesheet, in the editors'
+  `apps` layer, beside editors.css rather than in it. In editors.css it would be 907 bytes more, gzipped, on 31,021
+  (about 3%) for every page, a board on it or none; on its own it is 1,360 bytes, loaded by the pages that draw one.
+- **Its words** are a group of each language's file in src/i18n/ (`board-…`), checked as everyone's are (`npm run
+  i18n:check`), and ride in the editors' languages (dist/editors.js's English, and each language's file under
+  dist/editors/), so `registerBoard` adds none. Every other build, the site's first, leaves them out
+  (scripts/ftl-plugin.ts `LIBRARY_APPS`), and the site's files are the bytes they were before the Board came.
+- **Its tests** are its own (src/apps/board/tests/): the model and its properties under Node, and its editor, its view
+  and its languages on a bare page that registers it and mounts it with `mount`, as a host does. Its commands are not
+  in the site's registry (scripts/commands.ts), so docs/editing.md's tables and the skill do not list them;
+  docs/editing.md §8 says its keys in words.
+
+What its package of its own served, and where each is now; every name a page or a server used is kept, so a page
+moves by its import paths alone:
+
+| its package | the library |
+|---|---|
+| the root: `install`, `board`, the model, `ToBoardEditor`, `PickedCard` | `tinylittleoffice/board`: the same names, and `registerBoard` |
+| the root: `words` (each language's Fluent source, for `addStrings`) | gone: the words are in the editors' languages |
+| `/model` | `tinylittleoffice/board/model` |
+| its stylesheet | `tinylittleoffice/board.css` |
 
 ## Shared editing from a page
 
