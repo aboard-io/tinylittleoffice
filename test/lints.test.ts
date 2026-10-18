@@ -10,7 +10,7 @@ import { describe, expect, test } from 'vitest';
 import { fetchedAtOnce, lazyImports, measure, overBudget, readBudgets, shapeOf, type Sizes } from '../scripts/budgets.ts';
 import { deadExports } from '../scripts/dead.ts';
 import { staleFiles } from '../scripts/generated.ts';
-import { ADDRESS_NAMES, ALLOWED, KIT_FOLDERS, NOT_WORDS, WAIT_MS, bareWords, domNames, edgesOf, graphProblems, kitProblems, timedWaits, type Module } from './lints.ts';
+import { ADDRESS_NAMES, ALLOWED, KIT_FOLDERS, NOT_WORDS, WAIT_MS, bareWords, domNames, edgesOf, elementsOf, graphProblems, kitProblems, storiedOf, timedWaits, type Module } from './lints.ts';
 
 const ROOT = join(import.meta.dirname, '..');
 const FIXTURES = join(import.meta.dirname, 'fixtures/lints');
@@ -488,5 +488,26 @@ describe('the build’s budgets and shape: the built site within budgets.json, i
         .map((f) => f.replace(/\.ftl$/, ''))
         .sort(),
     );
+  });
+});
+
+/**
+ * The Storybook (docs/library.md, The Storybook) shows every element the kit and the apps define, so a new one cannot
+ * land without one: a stories file's meta names it as its `component`, or one of its stories names it in
+ * `parameters.covers` (an element drawn only inside another, as a table is inside a text).
+ */
+describe('stories: every custom element in src/ has a story in stories/', () => {
+  const STORIES = join(ROOT, 'stories');
+  const storyFiles = (readdirSync(STORIES, { recursive: true }) as string[]).filter((f) => f.endsWith('.stories.ts')).map((f) => readFileSync(join(STORIES, f), 'utf8'));
+  test('the fixture’s element with no story is found', () => {
+    const told = new Set(storiedOf(readFileSync(join(FIXTURES, 'stories/stories.ts'), 'utf8')));
+    expect(elementsOf(readFileSync(join(FIXTURES, 'stories/elements.ts'), 'utf8')).filter((t) => !told.has(t))).toStrictEqual(['to-untold']);
+  });
+  test('each element defined in src/ is a story’s component or covered by one (stories/**/*.stories.ts)', () => {
+    const defined = tree.flatMap((m) => elementsOf(m.source).map((tag) => ({ tag, path: m.path })));
+    expect(defined.length).toBeGreaterThan(30);
+    expect(defined.filter((d) => d.tag.startsWith('?')).map((d) => `${d.path}: ${d.tag}`)).toStrictEqual([]);
+    const told = new Set(storyFiles.flatMap(storiedOf));
+    expect(defined.filter((d) => !told.has(d.tag)).map((d) => `${d.path}: <${d.tag}> has no story`)).toStrictEqual([]);
   });
 });

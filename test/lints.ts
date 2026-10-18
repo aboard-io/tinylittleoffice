@@ -519,3 +519,26 @@ export function timedWaits(source: string): Bare[] {
   });
   return out;
 }
+
+/* ---------- Every element has a story ---------- */
+
+/** A source without its comments, so a tag a comment shows (src/kit.ts's example) is not counted. */
+const uncommented = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+/**
+ * The tags a module defines: each `customElements.define(…)`'s first argument, a string or a constant the module
+ * declares as one (`export const tag = 'to-write-editor'`).
+ */
+export function elementsOf(source: string): string[] {
+  const code = uncommented(source);
+  const consts = new Map([...code.matchAll(/\bconst\s+([\w$]+)\s*=\s*'([a-z][\w-]*-[\w-]*)'/g)].map((m) => [m[1], m[2]]));
+  return [...code.matchAll(/customElements\.define\(\s*(?:'([^']+)'|([\w$]+))\s*,/g)].map((m) => m[1] ?? consts.get(m[2]) ?? `?${m[2]}`);
+}
+
+/** The tags a stories file is about: its meta's `component`, and any other a story names in `parameters.covers`. */
+export function storiedOf(source: string): string[] {
+  const code = uncommented(source);
+  const one = [...code.matchAll(/\bcomponent:\s*'([^']+)'/g)].map((m) => m[1]);
+  const more = [...code.matchAll(/\bcovers:\s*\[([^\]]*)\]/g)].flatMap((m) => [...m[1].matchAll(/'([^']+)'/g)].map((n) => n[1]));
+  return [...one, ...more];
+}
