@@ -77,6 +77,8 @@ const FENCE = /^(`{3,}|~{3,})\s*([\w-]*)\s*(.*)$/;
 const HEADING = /^(#{1,6})(?:\s+(.*?))?\s*(?:(?<!\\)#+)?\s*$/d;
 const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])(?:\s+(.*))?$/;
 const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
+/** Whether a line reads as a rule, attributes at its end or not: "***", "--- {.title}". */
+const isRule = (line: string) => RULE.test(((m) => (m ? line.slice(0, m.index) : line))(ATTRS.exec(line)));
 const SEP = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
 const EDGE = /^~\s+(.+?)\s+(<->|->|<-|--)\s+(.+?)(?::\s+(.*))?$/;
 
@@ -119,7 +121,7 @@ function readHead(lines: string[]): [Head, number] {
 const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|\||\{)/;
 /** Undo the guard that kept a line from being read as a block of another kind (and only that: "\`" is an escaped backtick). */
 // (Words that are only "{...}" keep their backslash for splitAttrs: it is the one that says they are not attributes.)
-const unblock = (s: string) => (s[0] === '\\' && !/\s/.test(s[1] ?? '') && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
+const unblock = (s: string) => (s[0] === '\\' && !/\s/.test(s[1] ?? '') && (GUARDED.test(s.slice(1)) || isRule(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
 
 /** A block as the line reader sees it: its words still inline Markdown. */
 type Raw =
@@ -263,8 +265,7 @@ export function parse(text: string): Doc {
       continue;
     }
     // (A rule may end with attributes, as any block may: "--- {.title}".)
-    const ruleAttrs = ATTRS.exec(line);
-    if (RULE.test(ruleAttrs ? line.slice(0, ruleAttrs.index) : line)) {
+    if (isRule(line)) {
       flush();
       indents = [];
       const [, a] = splitAttrs(t.replace(/^[-*_\s]+/, ' '));
@@ -374,7 +375,7 @@ export function withHead(text: string, keys: Head): string {
 function guard(line: string): string {
   // A lone "|" is a deck's column break, and reads back as itself.
   if (line === '|') return line;
-  if (GUARDED.test(line) || RULE.test(line)) return '\\' + line;
+  if (GUARDED.test(line) || isRule(line)) return '\\' + line;
   return line;
 }
 /** A block's first two lines that would read as a table's head and separator ("a | b", "--- | ---"): the second is written "\---", which reads as the same words. */
@@ -440,7 +441,7 @@ export function writeBlock(b: Block, n = 1): string {
       const task = b.done === undefined ? '' : b.done ? '[x] ' : '[ ] ';
       const [first, ...more] = unTable(writeLines(b.runs).split('\n'));
       const pad = '  '.repeat(b.depth);
-      const lead = (/^\[[ xX]\](\s|$)/.test(first) && b.done === undefined) || RULE.test(`- ${first}`) ? '\\' : '';
+      const lead = (/^\[[ xX]\](\s|$)/.test(first) && b.done === undefined) || isRule(`- ${first}`) ? '\\' : '';
       return trimEnd(`${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`) + more.map((l, i) => `\n${pad}  ${guardEnd(guard(l))}${i === more.length - 1 ? at : ''}`).join('');
     }
     case 'hr':
