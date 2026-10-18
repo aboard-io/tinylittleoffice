@@ -122,7 +122,7 @@ What an app still asked of the site itself, and what replaces it:
     components); five drawing bugs, each with its test (a paragraph taken out last never drawn; one put back whole not
     drawn as restored; a change's words run together; a hint written over drawn word by word; Compare's links made from
     the address); the kit's other elements exported; and a host's page arranged (A host's page).
-17. **What a host's rebuild found.** Done (2026-10-18, for a host that had worked round each: Atlas's pages, its docs/web.md
+17. **What a host's rebuild found.** Done (2026-10-18, for a host that had worked around each: Atlas's pages, its docs/web.md
     "What the library draws"): `<to-table>`'s column that fits its words, rows that grow, a record picker, a row's own
     editable, row actions and money in whole units (A typed table); the kit's small pieces, `<to-segmented>`,
     `confirm`, `.to-btn.to-danger` and `<to-field>` (The kit's small pieces); `<to-header>`'s title given while it is
@@ -535,7 +535,7 @@ waiting for them.
   foot (`data-sheet` on the element), opened by a button that counts the open threads. There is room when the frame
   the margin and the words share (their nearest common ancestor; with no words, the margin's parent) is 760px wide or
   more: the margin's own container decides, measured, not the viewport; a page that decides itself sets
-  `--to-comments-beside` (1 beside, 0 a sheet) on the margin or round it. The sheet's button sits at the foot's end,
+  `--to-comments-beside` (1 beside, 0 a sheet) on the margin or around it. The sheet's button sits at the foot's end,
   or its start with `anchor="start"`, `--to-comments-toggle-x` and `--to-comments-toggle-y` its distance from the side
   and the foot, so it is clear of a host's own button. A note opens its thread (every comment by whom and when, Asks
   Assistant, the reply box, Resolve or Reopen, Delete, Close or Escape); Delete is on the reader's own comments, or on
