@@ -32,6 +32,10 @@ const EXEMPT: { why: string; test: (path: string, name: string, source: string) 
     test: (path) => path === 'src/kernel.ts' || path === 'src/commands.ts' || path === 'src/editors.ts' || path === 'src/kit.ts',
   },
   {
+    why: 'the Board’s entry points, for a page and for a server (docs/library.md, The library’s own apps): their exports are the public surface the package serves as tinylittleoffice/board and tinylittleoffice/board/model',
+    test: (path) => path === 'src/board.ts' || path === 'src/apps/board/model.ts',
+  },
+  {
     why: 'a number or a string its own file uses: exported, the bundler writes the value where it is read (rolldown inlines an exported constant), where its own file’s alone stays a variable, and the chunk grows',
     test: (_p, name, source) => new RegExp(`^export const ${name} = (-?[\\d.]+|'[^'\\n]*'|"[^"\\n]*");`, 'm').test(source) && count(code(source), name) > 1,
   },

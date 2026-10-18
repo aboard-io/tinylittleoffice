@@ -3281,3 +3281,78 @@ search-n-found = { $n ->
 search-nothing-found = “{ $q }” سے کچھ نہیں ملا
 # en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
 header-breadcrumbs = نیویگیشن کا راستہ
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = بورڈ
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = بورڈ
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = اسٹیٹس کے مطابق کالموں میں کارڈ، ہر کارڈ ایک ٹیبل کی ایک قطار۔
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = اسٹیٹس
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = کرنا ہے
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = جاری ہے
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = ہو گیا
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = کوئی کارڈ نہیں
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+        [one] ایک کارڈ
+       *[other] { $n } کارڈ
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = کارڈ اسپریڈ شیٹ میں کھولیں
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = کارڈ
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = کالم
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = کالم کے اختیارات
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = { $lane } کے اختیارات
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = کارڈ شامل کریں
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = کالم حذف کریں
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = کالم میں لے جائیں…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = کالم کا نام بدلیں
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = پچھلے یا اگلے کالم میں ساتھ والا کارڈ
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = کارڈ کو پچھلے یا اگلے کالم میں لے جائیں
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = کالم کا نام
+# same
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = YYYY-MM-DD
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = نیا کالم
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = { $lane } میں کارڈ { $n } کا عنوان
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = { $lane } میں کارڈ { $n }: چننے کے لیے ٹیپ کریں، سرکانے کے لیے کھینچیں
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = چنے ہوئے کارڈ
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = پروجیکٹ بورڈ
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = کرنا ہے، جاری ہے اور ہو گیا، ہر کام کے ساتھ اس کا ذمہ دار اور آخری تاریخ۔
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = سیلز پائپ لائن
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = نئی پوچھ گچھ سے جیت یا ہار تک کے سودے، ان کی رقم اور بند ہونے کی تاریخ کے ساتھ۔
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = بھرتی
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = درخواست سے نوکری تک امیدوار، عہدے اور اگلے قدم کے ساتھ۔
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = کنٹینٹ کیلنڈر
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = خیال سے اشاعت تک کی تحریریں، چینل، لکھنے والے اور تاریخ کے ساتھ۔

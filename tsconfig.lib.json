@@ -1,8 +1,8 @@
 // The library's type declarations (docs/library.md): what a TypeScript program sees of tinylittleoffice/doc,
-// /commands, /editors, /kit and the API, emitted by `npm run build:lib` after the bundles into packages/doc/dist/types, one
-// .d.ts a module, under the paths src/ has. The declarations import one another by the source's own .ts paths, which
-// a consumer's resolver (bundler or NodeNext) finds as the .d.ts beside them, since they ship together; the bundles'
-// own imports are not touched (this emits no JavaScript, so rewriteRelativeImportExtensions has nothing to rewrite).
+// /commands, /editors, /kit, /board, /board/model and the API, emitted by `npm run build:lib` after the bundles into
+// packages/doc/dist/types, one .d.ts a module, under the paths src/ has. The declarations import one another by the
+// source's own .ts paths, which a consumer's resolver (bundler or NodeNext) finds as the .d.ts beside them, since they
+// ship together; the bundles' own imports are not touched (this emits no JavaScript, so rewriteRelativeImportExtensions has nothing to rewrite).
 // What Vite answers (`?raw`, a stylesheet, import.meta.glob for the languages) is typed here as in the site's check,
 // by vite/client's declarations; none of it reaches a declaration but the editors' side-effect imports of their
 // stylesheets, which a consumer's skipLibCheck passes over.
@@ -17,5 +17,5 @@
     "types": ["vite/client"]
   },
   "include": [],
-  "files": ["src/kernel.ts", "src/commands.ts", "src/editors.ts", "src/kit.ts", "src/api.ts"]
+  "files": ["src/kernel.ts", "src/commands.ts", "src/editors.ts", "src/kit.ts", "src/board.ts", "src/apps/board/model.ts", "src/api.ts"]
 }

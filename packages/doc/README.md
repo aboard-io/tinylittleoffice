@@ -82,7 +82,7 @@ The guide an agent reads first is `/llms.txt` (short); the guide to every app's 
 ## As a library
 
 A program or a page that keeps documents of its own, in a database rather than in links, builds on the same modules
-as the site (docs/library.md), through four more entry points, each built by `npm run build:lib`
+as the site (docs/library.md), through five more entry points, each built by `npm run build:lib`
 (vite.lib.config.ts):
 
 - `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
@@ -106,14 +106,19 @@ as the site (docs/library.md), through four more entry points, each built by `np
 - `tinylittleoffice/kit`: an app of your own beside the suite's (src/kit.ts): `defineApp`, `DocElement` for its editor,
   `registerApp` to put it beside the suite's apps and `addStrings` for its words, then `mount` as for any app; the
   commands, the kit's elements, its drawing and Lit itself, all from the editors' own file (`dist/editors.js`, so there
-  is one Lit and one registry). The app of cards in lanes is the first built this way, a package of its own
-  (docs/library.md, An app built outside). And who did what in a document several people write: `track` and
+  is one Lit and one registry; docs/library.md, An app built outside). And who did what in a document several people write: `track` and
   `changesOf` from its versions by their authors, `rejectOps` for the edit that takes a change back, drawn over a Word
   Processor's words with `ghostsOf`, `paint` and `pinComments`, and "@" offering the page's people (docs/library.md,
   Tracked changes and comments for a host).
+- `tinylittleoffice/board`, `dist/board.js`: the Board, cards in lanes by their status over a table, an app of the
+  library's that the site does not list (src/board.ts): `registerBoard()` puts it beside the suite's apps, once, and
+  `mount('board', …)` draws it, its kit taken from the editors' own file. Its stylesheet is `tinylittleoffice/board.css`,
+  beside `editors.css`; its model alone, pure and with no DOM, for a server that makes and changes boards, is
+  `tinylittleoffice/board/model` (`dist/board-model.js`, which imports the kernel from `dist/doc.js`). Its words are in
+  the editors' languages (docs/library.md, The library's own apps).
 
-Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/` (the stylesheet's, empty,
-is `editors.css.d.ts`), and a TypeScript program reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`
+Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/` (the stylesheets', empty,
+are `editors.css.d.ts` and `board.css.d.ts`), and a TypeScript program reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`
 and the editors' name the types of Lit and Lucide, which are bundled in, not installed. An app built on the kit, whose
 editor is a `LitElement`, installs `lit` at the kit's version (3.3.3) for its types alone, and imports Lit from the kit.
 

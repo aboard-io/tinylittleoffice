@@ -73,7 +73,7 @@ const preview: Preview = {
     // The kit's ground is the page's, set by the theme: Storybook's own backgrounds would hide it.
     backgrounds: { disable: true },
     options: {
-      storySort: { order: ['Foundations', 'Kit', ['Core', 'UI', 'Data', 'Text', 'Draw'], 'Apps', 'Site', 'Packages'] },
+      storySort: { order: ['Foundations', 'Kit', ['Core', 'UI', 'Data', 'Text', 'Draw'], 'Apps', 'Site'] },
     },
   },
 };
