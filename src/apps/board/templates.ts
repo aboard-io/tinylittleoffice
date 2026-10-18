@@ -28,14 +28,14 @@ const PROJECT = board(
 
 const PIPELINE = board(
   ['Inbound', 'Qualifying', 'Proposal', 'Negotiating', 'Won', 'Lost'],
-  ['Deal', 'Stage:option', 'Company', 'Value:money', 'Close:date'],
-  ['Website redesign', 'Inbound', 'Hudson Bakery', '12000', '2026-12-15'],
-  ['Office move', 'Inbound', 'Greenpoint Dental', '8500', '2027-01-10'],
-  ['Annual retainer', 'Qualifying', 'Harbor Law', '48000', '2026-12-01'],
-  ['Spring catalog', 'Proposal', 'Bowery Outfitters', '22000', '2026-11-20'],
-  ['Event series', 'Negotiating', 'Queens Museum Friends', '30000', '2026-11-14'],
-  ['Brand refresh', 'Won', 'Flatiron Coffee', '18000', '2026-10-30'],
-  ['App prototype', 'Lost', 'Canal Street Labs', '40000', '2026-10-21'],
+  ['Deal', 'Stage:option', 'Company', 'Owner', 'Value:money', 'Close:date'],
+  ['Website redesign', 'Inbound', 'Hudson Bakery', 'Maya Patel', '12000', '2026-12-15'],
+  ['Office move', 'Inbound', 'Greenpoint Dental', 'Leo Brooks', '8500', '2027-01-10'],
+  ['Annual retainer', 'Qualifying', 'Harbor Law', 'Maya Patel', '48000', '2026-12-01'],
+  ['Spring catalog', 'Proposal', 'Bowery Outfitters', 'Sam Okafor', '22000', '2026-11-20'],
+  ['Event series', 'Negotiating', 'Queens Museum Friends', 'Priya Shah', '30000', '2026-11-14'],
+  ['Brand refresh', 'Won', 'Flatiron Coffee', 'Leo Brooks', '18000', '2026-10-30'],
+  ['App prototype', 'Lost', 'Canal Street Labs', 'Sam Okafor', '40000', '2026-10-21'],
 );
 
 const HIRING = board(

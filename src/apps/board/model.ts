@@ -87,6 +87,8 @@ export interface Field {
   raw: string;
   /** The cell as its column shows it, on one line (`shownCell`): a formula's value, money in its currency, a date as a date, a rich cell's words; '' where it shows nothing. */
   shown: string;
+  /** The cell worked out (`evaluateTable`): a number for an amount, a date's serial day, a formula's value, words. */
+  value: CellValue;
 }
 export interface Card {
   /** Its row in the table. */
@@ -99,6 +101,8 @@ export interface Card {
   raw: string;
   /** The rest of the row: every other column but the lane's, in the table's order, empty cells left out. */
   fields: Field[];
+  /** The whole row worked out, a value a column (`evaluateTable`): what a table of the same cards shows (`<to-table>`, a host's). */
+  values: CellValue[];
 }
 export interface Lane {
   name: string;
@@ -186,9 +190,11 @@ export function boardOf(doc: Doc): BoardView {
     const name = flat(cells[laneCol]);
     let lane = lanes.findIndex((l) => l.name === name);
     if (lane < 0) lane = lanes.push({ name, cards: [] }) - 1;
-    const fields = b.cols.flatMap((c, col) => (col === laneCol || col === titleCol || !(cells[col] ?? '').trim() ? [] : [{ col, name: c.name, raw: cells[col], shown: shown(row, col) }]));
+    const fields = b.cols.flatMap((c, col) =>
+      col === laneCol || col === titleCol || !(cells[col] ?? '').trim() ? [] : [{ col, name: c.name, raw: cells[col], shown: shown(row, col), value: values[row]?.[col] ?? null }],
+    );
     const [title, raw] = titleCol >= 0 ? [shown(row, titleCol), flat(cells[titleCol])] : ['', ''];
-    lanes[lane].cards.push({ row, lane, title, raw, fields });
+    lanes[lane].cards.push({ row, lane, title, raw, fields, values: b.cols.map((_, col) => values[row]?.[col] ?? null) });
   });
   return { at, laneCol, titleCol, cols: b.cols, lanes, cards: lanes.flatMap((l) => l.cards) };
 }
@@ -281,7 +287,7 @@ function lockAfterMove(lock: Range[], from: number, to: number): Range[] {
   });
 }
 
-/** The card on row `row` into lane `lane` (by name: a new one is made after the rest), at place `to` among that lane's other cards. Nothing when its lane cell is locked. */
+/** The card on row `row` into lane `lane` (by name: a new one is made after the rest), at place `to` among that lane's other cards. Nothing when its lane cell is locked, or where it already is. */
 export function moveCard(doc: Doc, row: number, lane: string, to: number): Op[] {
   const v = boardOf(doc);
   const card = v.cards.find((c) => c.row === row);
@@ -292,6 +298,8 @@ export function moveCard(doc: Doc, row: number, lane: string, to: number): Op[] 
   const name = flat(lane);
   const others = (v.lanes.find((l) => l.name === name)?.cards ?? []).filter((c) => c.row !== row);
   const i = Math.max(0, Math.min(to, others.length));
+  // Let go where it was: nothing moves, and no row of another lane is passed over.
+  if (v.lanes[card.lane].name === name && v.lanes[card.lane].cards.indexOf(card) === i) return [];
   const ops: Op[] = [];
   if (flat(b.rows[row][v.laneCol]) !== name) ops.push({ op: 'cells', at: v.at, r: row, c: v.laneCol, values: [[name]] });
   // Into an empty lane the row stays where it is; else beside the card it lands by.
@@ -530,4 +538,94 @@ export function cardsTable(doc: Doc, rows: number[]): TableBlock {
   const v = boardOf(doc);
   const b = doc.blocks[v.at] as TableBlock;
   return { k: 'table', cols: v.cols, rows: rows.map((r) => [...b.rows[r]]) };
+}
+
+/**
+ * How a card shows one of its fields: `line`, the line under the title (a deal's company, a task's project), one card
+ * holds one; `money`, an amount, set apart and summed under its lane's name; `date`, a day, short; `person`, someone
+ * (an owner, an author), their initials in a round mark, the name said on hover and to a screen reader; `badge`, a
+ * small chip (a choice, a count, a box ticked); `text`, a quiet name and value. The editor draws them (editor.ts);
+ * here they are only named, so a host's server and its page say the same.
+ */
+export type CardFieldAs = 'line' | 'text' | 'money' | 'date' | 'person' | 'badge';
+/** A field a card shows: its column, by name (any case) or by place, and how (by its column's type where not said). */
+export interface CardField {
+  column: string | number;
+  as?: CardFieldAs;
+}
+/** A field resolved: its column's place in the table, and how it is shown. */
+export interface ShownField {
+  col: number;
+  as: CardFieldAs;
+}
+/** A column's name that says it holds a person: what a person or a model writes over such a column. */
+const PERSON = /^(owner|owners|assignee|assigned( to)?|author|person|people|who|rep|sales ?rep|account owner|contact|lead|manager|reviewer|editor)$/i;
+/** How many fields a card shows where the host says nothing, beside its line: enough to tell a card, few enough to scan. */
+export const CARD_FIELDS = 4;
+
+/** How a column is shown on a card where the host does not say: by its type, a person by its name. */
+export function fieldAs(col: Column): CardFieldAs {
+  if (col.type === 'money') return 'money';
+  if (col.type === 'date') return 'date';
+  if (col.type === 'number' || col.type === 'percent' || col.type === 'check' || col.type === 'option') return 'badge';
+  return PERSON.test(col.name.trim()) ? 'person' : 'text';
+}
+
+/**
+ * The fields a card shows, and how: the host's (`given`: columns by name or place, in its order; a column named that
+ * the table lacks, the lane's and the title's left out, a second `line` shown as text), else the defaults from the
+ * columns' types: the first column of words that holds no person is the line under the title, then the others, up to
+ * CARD_FIELDS, as their types say (`fieldAs`). A host that gives an empty list shows the title alone.
+ */
+export function cardFieldsOf(v: Pick<BoardView, 'cols' | 'laneCol' | 'titleCol'>, given?: readonly CardField[] | null): ShownField[] {
+  const free = (c: number) => c >= 0 && c < v.cols.length && c !== v.laneCol && c !== v.titleCol;
+  let line = false;
+  const once = (as: CardFieldAs): CardFieldAs => (as === 'line' ? (line ? 'text' : ((line = true), 'line')) : as);
+  if (given) {
+    const seen = new Set<number>();
+    return given.flatMap((f): ShownField[] => {
+      const col = typeof f.column === 'number' ? f.column : v.cols.findIndex((c) => c.name.trim().toLowerCase() === String(f.column).trim().toLowerCase());
+      if (!free(col) || seen.has(col)) return [];
+      seen.add(col);
+      return [{ col, as: once(f.as ?? fieldAs(v.cols[col])) }];
+    });
+  }
+  const out: ShownField[] = [];
+  v.cols.forEach((c, col) => {
+    if (!free(col)) return;
+    const as = fieldAs(c);
+    if (as === 'text' && !line && (c.type === 'text' || c.type === 'rich' || !c.type)) out.push({ col, as: once('line') });
+    else if (out.filter((f) => f.as !== 'line').length < CARD_FIELDS) out.push({ col, as });
+  });
+  return out;
+}
+
+/** The first column of money, whose amounts a lane sums under its name; -1 for none. */
+export const moneyColumn = (v: Pick<BoardView, 'cols' | 'laneCol' | 'titleCol'>): number => v.cols.findIndex((c, i) => c.type === 'money' && i !== v.laneCol);
+
+/** Lane `lane`'s cards' amounts in column `col`, added up: each card's value worked out (a formula's too), a cell that is no number left out. */
+export function laneSum(v: BoardView, lane: number, col: number): number {
+  return (v.lanes[lane]?.cards ?? []).reduce((sum, c) => {
+    const x = c.values[col];
+    return typeof x === 'number' && isFinite(x) ? sum + x : sum;
+  }, 0);
+}
+
+/**
+ * One cell as a table of the same cards changes it (a host's `<to-table>` beside the board, its `rowchange`): the
+ * lane's cell is the card moved to the end of that lane (`moveCard`, a new lane made after the rest), the title's is
+ * words (`setTitle`), any other its cell as written (`setCells`). Nothing where nothing changes.
+ */
+export function setCell(doc: Doc, row: number, col: number, value: string, names: ColumnNames = ENGLISH_NAMES): Op[] {
+  const v = boardOf(doc);
+  const card = v.cards.find((c) => c.row === row);
+  if (!card) return [];
+  if (col === v.laneCol) {
+    const name = flat(value);
+    if (name === v.lanes[card.lane].name) return [];
+    const others = (v.lanes.find((l) => l.name === name)?.cards ?? []).filter((c) => c.row !== row);
+    return moveCard(doc, row, name, others.length);
+  }
+  if (col === v.titleCol) return setTitle(doc, row, value, names);
+  return setCells(doc, row, { [col]: value });
 }

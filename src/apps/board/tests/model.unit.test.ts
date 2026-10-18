@@ -15,10 +15,13 @@ import {
   boardColumns,
   boardDoc,
   boardOf,
+  cardFieldsOf,
   cardsTable,
   duplicateCards,
+  laneSum,
   lanesOf,
   lanesText,
+  moneyColumn,
   moveCard,
   moveBack,
   moveCards,
@@ -28,6 +31,7 @@ import {
   removeCards,
   removeLane,
   renameLane,
+  setCell,
   setCells,
   setTitle,
 } from '../model.ts';
@@ -83,7 +87,7 @@ test('the lanes: in the order lanes: gives, an empty one kept; the rest as the r
   const v = boardOf(d);
   expect([v.laneCol, v.titleCol]).toEqual([2, 0]);
   expect(v.cards.map((c) => c.row)).toEqual([1, 4, 0, 2, 3]);
-  expect(v.cards[0].fields).toEqual([{ col: 1, name: 'Owner', raw: 'Ben', shown: 'Ben' }]);
+  expect(v.cards[0].fields).toEqual([{ col: 1, name: 'Owner', raw: 'Ben', shown: 'Ben', value: 'Ben' }]);
   // Without lanes:, by first appearance; a row with no status is in the lane of no name.
   const loose = parse('Task | Stage\n--- | ---\na | Won\nb | \nc | Lost\nd | Won\n');
   expect(names(loose)).toEqual([
@@ -422,7 +426,7 @@ test('removeCard, removeCards, duplicateCards, setTitle, moveCards: ops that app
 test('a card’s title and fields as the Spreadsheet shows their cells: "\'007" as 007, a formula’s value, money in its currency; the cell as written beside', () => {
   const d = parse(BOARD);
   const badges = boardOf(d).cards.find((c) => c.row === 4)!;
-  expect([badges.title, badges.raw, badges.fields]).toEqual(['Print badges', 'Print badges', [{ col: 3, name: 'Cost', raw: '=D1*2', shown: '$240.00' }]]);
+  expect([badges.title, badges.raw, badges.fields]).toEqual(['Print badges', 'Print badges', [{ col: 3, name: 'Cost', raw: '=D1*2', shown: '$240.00', value: 240 }]]);
   const shown = (text: string) => boardOf(parse(text)).cards.map((c) => [c.title, c.raw, c.fields.map((f) => [f.raw, f.shown])]);
   // Words written as words ("'007", "'=1+1") show as they were typed; a formula shows its value; Markdown its words.
   expect(shown("Task | Status | Due:date | Cost:money(GBP)\n--- | --- | --- | ---\n'007 | To do | 2027-03-01 | 5\n'=1+1 | To do | 3/2/2027 | =D1*2\n=1+1 | To do | | \n")).toEqual([
@@ -584,4 +588,97 @@ test('pasteCards: a table’s rows into the board’s columns by name, or a card
   const none = parse('---\nlanes: A\n---\n');
   const born = pasteCards(none, 'A', 0, 'One\nTwo\n', { title: 'Titel', status: 'Status' });
   expect(write(roundTrip(none, born.ops))).toBe('---\nlanes: A\n---\nTitel | Status:option\n--- | ---\nOne | A\nTwo | A\n');
+});
+
+const PIPELINE = [
+  '---',
+  'lanes: Inbound, Proposal, Won',
+  '---',
+  'Deal | Stage:option | Company | Owner | Value:money | Close:date | Seats:number | Hot:check | Notes',
+  '--- | --- | --- | --- | --- | --- | --- | --- | ---',
+  'Website | Inbound | Hudson Bakery | Maya Patel | 12000 | 2026-12-15 | 3 | x | Call back',
+  'Office move | Inbound | Greenpoint Dental | Leo Brooks | 8500.5 | 2027-01-10 | | |',
+  'Retainer | Proposal | Harbor Law | Maya Patel | =E1*2 | | | |',
+  'Catalog | Won | Bowery | Sam Okafor | lots | | | |',
+  '',
+].join('\n');
+
+test('a card’s fields by default: the first column of words its line, a person by the column’s name, then each by its type, at most four', () => {
+  const v = boardOf(parse(PIPELINE));
+  expect(cardFieldsOf(v)).toEqual([
+    { col: 2, as: 'line' },
+    { col: 3, as: 'person' },
+    { col: 4, as: 'money' },
+    { col: 5, as: 'date' },
+    { col: 6, as: 'badge' },
+  ]);
+  // The fifth beyond the line (Hot, Notes) is left out; a board of a title and a status shows the title alone.
+  expect(cardFieldsOf(boardOf(parse(blankBoard())))).toEqual([]);
+  // A column named Owner, Author, Assignee… is a person; any other words a quiet name and value once the line is taken.
+  expect(cardFieldsOf(boardOf(parse('Task | Status | Author | Where\n--- | --- | --- | ---\n')))).toEqual([
+    { col: 2, as: 'person' },
+    { col: 3, as: 'line' },
+  ]);
+});
+
+test('a card’s fields as the host gives them: by name in any case or by place, in its order, how it says; the lane, the title, a stranger and a second line left out', () => {
+  const v = boardOf(parse(PIPELINE));
+  expect(
+    cardFieldsOf(v, [
+      { column: 'value' },
+      { column: 'Company', as: 'line' },
+      { column: 'Notes', as: 'line' },
+      { column: 'Stage' },
+      { column: 'Deal' },
+      { column: 'Nowhere' },
+      { column: 3, as: 'badge' },
+      { column: 'Value', as: 'text' },
+    ]),
+  ).toEqual([
+    { col: 4, as: 'money' },
+    { col: 2, as: 'line' },
+    { col: 8, as: 'text' },
+    { col: 3, as: 'badge' },
+  ]);
+  expect(cardFieldsOf(v, [])).toEqual([]);
+});
+
+test('a lane’s sum of its first money column: every card’s amount worked out (a formula’s too), what is no number left out', () => {
+  const v = boardOf(parse(PIPELINE));
+  expect(moneyColumn(v)).toBe(4);
+  expect(v.lanes.map((_, i) => laneSum(v, i, 4))).toEqual([20500.5, 24000, 0]);
+  expect(moneyColumn(boardOf(parse(blankBoard())))).toBe(-1);
+  // Each card holds its whole row worked out, for a table of the same cards.
+  expect(v.cards[0].values.slice(0, 5)).toEqual(['Website', 'Inbound', 'Hudson Bakery', 'Maya Patel', 12000]);
+  expect(typeof v.cards[0].values[5]).toBe('number');
+});
+
+test('a cell changed as a table changes it: the lane’s a move to the end of that lane, the title words, the rest as written, each reversible', () => {
+  const d = parse(PIPELINE);
+  const moved = roundTrip(d, setCell(d, 0, 1, 'Won'));
+  expect(names(moved)).toEqual([
+    ['Inbound', ['Office move']],
+    ['Proposal', ['Retainer']],
+    ['Won', ['Catalog', 'Website']],
+  ]);
+  expect(names(roundTrip(d, setCell(d, 1, 1, 'Lost')))[3]).toEqual(['Lost', ['Office move']]);
+  expect(boardOf(roundTrip(d, setCell(d, 2, 0, '007'))).cards.find((c) => c.row === 2)!.title).toBe('007');
+  expect(boardOf(roundTrip(d, setCell(d, 2, 4, '9000'))).lanes[1].cards[0].values[4]).toBe(9000);
+  expect(setCell(d, 0, 1, 'Inbound')).toEqual([]);
+  expect(setCell(d, 99, 2, 'x')).toEqual([]);
+});
+
+test('for any board, a card’s fields resolved hold each column once, never the lane’s or the title’s, and one line at most', () => {
+  fc.assert(
+    fc.property(arbitraryBoard(), (d) => {
+      const v = boardOf(d);
+      const f = cardFieldsOf(v);
+      const cols = f.map((x) => x.col);
+      expect(new Set(cols).size).toBe(cols.length);
+      expect(cols).not.toContain(v.laneCol);
+      expect(cols).not.toContain(v.titleCol);
+      expect(f.filter((x) => x.as === 'line').length).toBeLessThanOrEqual(1);
+    }),
+    { numRuns: RUNS },
+  );
 });
