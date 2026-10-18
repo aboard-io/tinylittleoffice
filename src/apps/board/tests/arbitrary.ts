@@ -59,7 +59,8 @@ export const arbitraryBoard = (): fc.Arbitrary<Doc> =>
     })
     .map(({ before, table, after, lanes, lock }): Doc => {
       const head: Record<string, string> = {};
-      if (lanes) head.lanes = lanes.map((n) => n.replace(/[\\,]/g, '\\$&')).join(', ');
+      // A name is written trimmed, as the header keeps it: "Doing " in a cell is a lane the head can only name as "Doing".
+      if (lanes) head.lanes = lanes.map((n) => n.trim().replace(/[\\,]/g, '\\$&')).join(', ');
       // The lock is kept in one place: the head's, unless the table carries its own.
       if (lock && !table.a) head.lock = lock;
       return { head, blocks: [...before, table, ...after] };
