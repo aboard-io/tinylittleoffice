@@ -158,9 +158,15 @@ function mindLayout(doc: Doc): Diagram {
     return { w, h: Math.max(d === 0 ? 44 : 34, lines * px * 1.25 + 14) };
   });
   const pitch = Math.max(50, ...sized.map((z) => z.h + 16));
+  // Each depth a column 210 apart, or further where the widest box of the depth before (a long middle idea) would reach
+  // into it: its words are never drawn over the first branches.
+  const widest: number[] = [];
+  placed.forEach((p, i) => (widest[p.node.depth] = Math.max(widest[p.node.depth] ?? 0, sized[i].w)));
+  const colX: number[] = [0];
+  for (let d = 1; d < widest.length; d++) colX[d] = Math.max(colX[d - 1] + 210, colX[d - 1] + (widest[d - 1] ?? 0) + 40);
   const boxes = placed.map((p, i) => {
     const d = p.node.depth;
-    return shape('o', d * 210, p.across * pitch, sized[i].w, sized[i].h, labelOf(p.node.line.all), d === 0 ? 2 : d === 1 ? 1 : 0, colour[i], d === 0 ? 3 : undefined, whole(p.node.line));
+    return shape('o', colX[d], p.across * pitch, sized[i].w, sized[i].h, labelOf(p.node.line.all), d === 0 ? 2 : d === 1 ? 1 : 0, colour[i], d === 0 ? 3 : undefined, whole(p.node.line));
   });
   const at = (name: string) => placed.findIndex((p) => same(p.node.line.all.words, name));
   const root = boxes[0] ? [boxes[0].x + boxes[0].w / 2, boxes[0].y + boxes[0].h / 2] : [0, 0];

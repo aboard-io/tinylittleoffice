@@ -15,6 +15,8 @@ export interface Theme {
   ink: string;
   paper: string;
   shade: string;
+  /** Words on a color's tint (a light fill of it), from the color: the color itself unless a theme says (the Diagram Maker's, in the dark). */
+  onTint?: (color: string) => string;
 }
 const PRINT: Theme = { ink: INK, paper: PAPER, shade: SHADE };
 
@@ -48,6 +50,7 @@ export function shapeSvg(s: Shape, all: Shape[] = [], th: Theme = PRINT, hit = f
 
 function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
   const p = paint(s, th.ink, th.paper, th.shade);
+  if (th.onTint && s.f === 1 && s.c) p.text = th.onTint(p.text);
   const look = `fill="${p.fill}"${p.fillOpacity < 1 ? ` fill-opacity="${p.fillOpacity}"` : ''} stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round"`;
   const { x: X, y: Y, w, h } = s;
   // Something to catch the pointer where a shape has no paint of its own.

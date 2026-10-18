@@ -946,3 +946,69 @@ test('a second finger is a pinch: the picture zooms about the fingers, and the d
   expect(isOpen(el)).toBe(false);
   expect(el.querySelector('.dg-pic g.dragging')).toBeNull();
 });
+
+test('read-only: a thing activated is picked ("docpick") with its block, what it is and its words; no hint on how to edit', async () => {
+  document.body.innerHTML = '';
+  const main = document.createElement('main');
+  document.body.append(main);
+  const el = document.createElement('to-diagram-editor') as ToDiagramEditor;
+  el.value = ORG;
+  el.readOnly = true;
+  main.append(el);
+  await settle(el);
+  const picks: unknown[] = [];
+  el.addEventListener('docpick', (e) => picks.push((e as CustomEvent).detail));
+  expect(el.querySelector('.dg-hint')).toBeNull();
+  expect(el.querySelector('to-bar')).toBeNull();
+  (thing(el, 'Ben Okoro') as unknown as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await settle(el);
+  expect(picks).toStrictEqual([{ at: 1, thing: 'line', part: 'all', words: 'Ben Okoro | Engineering' }]);
+  expect(isOpen(el)).toBe(false);
+  // Enter on a focused thing picks it too; a connection is picked as one.
+  thing(el, 'Ada Diaz').focus();
+  thing(el, 'Ada Diaz').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  const edge = things(el).find((g) => g.classList.contains('edge'))!;
+  edge.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await settle(el);
+  expect(picks.slice(1)).toStrictEqual([
+    { at: 0, thing: 'line', part: 'all', words: 'Ada Diaz | Chief executive' },
+    { at: 3, thing: 'edge', words: 'design partner' },
+  ]);
+  // Editable, the hint is back and a tap opens the words, picking nothing.
+  el.readOnly = false;
+  await settle(el);
+  expect(el.querySelector('.dg-hint')).not.toBeNull();
+  await tap(el, thing(el, 'Eve Marsh'));
+  expect(isOpen(el)).toBe(true);
+  expect(picks).toHaveLength(3);
+});
+
+test('a mind map’s long middle idea is never drawn over its first branches: their column begins past its box', async () => {
+  const LONG = 'The whole spring outdoor campaign across every city where the screens light up at night';
+  const { el } = await editor(`---\nkind: mind\n---\n- ${LONG}\n  - Screens\n  - Sites\n  - Audiences\n`);
+  await settle(el);
+  const box = (g: SVGGElement) => g.querySelector('rect, path')!.getBoundingClientRect();
+  const root = box(thing(el, 'The whole'));
+  for (const name of ['Screens', 'Sites', 'Audiences']) expect(box(thing(el, name)).left).toBeGreaterThan(root.right + 8);
+});
+
+test('in the dark, a network’s words are the page’s ink, never a dark color on its dark tint', async () => {
+  const { setTheme } = await import('../../../kit/ui/theme.ts');
+  setTheme('dark');
+  try {
+    const { el } = await editor(NET);
+    await settle(el);
+    const words = thing(el, 'Web').querySelector('text')!;
+    const ink = getComputedStyle(document.documentElement).getPropertyValue('--to-ink').trim();
+    const probe = document.createElement('span');
+    probe.style.color = ink;
+    document.body.append(probe);
+    expect(getComputedStyle(words).fill).toBe(getComputedStyle(probe).color);
+    probe.remove();
+    setTheme('light');
+    await settle(el);
+    expect(getComputedStyle(words).fill).not.toBe(getComputedStyle(probe).color);
+  } finally {
+    setTheme('auto');
+  }
+});

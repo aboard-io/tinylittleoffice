@@ -77,9 +77,12 @@ What an app still asked of the site itself, and what replaces it:
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
    on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
-   Those four apps pick; the Word Processor, the Drawing Tool, the Diagram Maker, the Animator, the Trip Planner and the
-   Calculator have no item to open (their `pickOf` is the element's, null), so they are shown read-only and fire no
-   `docpick`. An outline's fold button picks its item too, and folds nothing: a fold is the document's own
+   Those four apps pick, and so does the Diagram Maker (2026-10-18): a thing activated is `{ at, thing, words }` and,
+   for a line's thing, `part` (the whole, its key, its words, or a thing of its list by place), for a name only
+   connections give or a lane's, `name` (`at` -1): `at` the block of its line (a connection's, its `~` line), `thing`
+   what it is (`line`, `edge`, `node` or `lane`), `words` its words as drawn; read-only, it shows no hint on how to
+   edit. The Word Processor, the Drawing Tool, the Animator, the Trip Planner and the Calculator have no item to open
+   (their `pickOf` is the element's, null), so they are shown read-only and fire no `docpick`. An outline's fold button picks its item too, and folds nothing: a fold is the document's own
    (`{.shut}`), so a read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw. A
    read-only Spreadsheet takes a page's marks on its rows and cells, `editor.marks = [{ row, col?, text, title? }]`
    (`SheetMark`: a count of comments, say), each a small badge at the end of the row's first cell or of the cell named,

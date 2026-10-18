@@ -32,7 +32,7 @@ import { contextOf, drawnIn, runKey } from '../../kit/core/commands.ts';
 import COMMANDS, { PICTURE, WORDS } from './commands.ts';
 import { GENERATOR, docToHtml, pasteFrom } from '../../kit/text/clipboard.ts';
 import { type ContextEntry, type ToContext } from '../../kit/ui/context.ts';
-import { DocElement, firstAt, type Entry } from '../../kit/core/element.ts';
+import { DocElement, firstAt, type Entry, type Picked } from '../../kit/core/element.ts';
 import { t } from '../../kit/core/i18n.ts';
 import type { TextOps, ToText } from '../../kit/text/text.ts';
 import { caret, insertRuns } from '../../kit/text/textops.ts';
@@ -89,7 +89,8 @@ import './style.css';
 export const tag = 'to-diagram-editor';
 
 /** The page's own colours, so a diagram looks right in the dark too. */
-const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
+/** The page's ink, paper and shade; words on a color's tint are in that color in the light, and in the page's ink in the dark, where a dark color on its dark tint is hard to read. */
+const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)', onTint: (color) => `light-dark(${color}, var(--to-ink))` };
 
 export interface DiagramView {
   kind: KindId;
@@ -699,6 +700,22 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     return [p.x, p.y];
   }
   /** A tap on the picture: on a thing, its words (or the other end of a connection being made); on empty space, a new thing there. */
+  /**
+   * Read-only, a thing activated (a click, a tap, Enter on it) is picked (kit/core/element.ts "docpick"): its line's
+   * block (`at`, -1 for a thing only connections or a lane name), what it is (`thing`: a line's `line`, a connection's
+   * `edge`, a lane's `lane`, a name's `node`), its words as drawn (`words`), and for a line which of its parts (`part`:
+   * the whole, its key, its words, or a thing of its list by place) and for a name or a lane the name (`name`).
+   */
+  protected pickOf(el: Element): Picked | null {
+    const g = el.closest<SVGGElement>('g.dg-thing[data-i]');
+    const s = g && this.contains(g) ? this.view.d.shapes[Number(g.dataset.i)] : undefined;
+    const hit = s?.hit;
+    if (!hit) return null;
+    const words = s.text.replace(/^:[a-z0-9-]+\s*/, '');
+    if (hit.k === 'line') return { at: hit.at, thing: 'line', part: hit.part, words };
+    if (hit.k === 'edge') return { at: hit.at, thing: 'edge', words };
+    return { at: -1, thing: hit.k, name: hit.name, words: words || hit.name };
+  }
   private onClick = (e: MouseEvent) => {
     if (performance.now() < this.quietUntil || (e.target as Element).closest('.dg-words')) return;
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
@@ -919,7 +936,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
             ${this.undoTools()}
           </to-bar>`
     }
-      <p class="dg-hint to-hint" aria-live="polite">${hint}</p>
+      ${this.readOnly ? nothing : html`<p class="dg-hint to-hint" aria-live="polite">${hint}</p>`}
       <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel}>
         <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}
           @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>

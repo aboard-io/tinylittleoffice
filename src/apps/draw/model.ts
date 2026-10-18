@@ -352,7 +352,7 @@ function wordsRoom(s: Shape): number {
  * (for a text, from the left, the centre or the right as it is aligned), turned with it. Below 16px it is set at 16 and scaled down, so iOS does not zoom.
  * The Drawing Tool's words and the Diagram Maker's are placed by it.
  */
-export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: number, th: { ink: string; paper: string; shade: string }) {
+export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: number, th: { ink: string; paper: string; shade: string; onTint?: (color: string) => string }) {
   const px = TEXT_PX[s.z ?? 2] * k;
   const font = Math.max(16, px);
   const shrink = px / font;
@@ -381,7 +381,7 @@ export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: num
       textAlign: al === 'l' ? 'left' : al === 'r' ? 'right' : 'center',
       minWidth,
       maxWidth: wrap ? minWidth : '',
-      color: paint(s, th.ink, th.paper, th.shade).text,
+      color: th.onTint && s.f === 1 && s.c ? th.onTint(paint(s, th.ink, th.paper, th.shade).text) : paint(s, th.ink, th.paper, th.shade).text,
     },
     left,
     wrap,
