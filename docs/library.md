@@ -546,6 +546,41 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
   i18n:check`), and ride in the editors' languages (dist/editors.js's English, and each language's file under
   dist/editors/), so `registerBoard` adds none. Every other build, the site's first, leaves them out
   (scripts/ftl-plugin.ts `LIBRARY_APPS`), and the site's files are the bytes they were before the Board came.
+- **What a page sets on it, and hears from it** (src/apps/board/editor.ts, Paul, 2026-10-18, on the Board as a CRM's
+  pipeline):
+  - **A card is carried from anywhere on it**, with no grip: a mouse's press carries it once it has moved 6px, so a
+    click is still a click (the caret where it was in a title, the card chosen, or picked where the page asks for picks);
+    a finger's or a pen's once held still for 200ms (the card lifts) and then moved, so a finger that moves at once
+    still scrolls the page; held 500ms the card is chosen, the editing standard's hold, and may still be carried. A
+    title being typed in keeps its press for its words. A dashed slot the card's height shows where it would land, a
+    ghost of its face follows the pointer, Escape lets it go, and near an edge the column, the lanes (sideways) and a
+    lane's cards scroll. A page that gives a lane a height of its own sets `--to-board-lane-h` on the element; a lane's
+    cards then scroll inside it.
+  - **`cardFields`** (a property, `CardField[] | null`): which of a card's fields it shows, in this order, and how:
+    `{ column, as? }`, the column by name (any case) or by place, `as` one of `line` (the line under the title: a
+    deal's company; one a card), `money` (an amount, short: $12,000), `date` (a day, short: Dec 15), `person` (round
+    initials in a hue of the name's own, the name on hover and to a screen reader), `badge` (a chip: a choice, a number
+    with its name, a box checked) or `text` (a quiet name and value). Left as null, the columns' types say (the model's
+    `cardFieldsOf` and `fieldAs`, which a server can ask too): the first column of words that holds no person is the
+    line, a column named Owner, Author, Assignee… a person, then each other by its type, four at most. `[]` shows the
+    title alone. Each lane shows its count and, where the table has a column of money, the sum of its first one
+    (`moneyColumn`, `laneSum`).
+  - **A lane renamed where it is drawn**: a double click on its name, Enter or F2 on it, or its menu's Rename lane make
+    it a field, its words chosen; Enter keeps it, Escape lets it go, the focus leaving keeps it, and a name that is
+    empty or another lane's is refused and said under it (role=alert).
+  - **A lane's change, told first** (`LaneEvents`, `LaneEvent`): before a lane is renamed, added, moved or deleted the
+    board fires, bubbling and cancelable, `lanerename` `{ from, to }`, `laneadd` `{ name, at }`, `lanemove`
+    `{ name, from, to }` (places among the named lanes) or `lanedelete` `{ name, cards }` (how many cards go with it).
+    A page that refuses it calls `preventDefault()`, and nothing changes; a page that makes it through its own command
+    (a CRM whose stages are its records) calls `preventDefault()`, runs its command and gives the board its new
+    document. A page that makes every one of them sets `own-lanes` (`ownLanes`): the board tells them and makes none,
+    and offers them carried only too (each lane's menu, but Add a card, and Rename).
+  - **A table of the same cards** is the page's (`<to-table>`, A typed table): `boardOf(doc)` gives its columns
+    (`cols`, typed) and its cards, each with its row worked out (`Card.values`, a value a column: a number for money,
+    a serial day for a date) and its row (`Card.row`, the id a table's row keeps); `setCell(doc, row, col, words)` is
+    the ops for a cell the table changed, the lane's a move to the end of that lane. The table's edit goes to the board
+    as another's ops go (`applyRemote`), and the board's `docchange` gives the table its rows again: Apps/Board/Board
+    And Table in the Storybook does both.
 - **Its tests** are its own (src/apps/board/tests/): the model and its properties under Node, and its editor, its view
   and its languages on a bare page that registers it and mounts it with `mount`, as a host does. Its commands are not
   in the site's registry (scripts/commands.ts), so docs/editing.md's tables and the skill do not list them;
