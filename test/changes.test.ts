@@ -127,6 +127,28 @@ describe('tracked changes', () => {
     ]);
   });
 
+  test('a paragraph put back whole, where it was taken out, is restored as a change, as words put back are', () => {
+    const base = { author: A, text: 'One.\n\nTwo **words**.\n\nThree.\n', hash: 'v0' };
+    const cut = { author: B, text: 'One.\n\nThree.\n', hash: 'v1' };
+    // Undone by whoever took it out, nobody having reviewed it: as it was.
+    expect(show([base, cut, { author: B, text: base.text, hash: 'v2' }])).toEqual(['p: One.', 'p: Two words.', 'p: Three.']);
+    // Put back by anyone else (a rejection, say): words restored, the taking out it undid still Bob's.
+    const back = track([base, cut, { author: A, text: base.text, hash: 'v2' }]);
+    expect(show([base, cut, { author: A, text: base.text, hash: 'v2' }])).toEqual(['p: One.', 'p: [+Two words.+a]', 'p: Three.']);
+    expect(back[1].toks.every((x) => x.restored && x.from?.delId === 'v1:0')).toBe(true);
+    expect(changesOf(back).map((c) => [c.id, c.author, c.kind, c.put, c.took])).toEqual([
+      ['v2:0', A, 'restore', 'Two words.', ''],
+      ['v1:0', B, 'edit', '', 'Two words.'],
+    ]);
+    const ghosts = ghostsOf(back, parse(base.text).blocks, () => false, drawing);
+    expect(ghosts.get(1)!.map((g) => g.text)).toEqual(['[', 'A restored', ']']);
+    // Nothing of it struck through elsewhere, and rejecting the restoring takes it out again.
+    expect([...ghosts.values()].flat().some((g) => g.cls?.includes('tx-gone'))).toBe(false);
+    expect(rejecting([base, cut, { author: A, text: base.text, hash: 'v2' }], () => ['v2:0'])).toBe(cut.text);
+    // Rejecting both, the restoring and the taking out it undid, leaves it standing.
+    expect(rejecting([base, cut, { author: A, text: base.text, hash: 'v2' }], () => ['v2:0', 'v1:0'])).toBe(base.text);
+  });
+
   test('a replacement is one change, with what it put in and what it took out, named by the version that made it', () => {
     const t = track([
       { author: A, text: 'Due in 30 days.\n', hash: 'h1' },
