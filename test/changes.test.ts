@@ -345,6 +345,17 @@ describe('drawn among the words', () => {
     expect([gone.block, gone.cls, gone.parts!.map((p) => p.text)]).toEqual([true, 'tx-gone', ['[', 'C', 'One.', ']']]);
   });
 
+  test('a paragraph taken out last, with no block after it, is a line of its own after the last block standing', () => {
+    const t = track([
+      { author: A, text: 'One.\n\nTwo.\n', hash: 'v0' },
+      { author: C, text: 'One.\n', hash: 'v1' },
+    ]);
+    const ghosts = ghostsOf(t, parse('One.\n').blocks, () => false, drawing).get(0) ?? [];
+    expect(ghosts.map((g) => [g.block, g.cls, g.parts?.map((p) => p.text)])).toEqual([[true, 'tx-gone tx-gone-after', ['[', 'C', 'Two.', ']']]]);
+    // After the words: past them, so the brackets of an edit at their end close before it.
+    expect(ghosts[0].offset).toBeGreaterThan('One.'.length);
+  });
+
   test('a person’s initials: the first letters of the first and last words of their name, more of the first where two would match', () => {
     const ini = initialsOf([
       { email: A, name: 'Alice Smith' },
