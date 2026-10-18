@@ -375,6 +375,29 @@ describe('drawn among the words', () => {
     expect(ghostsOf(t, parse('Payment is due in **45** days.\n').blocks, () => true, drawing).size).toBe(0);
   });
 
+  test('a hint written over is one replacement: the words taken out together, then the words put in, one bracket', () => {
+    // The contract template's italic hint, replaced (stories/kit/text/contract.ts): spaces and a word the two share.
+    const v = [
+      { author: A, text: '## *What this agreement is about*\n\nPaid by *who pays*.\n', hash: 'v0' },
+      { author: B, text: '## Design services agreement\n\nPaid by the client.\n', hash: 'v1' },
+    ];
+    const t = track(v);
+    expect(changesOf(t).map((c) => [c.put, c.took, c.styled])).toEqual([
+      ['Design services agreement', 'What this agreement is about', ''],
+      ['the client', 'who pays', ''],
+    ]);
+    const ghosts = ghostsOf(t, parse(v[1].text).blocks, () => false, drawing);
+    expect(ghosts.get(0)!.map((g) => g.text)).toEqual(['[', 'B', 'What this agreement is about', ']']);
+    expect(ghosts.get(1)!.map((g) => [g.offset, g.text])).toEqual([
+      [8, '['],
+      [8, 'B'],
+      [8, 'who pays'],
+      [18, ']'],
+    ]);
+    // A word bolded alone, between words that stand, is still a restyling of it.
+    expect(changesOf(track([v[1], { author: C, text: '## Design **services** agreement\n\nPaid by the client.\n', hash: 'v2' }])).map((c) => [c.kind, c.styled])).toEqual([['format', 'services']]);
+  });
+
   test('a paragraph taken out is a line of its own before the next, bracketed, its lozenge first', () => {
     const t = track([
       { author: A, text: 'One.\n\nTwo.\n', hash: 'v0' },
