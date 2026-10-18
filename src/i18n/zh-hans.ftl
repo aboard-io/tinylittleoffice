@@ -3329,6 +3329,12 @@ table-no-rows = 这里还没有内容
 table-no-rows-match = 没有匹配的行
 # en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
 table-sort-hint = 按此列排序。按住 Shift 点击可同时按此列排序。
+# en: c3cd636a585b20c40ac2df5ffb403e83cb2eef51
+table-row-actions = 操作
+# en: 0a35ecd2f44a46e9904bd46d91557748cc409ac8
+table-actions-for-name = { $name } 的操作
+# en: ab5297fdaa47a693168d73de9b199b904eddba8d
+table-no-records = 输入以搜索
 # en: bce06414177f72ab70e6387b6af9f8ceef0d6049
 search-label = 搜索
 # en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd

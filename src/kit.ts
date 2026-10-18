@@ -67,8 +67,9 @@
  *   (`<to-review-panel>`, `changeWords`, Person, ReviewAsk) and the margin (`<to-comments>`, CommentSend, and its box,
  *   `<to-comment-box>`);
  * - what a host's own pages are made of (docs/library.md, A typed table and after): `<to-table>` (ToTable), its rows
- *   typed by their columns (TableColumn, ColumnType, EnumOption, LinkValue, TableRow), sorted (SortBy) and edited in
- *   place (RowChange); `<to-search>` (ToSearch), one search across every kind of thing (Searcher, SearchHit,
+ *   typed by their columns (TableColumn, ColumnType, EnumOption, LinkValue, RecordValue and the records a
+ *   record column's picker finds, RecordOption and RecordSearch, TableRow), sorted (SortBy), edited in place
+ *   (RowChange) and acted on a row at a time (RowAction, RowActionPick); `<to-search>` (ToSearch), one search across every kind of thing (Searcher, SearchHit,
  *   SearchKind, SearchAction, SearchPick); `<to-header>` (ToHeader), a page's header without the shell (Crumb); and
  *   `pickTemplate` and `<to-template-picker>` (ToTemplatePicker), a template chosen and handed back (PickedTemplate);
  * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
@@ -155,8 +156,8 @@ export { SyncStore, type Kept } from './kit/share/sync.ts';
 export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRange, type RowSpan, type RowsOptions } from './kit/text/rows.ts';
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';
 export { choicesOf } from './kit/text/columns.ts';
-export { ToTable, type RowChange } from './kit/ui/table.ts';
-export type { ColumnType, EnumOption, LinkValue, SortBy, TableColumn, TableRow } from './kit/ui/table-model.ts';
+export { ToTable, type RowAction, type RowActionPick, type RowChange } from './kit/ui/table.ts';
+export type { ColumnType, EnumOption, LinkValue, RecordOption, RecordSearch, RecordValue, SortBy, TableColumn, TableRow } from './kit/ui/table-model.ts';
 export { ToSearch, type SearchAction, type SearchHit, type SearchKind, type SearchPick, type Searcher } from './kit/ui/search-box.ts';
 export { ToHeader, type Crumb } from './kit/ui/header.ts';
 export { pickTemplate, ToTemplatePicker, type PickedTemplate } from './kit/ui/template-picker.ts';

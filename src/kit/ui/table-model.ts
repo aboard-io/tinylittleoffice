@@ -24,9 +24,11 @@ import { fold, termsOf } from '../share/search.ts';
  * day ("2027-03-01", a Date or a time in ms); datetime: a moment. boolean: true or false, drawn as a box to tick.
  * enum: one of the column's `options`, drawn in its color (a status, a stage). link and person: words that open
  * something, a `{ label, href }` or words with the column's `href`; with no address, a tap is told ("cellpick").
- * tags: a list of words. custom: whatever the column's `render` draws.
+ * tags: a list of words. record: another of the host's records (a person's company), a `{ id, label, href? }` drawn as a
+ * link and chosen, when edited, from the column's `search(q, signal)`, the host's own answer (thousands, never a list
+ * held here). custom: whatever the column's `render` draws.
  */
-export type ColumnType = 'text' | 'number' | 'money' | 'date' | 'datetime' | 'boolean' | 'enum' | 'link' | 'person' | 'tags' | 'custom';
+export type ColumnType = 'text' | 'number' | 'money' | 'date' | 'datetime' | 'boolean' | 'enum' | 'link' | 'person' | 'record' | 'tags' | 'custom';
 
 /** One of an enum column's values: what the row holds, the words shown (the value, without them) and its color (any CSS color). */
 export interface EnumOption {
@@ -40,6 +42,21 @@ export interface LinkValue {
   label: string;
   href?: string;
 }
+
+/** A record column's cell, as a row holds it: the record's id, its words, and where it opens. */
+export interface RecordValue {
+  id: string | number;
+  label: string;
+  href?: string;
+}
+
+/** A record offered by a record column's search: its id, its words, a second line (a company's domain), where it opens. */
+export interface RecordOption extends RecordValue {
+  detail?: string;
+}
+
+/** A record column's search: the records for the words typed ('' as the picker opens), `signal` aborted when newer words replace them. */
+export type RecordSearch = (q: string, signal: AbortSignal) => Promise<RecordOption[]>;
 
 /** A row of a table: its id, which every event names it by, and its fields, which the columns read. */
 export interface TableRow {
@@ -58,18 +75,32 @@ export interface TableColumn<R extends TableRow = TableRow> {
   value?: (row: R) => unknown;
   /** Money: the currency, a code ("USD", written as the browser writes it) or a symbol ("$", the default). */
   currency?: string;
+  /** Number and money: the places after the point, always (0: whole units, "$12,000"); else money's two and a number's own. */
+  decimals?: number;
   /** Enum: its values in their order, which is the order a sort puts them in. */
   options?: EnumOption[];
-  /** Link and person: where a row's cell opens, when the value does not say. */
+  /** Link, person and record: where a row's cell opens, when the value does not say. */
   href?: (row: R) => string | undefined;
-  /** Its cells can be changed in place, each change told to the page ("rowchange") to keep or refuse. */
-  editable?: boolean;
+  /** Record: the records the picker offers for the words typed, the host's answer (a server's search). */
+  search?: RecordSearch;
+  /**
+   * Its cells can be changed in place, each change told to the page ("rowchange") to keep or refuse; a function, for
+   * each row its own (a meeting that came by invite, not changed here): a row it says no to offers no field at all.
+   */
+  editable?: boolean | ((row: R) => boolean);
   /** Hidden until the person shows it from the Columns menu (or the page sets the table's `hiddenColumns`). */
   hidden?: boolean;
   /** Sorted by a click on its heading; true unless said. */
   sortable?: boolean;
-  /** Its width, as a CSS grid track ("12rem", "minmax(8rem, 1fr)"); else its type's. */
+  /** Its width, as a CSS grid track ("12rem", "minmax(8rem, 1fr)"); else its type's. "max-content" is `fit`. */
   width?: string;
+  /**
+   * As wide as its widest cell (of every row, drawn or not) and its heading, measured: within its type's least width
+   * and `max` (rem, 24 unless said), or `min` where given.
+   */
+  fit?: boolean | { min?: number; max?: number };
+  /** Its words wrap, and a row grows to hold them (the rows are then measured, and windowed by their heights). */
+  wrap?: boolean;
   /** Custom: the cell drawn (a Lit template, a node or words). Any type may have one. */
   render?: (value: unknown, row: R) => unknown;
   /** Custom: the order of two values, low to high, where its words are not it. */
@@ -86,6 +117,12 @@ export interface SortBy {
 
 /** A column's type, text unless said. */
 export const typeOf = (col: { type?: ColumnType }): ColumnType => col.type ?? 'text';
+
+/** Whether a row's cell of a column may be changed in place: the column's `editable`, or its answer for the row. */
+export const canEdit = <R extends TableRow>(col: TableColumn<R>, row: R): boolean => (typeof col.editable === 'function' ? col.editable(row) : !!col.editable);
+
+/** Whether a column is as wide as its widest cell: `fit`, or a width of "max-content" or "fit-content". */
+export const fits = (col: { fit?: TableColumn['fit']; width?: string }): boolean => !!col.fit || col.width === 'max-content' || col.width === 'fit-content';
 
 /** A row's value in a column: its `value(row)`, else the row's field. */
 export const valueOf = <R extends TableRow>(col: TableColumn<R>, row: R): unknown => (col.value ? col.value(row) : row[col.key]);
@@ -116,6 +153,29 @@ function numberOf(v: unknown, type: 'number' | 'money'): number | null {
 export function linkOf<R extends TableRow>(col: TableColumn<R>, row: R, v = valueOf(col, row)): LinkValue {
   const own = v && typeof v === 'object' && 'label' in v ? (v as LinkValue) : { label: v === null || v === undefined ? '' : String(v) };
   return { label: own.label, href: own.href ?? col.href?.(row) };
+}
+
+/** A record column's cell: the record's id, words and address (the column's `href` where the value has none); null for none. */
+export function recordOf<R extends TableRow>(col: TableColumn<R>, row: R, v = valueOf(col, row)): RecordValue | null {
+  if (isEmpty(v)) return null;
+  if (v && typeof v === 'object' && 'id' in v) {
+    const r = v as RecordValue;
+    return { id: r.id, label: r.label ?? String(r.id), href: r.href ?? col.href?.(row) };
+  }
+  return { id: v as string | number, label: String(v), href: col.href?.(row) };
+}
+
+/** An amount with exactly `decimals` places, in its currency as formatMoney writes it (a code as the browser writes it, else after a symbol). */
+export function moneyWords(v: number, currency = '$', decimals?: number): string {
+  if (decimals === undefined) return formatMoney(v, currency);
+  const d = Math.max(0, Math.min(20, Math.round(decimals)));
+  if (/^[A-Z]{3}$/.test(currency))
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency, minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+    } catch {
+      // Not a currency the browser knows: written as a symbol.
+    }
+  return (v < 0 ? '-' : '') + currency + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
 /** An enum column's option for a value (or one made of the value, for a value the column does not list). */
@@ -149,11 +209,14 @@ export function cellWords<R extends TableRow>(col: TableColumn<R>, row: R, v = v
   switch (typeOf(col)) {
     case 'number': {
       const n = numberOf(v, 'number');
-      return n === null ? String(v) : formatCell(n, 'number');
+      if (n === null) return String(v);
+      if (col.decimals === undefined) return formatCell(n, 'number');
+      const d = Math.max(0, Math.min(20, Math.round(col.decimals)));
+      return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
     }
     case 'money': {
       const n = numberOf(v, 'money');
-      return n === null ? String(v) : formatMoney(n, col.currency || '$');
+      return n === null ? String(v) : moneyWords(n, col.currency || '$', col.decimals);
     }
     case 'date':
       return dateText(v, false);
@@ -168,6 +231,8 @@ export function cellWords<R extends TableRow>(col: TableColumn<R>, row: R, v = v
     case 'link':
     case 'person':
       return linkOf(col, row, v).label;
+    case 'record':
+      return recordOf(col, row, v)?.label ?? '';
     case 'tags':
       return Array.isArray(v) ? v.map(String).join(', ') : String(v);
     default:
@@ -338,13 +403,14 @@ export function parseInput(col: { type?: ColumnType }, raw: string): unknown {
 export const sameValue = (a: unknown, b: unknown): boolean => a === b || (isEmpty(a) && isEmpty(b)) || (Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => x === b[i]));
 
 /** A column's least width in rem and its grid track: given, or its type's (words wider than numbers, a box narrow). */
-export function trackOf(col: { type?: ColumnType; width?: string }): { min: number; track: string } {
-  if (col.width) return { min: Number(/(\d+(?:\.\d+)?)r?em/.exec(col.width)?.[1] ?? 8), track: col.width };
+export function trackOf(col: { type?: ColumnType; width?: string; fit?: TableColumn['fit'] }): { min: number; track: string } {
+  if (col.width && !fits(col)) return { min: Number(/(\d+(?:\.\d+)?)r?em/.exec(col.width)?.[1] ?? 8), track: col.width };
   const [min, fr] = (
     {
       text: [10, 2],
       link: [10, 2],
       person: [10, 2],
+      record: [10, 2],
       tags: [10, 2],
       custom: [10, 2],
       number: [7, 1],

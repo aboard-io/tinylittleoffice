@@ -3,7 +3,26 @@
 // a cell means. The element that draws it is test/browser/table.test.ts's.
 import { describe, expect, test } from 'vitest';
 import { compareCells, sortRows as sortSheet } from '../src/doc/index.ts';
-import { cellWords, dateText, inputOf, isEmpty, nextSort, parseInput, sameValue, searchRows, sortKey, sortRows, timeOf, trackOf, type TableColumn, type TableRow } from '../src/kit/ui/table-model.ts';
+import {
+  canEdit,
+  cellWords,
+  dateText,
+  fits,
+  inputOf,
+  isEmpty,
+  moneyWords,
+  nextSort,
+  recordOf,
+  parseInput,
+  sameValue,
+  searchRows,
+  sortKey,
+  sortRows,
+  timeOf,
+  trackOf,
+  type TableColumn,
+  type TableRow,
+} from '../src/kit/ui/table-model.ts';
 
 interface Person extends TableRow {
   name: string;
@@ -199,4 +218,45 @@ test('a column’s width: its own, else its type’s', () => {
   expect(trackOf({ type: 'money' })).toStrictEqual({ min: 7, track: 'minmax(7rem, 1fr)' });
   expect(trackOf({ type: 'boolean' })).toStrictEqual({ min: 5, track: '5rem' });
   expect(trackOf({ width: 'minmax(12rem, 3fr)' })).toStrictEqual({ min: 12, track: 'minmax(12rem, 3fr)' });
+});
+
+test('a column that fits its words, and one that wraps, keep their type’s least width until measured', () => {
+  expect(fits({ fit: true })).toBe(true);
+  expect(fits({ width: 'max-content' })).toBe(true);
+  expect(fits({ width: '12rem' })).toBe(false);
+  expect(trackOf({ type: 'text', width: 'max-content' })).toStrictEqual({ min: 10, track: 'minmax(10rem, 2fr)' });
+});
+
+test('money in whole units, and a number to its places', () => {
+  const whole: TableColumn<Person> = { key: 'deal', label: 'Deal', type: 'money', currency: '$', decimals: 0 };
+  expect(cellWords(whole, { id: 'a', name: 'a', deal: 12000 })).toBe('$12,000');
+  expect(cellWords(whole, { id: 'a', name: 'a', deal: 950.5 })).toBe('$951');
+  expect(cellWords(whole, { id: 'a', name: 'a', deal: -1200 })).toBe('-$1,200');
+  expect(cellWords({ ...whole, currency: 'USD' }, { id: 'a', name: 'a', deal: 12000 })).toBe(moneyWords(12000, 'USD', 0));
+  expect(moneyWords(12000, 'USD', 0)).not.toMatch(/\.00/);
+  expect(moneyWords(1.5, '$')).toBe('$1.50');
+  expect(cellWords({ key: 'deal', label: 'n', type: 'number', decimals: 2 }, { id: 'a', name: 'a', deal: 3 })).toBe('3.00');
+  // The sort is by the amount, not its words.
+  expect(sortKey(whole, { id: 'a', name: 'a', deal: 950.5 })).toBe(950.5);
+});
+
+test('a record’s cell: its words, its address, its id, and a row of its own that may not be edited', () => {
+  interface Met extends TableRow {
+    company?: { id: string; label: string; href?: string } | string | null;
+    invite?: boolean;
+  }
+  const company: TableColumn<Met> = { key: 'company', label: 'Company', type: 'record', href: (r) => `/c/${String(r.id)}`, editable: (r) => !r.invite };
+  const a: Met = { id: 'a', company: { id: 'c1', label: 'Clear Channel' } };
+  const b: Met = { id: 'b', company: { id: 'c2', label: 'Aboard', href: '/aboard' }, invite: true };
+  expect(recordOf(company, a)).toStrictEqual({ id: 'c1', label: 'Clear Channel', href: '/c/a' });
+  expect(recordOf(company, b)!.href).toBe('/aboard');
+  expect(recordOf(company, { id: 'c', company: null })).toBeNull();
+  expect(recordOf(company, { id: 'd', company: 'c9' })).toStrictEqual({ id: 'c9', label: 'c9', href: '/c/d' });
+  expect(cellWords(company, a)).toBe('Clear Channel');
+  expect(inputOf(company, a)).toBe('Clear Channel');
+  expect(ids(sortRows([a, b], [company], [{ key: 'company', dir: 'asc' }]) as Person[])).toBe('b a');
+  expect(canEdit(company, a)).toBe(true);
+  expect(canEdit(company, b)).toBe(false);
+  expect(canEdit({ key: 'x', label: 'x', editable: true }, a)).toBe(true);
+  expect(canEdit({ key: 'x', label: 'x' }, a)).toBe(false);
 });

@@ -33,6 +33,8 @@ export interface MenuItem {
   /** A heading the item sits under. */
   group?: string;
   disabled?: boolean;
+  /** It destroys something (Delete): drawn in the danger color. */
+  danger?: boolean;
   /** The keys that do the same, written at the item's end as the device writes them: "Mod+Shift+L". */
   keys?: string;
   /** Given, the item is a checkbox (role=menuitemcheckbox). */
@@ -423,7 +425,7 @@ export class ToMenu extends LitElement {
             html`<button type="button" class="to-menu-act" role="menuitem" tabindex="-1" aria-label=${a.label} title=${a.label} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(a)}>${icon(a.icon, 20)}</button>`,
         )}
       </div>`;
-    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} aria-keyshortcuts=${keysAria(item.keys)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
+    return html`<button type="button" class="to-menu-item ${item.danger ? 'to-danger' : ''}" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} aria-keyshortcuts=${keysAria(item.keys)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
       ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${keysKbd(item.keys)}${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;
   }

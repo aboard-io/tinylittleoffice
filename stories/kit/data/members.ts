@@ -5,7 +5,9 @@
  * copy's rows their own ids, for the story that shows how a long table scrolls.
  */
 import { evaluate, firstTable, parse, serialToIso, tableAt } from '../../../src/doc/index.ts';
-import type { TableColumn, TableRow } from '../../../src/editors.ts';
+import type { EnumOption, RecordOption, TableColumn, TableRow } from '../../../src/editors.ts';
+import { boardOf } from '../../../src/apps/board/model.ts';
+import { templates as boardTemplates } from '../../../src/apps/board/templates.ts';
 import { templatesOf } from '../../support.ts';
 
 export interface Member extends TableRow {
@@ -62,4 +64,41 @@ export async function members(): Promise<{ rows: Member[]; columns: TableColumn<
 /** The roll repeated to `n` rows, each its own id. */
 export function many(rows: Member[], n: number): Member[] {
   return Array.from({ length: n }, (_, i) => ({ ...rows[i % rows.length], id: `r${i}`, plot: `${rows[i % rows.length].plot}-${Math.floor(i / rows.length) + 1}` }));
+}
+
+export interface Lead extends TableRow {
+  deal: string;
+  stage: string;
+  company: RecordOption | null;
+  owner: string;
+  value: number | null;
+  close: string | null;
+}
+
+/**
+ * The Board's sales pipeline (its `pipeline` template, src/apps/board/templates.ts) as a CRM's leads: a deal a row, its
+ * company one of the companies the pipeline names (the host's records a record column picks from, each its id), its
+ * stages the lanes in their order.
+ */
+export async function pipeline(): Promise<{ rows: Lead[]; companies: RecordOption[]; stages: EnumOption[] }> {
+  const tpl = boardTemplates().find((x) => x.id === 'pipeline')!;
+  const v = boardOf(parse(tpl.doc));
+  const at = (name: string) => v.cols.findIndex((c) => c.name === name);
+  const [company, owner, value, close] = ['Company', 'Owner', 'Value', 'Close'].map(at);
+  const names = [...new Set(v.cards.map((c) => String(c.values[company] ?? '')))].filter(Boolean);
+  const companies = names.map((label, i) => ({ id: `co${i + 1}`, label, detail: `${label.toLowerCase().replace(/[^a-z]+/g, '')}.com` }));
+  const rows: Lead[] = v.cards.map((c) => {
+    const named = companies.find((x) => x.label === c.values[company]);
+    return {
+      id: `lead${c.row + 1}`,
+      deal: c.title,
+      stage: v.lanes[c.lane].name,
+      company: named ? { ...named, href: `#/companies/${named.id}` } : null,
+      owner: String(c.values[owner] ?? ''),
+      value: typeof c.values[value] === 'number' ? (c.values[value] as number) : null,
+      close: typeof c.values[close] === 'number' ? serialToIso(c.values[close] as number) : null,
+    };
+  });
+  const stages = v.lanes.map((l, i) => ({ value: l.name, color: COLORS[i % COLORS.length] }));
+  return { rows, companies, stages };
 }

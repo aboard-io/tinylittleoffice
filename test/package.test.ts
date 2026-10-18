@@ -201,7 +201,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { DocElement, addStrings, defineApp, html, registerApp, t, type AppDef, type GhostAt, type SheetMark } from 'tinylittleoffice/kit';",
         "import { COLORS, changesOf, ghostsOf, paint, pinComments, rejectOps, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
         "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
-        "import { pickTemplate, type Crumb, type PickedTemplate, type RowChange, type SearchHit, type SearchPick, type Searcher, type SortBy, type TableColumn, type TableRow, type ToHeader, type ToSearch, type ToTable } from 'tinylittleoffice/editors';",
+        "import { pickTemplate, type Crumb, type PickedTemplate, type RecordOption, type RecordSearch, type RecordValue, type RowAction, type RowActionPick, type RowChange, type SearchHit, type SearchPick, type Searcher, type SortBy, type TableColumn, type TableRow, type ToHeader, type ToSearch, type ToTable } from 'tinylittleoffice/editors';",
         "import 'tinylittleoffice/editors.css';",
         // The Board, as a host holds it: registered, its editor asked for a pick and carried only, its model on its own.
         "import { board, install, registerBoard, boardOf, type BoardView, type PickedCard, type ToBoardEditor } from 'tinylittleoffice/board';",
@@ -323,6 +323,12 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "export const box = (el: ToSearch): void => { el.search = search; el.kinds = { person: { label: 'People' } }; el.addEventListener('searchpick', (e) => void (e as CustomEvent<SearchPick>).detail.hit?.id); };",
         "export const crumbs = (el: ToHeader, trail: Crumb[]): void => { el.crumbs = trail; el.heading = 'Projects'; };",
         "export const start = async (): Promise<string> => { const picked: PickedTemplate | null = await pickTemplate('write'); return picked ? picked.text : ''; };",
+        // A record picked, a row's own editable, its actions, money in whole units, a column that fits, rows that grow.
+        "export const companies: RecordSearch = async (q) => [{ id: 'c1', label: q, detail: 'c1.com' }] satisfies RecordOption[];",
+        "export const leads: TableColumn<Person>[] = [{ key: 'name', label: 'Name', fit: { max: 20 }, wrap: true, editable: (p) => p.stage !== 'won' },",
+        "  { key: 'company', label: 'Company', type: 'record', search: companies, value: (p): RecordValue => ({ id: p.id, label: p.name }) }, { key: 'deal', label: 'Deal', type: 'money', decimals: 0 }];",
+        "export const acts = (table: ToTable<Person>): void => { table.rowActions = (p): RowAction[] => [{ id: 'delete', label: `Delete ${p.name}`, danger: true }];",
+        "  table.addEventListener('rowaction', (e) => void (e as CustomEvent<RowActionPick<Person>>).detail.action); table.addEventListener('rowchange', (e) => void (e as CustomEvent<RowChange<Person>>).detail.record?.id); };",
       ].join('\n'),
     );
     writeFileSync(

@@ -373,3 +373,185 @@ test('at a phone’s width the table scrolls sideways in its own box, the page n
     await page.viewport(1280, 800);
   }
 });
+
+interface Lead extends TableRow {
+  title: string;
+  company: { id: string; label: string; href?: string } | null;
+  value: number;
+  invite: boolean;
+}
+const COMPANIES = [
+  { id: 'c1', label: 'Aboard', detail: 'aboard.com' },
+  { id: 'c2', label: 'Clear Channel', detail: 'clearchannel.com' },
+  { id: 'c3', label: 'Mubadala', detail: 'mubadala.com' },
+];
+const LONG = 'Clear Channel Digital Strategy for the spring outdoor campaign across every city they light up at night';
+const LEADS: Lead[] = [
+  { id: 'l1', title: 'Pilot', company: { id: 'c1', label: 'Aboard', href: '#c1' }, value: 12000, invite: false },
+  { id: 'l2', title: LONG, company: null, value: 950.5, invite: true },
+  { id: 'l3', title: 'Renewal', company: { id: 'c3', label: 'Mubadala' }, value: 1200, invite: false },
+];
+const asked: string[] = [];
+const LEAD_COLS: TableColumn<Lead>[] = [
+  { key: 'title', label: 'Title', type: 'text', editable: (r) => !r.invite, wrap: true, width: '14rem' },
+  {
+    key: 'company',
+    label: 'Company',
+    type: 'record',
+    editable: true,
+    fit: true,
+    search: async (q) => {
+      asked.push(q);
+      await new Promise((ok) => setTimeout(ok, 10));
+      return COMPANIES.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
+    },
+  },
+  { key: 'value', label: 'Value', type: 'money', currency: '$', decimals: 0, editable: (r) => !r.invite },
+];
+async function leads(props: Partial<ToTable<Lead>> = {}, rows: Lead[] = LEADS): Promise<ToTable<Lead>> {
+  document.body.innerHTML = '';
+  const el = document.createElement('to-table') as ToTable<Lead>;
+  Object.assign(el, { columns: LEAD_COLS, rows, label: 'Leads', ...props });
+  document.body.append(el);
+  await el.updateComplete;
+  await el.updateComplete;
+  return el;
+}
+const leadCell = (el: ToTable<Lead>, id: string, c: number) => el.querySelector<HTMLElement>(`[data-r="${el.shownRows.findIndex((r) => r.id === id)}"][data-c="${c}"]`)!;
+
+test('money in whole units; a column that fits its widest words; a row that grows to wrap them', async () => {
+  const el = await leads();
+  expect(leadCell(el, 'l1', 2).textContent?.trim()).toBe('$12,000');
+  expect(leadCell(el, 'l2', 2).textContent?.trim()).toBe('$951');
+  // The company column is as wide as "Clear Channel" would be (none shows it yet: it is every row's words that count, and its heading's).
+  const company = el.querySelector<HTMLElement>('[role=columnheader][aria-colindex="2"]')!;
+  const words = leadCell(el, 'l1', 1).querySelector('a')!;
+  expect(company.offsetWidth).toBeGreaterThanOrEqual(words.offsetWidth);
+  expect(company.offsetWidth).toBeLessThan(24 * 16);
+  // The long title wraps: its row is taller than the others, and the row after it begins below it.
+  const rows = [...el.querySelectorAll<HTMLElement>('.to-dt-body > [role=row]')];
+  const [short, long, after] = rows.map((r) => r.getBoundingClientRect());
+  expect(long.height).toBeGreaterThan(short.height * 1.5);
+  expect(Math.round(after.top)).toBe(Math.round(long.bottom));
+  expect(leadCell(el, 'l2', 0).scrollHeight).toBeLessThanOrEqual(leadCell(el, 'l2', 0).clientHeight + 1);
+});
+
+test('rows that grow are windowed by their heights: 5,000 drawn a few at a time, scrolled to the end and walked there', async () => {
+  const many: Lead[] = Array.from({ length: 5000 }, (_, i) => ({ ...LEADS[i % 3], id: `x${i}`, title: i % 7 ? `Lead ${i}` : `${LONG} ${i}` }));
+  const t0 = performance.now();
+  const el = await leads({}, many);
+  expect(performance.now() - t0).toBeLessThan(1500);
+  expect(el.querySelectorAll('.to-dt-body [role=row]').length).toBeLessThan(80);
+  const box = el.querySelector<HTMLElement>('.to-dt-box')!;
+  box.scrollTop = box.scrollHeight;
+  await until(() => !!el.querySelector('[aria-rowindex="5001"]'), 'the last row was never drawn');
+  // Each drawn row begins where the one above it ends.
+  await until(() => {
+    const drawn = [...el.querySelectorAll<HTMLElement>('.to-dt-body > [role=row]')].sort((a, b) => Number(a.dataset.r) - Number(b.dataset.r));
+    return drawn.every((r, i) => i === 0 || Number(r.dataset.r) !== Number(drawn[i - 1].dataset.r) + 1 || Math.abs(r.offsetTop - drawn[i - 1].offsetTop - drawn[i - 1].offsetHeight) < 1);
+  }, 'rows overlap or leave gaps');
+  box.scrollTop = 0;
+  await until(() => !!el.querySelector('[aria-rowindex="2"]'));
+  el.querySelector<HTMLElement>('[tabindex="0"]')!.focus();
+  await userEvent.keyboard('{Control>}{End}{/Control}');
+  await until(() => (document.activeElement as HTMLElement).dataset.r === '4999', 'Mod+End did not reach the last row');
+  const last = document.activeElement!.getBoundingClientRect();
+  expect(last.bottom).toBeLessThanOrEqual(box.getBoundingClientRect().bottom + 1);
+});
+
+test('a record’s cell: a link, edited by a picker that searches the host’s records, the id told', async () => {
+  const el = await leads();
+  const told: RowChange<Lead>[] = [];
+  el.addEventListener('rowchange', (e) => told.push((e as CustomEvent<RowChange<Lead>>).detail));
+  expect(leadCell(el, 'l1', 1).querySelector('a')!.getAttribute('href')).toBe('#c1');
+  asked.length = 0;
+  leadCell(el, 'l2', 1).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => !!el.querySelector('.to-dt-pick'), 'no picker');
+  const field = el.querySelector<HTMLInputElement>('.to-dt-pick')!;
+  expect(field.getAttribute('role')).toBe('combobox');
+  expect(document.activeElement).toBe(field);
+  // Opened, the search is asked for '' at once; the records found are listed in a popover under the cell.
+  await until(() => el.querySelectorAll('.to-dt-pop [role=option]').length === 3, 'the records were never listed');
+  expect(asked).toStrictEqual(['']);
+  expect(el.querySelector('.to-dt-pop')!.matches(':popover-open')).toBe(true);
+  await userEvent.keyboard('clear');
+  await until(() => el.querySelectorAll('.to-dt-pop [role=option]').length === 1, 'the search did not narrow');
+  expect(asked.at(-1)).toBe('clear');
+  // Typed a letter at a time, only the last words are asked (a moment after the last key).
+  expect(asked.length).toBeLessThan(4);
+  expect(field.getAttribute('aria-activedescendant')).toBe(el.querySelector('.to-dt-pop [role=option]')!.id);
+  await userEvent.keyboard('{Enter}');
+  await until(() => told.length === 1);
+  expect(told[0]).toMatchObject({ id: 'l2', column: 'company', value: 'c2', before: null, record: { id: 'c2', label: 'Clear Channel' } });
+  expect(leadCell(el, 'l2', 1).textContent?.trim()).toBe('Clear Channel');
+  expect(document.activeElement).toBe(leadCell(el, 'l2', 1));
+  // Escape lets the picker go; nothing told. A refusal puts the record back.
+  await userEvent.keyboard('{Enter}');
+  await until(() => !!el.querySelector('.to-dt-pick'));
+  await userEvent.keyboard('{Escape}');
+  await until(() => !el.querySelector('.to-dt-pick'));
+  expect(told.length).toBe(1);
+  el.addEventListener('rowchange', (e) => e.preventDefault(), { once: true });
+  leadCell(el, 'l1', 1).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => el.querySelectorAll('.to-dt-pop [role=option]').length === 3);
+  await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+  await until(() => told.length === 2);
+  expect(told[1]).toMatchObject({ value: 'c3', before: 'c1' });
+  await el.updateComplete;
+  expect(leadCell(el, 'l1', 1).textContent?.trim()).toBe('Aboard');
+});
+
+test('a row’s own editable: a row it says no to offers no field, and says it is read-only', async () => {
+  const el = await leads();
+  const told: unknown[] = [];
+  el.addEventListener('rowchange', (e) => told.push(e));
+  expect(leadCell(el, 'l2', 0).getAttribute('aria-readonly')).toBe('true');
+  expect(leadCell(el, 'l1', 0).hasAttribute('aria-readonly')).toBe(false);
+  leadCell(el, 'l2', 0).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await el.updateComplete;
+  expect(el.querySelector('.to-dt-editor')).toBeNull();
+  leadCell(el, 'l2', 2).focus();
+  await userEvent.keyboard('{Enter}');
+  await el.updateComplete;
+  expect(el.querySelector('.to-dt-editor')).toBeNull();
+  leadCell(el, 'l1', 2).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => !!el.querySelector('.to-dt-editor'));
+  expect(told.length).toBe(0);
+});
+
+test('a row’s actions: a menu at its end, by a click and by the keys, the action told', async () => {
+  const el = await leads({
+    rowActions: (r) => [
+      { id: 'open', label: 'Open' },
+      { id: 'delete', label: `Delete ${r.title.slice(0, 7)}`, danger: true },
+    ],
+  });
+  const told: { id: unknown; action: string }[] = [];
+  el.addEventListener('rowaction', (e) => told.push((e as CustomEvent).detail));
+  const grid = el.querySelector('[role=grid]')!;
+  expect(grid.getAttribute('aria-colcount')).toBe('4');
+  const btn = leadCell(el, 'l1', 3).querySelector<HTMLButtonElement>('button')!;
+  expect(btn.getAttribute('aria-label')).toBe('Actions for Pilot');
+  btn.click();
+  const menu = el.querySelector<HTMLElement>('to-menu.to-dt-menu [popover]')!;
+  await until(() => menu.matches(':popover-open'), 'the menu never opened');
+  const items = [...menu.querySelectorAll<HTMLElement>('[role=menuitem]')];
+  expect(items.map((i) => i.textContent?.trim())).toStrictEqual(['Open', 'Delete Pilot']);
+  expect(items[1].classList.contains('to-danger')).toBe(true);
+  items[1].click();
+  expect(told).toMatchObject([{ id: 'l1', action: 'delete' }]);
+  // By the keys: the arrows reach the actions' cell, Enter opens its menu, the menu's keys choose.
+  leadCell(el, 'l3', 2).focus();
+  await userEvent.keyboard('{ArrowRight}');
+  await until(() => document.activeElement === leadCell(el, 'l3', 3));
+  await userEvent.keyboard('{Enter}');
+  await until(() => menu.matches(':popover-open') && menu.contains(document.activeElement), 'Enter did not open the menu');
+  await userEvent.keyboard('{Enter}');
+  expect(told.at(-1)).toMatchObject({ id: 'l3', action: 'open' });
+  // Shift+F10 anywhere in a row opens its menu; Escape closes it.
+  leadCell(el, 'l1', 0).focus();
+  await userEvent.keyboard('{Shift>}{F10}{/Shift}');
+  await until(() => menu.matches(':popover-open'));
+  await userEvent.keyboard('{Escape}');
+  await until(() => !menu.matches(':popover-open'));
+});

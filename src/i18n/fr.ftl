@@ -3440,6 +3440,13 @@ table-no-rows = Rien pour l’instant
 table-no-rows-match = Aucune ligne ne correspond
 # en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
 table-sort-hint = Trier par cette colonne. Maj-clic pour trier aussi par elle.
+# same
+# en: c3cd636a585b20c40ac2df5ffb403e83cb2eef51
+table-row-actions = Actions
+# en: 0a35ecd2f44a46e9904bd46d91557748cc409ac8
+table-actions-for-name = Actions pour { $name }
+# en: ab5297fdaa47a693168d73de9b199b904eddba8d
+table-no-records = Tapez pour chercher
 # en: bce06414177f72ab70e6387b6af9f8ceef0d6049
 search-label = Chercher
 # en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd

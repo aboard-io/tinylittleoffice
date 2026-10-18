@@ -1875,6 +1875,12 @@ table-no-rows = Nothing here yet
 table-no-rows-match = No rows match
 # A column's heading, on hover: a click sorts by it, a click with the Shift key sorts by it as well as by the others.
 table-sort-hint = Sort by this column. Shift-click to sort by it as well.
+# A row's menu of what can be done to it (Delete, Duplicate): its button's hint, and the heading over those buttons.
+table-row-actions = Actions
+# A row's menu button, for a screen reader; { $name } is the row's first cell: "Actions for Ada Lovelace".
+table-actions-for-name = Actions for { $name }
+# A cell that picks one of a host's records (a person's company), when nothing is offered until something is typed.
+table-no-records = Type to search
 # The search across everything a host keeps (people, companies, projects): the field's name and its words while empty.
 search-label = Search
 search-searching = Searching…

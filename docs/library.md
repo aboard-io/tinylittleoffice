@@ -166,9 +166,10 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
 - **What it takes.** `rows`, each with an `id` (TableRow); `columns` (TableColumn): `key` and `label`, and a `type`
   (ColumnType): `text`, `number`, `money` (with `currency`, a code or a symbol), `date` ("2027-03-01", a Date or ms),
   `datetime`, `boolean`, `enum` (its `options`, EnumOption: a value, words and a color, in the order a sort keeps),
-  `link` and `person` (`{ label, href }`, or words and the column's `href(row)`), `tags`, or `custom` (`render(value,
-  row)` draws it, `compare` orders it, `text` gives its words); `editable`, `hidden`, `sortable`, `width` (a grid
-  track) on any. `sort` (SortBy[], the first the primary), `query` and `filter(row)`, `hiddenColumns`, `selected`
+  `link` and `person` (`{ label, href }`, or words and the column's `href(row)`), `record` (another of the host's
+  records: below), `tags`, or `custom` (`render(value, row)` draws it, `compare` orders it, `text` gives its words);
+  `editable` (true, or `editable(row)`, each row's own: below), `hidden`, `sortable`, `width` (a grid track), `fit`
+  and `wrap` (below) on any, and `decimals` on a number or money (below). `sort` (SortBy[], the first the primary), `query` and `filter(row)`, `hiddenColumns`, `selected`
   (ids). Attributes: `selectable` (a box a row, and one for all), `addable` (Add row, or `add-label`'s words),
   `filterable` (a field that sets `query`), `hideable` (the Columns menu), `label` (the grid's name), `empty` (what
   an empty table says). A child with `slot="toolbar"` is drawn first in the bar over the table: a page's My and All.
@@ -178,6 +179,35 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   the edit is shown at once, and a page that refuses it calls `preventDefault()`, or hands `wait` a promise that
   rejects or comes back false (a server's answer), and the cell goes back. A kept edit is shown until the page gives
   its rows again, which are then the truth.
+- **A row's own editable.** `editable: (row) => boolean` says for each row whether its cell may be changed (a meeting
+  that came by invite changes with its invite): a row it says no to offers no field, ticks no box, and its cell is
+  `aria-readonly`, so nothing is asked of the page to refuse.
+- **Another of the host's records.** A `record` column's cell is `{ id, label, href? }` (RecordValue; an id alone is
+  its own words), drawn as a link (the column's `href(row)` where the value has none; with no address, a tap is
+  `cellpick`, as a link's is). Edited, it is a picker: a field (`role=combobox`) whose records are the column's
+  `search(q, signal)`, the host's own answer (RecordOption: `{ id, label, detail?, href? }`, a second line under the
+  words), asked for '' as it opens and then a moment after the last key, the question before let go (its `signal`
+  aborted); the records in a list under the cell, Down and Up through them, Enter chooses (the field emptied, none),
+  Escape or leaving lets it go, and it says Searching…, that the search failed, or that nothing was found, as the
+  search box does. The choice is `rowchange` with the record's id as `value`, the id it had as `before`, and the
+  record chosen as `record` (null for none), shown at once and put back if refused, as any edit is.
+- **A row's actions.** `rowActions: (row) => RowAction[]` (`{ id, label, icon?, danger?, disabled? }`) gives each
+  row a menu at its end, a column of its own stuck to the end as the rest scrolls: its button ("Actions for Ada"), a
+  click on its cell, Enter or Space on that cell, or Shift+F10 or the menu key anywhere in the row opens it, and its
+  keys are a menu's. An action chosen is `rowaction` (RowActionPick: `{ id, action, row }`); one marked `danger` is
+  drawn in the danger color (a menu's item takes `danger` too, `MenuItem`).
+- **Money in whole units.** `decimals` on a money column writes every amount with that many places, `0` for whole
+  units ("$12,000", "$951"), in its currency as ever; on a number column, that many places always. The sort and an
+  edit are by the amount, not its words.
+- **A column as wide as its words.** `fit: true` (or `width: 'max-content'`) measures the column's widest words, of
+  every row and not only those drawn, and its heading, with the room its cell's face takes beside them (a person's
+  initial, a chip), and makes that its width: at least its type's least width and at most 24rem, or `fit: { min,
+  max }` in rem. A drawn cell of the page's own drawing wider than its words widens it.
+- **Rows that grow.** `wrap: true` on a column lets its words wrap, and each row is as tall as its tallest cell
+  (`--to-dt-row-h` at least). The rows are still windowed: each drawn row is measured, each not drawn reckoned from its
+  words and its column's width, and the rows are placed by those heights, so a row that grows pushes the ones after it
+  down, scrolling and Mod+End reach the last, and 5,000 of them draw in the time 5,000 of one height do. Where no
+  column wraps, every row is the one height as before.
 - **Sorting.** A click on a heading sorts by it, ascending, descending, then not at all; Shift and a click sorts by it
   as well, after the others (its place shown beside its arrow). Each type by its own order: amounts and times as
   numbers, a status by its options' order, a box unticked first, words as a reader orders them ("Item 2" before
@@ -193,7 +223,7 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   kit/ui/scroll.ts): its headings stuck to the top, the boxes and the first column to the start. At a phone's width
   it scrolls sideways in that box, the names in sight, rather than becoming cards, since a card a row would be a
   height a row and the rows are drawn by their one height. Only the rows in sight are drawn, and eight more each way,
-  each `--to-dt-row-h` tall (2.75rem), so 5,000 rows cost what fifty do. The box is `--to-dt-h` tall at most (36rem,
+  each `--to-dt-row-h` tall (2.75rem, or as tall as its words where a column wraps), so 5,000 rows cost what fifty do. The box is `--to-dt-h` tall at most (36rem,
   or three quarters of the screen) unless the page sets its height; a page that lets it grow with no limit draws every
   row. In Chromium, test/browser/table.test.ts's 5,000 rows are drawn in about 70ms, sorted by money in about 30ms and
   by a date and then a name in about 60ms, filtered in about 300ms the first time (every row's words written once,
@@ -201,12 +231,14 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   Mod+End in about 120ms.
 
 ```ts
-import { type RowChange, type TableColumn } from 'tinylittleoffice/kit';
+import { type RowActionPick, type RowChange, type TableColumn } from 'tinylittleoffice/kit';
 const columns: TableColumn<Person>[] = [
   { key: 'name', label: 'Name', type: 'person', href: (p) => `/people/${p.id}`, editable: true },
-  { key: 'company', label: 'Company', type: 'link', value: (p) => ({ label: p.company.name, href: `/companies/${p.company.id}` }) },
+  { key: 'company', label: 'Company', type: 'record', editable: (p) => !p.archived, wrap: true,
+    value: (p) => p.company && { id: p.company.id, label: p.company.name, href: `/companies/${p.company.id}` },
+    search: (q, signal) => run('company.search', { q }, { signal }).then((cs) => cs.map((c) => ({ id: c.id, label: c.name, detail: c.domain }))) },
   { key: 'stage', label: 'Stage', type: 'enum', editable: true, options: STAGES },
-  { key: 'value', label: 'Value', type: 'money', currency: 'USD', editable: true },
+  { key: 'value', label: 'Value', type: 'money', currency: 'USD', decimals: 0, editable: true },
   { key: 'met', label: 'Last met', type: 'date' },
 ];
 const table = Object.assign(document.createElement('to-table'), { columns, rows: people, label: 'People' });
@@ -216,6 +248,11 @@ table.addEventListener('rowchange', (e) => {
   (e as CustomEvent<RowChange<Person>>).detail.wait(run('person.update', { id, [column]: value }));
 });
 table.addEventListener('rowpick', (e) => open((e as CustomEvent).detail.id));
+table.rowActions = (p) => [{ id: 'delete', label: 'Delete', danger: true }];
+table.addEventListener('rowaction', (e) => {
+  const { id, action } = (e as CustomEvent<RowActionPick<Person>>).detail;
+  if (action === 'delete') remove(id);
+});
 ```
 
 ## A search box

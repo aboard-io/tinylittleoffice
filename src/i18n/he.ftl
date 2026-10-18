@@ -3412,6 +3412,12 @@ table-no-rows = אין כאן עדיין כלום
 table-no-rows-match = אין שורות תואמות
 # en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
 table-sort-hint = מיון לפי העמודה הזו. Shift ולחיצה למיון גם לפיה.
+# en: c3cd636a585b20c40ac2df5ffb403e83cb2eef51
+table-row-actions = פעולות
+# en: 0a35ecd2f44a46e9904bd46d91557748cc409ac8
+table-actions-for-name = פעולות עבור { $name }
+# en: ab5297fdaa47a693168d73de9b199b904eddba8d
+table-no-records = יש להקליד כדי לחפש
 # en: bce06414177f72ab70e6387b6af9f8ceef0d6049
 search-label = חיפוש
 # en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd

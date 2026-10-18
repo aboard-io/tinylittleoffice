@@ -234,6 +234,71 @@
     color: var(--to-ink-3);
     text-align: center;
   }
+  /* Rows that grow: a column that wraps holds its words on as many lines as they take, and its row grows with them. */
+  .to-dt-grow .to-dt-row,
+  .to-dt-grow .to-dt-cell {
+    height: auto;
+    min-height: var(--to-dt-row-h);
+  }
+  .to-dt-wrap {
+    padding-block: 0.625rem;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .to-dt-wrap .to-dt-link {
+    display: inline;
+  }
+  /* A row's actions: a button at its end, stuck there as the rest scrolls under it. */
+  .to-dt-acts {
+    position: sticky;
+    inset-inline-end: 0;
+    z-index: 1;
+    justify-content: center;
+    padding: 0;
+    border-inline-start: 1px solid var(--to-border);
+  }
+  .to-dt-acts-btn {
+    width: 2.25rem;
+    min-width: 0;
+    height: 2.25rem;
+    min-height: 0;
+    padding: 0;
+    color: var(--to-ink-2);
+    background: none;
+    border-color: transparent;
+  }
+  .to-dt-acts-btn:hover,
+  .to-dt-acts-btn[aria-expanded='true'] {
+    background: var(--to-surface-2);
+    border-color: var(--to-border);
+  }
+  .to-dt-menu > button {
+    display: none;
+  }
+  /* A record's picker: the records found, in a popover under the cell (menu.ts place). */
+  .to-dt-pop {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0.25em;
+    width: max(var(--to-dt-pop-w, 16em), 16em);
+    max-width: calc(100vw - 1em);
+    max-height: 60vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    color: var(--to-ink);
+    font-size: var(--to-nav-font);
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow-pop);
+    --to-touch: calc(2.75 * var(--to-nav-font));
+  }
+  /* What destroys (Delete): a menu's item and a button, in the danger color. */
+  .to-menu-item.to-danger {
+    color: var(--to-danger);
+  }
 
   /* ---- the search box: a field with its results under it, or a button that opens them in a dialog ---- */
   to-search {

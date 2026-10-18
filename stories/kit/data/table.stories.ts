@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { action } from 'storybook/actions';
 import { html } from 'lit';
-import type { RowChange } from '../../../src/editors.ts';
+import { Trash2, SquareArrowOutUpRight } from 'lucide';
+import type { RecordOption, RowAction, RowChange, TableColumn } from '../../../src/editors.ts';
 import '../../../src/kit/ui/table.ts';
-import { many, members, type Member } from './members.ts';
+import { many, members, pipeline, type Lead, type Member } from './members.ts';
 
 type Loaded = { loaded: Awaited<ReturnType<typeof members>> };
 interface TableArgs {
@@ -78,3 +79,54 @@ export const Empty: StoryObj<TableArgs> = {
 };
 /** At a phone's width: the table scrolls sideways in its box, the boxes and the names stuck at the start. */
 export const Narrow: StoryObj<TableArgs> = { decorators: [(story) => html`<div style="max-width: 22rem">${story()}</div>`] };
+
+/**
+ * A CRM's leads, the Board's sales pipeline as rows: the deal as wide as its widest words (`fit`), its company another
+ * of the host's records (`type: 'record'`: a link, and edited by a picker that searches the host's companies, as a
+ * server would, a moment after the last key, the id told in "rowchange"), wrapping where it is long (`wrap`, the row
+ * grows), the value in whole dollars (`decimals: 0`). A deal won or lost is closed, and its row offers no field
+ * (`editable(row)`); each row has its menu (`rowActions`: Open, and Delete in the danger color), told in "rowaction".
+ */
+export const Leads: StoryObj<TableArgs> = {
+  loaders: [async () => ({ leads: await pipeline() })],
+  render: (args, ctx) => {
+    const { rows, companies, stages } = (ctx as unknown as { loaded: { leads: Awaited<ReturnType<typeof pipeline>> } }).loaded.leads;
+    const open = (r: Lead) => r.stage !== 'Won' && r.stage !== 'Lost';
+    const search = async (q: string, signal: AbortSignal): Promise<RecordOption[]> => {
+      await new Promise((ok) => setTimeout(ok, 120));
+      if (signal.aborted) return [];
+      return companies.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
+    };
+    const columns: TableColumn<Lead>[] = [
+      { key: 'deal', label: 'Deal', type: 'text', fit: true, editable: open },
+      { key: 'company', label: 'Company', type: 'record', search, wrap: true, width: 'minmax(8rem, 2fr)', editable: open },
+      { key: 'stage', label: 'Stage', type: 'enum', options: stages, editable: open },
+      { key: 'owner', label: 'Owner', type: 'person' },
+      { key: 'value', label: 'Value', type: 'money', currency: 'USD', decimals: 0, editable: open },
+      { key: 'close', label: 'Close', type: 'date', editable: open },
+    ];
+    const actions = (r: Lead): RowAction[] => [
+      { id: 'open', label: `Open ${r.deal}`, icon: SquareArrowOutUpRight },
+      { id: 'delete', label: 'Delete', icon: Trash2, danger: true },
+    ];
+    const onChange = (e: CustomEvent<RowChange<Lead>>) => {
+      action('rowchange')({ ...e.detail, row: e.detail.row.id });
+      if (args.answer === 'refuse') e.preventDefault();
+      if (args.answer === 'refuse later') e.detail.wait(new Promise((_, no) => setTimeout(() => no(new Error('refused')), 600)));
+    };
+    return html`<to-table
+      .rows=${rows}
+      .columns=${columns}
+      .rowActions=${actions}
+      label="Leads"
+      ?selectable=${args.selectable}
+      ?filterable=${args.filterable}
+      @rowchange=${onChange}
+      @rowaction=${(e: CustomEvent) => action('rowaction')(e.detail.id, e.detail.action)}
+      @rowpick=${(e: CustomEvent) => action('rowpick')(e.detail.id)}
+      @cellpick=${(e: CustomEvent) => action('cellpick')(e.detail.id, e.detail.column)}
+    ></to-table>`;
+  },
+};
+/** The leads at a phone's width: the company's words wrap and the row grows, the actions stuck at the end. */
+export const LeadsNarrow: StoryObj<TableArgs> = { ...Leads, decorators: [(story) => html`<div style="max-width: 22rem">${story()}</div>`] };

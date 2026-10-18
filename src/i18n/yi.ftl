@@ -3382,6 +3382,12 @@ table-no-rows = נאך גארנישט דא
 table-no-rows-match = קיין שורות פאסן נישט
 # en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
 table-sort-hint = סארטירן לויט דעם קאלום. Shift-קליק צו סארטירן אויך לויט אים.
+# en: c3cd636a585b20c40ac2df5ffb403e83cb2eef51
+table-row-actions = אַקציעס
+# en: 0a35ecd2f44a46e9904bd46d91557748cc409ac8
+table-actions-for-name = אַקציעס פֿאַר { $name }
+# en: ab5297fdaa47a693168d73de9b199b904eddba8d
+table-no-records = טיפּט כּדי צו זוכן
 # en: bce06414177f72ab70e6387b6af9f8ceef0d6049
 search-label = זוכן
 # en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd
