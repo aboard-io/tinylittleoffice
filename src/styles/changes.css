@@ -68,6 +68,10 @@
   .tx-gone {
     text-decoration: none;
   }
+  /* The last paragraphs taken out, with none standing after them: a line of their own after the last one's words. */
+  .tx-gone-after {
+    margin: 0.4em 0 0;
+  }
   .tx-gone .tx-out {
     margin-inline-end: 0.15em;
   }

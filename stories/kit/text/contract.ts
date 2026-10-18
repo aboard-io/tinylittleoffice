@@ -27,8 +27,8 @@ const BOBS = CONTRACT.replace('*What this agreement is about*', 'Design services
   .replace('*What one of you does, and when.*', 'Ada Studio designs the menus and the sign by 15 December.');
 /**
  * Carol's: the line on what is paid taken out (it goes in a schedule of its own), the heading one level smaller, and a
- * line put in at the foot. (A paragraph taken out is drawn before the block after it; the last of a document's blocks
- * taken out, with none after it, is not drawn at all, so the line taken out here is one with a line after it.)
+ * line put in at the foot. (A paragraph taken out is drawn before the block after it, or, the last, after the last one
+ * standing.)
  */
 const CAROLS = `${BOBS.replace('- *What the other pays or does in return.*\n', '').replace('## What is agreed', '### What is agreed')}\nSigned in Brooklyn on 20 October 2026.\n`;
 

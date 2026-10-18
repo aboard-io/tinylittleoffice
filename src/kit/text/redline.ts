@@ -68,7 +68,11 @@ const liveText = (b: Tracked) =>
     .map((x) => x.t)
     .join('');
 
-/** The tracked blocks still standing, each with the blocks taken out before it, paired with the editor's blocks where their words are the same. */
+/**
+ * The tracked blocks still standing, each with the blocks taken out before it, paired with the editor's blocks where
+ * their words are the same; the blocks taken out after the last one standing go after the last one paired (`after`),
+ * or, with none paired, before the editor's first block, so that nothing taken out goes undrawn.
+ */
 function pairsOf(tracked: Tracked[], blocks: readonly Block[], settled: (id: string) => boolean) {
   const standing: { b: Tracked; gone: Tracked[] }[] = [];
   let gone: Tracked[] = [];
@@ -78,16 +82,20 @@ function pairsOf(tracked: Tracked[], blocks: readonly Block[], settled: (id: str
       if (!b.delId || !settled(b.delId)) gone.push(b);
     } else (standing.push({ b, gone }), (gone = []));
   }
-  const pairs: { b: Tracked; gone: Tracked[]; at: number }[] = [];
+  const pairs: { b: Tracked; gone: Tracked[]; at: number; after: Tracked[] }[] = [];
   let i = 0;
   let j = 0;
   for (const c of diffLines(
     standing.map((st) => liveText(st.b)),
     blocks.map((b) => textOf(b)),
   )) {
-    if (c.kind === ' ') pairs.push({ ...standing[i++], at: j++ });
+    if (c.kind === ' ') pairs.push({ ...standing[i++], at: j++, after: [] });
     else if (c.kind === '-') i++;
     else j++;
+  }
+  if (gone.length) {
+    if (pairs.length) pairs.at(-1)!.after = gone;
+    else if (blocks.length) pairs.push({ b: { kind: 'p', toks: [] }, gone, at: 0, after: [] });
   }
   return pairs;
 }
@@ -173,26 +181,30 @@ export function ghostsOf(tracked: Tracked[], blocks: readonly Block[], settled: 
     title: d.name(who),
     style: `--c: ${d.color(who)}`,
   });
-  for (const { b, gone, at } of pairsOf(tracked, blocks, settled)) {
+  for (const { b, gone, at, after } of pairsOf(tracked, blocks, settled)) {
     const list: Ghost[] = [];
     let order = 0;
     const put = (g: Omit<Ghost, 'order'>) => list.push({ ...g, order: order++ });
-    // A paragraph taken out: a line of its own, bracketed, its lozenge first.
-    for (const g of gone)
+    // A paragraph taken out: a line of its own, bracketed, its lozenge first; one after the last block, after its words.
+    const goneLine = (g: Tracked, offset: number, last = false) =>
       put({
-        offset: 0,
+        offset,
         text: '',
         block: true,
-        cls: 'tx-gone',
+        ...(last ? { after: true as const } : {}),
+        cls: last ? 'tx-gone tx-gone-after' : 'tx-gone',
         style: `--c: ${d.color(g.del!)}`,
         parts: [
           { text: '[', cls: 'tx-br' },
           // Before the block's words: the edit Alt+Enter finds from its start, where nothing nearer is.
-          { ...lozenge([g.delId ?? ''], g.del!, g.rejected ? 'rejection' : undefined), covers: [0, 0] },
+          { ...lozenge([g.delId ?? ''], g.del!, g.rejected ? 'rejection' : undefined), covers: [offset, offset] },
           { text: liveText(g), cls: 'tx-out', title: d.takenOutBy(d.name(g.del!)) },
           { text: ']', cls: 'tx-br' },
         ],
       });
+    const end = liveText(b).length;
+    for (const g of gone) goneLine(g, 0);
+    for (const g of after) goneLine(g, end, true);
     // A card's insides are not words in the editor: its changes are one bracket each person, at its head.
     if (!TEXT.test(b.kind)) {
       const who = new Map<string, string[]>();
