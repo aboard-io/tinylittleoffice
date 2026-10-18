@@ -45,3 +45,218 @@ body {
   border-radius: var(--to-radius-sm);
   margin-bottom: 0.4rem;
 }
+/* Foundations, Kit/Core and Kit/Draw (stories/foundations/, stories/kit/core/, stories/kit/draw/). */
+.sb-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1rem;
+}
+.sb-swatch {
+  margin: 0;
+  font: 0.75rem/1.4 var(--to-font);
+  color: var(--to-ink-2);
+}
+.sb-swatch span {
+  color: var(--to-ink-3);
+  word-break: break-word;
+}
+.sb-chip,
+.sb-shape {
+  height: 4rem;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius-sm);
+  margin-bottom: 0.4rem;
+}
+.sb-shape {
+  background: var(--to-surface);
+}
+.sb-pair {
+  padding: 1rem;
+  border-radius: var(--to-radius);
+  border: 1px solid var(--to-border);
+  font-size: 0.875rem;
+}
+.sb-face {
+  margin-bottom: 1.5rem;
+}
+.sb-measure {
+  height: 1rem;
+  background: var(--to-accent-soft);
+  border: 1px solid var(--to-accent);
+  margin-bottom: 1rem;
+}
+.sb-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.75rem;
+}
+.sb-icon {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font: 0.7rem/1.3 var(--to-font);
+  color: var(--to-ink-3);
+  text-align: center;
+  word-break: break-word;
+}
+.sb-glyph,
+.sb-emoji {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+.sb-emoji {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.sb-tally {
+  padding-inline-start: 1.5rem;
+}
+.sb-picture svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.sb-tiled {
+  min-height: 16rem;
+  border: 1px solid var(--to-border);
+}
+/* stories/kit/ui/: the stand-ins a story draws beside the kit's elements. */
+.sb-dialog-form {
+  display: grid;
+  gap: 1rem;
+}
+.sb-context {
+  padding: 2rem 0 6rem;
+}
+.sb-shape {
+  font: inherit;
+  padding: 1.5rem 2rem;
+  border: 2px solid var(--to-accent);
+  border-radius: var(--to-radius);
+  background: var(--to-accent-soft);
+  color: var(--to-ink);
+  cursor: pointer;
+}
+.sb-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.sb-previews figure {
+  margin: 0;
+  font: 0.75rem/1.3 var(--to-font);
+  color: var(--to-ink-2);
+  width: 4.5rem;
+}
+.sb-locked {
+  margin: 0;
+  max-width: 16rem;
+}
+.sb-link-sample {
+  display: block;
+  word-break: break-all;
+  font-size: 0.75rem;
+  color: var(--to-ink-2);
+}
+.sb-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+/* Kit/Text (stories/kit/text/): the words beside a host's own column, its review panel of changes and its comments'
+   notes, as a host would draw them; the kit draws none of these. */
+.sb-review {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18rem;
+  gap: 1rem;
+  align-items: start;
+  position: relative;
+}
+@media (max-width: 50rem) {
+  .sb-review {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sb-changes,
+.sb-notes {
+  font: 0.85rem/1.4 var(--to-font);
+  color: var(--to-ink-2);
+}
+.sb-changes h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--to-ink);
+}
+.sb-changes ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.sb-change {
+  display: grid;
+  grid-template-columns: 0.7rem 1fr;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius-sm);
+  background: var(--to-surface);
+}
+.sb-change:focus {
+  outline: 2px solid var(--to-accent);
+}
+.sb-change-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  margin-top: 0.25rem;
+}
+.sb-change-acts {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.sb-notes {
+  position: relative;
+  min-height: 100%;
+}
+.sb-note {
+  position: absolute;
+  inset-inline: 0;
+  padding: 0.5rem 0.6rem;
+  background: color-mix(in srgb, #f5c400 22%, var(--to-surface));
+  border-radius: var(--to-radius-sm);
+  box-shadow: var(--to-shadow);
+  color: var(--to-ink);
+}
+.sb-notes-gone .sb-note {
+  position: static;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}
+.sb-notes-gone h4 {
+  margin: 1rem 0 0;
+  font: 600 0.85rem/1.4 var(--to-font);
+  color: var(--to-ink-2);
+}
+.sb-note p {
+  margin: 0.2rem 0;
+}
+.sb-note q {
+  font-size: 0.8rem;
+  color: var(--to-ink-3);
+}
+.sb-comment-box {
+  grid-column: 2;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--to-border-strong);
+  border-radius: var(--to-radius-sm);
+  background: var(--to-surface);
+}
