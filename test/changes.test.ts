@@ -180,6 +180,23 @@ describe('tracked changes', () => {
     expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v2:')), undefined, reviewed)).toBe(v[1].text);
   });
 
+  test('a table put back whole where it was taken out is restored whole, and rejecting every change gives the first version back', () => {
+    // The fuzz's counterexample, small: a table moved down by one person and back up by another.
+    const table = '| Item | Qty |\n|---|---|\n| Pens | 2 |\n';
+    const v: Step[] = [
+      { author: A, text: `${table}\nOne.\n\nTwo.\n\nThree.\n`, hash: 'v0' },
+      { author: B, text: `One.\n\nTwo.\n\nThree.\n\n${table}`, hash: 'v1' },
+      { author: C, text: `${table}\nOne.\n\nTwo.\n\nThree.\n`, hash: 'v2' },
+    ];
+    const t = track(v);
+    expect(t.filter((b) => b.kind === 'table').map((b) => [b.restored ?? false, b.insId, b.delId])).toEqual([
+      [true, 'v2:0', undefined],
+      [false, 'v1:1', 'v2:1'],
+    ]);
+    expect(rejecting(v, (all) => all)).toBe(write(parse(v[0].text)));
+    expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v2:')))).toBe(write(parse(v[1].text)));
+  });
+
   test('a replacement is one change, with what it put in and what it took out, named by the version that made it', () => {
     const t = track([
       { author: A, text: 'Due in 30 days.\n', hash: 'h1' },
