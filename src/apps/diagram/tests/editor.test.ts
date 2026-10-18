@@ -287,6 +287,30 @@ test('a step moves by its grip to where it is let go: its lane and its place; it
   await drag(grip('Asks'), to);
   expect(last()).toBe('---\nkind: lanes\n---\n- Lane 1: Thanks\n- Lane 2: Asks\n- Lane 1: Answers\n');
 
+  // Four steps, the fourth into a new lane, then the second into another: that lane is made at the bottom, the second
+  // in it, every other step where it was (Paul, 2026-10-18).
+  const four = await editor('---\nkind: lanes\n---\n- One\n- Two\n- Three\n- Four\n');
+  const at = (words: string) => thing(four.el, words).getBoundingClientRect();
+  // In the step's column, level with the "+" of the band for a new lane.
+  const under = (words: string) => {
+    const plus = [...four.el.querySelectorAll('.dg-pic text')].find((x) => x.textContent === '+')!.getBoundingClientRect();
+    return { clientX: at(words).left + at(words).width / 2, clientY: plus.top + plus.height / 2 };
+  };
+  const carry = async (words: string, to: { clientX: number; clientY: number }) => {
+    const g = thing(four.el, words).querySelector('.dg-grip')!;
+    g.dispatchEvent(new PointerEvent('pointerdown', { ...center(g), button: 0, pointerId: 8, bubbles: true }));
+    g.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 8, bubbles: true }));
+    g.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 8, bubbles: true }));
+    await settle(four.el);
+  };
+  await carry('Four', under('Four'));
+  await carry('Two', under('Two'));
+  expect(four.last()).toContain('- Lane 1: One\n- Lane 3: Two\n- Lane 1: Three\n- Lane 2: Four\n');
+  expect(at('One').top).toBe(at('Three').top);
+  expect(at('Four').top).toBeGreaterThan(at('One').top);
+  expect(at('Two').top).toBeGreaterThan(at('Four').top);
+  expect(at('One').left < at('Two').left && at('Two').left < at('Three').left && at('Three').left < at('Four').left).toBe(true);
+
   // A tap in the band under the one lane: a step in a new lane, after the steps there are.
   const tapped = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n');
   const b = thing(tapped.el, 'Answers').getBoundingClientRect();

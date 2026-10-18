@@ -37,6 +37,7 @@
 import { plainText, write } from '../../doc/index.ts';
 import {
   apply,
+  applyAll,
   depthOf,
   escapeInline,
   family,
@@ -430,6 +431,12 @@ export function removeThing(doc: Doc, hit: Hit): Op[] {
     const lines = edgesOf(doc).filter((e) => same(e.from, l.all.words) || same(e.to, l.all.words));
     return [...lines.reverse().map((e): Op => ({ op: 'splice', at: e.at, n: 1, blocks: [] })), ...removeItem(doc, hit.at)];
   }
+  if (kind === 'lanes') {
+    // The step after it that names no lane followed it: it is given the lane's name, so it stays.
+    const next = linesOf(doc).find((x) => x.at > l.at);
+    const keep = l.key && next && !next.key ? keyed(next, sliceRuns(l.runs, l.key.from, l.key.to)) : [];
+    return steady(doc, [...keep, { op: 'splice', at: hit.at, n: 1, blocks: [] }]);
+  }
   return [{ op: 'splice', at: hit.at, n: 1, blocks: [] }];
 }
 
@@ -565,15 +572,40 @@ export function placeStep(doc: Doc, at: number, lane: string, slot: number): Op[
     return ops;
   };
   let ops = keys();
+  let named = '';
   if (!ops) {
-    const name = newLaneName([...new Set(want.values())], 1);
-    for (const [k, v] of want) if (!v) want.set(k, name);
+    named = newLaneName([...new Set(want.values())], 1);
+    for (const [k, v] of want) if (!v) want.set(k, named);
     ops = keys()!;
   }
   const moved = order.indexOf(me) !== lines.indexOf(me);
-  if (!moved) return ops;
+  if (!moved) return steady(doc, ops, named);
   const to = before ? before.at : others[others.length - 1].at + 1;
-  return [...ops, { op: 'move', at, n: 1, to: to > at ? to - 1 : to }];
+  return steady(doc, [...ops, { op: 'move', at, n: 1, to: to > at ? to - 1 : to }], named);
+}
+
+/**
+ * The lanes kept in their order whatever the steps do (Paul, 2026-10-18: "Lane three should be created at the
+ * bottom"): a lane is drawn where it is first named, so where `ops` would name one first elsewhere, the lanes are
+ * named in their order, "- Lane 1:" a line, above the steps (in place of any such lines there), and a new lane
+ * after them. The lane with no name is named first, or its steps would follow the last of those lines; `named`, the
+ * name `ops` gave it, keeps its place.
+ */
+function steady(doc: Doc, ops: Op[], named = ''): Op[] {
+  if (!ops.length) return ops;
+  const alike = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+  const has = (xs: string[], x: string) => xs.some((y) => alike(x, y));
+  const was = lanesIn(linesOf(doc)).map((x) => x || named);
+  const lines = linesOf(applyAll(doc, ops));
+  const now = lanesIn(lines);
+  const want = [...was.filter((x) => has(now, x)), ...now.filter((x) => !has(was, x))];
+  if (want.every((x, i) => alike(x, now[i]))) return ops;
+  // The lines that already only name lanes, at the top, are written again.
+  let head = 0;
+  while (head < lines.length && lines[head].key && !lines[head].words.words && !lines[head].words.icon) head++;
+  const name = has(want, '') ? newLaneName(want, 1) : '';
+  const blocks = want.map((x) => li(0, [...laneRuns(lines, x || name), { t: ':' }]));
+  return [...ops, ...(name ? keyed(lines[0], [{ t: name }]) : []), { op: 'splice', at: lines[0].at, n: head, blocks }];
 }
 
 /** A thing dragged into a region: a step into another lane; a thing of a set into the circles round where it was let go. */
@@ -787,6 +819,15 @@ export function moveThing(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hit
       { op: 'text', at: hit.at, from: a.from, to: a.to, runs: sliceRuns(l.runs, b.from, b.to) },
     ];
     return { ops, hit: { ...hit, part: hit.part + by } };
+  }
+  if (kindOf(doc) === 'lanes') {
+    // A step past the one beside it, each keeping its lane, the lanes their order.
+    const steps = linesOf(doc).filter((x) => x.words.words || x.words.icon);
+    const k = steps.findIndex((x) => x.at === hit.at);
+    if (k < 0 || !steps[k + by]) return null;
+    const ops = placeStep(doc, hit.at, laneOf(linesOf(doc), hit.at), k + by);
+    const at = linesOf(applyAll(doc, ops)).filter((x) => x.words.words || x.words.icon)[k + by]?.at;
+    return ops.length && at !== undefined ? { ops, hit: { ...hit, at } } : null;
   }
   const ops = moveFamily(doc, hit.at, by);
   const m = ops?.[0];

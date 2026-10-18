@@ -292,20 +292,38 @@ describe('commands as ops', () => {
     // Another lane, its place kept; another place, its lane kept; both at once; and the end.
     expect(at(three, 2, 'Shop', 2)).toBe('- Sales: Calls\n- Shop: Sells\n- Shop: Closes\n');
     expect(at(three, 2, 'Sales', 0)).toBe('- Sales: Closes\n- Sales: Calls\n- Shop: Sells\n');
-    expect(at(three, 0, 'Shop', 2)).toBe('- Shop: Sells\n- Sales: Closes\n- Shop: Calls\n');
+    expect(at(three, 0, 'Shop', 2)).toBe('- Sales:\n- Shop:\n- Shop: Sells\n- Sales: Closes\n- Shop: Calls\n');
     expect(at(three, 1, 'Shop', 1)).toBe('- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
     expect(placeStep(three, 1, 'Shop', 1)).toEqual([]);
     // A step that names no lane followed the one before it: given its lane's name where it would now follow another.
     const follows = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
-    expect(at(follows, 0, 'Shop', 0)).toBe('- Shop: Calls\n- Sales: Closes\n- Shop: Sells\n');
+    expect(at(follows, 0, 'Shop', 0)).toBe('- Sales:\n- Shop:\n- Shop: Calls\n- Sales: Closes\n- Shop: Sells\n');
     expect(at(follows, 2, 'Shop', 1)).toBe('- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
     // One lane with no name, as a blank swimlane or a mind map made one: named "Lane 1" once a step would follow another lane's.
     const one = doc('lanes', '- Asks\n- Answers\n- Thanks\n');
     expect(at(one, 1, 'Lane 2', 1)).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
     expect(at(one, 2, 'Lane 2', 2)).toBe('- Asks\n- Answers\n- Lane 2: Thanks\n');
     expect(at(one, 2, '', 0)).toBe('- Thanks\n- Asks\n- Answers\n');
+    // The lanes keep their order, a new one at the bottom (Paul, 2026-10-18: four steps, the fourth into Lane 2,
+    // then the second into Lane 3): where a step would name a lane first elsewhere, the lanes are named in order on top.
+    const four = doc('lanes', '- One\n- Two\n- Three\n- Lane 2: Four\n');
+    const placed = applyAll(four, placeStep(four, 1, 'Lane 3', 1));
+    expect(write(placed).split('---\n')[2]).toBe('- Lane 1:\n- Lane 2:\n- Lane 3:\n- Lane 1: One\n- Lane 3: Two\n- Lane 1: Three\n- Lane 2: Four\n');
+    expect(lanesOf(placed).lanes).toEqual(['Lane 1', 'Lane 2', 'Lane 3']);
+    // Those lines are kept, not added to, as steps go on moving.
+    const again = applyAll(placed, placeStep(placed, 6, 'Lane 3', 0));
+    expect(lanesOf(again).lanes).toEqual(['Lane 1', 'Lane 2', 'Lane 3']);
+    expect(write(again).split('---\n')[2]).toMatch(/^- Lane 1:\n- Lane 2:\n- Lane 3:\n- Lane 3: Four\n/);
+    // A step taken away, or moved up or down, leaves every other step its lane and the lanes their order.
+    const kept = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
+    expect(run(kept, removeThing(kept, { k: 'line', at: 0, part: 'words' }))).toBe('- Sales: Closes\n- Shop: Sells\n');
+    const shuffled = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    expect(lanesOf(applyAll(shuffled, removeThing(shuffled, { k: 'line', at: 0, part: 'words' }))).lanes).toEqual(['Sales', 'Shop']);
+    const down = moveThing(shuffled, { k: 'line', at: 0, part: 'words' }, 1)!;
+    expect(lanesOf(applyAll(shuffled, down.ops)).lanes).toEqual(['Sales', 'Shop']);
+    expect(write(applyAll(shuffled, down.ops)).split('---\n')[2]).toMatch(/- Shop: Sells\n- Sales: Calls\n- Sales: Closes\n$/);
     // Mod+Alt+Right: the next lane, its place kept.
-    expect(run(three, moveAcross(three, { k: 'line', at: 0, part: 'words' }, 1)!.ops)).toBe('- Shop: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    expect(run(three, moveAcross(three, { k: 'line', at: 0, part: 'words' }, 1)!.ops)).toBe('- Sales:\n- Shop:\n- Shop: Calls\n- Shop: Sells\n- Sales: Closes\n');
   });
   test('a tap in a lane adds its step last; editing, the lanes end in an empty band for a new one; the picture shown has none', () => {
     const one = doc('lanes', '- Asks\n- Answers\n');
