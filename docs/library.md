@@ -122,6 +122,15 @@ What an app still asked of the site itself, and what replaces it:
     components); five drawing bugs, each with its test (a paragraph taken out last never drawn; one put back whole not
     drawn as restored; a change's words run together; a hint written over drawn word by word; Compare's links made from
     the address); the kit's other elements exported; and a host's page arranged (A host's page).
+17. **What a host's rebuild found.** Done (2026-10-18, for a host that had worked round each: Atlas's pages, its docs/web.md
+    "What the library draws"): `<to-table>`'s column that fits its words, rows that grow, a record picker, a row's own
+    editable, row actions and money in whole units (A typed table); the kit's small pieces, `<to-segmented>`,
+    `confirm`, `.to-btn.to-danger` and `<to-field>` (The kit's small pieces); `<to-header>`'s title given while it is
+    typed in, and a long one (A page's header); the Board's lane kinds, Add lane, `startRename`, a double tap and its
+    bar on a phone (The library's own apps); the Diagram Maker read-only, its picks, no hint, a mind map's long middle
+    idea and a network's words in the dark (step 8); who reviewed, `canDelete`, the sheet's button and its frame's
+    width (The components); `pickTemplate` of a few apps (A template picker); and a search hit listed, not chosen (A
+    search box). Each has its test and its story.
 
 ## The Storybook
 
@@ -137,9 +146,12 @@ kit's `setTheme` and its Language `setLanguage`. A story's documents are the app
   interface's, the library's search, the picker) and Emoji.
 - **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the menus,
   Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the preview,
-  the locked card, the doc link dialog, the size of everything, a page's header, the template picker. Data: the typed
-  table (the Spreadsheet's membership roll, editable, refused, 5,000 rows, empty, narrow) and the search box (inline, in
-  a dialog, slow, failing). Text: `<to-text>` alone, who did what (the redline, a person's changes accepted, rejections,
+  the locked card, the doc link dialog, the size of everything, a page's header (a long title, as words and as a
+  field), the template picker (a few apps), the segmented control, the confirmation and the danger button, a field
+  edited in place. Data: the typed table (the Spreadsheet's membership roll, editable, refused, 5,000 rows, empty,
+  narrow; the Board's pipeline as a CRM's leads, its company a record picked, a column that fits, one that wraps,
+  closed deals not edited, each row's actions, whole dollars) and the search box (inline, in a dialog, slow, failing,
+  hits with nowhere to open). Text: `<to-text>` alone, who did what (the redline, a person's changes accepted, rejections,
   a reviewer), the review panel (`<to-review-panel>`: alone, for a reader, reviewed, twelve people's colors, and beside
   the words with Accept and Reject), the margin (`<to-comments>`: threads pinned by their quote, over who did what, for
   a reader, made from the bubble, and asking the host's assistant, answered in the thread with a tracked change), "@"
