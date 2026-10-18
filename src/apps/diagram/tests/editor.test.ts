@@ -623,8 +623,8 @@ test('a new thing starts with its words in hand, on every kind: a tap on empty s
     await key(el, 'Escape');
     if (isOpen(el)) await key(el, 'Escape');
     expect(isOpen(el)).toBe(false);
-    // A thing's words, then Enter: the next one, focused.
-    const first = things(el).find((g) => !g.classList.contains('edge'))!;
+    // A thing's words, then Enter: the next one, focused. (A lane's name is not a thing: Enter is done with it.)
+    const first = kind === 'lanes' ? thing(el, 'Calls') : things(el).find((g) => !g.classList.contains('edge'))!;
     tapNow(first);
     expect(focusedNow(el), `${kind}: a tap on a thing`).toBe(true);
     await settle(el);
@@ -837,6 +837,17 @@ test("a lane's name, a table's name and a set's name are typed on the picture to
   expect(line(lanes.el).classList.contains('left')).toBe(true);
   await type(lanes.el, 'Store');
   expect(lanes.last()).toBe('---\nkind: lanes\n---\n- Sales: Calls\n- Store: Sells\n- Store: Packs\n');
+  // Enter is done with the name: no step comes of it (Paul, 2026-10-18).
+  await key(lanes.el, 'Enter');
+  expect(isOpen(lanes.el)).toBe(false);
+  expect(lanes.last()).toBe('---\nkind: lanes\n---\n- Sales: Calls\n- Store: Sells\n- Store: Packs\n');
+  // The lane with no name ("—") is named on its first step, and its steps all with it.
+  const unnamed = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n');
+  await tap(unnamed.el, thing(unnamed.el, '—'));
+  await key(unnamed.el, 'Backspace');
+  await type(unnamed.el, 'Desk');
+  await key(unnamed.el, 'Enter');
+  expect(unnamed.last()).toBe('---\nkind: lanes\n---\n- Desk: Asks\n- Answers\n');
 
   const seats = await editor(SAMPLES.seating);
   await tap(seats.el, thing(seats.el, 'Top table'));

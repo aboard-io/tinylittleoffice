@@ -652,6 +652,9 @@ export function rename(doc: Doc, hit: Hit, old: string, now: string): Op[] {
   if (hit.k === 'lane') {
     const to = escapeWords(now.replace(/\s+/g, ' ').trim(), { colon: true });
     if (!to) return [];
+    // The lane with no name (the steps before any "Who:") is named on its first step, and so are they all.
+    const first = linesOf(doc)[0];
+    if (!old) return first && !first.key ? [{ op: 'text', at: first.at, from: 0, to: 0, runs: [{ t: `${to}: ` }] }] : [];
     return linesOf(doc)
       .filter((l) => l.key && l.key.words.toLowerCase() === old.toLowerCase())
       .map((l): Op => ({ op: 'text', at: l.at, from: l.key!.from, to: l.key!.to, runs: [{ t: to }] }));

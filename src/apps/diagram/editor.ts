@@ -458,7 +458,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       el.sel = r.sel;
       return;
     }
-    if (tg.hit.k === 'edge') return this.shutAndFocus();
+    // A name typed (a lane's, a connection's words) is done with Enter: no step or thing comes of it.
+    if (tg.hit.k === 'edge' || tg.hit.k === 'lane') return this.shutAndFocus();
     this.next(tg);
   };
   /** Done with these words, and the next thing like this one made, its words open (Enter; a comma ending a thing of a list). */
