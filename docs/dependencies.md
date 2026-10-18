@@ -106,19 +106,21 @@ the picker; neither source is a dependency.
 ## For building and testing
 
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile
-holds 197 packages for development.
+holds 307 packages for development.
 
 | Package | Version | License | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
 | `@axe-core/playwright` | 4.13.0 | MPL-2.0 | The accessibility checks in e2e/a11y.spec.ts. Chromium exposes its accessibility tree but no rules to judge it by; axe is the rule set. Tests only. | not shipped |
 | `@fluent/syntax` | 0.19.0 | Apache-2.0 | Reads and writes the .ftl files with their comments for the checks and the scripts (scripts/ftl.ts, scripts/i18n-extract.ts): the group a message is in, `# same`, `# draft from`. @fluent/bundle's own parser drops comments, and the browser has none for Fluent. Not built into the site. | not shipped |
 | `@playwright/test` | 1.64.0 | Apache-2.0 | The end-to-end runner (e2e/). node:test has no browser; WebDriver BiDi is a protocol, not a runner, and WebKit at phone size is what an iPhone gets. Tests only. | not shipped |
+| `@storybook/web-components-vite` | 10.6.2 | MIT | Storybook's renderer for custom elements (the kit's are Lit's, no React) on Vite, the build the repository has: stories return a template or an element, and the elements are the kit's own. Not built into the site. | not shipped |
 | `@types/d3-sankey` | 0.12.5 | MIT | Types for d3-sankey, which ships none. Not built into the site. | not shipped |
 | `@types/node` | 26.6.4 | MIT | Types for the scripts and tests that run under node. Not built into the site. | not shipped |
 | `@vitest/browser-playwright` | 5.0.3 | MIT | Lets Vitest run the DOM tests in a real Chromium through Playwright (test/browser/, src/apps/*/tests/). A simulated DOM would pass what a browser fails. Tests only. | not shipped |
 | `fast-check` | 4.10.2 | MIT | The properties fuzzed from TLO's grammar (test/doc/tlo-grammar.ts, test/doc/properties.test.ts): generators of documents, texts and operations, and shrinking a failure to its smallest case; and the random walks over the chrome (test/browser/walks.test.ts, its model-based testing: fc.commands and asyncModelRun). The native alternative is nothing: no browser or node API generates or shrinks test cases. Tests only. | not shipped |
 | `playwright` | 1.64.0 | Apache-2.0 | The browsers themselves (Chromium, WebKit) for the browser tests and e2e, pinned to @playwright/test's version. Tests only. | not shipped |
 | `prettier` | 3.9.10 | MIT | The one style of the code (npm run format writes it, npm run lint checks it: .prettierrc is single quotes, lines to 200, templates left as written). Node has no formatter, and a style held by hand drifted with every builder. Not built into the site. | not shipped |
+| `storybook` | 10.6.2 | MIT | The Storybook of the kit and the editors (npm run storybook, .storybook/, stories/): every element and every app's editor alone on a page, as a host holds them. The browser can show an element on a page of its own, but not a catalog of them with controls, a theme toggle and each story's events; Storybook is that catalog. Its own Vite config, never the site's. Not built into the site. | not shipped |
 | `typescript` | 7.0.2 | Apache-2.0 | The type check (npm run lint), and its scanner reads the source for the lints of the code (test/lints.ts: the words in templates, the module graph). Node strips types natively and runs the scripts as written, but checks none of them, and has no tokenizer for TypeScript. Not built into the site. | not shipped |
 | `vite` | 8.3.4 | MIT | The build. Browsers load ES modules unbundled, but a page per app, one app file and the templates and languages beside it under hashed names a browser may keep forever, the service worker's list, minified code and the CSP's script hashes are a build's work. The service worker itself (src/sw.ts) is the browser's own Service Worker and Cache Storage, with no library. Not built into the site. | not shipped |
 | `vitest` | 5.0.3 | MIT | The unit and browser tests. node:test runs the unit tests' shape but not in a browser; one runner for both layers keeps one way to write a test. Not built into the site. | not shipped |
