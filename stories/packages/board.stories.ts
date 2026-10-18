@@ -1,11 +1,11 @@
 /**
  * The Board (@aboard/kanban): cards in lanes over a table, the first app built outside the suite on the kit, shown from
- * its own checkout's source when it is beside this one (.storybook/vite.config.ts; `KANBAN_DIR` names another), with
+ * its own checkout's source when it is beside this one (.storybook/vite.config.ts; `BOARD_DIR` names another), with
  * the stories every app has (stories/apps/app.ts) over its own templates. Without the checkout each story says so and
  * draws nothing else. The Board depends on this package, never the other way: nothing of it is installed here.
  */
 import type { Meta } from '@storybook/web-components-vite';
-import { install } from 'virtual:kanban';
+import { install } from 'virtual:board';
 import { appMeta, blank, editable, readOnly, shared, templates, type AppArgs, type AppStory } from '../apps/app.ts';
 
 install?.();
@@ -13,11 +13,11 @@ install?.();
 const IDS = ['project', 'pipeline', 'hiring', 'content'];
 
 /** Where there is no Board checkout: one line, and nothing mounted. */
-const absent = () => Object.assign(document.createElement('p'), { className: 'sb-caption', textContent: 'The Board’s checkout is not beside this one (KANBAN_DIR names it).' });
+const absent = () => Object.assign(document.createElement('p'), { className: 'sb-caption', textContent: 'The Board’s checkout is not beside this one (BOARD_DIR names it).' });
 const or = (story: AppStory): AppStory => (install ? story : { ...story, loaders: [], render: absent });
 
 const meta = {
-  title: 'Packages/Kanban',
+  title: 'Packages/Board',
   ...appMeta('board', IDS),
   ...(install ? {} : { loaders: [], render: absent }),
 } satisfies Meta<AppArgs>;

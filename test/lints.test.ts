@@ -367,6 +367,8 @@ const STALE_OK: Record<string, string> = {
   'src/kit/draw/icons-meta.ts': 'Lucide’s own tags for its icons ("signature", "kanban"), generated from its release',
   'src/i18n/fr.ftl': '"une signature" is French for a byline',
   'docs/self-host.md': '`npm audit signatures`, npm’s check of a package’s provenance',
+  '.storybook/vite.config.ts': 'the Board’s package and its checkout are named so (@aboard/kanban, ../projects/kanban)',
+  'stories/packages/board.stories.ts': 'the Board’s package is named so (@aboard/kanban)',
 };
 
 /**
