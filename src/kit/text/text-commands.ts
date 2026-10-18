@@ -18,6 +18,7 @@ import { ClipboardPaste, Copy, MessageSquarePlus, Scissors } from 'lucide';
 import { coarse, register, type Command, commandsOf } from '../core/commands.ts';
 import { UI, type IconNode } from '../draw/icons.ts';
 import type { Mark } from './textops.ts';
+import { quoteAt, type Quote } from './quote.ts';
 import type { ToText } from './text.ts';
 const cmd = commandsOf<ToText>('text');
 
@@ -104,15 +105,16 @@ export const INDENT = cmd('indent', 'common-indent', {
 
 /**
  * Comment on the words selected, first in the bubble, where a host takes comments: an element around the words marked
- * `data-comments`, which hears "text-comment" (bubbling from the <to-text>, its selection the words) and opens its own
- * box; not inside the words of that box (`data-comment-box`), where a comment is being written.
+ * `data-comments`, which hears "text-comment" (bubbling from the <to-text>, its detail the words selected as a comment
+ * keeps them, kit/text/quote.ts Quote, or null) and opens its own box; not inside the words of that box
+ * (`data-comment-box`), where a comment is being written.
  */
 export const COMMENT = cmd('comment', 'common-comment', {
   icon: MessageSquarePlus,
   where: ['context'],
   group: 'comment',
   when: (x) => !!x.closest('[data-comments]') && !x.closest('[data-comment-box]'),
-  does: (x) => x.dispatchEvent(new CustomEvent('text-comment', { bubbles: true })),
+  does: (x) => x.dispatchEvent(new CustomEvent<Quote | null>('text-comment', { detail: quoteAt(x), bubbles: true })),
 });
 
 /** Every command of the words, in the order the bubble and the shortcuts dialog list them. */

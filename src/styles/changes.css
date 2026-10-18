@@ -5,51 +5,10 @@
    ghosts the editor draws and never writes (kit/text/text.ts Ghost): the words taken out, struck through in red,
    brackets in their author's color with a lozenge of initials after the opening one, filled while it waits for this
    reader, a paragraph taken out a line of its own, a card's change a line at its head. None of it is part of the
-   words, so none of it is selected. The colors are redline.ts COLORS, in order. Only the editors' stylesheet
+   words, so none of it is selected. Each person's highlights are given their rules as they are painted, in their
+   colors (redline.ts colorAt, ruleFor): COLORS first, made to read on the paper of either theme. Only the editors' stylesheet
    (editors.css) has this sheet: no page of the site draws changes. */
 @layer kit {
-  ::highlight(tlo-by-0) {
-    background-color: color-mix(in srgb, #0072b2 20%, transparent);
-    text-decoration: underline #0072b2;
-  }
-  ::highlight(tlo-by-1) {
-    background-color: color-mix(in srgb, #d55e00 20%, transparent);
-    text-decoration: underline #d55e00;
-  }
-  ::highlight(tlo-by-2) {
-    background-color: color-mix(in srgb, #009e73 20%, transparent);
-    text-decoration: underline #009e73;
-  }
-  ::highlight(tlo-by-3) {
-    background-color: color-mix(in srgb, #a05ca8 20%, transparent);
-    text-decoration: underline #a05ca8;
-  }
-  ::highlight(tlo-by-4) {
-    background-color: color-mix(in srgb, #56b4e9 20%, transparent);
-    text-decoration: underline #56b4e9;
-  }
-  ::highlight(tlo-by-5) {
-    background-color: color-mix(in srgb, #b3261e 20%, transparent);
-    text-decoration: underline #b3261e;
-  }
-  ::highlight(tlo-by-fmt-0) {
-    text-decoration: underline dotted #0072b2;
-  }
-  ::highlight(tlo-by-fmt-1) {
-    text-decoration: underline dotted #d55e00;
-  }
-  ::highlight(tlo-by-fmt-2) {
-    text-decoration: underline dotted #009e73;
-  }
-  ::highlight(tlo-by-fmt-3) {
-    text-decoration: underline dotted #a05ca8;
-  }
-  ::highlight(tlo-by-fmt-4) {
-    text-decoration: underline dotted #56b4e9;
-  }
-  ::highlight(tlo-by-fmt-5) {
-    text-decoration: underline dotted #b3261e;
-  }
   ::highlight(tlo-by-comment) {
     background-color: color-mix(in srgb, #f5c400 35%, transparent);
   }
@@ -94,9 +53,11 @@
     text-decoration: none;
     cursor: pointer;
   }
+  /* Filled: the paper's ink over the person's color, white in the light theme, the dark paper in the dark, where every
+     color past the first six is a light one (redline.ts colorAt). */
   .tx-loz.tx-loz-waiting {
     background: var(--c);
-    color: #fff;
+    color: light-dark(#fff, var(--to-paper));
   }
   .tx-card-change {
     display: block;
