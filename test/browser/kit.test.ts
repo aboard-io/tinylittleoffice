@@ -143,7 +143,10 @@ test('an app built outside the suite is registered, found by its id, drawn small
   expect([tally.name, tally.noun, tally.blurb]).toStrictEqual(['Tally', 'tally', 'Marks counted, one a line.']);
   const [page] = tally.view('- Milk\n- Eggs\n');
   expect([page.h, page.alt, page.svg.includes('>Eggs<')]).toStrictEqual([96, '2 marks', true]);
-  expect(() => registerApp(tally)).toThrow('an app "tally" is registered already');
+  // Registered again, the same app is nothing to do (a module imported twice); another under its id throws.
+  registerApp(tally);
+  expect(appOf('tally')).toBe(tally);
+  expect(() => registerApp({ ...tally, blank: () => '- One\n' })).toThrow('an app "tally" is registered already');
 });
 
 test('mounted and typed in, it tells the page each change as ops that applied to the text before give the text after, and Mod+Z takes it back', async () => {
