@@ -3,7 +3,8 @@
  * or in the circles tapped), its words offered and chosen; tap a thing and its words are typed where they are
  * drawn, in a <to-text> laid exactly over them (the Drawing Tool's overlay, placed by `wordsOver`), with the few
  * things to do to it underneath (one more like it, a picture, a connection, take it away); Enter starts the
- * next; drag a thing onto another to put it under or after it, into a lane or a set to move it there. The
+ * next; drag a thing onto another to put it under or after it, into a set to move it there, and a swimlane's step
+ * by its grip to the lane and the place it is let go (the others keep theirs; a tap's new step goes last). The
  * kind is a menu in the one bar. Every change is the kernel's operations (model.ts): a `text` op on the line
  * for the words typed, a `splice` when a thing comes or goes, a `move` when one moves; nothing else
  * touches the document.
@@ -56,6 +57,7 @@ import {
   moveAcross,
   moveThing,
   nextThing,
+  placeStep,
   newThing,
   partFor,
   promoteThing,
@@ -815,6 +817,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const i = g ? +g.dataset.i! : -1;
     const hit = this.view.d.shapes[i]?.hit;
     if (e.button !== 0 || !g || !hit || hit.k === 'edge' || hit.k === 'lane' || this.target) return;
+    // A step of a swimlane moves by its grip alone: a press on its words is a tap, and nothing moves by accident.
+    if (this.view.kind === 'lanes' && !(e.target as Element).closest('.dg-grip')) return;
     const [x, y] = this.point(e);
     this.drag = { i, hit, x, y, moved: false };
     try {
@@ -832,10 +836,31 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = this.querySelector<SVGGElement>(`.dg-pic g[data-i="${d.i}"]`);
     g?.setAttribute('transform', `translate(${x - d.x} ${y - d.y})`);
     g?.classList.add('dragging');
+    if (this.view.kind === 'lanes') return this.showSlot(x, y, d.i);
     const over = this.overAt(e, g);
     this.querySelectorAll('.dg-pic g.over').forEach((el) => el !== over && el.classList.remove('over'));
     over?.classList.add('over');
   };
+  /**
+   * Where a step of a swimlane let go at (x, y) would go: the lane under it, and its place among the other steps,
+   * as many as stand to the left of the point; with where the line that shows it is drawn, between two steps.
+   */
+  private slotAt(x: number, y: number, i: number): { lane: string | undefined; slot: number; at: number; band?: DShape } {
+    const shapes = this.view.d.shapes;
+    const steps = shapes.filter((s, j) => j !== i && s.hit?.k === 'line').sort((a, b) => a.x - b.x);
+    const slot = steps.filter((s) => s.x + s.w / 2 < x).length;
+    const gap = 14;
+    const at = !steps.length ? x : slot ? steps[slot - 1].x + steps[slot - 1].w + gap : steps[0].x - gap;
+    const lane = regionAt(this.view.d, x, y);
+    return { lane, slot, at, band: shapes.find((s) => s.region !== undefined && s.region === lane) };
+  }
+  private showSlot(x: number, y: number, i: number) {
+    const line = this.querySelector<SVGLineElement>('.dg-slot');
+    const { at, band } = this.slotAt(x, y, i);
+    if (!line) return;
+    line.toggleAttribute('hidden', !band);
+    if (band) for (const [k, v] of Object.entries({ x1: at, x2: at, y1: band.y, y2: band.y + band.h })) line.setAttribute(k, String(v));
+  }
   /** The thing under the pointer, the one being dragged aside. */
   private overAt(e: PointerEvent, dragged: Element | null): SVGGElement | null {
     return (
@@ -853,6 +878,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = this.querySelector<SVGGElement>(`.dg-pic g[data-i="${d.i}"]`);
     g?.removeAttribute('transform');
     g?.classList.remove('dragging');
+    if (this.view.kind === 'lanes') {
+      this.querySelector('.dg-slot')?.setAttribute('hidden', '');
+      const [x, y] = this.point(e);
+      const { lane, slot } = this.slotAt(x, y, d.i);
+      if (lane !== undefined && d.hit.k === 'line') this.change(placeStep(this.doc, d.hit.at, lane, slot), d.hit, null);
+      return;
+    }
     const over = this.overAt(e, g);
     this.querySelectorAll('.dg-pic g.over').forEach((el) => el.classList.remove('over'));
     const onto = over ? this.view.d.shapes[+over.dataset.i!]?.hit : undefined;
@@ -868,6 +900,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = this.querySelector<SVGGElement>(`.dg-pic g[data-i="${d.i}"]`);
     g?.removeAttribute('transform');
     g?.classList.remove('dragging');
+    this.querySelector('.dg-slot')?.setAttribute('hidden', '');
   };
 
   /* ---------- the bar ---------- */
@@ -897,7 +930,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) || hit.k === 'edge' ? t('diagram-connection') : t('diagram-empty'));
     // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.
     const stop = hit.k === 'edge' && s.k === 't' ? '-1' : '0';
-    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${i === on ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}</g>`;
+    // A swimlane's step has a grip on its top edge, the one way to drag it (Paul, 2026-10-18).
+    const cx = s.x + s.w / 2;
+    const grip =
+      this.view.kind === 'lanes' && hit.k === 'line'
+        ? svg`<g class="dg-grip"><title>${t('common-drag-to-move')}</title><rect x=${cx - 20} y=${s.y - 14} width="40" height="22" fill="transparent" />${[-6, 0, 6].flatMap((dx) => [-9, -4].map((dy) => svg`<circle cx=${cx + dx} cy=${s.y + dy} r="1.75" />`))}</g>`
+        : nothing;
+    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${i === on ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}${grip}</g>`;
   }
   render() {
     const { kind, d } = this.view;
@@ -921,6 +960,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
           @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>
           <defs>${unsafeSVG(arrowDefs('var(--to-ink)'))}</defs>
           ${d.shapes.map((s, i) => this.thing(s, i, d.shapes, on))}
+          ${kind === 'lanes' ? svg`<line class="dg-slot" hidden />` : nothing}
         </svg>
         ${d.shapes.length ? nothing : html`<p class="dg-empty to-hint">${t('diagram-tap-here-to-add-first', { thing: thingName(kind).toLowerCase() })}</p>`}
         <to-text class="dg-words" hidden shape="line" no-bubble .blocks=${this.wordsBlocks} .label=${words.label} .placeholder=${words.placeholder}

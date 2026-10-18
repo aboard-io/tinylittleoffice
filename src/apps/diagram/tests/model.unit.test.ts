@@ -28,6 +28,7 @@ import {
   linesOf,
   demoteThing,
   moveAcross,
+  placeStep,
   moveItem,
   moveThing,
   promoteThing,
@@ -225,9 +226,9 @@ describe('commands as ops', () => {
     expect(run(d, commitDraft(draft, { ...draft.block, runs: [{ t: 'Cy | CFO' }] }))).toBe('- Ada | CEO\n  - Ben | CTO\n  - Cy | CFO\n');
     // Nothing yet: a root.
     expect(newThing(doc('mind', ''))).toMatchObject({ at: 0, block: { depth: 0, runs: [] } });
-    // A step in a lane starts with the lane's name; a new table is numbered on.
+    // A step in a lane starts with the lane's name, and goes last, so no step moves; a new table is numbered on.
     expect(charsOf(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').block.runs)).toBe('Sales: ');
-    expect(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').at).toBe(1);
+    expect(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').at).toBe(2);
     expect(charsOf(newThing(doc('seating', '- Top table: Jo\n')).block.runs)).toBe('Table 2: ');
     // The table's offered name is chosen whole, so the first letter typed replaces it and the ": " stays.
     expect(newThing(doc('seating', '- Top table: Jo\n')).sel).toEqual([0, 7]);
@@ -270,9 +271,10 @@ describe('commands as ops', () => {
   test('dragging: under another in a tree; after a step and into its lane; a person to another table, beside another', () => {
     const tree = doc('mind', '- Root\n  - A\n  - B\n    - B1\n');
     expect(run(tree, dropOn(tree, { k: 'line', at: 2, part: 'all' }, { k: 'line', at: 1, part: 'all' }))).toBe('- Root\n  - A\n    - B\n      - B1\n');
+    // A step is put where it is let go, by placeStep, not after what it lands on.
     const lanes = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
-    expect(run(lanes, dropOn(lanes, { k: 'line', at: 0, part: 'words' }, { k: 'line', at: 1, part: 'words' }))).toBe('- Shop: Sells\n- Shop: Calls\n- Sales: Closes\n');
-    expect(run(lanes, dropIn(lanes, { k: 'line', at: 2, part: 'words' }, 'Shop'))).toBe('- Sales: Calls\n- Shop: Sells\n- Shop: Closes\n');
+    expect(dropOn(lanes, { k: 'line', at: 0, part: 'words' }, { k: 'line', at: 1, part: 'words' })).toEqual([]);
+    expect(dropIn(lanes, { k: 'line', at: 2, part: 'words' }, 'Shop')).toEqual([]);
     const time = doc('timeline', '- 1: a\n- 2: b\n- 3: c\n');
     expect(run(time, dropOn(time, { k: 'line', at: 2, part: 'all' }, { k: 'line', at: 0, part: 'all' }))).toBe('- 1: a\n- 3: c\n- 2: b\n');
     const seats = doc('seating', '- Top: Jo, Sam\n- Two: Ann, Bob\n');
@@ -284,26 +286,38 @@ describe('commands as ops', () => {
     const empty = doc('seating', '- Top: Jo, Sam\n- Two:\n');
     expect(run(empty, moveItem(empty, 0, 0, 1))).toBe('- Top: Sam\n- Two: Jo\n');
   });
-  test('a step dropped into another lane leaves the steps after it where they were (#28)', () => {
-    // The step after it named no lane, so it followed this one: it is given the lane it was in.
-    const keyedLanes = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
-    expect(run(keyedLanes, dropIn(keyedLanes, { k: 'line', at: 0, part: 'words' }, 'Shop'))).toBe('- Shop: Calls\n- Sales: Closes\n- Shop: Sells\n');
-    // One lane with no name, as a blank swimlane or a mind map made one: the lane is named, so it stays one lane.
+  test('a step is put where it is let go: its lane, and its place among the others; nothing else moves (#28)', () => {
+    const at = (d: Doc, i: number, lane: string, slot: number) => run(d, placeStep(d, i, lane, slot));
+    const three = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    // Another lane, its place kept; another place, its lane kept; both at once; and the end.
+    expect(at(three, 2, 'Shop', 2)).toBe('- Sales: Calls\n- Shop: Sells\n- Shop: Closes\n');
+    expect(at(three, 2, 'Sales', 0)).toBe('- Sales: Closes\n- Sales: Calls\n- Shop: Sells\n');
+    expect(at(three, 0, 'Shop', 2)).toBe('- Shop: Sells\n- Sales: Closes\n- Shop: Calls\n');
+    expect(at(three, 1, 'Shop', 1)).toBe('- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    expect(placeStep(three, 1, 'Shop', 1)).toEqual([]);
+    // A step that names no lane followed the one before it: given its lane's name where it would now follow another.
+    const follows = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
+    expect(at(follows, 0, 'Shop', 0)).toBe('- Shop: Calls\n- Sales: Closes\n- Shop: Sells\n');
+    expect(at(follows, 2, 'Shop', 1)).toBe('- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    // One lane with no name, as a blank swimlane or a mind map made one: named "Lane 1" once a step would follow another lane's.
     const one = doc('lanes', '- Asks\n- Answers\n- Thanks\n');
-    expect(run(one, dropIn(one, { k: 'line', at: 1, part: 'words' }, 'Lane 2'))).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
-    expect(run(one, dropIn(one, { k: 'line', at: 0, part: 'words' }, 'Lane 2'))).toBe('- Lane 2: Asks\n- Lane 1: Answers\n- Thanks\n');
-    expect(run(one, dropIn(one, { k: 'line', at: 2, part: 'words' }, 'Lane 2'))).toBe('- Asks\n- Answers\n- Lane 2: Thanks\n');
-    expect(dropIn(one, { k: 'line', at: 1, part: 'words' }, '')).toEqual([]);
+    expect(at(one, 1, 'Lane 2', 1)).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
+    expect(at(one, 2, 'Lane 2', 2)).toBe('- Asks\n- Answers\n- Lane 2: Thanks\n');
+    expect(at(one, 2, '', 0)).toBe('- Thanks\n- Asks\n- Answers\n');
+    // Mod+Alt+Right: the next lane, its place kept.
+    expect(run(three, moveAcross(three, { k: 'line', at: 0, part: 'words' }, 1)!.ops)).toBe('- Shop: Calls\n- Shop: Sells\n- Sales: Closes\n');
   });
-  test('editing, the lanes end in an empty band, a new lane by the next number; the picture shown or exported has none', () => {
+  test('a tap in a lane adds its step last; editing, the lanes end in an empty band for a new one; the picture shown has none', () => {
     const one = doc('lanes', '- Asks\n- Answers\n');
     expect(regionsOf(layout(one, true))).toEqual(['', 'Lane 2']);
     expect(regionsOf(layout(one))).toEqual(['']);
     expect(regionsOf(layout(doc('lanes', '- Sales: Calls\n- Lane 3: Sells\n'), true))).toEqual(['Sales', 'Lane 3', 'Lane 4']);
-    // A tap in the lane with no name, once another has one, adds to it, not to the last lane.
+    expect(newThing(one, '')).toMatchObject({ at: 2, block: { runs: [] } });
+    // The lane with no name, once another follows it, is named first, so the step goes last and stays in it.
     const two = doc('lanes', '- Asks\n- Lane 2: Answers\n');
-    expect(newThing(two, '').at).toBe(1);
-    expect(newThing(two, '').block.runs).toEqual([]);
+    const d = newThing(two, '');
+    expect(d.at).toBe(2);
+    expect(run(two, commitDraft(d, { ...d.block, runs: [...d.block.runs, { t: 'Thanks' }] }))).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
   });
   test('a thing of a set dropped where circles cross goes to that overlap, made if no line names it', () => {
     const d = doc('venn', '- Fast: toast, noodles\n- Cheap: walking\n');

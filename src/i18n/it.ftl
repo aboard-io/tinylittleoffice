@@ -2701,8 +2701,8 @@ diagram-thing = Elemento
 diagram-tap-empty-space-for-thing = Tocca uno spazio vuoto per aggiungere un elemento. Per collegarne due, premi Unisci e toccali entrambi, o trascina l’uno sull’altro.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Tocca qui per aggiungere il primo elemento: { $thing }.
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = Tocca una corsia per aggiungere un passo. Tocca un passo per modificarlo. Trascinalo in un’altra corsia, o su un passo per metterlo dopo.
+# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
+diagram-tap-in-lane-to-add = Tocca una corsia per aggiungere un passo. Tocca un passo per modificarlo. Trascina la sua maniglia in un’altra corsia o posizione.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Tocca l’elemento a cui collegare { $name }. Tocca uno spazio vuoto per annullare.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

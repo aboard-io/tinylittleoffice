@@ -306,6 +306,8 @@ export interface Draft {
   block: Extract<Block, { k: 'li' }>;
   /** The caret, in the draft's characters. */
   sel: [number, number];
+  /** What is done first, before the block goes in: a lane named, so a step after it is in the lane it was meant for. */
+  pre?: Op[];
 }
 
 const li = (depth: number, runs: Run[]): Extract<Block, { k: 'li' }> => ({ k: 'li', depth, runs: normalRuns(runs) });
@@ -315,7 +317,7 @@ const draftOf = (at: number, n: 0 | 1, block: Extract<Block, { k: 'li' }>): Draf
 };
 
 /** The draft made real: its block put in. */
-export const commitDraft = (d: Draft, block: Block): Op[] => [{ op: 'splice', at: d.at, n: d.n, blocks: [block] }];
+export const commitDraft = (d: Draft, block: Block): Op[] => [...(d.pre ?? []), { op: 'splice', at: d.at, n: d.n, blocks: [block] }];
 
 /** The index just after the last list item (where a new thing of a flat kind goes): before any connections. */
 function afterLines(doc: Doc): number {
@@ -356,14 +358,14 @@ export function newThing(doc: Doc, key?: string): Draft {
     if (!root) return draftOf(afterLines(doc), 0, li(0, []));
     return draftOf(family(doc, root.at), 0, li(1, []));
   }
-  // The lane with no name, the steps before the first "Who:": a step after its last, still with none.
-  if (kind === 'lanes' && key === '') {
-    const last = [...lines].reverse().find((l) => !laneOf(lines, l.at));
-    return draftOf(last ? last.at + 1 : afterLines(doc), 0, li(0, []));
-  }
-  if (kind === 'lanes' && key) {
-    const last = [...lines].reverse().find((l) => (l.key?.words ?? '').toLowerCase() === key.toLowerCase());
-    return draftOf(last ? last.at + 1 : afterLines(doc), 0, li(0, last ? keyRuns(last) : [{ t: `${escapeWords(key, { colon: true })}: ` }]));
+  // A step goes last, whatever its lane, so no step moves to make room (Paul, 2026-10-18); a drag puts it elsewhere.
+  if (kind === 'lanes' && key !== undefined) {
+    const at = afterLines(doc);
+    if (key) return draftOf(at, 0, li(0, [...laneRuns(lines, key), { t: ': ' }]));
+    // The lane with no name, once another lane follows it: named first, from its first step, so the new one is in it.
+    if (!lines.length || !laneOf(lines, lines[lines.length - 1].at)) return draftOf(at, 0, li(0, []));
+    const name = newLaneName(lanesIn(lines), 1);
+    return { ...draftOf(at, 0, li(0, [{ t: `${name}: ` }])), pre: keyed(lines[0], [{ t: name }]) };
   }
   if (kind === 'venn' && key) {
     const l = naming(lines, key);
@@ -470,6 +472,14 @@ function laneOf(lines: Line[], at: number): string {
   return [...lines].reverse().find((x) => x.at <= at && x.key)?.key?.words ?? '';
 }
 
+/** The lanes, each once, in order of first mention. */
+const lanesIn = (lines: Line[]): string[] => [...new Map(lines.map((l) => laneOf(lines, l.at)).map((x) => [x.toLowerCase(), x])).values()];
+/** A lane's name as a line writes it: as the first line that names it does, or escaped for a new one. */
+function laneRuns(lines: Line[], name: string): Run[] {
+  const l = lines.find((x) => x.key && x.key.words.toLowerCase() === name.toLowerCase());
+  return l?.key ? sliceRuns(l.runs, l.key.from, l.key.to) : [{ t: escapeWords(name, { colon: true }) }];
+}
+
 /** The name a new lane is given: "Lane 2" after one lane (or from `n`), the next number no lane has. */
 export function newLaneName(lanes: string[], n = lanes.length + 1): string {
   while (lanes.some((x) => x.toLowerCase() === `lane ${n}`)) n++;
@@ -520,13 +530,50 @@ export function dropOn(doc: Doc, hit: Hit, onto: Hit): Op[] {
   }
   if (hit.at === onto.at) return [];
   if (isTree(kind)) return placeFamily(doc, hit.at, onto.at, 'under') ?? [];
-  const after = onto.at > hit.at ? onto.at : onto.at + 1;
-  const move: Op = { op: 'move', at: hit.at, n: 1, to: after };
-  if (kind !== 'lanes') return [move];
-  const [l, o] = [lineOf(doc.blocks[hit.at] as Extract<Block, { k: 'li' }>, hit.at), lineOf(doc.blocks[onto.at] as Extract<Block, { k: 'li' }>, onto.at)];
-  const key = o.key ? sliceRuns(o.runs, o.key.from, o.key.to) : [];
-  const same = (l.key?.words ?? '') === (o.key?.words ?? '');
-  return [...(same || !o.key ? [] : keyed(l, key)), move];
+  // (A step of a swimlane is put where it is let go instead: placeStep.)
+  if (kind === 'lanes') return [];
+  return [{ op: 'move', at: hit.at, n: 1, to: onto.at > hit.at ? onto.at : onto.at + 1 }];
+}
+
+/**
+ * A step of a swimlane put where it was let go (Paul, 2026-10-18: "let me drag them to resequence"): into lane
+ * `lane`, before the step that is `slot`th of the others (as many as there are: the end). Nothing else moves; every
+ * other step keeps its lane and its place. So a step that names no lane, and would now follow another lane's step,
+ * is given its own lane's name, and the lane with no name is named ("Lane 1") once one of its steps would.
+ */
+export function placeStep(doc: Doc, at: number, lane: string, slot: number): Op[] {
+  const lines = linesOf(doc);
+  const me = lines.find((l) => l.at === at);
+  if (!me || kindOf(doc) !== 'lanes') return [];
+  const others = lines.filter((l) => l.at !== at);
+  const before = others.filter((l) => l.words.words || l.words.icon)[slot];
+  const order = before ? [...others.slice(0, others.indexOf(before)), me, ...others.slice(others.indexOf(before))] : [...others, me];
+  const want = new Map(lines.map((l) => [l.at, l.at === at ? lane : laneOf(lines, l.at)]));
+  const alike = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+  // Each line in its new order, keyed where the lane it would follow into is not its own; null if the lane with no name needs one.
+  const keys = (): Op[] | null => {
+    const ops: Op[] = [];
+    let now = '';
+    for (const l of order) {
+      const w = want.get(l.at)!;
+      if (l.key ? !alike(l.key.words, w) : !alike(now, w)) {
+        if (!w) return null;
+        ops.push(...keyed(l, laneRuns(lines, w)));
+      }
+      now = w;
+    }
+    return ops;
+  };
+  let ops = keys();
+  if (!ops) {
+    const name = newLaneName([...new Set(want.values())], 1);
+    for (const [k, v] of want) if (!v) want.set(k, name);
+    ops = keys()!;
+  }
+  const moved = order.indexOf(me) !== lines.indexOf(me);
+  if (!moved) return ops;
+  const to = before ? before.at : others[others.length - 1].at + 1;
+  return [...ops, { op: 'move', at, n: 1, to: to > at ? to - 1 : to }];
 }
 
 /** A thing dragged into a region: a step into another lane; a thing of a set into the circles round where it was let go. */
@@ -534,24 +581,6 @@ export function dropIn(doc: Doc, hit: Hit, key: string): Op[] {
   const kind = kindOf(doc);
   if (hit.k !== 'line' || doc.blocks[hit.at]?.k !== 'li') return [];
   const l = lineOf(doc.blocks[hit.at] as Extract<Block, { k: 'li' }>, hit.at);
-  if (kind === 'lanes') {
-    const lines = linesOf(doc);
-    const was = laneOf(lines, l.at);
-    if (was.toLowerCase() === key.toLowerCase()) return [];
-    const runsOf = (name: string) => {
-      const lane = lines.find((x) => (x.key?.words ?? '').toLowerCase() === name.toLowerCase());
-      return lane?.key ? sliceRuns(lane.runs, lane.key.from, lane.key.to) : [{ t: escapeWords(name, { colon: true }) }];
-    };
-    const ops = keyed(l, runsOf(key));
-    // The step after it that names no lane was in this one by following it: it is given the lane's name, so it
-    // stays. A lane with no name is given one first, from its first step, or the steps before would be a lane apart.
-    const next = lines.find((x) => x.at > l.at);
-    if (!next || next.key) return ops;
-    if (was) return [...ops, ...keyed(next, runsOf(was))];
-    const name = newLaneName([...lines.map((x) => laneOf(lines, x.at)), key], 1);
-    const first = lines[0];
-    return [...ops, ...(first.at === l.at ? [] : keyed(first, [{ t: name }])), ...keyed(next, [{ t: name }])];
-  }
   if (kind === 'venn' && typeof hit.part === 'number') {
     const to = naming(linesOf(doc), key);
     if (to && to.at === l.at) return [];
@@ -769,17 +798,12 @@ export function moveAcross(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hi
   const lines = linesOf(doc);
   const l = lines.find((x) => x.at === hit.at)!;
   if (kind === 'lanes') {
-    const lanes: string[] = [];
-    let lane = '';
-    let mine = '';
-    for (const x of lines) {
-      if (x.key) lane = x.key.words;
-      if (!lanes.some((n) => n.toLowerCase() === lane.toLowerCase())) lanes.push(lane);
-      if (x.at === hit.at) mine = lane;
-    }
-    const to = lanes[lanes.findIndex((n) => n.toLowerCase() === mine.toLowerCase()) + by];
-    if (!to) return null;
-    const ops = dropIn(doc, hit, to);
+    const lanes = lanesIn(lines);
+    const mine = laneOf(lines, l.at).toLowerCase();
+    const to = lanes[lanes.findIndex((n) => n.toLowerCase() === mine) + by];
+    if (to === undefined) return null;
+    // In its own place, the steps before it as many as they were.
+    const ops = placeStep(doc, l.at, to, lines.filter((x) => x.at < l.at && (x.words.words || x.words.icon)).length);
     return ops.length ? { ops, hit } : null;
   }
   if (kind === 'seating' && typeof hit.part === 'number') {

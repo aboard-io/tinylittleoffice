@@ -263,19 +263,29 @@ test('at phone width: the bar one row, nothing wider than the screen, the line e
   }
 });
 
-test('with one lane, a step dragged under it, or a tap there, makes a new lane (#28)', async () => {
-  const { el, last } = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n');
+test('a step moves by its grip to where it is let go: its lane and its place; its words do not drag; under the last lane is a new one (#28)', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n- Thanks\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
-  const answers = thing(el, 'Answers');
-  const a = answers.getBoundingClientRect();
-  // The band for a new lane is under the last one, as tall as a lane: a step's height and more below it.
+  const grip = (words: string) => thing(el, words).querySelector('.dg-grip')!;
+  const drag = async (from: Element, to: { clientX: number; clientY: number }) => {
+    from.dispatchEvent(new PointerEvent('pointerdown', { ...center(from), button: 0, pointerId: 9, bubbles: true }));
+    from.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 9, bubbles: true }));
+    from.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 9, bubbles: true }));
+    await settle(el);
+  };
+  const box = (words: string) => thing(el, words).getBoundingClientRect();
+  // Its words do not drag: nothing moves.
+  await drag(thing(el, 'Thanks'), { clientX: box('Asks').left - 4, clientY: box('Asks').top + 4 });
+  expect(last()).toBe('---\nkind: lanes\n---\n- Asks\n- Answers\n- Thanks\n');
+  // By its grip, to before the first step: first, the others where they were.
+  await drag(grip('Thanks'), { clientX: box('Asks').left - 4, clientY: box('Asks').top + box('Asks').height / 2 });
+  expect(last()).toBe('---\nkind: lanes\n---\n- Thanks\n- Asks\n- Answers\n');
+  // Under the last lane, in its own column: a new lane, its place kept.
+  const a = box('Asks');
   const to = { clientX: a.left + a.width / 2, clientY: a.bottom + a.height * 1.5 };
   expect(to.clientY).toBeLessThan(pic.getBoundingClientRect().bottom);
-  answers.dispatchEvent(new PointerEvent('pointerdown', { ...center(answers), button: 0, pointerId: 9, bubbles: true }));
-  answers.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 9, bubbles: true }));
-  answers.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 9, bubbles: true }));
-  await settle(el);
-  expect(last()).toBe('---\nkind: lanes\n---\n- Asks\n- Lane 2: Answers\n');
+  await drag(grip('Asks'), to);
+  expect(last()).toBe('---\nkind: lanes\n---\n- Lane 1: Thanks\n- Lane 2: Asks\n- Lane 1: Answers\n');
 
   // A tap in the band under the one lane: a step in a new lane, after the steps there are.
   const tapped = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n');

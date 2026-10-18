@@ -2616,8 +2616,8 @@ diagram-thing = 項目
 diagram-tap-empty-space-for-thing = 空いている所をタップして項目を追加します。2つをつなぐには「つなぐ」を押して両方をタップするか、一方をもう一方にドラッグします。
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = ここをタップして最初の{ $thing }を追加します。
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = レーンをタップして手順を追加します。手順をタップすると編集できます。別のレーンにドラッグするか、手順の上にドラッグするとその後ろに置けます。
+# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
+diagram-tap-in-lane-to-add = レーンをタップして手順を追加します。手順をタップすると編集できます。ハンドルをドラッグすると別のレーンや位置に移せます。
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = { $name }をつなぐ項目をタップします。空いている所をタップすると取り消します。
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

@@ -2695,8 +2695,8 @@ diagram-thing = Item
 diagram-tap-empty-space-for-thing = Toque num espaço vazio para adicionar um item. Para ligar dois, toque em Ligar e nos dois, ou arraste um sobre o outro.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Toque aqui para adicionar o primeiro: { $thing }.
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = Toque numa raia para adicionar uma etapa. Toque numa etapa para editá-la. Arraste-a para outra raia, ou sobre uma etapa para vir depois dela.
+# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
+diagram-tap-in-lane-to-add = Toque numa raia para adicionar uma etapa. Toque numa etapa para editá-la. Arraste a alça dela para outra raia ou posição.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Toque no item ao qual ligar { $name }. Toque num espaço vazio para cancelar.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

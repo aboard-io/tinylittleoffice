@@ -2624,8 +2624,8 @@ diagram-thing = 項目
 diagram-tap-empty-space-for-thing = 點一下空白處即可新增項目。要連接兩個項目，按「連接」後點一下兩者，或把一個拖到另一個上。
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = 點這裡新增第一個{ $thing }。
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = 在泳道中點一下即可新增步驟。點一下步驟即可編輯。把它拖到另一條泳道，或拖到某個步驟上排在它後面。
+# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
+diagram-tap-in-lane-to-add = 在泳道中點一下即可新增步驟。點一下步驟即可編輯。拖曳它的把手，可移到另一條泳道或位置。
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = 點一下要與 { $name } 連接的項目。點一下空白處可取消。
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

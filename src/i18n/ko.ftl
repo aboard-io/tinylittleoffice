@@ -2592,8 +2592,8 @@ diagram-thing = 항목
 diagram-tap-empty-space-for-thing = 빈 곳을 탭하면 항목이 추가됩니다. 두 항목을 연결하려면 ‘연결’을 누르고 둘 다 탭하거나, 하나를 다른 하나 위로 끄세요.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = 여기를 탭해서 첫 { $thing } 추가
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = 레인을 탭하면 단계가 추가됩니다. 단계를 탭하면 편집합니다. 다른 레인으로 끌거나, 다른 단계 위로 끌어 그 뒤에 놓으세요.
+# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
+diagram-tap-in-lane-to-add = 레인을 탭하면 단계가 추가됩니다. 단계를 탭하면 편집합니다. 손잡이를 끌어 다른 레인이나 자리로 옮기세요.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = { $name }에 연결할 항목을 탭하세요. 빈 곳을 탭하면 취소됩니다.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

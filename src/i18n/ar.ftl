@@ -2805,8 +2805,8 @@ diagram-thing = عنصر
 diagram-tap-empty-space-for-thing = انقر على مساحة فارغة لإضافة عنصر. لوصل عنصرين، اضغط «وصل» وانقر على كليهما، أو اسحب أحدهما فوق الآخر.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = انقر هنا لإضافة أول { $thing }.
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = انقر في مسار لإضافة خطوة. انقر على خطوة لتحريرها. اسحبها إلى مسار آخر، أو فوق خطوة لتأتي بعدها.
+# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
+diagram-tap-in-lane-to-add = انقر في مسار لإضافة خطوة. انقر على خطوة لتحريرها. اسحب مقبضها إلى مسار أو مكان آخر.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = انقر على العنصر الذي تريد وصل { $name } به. انقر على مساحة فارغة للإلغاء.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
