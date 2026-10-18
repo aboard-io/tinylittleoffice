@@ -42,9 +42,21 @@
       "types": "./dist/types/kit.d.ts",
       "default": "./dist/editors.js"
     },
+    "./board": {
+      "types": "./dist/types/board.d.ts",
+      "default": "./dist/board.js"
+    },
+    "./board/model": {
+      "types": "./dist/types/apps/board/model.d.ts",
+      "default": "./dist/board-model.js"
+    },
     "./editors.css": {
       "types": "./editors.css.d.ts",
       "default": "./dist/editors.css"
+    },
+    "./board.css": {
+      "types": "./board.css.d.ts",
+      "default": "./dist/board.css"
     },
     "./examples/*.json": "./examples/*.json",
     "./package.json": "./package.json"
@@ -54,6 +66,8 @@
     "./dist/tinyoffice.js",
     "./dist/editors.js",
     "./dist/editors.css",
+    "./dist/board.js",
+    "./dist/board.css",
     "./dist/editors/*"
   ],
   "bin": {
@@ -67,7 +81,11 @@
     "dist/commands.js",
     "dist/editors.js",
     "dist/editors.css",
+    "dist/board.js",
+    "dist/board-model.js",
+    "dist/board.css",
     "editors.css.d.ts",
+    "board.css.d.ts",
     "dist/editors",
     "dist/fonts",
     "dist/types",
