@@ -491,6 +491,9 @@ export function trackOn(
         const was = seq.slice(si).find((e) => e.dead && e.b.kind === n.kind && liveText(e.b) === n.text);
         if (was) {
           reach(was.b);
+          // What reaching it struck is no longer there to pair.
+          const passed = new Set(seq.slice(0, si).map((e) => e.b));
+          for (let i = left.length - 1; i >= 0; i--) if (passed.has(left[i])) left.splice(i, 1);
           touch();
           const { del: who, delId, rejected: _r, ...undead } = was.b;
           if (who === by && open(delId)) {
