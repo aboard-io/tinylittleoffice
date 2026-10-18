@@ -74,6 +74,8 @@ import {
   setEdge,
   setKind,
   setShape,
+  setBranch,
+  branchOf,
   shapeOf,
   SHAPES,
   type ShapeName,
@@ -227,7 +229,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const d = layout(applyAll(doc, commitDraft(g.draft, g.block)), true);
     const back = (n: number) => (n > at ? n - 1 : n);
     const shapes = d.shapes.map((x): DShape => {
-      if ((x.hit?.k === 'line' && x.hit.at === at) || x.flow?.includes(at)) return { ...x, hit: undefined, flow: undefined, ghost: true };
+      if (((x.hit?.k === 'line' || (x.hit?.k === 'edge' && x.hit.branch)) && x.hit.at === at) || x.flow?.includes(at)) return { ...x, hit: undefined, flow: undefined, ghost: true };
       const hit = x.hit && (x.hit.k === 'line' || x.hit.k === 'edge') ? { ...x.hit, at: back(x.hit.at) } : x.hit;
       return { ...x, hit, ...(x.flow ? { flow: [back(x.flow[0]), back(x.flow[1])] as [number, number] } : {}) };
     });
@@ -336,7 +338,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    */
   private targetFor(hit: Hit): { tg: Target; runs: Run[] } | null {
     if (hit.k !== 'line') {
-      const name = hit.k === 'edge' ? (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '') : hit.name;
+      const name = hit.k !== 'edge' ? hit.name : hit.branch ? branchOf(this.doc, hit.at).label : (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '');
       return { tg: { hit, at: -1, span: [0, 0], lines: false, dated: false, name }, runs: name ? [{ t: name }] : [] };
     }
     const b = this.doc.blocks[hit.at];
@@ -842,7 +844,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
   /** A connection drawn as a plain line or an arrow. */
   toggleArrow(hit: Hit, arrow: boolean) {
-    if (hit.k === 'edge') this.change(setEdge(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit);
+    if (hit.k === 'edge') this.change((hit.branch ? setBranch : setEdge)(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit);
   }
   printCards() {
     void printPages(placeCards(this.doc), this.doc.head.title || t('diagram-place-cards'));
@@ -1123,7 +1125,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.
     const stop = hit.k === 'edge' && s.k === 't' ? '-1' : '0';
     // Every shape drawn for the thing open is it: a connection's line and its words alike (its words not twice).
-    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${sameHit(hit, on) ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}</g>`;
+    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${hit.k === 'edge' && hit.branch ? 'branch' : ''} ${sameHit(hit, on) ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}</g>`;
   }
   render() {
     const { kind, d } = this.view;

@@ -3,7 +3,8 @@
  * head's `kind:` field; every kind is written as list items (and, for two of them, connections), as the old
  * tree's eight diagram apps wrote them:
  *
- *   mind, org, family   a nested list: an idea and its branches; "Name | Role" under who they report to;
+ *   mind, org, family   a nested list: an idea and its branches (each line to the one above, as an outline's
+ *                       item says it: "{.from}" an arrow, "{label=Yes}" its words, branchOf); "Name | Role" under who they report to;
  *                       "Ada + Charles | 1815" over their children. "~ A -- B: advises" joins any two of them
  *                       across the tree: a mind map's cross-link (a dashed curve; "->", "<-", "<->" arrows),
  *                       an org chart's or a family's dotted line ("godparent", "adopted").
@@ -85,6 +86,39 @@ export const joins = (k: KindId) => isTree(k) || k === 'net' || k === 'lanes';
 export const SHAPES = { rectangle: 'r', rounded: 'o', ellipse: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', note: 'n' } as const;
 export type ShapeName = keyof typeof SHAPES;
 export const shapes = (k: KindId) => isTree(k) || k === 'lanes' || k === 'net';
+
+/**
+ * A line's own line to the one it is under, as the Outliner writes an item's (outline/model.ts itemBlock), so an
+ * outline, a mind map and swimlanes say it alike: its arrow a class, "from" the one above to it, "to" back, "both";
+ * its words `label`: "  - Prepare {.from label=Yes}". A connection hit `branch` is this line, at the line under.
+ */
+const BRANCH: Record<string, Dir> = { from: '->', to: '<-', both: '<->' };
+const BRANCH_CLASS: Partial<Record<Dir, string>> = { '->': 'from', '<-': 'to', '<->': 'both' };
+export function branchOf(doc: Doc, at: number): { dir: Dir; label: string } {
+  const a = doc.blocks[at]?.a;
+  return { dir: a?.cls?.map((c) => BRANCH[c]).find(Boolean) ?? '--', label: a?.kv?.label ?? '' };
+}
+/** Line `at` with its line to the one above given an arrow or words (an empty label taken off). */
+function withBranch(b: Block, patch: { dir?: Dir; label?: string }): Block {
+  const was = { dir: b.a?.cls?.map((c) => BRANCH[c]).find(Boolean) ?? ('--' as Dir), label: b.a?.kv?.label ?? '' };
+  const dir = patch.dir ?? was.dir;
+  const label = (patch.label ?? was.label).replace(/\s+/g, ' ').trim();
+  const cls = [...(b.a?.cls ?? []).filter((c) => !BRANCH[c]), ...(BRANCH_CLASS[dir] ? [BRANCH_CLASS[dir]!] : [])];
+  const kv = { ...b.a?.kv };
+  if (label) kv.label = label;
+  else delete kv.label;
+  const { a: _was, ...bare } = b;
+  const a = { ...b.a, ...(cls.length ? { cls } : { cls: undefined }), ...(Object.keys(kv).length ? { kv } : { kv: undefined }) };
+  if (!a.cls) delete a.cls;
+  if (!a.kv) delete a.kv;
+  return Object.keys(a).length ? { ...bare, a } : bare;
+}
+export function setBranch(doc: Doc, at: number, patch: { dir?: Dir; label?: string }): Op[] {
+  const b = doc.blocks[at];
+  if (b?.k !== 'li') return [];
+  const now = withBranch(b, patch);
+  return JSON.stringify(now) === JSON.stringify(b) ? [] : [{ op: 'splice', at, n: 1, blocks: [now] }];
+}
 /** The shape line `at` is given, if any. */
 export function shapeOf(doc: Doc, at: number): ShapeName | undefined {
   return doc.blocks[at]?.a?.cls?.find((c): c is ShapeName => c in SHAPES);
@@ -296,7 +330,8 @@ export const labelOf = (p: Pick<Part, 'words' | 'icon'>): string => (p.icon ? `:
 
 /** A name as it is compared: its words alone, its first line, in any case. */
 export const same = (a: string, b: string) => who(a) === who(b);
-export const who = (s: string) => nameOf(s).replace(/\s+/g, ' ').toLowerCase();
+// (A colon ending a word is a space, as the Outliner's joins name things, "Desk: Ready?" as "Desk Ready?".)
+export const who = (s: string) => nameOf(s).replace(/:\s/g, ' ').replace(/\s+/g, ' ').toLowerCase();
 /** A thing's name: its words' first line ("Name" of "Name | Role"). */
 export const nameOf = (s: string) => s.split('\n')[0].trim();
 
@@ -323,7 +358,7 @@ export const partFor = (l: Line, which: Which): Part | null => (which === 'all' 
  * What a shape of the picture was drawn from, so a tap there edits it: a line's words (or one thing of its
  * list, or its key), a lane by its name, a thing of a network that only its connections name, a connection.
  */
-export type Hit = { k: 'line'; at: number; part: Which } | { k: 'lane'; name: string } | { k: 'node'; name: string } | { k: 'edge'; at: number };
+export type Hit = { k: 'line'; at: number; part: Which } | { k: 'lane'; name: string } | { k: 'node'; name: string } | { k: 'edge'; at: number; branch?: true };
 
 /* ---------- commands ---------- */
 
@@ -452,6 +487,8 @@ function dropItem(l: Line, item: number): Op[] {
 /** The thing tapped, taken away: one thing of a list; a tree's item (its family comes out a level); a line; a lane and its steps; a thing of a network and its connections; a connection. */
 export function removeThing(doc: Doc, hit: Hit): Op[] {
   const kind = kindOf(doc);
+  // A branch's line is not taken away, only made plain again: no arrow, no words.
+  if (hit.k === 'edge' && hit.branch) return setBranch(doc, hit.at, { dir: '--', label: '' });
   if (hit.k === 'edge') return doc.blocks[hit.at]?.k === 'edge' ? [{ op: 'splice', at: hit.at, n: 1, blocks: [] }] : [];
   if (hit.k === 'lane') {
     const gone = linesOf(doc).filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase());
@@ -557,7 +594,9 @@ export function lanesFlow(doc: Doc) {
     const j = onward(i);
     return j >= 0 && !flows.some(([a, b]) => a === i || b === j) ? [[i, j]] : [];
   });
-  return { steps, joined, flows, both, aside, auto };
+  /** Whether j is one of i's branches (a line under it), not where i's branch rejoins. */
+  const branch = (i: number, j: number) => under(i).includes(j);
+  return { steps, joined, flows, both, aside, auto, branch };
 }
 
 /** A step with its lane's name, "Who: what they do", whether its line names the lane or follows the one before. */
@@ -788,7 +827,7 @@ function renameSet(doc: Doc, old: string, now: string, skip: number): Op[] {
  * connections name (each of them), a connection's words.
  */
 export function rename(doc: Doc, hit: Hit, old: string, now: string): Op[] {
-  if (hit.k === 'edge') return setEdge(doc, hit.at, { label: now });
+  if (hit.k === 'edge') return hit.branch ? setBranch(doc, hit.at, { label: now }) : setEdge(doc, hit.at, { label: now });
   if (hit.k === 'node') return renameEdges(doc, old, now);
   if (hit.k === 'lane') {
     const to = escapeWords(now.replace(/\s+/g, ' ').trim(), { colon: true });
@@ -841,9 +880,10 @@ export function setKind(doc: Doc, kind: KindId): Op[] {
  * A swimlane made a tree (a mind map, an org chart, a family tree), which reads only its nesting (Paul, 2026-10-18:
  * "The conversion from swimlanes to mindmap loses most of the relationships"): each step under the first step before
  * it that leads into it (a look-up under the step it is looked up from), and every other way the flow goes a
- * connection ("~ A -> B"). Its connections stay, named as a tree names things, by the whole line ("Desk: Ready?"),
- * but for one without words the tree now draws; its steps keep their lanes in their words, so swimlanes again have
- * them back; the lines that only name a lane go.
+ * connection ("~ A -> B"). Each line to the one above is an arrow ("{.from}", as the Outliner writes it), with the
+ * words a connection between the two gave it ("{label=Yes}"); its other connections stay, named by the whole line
+ * ("Desk: Ready?"); its steps keep their lanes in their words, so swimlanes again have them back; the lines that only
+ * name a lane go.
  */
 function lanesAsTree(doc: Doc): Op[] {
   const { steps, joined, flows, both, auto } = lanesFlow(doc);
@@ -858,8 +898,19 @@ function lanesAsTree(doc: Doc): Op[] {
   steps.forEach((_, i) => parent[i] === Infinity && walk(i, 0));
   const name = (i: number) => steps[i].all.words;
   const tree = (a: number, b: number) => parent[b] === a || parent[a] === b;
-  const lines = order.map(([i, depth]) => ({ ...(doc.blocks[steps[i].at] as Extract<Block, { k: 'li' }>), depth }));
-  const kept = joined.filter(({ e, a, b }) => e.label || !tree(a, b)).map(({ e, a, b }) => edgeBlock(doc, e, { from: name(a), to: name(b) }));
+  // Each line to the one above is the flow's arrow, or the way a connection between the two went (a look-up's "<->"),
+  // with the words it gave it (a "Yes").
+  const said = (i: number): { dir: Dir; label: string } => {
+    const j = joined.find(({ a, b }) => (a === parent[i] && b === i) || (a === i && b === parent[i]));
+    if (!j) return { dir: '->', label: '' };
+    const turned: Record<Dir, Dir> = { '->': '<-', '<-': '->', '<->': '<->', '--': '--' };
+    return { dir: j.a === parent[i] ? j.e.dir : turned[j.e.dir], label: j.e.label };
+  };
+  const lines = order.map(([i, depth]) => {
+    const b: Block = { ...(doc.blocks[steps[i].at] as Extract<Block, { k: 'li' }>), depth };
+    return depth ? withBranch(b, said(i)) : b;
+  });
+  const kept = joined.filter(({ a, b }) => !tree(a, b)).map(({ e, a, b }) => edgeBlock(doc, e, { from: name(a), to: name(b) }));
   const more = auto.filter(([a, b]) => !tree(a, b)).map(([a, b]): Block => ({ k: 'edge', from: name(a), to: name(b), dir: '->' }));
   const rest = doc.blocks.filter((b, at) => b.k !== 'li' && !(b.k === 'edge' && joined.some(({ e }) => e.at === at)));
   return [{ op: 'splice', at: 0, n: doc.blocks.length, blocks: [...lines, ...rest, ...kept, ...more] }];
@@ -872,7 +923,7 @@ const lineHit = (kind: KindId, at: number): Hit => ({ k: 'line', at, part: kind 
 
 /** A thing as blocks, for the clipboard: a line (a tree's with its family, brought to the margin), one thing of a list as a line of its own, a lane's steps, a thing only connections name, a connection. */
 export function thingBlocks(doc: Doc, hit: Hit): Block[] {
-  if (hit.k === 'edge') return doc.blocks[hit.at]?.k === 'edge' ? [doc.blocks[hit.at]] : [];
+  if (hit.k === 'edge') return !hit.branch && doc.blocks[hit.at]?.k === 'edge' ? [doc.blocks[hit.at]] : [];
   if (hit.k === 'node') return hit.name ? [li(0, [{ t: hit.name }])] : [];
   if (hit.k === 'lane')
     return linesOf(doc)

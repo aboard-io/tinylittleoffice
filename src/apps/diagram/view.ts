@@ -13,7 +13,7 @@ import { t } from '../../kit/core/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
-import { asLabel, edgesOf, kindOf, labelOf, lanesFlow, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, type Hit, type KindId, type Line } from './model.ts';
+import { asLabel, branchOf, edgesOf, kindOf, labelOf, lanesFlow, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
 export type DShape = Shape & {
@@ -120,6 +120,13 @@ function placeTree(roots: Node[]): Placed[] {
 
 const whole = (l: Line): Hit => ({ k: 'line', at: l.at, part: 'all' });
 
+/** A tree's line from shape `parent` to shape `child` (line `at`): an arrow and words where the line says so (branchOf), tapped to give it some. */
+function branchLine(doc: Doc, parent: number, child: number, at: number, c?: Color): DShape {
+  const { dir, label } = branchOf(doc, at);
+  const [a, b] = dir === '<-' ? [child, parent] : [parent, child];
+  return join(a, b, dir !== '--', label, c, 0, { k: 'edge', at, branch: true });
+}
+
 /** Org chart (and family tree): who reports to whom, boxes in rows; "~ A -- B: advises" a dotted line beside ("->" with an arrow). */
 function orgLayout(doc: Doc): Diagram {
   const BW = 156;
@@ -145,7 +152,7 @@ function orgLayout(doc: Doc): Diagram {
     const [x, y] = e.dir === '<-' ? [b, a] : [a, b];
     return a >= 0 && b >= 0 && a !== b ? [join(x, y, e.dir === '->' || e.dir === '<-', e.label, 'p', 2, { k: 'edge', at: e.at })] : [];
   });
-  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false)])), ...dotted]);
+  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [branchLine(doc, p.parent, i, p.node.line.at)])), ...dotted]);
 }
 
 /** Mind map: the idea in the middle of its left edge, its branches out to the right, each branch its own colour. */
@@ -175,7 +182,7 @@ function mindLayout(doc: Doc): Diagram {
     const [a, b] = [at(e.from), at(e.to)];
     return a >= 0 && b >= 0 && a !== b ? crossLink(boxes[a], boxes[b], boxes, root as [number, number], e.dir, e.label, { k: 'edge', at: e.at }) : [];
   });
-  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false, '', colour[i])])), ...links]);
+  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [branchLine(doc, p.parent, i, p.node.line.at, colour[i])])), ...links]);
 }
 
 /** Where a line from a box's centre toward (tx, ty) leaves the box. */
@@ -282,7 +289,7 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   const ROW = 88;
   const { lanes, steps } = lanesOf(doc);
   if (!lanes.length) return frame([]);
-  const { joined, flows, both, aside, auto } = lanesFlow(doc);
+  const { joined, flows, both, aside, auto, branch } = lanesFlow(doc);
   const into = (i: number) => auto.some(([, b]) => b === i) || flows.some(([, b]) => b === i) || both.some(({ a, b }) => a === i || b === i);
   const out = (i: number) => auto.some(([a]) => a === i) || flows.some(([a]) => a === i) || both.some(({ a, b }) => a === i || b === i);
   // Each step's column (Paul, 2026-10-18: "Stack"): one past the furthest step before it that leads into it, so
@@ -335,6 +342,12 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   steps.forEach((s, i) => {
     band(s.lane);
     for (const [from] of auto.filter(([, to]) => to === i)) {
+      // To a branch: its line to the one above, with its words, tapped as such (an arrow, as all of a swimlane's are).
+      if (branch(from, i)) {
+        const { dir, label } = branchOf(doc, s.line.at);
+        shapes.push(...elbow(boxes[from], boxes[i], boxes, dir === '--' ? '->' : dir, label, { k: 'edge', at: s.line.at, branch: true }));
+        continue;
+      }
       const flow: [number, number] = [steps[from].line.at, s.line.at];
       shapes.push(...elbow(boxes[from], boxes[i], boxes, '->').map((x): DShape => ({ ...x, flow })));
     }

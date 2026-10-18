@@ -13,7 +13,7 @@ import { register, type Command, commandsOf } from '../../kit/core/commands.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { UI } from '../../kit/draw/icons.ts';
 import { KIND_ICON, kindName, thingName } from './kinds.ts';
-import { KINDS, canDuplicate, childOf, edgesOf, isListed, isTree, joins, moveThing, newThing, nextThing, shapes, type Hit } from './model.ts';
+import { KINDS, branchOf, canDuplicate, childOf, edgesOf, isListed, isTree, joins, moveThing, newThing, nextThing, shapes, type Hit } from './model.ts';
 import type { ToDiagramEditor } from './editor.ts';
 
 type G = ToDiagramEditor;
@@ -26,7 +26,7 @@ const tree = (g: G) => isTree(g.view.kind);
 const nests = (g: G) => tree(g) || g.view.kind === 'lanes';
 const arrowed = (g: G) => {
   const h = hit(g);
-  const e = h?.k === 'edge' ? edgesOf(g.doc).find((x) => x.at === h.at) : undefined;
+  const e = h?.k !== 'edge' ? undefined : h.branch ? branchOf(g.doc, h.at) : edgesOf(g.doc).find((x) => x.at === h.at);
   return e?.dir === '->' || e?.dir === '<-';
 };
 
@@ -103,7 +103,8 @@ const DIAGRAM: Command<G>[] = [
     icon: ArrowRight,
     where: ['context'],
     group: 'own',
-    when: (g) => hit(g)?.k === 'edge' && joins(g.view.kind),
+    // (A swimlane's branch is an arrow whatever it says: nothing to change.)
+    when: (g) => hit(g)?.k === 'edge' && joins(g.view.kind) && !(g.view.kind === 'lanes' && (hit(g) as { branch?: true }).branch),
     does: (g) => g.toggleArrow(hit(g)!, arrowed(g)),
   }),
   cmd('indent', 'common-indent', {

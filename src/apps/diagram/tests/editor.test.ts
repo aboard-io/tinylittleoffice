@@ -37,7 +37,8 @@ const settle = async (el: ToDiagramEditor) => {
   await tick(30);
   await el.updateComplete;
 };
-const things = (el: HTMLElement) => [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing')];
+/** The things of the picture, and connections: not a tree's lines to the ones above, its branches. */
+const things = (el: HTMLElement) => [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing:not(.branch)')];
 const thing = (el: HTMLElement, words: string) => things(el).find((g) => g.getAttribute('aria-label')!.startsWith(words))!;
 const line = (el: HTMLElement) => el.querySelector<ToText>('to-text.dg-words')!;
 const isOpen = (el: HTMLElement) => !line(el).hidden;
@@ -434,7 +435,7 @@ test('a swimlane step branches as a mind map’s idea does (Tab, Add a branch), 
 test('a connection chosen has a halo, and its words open once, over where they are drawn (Paul, 2026-10-18)', async () => {
   for (const doc of ['---\nkind: lanes\n---\n- Desk: Ready?\n- Lab: Ship it\n\n~ Ready? -> Ship it: Yes\n', '---\nkind: mind\n---\n- Plan\n  - Ask\n  - Do\n\n~ Ask -> Do: then\n']) {
     const { el } = await editor(doc);
-    const parts = () => [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing.edge')];
+    const parts = () => [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing.edge:not(.branch)')];
     const words = parts().find((g) => g.querySelector('text'))!;
     const label = words.querySelector('text')!.textContent!;
     await tap(el, words);
@@ -541,6 +542,31 @@ test('swimlanes: after a new step, Enter offers the next in its lane as a ghost;
   await tap(el, ghost);
   await type(el, 'Done');
   expect(last()).toBe('---\nkind: lanes\n---\n- Desk: Ready?\n- Desk: Ship\n- Desk: Done\n');
+});
+
+test('a tree’s line to the one above, and a swimlane’s to a branch, is tapped for its words and its arrow, written as the Outliner writes them (Paul, 2026-10-18)', async () => {
+  const { el, last } = await editor('---\nkind: mind\n---\n- Plan\n  - Ask\n');
+  const line = () => el.querySelector<SVGGElement>('.dg-pic g.dg-thing.branch')!;
+  const mid = (g: Element) => {
+    const r = g.querySelector('line:not([stroke="transparent"])')!.getBoundingClientRect();
+    return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+  };
+  await tap(el, line(), mid(line()));
+  expect(isOpen(el)).toBe(true);
+  await type(el, 'first');
+  expect(last()).toBe('---\nkind: mind\n---\n- Plan\n  - Ask {label=first}\n');
+  action(el, 'Arrow').click();
+  await settle(el);
+  expect(last()).toBe('---\nkind: mind\n---\n- Plan\n  - Ask {.from label=first}\n');
+  await key(el, 'Enter');
+  expect(line().querySelector('line[marker-end]')).not.toBeNull();
+  // A swimlane's branch: its words on its line, the same way.
+  const lanes = await editor('---\nkind: lanes\n---\n- Desk: Ready?\n  - Lab: Fix it\n');
+  const branch = lanes.el.querySelector<SVGGElement>('.dg-pic g.dg-thing.branch')!;
+  const p = branch.querySelector('polyline:not([stroke="transparent"])')!.getBoundingClientRect();
+  await tap(lanes.el, branch, { clientX: p.left + 2, clientY: p.top + 1 });
+  await type(lanes.el, 'No');
+  expect(lanes.last()).toBe('---\nkind: lanes\n---\n- Desk: Ready?\n  - Lab: Fix it {label=No}\n');
 });
 
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
@@ -1009,7 +1035,7 @@ test('a mind map joins: Join from an idea, a tap on another across the tree make
   await settle(el);
   await tap(el, thing(el, 'Press'));
   expect(last()).toBe('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n    - Press\n\n~ Pricing -- Press\n');
-  const edge = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.edge')!;
+  const edge = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.edge:not(.branch)')!;
   const curve = edge.querySelector('polyline[stroke-dasharray]')!;
   expect(curve).not.toBeNull();
   expect(edge.getAttribute('aria-label')).toBe('a connection');

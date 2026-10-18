@@ -1851,6 +1851,8 @@ common-diagram-maker = 圖解
 common-drag-to-move = 拖曳以移動
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = 畫成心智圖
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = 畫成泳道圖
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = 畫成網路圖
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da

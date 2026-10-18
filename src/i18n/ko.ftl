@@ -1817,6 +1817,8 @@ common-diagram-maker = 다이어그램 메이커
 common-drag-to-move = 끌어서 이동
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = 마인드맵으로 그리기
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = 스윔레인으로 그리기
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = 네트워크로 그리기
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da

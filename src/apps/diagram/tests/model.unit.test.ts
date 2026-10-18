@@ -64,7 +64,9 @@ function run(d: Doc, ops: Op[]): string {
 const old = (app: string) => (JSON.parse(readFileSync(joinPath(import.meta.dirname, '../../../../test/doc/corpus/apps', `${app}.json`), 'utf8')) as { docs: { text: string }[] }).docs[0].text;
 const count = (d: Doc) => {
   const s = layout(d).shapes;
-  return { things: s.filter((x) => x.k !== 'k' && x.k !== 'j').length, joins: s.filter((x) => x.k === 'k' || x.k === 'j').length, hits: s.filter((x) => x.hit).length };
+  // (A tree's line to the one above is tapped too, as a branch; it is not one of the things.)
+  const thing = (x: DShape) => x.hit && !(x.hit.k === 'edge' && x.hit.branch);
+  return { things: s.filter((x) => x.k !== 'k' && x.k !== 'j').length, joins: s.filter((x) => x.k === 'k' || x.k === 'j').length, hits: s.filter(thing).length };
 };
 
 describe('reading', () => {
@@ -415,7 +417,7 @@ describe('commands as ops', () => {
       '6 Leaves',
     ]);
     // A look-up in its step's column is joined by a line straight down.
-    const look = d.shapes.find((x) => x.k === 'w' && x.hit?.k === 'edge')!;
+    const look = d.shapes.find((x) => x.k === 'w' && x.hit?.k === 'edge' && !x.hit.branch)!;
     expect(look.pts).toEqual([0, 0, 0, 100]);
     // Two steps of one lane never share a column: the later moves on.
     const two = layout(doc('lanes', '- Desk: Ask?\n  - Desk: Yes\n  - Desk: No\n- Desk: Done\n')).shapes.filter((x) => x.hit?.k === 'line');
@@ -427,11 +429,16 @@ describe('commands as ops', () => {
       '- Patient:\n- NP:\n- EHR:\n- Patient: Arrives\n- NP: Triage\n- EHR: Record\n- NP: Ready?\n  - NP: Treat\n  - NP: Wait\n- Patient: Leaves\n\n~ Triage <-> Record\n~ Ready? -> Wait: No\n',
     );
     const mind = applyAll(lanes, setKind(lanes, 'mind'));
+    // Each line to the one above an arrow as the Outliner writes it, a look-up's both ways, a branch's words on it.
     expect(write(mind)).toBe(
-      '---\nkind: mind\n---\n- Patient: Arrives\n  - NP: Triage\n    - EHR: Record\n    - NP: Ready?\n      - NP: Treat\n        - Patient: Leaves\n      - NP: Wait\n\n~ NP: Ready? -> NP: Wait: No\n~ NP: Wait -> Patient: Leaves\n',
+      '---\nkind: mind\n---\n- Patient: Arrives\n  - NP: Triage {.from}\n    - EHR: Record {.both}\n    - NP: Ready? {.from}\n      - NP: Treat {.from}\n        - Patient: Leaves {.from}\n      - NP: Wait {.from label=No}\n\n~ NP: Wait -> Patient: Leaves\n',
     );
+    // A mind map draws them: an arrow on every line, the words on its line.
+    const lines = layout(mind).shapes.filter((x) => x.hit?.k === 'edge' && x.hit.branch);
+    expect(lines.every((x) => x.k === 'k')).toBe(true);
+    expect(lines.map((x) => x.text).filter(Boolean)).toEqual(['No']);
     // Every connection is drawn; and back to swimlanes, the same lanes, the same flow.
-    expect(new Set(layout(mind).shapes.flatMap((x) => (x.hit?.k === 'edge' ? [x.hit.at] : []))).size).toBe(edgesOf(mind).length);
+    expect(new Set(layout(mind).shapes.flatMap((x) => (x.hit?.k === 'edge' && !x.hit.branch ? [x.hit.at] : []))).size).toBe(edgesOf(mind).length);
     const back = applyAll(mind, setKind(mind, 'lanes'));
     expect(lanesOf(back).lanes).toEqual(['Patient', 'NP', 'EHR']);
     // Any other change of kind is the kind alone.
@@ -834,7 +841,7 @@ test('a diagram shown as an outline: the list as the outline reads it, a role or
   // Swimlanes go as the tree their flow draws, as to a mind map, and every join finds its items in the outline.
   const lanes = '---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Ready?\n  - Lab: Fix it\n  - Desk: Ship it\n- Desk: Done\n\n~ Ready? -> Fix it: No\n';
   const outline = diagramToOutline(parse(lanes));
-  expect(outline).toBe('- Desk: Ready?\n  - Lab: Fix it\n    - Desk: Done\n  - Desk: Ship it\n\n~ Desk Ready? -> Lab Fix it: No\n~ Desk Ship it -> Desk Done\n');
+  expect(outline).toBe('- Desk: Ready?\n  - Lab: Fix it {.from label=No}\n    - Desk: Done {.from}\n  - Desk: Ship it {.from}\n\n~ Desk Ship it -> Desk Done\n');
   const { readOutline, liveLinks } = await import('../../outline/model.ts');
   const read = readOutline(parse(outline));
   expect(liveLinks(read)).toHaveLength(read.links.length);

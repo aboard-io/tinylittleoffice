@@ -190,7 +190,7 @@ export function measureDiagram(text: string): DiagramMeasure {
   const doc = parse(text);
   const d = layout(doc);
   const written = doc.blocks.filter((b) => b.k === 'edge').length;
-  const drawn = new Set(d.shapes.flatMap((s) => (s.hit?.k === 'edge' ? [s.hit.at] : []))).size;
+  const drawn = new Set(d.shapes.flatMap((s) => (s.hit?.k === 'edge' && !s.hit.branch ? [s.hit.at] : []))).size;
   const labels = d.shapes
     .filter((s) => s.text && !isLink(s.k) && s.hit && s.hit.k !== 'edge')
     .map((s) => {

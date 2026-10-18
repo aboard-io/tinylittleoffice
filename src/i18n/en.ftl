@@ -1057,6 +1057,7 @@ common-presentation-builder = Presentation Builder
 common-diagram-maker = Diagram Maker
 common-drag-to-move = Drag to move
 outline-draw-as-mind-map = Draw as a mind map
+outline-draw-as-swimlanes = Draw as swimlanes
 outline-draw-as-network = Draw as a network
 outline-draw-as-org-chart = Draw as an org chart
 outline-empty = Empty

@@ -1871,6 +1871,8 @@ common-diagram-maker = ڈائیاگرام میکر
 common-drag-to-move = سرکانے کے لیے کھینچیں
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = مائنڈ میپ کی صورت میں بنائیں
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = سوئم لین کی صورت میں بنائیں
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = نیٹ ورک کی صورت میں بنائیں
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da

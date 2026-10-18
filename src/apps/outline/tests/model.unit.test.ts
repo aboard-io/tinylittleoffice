@@ -21,6 +21,7 @@ import {
   outlineToDeck,
   outlineToFamily,
   outlineToMind,
+  outlineToLanes,
   outlineToNet,
   outlineToOrg,
   personOf,
@@ -405,9 +406,12 @@ test('a document goes under an item after its family, at its depth', () => {
   ).toEqual(['~ Pricing -> Marketing: feeds', '~ Ops -- Product', '']);
 });
 
-test('a mind map gets the tree and its joins as cross-links; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', () => {
+test('a mind map and swimlanes get the tree with each line to the one above as it is, and its joins; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', () => {
   const v = readOutline(parse(DOC));
-  expect(outlineToMind(v)).toBe('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n');
+  const tree =
+    '- Launch\n  - Product {.from}\n    - Pricing {.from label=sets}\n  - Marketing {.both}\n  - Ops {label="part of"}\n  - Support {.to}\n\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n';
+  expect(outlineToMind(v)).toBe(`---\nkind: mind\n---\n${tree}`);
+  expect(outlineToLanes(v)).toBe(`---\nkind: lanes\n---\n${tree}`);
   expect(outlineToOrg(v, { title: 'Co' })).toBe(
     '---\ntitle: Co\nkind: org\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -- Marketing: feeds\n~ Ops -- Product\n',
   );
@@ -420,7 +424,7 @@ test('a mind map gets the tree and its joins as cross-links; an org chart its jo
   );
   expect(deck).toBe('## Launch {.title}\n\n---\n\n## Product\n\n- Pricing\n- Onboarding\n\n---\n\n## Pricing\n\n- Tiers\n\n---\n\n## Marketing\n\n- Press\n\n---\n\n```sheet\na | b\n--- | ---\n```\n');
   expect(outlineToDeck(readOutline(parse('- A\n  - a1\n- B\n  - b1\n')))).toBe('## A\n\n- a1\n\n---\n\n## B\n\n- b1\n');
-  expect(def.handoffs!.map((h) => h.to)).toEqual(['deck', 'diagram', 'diagram', 'diagram', 'diagram', 'cal']);
+  expect(def.handoffs!.map((h) => h.to)).toEqual(['deck', 'diagram', 'diagram', 'diagram', 'diagram', 'diagram', 'cal']);
   expect(def.handoffs![0].convert('---\ntitle: Plan\n---\n' + TREE)).toBe('---\ntitle: Plan\n---\n## Launch {.title}\n\n---\n\n## Product\n\n- Pricing\n');
 });
 

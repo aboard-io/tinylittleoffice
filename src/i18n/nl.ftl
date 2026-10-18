@@ -1899,6 +1899,8 @@ common-diagram-maker = Diagrammaker
 common-drag-to-move = Sleep om te verplaatsen
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = Tekenen als mindmap
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = Tekenen als swimlanes
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = Tekenen als netwerk
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da

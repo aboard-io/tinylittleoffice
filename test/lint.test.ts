@@ -71,7 +71,7 @@ describe('what each finding says', () => {
     expect(f).toMatchObject({ app: 'diagram', block: 4, at: 'block 5', kind: 'edge-end' });
     expect(f.words).toBe('A dotted line from Diagram to Drawing Tool is not drawn: no thing is called Diagram or Drawing Tool; the things are The kit, Words, Pictures, Plans');
     // And the layout agrees: the line is not among the shapes.
-    expect(layout(parse(fixture('edge-end').text)).shapes.some((s) => s.hit?.k === 'edge')).toBe(false);
+    expect(layout(parse(fixture('edge-end').text)).shapes.some((s) => s.hit?.k === 'edge' && !s.hit.branch)).toBe(false);
   });
 
   test('a comma inside a number in a Venn: the two things it makes', () => {
