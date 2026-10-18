@@ -9,8 +9,25 @@ import { gzipSync } from 'node:zlib';
 import { describe, expect, test } from 'vitest';
 import { fetchedAtOnce, lazyImports, measure, overBudget, readBudgets, shapeOf, type Sizes } from '../scripts/budgets.ts';
 import { deadExports } from '../scripts/dead.ts';
+import { LIBRARY_APPS } from '../scripts/ftl-plugin.ts';
 import { staleFiles } from '../scripts/generated.ts';
-import { ADDRESS_NAMES, ALLOWED, KIT_FOLDERS, NOT_WORDS, WAIT_MS, bareWords, domNames, edgesOf, elementsOf, graphProblems, kitProblems, storiedOf, timedWaits, type Module } from './lints.ts';
+import {
+  ADDRESS_NAMES,
+  ALLOWED,
+  KIT_FOLDERS,
+  NOT_WORDS,
+  WAIT_MS,
+  bareWords,
+  domNames,
+  edgesOf,
+  elementsOf,
+  graphProblems,
+  importsOf,
+  kitProblems,
+  storiedOf,
+  timedWaits,
+  type Module,
+} from './lints.ts';
 
 const ROOT = join(import.meta.dirname, '..');
 const FIXTURES = join(import.meta.dirname, 'fixtures/lints');
@@ -110,6 +127,13 @@ describe('no DOM in the model: the kernel (src/doc) never names window, document
   });
   test('src/doc names none', () => {
     expect(found(tree)).toStrictEqual([]);
+  });
+  // The Board's model is served alone for a server (tinylittleoffice/board/model, dist/board-model.js, which imports
+  // the package's doc.js): it imports the kernel and nothing else, and names no browser global either.
+  test('the Board’s model imports the kernel alone and names none', () => {
+    const model = tree.find((m) => m.path === 'src/apps/board/model.ts')!;
+    expect(importsOf(model.source).map((i) => i.spec)).toStrictEqual(['../../doc/index.ts']);
+    expect(domNames(model.source)).toStrictEqual([]);
   });
 });
 
@@ -480,6 +504,8 @@ describe('the build’s budgets and shape: the built site within budgets.json, i
       tree
         .filter((m) => /^src\/apps\/[^/]+\/templates\.ts$/.test(m.path))
         .map((m) => m.path.split('/')[2])
+        // The library's own apps are not the site's: the site's build holds none of their templates.
+        .filter((app) => !LIBRARY_APPS.includes(app))
         .sort(),
     );
     expect(Object.keys(budgets.languages ?? {}).sort()).toStrictEqual(

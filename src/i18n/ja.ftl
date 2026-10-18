@@ -3211,3 +3211,77 @@ find-not-found = 見つかりません
 menu-nothing-starts-q = 「{ $q }」に一致するものはありません
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = 「{ $q }」に一致するもの
+
+## the Board
+
+# en: e879b0be0190766af9d315adbc46dcd7314f0b3f
+board-board = ボード
+# en: 9ea5e97d2f481d5427902c67e55a54ec377e4761
+board-board-lowercase = ボード
+# en: d1b387380c728b48ad48dad8e820910a5b9823d8
+board-cards-in-lanes-by-status = ステータスごとの列にカードを並べます。カード1枚が表の1行です。
+# en: bae7d5be70820ed56467bd9a63744e23b47bd711
+board-status = ステータス
+# en: 8665aed3624f4916345a2b028d6d28d352ad4245
+board-to-do = 未着手
+# en: 9f1ffa416cd0e63113fa0244f18e15e1a1079c18
+board-doing = 進行中
+# en: e9b450d14bc2363d292c84f17cfad5cfbd58a458
+board-done = 完了
+# en: cf5fbf174610c73177abf9c8651380a7704db1bd
+board-no-cards = カードはありません
+# en: 0463e9010e415ef45e74451772c13dbd858b5db4
+board-n-cards = { $n ->
+       *[other] カード { $n } 枚
+    }
+# en: ec6f345f456be5e906efb61c1bd7cc91fbe8c3d6
+board-open-cards-in-spreadsheet = カードを表計算で開く
+# en: 4d4ce73b15660f20977ad7efab2283c51bdae008
+board-card = カード
+# en: 8ccf7349a24f44599bb594439759d55772afee20
+board-lane = 列
+# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
+board-lane-options = 列のオプション
+# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
+board-options-for-lane = { $lane }のオプション
+# en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
+board-add-card = カードを追加
+# en: 9b16c4bcc3877580d2535eb47b42650501308935
+board-delete-lane = 列を削除
+# en: c0a3ef619ab093df30dca80bc872eedfe5850b52
+board-move-to = 移動先…
+# en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
+board-rename-lane = 列の名前を変更
+# en: a5912ab4a43981f406eba8185371c4b3651e648b
+board-card-in-lane-beside = 前または次の列の隣のカード
+# en: a200dd9231cf71181960586345e66a1b8bb3e738
+board-move-card-to-lane-before-or = カードを前または次の列へ移動
+# en: f801223b1d000f42a1e7f02ec5f078e77efbbea4
+board-lane-name = 列の名前
+# same
+# en: d3f8f7b810c4b08f0b4ac4e47fdf8d265a10d869
+board-yyyy-mm-dd = YYYY-MM-DD
+# en: a0cb8ea4060e4a90b3f78592285740f7da401615
+board-new-lane = 新しい列
+# en: 8bd7cc004028fed2c431bef5632a5f52a14e1af6
+board-title-of-card-n = { $lane }のカード{ $n }のタイトル
+# en: bc2748da58d80b5c56727fe18421e38b112a5ae5
+board-card-n-tap-chooses-it = { $lane }のカード{ $n }：タップで選択、ドラッグで移動
+# en: 810b76bb164a844386d1a2e79fd6f0580914a82f
+board-chosen-cards = 選択中のカード
+# en: 485f5f8bdd8f8be4ce2ca76e2531a5d8114df337
+board-project-board = プロジェクトボード
+# en: c1781d58aa2f45b844d09310320a3910191ad880
+board-to-do-doing-done-owner = 未着手・進行中・完了。タスクごとに担当者と期限があります。
+# en: df5ed7c968260c1206d4e522066460822cf75b92
+board-sales-pipeline = 営業パイプライン
+# en: e8005f76e068a5cac180467fb97ac33561c72f62
+board-deals-from-inbound-to-won = 新規から成約・失注までの案件を、金額とクロージング予定日つきで管理します。
+# en: 9ce5d6326186a71d12527fe2a55a6ba56518e0ef
+board-hiring = 採用
+# en: 9fe2a35ad36e6e3d1a54f763c65f2dabd3ad62f9
+board-candidates-from-application-to-hire = 応募から採用までの候補者を、職種と次のステップつきで管理します。
+# en: d52515f227f638ad6d968486abebc20d6729d8c6
+board-content-calendar = コンテンツカレンダー
+# en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
+board-pieces-from-idea-to-published = アイデアから公開までのコンテンツを、チャネル・担当者・日付つきで管理します。

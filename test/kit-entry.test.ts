@@ -109,7 +109,7 @@ describe('an app registered from outside the suite', () => {
     expect(appOf('write')!.name).toBe('Word Processor');
   });
 
-  test('is never registered by the site: only the registry and the kit name registerApp in their code', () => {
+  test('is never registered by the site: only the registry, the kit and the Board’s entry for a page (src/board.ts, which the site never imports) name registerApp in their code', () => {
     const code = (f: string) =>
       readFileSync(join(ROOT, f), 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -117,6 +117,6 @@ describe('an app registered from outside the suite', () => {
     const named = (readdirSync(join(ROOT, 'src'), { recursive: true }) as string[])
       .map((f) => `src/${f.replaceAll('\\', '/')}`)
       .filter((f) => f.endsWith('.ts') && !f.includes('/tests/') && /\bregisterApp\b/.test(code(f)));
-    expect(named.sort()).toStrictEqual(['src/kit.ts', 'src/kit/core/apps.ts']);
+    expect(named.sort()).toStrictEqual(['src/board.ts', 'src/kit.ts', 'src/kit/core/apps.ts']);
   });
 });
