@@ -240,6 +240,8 @@ function editsIn(b: Tracked, settled: (id: string) => boolean): Edit[] {
     else if (tok.restored && !open.how) open.how = 'restore';
     gap = '';
   });
+  // A block put back whole: one edit over all of it, said as words put back, around the edits inside it.
+  if (b.restored && b.insId && b.ins && !settled(b.insId) && b.toks.length) edits.unshift({ ids: [b.insId], who: b.ins, first: 0, last: b.toks.length - 1, how: 'restore' });
   if (b.fmtId && b.fmt && !settled(b.fmtId) && b.toks.length) {
     const whole = edits.length === 1 && edits[0].who === b.fmt && edits[0].first === 0 && edits[0].last === b.toks.length - 1;
     if (whole) edits[0].ids.unshift(b.fmtId);
@@ -423,13 +425,14 @@ export function paint(text: Painted, tracked: Tracked[], order: readonly string[
   for (const { b, at } of pairsOf(tracked, text.model, settled)) {
     let off = 0;
     const whole = b.fmtId && b.fmt && !settled(b.fmtId) ? b.fmt : '';
+    const back = b.restored && b.insId && b.ins && !settled(b.insId) ? b.ins : '';
     for (const tok of b.toks) {
       if (tok.del) continue;
       const end = off + tok.t.length;
       // Every word and every space between them, so a run of typing is one unbroken highlight.
-      if (tok.ins && tok.insId && !settled(tok.insId)) {
+      if ((tok.ins && tok.insId && !settled(tok.insId)) || back) {
         const r = range(at, off, end);
-        if (r) into(put, tok.ins, r);
+        if (r) into(put, tok.ins && tok.insId && !settled(tok.insId) ? tok.ins : back, r);
       } else if ((tok.fmt && tok.fmtId && !settled(tok.fmtId)) || whole) {
         const r = range(at, off, end);
         if (r) into(styled, tok.fmt && tok.fmtId && !settled(tok.fmtId) ? tok.fmt : whole, r);

@@ -76,7 +76,10 @@ export interface Tracked {
   delId?: string;
   /** Taken out as a change was rejected (a block someone else put in). */
   rejected?: true;
-  /** Put back whole where it was taken out (`ins` is who put it back): whose taking out it undid, and as which change. */
+  /**
+   * Put back whole where it was taken out (`ins` is who put it back, `insId` the change): whose taking out it undid, and
+   * as which change. Its words keep their own changes.
+   */
   restored?: true;
   from?: { del: string; delId?: string };
   /** A restyling beneath this block's, by someone else, still open (Under). */
@@ -503,9 +506,9 @@ export function trackOn(
           const id = mint();
           const r = restyle(undead, n, by, mint, rejected, open, touch);
           const from = { del: who!, ...(delId ? { delId } : {}) };
-          // A card is put back whole, its source as it is now; a block of words, word by word, as words put back are.
-          if (n.src !== undefined) out.push({ ...r, ins: by, insId: id, restored: true, from, src: n.src, wasSrc: n.src });
-          else out.push({ ...r, ins: by, insId: id, restored: true, from, toks: r.toks.map((x) => (x.del ? x : { ...x, ins: by, insId: id, restored: true as const, from: { ...from, m: x.m } })) });
+          // Put back whole, the block itself marked: its words keep who put each in and took each out, so that each
+          // of those changes is still its author's to accept or reject; a card keeps its source as it is now.
+          out.push({ ...r, ins: by, insId: id, restored: true, from, ...(n.src !== undefined ? { src: n.src, wasSrc: n.src } : {}) });
           continue;
         }
         // A block put in right after one this person put in, still unreviewed (Enter, and on typing), is the same edit.
@@ -615,9 +618,9 @@ export function changesOf(doc: readonly Tracked[]): Change[] {
     }
     // A block put in or taken out is a change even with no words in it (a rule, an empty line).
     // (A block put in stays its author's change though someone else has since taken it out.)
-    if (b.insId && b.ins) add(b.insId, b.ins, 'put', '', b.restored ? 'restore' : 'edit', [`+block:${b.kind}`]);
+    if (b.insId && b.ins) add(b.insId, b.ins, 'put', b.restored ? liveText(b) : '', b.restored ? 'restore' : 'edit', [`+block:${b.kind}`]);
     // Put back whole: the taking out it undid stays its author's change.
-    if (b.from?.delId) add(b.from.delId, b.from.del, 'took', '', 'edit', [`-block:${b.kind}`]);
+    if (b.from?.delId) add(b.from.delId, b.from.del, 'took', liveText(b), 'edit', [`-block:${b.kind}`]);
     if (b.delId && b.del) add(b.delId, b.del, 'took', '', b.rejected ? 'rejection' : 'edit', [`-block:${b.kind}`]);
     if (b.fmtId) {
       let kind = b.kind;
