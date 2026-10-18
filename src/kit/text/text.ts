@@ -955,7 +955,9 @@ export class ToText extends LitElement {
   }
   /** Copy or Cut from a button (a phone's row): the words selected onto the clipboard as the keys put them, our TLO and our HTML. */
   copyOut(cut: boolean) {
-    const sel = this.whole ? wholeSel(this.model) : this._sel;
+    // The selection as the words now are: a host that gives the element new blocks (the Diagram Maker closing a thing's
+    // words) leaves the old one behind, and a cut of a range they no longer hold is an op the kernel refuses.
+    const sel = this.whole ? wholeSel(this.model) : this._sel && clampSel(this.model, this._sel);
     if (!sel || collapsed(sel)) return;
     void writeClip(copyData(this.model, sel));
     if (cut) {

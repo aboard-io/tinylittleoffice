@@ -1232,3 +1232,17 @@ test("an empty box's caret sits before its placeholder <br>, never after it: Saf
   expect(sel.anchorNode).toBe(p);
   expect(sel.anchorOffset).toBeLessThanOrEqual(Array.prototype.indexOf.call(p.childNodes, br));
 });
+
+test('Cut from a button after the words were given anew cuts what is selected in them, never a range they no longer hold', async () => {
+  const h = await mount('Rename me', 'line', { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 8 } });
+  // The Diagram Maker closes a thing's words this way: the same element, hidden, its blocks emptied, its selection kept.
+  const empty = parse('');
+  h.doc = empty;
+  h.el.blocks = empty.blocks;
+  await h.el.updateComplete;
+  const ops = heard(h);
+  expect(() => h.el.copyOut(true)).not.toThrow();
+  await tick();
+  expect(ops).toStrictEqual([]);
+  expect(h.tlo).toBe(write(empty));
+});
