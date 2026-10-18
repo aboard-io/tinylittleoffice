@@ -50,10 +50,10 @@ What an app still asked of the site itself, and what replaces it:
    `tinylittleoffice/editors` exports everything `tinylittleoffice/kit` does (step 11: among it the commands'
    functions, A page's own commands; `setup`, `mount` and `editorTag`, an app's element ready to create, from
    kit/core/mount.ts; `host`; `appOf` and `registerApp`; `setLanguage`, `t` and `addStrings`; `toast`; and the types
-   `AppDef`, `Editor`, `DocChange`, `DocOps`, `DocPick`, `Picked`, `Mounted`, `Host`, `Placed` and `Action`, a
-   toast's), and beside it what only a page sets: `apps` (the suite's, in order), `chosenLanguage` and `languages`,
-   `setTheme`, `theme` and the type `Theme`, `keepSize` and `size`, and `pageCommands` (the site's page keys, for a page
-   that draws a bar of its own).
+   `AppDef`, `Editor`, `DocChange`, `DocOps`, `DocRemote`, `DocPick`, `Picked`, `Mounted`, `Host`, `Placed` and
+   `Action`, a toast's), and beside it what only a page sets: `apps` (the suite's, in order), `chosenLanguage` and
+   `languages`, `setTheme`, `theme`, `keepThemeAt` and the type `Theme`, `keepSize`, `keepSizeAt` and `size`, and
+   `pageCommands` (the site's page keys, for a page that draws a bar of its own): see A host's page.
 3. **The stylesheet for a page that is not the site.** Done: src/editors.css is everything an editor needs (the
    fonts, the tokens, the kit, the text editor, the rules by width and by a person's settings, and each app's own sheet,
    which its editor brings), and src/styles/page.css is the site's page and chrome (`html` and `body`, `<to-shell>`,
@@ -106,6 +106,13 @@ What an app still asked of the site itself, and what replaces it:
     versions and draws them, pins a comment by its quote, has the bubble's Comment tell the host and offers "@"
     people: see Tracked changes and comments for a host.
 13. **A Storybook.** Done: every element and every app's editor alone, as a host holds them: see The Storybook.
+14. **What the Storybook found.** Done (2026-10-18, for Atlas, which built them by hand: its web/src/redline.ts,
+    margin.ts, comment-box.ts and the review half of tracking.ts): the review panel and the margin as components, the
+    redraw that awaits the ghosts, a quote from the selection, a color for everyone, "docremote" (Tracked changes and
+    comments for a host, The components); five drawing bugs, each with its test (a paragraph taken out last never
+    drawn; one put back whole not drawn as restored; a change's words run together; a hint written over drawn word by
+    word; Compare's links made from the address); the kit's other elements exported; and a host's page arranged (A
+    host's page).
 
 ## The Storybook
 
@@ -122,9 +129,10 @@ kit's `setTheme` and its Language `setLanguage`. A story's documents are the app
 - **Kit.** Core: `mount` over any app, an app of its own on `DocElement`, a page's own commands. UI: the bar, the
   menus, Insert, the dialogs and the doc dialog, the toast, the context bar, the completions, Find, the link box, the
   preview, the locked card, the doc link dialog, the size of everything. Text: `<to-text>` alone, who did what (the
-  redline, a person's changes accepted, rejections, a reviewer, a panel of `changesOf` with Accept and Reject),
-  comments pinned by their quote and made from the bubble, "@" for people, and Compare. Draw: footnotes, charts,
-  cards, QR codes, tiles.
+  redline, a person's changes accepted, rejections, a reviewer), the review panel (`<to-review-panel>`: alone, for a
+  reader, reviewed, twelve people's colors, and beside the words with Accept and Reject), the margin (`<to-comments>`:
+  threads pinned by their quote, over who did what, for a reader, made from the bubble, and asking Atlas, answered in
+  the thread with a tracked change), "@" for people, and Compare. Draw: footnotes, charts, cards, QR codes, tiles.
 - **Apps.** Each app's editor over one of its templates, editable and read-only, blank, two people sharing one
   document (each one's `docops` handed to the other's `applyRemote`), and every template drawn small.
 - **Site.** The site's own page (the shell, the chrome, the drawer, the home page, an app's templates, Share, Privacy),
@@ -156,7 +164,7 @@ being its text layer.
   and `reviewedBy(id, seq)`): a rejection stays in sight as a change of its own, and a change reviewed is closed, so an
   edit beside it is another, and words its author takes out again, reviewed, are taken out as a change (unreviewed,
   they are simply gone). The words being typed and not yet saved are a version too, the last tracking taken one
-  version further (`trackOn`). And its people: their order, a person's color their place in it (`COLORS`), their
+  version further (`trackOn`). And its people: their order, a person's color their place in it (`colorOf`, below), their
   names (`initialsOf`), and what the drawing says in the host's language (`Drawing`).
 - **What it gets.** `track(versions)` is the document as `Tracked` blocks of `Tok`s: each word with who put it in and
   who took it out, and each word, block and head field restyled with who restyled it and what it was. `changesOf` is
@@ -180,8 +188,8 @@ being its text layer.
   restyling with dots, by the CSS Custom Highlight API. The caret, the copy and the IME pass over the ghosts, and the caret is written back where it was in the
   words, so a host draws again whenever the words or the versions change, typing or not: the ghosts first, awaited,
   then the paint. A change the host calls `settled` is drawn as plain words, or, taken out, not at all. The highlights
-  are named `tlo-by-0` and on (`PREFIX`), which `tinylittleoffice/editors.css` colors; a host that names its own
-  (`paint`'s last argument) colors them itself. A browser with no highlights gets the ghosts alone.
+  are named `tlo-by-0` and on (`PREFIX`), each colored by a rule the kit gives the page as it paints, in the person's
+  color (`colorAt`); a host that names its own (`paint`'s last argument) colors them itself. A browser with no highlights gets the ghosts alone.
 - **A lozenge by the keys.** The ghosts take no focus (the caret passes over them), so the keys reach an edit from the
   words: Alt+Enter with the caret in an edit's words, or else at the nearest edit in its paragraph (before the caret
   first), fires "text-ghost" from the `<to-text>`, bubbling, with `{ id, block, el }` (`GhostAt`): the lozenge's name
@@ -204,12 +212,31 @@ being its text layer.
   letters offers them as ":" offers icons, the one picked put in by name. With none, "@" is a letter like any other.
 
 A page that gives none of it, no ghosts and no people, is drawn as before, and the site's pages give none. The
-Contract Editor, an app on a branch of its own, made these modules, and is to be rebased onto them; its review panel
-(the redline, Accept and Reject) stays its own, and so does what it has beside them: two people's edits of one version
-merged, its log and its server.
+Contract Editor, an app on a branch of its own, made these modules, and is to be rebased onto them; what it has beside
+them stays its own: two people's edits of one version merged, its log and its server.
+
+- **Everyone's color.** `colorOf(who, order)` is a person's color: their place in the host's `order` (`slotOf`), or,
+  for someone it does not name, a place past everyone's that their name alone picks, so they are one color wherever
+  they are drawn; `colorAt(place)` is the place's. The first six are `COLORS`, Okabe–Ito's; then as many as there are
+  people, each a hue a golden angle on from the one before at one of three depths in turn; and each, the first six too,
+  as near its hue as words in it read at 4.5:1 on the paper of either theme, darker in the light and lighter in the
+  dark, said as CSS's `light-dark()` (test/review.test.ts holds forty of them to it, and twenty-four apart). `paint`'s
+  `order` may be each person's place instead of a list (Atlas draws Atlas-for-someone in Atlas's color), and the kit
+  gives the page a highlight rule for every place it paints under its own prefix, so changes.css names none.
+- **A redraw that awaits the ghosts.** `drawChanges(words, tracked, { settled, drawing, order, prefix })` is the
+  drawing whole: the words' update awaited, the ghosts given and awaited, then the paint, then "text-redline" from
+  the words, bubbling, for whatever is placed by them (the margin). One draw at a time over one editor: asked again
+  while one is under way, it draws once more after it, with what it was asked last.
+- **Another's ops landed.** `applyRemote` fires "docremote" (`DocRemote`, `{ ops }`) on the editor once they are
+  applied, never bubbling, and nothing else does: a change made here is "docops" and "docchange", and neither fires
+  for another's. A host draws again on all three.
+- **A quote from the selection.** `quoteAt(words)` is the words selected as a comment keeps them (`Quote`: the words, a
+  line a block, and the block and place they begin at), and the bubble's Comment says it in "text-comment"'s detail.
+  `pinComments` takes a comment's `block` and `offset` beside its quote: where words read twice, it pins the one the
+  comment was made on, there if they still read there, else where they read nearest it.
 
 ```ts
-import { COLORS, ghostsOf, initialsOf, mount, paint, pinComments, track, wordsOf, type Step } from 'tinylittleoffice/kit';
+import { colorOf, ghostsOf, initialsOf, mount, paint, pinComments, track, wordsOf, type Step } from 'tinylittleoffice/kit';
 const { editor } = await mount('write', versions.at(-1)!.text, main, save);
 const words = wordsOf(editor)!;
 const order = people.map((p) => p.email);
@@ -218,13 +245,84 @@ words.mentions = people.map((p) => ({ name: p.name, detail: p.email }));
 async function draw(versions: Step[]) {
   const tracked = track(versions);
   const ghosts = ghostsOf(tracked, words.model, () => false, {
-    color: (who) => COLORS[order.indexOf(who) % COLORS.length], initials: (who) => initials.get(who) ?? '?', name: nameOf,
+    color: (who) => colorOf(who, order), initials: (who) => initials.get(who) ?? '?', name: nameOf,
     accepted: () => false, takenOutBy: (name) => `Taken out by ${name}`, cardChanged: 'Changed', rejected: 'rejected', restored: 'restored',
   });
   await words.showGhosts(ghosts.size ? (i) => ghosts.get(i) ?? [] : null);
   paint(words, tracked, order);
   pinComments(words, main, comments);
 }
+```
+
+`drawChanges` is the ghosts and the paint in one call.
+
+### The components
+
+Who did what listed, and the comments in the margin, are elements a host puts beside the words. They take data and
+tell what is asked in events, and own their layout and what a person does in them; storage is the host's. Their shapes
+are a host's server's (kit/text/review.ts), named as Atlas's names them, so its rows are handed in as they come:
+
+| the kit's | Atlas's | read for |
+|---|---|---|
+| `Step` `{ author, text, hash?, seq? }` | `steps` (`document.steps`'s `Step`, its `from` beside) | `track` |
+| `Review` `{ id?, change_id, by, verdict, at_seq, why?, undone_at? }` | `reviews` (`reviewOut`, web/src/tracking.ts `Review`) | `reviewsOf`: `rejectedBy`, `reviewedBy`, `settled`, `standing`, `of` |
+| `Comment` `{ id, thread_id?, parent_id?, quote?, block?, offset?, by, text, to_atlas?, change_ids?, resolved_at?, created_at?, deleted_at? }` | `comments` (`commentOut`) | `threadsOf`, the margin |
+| `Person` `{ id, name, color? }` | a team member by id, a guest by email, `atlas` | names, colors, "@" |
+
+A review names a change (`<hash>:<n>`) or a version's changes whole (`<hash>:*`, `covers`); one taken back still closed
+what it reviewed, and settles and rejects nothing; a change accepted by anyone is settled (Atlas's one redline).
+`standing(id, author, me)` is where it stands for a reader (`Standing`): settled, rejected, theirs, reviewed by them, or
+waiting for them, as Atlas's web/src/changes.ts says it.
+
+- **`<to-review-panel>`** (kit/ui/review-panel.ts): `changes` (`changesOf`), `people`, `me`, and `reviews` (or the
+  host's own `standing(change)`), `can-review`, `current`. Every change by author, each author in their color with how
+  many wait for this reader, each change in words (`changeWords`: "Replaced “30” with “45”") with where it stands;
+  Accept on someone else's change waiting for the reader, Reject on any still open, and both for all of one person's.
+  It tells "review-accept" and "review-reject" (`ReviewAsk`, `{ ids }`) and "review-show" (`{ id }`), bubbling, and
+  changes nothing: an acceptance is the host's row, a rejection its row and its edit (`rejectOps`). `show(id)` brings
+  a change into view and gives it the focus (a lozenge's "text-ghost").
+- **`<to-comments>`** (kit/ui/comments.ts), the margin: `comments`, `people`, `me`, `can-comment`, `ask` (the host's
+  assistant, a Person: Atlas), `words` (the editor's, `wordsOf`), and for the changes a reply made in answer `changes`
+  with `reviews` (or `standing`) and `can-review`. Each open thread whose words are found is a note beside them at their
+  height, a note that would meet the one above moved under it, placed again on "docchange", "docremote",
+  "text-redline", a scroll and a resize, the words drawn first; where there is no room (the stylesheet's
+  `--to-comments-beside`, 0 under 760px) it is a sheet over the page's foot, opened by a button that counts the open
+  threads. A note opens its thread (every comment by whom and when, Asks Atlas, the reply box, Resolve or Reopen,
+  Delete on the reader's own, Close or Escape); an assistant's reply lists the changes it made (its `change_ids`) as the
+  panel does, each with Accept and Reject; until the assistant has answered an ask, the thread says it is answering.
+  Threads on words since changed, on the whole document and resolved are listed apart. Given `words`, it marks the
+  editor `data-comments`, so the bubble has Comment, and opens a box beside the words selected; New comment writes one
+  on the whole document. It tells "comment-send" (`CommentSend`: `text`, `ask`, `mentions`, `parent_id`, `quote`, and
+  `done(ok)`, which empties the box once the host has kept the words or keeps them where it refused),
+  "comment-resolve" `{ thread_id, resolved }` and "comment-delete" `{ id }`, and the panel's "review-accept" and
+  "review-reject".
+- **`<to-comment-box>`** (kit/ui/comment-box.ts), the margin's box: a plain field marked `data-comment-box`, "@" with
+  letters offering `people` (the assistant first), Comment or Reply, Ask, Cancel; "comment-box-send" (`BoxSend`).
+
+The words are the kit's, in every language (en.ftl's `review-` and `comments-` groups). Their sheet is
+src/styles/review.css, in editors.css alone. Atlas's web/src/redline.ts (its `Redline` and most of `Cast`), margin.ts,
+comment-box.ts and the review half of tracking.ts (`reviewedBy`, `rejectedBy`, `settled`, `reviewsOf`) and
+changes.ts (`describe`, `stateOf`) are these; what stays its own is its server's run rule (`stepOn`, tracking.ts's
+steps), doc-sync.ts (the order of operations, which `mount`'s `onOps` and `applyRemote` serve) and row-comments.ts
+(a Model row's thread, a box of the same kind with no words to pin to).
+
+```ts
+import { changesOf, drawChanges, mount, reviewsOf, track, wordsOf, type Comment, type Review, type Step } from 'tinylittleoffice/kit';
+const { editor } = await mount('write', versions.at(-1)!.text, main, save, { onOps: send });
+const words = wordsOf(editor)!;
+const panel = Object.assign(document.createElement('to-review-panel'), { people, me, canReview: true });
+const margin = Object.assign(document.createElement('to-comments'), { people, me, canComment: true, ask: { id: 'atlas', name: 'Atlas' }, words });
+aside.append(margin, panel);
+async function draw(versions: Step[], reviews: Review[], comments: Comment[]) {
+  const r = reviewsOf(reviews);
+  const tracked = track(versions, r.rejectedBy, r.reviewedBy);
+  Object.assign(panel, { changes: changesOf(tracked), reviews });
+  Object.assign(margin, { comments, changes: panel.changes, reviews });
+  await drawChanges(words, tracked, { settled: r.settled, drawing, order: people.map((p) => p.id) });
+}
+editor.addEventListener('docremote', () => void draw(versions, reviews, comments));
+margin.addEventListener('comment-send', async (e) => e.detail.done(await keep(e.detail)));
+panel.addEventListener('review-reject', (e) => reject(e.detail.ids));
 ```
 
 ## An app built outside
@@ -363,6 +461,29 @@ runs, unless asked for a Mac's; test/lints.test.ts holds that those modules name
 `typeof` of it, and test/package.test.ts that commands.js names none. commands.js holds a registry of its own: a page
 that draws commands with `tinylittleoffice/editors` declares them there, and the site's registry (scripts/commands.ts)
 never holds a program's.
+
+## A host's page
+
+What a page that is not the site arranges, each with the site's way as the default:
+
+- **The toast.** `setup` listens for a toast said on a page with no `<to-toast>`, and puts one at the end of its body
+  the first time; a page that draws its own is never given a second (kit/ui/toast.ts `toastAnywhere`).
+- **Where a dialog goes.** `editDoc({ app, text, into })` and `editTable(table, into)` put their dialog in `into`, an
+  element the page's theme or styles are on; the page's body otherwise.
+- **Where the theme and the size are kept.** `keepThemeAt(key)` and `keepSizeAt(key)`, called before `setup`: on the
+  device under the page's own key, whatever Private or Saved says (they are the page's, not the site's), or, `null`, in
+  memory for the visit. The site's keys ("to-theme", "tinyoffice.size", through kit/core/store.ts) are the default.
+- **An app registered twice.** `registerApp` with the same definition again (the object itself, or one whose every
+  field is the same value and every function and getter the same code: a module imported twice, or reloaded unchanged)
+  is nothing to do; another definition under an id the registry knows still throws.
+- **Find.** `find(target, into?)` opens the page's one `<to-find>` over an editor of its own, placed by the editor
+  alone (under its bar, at its right edge), never by the site's bar, column or header; Mod+F is the page's to bind.
+- **The kit's other elements.** `tinylittleoffice/kit` serves, typed, what the words draw around themselves and an app
+  draws with: `<to-find>`, `<to-link-pop>`, `<to-context>`, `<to-complete>`, `<to-preview>`, `<to-locked-doc>`,
+  `<to-doc-dialog>` (with `editDoc` and `editTable`), `chooseIcon`, `dateNav`, and a chart from a table (`chartData`,
+  `suggestChart`, `chartPage`, `CHART_KINDS`, and `pageSvg` for any Page); test/package.test.ts's strict program
+  imports each.
+- **Compare.** `<to-compare>` says where each side opens with `host.link`, never the address.
 
 ## Theming
 
