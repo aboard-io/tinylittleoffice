@@ -3463,6 +3463,8 @@ search-n-found = { $n ->
 search-nothing-found = Aucun résultat pour « { $q } »
 # en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
 header-breadcrumbs = Fil d’Ariane
+# en: 3dfae1ccc665881b5464634d32ae1c7a301ac757
+field-edit-name = Modifier { $name }
 
 ## the Board
 

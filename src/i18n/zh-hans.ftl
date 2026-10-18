@@ -3349,6 +3349,8 @@ search-n-found = { $n ->
 search-nothing-found = 没有与“{ $q }”匹配的结果
 # en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
 header-breadcrumbs = 面包屑导航
+# en: 3dfae1ccc665881b5464634d32ae1c7a301ac757
+field-edit-name = 编辑{ $name }
 
 ## the Board
 

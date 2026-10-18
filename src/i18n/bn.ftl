@@ -3315,6 +3315,8 @@ search-n-found = { $n ->
 search-nothing-found = “{ $q }”-এর কোনো মিল নেই
 # en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
 header-breadcrumbs = নেভিগেশন পথ
+# en: 3dfae1ccc665881b5464634d32ae1c7a301ac757
+field-edit-name = { $name } এডিট করুন
 
 ## the Board
 

@@ -72,6 +72,9 @@
  *   (RowChange) and acted on a row at a time (RowAction, RowActionPick); `<to-search>` (ToSearch), one search across every kind of thing (Searcher, SearchHit,
  *   SearchKind, SearchAction, SearchPick); `<to-header>` (ToHeader), a page's header without the shell (Crumb); and
  *   `pickTemplate` and `<to-template-picker>` (ToTemplatePicker), a template chosen and handed back (PickedTemplate);
+ *   and the small pieces: `<to-segmented>` (ToSegmented, Segment), a choice of a few; `confirm` (Confirm), a question
+ *   asked in the kit's dialog, its yes in the danger color (`.to-btn.to-danger`) where it destroys; and `<to-field>`
+ *   (ToField, FieldType, FieldChange), a fact changed where it is shown;
  * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
  *   whichever of the `backends` owns the address (a link, a sealed link, a short link, a journal's: Backend, Opened,
  *   Ask), and `place` puts it in an editor on the page (Placement); a document several people edit at once is made by
@@ -161,6 +164,9 @@ export type { ColumnType, EnumOption, LinkValue, RecordOption, RecordSearch, Rec
 export { ToSearch, type SearchAction, type SearchHit, type SearchKind, type SearchPick, type Searcher } from './kit/ui/search-box.ts';
 export { ToHeader, type Crumb } from './kit/ui/header.ts';
 export { pickTemplate, ToTemplatePicker, type PickedTemplate } from './kit/ui/template-picker.ts';
+export { ToSegmented, type Segment } from './kit/ui/segmented.ts';
+export { confirm, type Confirm } from './kit/ui/confirm.ts';
+export { ToField, type FieldChange, type FieldType } from './kit/ui/field.ts';
 export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
 export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, pageSvg, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
 export { CHART_KINDS, chartData, chartPage, suggestChart, type ChartData, type ChartKind, type Flow } from './kit/draw/chart.ts';

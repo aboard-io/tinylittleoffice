@@ -320,6 +320,46 @@ const picked = await pickTemplate('write');
 if (picked) await run('document.create', { project, title: picked.title, text: picked.text });
 ```
 
+## The kit's small pieces
+
+What a host's pages are made of beside the table, the search and the header (Atlas built each of its own, of the kit's
+classes, until these came), in kit/ui/ and served by `tinylittleoffice/kit` and `/editors` with their types; their
+rules are host.css's, so the site's bytes are as they were.
+
+- **A choice of a few.** `<to-segmented>` (kit/ui/segmented.ts): `options` (Segment: `{ value, label, icon? }`),
+  `value`, and `label`, the group's name. A radio group, as ARIA has it: the segment chosen takes Tab, the arrows
+  (Left and Right as the page reads), Home and End move and choose, a click chooses; each choice is shown at once and
+  told in `change`, bubbling, `{ value }`. It wears the kit's `.to-seg` (My and All, Table or Calendar).
+- **A question asked first.** `confirm({ title, body?, yes?, no?, danger?, into? })` (kit/ui/confirm.ts, Confirm)
+  asks in the kit's dialog (a modal `<dialog>`, `role=alertdialog`, its title its name and its body its description)
+  and resolves true for yes, false for no, Escape, a click outside; the focus is given back where it was. Yes is OK and
+  no Cancel unless said. Where yes destroys (`danger`), it is drawn in the danger color and the focus starts on no;
+  else on yes. `.to-btn.to-danger` is that button's look, for any button of a page's own (Delete in a header).
+- **A fact changed where it is shown.** `<to-field>` (kit/ui/field.ts): `value`, `type` (FieldType: `text`, `number`,
+  `money`, `date`, `datetime`, `enum`, `email`, `url`, `tel`), `label` (its name: the pencil's "Edit Title"),
+  `placeholder` (what it says when empty), `href` (its words a link), `options` (an enum's), `currency` and
+  `decimals` (money's), `multiline` (lines of words, Shift+Enter a new line), `readonly`. Its words are a table
+  cell's (`cellWords`: money in its currency, a date in the page's language, an option's label). A click on its words
+  (not a link), its pencil, or `edit()` makes it a field of its type, its words chosen; Enter keeps, the focus leaving
+  keeps, Escape lets go, and words where a number belongs are not kept (the field says so). The edit is shown at once
+  and told in `fieldchange`, cancelable, `{ value, before, wait }` (FieldChange), as `<to-table>`'s `rowchange` is: a
+  page that refuses it calls `preventDefault()` or hands `wait` a promise that rejects or comes back false, and what
+  was shown before comes back; a kept edit is shown until the page gives `value` again. The focus goes back to the
+  pencil.
+
+```ts
+import { confirm, type FieldChange } from 'tinylittleoffice/kit';
+const size = Object.assign(document.createElement('to-field'), { label: 'Size', type: 'number', value: company.size });
+size.addEventListener('fieldchange', (e) => {
+  const change = (e as CustomEvent<FieldChange>).detail;
+  change.wait(run('company.update', { id: company.id, size: change.value }));
+});
+const views = Object.assign(document.createElement('to-segmented'), { label: 'View', value: 'table',
+  options: [{ value: 'table', label: 'Table' }, { value: 'calendar', label: 'Calendar' }] });
+views.addEventListener('change', (e) => show((e as CustomEvent<{ value: string }>).detail.value));
+if (await confirm({ title: `Delete ${company.name}?`, yes: 'Delete', danger: true })) await run('company.delete', { id: company.id });
+```
+
 ## Tracked changes and comments for a host
 
 A host whose documents several people write shows who did what: the words each person put in, in their color; the words

@@ -1892,6 +1892,8 @@ search-n-found = { $n ->
 search-nothing-found = Nothing found for “{ $q }”
 # The trail above a page's title, each step a page further up.
 header-breadcrumbs = Breadcrumbs
+# A pencil beside a fact of a record (a person's title, a company's size) that makes it a field; { $name } is the fact's name: "Edit Title".
+field-edit-name = Edit { $name }
 
 ## the Board
 

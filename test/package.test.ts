@@ -202,6 +202,7 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "import { COLORS, changesOf, ghostsOf, paint, pinComments, rejectOps, track, wordsOf, type Change, type Drawing, type Ghost, type Mention, type Pinned, type Step } from 'tinylittleoffice/kit';",
         "import { rejectOps as rejectOn, track as trackOnServer, type Tracked } from 'tinylittleoffice/doc';",
         "import { pickTemplate, type Crumb, type PickedTemplate, type RecordOption, type RecordSearch, type RecordValue, type RowAction, type RowActionPick, type RowChange, type SearchHit, type SearchPick, type Searcher, type SortBy, type TableColumn, type TableRow, type ToHeader, type ToSearch, type ToTable } from 'tinylittleoffice/editors';",
+        "import { confirm, type Confirm, type FieldChange, type FieldType, type Segment, type ToField, type ToSegmented } from 'tinylittleoffice/kit';",
         "import 'tinylittleoffice/editors.css';",
         // The Board, as a host holds it: registered, its editor asked for a pick and carried only, its model on its own.
         "import { board, install, registerBoard, boardOf, type BoardView, type PickedCard, type ToBoardEditor } from 'tinylittleoffice/board';",
@@ -329,6 +330,10 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         "  { key: 'company', label: 'Company', type: 'record', search: companies, value: (p): RecordValue => ({ id: p.id, label: p.name }) }, { key: 'deal', label: 'Deal', type: 'money', decimals: 0 }];",
         "export const acts = (table: ToTable<Person>): void => { table.rowActions = (p): RowAction[] => [{ id: 'delete', label: `Delete ${p.name}`, danger: true }];",
         "  table.addEventListener('rowaction', (e) => void (e as CustomEvent<RowActionPick<Person>>).detail.action); table.addEventListener('rowchange', (e) => void (e as CustomEvent<RowChange<Person>>).detail.record?.id); };",
+        // The small pieces: a choice of a few, a question asked first, a fact edited in place.
+        "export const views = (el: ToSegmented, options: Segment[]): void => { el.options = options; el.addEventListener('change', (e) => void (e as CustomEvent<{ value: string }>).detail.value); };",
+        "export const askFirst = (): Promise<boolean> => confirm({ title: 'Delete Acme?', yes: 'Delete', danger: true } satisfies Confirm);",
+        "export const fact = (el: ToField, type: FieldType): void => { el.type = type; el.addEventListener('fieldchange', (e) => (e as CustomEvent<FieldChange>).detail.wait(Promise.resolve(true))); };",
       ].join('\n'),
     );
     writeFileSync(

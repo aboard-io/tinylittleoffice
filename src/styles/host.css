@@ -5,7 +5,7 @@
    draw none of them. The table is document, in rem; its bar, the search box and the header are nav, in em, at the
    nav's size (kit.css's list, said again here for these). */
 @layer kit {
-  :is(.to-dt-bar, to-search, to-header, .to-tp-dialog) {
+  :is(.to-dt-bar, to-search, to-header, .to-tp-dialog, to-segmented, to-field) {
     font-size: var(--to-nav-font);
     --to-scale: var(--to-nav-font);
     --to-touch: calc(2.75 * var(--to-nav-font));
@@ -568,6 +568,108 @@
       order: 1;
       flex: 1 1 100%;
     }
+  }
+
+  /* ---- the kit's small pieces: a choice of a few, a destructive button, a question asked first, a field edited in place ---- */
+  to-segmented {
+    display: inline-block;
+    max-width: 100%;
+  }
+  /* Where the row is too narrow for every segment's words, each is cut short rather than spilling into the next. */
+  to-segmented .to-seg > .to-btn {
+    overflow: hidden;
+  }
+  to-segmented .to-seg > .to-btn > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  to-segmented .to-seg > .to-btn > svg {
+    flex: none;
+  }
+  .to-seg > .to-btn[aria-checked='true'] {
+    position: relative;
+    font-weight: 600;
+    background: var(--to-accent-soft);
+    border-color: var(--to-accent);
+  }
+  .to-seg > .to-btn:focus-visible {
+    position: relative;
+    z-index: 1;
+  }
+  .to-btn.to-danger {
+    color: var(--to-on-accent);
+    background: var(--to-danger);
+    border-color: var(--to-danger);
+  }
+  .to-btn.to-danger:hover {
+    background: color-mix(in oklab, var(--to-danger) 88%, var(--to-ink));
+  }
+  .to-confirm {
+    width: min(26.25em, calc(100vw - 2em));
+  }
+  .to-confirm-acts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5em;
+    margin: 1em 0 0;
+  }
+  to-field {
+    display: block;
+    min-width: 0;
+  }
+  .to-fd {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    min-width: 0;
+    min-height: var(--to-touch);
+  }
+  .to-fd-can > :is(.to-fd-text, .to-fd-empty) {
+    cursor: text;
+  }
+  .to-fd-text,
+  .to-fd-link,
+  .to-fd-empty {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .to-fd-lines {
+    white-space: pre-line;
+  }
+  .to-fd-empty {
+    color: var(--to-ink-3);
+  }
+  .to-fd-edit {
+    flex: none;
+    color: var(--to-ink-3);
+    background: none;
+    border-color: transparent;
+    opacity: 0.6;
+  }
+  .to-fd:hover .to-fd-edit,
+  .to-fd-edit:focus-visible {
+    color: var(--to-ink-2);
+    opacity: 1;
+  }
+  .to-fd-input {
+    flex: 1;
+    min-width: 0;
+    min-height: var(--to-touch);
+    padding: 0 0.5em;
+    color: var(--to-ink);
+    font: inherit;
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-accent);
+    border-radius: var(--to-radius-sm);
+  }
+  textarea.to-fd-input {
+    padding-block: 0.375em;
+    resize: vertical;
+  }
+  .to-fd-input[aria-invalid='true'] {
+    border-color: var(--to-danger);
   }
 
   /* ---- the template picker: the home page's templates dialog, each app's templates under its name ---- */
