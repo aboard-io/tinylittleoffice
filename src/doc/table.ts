@@ -305,6 +305,20 @@ export function pasteCells(t: { cols: Column[] }, r: number, c: number, text: st
   return { r: g.r0, c: g.c0, values, range: g };
 }
 
+/** Words that are a number (a percentage's sign let be) as that number, else NaN: what a sort counts as a number. */
+const numberIn = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)%?$/.test(s.trim()) ? parseFloat(s) : NaN);
+
+/**
+ * Two cells' words in a sort's order, low to high: numbers by their value and before words, words as a reader orders
+ * them (case and accents aside, "Item 2" before "Item 10"). Neither is empty: where blanks go is the caller's. The
+ * Spreadsheet's sort (sortRows) and a host's table (kit/ui/table-model.ts) order words by it.
+ */
+export function compareCells(x: string, y: string): number {
+  const nx = numberIn(x),
+    ny = numberIn(y);
+  return !isNaN(nx) && !isNaN(ny) ? nx - ny : isNaN(nx) === isNaN(ny) ? x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' }) : isNaN(nx) ? 1 : -1;
+}
+
 /**
  * The rows in order of column `c`, numbers before words, blanks last, as
  * the cells to write from the top. (The names above the columns are not a
@@ -312,7 +326,6 @@ export function pasteCells(t: { cols: Column[] }, r: number, c: number, text: st
  */
 export function sortRows(t: { cols: Column[]; rows: string[][] }, c: number, descending = false): Cells {
   const used = usedSize(t).rows;
-  const num = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)%?$/.test(s.trim()) ? parseFloat(s) : NaN);
   const key = (row: string[]) => row[c] ?? '';
   const sorted =
     used < 2
@@ -324,9 +337,7 @@ export function sortRows(t: { cols: Column[]; rows: string[][] }, c: number, des
             const x = key(a.row),
               y = key(b.row);
             if (x === '' || y === '') return x === '' ? (y === '' ? a.i - b.i : 1) : -1;
-            const nx = num(x),
-              ny = num(y);
-            const d = !isNaN(nx) && !isNaN(ny) ? nx - ny : isNaN(nx) === isNaN(ny) ? x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' }) : isNaN(nx) ? 1 : -1;
+            const d = compareCells(x, y);
             return (descending && x !== '' && y !== '' ? -d : d) || a.i - b.i;
           })
           .map(({ row }) => row);
