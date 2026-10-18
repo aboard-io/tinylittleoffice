@@ -374,18 +374,30 @@ test('a swimlane step branches as a mind map’s idea does (Tab, Add a branch), 
   await type(el, 'Wait');
   await key(el, 'Enter', { ctrlKey: true });
   expect(last()).toContain('- Desk: Ready?\n  - Desk: Ship it\n  - Desk: Wait\n- Desk: Done\n');
-  // Shape: Draw's shapes, the one it has checked; chosen, the line carries it and the thing is drawn so.
+  // Shape: the row becomes the shapes, each drawn, side by side, the one it has pressed (Paul, 2026-10-18); one
+  // chosen, the line carries it, the thing is drawn so, and the row is its things to do again.
   await tap(el, thing(el, 'Done'));
   if (!isOpen(el)) await tap(el, thing(el, 'Done'));
   action(el, 'Shape').click();
-  await until(() => !!document.querySelector('.dg-shapes [popover]:popover-open'));
-  const items = [...document.querySelectorAll<HTMLElement>('.dg-shapes [popover]:popover-open [role^=menuitem]')];
-  expect(items.map((x) => x.textContent!.trim())).toEqual(['Its usual shape', 'Rectangle', 'Rounded box', 'Ellipse', 'Diamond', 'Hexagon', 'Parallelogram', 'Cylinder', 'Note']);
-  expect(items[0].getAttribute('aria-checked')).toBe('true');
-  items.find((x) => x.textContent!.includes('Cylinder'))!.click();
+  await settle(el);
+  expect(labels()).toEqual(['Back', 'Its usual shape', 'Rectangle', 'Rounded box', 'Ellipse', 'Diamond', 'Hexagon', 'Parallelogram', 'Cylinder', 'Note']);
+  expect(action(el, 'Its usual shape').getAttribute('aria-pressed')).toBe('true');
+  const tops = [...ctx(el).querySelectorAll('button')].map((b) => Math.round(b.getBoundingClientRect().top));
+  expect(new Set(tops).size).toBe(1);
+  expect([...ctx(el).querySelectorAll('button svg')]).toHaveLength(10);
+  action(el, 'Cylinder').click();
   await settle(el);
   expect(last()).toContain('- Desk: Done {.cylinder}\n');
   expect(thing(el, 'Done').querySelector('path, ellipse')).not.toBeNull();
+  expect(labels()).toContain('Shape');
+  // Back, and the row is as it was, nothing changed.
+  action(el, 'Shape').click();
+  await settle(el);
+  expect(action(el, 'Cylinder').getAttribute('aria-pressed')).toBe('true');
+  action(el, 'Back').click();
+  await settle(el);
+  expect(labels()).toContain('Shape');
+  expect(last()).toContain('- Desk: Done {.cylinder}\n');
 });
 
 test('a connection chosen has a halo, and its words open once, over where they are drawn (Paul, 2026-10-18)', async () => {

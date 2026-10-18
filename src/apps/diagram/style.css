@@ -100,10 +100,6 @@
     opacity: 0.7;
     cursor: grabbing;
   }
-  /* The Shape menu opens beside the thing's row (chooseShape): its own button is never shown. */
-  .dg-shapes > button {
-    display: none;
-  }
   .dg-empty {
     position: absolute;
     inset: 0;

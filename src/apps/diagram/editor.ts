@@ -89,7 +89,8 @@ import '../../kit/ui/bar.ts';
 import '../../kit/ui/context.ts';
 import '../../kit/ui/insert.ts';
 import '../../kit/ui/menu.ts';
-import type { MenuItem, ToMenu } from '../../kit/ui/menu.ts';
+import { ArrowLeft } from 'lucide';
+import type { IconNode } from '../../kit/draw/icons.ts';
 
 /** Each shape by the name Draw's Insert ▾ gives it. */
 const SHAPE_NAME: Record<ShapeName, string> = {
@@ -101,6 +102,24 @@ const SHAPE_NAME: Record<ShapeName, string> = {
   parallelogram: 'draw-parallelogram',
   cylinder: 'draw-cylinder',
   note: 'common-note',
+};
+/** Each shape drawn small, as its button shows it; its kind's usual one an outline dashed. */
+const SHAPE_ICON: Record<ShapeName | 'usual', IconNode> = {
+  usual: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 4, 'stroke-dasharray': '3 3' }]],
+  rectangle: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 1 }]],
+  rounded: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 5 }]],
+  ellipse: [['ellipse', { cx: 12, cy: 12, rx: 9, ry: 6.5 }]],
+  diamond: [['path', { d: 'M12 3 21 12 12 21 3 12Z' }]],
+  hexagon: [['path', { d: 'M7.5 5h9l4.5 7-4.5 7h-9L3 12Z' }]],
+  parallelogram: [['path', { d: 'M7 6h14l-4 12H3Z' }]],
+  cylinder: [
+    ['ellipse', { cx: 12, cy: 6, rx: 8, ry: 3 }],
+    ['path', { d: 'M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6' }],
+  ],
+  note: [
+    ['path', { d: 'M4 4h16v11l-5 5H4Z' }],
+    ['path', { d: 'M15 20v-5h5' }],
+  ],
 };
 import '../../kit/text/text.ts';
 import { remScale } from '../../kit/ui/zoom.ts';
@@ -409,6 +428,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     if (!tg) return;
     this.target = null;
+    this.shaping = null;
     this.openText = null;
     this.wordsBlocks = IDLE;
     const el = this.wordsEl;
@@ -549,26 +569,31 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- the things to do to the thing open ---------- */
 
-  /** The thing whose shape the Shape menu sets, while it is open. */
+  /** The thing whose shapes the row shows in place of its things to do, while it does (Shape). */
   private shaping: Extract<Hit, { k: 'line' }> | null = null;
-  /** Shape, from the thing's row: Draw's shapes, by Draw's names, the one it has checked; or its kind's own. */
-  async chooseShape(hit: Hit) {
+  /**
+   * Shape, from the thing's row: the row becomes the shapes, each drawn, the one it has pressed (Paul, 2026-10-18:
+   * "preview shapes as a horizontal submenu"); one chosen, or Back, and the row is its things to do again.
+   */
+  chooseShape(hit: Hit) {
     if (hit.k !== 'line') return;
-    const from = document.activeElement?.closest('to-context') ? (document.activeElement as HTMLElement) : this.querySelector<HTMLElement>('.dg-context');
     this.shaping = hit;
     this.requestUpdate();
-    await this.updateComplete;
-    const menu = this.querySelector<ToMenu>('.dg-shapes');
-    if (menu && from) menu.openAt(from);
   }
-  private shapeItems(): MenuItem[] {
-    const hit = this.shaping;
-    if (!hit) return [];
+  private shapeItems(hit: Extract<Hit, { k: 'line' }>): ContextEntry[] {
     const now = shapeOf(this.doc, hit.at);
-    const to = (name: ShapeName | null) => () => this.change(setShape(this.doc, hit.at, name), hit);
+    const done = () => {
+      this.shaping = null;
+      this.requestUpdate();
+    };
+    const to = (name: ShapeName | null) => () => {
+      done();
+      this.change(setShape(this.doc, hit.at, name), hit);
+    };
     return [
-      { label: t('diagram-shape-usual'), checked: !now, does: to(null) },
-      ...(Object.keys(SHAPES) as ShapeName[]).map((name) => ({ label: t(SHAPE_NAME[name]), checked: now === name, does: to(name) })),
+      { label: t('deck-back'), icon: ArrowLeft, does: done },
+      { label: t('diagram-shape-usual'), icon: SHAPE_ICON.usual, pressed: !now, does: to(null) },
+      ...(Object.keys(SHAPES) as ShapeName[]).map((name) => ({ label: t(SHAPE_NAME[name]), icon: SHAPE_ICON[name], pressed: now === name, does: to(name) })),
     ];
   }
 
@@ -710,6 +735,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /** The things to do to the thing open (commands.ts), in the standard's order: Move up, Move down, the kind's own, a tree's Indent and Bring out, Duplicate | Copy, Cut, Paste | Delete. */
   private contextItems(tg: Target | null): ContextEntry[] {
+    if (tg?.hit && this.shaping && sameHit(this.shaping, tg.hit)) return this.shapeItems(this.shaping);
     return tg?.hit ? (contextOf(COMMANDS, this) as ContextEntry[]) : [];
   }
   /** A new thing, its words opened (Add under it, Add a step). */
@@ -1018,8 +1044,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
           @keydown=${{ handleEvent: this.onWordsKey, capture: true }} @focusout=${this.onWordsBlur}
           @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
       </div>
-      <to-context class="dg-context" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>
-      <to-menu class="dg-shapes" .label=${t('diagram-shape')} .items=${this.shapeItems()}></to-menu>`;
+      <to-context class="dg-context" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToDiagramEditor);
