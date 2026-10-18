@@ -514,15 +514,38 @@ export interface Change {
 export function changesOf(doc: readonly Tracked[]): Change[] {
   const out = new Map<string, Change>();
   const how = new Map<string, Set<Change['kind']>>();
+  // Where each change's words of each kind were last said: its block, and its token there.
+  const last = new Map<string, { bi: number; ti: number }>();
+  let bi = 0;
+  let ti = -1;
+  /**
+   * What lies between a change's last words of a kind and these, as they read: nothing where they touch; a line
+   * between blocks; a space where only spaces stand between (and the change's own other words: a replacement's put in
+   * between the words it took out); an ellipsis for words of no part of it.
+   */
+  const between = (id: string, kind: 'put' | 'took' | 'styled'): string => {
+    const was = last.get(`${id}\0${kind}`);
+    if (ti >= 0) last.set(`${id}\0${kind}`, { bi, ti });
+    if (!was || ti < 0) return '';
+    if (was.bi !== bi) return '\n';
+    const gap = doc[bi].toks
+      .slice(was.ti + 1, ti)
+      .filter((x) => (kind === 'took' ? x.insId !== id : !x.del))
+      .map((x) => x.t)
+      .join('');
+    return !gap ? '' : gap.trim() ? ' … ' : ' ';
+  };
   const add = (id: string | undefined, author: string | undefined, kind: 'put' | 'took' | 'styled', t: string, h: Change['kind'] = 'edit', styles: string[] = []) => {
     if (!id || !author) return;
     const c = out.get(id) ?? { id, author, put: '', took: '', styled: '', styles: [], kind: 'edit' };
-    c[kind] += t;
+    if (t) c[kind] += between(id, kind) + t;
     for (const st of styles) if (!c.styles.includes(st)) c.styles.push(st);
     out.set(id, c);
     how.set(id, (how.get(id) ?? new Set()).add(h));
   };
-  for (const b of doc) {
+  for (const [i, b] of doc.entries()) {
+    bi = i;
+    ti = -1;
     if (isHead(b)) {
       let now = b.look ?? '';
       for (const u of restylings(b)) {
@@ -547,7 +570,8 @@ export function changesOf(doc: readonly Tracked[]): Change[] {
         look = u.wasLook ?? '';
       }
     }
-    for (const tok of b.toks) {
+    for (const [k, tok] of b.toks.entries()) {
+      ti = k;
       if (tok.fmtId && !tok.del) {
         let now = tok.m ?? '';
         for (const u of restylings(tok)) {
