@@ -1,0 +1,285 @@
+/* Who did what listed, and the comments beside the words, for a host whose documents several people write
+   (docs/library.md, Tracked changes and comments for a host): the review panel (kit/ui/review-panel.ts), each author in
+   their color (`--c`) over their changes in words, with Accept and Reject; the margin (kit/ui/comments.ts), its notes
+   placed by the words they quote beside a column of words, and on a phone a sheet over the page's foot, opened by a
+   button that counts the open threads; and the box a comment is written in (kit/ui/comment-box.ts), with its list of
+   people under "@". Only the editors' stylesheet (editors.css) has this sheet: no page of the site draws them. */
+@layer kit {
+  /* ---------- the review panel ---------- */
+  .to-review-head,
+  .to-comments-head {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+  }
+  .to-review-count,
+  .to-comments-count,
+  .to-review-waiting {
+    color: var(--to-ink-2);
+    font-weight: 400;
+  }
+  .to-review-person {
+    margin-block: 0.75rem;
+  }
+  .to-review-who {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--c);
+  }
+  .to-review-dot {
+    width: 0.65em;
+    height: 0.65em;
+    border-radius: 50%;
+    background: var(--c);
+    flex: none;
+  }
+  .to-review-all,
+  .to-review-acts,
+  .to-comment-acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.35rem 0 0;
+  }
+  .to-review-list {
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .to-review-change {
+    padding: 0.4rem 0.5rem;
+    border-inline-start: 0.2rem solid var(--c, var(--to-border));
+    border-radius: var(--to-radius-sm);
+    margin-block: 0.3rem;
+  }
+  .to-review-change:focus-visible,
+  .to-review-current {
+    background: var(--to-surface-2);
+  }
+  .to-review-change[data-standing='settled'],
+  .to-review-change[data-standing='rejected'] {
+    color: var(--to-ink-2);
+  }
+  .to-review-what {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  p.to-review-what {
+    cursor: auto;
+  }
+  .to-review-state {
+    margin: 0.15rem 0 0;
+    color: var(--to-ink-2);
+    font-size: 0.85em;
+  }
+
+  /* ---------- the margin ---------- */
+  to-comments {
+    /* 1: the notes beside the words, at their pins; 0: a sheet over the page's foot (a phone). */
+    --to-comments-beside: 1;
+    display: block;
+    position: relative;
+  }
+  .to-comments-toggle,
+  .to-comments-shut {
+    display: none;
+  }
+  .to-comments-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+  .to-comments-notes {
+    position: relative;
+  }
+  .to-comments-notes > .to-note {
+    position: absolute;
+    inset-inline: 0;
+  }
+  .to-note {
+    border: 1px solid var(--to-border);
+    border-inline-start: 0.2rem solid var(--c, var(--to-accent));
+    border-radius: var(--to-radius);
+    background: var(--to-surface);
+    padding: 0.5rem 0.6rem;
+    margin-block-end: 0.5rem;
+    box-shadow: var(--to-shadow);
+    transition: top 0.15s ease;
+  }
+  .to-note-shown {
+    z-index: 1;
+    box-shadow: var(--to-shadow-pop);
+  }
+  .to-note-resolved {
+    opacity: 0.8;
+  }
+  .to-note-open {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .to-note-who,
+  .to-comment-who {
+    font-weight: 600;
+    color: var(--c, var(--to-ink));
+  }
+  .to-note-text {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .to-note-quote {
+    margin: 0 0 0.35rem;
+    color: var(--to-ink-2);
+    font-style: italic;
+    overflow-wrap: anywhere;
+  }
+  .to-thread-head {
+    display: flex;
+    gap: 0.5rem;
+    align-items: start;
+    justify-content: space-between;
+  }
+  .to-thread {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .to-comment {
+    margin-block: 0.5rem;
+  }
+  .to-comment-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.9em;
+  }
+  .to-comment-text {
+    margin: 0.15rem 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .to-comment-tag {
+    padding: 0 0.4em;
+    border-radius: var(--to-radius-pill);
+    background: var(--to-accent-soft);
+    color: var(--to-ink);
+    font-size: 0.85em;
+  }
+  .to-comment-delete {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--to-accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .to-comments-sub {
+    margin: 1rem 0 0.4rem;
+    font-size: 0.9rem;
+  }
+  .to-comments-resolved {
+    margin-top: 1rem;
+  }
+
+  /* ---------- the box ---------- */
+  to-comment-box {
+    display: block;
+    position: relative;
+  }
+  .to-comment-field {
+    display: block;
+    width: 100%;
+    min-height: 4.5em;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-input-bg);
+    color: var(--to-ink);
+    font: inherit;
+    resize: vertical;
+  }
+  .to-comment-people {
+    position: absolute;
+    inset-inline: 0;
+    z-index: 2;
+    margin: 0.2rem 0 0;
+    padding: 0.25rem;
+    list-style: none;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow-pop);
+  }
+  .to-comment-person {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: var(--to-radius-sm);
+    cursor: pointer;
+  }
+  .to-comment-person[aria-selected='true'] {
+    background: var(--to-accent-soft);
+  }
+
+  /* ---------- on a phone: a sheet ---------- */
+  @media (max-width: 760px) {
+    to-comments {
+      --to-comments-beside: 0;
+    }
+    .to-comments-toggle {
+      display: inline-flex;
+      position: fixed;
+      inset-block-end: max(1rem, env(safe-area-inset-bottom));
+      inset-inline-end: 1rem;
+      z-index: 5;
+      box-shadow: var(--to-shadow-pop);
+    }
+    .to-comments-shut {
+      display: inline-flex;
+    }
+    .to-comments-in {
+      display: none;
+    }
+    .to-comments-in[data-open] {
+      display: block;
+      position: fixed;
+      inset-inline: 0;
+      inset-block-end: 0;
+      z-index: 6;
+      max-height: 70dvh;
+      overflow: auto;
+      padding: 1rem max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--to-border);
+      border-radius: var(--to-radius) var(--to-radius) 0 0;
+      background: var(--to-surface);
+      box-shadow: var(--to-shadow-pop);
+    }
+    .to-comments-notes > .to-note {
+      position: static;
+    }
+  }
+}

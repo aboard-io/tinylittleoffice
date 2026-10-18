@@ -3180,3 +3180,100 @@ open-opened-name = { $name } খোলা হয়েছে
 open-that-file-is-not-words = ছোট্টমোট্ট অফিস ওই ফাইলটি পড়তে পারে না।
 # en: 1d08903947cc83b648f8ad96b1e23466a2dbed11
 open-that-file-is-too-large = ফাইলটি খুব বড়।
+
+
+## who did what, listed for review beside a document several people write (kit/ui/review-panel.ts)
+
+# en: 8aa57de6dce6ee1c35c6aba7426503281876b258
+review-changes = পরিবর্তন
+# en: e6e3bb8760dfc9ea888b1967a09130f9c89fce15
+review-none = পর্যালোচনার মতো কোনো পরিবর্তন নেই।
+# en: 42e31dd677dc8b702293354c898041b64c77c442
+review-put-in-for = “{ $took }” বদলে “{ $put }” করা হয়েছে
+# en: f328a19b27f5338a00f443da396faccd6d9030a1
+review-put-in = “{ $words }” যোগ করা হয়েছে
+# en: a67a3c5917ce7d2467dc22ea5d88e34d7c253b5b
+review-took-out = “{ $words }” মুছে ফেলা হয়েছে
+# en: 0a327a9ace030c351cd61b21a1eff225ff12941c
+review-put-back = “{ $words }” ফিরিয়ে আনা হয়েছে
+# en: 309250888492d1a0aaebb8f6920e9776a0c0dcaa
+review-restyled = “{ $words }” ফরম্যাট করা হয়েছে
+# en: be485cefbc9f51f3315136dd5bb07ea3fa8d04c0
+review-put-in-line = একটি লাইন যোগ করা হয়েছে
+# en: 1f1fe15e0ff5fad870fa70dfa7d7c39cb13b807c
+review-took-out-line = একটি লাইন মুছে ফেলা হয়েছে
+# en: 7f356b013fff2debeaa8414c985236bd05276b21
+review-changed = ডকুমেন্ট বদলানো হয়েছে
+# en: 92da3da547e5dd5677b18922b1611f08c61f4681
+review-rejected-putting-back = একটি পরিবর্তন বাতিল করে “{ $words }” ফিরিয়ে আনা হয়েছে
+# en: b10117b3632f96b6169864b190e3c106a212dc2a
+review-rejected-taking-out = একটি পরিবর্তন বাতিল করে “{ $words }” সরানো হয়েছে
+# en: 30983f282a9a57909b378cd4134d143a067e0415
+review-rejected-restyling = একটি ফরম্যাট পরিবর্তন বাতিল করা হয়েছে
+# en: e235e19c7ec71b01d43fe842983f3a80c6212095
+review-waiting = আপনার অপেক্ষায়
+# en: 6b94b0a9cbfbb2fc3ce5081c50246ab3016e4c73
+review-yours = আপনার, অন্যদের অপেক্ষায়
+# en: a90ec4fbb1f4f2050856da437722dada4ab986dc
+review-reviewed = আপনি দেখেছেন
+# en: 61a0572c4893ef34311320d84c82df88bea83e11
+review-accepted = গৃহীত
+# en: 27eeb7a291bfc566447d9cd928e98caf90f70ee6
+review-rejected = বাতিল
+# en: 41b8f5693f30107a055b7507a7095b5ca0aa8fd9
+review-n-waiting = { $n ->
+        [one] { $n }টি অপেক্ষমাণ
+       *[other] { $n }টি অপেক্ষমাণ
+    }
+# en: bb54db510a92908a5a4df79fc1ad1eae8df50ec3
+review-accept = গ্রহণ
+# en: 2b03b59293b6fc7101306f5d9ae1e96327bb419a
+review-reject = বাতিল
+# en: 821d1f7909a5146fa98fd5228675c49e64c6e60b
+review-accept-all = সব গ্রহণ
+# en: 35c291a4ab2f675bdb9437918790287fcfec88fa
+review-reject-all = সব বাতিল
+# en: 76cc08ef327763a9a7b47697d90d71a69acbed05
+review-accept-all-by = { $name }-এর সব পরিবর্তন গ্রহণ করুন
+# en: 56db173f938aff6b5e405bb416ba178d4d344159
+review-reject-all-by = { $name }-এর সব পরিবর্তন বাতিল করুন
+
+## comments beside a document's words (kit/ui/comments.ts, kit/ui/comment-box.ts)
+
+# en: fce06e20e5f7f74aacccab40b59b75a56c8f7305
+comments-comments = মন্তব্য
+# en: af65ae0e9f04990618e53d608489530582356c11
+comments-new = নতুন মন্তব্য
+# en: 207b24fc9b9276a4b2709de85e55eb8adbba3806
+comments-none = এখনও কোনো মন্তব্য নেই।
+# en: 4a88284dee66496310481a76d3d91ba0a1099aea
+comments-select-words = কিছু শব্দ বাছাই করে “মন্তব্য” বেছে নিন, সেগুলো নিয়ে কথা বলতে।
+# en: 570aad8456c6d9321e051c22879ae5833cf0cfde
+comments-words-changed = যে শব্দ পরে বদলে গেছে
+# en: 64d379f0d0c939707ccfbb7245f744611def8c96
+comments-whole-document = পুরো ডকুমেন্টে
+# en: d999aeb0545fa93c44c82d1abb928c06e3590523
+comments-resolved = সমাধান হয়েছে
+# en: ac7f958cc028becfb4b2bec9c474bd2d5e8b6095
+comments-resolve = সমাধান
+# en: 61e05da2a47259dbae5eb58fad4b1af04dd69e07
+comments-reopen = আবার খুলুন
+# en: 6c2bb735a46a8ff307fe2e638d581295b2a49e09
+comments-reply = উত্তর
+# en: 3a71e78cdb4d792bb688c8dbba093a0bda884647
+comments-n-replies = { $n ->
+        [one] { $n }টি উত্তর
+       *[other] { $n }টি উত্তর
+    }
+# en: 911d801f12b06712dee871fc5f647eacc04e430f
+comments-by = { $name }-এর মন্তব্য
+# en: 23b48bef02ad4d2437d3f19ab9df708fac256c00
+comments-ask = { $name }কে জিজ্ঞাসা করুন
+# en: 9dd346ebb60f70ca00c786e8697e934709bf0a73
+comments-asks = { $name }কে জিজ্ঞাসা করছেন
+# en: 13ff50a2189f50a0c931f16e02b060b37ec0208e
+comments-answering = { $name } উত্তর দিচ্ছেন…
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+comments-people = মানুষজন
+# en: 0f87ce5a3cbdf6796c6f152204e44b143201290f
+comments-write = { $what }… @ দিয়ে কাউকে ডাকুন

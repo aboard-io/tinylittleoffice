@@ -1759,6 +1759,66 @@ compare-n-put-in = { $n ->
        *[other] { $n } added
     }
 
+## who did what, listed for review beside a document several people write (kit/ui/review-panel.ts)
+
+review-changes = Changes
+review-none = No changes to review.
+# A change described: the words it added, deleted or formatted, in quotes.
+review-put-in-for = Replaced “{ $took }” with “{ $put }”
+review-put-in = Added “{ $words }”
+review-took-out = Deleted “{ $words }”
+review-put-back = Restored “{ $words }”
+review-restyled = Formatted “{ $words }”
+review-put-in-line = Added a line
+review-took-out-line = Deleted a line
+review-changed = Changed the document
+# A rejection is a change of its own: undoing someone's addition, or bringing back what they deleted.
+review-rejected-putting-back = Rejected a change, restoring “{ $words }”
+review-rejected-taking-out = Rejected a change, removing “{ $words }”
+review-rejected-restyling = Rejected a formatting change
+# Where a change stands for the person reading.
+review-waiting = Waiting for you
+review-yours = Yours, waiting for the others
+review-reviewed = You reviewed it
+review-accepted = Accepted
+review-rejected = Rejected
+review-n-waiting = { $n ->
+        [one] { $n } waiting
+       *[other] { $n } waiting
+    }
+review-accept = Accept
+review-reject = Reject
+review-accept-all = Accept all
+review-reject-all = Reject all
+review-accept-all-by = Accept all of { $name }’s changes
+review-reject-all-by = Reject all of { $name }’s changes
+
+## comments beside a document's words (kit/ui/comments.ts, kit/ui/comment-box.ts)
+
+comments-comments = Comments
+comments-new = New comment
+comments-none = No comments yet.
+comments-select-words = Select words and choose Comment to say something about them.
+comments-words-changed = On words since changed
+comments-whole-document = On the whole document
+comments-resolved = Resolved
+comments-resolve = Resolve
+comments-reopen = Reopen
+comments-reply = Reply
+comments-n-replies = { $n ->
+        [one] { $n } reply
+       *[other] { $n } replies
+    }
+# A thread, for a screen reader: whose comment began it.
+comments-by = Comments by { $name }
+# The host's assistant (Atlas): a comment can ask it, and it answers in the thread.
+comments-ask = Ask { $name }
+comments-asks = Asks { $name }
+comments-answering = { $name } is answering…
+comments-people = People
+# The field's placeholder: "Comment… @ for people", "Reply… @ for people".
+comments-write = { $what }… @ for people
+
 ## files and zips dropped on the page (kit/file/open.ts)
 
 open-opened-name = Opened { $name }

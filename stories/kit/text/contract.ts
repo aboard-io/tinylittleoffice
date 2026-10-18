@@ -3,10 +3,10 @@
  * people's versions of it as a host keeps them (`Step`s): Alice starts from the template, Bob fills in who it is between
  * and what is done, Carol takes out the line on what is paid, makes the heading smaller and puts in where it is signed. And a host's
  * drawing of who did what over a mounted Word Processor (docs/library.md, Tracked changes and comments for a host),
- * written as a host writes it: the ghosts first, awaited, then the paint.
+ * the kit's `drawChanges`: the ghosts first, awaited, then the paint.
  */
 import { templates } from '../../../src/apps/write/templates.ts';
-import { COLORS, ghostsOf, initialsOf, paint, type Drawing, type Step, type ToText, type Tracked } from '../../../src/editors.ts';
+import { colorOf, drawChanges, initialsOf, type Drawing, type Person, type Step, type ToText, type Tracked } from '../../../src/editors.ts';
 
 export const PEOPLE = [
   { email: 'alice@sunset.example', name: 'Alice Adams' },
@@ -16,6 +16,8 @@ export const PEOPLE = [
 /** The order the host gives its people: a person's color is their place in it. */
 export const ORDER = PEOPLE.map((p) => p.email);
 export const [ALICE, BOB, CAROL] = ORDER;
+/** The people as the review panel and the margin take them (Person): by the id the versions name them with. */
+export const CAST: Person[] = PEOPLE.map((p) => ({ id: p.email, name: p.name }));
 const nameOf = (who: string) => PEOPLE.find((p) => p.email === who)?.name ?? who;
 const initials = initialsOf(PEOPLE);
 
@@ -42,7 +44,7 @@ export const LATEST = CAROLS;
 
 /** How the host names and draws its people, in its own words; `accepted` says which edits this reader has accepted. */
 export const drawingOf = (accepted: (ids: string[]) => boolean = () => false): Drawing => ({
-  color: (who) => COLORS[Math.max(0, ORDER.indexOf(who)) % COLORS.length],
+  color: (who) => colorOf(who, ORDER),
   initials: (who) => initials.get(who) ?? '?',
   name: nameOf,
   accepted,
@@ -52,16 +54,8 @@ export const drawingOf = (accepted: (ids: string[]) => boolean = () => false): D
   restored: 'restored',
 });
 
-/** Who did what, drawn over the words as a host draws it: the ghosts given and drawn first, then each person's words painted. */
-export async function redline(words: ToText, tracked: Tracked[], settled: (id: string) => boolean = () => false) {
-  const ghosts = ghostsOf(
-    tracked,
-    words.model,
-    settled,
-    drawingOf((ids) => ids.every(settled)),
-  );
-  await words.showGhosts(ghosts.size ? (i) => ghosts.get(i) ?? [] : null);
-  paint(words, tracked, ORDER, settled);
-}
+/** Who did what, drawn over the words as a host draws it: the kit's drawChanges, which draws the ghosts first, then the paint. */
+export const redline = (words: ToText, tracked: Tracked[], settled: (id: string) => boolean = () => false) =>
+  drawChanges(words, tracked, { settled, drawing: drawingOf((ids) => ids.every(settled)), order: ORDER });
 
 export { nameOf };

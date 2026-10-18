@@ -1,17 +1,16 @@
 /**
  * Who did what in a document several people write (docs/library.md, Tracked changes and comments for a host): three
  * people's versions of the contract template (contract.ts) tracked (`track`), and drawn over a mounted Word Processor's
- * words with nothing written into them: the words taken out struck through in place, each edit bracketed in its
- * author's color with a lozenge of initials (`ghostsOf`, `showGhosts`), each person's words put in painted in their
- * color (`paint`). The review panel a host draws beside it (the list of `changesOf`, Accept and Reject) is the story's
- * own, as it would be the host's: the kit gives the changes and the edit that rejects one (`rejectOps`), not the panel.
+ * words with nothing written into them (`drawChanges`): the words taken out struck through in place, each edit
+ * bracketed in its author's color with a lozenge of initials (`ghostsOf`, `showGhosts`), each person's words put in
+ * painted in their color (`paint`). The list of changes beside them, with Accept and Reject, is Kit/Text/Review panel.
  */
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { action } from 'storybook/actions';
 import { changesOf, rejectOps, track, trackOn, unpaint, unpin, wordsOf, type Change, type GhostAt, type Mounted, type Step, type ToText } from '../../../src/editors.ts';
 import { applyAll, parse, write } from '../../../src/doc/index.ts';
 import { box, editorBox } from '../../support.ts';
-import { ALICE, LATEST, VERSIONS, drawingOf, nameOf, redline } from './contract.ts';
+import { ALICE, LATEST, VERSIONS, redline } from './contract.ts';
 
 interface Args {
   /** Whose changes this reader has accepted: drawn as plain words. */
@@ -107,88 +106,6 @@ export const RejectedParagraph = rejected(changesWith((c) => c.took.includes('pa
 export const Reviewer: Story = {
   args: { readOnly: true },
   render: Redline.render,
-};
-
-/** One change, as the panel lists it: who, what they put in and took out, and its Accept and Reject. */
-function changeRow(c: Change, versions: Step[], accept: () => void, reject: () => void, done: string): HTMLElement {
-  const row = document.createElement('li');
-  row.className = 'sb-change';
-  row.tabIndex = -1;
-  row.dataset.change = c.id;
-  const who = nameOf(authorOf(c.id, versions));
-  const words = [c.put && `put in “${c.put}”`, c.took && `took out “${c.took}”`, c.styled && `restyled “${c.styled}” (${c.styles.join(', ')})`].filter(Boolean).join('; ');
-  row.innerHTML = `<span class="sb-change-dot" style="background:${drawingOf().color(authorOf(c.id, versions))}"></span><div><b></b> <span class="sb-change-what"></span><div class="sb-change-acts"></div></div>`;
-  row.querySelector('b')!.textContent = who;
-  row.querySelector('.sb-change-what')!.textContent = `${words} (${c.kind})`;
-  const acts = row.querySelector('.sb-change-acts')!;
-  if (done) acts.textContent = done;
-  else
-    for (const [label, does] of [
-      ['Accept', accept],
-      ['Reject', reject],
-    ] as const) {
-      const b = Object.assign(document.createElement('button'), { type: 'button', className: 'to-btn', textContent: label });
-      b.addEventListener('click', does);
-      acts.append(b);
-    }
-  return row;
-}
-
-/**
- * The host's review panel beside the words: every change (`changesOf`) in reading order with Accept, which settles it
- * (drawn as plain words), and Reject, which makes the edit that takes it back (`rejectOps` against the words as they are,
- * applied through `applyRemote` as the host's server would hand it in) and keeps the rejection as a version of the
- * reader's. A lozenge reached by Alt+Enter puts the focus on its row.
- */
-export const ReviewPanel: Story = {
-  argTypes: { accepted: { table: { disable: true } } },
-  render: (args) => {
-    let versions = [...VERSIONS];
-    const accepted = new Set<string>();
-    const rejected = new Map<string, number>();
-    const rejectedBy = (id: string, seq: number) => (rejected.get(id) ?? Infinity) <= seq;
-    const settled = (id: string) => accepted.has(id);
-    return review(() => versions, {
-      readOnly: args.readOnly,
-      settled,
-      rejectedBy,
-      panel: (m, words) => {
-        const panel = document.createElement('aside');
-        panel.className = 'sb-changes';
-        const draw = async () => {
-          const tracked = track(versions, rejectedBy, rejectedBy);
-          await redline(words, tracked, settled);
-          const list = document.createElement('ol');
-          for (const c of changesOf(tracked))
-            list.append(
-              changeRow(
-                c,
-                versions,
-                () => {
-                  accepted.add(c.id);
-                  action('accept')(c.id);
-                  void draw();
-                },
-                () => {
-                  const ops = rejectOps(track(versions, rejectedBy, rejectedBy), words.model, [c.id]);
-                  action('reject')({ id: c.id, ops });
-                  if (!ops) return;
-                  m.applyRemote(ops);
-                  const seq = versions.length;
-                  rejected.set(c.id, seq);
-                  versions = [...versions, { author: ALICE, text: write(applyAll(parse(versions.at(-1)!.text), ops)), hash: `r${seq}`, seq }];
-                  void words.updateComplete.then(draw);
-                },
-                accepted.has(c.id) ? 'Accepted' : c.kind === 'rejection' ? 'Rejected' : '',
-              ),
-            );
-          panel.replaceChildren(Object.assign(document.createElement('h3'), { textContent: 'Changes' }), list);
-        };
-        void draw();
-        return panel;
-      },
-    });
-  },
 };
 
 /** No versions but one: nothing drawn over the words, as on the site's pages, which give none. */

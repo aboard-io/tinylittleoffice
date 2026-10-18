@@ -60,7 +60,12 @@
  *   PREFIX), `ghostsOf` (the words taken out and the brackets and lozenges of initials, `initialsOf`, as Drawing says
  *   them) for the text editor's `showGhosts` (Ghost; Alt+Enter names the edit at the caret in "text-ghost", GhostAt),
  *   and `pinComments` and `unpin` (a comment found by its quote, Pinned); and "@" offering the host's people as the
- *   text editor's `mentions` (Mention).
+ *   text editor's `mentions` (Mention). Beside them: each person's color past the six, in either theme (`colorOf`,
+ *   `colorAt`, `slotOf`), the drawing whole with its ghosts awaited (`drawChanges`, Redraw), the selection as a quote
+ *   (`quoteAt`, kit/text/quote.ts), a host's reviews and comments as its server keeps them (kit/text/review.ts:
+ *   Review, `reviewsOf`, `covers`, Comment, `threadsOf`), and the components that list and draw them: the review panel
+ *   (`<to-review-panel>`, `changeWords`, Person, ReviewAsk) and the margin (`<to-comments>`, CommentSend, and its box,
+ *   `<to-comment-box>`).
  */
 export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Export, type ExportContext, type Handoff, type Page, type Template, type ViewOpts } from './kit/core/app.ts';
 export { DocElement, firstAt, type DocOps, type DocPick, type DocRemote, type Entry, type Picked } from './kit/core/element.ts';
@@ -107,7 +112,30 @@ export {
 } from './kit/text/changes.ts';
 export { rejectOps } from './kit/text/reject.ts';
 export { diffLines } from './kit/text/diff.ts';
-export { COLORS, ghostsOf, initialsOf, paint, pinComments, PREFIX, unpaint, unpin, wordsOf, type Drawing, type Painted, type Pinned } from './kit/text/redline.ts';
+export {
+  colorAt,
+  colorOf,
+  COLORS,
+  drawChanges,
+  ghostsOf,
+  initialsOf,
+  paint,
+  pinComments,
+  PREFIX,
+  slotOf,
+  unpaint,
+  unpin,
+  wordsOf,
+  type Drawing,
+  type Painted,
+  type Pinned,
+  type Redraw,
+} from './kit/text/redline.ts';
+export { quoteAt, type Quote } from './kit/text/quote.ts';
+export { covers, reviewsOf, threadsOf, type Comment, type Review, type Reviewed, type Standing, type Thread } from './kit/text/review.ts';
+export { changeWords, ToReviewPanel, type Person, type ReviewAsk } from './kit/ui/review-panel.ts';
+export { ToComments, type CommentSend } from './kit/ui/comments.ts';
+export { ToCommentBox, type BoxSend } from './kit/ui/comment-box.ts';
 export { caret, type Pos, type Sel } from './kit/text/textops.ts';
 export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRange, type RowSpan, type RowsOptions } from './kit/text/rows.ts';
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';

@@ -3296,3 +3296,102 @@ find-not-found = לא נמצא
 menu-nothing-starts-q = אין התאמות ל־"{ $q }"
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = התאמות ל־"{ $q }"
+
+
+## who did what, listed for review beside a document several people write (kit/ui/review-panel.ts)
+
+# en: 8aa57de6dce6ee1c35c6aba7426503281876b258
+review-changes = שינויים
+# en: e6e3bb8760dfc9ea888b1967a09130f9c89fce15
+review-none = אין שינויים לבדיקה.
+# en: 42e31dd677dc8b702293354c898041b64c77c442
+review-put-in-for = “{ $took }” הוחלף ב-“{ $put }”
+# en: f328a19b27f5338a00f443da396faccd6d9030a1
+review-put-in = נוסף “{ $words }”
+# en: a67a3c5917ce7d2467dc22ea5d88e34d7c253b5b
+review-took-out = נמחק “{ $words }”
+# en: 0a327a9ace030c351cd61b21a1eff225ff12941c
+review-put-back = שוחזר “{ $words }”
+# en: 309250888492d1a0aaebb8f6920e9776a0c0dcaa
+review-restyled = עוצב “{ $words }”
+# en: be485cefbc9f51f3315136dd5bb07ea3fa8d04c0
+review-put-in-line = נוספה שורה
+# en: 1f1fe15e0ff5fad870fa70dfa7d7c39cb13b807c
+review-took-out-line = נמחקה שורה
+# en: 7f356b013fff2debeaa8414c985236bd05276b21
+review-changed = המסמך שונה
+# en: 92da3da547e5dd5677b18922b1611f08c61f4681
+review-rejected-putting-back = שינוי נדחה, “{ $words }” שוחזר
+# en: b10117b3632f96b6169864b190e3c106a212dc2a
+review-rejected-taking-out = שינוי נדחה, “{ $words }” הוסר
+# en: 30983f282a9a57909b378cd4134d143a067e0415
+review-rejected-restyling = שינוי בעיצוב נדחה
+# en: e235e19c7ec71b01d43fe842983f3a80c6212095
+review-waiting = ממתין לך
+# en: 6b94b0a9cbfbb2fc3ce5081c50246ab3016e4c73
+review-yours = שלך, ממתין לאחרים
+# en: a90ec4fbb1f4f2050856da437722dada4ab986dc
+review-reviewed = נבדק על ידיך
+# en: 61a0572c4893ef34311320d84c82df88bea83e11
+review-accepted = אושר
+# en: 27eeb7a291bfc566447d9cd928e98caf90f70ee6
+review-rejected = נדחה
+# en: 41b8f5693f30107a055b7507a7095b5ca0aa8fd9
+review-n-waiting = { $n ->
+        [one] אחד ממתין
+        [two] שניים ממתינים
+       *[other] { $n } ממתינים
+    }
+# en: bb54db510a92908a5a4df79fc1ad1eae8df50ec3
+review-accept = אישור
+# en: 2b03b59293b6fc7101306f5d9ae1e96327bb419a
+review-reject = דחייה
+# en: 821d1f7909a5146fa98fd5228675c49e64c6e60b
+review-accept-all = אישור הכול
+# en: 35c291a4ab2f675bdb9437918790287fcfec88fa
+review-reject-all = דחיית הכול
+# en: 76cc08ef327763a9a7b47697d90d71a69acbed05
+review-accept-all-by = אישור כל השינויים של { $name }
+# en: 56db173f938aff6b5e405bb416ba178d4d344159
+review-reject-all-by = דחיית כל השינויים של { $name }
+
+## comments beside a document's words (kit/ui/comments.ts, kit/ui/comment-box.ts)
+
+# en: fce06e20e5f7f74aacccab40b59b75a56c8f7305
+comments-comments = תגובות
+# en: af65ae0e9f04990618e53d608489530582356c11
+comments-new = תגובה חדשה
+# en: 207b24fc9b9276a4b2709de85e55eb8adbba3806
+comments-none = אין תגובות עדיין.
+# en: 4a88284dee66496310481a76d3d91ba0a1099aea
+comments-select-words = יש לבחור מילים וללחוץ על תגובה כדי לכתוב עליהן.
+# en: 570aad8456c6d9321e051c22879ae5833cf0cfde
+comments-words-changed = על מילים ששונו מאז
+# en: 64d379f0d0c939707ccfbb7245f744611def8c96
+comments-whole-document = על המסמך כולו
+# en: d999aeb0545fa93c44c82d1abb928c06e3590523
+comments-resolved = נפתרה
+# en: ac7f958cc028becfb4b2bec9c474bd2d5e8b6095
+comments-resolve = פתרון
+# en: 61e05da2a47259dbae5eb58fad4b1af04dd69e07
+comments-reopen = פתיחה מחדש
+# en: 6c2bb735a46a8ff307fe2e638d581295b2a49e09
+comments-reply = מענה
+# en: 3a71e78cdb4d792bb688c8dbba093a0bda884647
+comments-n-replies = { $n ->
+        [one] תשובה אחת
+        [two] שתי תשובות
+       *[other] { $n } תשובות
+    }
+# en: 911d801f12b06712dee871fc5f647eacc04e430f
+comments-by = תגובות מאת { $name }
+# en: 23b48bef02ad4d2437d3f19ab9df708fac256c00
+comments-ask = לשאול את { $name }
+# en: 9dd346ebb60f70ca00c786e8697e934709bf0a73
+comments-asks = פנייה אל { $name }
+# en: 13ff50a2189f50a0c931f16e02b060b37ec0208e
+comments-answering = התשובה של { $name } בדרך…
+# en: b37554f695b15005fd23907b9488e0a8ad4bca5f
+comments-people = אנשים
+# en: 0f87ce5a3cbdf6796c6f152204e44b143201290f
+comments-write = { $what }… ‏@ לאזכור אנשים
