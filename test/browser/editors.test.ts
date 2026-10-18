@@ -390,3 +390,21 @@ test('a bare page’s toast offers an action: a button after the words, named by
   expect(document.querySelector('.to-toast button')).toBeNull();
   expect(document.querySelector('.to-toast')!.getAttribute('aria-hidden')).toBe('true');
 });
+
+test('Compare on a page with a host of its own: each side’s link and its Open are the host’s, never the address', async () => {
+  const { encodeDoc } = await import('../../src/kit/core/codec.ts');
+  await import('../../src/kit/ui/compare.ts');
+  await setup();
+  document.body.innerHTML = '<to-compare></to-compare>';
+  const cmp = document.querySelector('to-compare') as HTMLElement & { a: unknown; b: unknown; updateComplete: Promise<unknown> };
+  cmp.a = { app: 'write', payload: encodeDoc('Was.\n') };
+  cmp.b = { app: 'write', payload: encodeDoc('Is.\n') };
+  await cmp.updateComplete;
+  const first = cmp.querySelector<HTMLInputElement>('.cmp-a')!;
+  expect(first.value).toMatch(/^https:\/\/atlas\.test\/open\/write\?n=\d+$/);
+  expect([...cmp.querySelectorAll<HTMLAnchorElement>('.cmp-meta a')].map((a) => a.href)).toEqual([
+    expect.stringMatching(/^https:\/\/atlas\.test\/open\/write/),
+    expect.stringMatching(/^https:\/\/atlas\.test\/open\/write/),
+  ]);
+  expect(links.slice(-2).some((l) => l === 'write:Was.')).toBe(true);
+});
