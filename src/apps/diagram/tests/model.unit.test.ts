@@ -47,6 +47,7 @@ import { templates } from '../templates.ts';
 import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf } from '../view.ts';
 
 const doc = (kind: string, body: string): Doc => parse(`---\nkind: ${kind}\n---\n${body}`);
+const regionsOf = (d: ReturnType<typeof layout>) => d.shapes.filter((s) => s.region !== undefined).map((s) => s.region);
 /** The ops applied, written out; and checked: canonical, and undone exactly by their inverse. */
 function run(d: Doc, ops: Op[]): string {
   const after = applyAll(d, ops);
@@ -282,6 +283,27 @@ describe('commands as ops', () => {
     // To a table with nobody yet.
     const empty = doc('seating', '- Top: Jo, Sam\n- Two:\n');
     expect(run(empty, moveItem(empty, 0, 0, 1))).toBe('- Top: Sam\n- Two: Jo\n');
+  });
+  test('a step dropped into another lane leaves the steps after it where they were (#28)', () => {
+    // The step after it named no lane, so it followed this one: it is given the lane it was in.
+    const keyedLanes = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
+    expect(run(keyedLanes, dropIn(keyedLanes, { k: 'line', at: 0, part: 'words' }, 'Shop'))).toBe('- Shop: Calls\n- Sales: Closes\n- Shop: Sells\n');
+    // One lane with no name, as a blank swimlane or a mind map made one: the lane is named, so it stays one lane.
+    const one = doc('lanes', '- Asks\n- Answers\n- Thanks\n');
+    expect(run(one, dropIn(one, { k: 'line', at: 1, part: 'words' }, 'Lane 2'))).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
+    expect(run(one, dropIn(one, { k: 'line', at: 0, part: 'words' }, 'Lane 2'))).toBe('- Lane 2: Asks\n- Lane 1: Answers\n- Thanks\n');
+    expect(run(one, dropIn(one, { k: 'line', at: 2, part: 'words' }, 'Lane 2'))).toBe('- Asks\n- Answers\n- Lane 2: Thanks\n');
+    expect(dropIn(one, { k: 'line', at: 1, part: 'words' }, '')).toEqual([]);
+  });
+  test('editing, the lanes end in an empty band, a new lane by the next number; the picture shown or exported has none', () => {
+    const one = doc('lanes', '- Asks\n- Answers\n');
+    expect(regionsOf(layout(one, true))).toEqual(['', 'Lane 2']);
+    expect(regionsOf(layout(one))).toEqual(['']);
+    expect(regionsOf(layout(doc('lanes', '- Sales: Calls\n- Lane 3: Sells\n'), true))).toEqual(['Sales', 'Lane 3', 'Lane 4']);
+    // A tap in the lane with no name, once another has one, adds to it, not to the last lane.
+    const two = doc('lanes', '- Asks\n- Lane 2: Answers\n');
+    expect(newThing(two, '').at).toBe(1);
+    expect(newThing(two, '').block.runs).toEqual([]);
   });
   test('a thing of a set dropped where circles cross goes to that overlap, made if no line names it', () => {
     const d = doc('venn', '- Fast: toast, noodles\n- Cheap: walking\n');

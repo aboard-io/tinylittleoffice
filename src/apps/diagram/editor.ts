@@ -172,7 +172,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
 
   protected read(doc: Doc): DiagramView {
-    return { kind: kindOf(doc), d: layout(doc) };
+    return { kind: kindOf(doc), d: layout(doc, true) };
   }
   connectedCallback() {
     super.connectedCallback();

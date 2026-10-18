@@ -263,6 +263,28 @@ test('at phone width: the bar one row, nothing wider than the screen, the line e
   }
 });
 
+test('with one lane, a step dragged under it, or a tap there, makes a new lane (#28)', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n');
+  const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const answers = thing(el, 'Answers');
+  const a = answers.getBoundingClientRect();
+  // The band for a new lane is under the last one, as tall as a lane: a step's height and more below it.
+  const to = { clientX: a.left + a.width / 2, clientY: a.bottom + a.height * 1.5 };
+  expect(to.clientY).toBeLessThan(pic.getBoundingClientRect().bottom);
+  answers.dispatchEvent(new PointerEvent('pointerdown', { ...center(answers), button: 0, pointerId: 9, bubbles: true }));
+  answers.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 9, bubbles: true }));
+  answers.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 9, bubbles: true }));
+  await settle(el);
+  expect(last()).toBe('---\nkind: lanes\n---\n- Asks\n- Lane 2: Answers\n');
+
+  // A tap in the band under the one lane: a step in a new lane, after the steps there are.
+  const tapped = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n');
+  const b = thing(tapped.el, 'Answers').getBoundingClientRect();
+  await tap(tapped.el, tapped.el.querySelector('.dg-pic')!, { clientX: b.left + b.width / 2, clientY: b.bottom + b.height * 1.5 });
+  expect(held(tapped.el)).toBe('Step');
+  expect(tapped.last()).toBe('---\nkind: lanes\n---\n- Asks\n- Answers\n- Lane 2: Step\n');
+});
+
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
   const { el, last } = await editor('---\nkind: venn\n---\n- Fast: espresso\n- Cheap: walking\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;

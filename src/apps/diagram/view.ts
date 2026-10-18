@@ -13,7 +13,7 @@ import { t } from '../../kit/core/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
-import { asLabel, edgesOf, kindOf, labelOf, linesOf, same, setKey, setNames, type Hit, type KindId, type Line } from './model.ts';
+import { asLabel, edgesOf, kindOf, labelOf, linesOf, newLaneName, same, setKey, setNames, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
 export type DShape = Shape & { hit?: Hit; region?: string };
@@ -268,7 +268,8 @@ export function lanesOf(doc: Doc): { lanes: string[]; steps: { line: Line; lane:
   return { lanes: lanes.filter((x) => x || steps.some((s) => s.lane === x)), steps };
 }
 
-function lanesLayout(doc: Doc): Diagram {
+/** Editing (`editing`), an empty band under the last lane: a tap or a drop there is a new lane. */
+function lanesLayout(doc: Doc, editing = false): Diagram {
   const LABEL = 120;
   const COL = 176;
   const ROW = 88;
@@ -314,6 +315,11 @@ function lanesLayout(doc: Doc): Diagram {
     shapes.push(boxes[i]);
     ends.push(shapes.length);
   });
+  if (editing) {
+    const more = shape('r', 0, lanes.length * ROW, width, ROW - 8, '', 0);
+    more.region = newLaneName(lanes);
+    shapes.push(more, shape('t', 8, lanes.length * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, '+'));
+  }
   return { ...frame(shapes), steps: ends };
 }
 
@@ -638,7 +644,7 @@ function netLayout(doc: Doc): Diagram {
 
 /* ---------- the kinds, and the page ---------- */
 
-const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = {
+const LAYOUTS: Record<KindId, (doc: Doc, editing?: boolean) => Diagram> = {
   mind: mindLayout,
   org: orgLayout,
   family: orgLayout,
@@ -649,8 +655,8 @@ const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = {
   net: netLayout,
 };
 
-/** The document as its kind draws it. */
-export const layout = (doc: Doc): Diagram => LAYOUTS[kindOf(doc)](doc);
+/** The document as its kind draws it; `editing`, with what only the editor draws (the band for a new lane). */
+export const layout = (doc: Doc, editing = false): Diagram => LAYOUTS[kindOf(doc)](doc, editing);
 
 /** The regions under a point of the picture: a lane by its plain name, or the sets of a Venn whose circles hold it as a key writes them ("Fast & Cheap", "R\&D & Sales"). */
 export function regionAt(d: Diagram, x: number, y: number): string | undefined {
