@@ -13,7 +13,7 @@ import { t } from '../../kit/core/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
-import { asLabel, edgesOf, kindOf, labelOf, linesOf, newLaneName, same, setKey, setNames, stepNamed, type Hit, type KindId, type Line } from './model.ts';
+import { asLabel, edgesOf, kindOf, labelOf, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, stepNamed, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
 export type DShape = Shape & { hit?: Hit; region?: string };
@@ -295,15 +295,33 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   const flows = joined.flatMap(({ e, a, b }) => (e.dir === '<-' ? [[b, a]] : e.dir === '<->' ? [] : [[a, b]]));
   const both = joined.filter(({ e }) => e.dir === '<->');
   const aside = (i: number) => both.some(({ b }) => b === i) && !joined.some(({ e, a, b }) => e.dir !== '<->' && (a === i || b === i));
-  const chain = steps.map((_, i) => i).filter((i) => !aside(i));
-  // From each step of the flow, the next it leads to by itself, if any.
-  const next = new Map<number, number>();
-  chain.forEach((i, k) => {
-    const j = chain[k + 1];
-    if (j !== undefined && !flows.some(([a, b]) => a === i || b === j)) next.set(j, i);
+  // The flow by itself, as a mind map branches (Paul, 2026-10-18): a step leads to the steps indented under it, in
+  // parallel; one with none leads on to the next step on the margin after the one it is under (where its branch
+  // rejoins). Not where a connection already does: between a step and one under it, or out of the one or into the next.
+  const depth = steps.map((s) => s.line.depth);
+  const under = (i: number) => {
+    const kids: number[] = [];
+    for (let j = i + 1; j < steps.length && depth[j] > depth[i]; j++) if (depth[j] === depth[i] + 1 && !aside(j)) kids.push(j);
+    return kids;
+  };
+  const top = (i: number) => {
+    while (depth[i] > 0 && i > 0) i--;
+    return i;
+  };
+  const onward = (i: number) => {
+    for (let j = top(i) + 1; j < steps.length; j++) if (depth[j] === 0 && !aside(j)) return j;
+    return -1;
+  };
+  const tied = (i: number, j: number) => joined.some(({ a, b }) => (a === i && b === j) || (a === j && b === i));
+  const auto: [number, number][] = steps.flatMap((_, i): [number, number][] => {
+    if (aside(i)) return [];
+    const kids = under(i);
+    if (kids.length) return kids.filter((j) => !tied(i, j)).map((j): [number, number] => [i, j]);
+    const j = onward(i);
+    return j >= 0 && !flows.some(([a, b]) => a === i || b === j) ? [[i, j]] : [];
   });
-  const into = (i: number) => next.has(i) || flows.some(([, b]) => b === i) || both.some(({ a, b }) => a === i || b === i);
-  const out = (i: number) => [...next.values()].includes(i) || flows.some(([a]) => a === i) || both.some(({ a, b }) => a === i || b === i);
+  const into = (i: number) => auto.some(([, b]) => b === i) || flows.some(([, b]) => b === i) || both.some(({ a, b }) => a === i || b === i);
+  const out = (i: number) => auto.some(([a]) => a === i) || flows.some(([a]) => a === i) || both.some(({ a, b }) => a === i || b === i);
   // A step that asks a question is a decision; one the flow starts or ends at, a start or an end; any other, a task.
   const boxes = steps.map((s, i) => {
     const w = s.line.words;
@@ -331,8 +349,7 @@ function lanesLayout(doc: Doc, editing = false): Diagram {
   });
   steps.forEach((s, i) => {
     band(s.lane);
-    const from = next.get(i);
-    if (from !== undefined) shapes.push(...elbow(boxes[from], boxes[i], boxes, '->'));
+    for (const [from] of auto.filter(([, to]) => to === i)) shapes.push(...elbow(boxes[from], boxes[i], boxes, '->'));
     shapes.push(boxes[i]);
     ends.push(shapes.length);
   });
@@ -720,7 +737,14 @@ const LAYOUTS: Record<KindId, (doc: Doc, editing?: boolean) => Diagram> = {
 };
 
 /** The document as its kind draws it; `editing`, with what only the editor draws (the band for a new lane). */
-export const layout = (doc: Doc, editing = false): Diagram => LAYOUTS[kindOf(doc)](doc, editing);
+export const layout = (doc: Doc, editing = false): Diagram => shaped(doc, LAYOUTS[kindOf(doc)](doc, editing));
+
+/** Each thing drawn in the shape its line's class gives it ("{.diamond}"), where its kind draws things as boxes. */
+function shaped(doc: Doc, d: Diagram): Diagram {
+  if (!shapes(kindOf(doc))) return d;
+  const named = (s: DShape) => (s.hit?.k === 'line' && s.k !== 't' && s.k !== 'w' && s.k !== 'v' ? shapeOf(doc, s.hit.at) : undefined);
+  return { ...d, shapes: d.shapes.map((s) => ((n) => (n ? { ...s, k: SHAPES[n] } : s))(named(s))) };
+}
 
 /** The regions under a point of the picture: a lane by its plain name, or the sets of a Venn whose circles hold it as a key writes them ("Fast & Cheap", "R\&D & Sales"). */
 export function regionAt(d: Diagram, x: number, y: number): string | undefined {

@@ -7,16 +7,19 @@
  *                       "Ada + Charles | 1815" over their children. "~ A -- B: advises" joins any two of them
  *                       across the tree: a mind map's cross-link (a dashed curve; "->", "<-", "<->" arrows),
  *                       an org chart's or a family's dotted line ("godparent", "adopted").
- *   lanes               "- Who: what they do", a step a line, in order; a step ending in "?" is a decision. Each
- *                       step leads to the next unless connections say otherwise: "~ Ready? -> Ship it: Yes"
- *                       branches, with a mind map's arrows and words; a step joins by its words, or by
+ *   lanes               "- Who: what they do", a step a line, in order; a step ending in "?" is a decision. A
+ *                       nested list, as a mind map's: a step leads to the steps under it (its branches), a step
+ *                       with none to the next on the margin. Connections join any two as well: "~ Ready? ->
+ *                       Ship it: Yes", with a mind map's arrows and words; a step joins by its words, or by
  *                       "Who: what they do" where two steps have the same words.
  *   timeline            "- When: what happened"; a span ("1990–1999") is an era, a band along the line.
  *   venn                "- Set: thing, thing"; "- A & B: what they share".
  *   seating             "- Table: Ann, Bob, Cy", seated round it in that order.
  *   net                 "- Thing" on its own, and "~ A -> B: label" or "~ A -- B" between two things.
  *
- * A line's words are rich text: an icon among them (`:rocket:`) is drawn on the thing. Where a line has a
+ * A line's words are rich text: an icon among them (`:rocket:`) is drawn on the thing. Where a kind draws its
+ * things as boxes (a tree, swimlanes, a network) a line's class gives its shape, by Draw's names: "{.diamond}",
+ * "{.cylinder}" (SHAPES). Where a line has a
  * key ("Sales: …", "Top table: …") the key is the words before the first ": ". A connection names its two
  * things by their words ("Name | Role" by the name alone), as the Outliner's joins do.
  *
@@ -50,6 +53,7 @@ import {
   normalRuns,
   placeFamily,
   removeItem,
+  shiftFamily,
   sliceRuns,
   type Block,
   type Dir,
@@ -72,6 +76,29 @@ export const isTree = (k: KindId) => k === 'mind' || k === 'org' || k === 'famil
 export const isListed = (k: KindId) => k === 'venn' || k === 'seating';
 /** Kinds whose things may be joined by a connection of their own: across a tree, or a network's every line. */
 export const joins = (k: KindId) => isTree(k) || k === 'net' || k === 'lanes';
+
+/**
+ * The shapes a thing may be given, as its line's class says ("- Triage {.diamond}"), by the names Draw gives them;
+ * a kind that draws its things as boxes (a tree, swimlanes, a network) draws one so. A line with none is drawn
+ * as its kind draws it.
+ */
+export const SHAPES = { rectangle: 'r', rounded: 'o', ellipse: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', note: 'n' } as const;
+export type ShapeName = keyof typeof SHAPES;
+export const shapes = (k: KindId) => isTree(k) || k === 'lanes' || k === 'net';
+/** The shape line `at` is given, if any. */
+export function shapeOf(doc: Doc, at: number): ShapeName | undefined {
+  return doc.blocks[at]?.a?.cls?.find((c): c is ShapeName => c in SHAPES);
+}
+/** Line `at` given a shape (null: its kind's own), in place of any it had; its other classes kept. */
+export function setShape(doc: Doc, at: number, name: ShapeName | null): Op[] {
+  const b = doc.blocks[at];
+  if (b?.k !== 'li' || (shapeOf(doc, at) ?? null) === name) return [];
+  const cls = [...(b.a?.cls ?? []).filter((c) => !(c in SHAPES)), ...(name ? [name] : [])];
+  const { a: _was, ...bare } = b;
+  const a = { ...b.a, cls };
+  if (!cls.length) delete (a as { cls?: string[] }).cls;
+  return [{ op: 'splice', at, n: 1, blocks: [Object.keys(a).length ? { ...bare, a } : bare] }];
+}
 
 /* ---------- reading ---------- */
 
@@ -395,7 +422,8 @@ export function nextThing(doc: Doc, hit: Hit): Draft | null {
   const l = lineOf(b, hit.at);
   if (isTree(kind)) return l.depth === 0 ? childOf(doc, l.at) : draftOf(family(doc, l.at), 0, li(l.depth, []));
   if (isListed(kind)) return appendTo(doc, l);
-  if (kind === 'lanes') return draftOf(l.at + 1, 0, li(0, keyRuns(l)));
+  // A step's next is its sibling, after its branches, in its lane.
+  if (kind === 'lanes') return draftOf(family(doc, l.at), 0, li(l.depth, [...laneRuns(linesOf(doc), laneOf(linesOf(doc), l.at)), { t: ': ' }]));
   return draftOf(l.at + 1, 0, li(0, []));
 }
 
@@ -403,6 +431,11 @@ export function nextThing(doc: Doc, hit: Hit): Draft | null {
 export function childOf(doc: Doc, at: number): Draft {
   const b = doc.blocks[at] as Extract<Block, { k: 'li' }>;
   if (isListed(kindOf(doc))) return appendTo(doc, lineOf(b, at));
+  // A swimlane's branch starts in the lane of the step it branches from.
+  if (kindOf(doc) === 'lanes') {
+    const lane = laneOf(linesOf(doc), at);
+    return draftOf(family(doc, at), 0, li(b.depth + 1, lane ? [...laneRuns(linesOf(doc), lane), { t: ': ' }] : []));
+  }
   return draftOf(family(doc, at), 0, li(b.depth + 1, []));
 }
 
@@ -443,7 +476,8 @@ export function removeThing(doc: Doc, hit: Hit): Op[] {
     // Its connections go with it, from the last back.
     const joined = edgesOf(doc).filter((e) => stepNamed(lines, e.from)?.at === l.at || stepNamed(lines, e.to)?.at === l.at);
     const gone = joined.reverse().map((e): Op => ({ op: 'splice', at: e.at, n: 1, blocks: [] }));
-    return steady(doc, [...gone, ...keep, { op: 'splice', at: hit.at, n: 1, blocks: [] }]);
+    // Its branches come out a level, to sit where it was, as a tree's do.
+    return steady(doc, [...gone, ...keep, ...removeItem(applyAll(doc, [...gone, ...keep]), hit.at)]);
   }
   return [{ op: 'splice', at: hit.at, n: 1, blocks: [] }];
 }
@@ -568,13 +602,16 @@ export function dropOn(doc: Doc, hit: Hit, onto: Hit): Op[] {
  * other step keeps its lane and its place. So a step that names no lane, and would now follow another lane's step,
  * is given its own lane's name, and the lane with no name is named ("Lane 1") once one of its steps would.
  */
-export function placeStep(doc: Doc, at: number, lane: string, slot: number): Op[] {
+export function placeStep(doc: Doc, at: number, lane: string, slot: number, depth?: number): Op[] {
   const lines = linesOf(doc);
   const me = lines.find((l) => l.at === at);
   if (!me || kindOf(doc) !== 'lanes') return [];
-  const others = lines.filter((l) => l.at !== at);
+  // The step with its branches (the lines under it), which go where it goes.
+  const end = family(doc, at);
+  const fam = lines.filter((l) => l.at >= at && l.at < end);
+  const others = lines.filter((l) => l.at < at || l.at >= end);
   const before = others.filter((l) => l.words.words || l.words.icon)[slot];
-  const order = before ? [...others.slice(0, others.indexOf(before)), me, ...others.slice(others.indexOf(before))] : [...others, me];
+  const order = before ? [...others.slice(0, others.indexOf(before)), ...fam, ...others.slice(others.indexOf(before))] : [...others, ...fam];
   const want = new Map(lines.map((l) => [l.at, l.at === at ? lane : laneOf(lines, l.at)]));
   const alike = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
   // Each line in its new order, keyed where the lane it would follow into is not its own; null if the lane with no name needs one.
@@ -599,9 +636,13 @@ export function placeStep(doc: Doc, at: number, lane: string, slot: number): Op[
     ops = keys()!;
   }
   const moved = order.indexOf(me) !== lines.indexOf(me);
-  if (!moved) return steady(doc, ops, named);
+  if (!moved || !others.length) return steady(doc, ops, named);
+  // Put before a step, it is that step's sibling (a branch beside it, under the same one); at the end, on the margin.
+  const by = (depth ?? (before ? before.depth : 0)) - me.depth;
+  const keyedDoc = applyAll(doc, ops);
+  const deeper = by ? fam.map((l): Op => ({ op: 'splice', at: l.at, n: 1, blocks: [{ ...(keyedDoc.blocks[l.at] as Extract<Block, { k: 'li' }>), depth: l.depth + by }] })) : [];
   const to = before ? before.at : others[others.length - 1].at + 1;
-  return steady(doc, [...ops, { op: 'move', at, n: 1, to: to > at ? to - 1 : to }], named);
+  return steady(doc, [...ops, ...deeper, { op: 'move', at, n: fam.length, to: to > at ? to - fam.length : to }], named);
 }
 
 /**
@@ -845,12 +886,14 @@ export function moveThing(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hit
     return { ops, hit: { ...hit, part: hit.part + by } };
   }
   if (kindOf(doc) === 'lanes') {
-    // A step past the one beside it, each keeping its lane, the lanes their order.
-    const steps = linesOf(doc).filter((x) => x.words.words || x.words.icon);
-    const k = steps.findIndex((x) => x.at === hit.at);
-    if (k < 0 || !steps[k + by]) return null;
-    const ops = placeStep(doc, hit.at, laneOf(linesOf(doc), hit.at), k + by);
-    const at = linesOf(applyAll(doc, ops)).filter((x) => x.words.words || x.words.icon)[k + by]?.at;
+    // Past the step beside it among its siblings, its branches with it (as a tree's), each step keeping its lane.
+    const m = moveFamily(doc, hit.at, by)?.[0];
+    if (!m || m.op !== 'move') return null;
+    const lines = linesOf(doc);
+    const me = lines.find((x) => x.at === hit.at)!;
+    const slot = linesOf(applyAll(doc, [m])).filter((x) => x.at < m.to && (x.words.words || x.words.icon)).length;
+    const ops = placeStep(doc, hit.at, laneOf(lines, hit.at), slot, me.depth);
+    const at = linesOf(applyAll(doc, ops)).filter((x) => x.words.words || x.words.icon)[slot]?.at;
     return ops.length && at !== undefined ? { ops, hit: { ...hit, at } } : null;
   }
   const ops = moveFamily(doc, hit.at, by);
@@ -905,6 +948,7 @@ const treeLine = (doc: Doc, hit: Hit): number => (hit.k === 'line' && isTree(kin
  * family a level shallower with it. Null for a root or a root's child: there is nowhere further out to go.
  */
 export function promoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null {
+  if (kindOf(doc) === 'lanes') return shifted(doc, hit, -1);
   const i = treeLine(doc, hit);
   if (i < 0) return null;
   const depths = doc.blocks.map(depthOf);
@@ -913,8 +957,19 @@ export function promoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null
   return placed(doc, hit, parent, 'after');
 }
 
+/**
+ * A swimlane's step indented (Tab) to be a branch of the step before it, or brought out (Shift+Tab) to its parent's
+ * level, its branches with it; any step may, the first of the flow too (a swimlane has no one root).
+ */
+function shifted(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hit } | null {
+  if (hit.k !== 'line' || doc.blocks[hit.at]?.k !== 'li') return null;
+  const ops = shiftFamily(doc, hit.at, by);
+  return ops ? { ops, hit } : null;
+}
+
 /** Indent (Tab): a tree's thing becomes the last child of the sibling before it, its family with it. Null for a first child or a root. */
 export function demoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null {
+  if (kindOf(doc) === 'lanes') return shifted(doc, hit, 1);
   const i = treeLine(doc, hit);
   if (i < 0) return null;
   const depths = doc.blocks.map(depthOf);

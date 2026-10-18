@@ -6,7 +6,7 @@ import { join as joinPath } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { createHash } from 'node:crypto';
 import { pageSvg, textWidth } from '../../../kit/draw/draw.ts';
-import { applyAll, invertAll, parse, write, type Block, type Doc, type Op } from '../../../doc/index.ts';
+import { applyAll, invertAll, parse, write, type Block, type Doc, type Op, type Run } from '../../../doc/index.ts';
 import { iconOf, labelLines, readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
 import {
@@ -29,6 +29,8 @@ import {
   demoteThing,
   moveAcross,
   placeStep,
+  setShape,
+  shapeOf,
   stepName,
   moveItem,
   moveThing,
@@ -46,9 +48,10 @@ import {
   type Hit,
 } from '../model.ts';
 import { templates } from '../templates.ts';
-import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf } from '../view.ts';
+import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf, type DShape } from '../view.ts';
 
 const doc = (kind: string, body: string): Doc => parse(`---\nkind: ${kind}\n---\n${body}`);
+const newThingAt = (_d: Doc, x: { at: number; block: { depth: number; runs: Run[] } }) => [x.at, x.block.depth, x.block.runs.map((r) => r.t).join('')];
 const regionsOf = (d: ReturnType<typeof layout>) => d.shapes.filter((s) => s.region !== undefined).map((s) => s.region);
 /** The ops applied, written out; and checked: canonical, and undone exactly by their inverse. */
 function run(d: Doc, ops: Op[]): string {
@@ -370,6 +373,39 @@ describe('commands as ops', () => {
     const later = applyAll(hospital, [{ op: 'text', at, from: 'Nurse: '.length, to: 'Nurse: Prepare patient'.length, runs: [{ t: 'Prep' }] }]);
     expect(write(applyAll(later, follow(hospital, later, at)))).toContain('~ Doctor needed? -> Prep: Yes');
     expect(connect(doc('lanes', '- a\n- b\n'), 'a', 'b')).toEqual([{ op: 'splice', at: 2, n: 0, blocks: [{ k: 'edge', from: 'a', to: 'b', dir: '->' }] }]);
+  });
+  test('a swimlane nests as a mind map: a step leads to the steps under it, each branch rejoining at the next step on the margin (Paul, 2026-10-18)', () => {
+    const d = doc('lanes', '- Desk: Ready?\n  - Desk: Ship it\n  - Lab: Fix it\n    - Lab: Test it\n- Desk: Done\n- Desk: Archive\n');
+    const pic = layout(d);
+    const boxes = pic.shapes.filter((x) => x.hit?.k === 'line');
+    const at = (x: number, y: number) => boxes.find((b) => x >= b.x - 1 && x <= b.x + b.w + 1 && y >= b.y - 1 && y <= b.y + b.h + 1)?.text;
+    const end = (x: DShape, i: number) => at(x.x + (x.pts![i] / 100) * x.w, x.y + (x.pts![i + 1] / 100) * x.h);
+    const flow = pic.shapes.filter((x) => x.k === 'w').map((x) => `${end(x, 0)} → ${end(x, x.pts!.length - 2)}`);
+    expect(flow).toEqual(['Ready? → Ship it', 'Ready? → Fix it', 'Fix it → Test it', 'Ship it → Done', 'Test it → Done', 'Done → Archive']);
+    // A step dragged takes its branches with it, and sits at the depth of the step it goes before.
+    expect(run(d, placeStep(d, 2, 'Lab', 3))).toBe('- Desk: Ready?\n  - Desk: Ship it\n- Desk: Done\n- Lab: Fix it\n  - Lab: Test it\n- Desk: Archive\n');
+    // Enter: the next step after its branches, at its depth; Add a branch: one more under it, in its lane.
+    expect(newThingAt(d, nextThing(d, { k: 'line', at: 0, part: 'words' })!)).toEqual([4, 0, 'Desk: ']);
+    expect(newThingAt(d, childOf(d, 2))).toEqual([4, 2, 'Lab: ']);
+    // Taken away, its branches come out a level to stand where it was.
+    expect(run(d, removeThing(d, { k: 'line', at: 2, part: 'words' }))).toBe('- Desk: Ready?\n  - Desk: Ship it\n  - Lab: Test it\n- Desk: Done\n- Desk: Archive\n');
+    // Tab and Shift+Tab, any step, the first too where there is one before it.
+    expect(run(d, demoteThing(d, { k: 'line', at: 4, part: 'words' })!.ops)).toContain('- Lab: Test it\n  - Desk: Done\n');
+    expect(run(d, promoteThing(d, { k: 'line', at: 2, part: 'words' })!.ops)).toContain('  - Desk: Ship it\n- Lab: Fix it\n  - Lab: Test it\n');
+  });
+  test('a thing takes a shape by its line’s class, Draw’s names, in every kind that draws boxes; set and taken off from its row', () => {
+    const mind = doc('mind', '- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do\n');
+    const kinds = (d: Doc) => layout(d).shapes.flatMap((x) => (x.hit?.k === 'line' ? [x.k] : []));
+    expect(kinds(mind)).toEqual(['e', 'd', 'o']);
+    expect(shapeOf(mind, 1)).toBe('diamond');
+    expect(run(mind, setShape(mind, 2, 'note'))).toBe('- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do {.note}\n');
+    expect(run(mind, setShape(mind, 0, null))).toBe('- Plan\n  - Ask {.diamond}\n  - Do\n');
+    expect(setShape(mind, 1, 'diamond')).toEqual([]);
+    // Other classes stay; a timeline's dots are not boxes, so its classes draw nothing new.
+    const kept = doc('lanes', '- Desk: Ready? {.big .hexagon}\n');
+    expect(run(kept, setShape(kept, 0, 'rectangle'))).toBe('- Desk: Ready? {.big .rectangle}\n');
+    const time = doc('timeline', '- 1990: a {.diamond}\n');
+    expect(layout(time).shapes.some((x) => x.k === 'd')).toBe(false);
   });
   test('a thing of a set dropped where circles cross goes to that overlap, made if no line names it', () => {
     const d = doc('venn', '- Fast: toast, noodles\n- Cheap: walking\n');

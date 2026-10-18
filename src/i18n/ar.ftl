@@ -2819,6 +2819,12 @@ diagram-add-under-it = إضافة أسفله
 diagram-add-one-more = إضافة عنصر آخر
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = إضافة بعده
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = إضافة فرع
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = الشكل
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = شكله المعتاد
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = إضافة خطوة
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

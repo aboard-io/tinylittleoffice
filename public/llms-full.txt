@@ -356,10 +356,10 @@ Templates: Flowchart, Birthday card, Event map, Floor plan, Room plan, Wireframe
 
 `kind:` in the head says which, and each is a list:
 
-- `mind`: a nested list, the center then its branches.
+- `mind`: a nested list, the center then its branches. In `mind`, `org`, `family`, `lanes` and `net` a class gives a thing a shape: `- Ask {.diamond}` (rectangle, rounded, ellipse, diamond, hexagon, parallelogram, cylinder, note).
 - `org`: a nested list of `Name | Role`; a dotted line between two people is `~ Ben -- Eve: advises`.
 - `family`: a nested list, a person or a couple each, `Rose + Albert Hale | m. 1948`.
-- `lanes`: `- Who: what they do`, in order; a step ending in `?` is a decision. Each step leads to the next; branch with connections: `~ In stock? -> Ship it: Yes` (a step with one out leads nowhere else); `~ Triage <-> Records` is a look-up beside the flow. A step is named by its words, or `Who: words` where two match.
+- `lanes`: `- Who: what they do`, in order; a step ending in `?` is a decision. Steps indented under one are its branches, which rejoin at the next step on the margin; `~ A -> B: Yes` joins any two. A step is named by its words, or `Who: words` where two match.
 - `timeline`: `- When: what happened`; dates or years are spaced as they fell, and a span (`- 2027-02-01 – 2027-08-02: Builders on site`) is a band.
 - `venn`: `- Set: thing, thing` for two or three sets, `- A & B: thing` for what they share.
 - `seating`: `- Table: Ann, Bob, Cy`.

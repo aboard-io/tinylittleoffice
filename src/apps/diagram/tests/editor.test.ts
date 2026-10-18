@@ -356,6 +356,38 @@ test('an icon put on a thing whose words are open is drawn at once, beside them 
   expect(open.left + open.width / 2).toBeGreaterThan(box.left + box.width / 2 + 5);
 });
 
+test('a swimlane step branches as a mind map’s idea does (Tab, Add a branch), and any thing that is a box takes a shape from its row (Paul, 2026-10-18)', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Desk: Ready?\n- Desk: Ship it\n- Desk: Done\n');
+  const labels = () => [...ctx(el).querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
+  await tap(el, thing(el, 'Ship it'));
+  expect(labels()).toEqual(expect.arrayContaining(['Add after', 'Add a branch', 'Icon', 'Shape', 'Join', 'Indent', 'Outdent']));
+  // Tab: a branch of the step before it, in its lane; the flow goes from the question to it and on to Done.
+  action(el, 'Indent').click();
+  await settle(el);
+  expect(last()).toContain('- Desk: Ready?\n  - Desk: Ship it\n- Desk: Done\n');
+  await key(el, 'Escape');
+  // Add a branch: another, beside it, in the question's lane.
+  await tap(el, thing(el, 'Ready?'));
+  if (!isOpen(el)) await tap(el, thing(el, 'Ready?')); // the first tap closes Ship it's words, still open
+  action(el, 'Add a branch').click();
+  await settle(el);
+  await type(el, 'Wait');
+  await key(el, 'Enter', { ctrlKey: true });
+  expect(last()).toContain('- Desk: Ready?\n  - Desk: Ship it\n  - Desk: Wait\n- Desk: Done\n');
+  // Shape: Draw's shapes, the one it has checked; chosen, the line carries it and the thing is drawn so.
+  await tap(el, thing(el, 'Done'));
+  if (!isOpen(el)) await tap(el, thing(el, 'Done'));
+  action(el, 'Shape').click();
+  await until(() => !!document.querySelector('.dg-shapes [popover]:popover-open'));
+  const items = [...document.querySelectorAll<HTMLElement>('.dg-shapes [popover]:popover-open [role^=menuitem]')];
+  expect(items.map((x) => x.textContent!.trim())).toEqual(['Its usual shape', 'Rectangle', 'Rounded box', 'Ellipse', 'Diamond', 'Hexagon', 'Parallelogram', 'Cylinder', 'Note']);
+  expect(items[0].getAttribute('aria-checked')).toBe('true');
+  items.find((x) => x.textContent!.includes('Cylinder'))!.click();
+  await settle(el);
+  expect(last()).toContain('- Desk: Done {.cylinder}\n');
+  expect(thing(el, 'Done').querySelector('path, ellipse')).not.toBeNull();
+});
+
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
   const { el, last } = await editor('---\nkind: venn\n---\n- Fast: espresso\n- Cheap: walking\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
@@ -561,7 +593,7 @@ test("§5 a tree thing's bar has Indent and Bring out after its own items, disab
   const { el, last } = await editor('---\nkind: org\n---\n- Ada\n  - Ben\n    - Cy\n  - Eve\n');
   const labels = () => [...ctx(el).querySelectorAll('button, .to-context-sep')].map((b) => (b.classList.contains('to-context-sep') ? '|' : b.getAttribute('aria-label')));
   await tap(el, thing(el, 'Ben'));
-  expect(labels()).toEqual(['Move up', 'Move down', 'Add below', 'Icon', 'Join', 'Indent', 'Outdent', 'Duplicate', '|', 'Copy', 'Cut', 'Paste', '|', 'Delete']);
+  expect(labels()).toEqual(['Move up', 'Move down', 'Add below', 'Icon', 'Shape', 'Join', 'Indent', 'Outdent', 'Duplicate', '|', 'Copy', 'Cut', 'Paste', '|', 'Delete']);
   expect(action(el, 'Indent').disabled).toBe(true);
   expect(action(el, 'Outdent').disabled).toBe(true);
   await tap(el, thing(el, 'Cy')); // the first tap closes Ben's words

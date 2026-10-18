@@ -8,12 +8,12 @@
  * a join; in the words Mod+Enter is done, and Mod+D, Alt+Up/Down and Tab act on the thing open. The thing a key acts
  * on is `here` (the editor sets it as the key comes), else the thing open.
  */
-import { ArrowDown, ArrowRight, ArrowUp, ClipboardPaste, CopyPlus, Scissors, Smile, Spline, ZoomIn, ZoomOut } from 'lucide';
+import { ArrowDown, ArrowRight, ArrowUp, ClipboardPaste, CopyPlus, GitBranch, Scissors, Shapes, Smile, Spline, ZoomIn, ZoomOut } from 'lucide';
 import { register, type Command, commandsOf } from '../../kit/core/commands.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { UI } from '../../kit/draw/icons.ts';
 import { KIND_ICON, kindName, thingName } from './kinds.ts';
-import { KINDS, canDuplicate, childOf, edgesOf, isListed, isTree, joins, moveThing, newThing, nextThing, type Hit } from './model.ts';
+import { KINDS, canDuplicate, childOf, edgesOf, isListed, isTree, joins, moveThing, newThing, nextThing, shapes, type Hit } from './model.ts';
 import type { ToDiagramEditor } from './editor.ts';
 
 type G = ToDiagramEditor;
@@ -22,6 +22,8 @@ const cmd = commandsOf<G>('diagram');
 const hit = (g: G): Hit | null => g.here ?? g.target?.hit ?? null;
 const line = (g: G) => hit(g)?.k === 'line';
 const tree = (g: G) => isTree(g.view.kind);
+/** Whether things nest: a tree's children, a swimlane's branches. */
+const nests = (g: G) => tree(g) || g.view.kind === 'lanes';
 const arrowed = (g: G) => {
   const h = hit(g);
   const e = h?.k === 'edge' ? edgesOf(g.doc).find((x) => x.at === h.at) : undefined;
@@ -74,7 +76,15 @@ const DIAGRAM: Command<G>[] = [
     when: line,
     does: (g) => g.addFrom(tree(g) || isListed(g.view.kind) ? childOf(g.doc, (hit(g) as Extract<Hit, { k: 'line' }>).at) : nextThing(g.doc, hit(g)!)),
   }),
+  cmd('branch', 'diagram-add-branch', {
+    icon: GitBranch,
+    where: ['context'],
+    group: 'own',
+    when: (g) => line(g) && g.view.kind === 'lanes',
+    does: (g) => g.addFrom(childOf(g.doc, (hit(g) as Extract<Hit, { k: 'line' }>).at)),
+  }),
   cmd('icon', 'common-icon', { icon: Smile, where: ['context'], group: 'own', when: line, does: (g) => g.iconFor(hit(g)!) }),
+  cmd('shape', 'diagram-shape', { icon: Shapes, where: ['context'], group: 'own', when: (g) => line(g) && shapes(g.view.kind), does: (g) => g.chooseShape(hit(g)!) }),
   cmd('step', 'diagram-add-step', {
     icon: UI.plus,
     where: ['context'],
@@ -102,7 +112,7 @@ const DIAGRAM: Command<G>[] = [
     keys: 'Tab',
     where: ['context'],
     group: 'own',
-    when: (g) => line(g) && tree(g),
+    when: (g) => line(g) && nests(g),
     disabled: (g) => !g.canShift(hit(g)!, 1),
     does: (g) => g.shift(hit(g)!, 1),
   }),
@@ -112,7 +122,7 @@ const DIAGRAM: Command<G>[] = [
     keys: 'Shift+Tab',
     where: ['context'],
     group: 'own',
-    when: (g) => line(g) && tree(g),
+    when: (g) => line(g) && nests(g),
     disabled: (g) => !g.canShift(hit(g)!, -1),
     does: (g) => g.shift(hit(g)!, -1),
   }),

@@ -72,6 +72,10 @@ import {
   rename,
   setEdge,
   setKind,
+  setShape,
+  shapeOf,
+  SHAPES,
+  type ShapeName,
   thingBlocks,
   tidy,
   withIcon,
@@ -85,6 +89,19 @@ import '../../kit/ui/bar.ts';
 import '../../kit/ui/context.ts';
 import '../../kit/ui/insert.ts';
 import '../../kit/ui/menu.ts';
+import type { MenuItem, ToMenu } from '../../kit/ui/menu.ts';
+
+/** Each shape by the name Draw's Insert ▾ gives it. */
+const SHAPE_NAME: Record<ShapeName, string> = {
+  rectangle: 'draw-rectangle',
+  rounded: 'draw-rounded-box',
+  ellipse: 'draw-ellipse',
+  diamond: 'draw-diamond',
+  hexagon: 'draw-hexagon',
+  parallelogram: 'draw-parallelogram',
+  cylinder: 'draw-cylinder',
+  note: 'common-note',
+};
 import '../../kit/text/text.ts';
 import { remScale } from '../../kit/ui/zoom.ts';
 import { pinchZoom } from '../../kit/ui/pinch.ts';
@@ -531,6 +548,29 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- the things to do to the thing open ---------- */
 
+  /** The thing whose shape the Shape menu sets, while it is open. */
+  private shaping: Extract<Hit, { k: 'line' }> | null = null;
+  /** Shape, from the thing's row: Draw's shapes, by Draw's names, the one it has checked; or its kind's own. */
+  async chooseShape(hit: Hit) {
+    if (hit.k !== 'line') return;
+    const from = document.activeElement?.closest('to-context') ? (document.activeElement as HTMLElement) : this.querySelector<HTMLElement>('.dg-context');
+    this.shaping = hit;
+    this.requestUpdate();
+    await this.updateComplete;
+    const menu = this.querySelector<ToMenu>('.dg-shapes');
+    if (menu && from) menu.openAt(from);
+  }
+  private shapeItems(): MenuItem[] {
+    const hit = this.shaping;
+    if (!hit) return [];
+    const now = shapeOf(this.doc, hit.at);
+    const to = (name: ShapeName | null) => () => this.change(setShape(this.doc, hit.at, name), hit);
+    return [
+      { label: t('diagram-shape-usual'), checked: !now, does: to(null) },
+      ...(Object.keys(SHAPES) as ShapeName[]).map((name) => ({ label: t(SHAPE_NAME[name]), checked: now === name, does: to(name) })),
+    ];
+  }
+
   async iconFor(hit: Hit) {
     const { chooseIcon } = await import('../../kit/ui/icons-picker.ts');
     const name = await chooseIcon({ emoji: false, none: true });
@@ -976,7 +1016,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
           @keydown=${{ handleEvent: this.onWordsKey, capture: true }} @focusout=${this.onWordsBlur}
           @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
       </div>
-      <to-context class="dg-context" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>`;
+      <to-context class="dg-context" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>
+      <to-menu class="dg-shapes" .label=${t('diagram-shape')} .items=${this.shapeItems()}></to-menu>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToDiagramEditor);
