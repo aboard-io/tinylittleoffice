@@ -2694,8 +2694,8 @@ diagram-thing = Item
 diagram-tap-empty-space-for-thing = Tik op een lege plek om een item toe te voegen. Om er twee te verbinden, druk op Verbinden en tik op beide, of sleep er een op de ander.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Tik hier om je eerste { $thing } toe te voegen.
-# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
-diagram-tap-in-lane-to-add = Tik in een baan om een stap toe te voegen. Tik op een stap om die te bewerken. Sleep hem aan zijn greep naar een andere baan of plek.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = Tik in een baan om een stap toe te voegen. Tik op een stap om die te bewerken, of sleep hem naar een andere baan of plek.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Tik op het item waarmee je { $name } wilt verbinden. Tik op een lege plek om te annuleren.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

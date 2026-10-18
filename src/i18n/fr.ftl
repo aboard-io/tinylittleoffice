@@ -2716,8 +2716,8 @@ diagram-thing = Élément
 diagram-tap-empty-space-for-thing = Touchez un espace vide pour ajouter un élément. Pour en relier deux, appuyez sur Relier puis touchez-les, ou glissez l’un sur l’autre.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Touchez ici pour ajouter le premier élément ({ $thing }).
-# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
-diagram-tap-in-lane-to-add = Touchez un couloir pour ajouter une étape. Touchez une étape pour la modifier. Glissez sa poignée vers un autre couloir ou une autre place.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = Touchez un couloir pour ajouter une étape. Touchez une étape pour la modifier, ou glissez-la vers un autre couloir ou une autre place.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Touchez l’élément auquel relier { $name }. Touchez un espace vide pour annuler.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

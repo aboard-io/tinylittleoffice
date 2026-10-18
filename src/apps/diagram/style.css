@@ -65,14 +65,7 @@
   .dg-thing.over {
     filter: drop-shadow(0 0 0.1875rem var(--to-accent)) drop-shadow(0 0 1px var(--to-accent));
   }
-  /* A swimlane step's grip, and the line where a step dragged by it would go. */
-  .dg-grip {
-    cursor: grab;
-  }
-  .dg-grip circle {
-    fill: var(--to-ink);
-    fill-opacity: 0.45;
-  }
+  /* Where a swimlane's step being dragged would go. */
   .dg-slot {
     stroke: var(--to-accent);
     stroke-width: 3;

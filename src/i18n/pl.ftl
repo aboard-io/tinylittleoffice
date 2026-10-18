@@ -2764,8 +2764,8 @@ diagram-thing = Element
 diagram-tap-empty-space-for-thing = Stuknij puste miejsce, by dodać element. Aby połączyć dwa, naciśnij Połącz i stuknij oba albo przeciągnij jeden na drugi.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Stuknij tu, by dodać pierwszy element ({ $thing }).
-# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
-diagram-tap-in-lane-to-add = Stuknij w torze, by dodać krok. Stuknij krok, by go edytować. Przeciągnij jego uchwyt na inny tor lub w inne miejsce.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = Stuknij w torze, by dodać krok. Stuknij krok, by go edytować, albo przeciągnij go na inny tor lub w inne miejsce.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Stuknij element, z którym połączyć { $name }. Stuknij puste miejsce, by anulować.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

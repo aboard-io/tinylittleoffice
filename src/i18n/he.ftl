@@ -2690,8 +2690,8 @@ diagram-thing = פריט
 diagram-tap-empty-space-for-thing = הקשה על שטח ריק מוסיפה פריט. כדי לחבר שניים, לוחצים על "חיבור" ומקישים על שניהם, או גוררים אחד על השני.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = כדי להתחיל, הקשה כאן מוסיפה { $thing }.
-# en: 2d5402a53432ac3e3c07d97bba830527e3f24b0d
-diagram-tap-in-lane-to-add = הקשה בנתיב מוסיפה שלב. הקשה על שלב עורכת אותו. גוררים את הידית שלו לנתיב או למקום אחר.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = הקשה בנתיב מוסיפה שלב. הקשה על שלב עורכת אותו, או גוררים אותו לנתיב או למקום אחר.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = מקישים על הפריט שאליו לחבר את { $name }. הקשה על שטח ריק מבטלת.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8

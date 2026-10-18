@@ -264,10 +264,10 @@ test('at phone width: the bar one row, nothing wider than the screen, the line e
   }
 });
 
-test('a step moves by its grip to where it is let go: its lane and its place; its words do not drag; under the last lane is a new one (#28)', async () => {
+test('a step dragged goes where it is let go: its lane and its place; a press that does not move is a tap; under the last lane is a new one (#28)', async () => {
   const { el, last } = await editor('---\nkind: lanes\n---\n- Asks\n- Answers\n- Thanks\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
-  const grip = (words: string) => thing(el, words).querySelector('.dg-grip')!;
+  // Dragged by the step itself (Paul, 2026-10-18: "Tap to edit, drag to move. The handles are redundant").
   const drag = async (from: Element, to: { clientX: number; clientY: number }) => {
     from.dispatchEvent(new PointerEvent('pointerdown', { ...center(from), button: 0, pointerId: 9, bubbles: true }));
     from.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 9, bubbles: true }));
@@ -275,17 +275,21 @@ test('a step moves by its grip to where it is let go: its lane and its place; it
     await settle(el);
   };
   const box = (words: string) => thing(el, words).getBoundingClientRect();
-  // Its words do not drag: nothing moves.
-  await drag(thing(el, 'Thanks'), { clientX: box('Asks').left - 4, clientY: box('Asks').top + 4 });
+  // A press that does not move: nothing moves, and the tap after it opens the words.
+  await drag(thing(el, 'Thanks'), center(thing(el, 'Thanks')));
   expect(last()).toBe('---\nkind: lanes\n---\n- Asks\n- Answers\n- Thanks\n');
-  // By its grip, to before the first step: first, the others where they were.
-  await drag(grip('Thanks'), { clientX: box('Asks').left - 4, clientY: box('Asks').top + box('Asks').height / 2 });
+  await tap(el, thing(el, 'Thanks'));
+  expect(isOpen(el)).toBe(true);
+  await key(el, 'Escape');
+  if (isOpen(el)) await key(el, 'Escape');
+  // To before the first step: first, the others where they were.
+  await drag(thing(el, 'Thanks'), { clientX: box('Asks').left - 4, clientY: box('Asks').top + box('Asks').height / 2 });
   expect(last()).toBe('---\nkind: lanes\n---\n- Thanks\n- Asks\n- Answers\n');
   // Under the last lane, in its own column: a new lane, its place kept.
   const a = box('Asks');
   const to = { clientX: a.left + a.width / 2, clientY: a.bottom + a.height * 1.5 };
   expect(to.clientY).toBeLessThan(pic.getBoundingClientRect().bottom);
-  await drag(grip('Asks'), to);
+  await drag(thing(el, 'Asks'), to);
   expect(last()).toBe('---\nkind: lanes\n---\n- Lane 1: Thanks\n- Lane 2: Asks\n- Lane 1: Answers\n');
 
   // Four steps, the fourth into a new lane, then the second into another: that lane is made at the bottom, the second
@@ -298,7 +302,7 @@ test('a step moves by its grip to where it is let go: its lane and its place; it
     return { clientX: at(words).left + at(words).width / 2, clientY: plus.top + plus.height / 2 };
   };
   const carry = async (words: string, to: { clientX: number; clientY: number }) => {
-    const g = thing(four.el, words).querySelector('.dg-grip')!;
+    const g = thing(four.el, words);
     g.dispatchEvent(new PointerEvent('pointerdown', { ...center(g), button: 0, pointerId: 8, bubbles: true }));
     g.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 8, bubbles: true }));
     g.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 8, bubbles: true }));
@@ -450,7 +454,7 @@ test('stacked, a step let go just before one of the steps side by side goes befo
   const box = (w: string) => thing(el, w).getBoundingClientRect();
   // Yes and No stand in one column.
   expect(Math.round(box('Yes').left)).toBe(Math.round(box('No').left));
-  const g = thing(el, 'Done').querySelector('.dg-grip')!;
+  const g = thing(el, 'Done');
   const to = { clientX: box('No').left - 4, clientY: box('No').top + box('No').height / 2 };
   g.dispatchEvent(new PointerEvent('pointerdown', { ...center(g), button: 0, pointerId: 6, bubbles: true }));
   g.dispatchEvent(new PointerEvent('pointermove', { ...to, pointerId: 6, bubbles: true }));

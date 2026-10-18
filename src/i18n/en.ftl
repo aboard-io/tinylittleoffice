@@ -1470,7 +1470,7 @@ diagram-thing = Item
 # The picture, and the line editor over a thing
 diagram-tap-empty-space-for-thing = Tap empty space to add an item. To connect two, press Join and tap both, or drag one onto the other.
 diagram-tap-here-to-add-first = Tap here to add the first { $thing }.
-diagram-tap-in-lane-to-add = Tap in a lane to add a step. Tap a step to edit it. Drag its grip to another lane or place.
+diagram-tap-in-lane-to-add = Tap in a lane to add a step. Tap a step to edit it, or drag it to another lane or place.
 diagram-tap-thing-to-join-name = Tap the item to connect { $name } to. Tap empty space to cancel.
 diagram-tap-first-thing-to-join = Tap the first item, then the other. Tap empty space to cancel.
 diagram-this-thing = This item
