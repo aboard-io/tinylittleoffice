@@ -1,0 +1,47 @@
+/* The Storybook's page, as a page that holds the editors keeps its own (docs/library.md, Theming): the size of
+   everything on the root, the editors' ground and ink on the body, and the room a canvas or a map fills. Nothing here
+   is the editors' stylesheet's; that is src/editors.css, whole. */
+html {
+  font-size: calc(100% * var(--to-doc, 1));
+}
+body {
+  margin: 0;
+  background: var(--to-bg);
+  color: var(--to-ink);
+  font: 1rem/var(--to-line) var(--to-font);
+}
+/* A story's own box, under Storybook's padding. */
+.sb-box {
+  --to-col-h: 70vh;
+  display: block;
+}
+/* Two or more of a thing beside each other: two editors sharing a document, the kit's states of one element. */
+.sb-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.sb-caption {
+  font: 0.8rem/1.4 var(--to-font);
+  color: var(--to-ink-3);
+  margin: 0 0 0.5rem;
+}
+/* An app's templates, each drawn small (stories/apps/app.ts). */
+.sb-templates {
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+}
+.sb-template {
+  margin: 0;
+  font: 0.8rem/1.4 var(--to-font);
+  color: var(--to-ink-2);
+}
+.sb-template svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius-sm);
+  margin-bottom: 0.4rem;
+}

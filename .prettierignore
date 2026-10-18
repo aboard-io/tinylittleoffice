@@ -4,6 +4,7 @@ dist/
 docs/
 skill/
 public/
+storybook-static/
 test-results/
 playwright-report/
 .wrangler/

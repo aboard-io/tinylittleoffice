@@ -29,7 +29,9 @@
     "packages",
     "selfhost",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "stories",
+    ".storybook"
   ],
   "exclude": ["node_modules", "packages/doc/dist"]
 }

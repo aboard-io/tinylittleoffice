@@ -63,7 +63,9 @@
     "tinier:dev": "wrangler d1 migrations apply tinier -c tinier/wrangler.jsonc --local && wrangler dev -c tinier/wrangler.jsonc --port 8787 --var SITE:${SITE:-http://localhost:4178}",
     "site:types": "wrangler types -c wrangler.jsonc site/worker-configuration.d.ts",
     "site:dev": "wrangler d1 migrations apply tinier --local && wrangler dev --port 8789 --ip 0.0.0.0",
-    "dictionary": "node scripts/dictionary.ts"
+    "dictionary": "node scripts/dictionary.ts",
+    "storybook": "storybook dev --host 0.0.0.0 -p 6006 --no-open",
+    "build-storybook": "storybook build -o storybook-static --quiet"
   },
   "dependencies": {
     "@fluent/bundle": "0.19.1",
@@ -78,12 +80,14 @@
     "@axe-core/playwright": "4.13.0",
     "@fluent/syntax": "0.19.0",
     "@playwright/test": "1.64.0",
+    "@storybook/web-components-vite": "10.6.2",
     "@types/d3-sankey": "0.12.5",
     "@types/node": "26.6.4",
     "@vitest/browser-playwright": "5.0.3",
     "fast-check": "4.10.2",
     "playwright": "1.64.0",
     "prettier": "^3.9.10",
+    "storybook": "10.6.2",
     "typescript": "7.0.2",
     "vite": "8.3.4",
     "vitest": "5.0.3",

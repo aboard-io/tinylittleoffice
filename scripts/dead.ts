@@ -21,7 +21,7 @@ const ROOT = resolve(import.meta.dirname, '..');
 
 /** Where exports are counted, and where a use counts (with the root's configuration files and page). */
 const EXPORTERS = ['src', 'scripts', 'packages', 'tinier', 'site', 'selfhost'];
-const USERS = ['src', 'test', 'e2e', 'scripts', 'packages', 'tinier', 'site', 'selfhost', 'dev'];
+const USERS = ['src', 'test', 'e2e', 'scripts', 'packages', 'tinier', 'site', 'selfhost', 'dev', 'stories', '.storybook'];
 const SKIP = /(^|\/)(node_modules|dist)\/|\.d\.ts$/;
 
 /** The exports that need no other file, each with why. */
