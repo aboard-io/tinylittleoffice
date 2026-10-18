@@ -1,0 +1,368 @@
+// <to-table> on a bare page (kit/ui/table.ts; docs/library.md, A typed table): a grid of typed cells that sorts by a
+// click on a heading (Shift: as well), edits in place and tells the page, which keeps the edit or refuses it and the
+// cell goes back; walks by the keys; ticks rows; filters; hides columns; and 5,000 rows drawn, sorted, scrolled and
+// walked to the end in the time a person does not notice. The order of each type is test/table.test.ts's.
+import { expect, test } from 'vitest';
+import { page, userEvent } from 'vitest/browser';
+import '../../src/editors.css';
+import '../../src/kit/ui/table.ts';
+import type { RowChange, ToTable } from '../../src/kit/ui/table.ts';
+import type { TableColumn, TableRow } from '../../src/kit/ui/table-model.ts';
+import { until } from './wait.ts';
+
+interface Row extends TableRow {
+  name: string;
+  deal: number | null;
+  met: string | null;
+  vip: boolean;
+  stage: string;
+  company: string;
+}
+const COLS: TableColumn<Row>[] = [
+  { key: 'name', label: 'Name', type: 'person', editable: true },
+  { key: 'deal', label: 'Deal', type: 'money', currency: '$', editable: true },
+  { key: 'met', label: 'Met', type: 'date', editable: true },
+  { key: 'vip', label: 'VIP', type: 'boolean', editable: true },
+  {
+    key: 'stage',
+    label: 'Stage',
+    type: 'enum',
+    editable: true,
+    options: [
+      { value: 'lead', label: 'Lead', color: 'gray' },
+      { value: 'won', label: 'Won', color: 'green' },
+    ],
+  },
+  { key: 'company', label: 'Company', type: 'link', href: (r) => `#company-${r.company}` },
+];
+const ROWS: Row[] = [
+  { id: 'a', name: 'Ada', deal: 950, met: '2027-03-01', vip: true, stage: 'won', company: 'Aboard' },
+  { id: 'b', name: 'Bea', deal: 12000, met: '2026-12-31', vip: false, stage: 'lead', company: 'Clear Channel' },
+  { id: 'c', name: 'Cy', deal: null, met: null, vip: false, stage: 'lead', company: 'Mubadala' },
+  { id: 'd', name: 'Dee', deal: 1200, met: '2027-01-15', vip: true, stage: 'won', company: 'Sixth Street' },
+];
+
+async function table(props: Partial<ToTable<Row>> = {}, rows: Row[] = ROWS): Promise<ToTable<Row>> {
+  document.body.innerHTML = '';
+  const el = document.createElement('to-table') as ToTable<Row>;
+  Object.assign(el, { columns: COLS, rows, label: 'People', ...props });
+  document.body.append(el);
+  await el.updateComplete;
+  await el.updateComplete;
+  return el;
+}
+/** The names in the rows shown, in their order. */
+const names = (el: ToTable<Row>) => el.shownRows.map((r) => r.name).join(' ');
+/** The words in the cell of a row (by name) and a column (by its heading). */
+function cell(el: ToTable<Row>, name: string, col: string): HTMLElement {
+  const c = [...el.querySelectorAll('[role=columnheader]')].findIndex((h) => h.textContent?.trim().startsWith(col));
+  const r = el.shownRows.findIndex((x) => x.name === name);
+  return el.querySelector<HTMLElement>(`[data-r="${r}"][data-c="${c}"]`)!;
+}
+const heading = (el: ToTable<Row>, col: string) => [...el.querySelectorAll<HTMLElement>('[role=columnheader]')].find((h) => h.textContent?.trim().startsWith(col))!;
+
+test('a grid: a row of headings and a row a record, each cell typed', async () => {
+  const el = await table();
+  const grid = el.querySelector('[role=grid]')!;
+  expect(grid.getAttribute('aria-rowcount')).toBe('5');
+  expect(grid.getAttribute('aria-label')).toBe('People');
+  expect([...el.querySelectorAll('[role=columnheader]')].map((h) => h.textContent?.trim())).toStrictEqual(['Name', 'Deal', 'Met', 'VIP', 'Stage', 'Company']);
+  expect(cell(el, 'Ada', 'Deal').textContent?.trim()).toBe('$950.00');
+  expect(cell(el, 'Ada', 'Met').textContent?.trim()).toBe('Mar 1, 2027');
+  expect(cell(el, 'Ada', 'VIP').querySelector('input')!.checked).toBe(true);
+  expect(cell(el, 'Ada', 'Stage').querySelector('.to-chip')!.textContent).toBe('Won');
+  expect(cell(el, 'Ada', 'Company').querySelector('a')!.getAttribute('href')).toBe('#company-Aboard');
+  expect(cell(el, 'Cy', 'Deal').textContent?.trim()).toBe('');
+  // One cell takes Tab.
+  expect(el.querySelectorAll('[tabindex="0"]').length).toBe(1);
+});
+
+test('a click on a heading sorts by it, each type by its own order, an empty cell last; Shift sorts by it as well', async () => {
+  const el = await table();
+  const sorts: unknown[] = [];
+  el.addEventListener('sortchange', (e) => sorts.push((e as CustomEvent).detail.sort));
+  heading(el, 'Deal').querySelector('button')!.click();
+  await el.updateComplete;
+  expect(names(el)).toBe('Ada Dee Bea Cy');
+  expect(heading(el, 'Deal').getAttribute('aria-sort')).toBe('ascending');
+  heading(el, 'Deal').querySelector('button')!.click();
+  await el.updateComplete;
+  expect(names(el)).toBe('Bea Dee Ada Cy');
+  expect(heading(el, 'Deal').getAttribute('aria-sort')).toBe('descending');
+  heading(el, 'Met').querySelector('button')!.click();
+  await el.updateComplete;
+  expect(names(el)).toBe('Bea Dee Ada Cy');
+  heading(el, 'Stage').querySelector('button')!.click();
+  await el.updateComplete;
+  heading(el, 'Name')
+    .querySelector('button')!
+    .dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  await el.updateComplete;
+  heading(el, 'Name')
+    .querySelector('button')!
+    .dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  await el.updateComplete;
+  expect(names(el)).toBe('Cy Bea Dee Ada');
+  expect(el.sort).toStrictEqual([
+    { key: 'stage', dir: 'asc' },
+    { key: 'name', dir: 'desc' },
+  ]);
+  expect(heading(el, 'Name').getAttribute('aria-sort')).toBe('none');
+  expect(heading(el, 'Name').querySelector('small')!.textContent).toBe('2');
+  expect(sorts.length).toBe(6);
+});
+
+test('an edit is told to the page and shown; refused, at once or later, the cell goes back', async () => {
+  const el = await table();
+  const told: RowChange<Row>[] = [];
+  let answer: 'keep' | 'refuse' | 'later' = 'keep';
+  let later: (ok: boolean) => void = () => {};
+  el.addEventListener('rowchange', (e) => {
+    const ev = e as CustomEvent<RowChange<Row>>;
+    told.push(ev.detail);
+    if (answer === 'refuse') ev.preventDefault();
+    if (answer === 'later') ev.detail.wait(new Promise<boolean>((ok) => (later = ok)));
+  });
+  const edit = async (name: string, col: string, typed: string) => {
+    cell(el, name, col).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await until(() => !!el.querySelector('.to-dt-editor'), 'no editor opened');
+    const field = el.querySelector<HTMLInputElement>('.to-dt-editor')!;
+    expect(document.activeElement).toBe(field);
+    field.value = typed;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await el.updateComplete;
+  };
+  await edit('Ada', 'Deal', '$1,500');
+  expect(told.at(-1)).toMatchObject({ id: 'a', column: 'deal', value: 1500, before: 950 });
+  expect(cell(el, 'Ada', 'Deal').textContent?.trim()).toBe('$1,500.00');
+  expect(document.activeElement).toBe(cell(el, 'Ada', 'Deal'));
+
+  answer = 'refuse';
+  await edit('Bea', 'Met', '2027-05-04');
+  expect(told.at(-1)).toMatchObject({ id: 'b', column: 'met', value: '2027-05-04', before: '2026-12-31' });
+  expect(cell(el, 'Bea', 'Met').textContent?.trim()).toBe('Dec 31, 2026');
+
+  answer = 'later';
+  await edit('Cy', 'Name', 'Cyrus');
+  expect(cell(el, 'Cy', 'Name').textContent?.trim()).toBe('CCyrus');
+  later(false);
+  await until(() => cell(el, 'Cy', 'Name').textContent?.trim() === 'CCy', 'the refused name never went back');
+
+  // Words where a number belongs are not an edit: the field says so and stays.
+  answer = 'keep';
+  const n = told.length;
+  cell(el, 'Dee', 'Deal').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => !!el.querySelector('.to-dt-editor'));
+  const field = el.querySelector<HTMLInputElement>('.to-dt-editor')!;
+  field.value = 'lots';
+  field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  expect(field.getAttribute('aria-invalid')).toBe('true');
+  field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await el.updateComplete;
+  expect(el.querySelector('.to-dt-editor')).toBeNull();
+  expect(told.length).toBe(n);
+  expect(cell(el, 'Dee', 'Deal').textContent?.trim()).toBe('$1,200.00');
+
+  // A box is ticked at once; a status chosen from its options.
+  cell(el, 'Bea', 'VIP').click();
+  await el.updateComplete;
+  expect(told.at(-1)).toMatchObject({ id: 'b', column: 'vip', value: true, before: false });
+  expect(cell(el, 'Bea', 'VIP').querySelector('input')!.checked).toBe(true);
+  cell(el, 'Bea', 'Stage').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => el.querySelector('.to-dt-editor') instanceof HTMLSelectElement, 'no options');
+  const select = el.querySelector<HTMLSelectElement>('.to-dt-editor')!;
+  select.value = 'won';
+  select.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  await el.updateComplete;
+  expect(told.at(-1)).toMatchObject({ id: 'b', column: 'stage', value: 'won', before: 'lead' });
+
+  // The page's rows given again are the truth: the edits shown over them are let go.
+  el.rows = ROWS.map((r) => ({ ...r }));
+  await el.updateComplete;
+  expect(cell(el, 'Ada', 'Deal').textContent?.trim()).toBe('$950.00');
+});
+
+test('the keys: the arrows walk the cells and the headings, Enter edits or picks, Escape lets an edit go, Space ticks', async () => {
+  const el = await table({ selectable: true });
+  const picked: unknown[] = [];
+  const selected: unknown[] = [];
+  el.addEventListener('rowpick', (e) => picked.push((e as CustomEvent).detail.id));
+  el.addEventListener('selection', (e) => selected.push((e as CustomEvent).detail.ids));
+  const first = el.querySelector<HTMLElement>('[tabindex="0"]')!;
+  first.focus();
+  const at = () => document.activeElement as HTMLElement;
+  await userEvent.keyboard('{ArrowRight}');
+  await until(() => at().dataset.c === '1');
+  await userEvent.keyboard('{ArrowDown}');
+  await until(() => at().dataset.r === '1');
+  await userEvent.keyboard('{ArrowUp}{ArrowUp}');
+  await until(() => at().getAttribute('role') === 'columnheader', 'the headings were never reached');
+  await userEvent.keyboard('{Enter}');
+  await el.updateComplete;
+  expect(el.sort).toStrictEqual([{ key: 'name', dir: 'asc' }]);
+  await userEvent.keyboard('{ArrowDown}{Enter}');
+  await until(() => !!el.querySelector('.to-dt-editor'), 'Enter opened no editor');
+  await userEvent.keyboard('{Escape}');
+  await until(() => !el.querySelector('.to-dt-editor') && at().dataset.r === '0', 'Escape did not let the edit go');
+  await userEvent.keyboard('{End}');
+  await until(() => at().dataset.c === '6');
+  await userEvent.keyboard('{Enter}');
+  // A link's cell: Enter opens its link (here, an address in the page).
+  await until(() => location.hash === '#company-Aboard', 'the link was not followed');
+  await userEvent.keyboard('{Home} ');
+  await until(() => selected.length === 1);
+  expect(selected[0]).toStrictEqual(['a']);
+  // A cell of a column not edited picks its row.
+  COLS[0].editable = false;
+  el.columns = [...COLS];
+  await el.updateComplete;
+  cell(el, 'Bea', 'Name').click();
+  COLS[0].editable = true;
+  expect(picked).toStrictEqual(['b']);
+  history.replaceState(null, '', location.pathname + location.search);
+});
+
+test('rows ticked one by one, by Shift and a click, and all at once', async () => {
+  const el = await table({ selectable: true });
+  const told: string[][] = [];
+  el.addEventListener('selection', (e) => told.push((e as CustomEvent).detail.ids));
+  const box = (r: number) => el.querySelector<HTMLElement>(`[data-r="${r}"][data-c="0"]`)!;
+  box(0).click();
+  await el.updateComplete;
+  box(2).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  await el.updateComplete;
+  expect(told).toStrictEqual([['a'], ['a', 'b', 'c']]);
+  expect(el.querySelectorAll('[role=row][aria-selected=true]').length).toBe(3);
+  const all = el.querySelector<HTMLInputElement>('.to-dt-head input')!;
+  expect(all.indeterminate).toBe(true);
+  all.click();
+  await el.updateComplete;
+  expect(told.at(-1)).toStrictEqual(['a', 'b', 'c', 'd']);
+  expect(all.checked).toBe(true);
+});
+
+test('the quick search, the page’s filter, the columns hidden, Add row, and nothing found', async () => {
+  const el = await table({ filterable: true, hideable: true, addable: true });
+  const field = el.querySelector<HTMLInputElement>('.to-dt-filter input')!;
+  field.value = 'channel';
+  field.dispatchEvent(new Event('input'));
+  await el.updateComplete;
+  expect(names(el)).toBe('Bea');
+  el.query = 'won';
+  await el.updateComplete;
+  expect(names(el)).toBe('Ada Dee');
+  el.filter = (r) => r.deal !== 950;
+  await el.updateComplete;
+  expect(names(el)).toBe('Dee');
+  el.query = 'nobody';
+  await el.updateComplete;
+  expect(el.querySelector('.to-dt-empty')!.textContent).toBe('No rows match');
+  el.query = '';
+  el.filter = null;
+  let hidden: string[] = [];
+  el.addEventListener('columnschange', (e) => (hidden = (e as CustomEvent).detail.hidden));
+  const menu = el.querySelector<HTMLElement & { items: { label: string; does(): void }[] }>('to-menu')!;
+  menu.items.find((i) => i.label === 'Company')!.does();
+  await el.updateComplete;
+  expect(hidden).toStrictEqual(['company']);
+  expect([...el.querySelectorAll('[role=columnheader]')].map((h) => h.textContent?.trim())).not.toContain('Company');
+  let added = 0;
+  el.addEventListener('rowadd', () => added++);
+  el.querySelector<HTMLButtonElement>('.to-dt-add')!.click();
+  expect(added).toBe(1);
+  const none = await table({ empty: 'No people yet' }, []);
+  expect(none.querySelector('.to-dt-empty')!.textContent).toBe('No people yet');
+});
+
+test('the toolbar slot: the page’s own controls drawn in the bar, before the kit’s', async () => {
+  document.body.innerHTML = '<to-table filterable><div slot="toolbar" class="mine">My · All</div></to-table>';
+  const el = document.querySelector('to-table') as ToTable<Row>;
+  el.columns = COLS;
+  el.rows = ROWS;
+  await el.updateComplete;
+  const bar = el.querySelector('.to-dt-bar')!;
+  expect(bar.firstElementChild?.classList.contains('mine')).toBe(true);
+  expect(el.querySelector(':scope > .mine')).toBeNull();
+});
+
+test('5,000 rows: drawn, sorted, filtered, scrolled and walked to the end quickly, only those in sight drawn', async () => {
+  const many: Row[] = Array.from({ length: 5000 }, (_, i) => ({
+    id: i,
+    name: `Person ${(i * 7919) % 5000}`,
+    deal: (i * 31) % 9973,
+    met: `2027-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
+    vip: i % 3 === 0,
+    stage: i % 2 ? 'lead' : 'won',
+    company: `Company ${i % 97}`,
+  }));
+  const times: Record<string, number> = {};
+  const time = async (what: string, f: () => unknown) => {
+    const t0 = performance.now();
+    await f();
+    times[what] = Math.round(performance.now() - t0);
+  };
+  let el!: ToTable<Row>;
+  await time('draw', async () => (el = await table({}, many)));
+  const drawn = el.querySelectorAll('.to-dt-body [role=row]').length;
+  expect(drawn).toBeGreaterThan(5);
+  expect(drawn).toBeLessThan(80);
+  await time('sort by money', async () => {
+    heading(el, 'Deal').querySelector('button')!.click();
+    await el.updateComplete;
+  });
+  expect(el.shownRows[0].deal).toBe(0);
+  await time('sort by date, then name', async () => {
+    el.sort = [
+      { key: 'met', dir: 'desc' },
+      { key: 'name', dir: 'asc' },
+    ];
+    await el.updateComplete;
+  });
+  await time('filter', async () => {
+    el.query = '"company 42"';
+    await el.updateComplete;
+  });
+  expect(el.shownRows.length).toBe(52);
+  el.query = '';
+  await el.updateComplete;
+  const box = el.querySelector<HTMLElement>('.to-dt-box')!;
+  await time('scroll to the end', async () => {
+    box.scrollTop = box.scrollHeight;
+    await until(() => !!el.querySelector('[aria-rowindex="5001"]'), 'the last row was never drawn');
+  });
+  expect(el.querySelectorAll('.to-dt-body [role=row]').length).toBeLessThan(80);
+  box.scrollTop = 0;
+  el.querySelector<HTMLElement>('[tabindex="0"]')!.focus();
+  await time('Mod+End', async () => {
+    await userEvent.keyboard('{Control>}{End}{/Control}');
+    await until(() => (document.activeElement as HTMLElement).dataset.r === '4999', 'Mod+End did not reach the last row');
+  });
+  console.info(`5,000 rows, in ms: ${JSON.stringify(times)}`);
+  expect(times.draw).toBeLessThan(500);
+  expect(times['sort by money']).toBeLessThan(500);
+  expect(times['sort by date, then name']).toBeLessThan(500);
+  expect(times.filter).toBeLessThan(1000);
+});
+
+test('at a phone’s width the table scrolls sideways in its own box, the page never', async () => {
+  await page.viewport(390, 844);
+  try {
+    const el = await table({ selectable: true });
+    const box = el.querySelector<HTMLElement>('.to-dt-box')!;
+    expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+    // The boxes and the names stay at the start as the rest scrolls under them.
+    box.scrollLeft = 200;
+    const name = cell(el, 'Ada', 'Name');
+    expect(Math.round(name.getBoundingClientRect().left - box.getBoundingClientRect().left)).toBeLessThan(60);
+    el.querySelector<HTMLElement>('[tabindex="0"]')!.focus();
+    box.scrollLeft = 0;
+    await userEvent.keyboard('{End}');
+    await until(() => (document.activeElement as HTMLElement).dataset.c === '6');
+    const last = document.activeElement!.getBoundingClientRect();
+    expect(last.right).toBeLessThanOrEqual(box.getBoundingClientRect().right + 1);
+  } finally {
+    await page.viewport(1280, 800);
+  }
+});

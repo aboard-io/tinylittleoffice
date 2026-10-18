@@ -3296,3 +3296,37 @@ find-not-found = לא נמצא
 menu-nothing-starts-q = אין התאמות ל־"{ $q }"
 # en: ddf17f8747a6b36489443d6b09c25b429a1ea675
 menu-starting-q = התאמות ל־"{ $q }"
+
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# en: 4816c01fcfc82e618ba8d4f9f2d5cca84f36a4c1
+table-filter-rows = סינון שורות
+# en: f648af13b3a158a514634b7a27501c621e4f9c87
+table-add-row = הוספת שורה
+# en: 45b553017087942f58e36f1963f58398aaa93cef
+table-select-all-rows = בחירת כל השורות
+# en: 9320afbefdcf309b4b763224769937b3936d517a
+table-select-name = בחירת { $name }
+# en: e892255d168b0ccc00b895b653a7ff8d9a7ab4f0
+table-no-rows = אין כאן עדיין כלום
+# en: 7dc03a2b77e86b5ce3279f1239cf7eed2c3e31dd
+table-no-rows-match = אין שורות תואמות
+# en: fc6c0582fa83a05374d53d05a9e4fbd9a76f7adc
+table-sort-hint = מיון לפי העמודה הזו. Shift ולחיצה למיון גם לפיה.
+# en: bce06414177f72ab70e6387b6af9f8ceef0d6049
+search-label = חיפוש
+# en: 1a6a5ba8c23ddb672874a2996abaee1fe933abcd
+search-searching = מחפש…
+# en: 938206ae8c35210570eff0f625f7174736ab50d3
+search-failed = החיפוש לא הצליח. אפשר לנסות שוב.
+# en: 445b04c118dbe3becf81b1490e4f09218cd85a09
+search-n-found = { $n ->
+        [one] תוצאה אחת
+        [two] שתי תוצאות
+       *[other] { $n } תוצאות
+    }
+# en: 1c8d7da8241f46e35847a6ee94585aa15c895038
+search-nothing-found = אין התאמות ל־"{ $q }"
+# en: 0ecef6f95577e3e82d8917d2d3e89d1aa83afd09
+header-breadcrumbs = פירורי לחם

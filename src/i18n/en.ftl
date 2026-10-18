@@ -1801,3 +1801,28 @@ find-not-found = Not found
 
 menu-nothing-starts-q = No matches for “{ $q }”
 menu-starting-q = Matches for “{ $q }”
+
+## a host's own pages: its table, its search, its header (kit/ui/table.ts, kit/ui/search-box.ts, kit/ui/header.ts)
+
+# The quick search over a table's rows: the field's words and its name.
+table-filter-rows = Filter rows
+# A button under a table of a host's records (people, companies) when the host gives no words of its own.
+table-add-row = Add row
+table-select-all-rows = Select all rows
+# A row's box; { $name } is the row's first cell: "Select Ada Lovelace".
+table-select-name = Select { $name }
+table-no-rows = Nothing here yet
+table-no-rows-match = No rows match
+# A column's heading, on hover: a click sorts by it, a click with the Shift key sorts by it as well as by the others.
+table-sort-hint = Sort by this column. Shift-click to sort by it as well.
+# The search across everything a host keeps (people, companies, projects): the field's name and its words while empty.
+search-label = Search
+search-searching = Searching…
+search-failed = The search didn’t work. Try again.
+search-n-found = { $n ->
+        [one] { $n } found
+       *[other] { $n } found
+    }
+search-nothing-found = Nothing found for “{ $q }”
+# The trail above a page's title, each step a page further up.
+header-breadcrumbs = Breadcrumbs
