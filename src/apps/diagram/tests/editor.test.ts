@@ -388,6 +388,31 @@ test('a swimlane step branches as a mind map’s idea does (Tab, Add a branch), 
   expect(thing(el, 'Done').querySelector('path, ellipse')).not.toBeNull();
 });
 
+test('a connection chosen has a halo, and its words open once, over where they are drawn (Paul, 2026-10-18)', async () => {
+  for (const doc of ['---\nkind: lanes\n---\n- Desk: Ready?\n- Lab: Ship it\n\n~ Ready? -> Ship it: Yes\n', '---\nkind: mind\n---\n- Plan\n  - Ask\n  - Do\n\n~ Ask -> Do: then\n']) {
+    const { el } = await editor(doc);
+    const parts = () => [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing.edge')];
+    const words = parts().find((g) => g.querySelector('text'))!;
+    const label = words.querySelector('text')!.textContent!;
+    await tap(el, words);
+    expect(isOpen(el)).toBe(true);
+    expect(held(el)).toBe(label);
+    // Every part of it is the thing open: its drawn words hidden under the open ones, its line in a band of the accent.
+    expect(parts().every((g) => g.classList.contains('on'))).toBe(true);
+    const shown = [...el.querySelectorAll('.dg-pic text')].filter((x) => x.textContent === label && getComputedStyle(x).visibility !== 'hidden');
+    expect(shown).toEqual([]);
+    const band = el.querySelector<SVGElement>('.dg-pic g.dg-thing.edge.on [stroke="transparent"]')!;
+    expect(getComputedStyle(band).stroke).not.toBe('transparent');
+    expect(Number(getComputedStyle(band).strokeOpacity)).toBeGreaterThan(0);
+    // The open words sit over the drawn ones.
+    const [w, at] = [line(el).getBoundingClientRect(), words.getBoundingClientRect()];
+    expect(Math.abs(w.top + w.height / 2 - (at.top + at.height / 2))).toBeLessThan(12);
+    await key(el, 'Escape');
+    if (isOpen(el)) await key(el, 'Escape');
+    expect(parts().some((g) => g.classList.contains('on'))).toBe(false);
+  }
+});
+
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
   const { el, last } = await editor('---\nkind: venn\n---\n- Fast: espresso\n- Cheap: walking\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;

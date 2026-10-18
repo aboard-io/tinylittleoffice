@@ -82,6 +82,16 @@
   .dg-slot[hidden] {
     display: none;
   }
+  /* A connection chosen (its words open, or the focus on it): a band of the accent along it, where its line takes
+     the pointer, and behind its words (Paul, 2026-10-18: "give it a halo of some kind so I know it's selected"). */
+  .dg-thing.edge:is(.on, :focus-visible) [stroke='transparent'] {
+    stroke: var(--to-accent);
+    stroke-opacity: 0.3;
+  }
+  .dg-thing.edge:is(.on, :focus-visible) rect[fill='transparent'] {
+    fill: var(--to-accent);
+    fill-opacity: 0.15;
+  }
   /* The thing whose words are open: its words are the editor's over it, its icon still drawn. */
   .dg-thing.on text {
     visibility: hidden;

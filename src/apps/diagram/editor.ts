@@ -352,7 +352,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const wrap = this.wrap;
     const pic = this.querySelector<SVGSVGElement>('.dg-pic');
     const { d } = this.view;
-    const s = tg ? d.shapes[this.indexOf(tg)] : undefined;
+    // A connection's words open where they are drawn, beside its line, where it has any.
+    const s = tg ? (d.shapes.find((x) => x.k === 't' && tg.hit.k === 'edge' && sameHit(x.hit, tg.hit)) ?? d.shapes[this.indexOf(tg)]) : undefined;
     if (!el || !s || !wrap || !pic) return;
     const r = pic.getBoundingClientRect();
     const box = wrap.getBoundingClientRect();
@@ -970,7 +971,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- drawing ---------- */
 
-  private thing(s: DShape, i: number, all: DShape[], on: number) {
+  private thing(s: DShape, i: number, all: DShape[], on: Hit | null) {
     const hit = s.hit;
     // The thing whose words are being typed is drawn with them hidden (the stylesheet's .on text): the words over it
     // hold them, nothing doubles, and its icon stays drawn, a new one at once (Paul, 2026-10-18).
@@ -985,12 +986,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       this.view.kind === 'lanes' && hit.k === 'line'
         ? svg`<g class="dg-grip"><title>${t('common-drag-to-move')}</title><rect x=${cx - 20} y=${s.y - 14} width="40" height="22" fill="transparent" />${[-6, 0, 6].flatMap((dx) => [-9, -4].map((dy) => svg`<circle cx=${cx + dx} cy=${s.y + dy} r="1.75" />`))}</g>`
         : nothing;
-    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${i === on ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}${grip}</g>`;
+    // Every shape drawn for the thing open is it: a connection's line and its words alike (its words not twice).
+    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${sameHit(hit, on) ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}${grip}</g>`;
   }
   render() {
     const { kind, d } = this.view;
     const tg = this.target;
-    const on = tg ? this.indexOf(tg) : -1;
+    const on = tg?.hit ?? null;
     const words = this.wording(tg);
     const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
     const hint = this.joining === '' ? t('diagram-tap-first-thing-to-join') : this.joining !== null ? t('diagram-tap-thing-to-join-name', { name: this.joining }) : kindHint(kind);
