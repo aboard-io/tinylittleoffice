@@ -149,10 +149,11 @@ describe('tracked changes', () => {
     const cut = { author: B, text: 'One.\n\nThree.\n', hash: 'v1' };
     // Undone by whoever took it out, nobody having reviewed it: as it was.
     expect(show([base, cut, { author: B, text: base.text, hash: 'v2' }])).toEqual(['p: One.', 'p: Two words.', 'p: Three.']);
-    // Put back by anyone else (a rejection, say): words restored, the taking out it undid still Bob's.
+    // Put back by anyone else (a rejection, say): the block restored, the taking out it undid still Bob's, and its words
+    // with their own changes, none of them here.
     const back = track([base, cut, { author: A, text: base.text, hash: 'v2' }]);
-    expect(show([base, cut, { author: A, text: base.text, hash: 'v2' }])).toEqual(['p: One.', 'p: [+Two words.+a]', 'p: Three.']);
-    expect(back[1].toks.every((x) => x.restored && x.from?.delId === 'v1:0')).toBe(true);
+    expect([back[1].restored, back[1].ins, back[1].insId, back[1].from]).toEqual([true, A, 'v2:0', { del: B, delId: 'v1:0' }]);
+    expect(back[1].toks.some((x) => x.insId || x.delId)).toBe(false);
     expect(changesOf(back).map((c) => [c.id, c.author, c.kind, c.put, c.took])).toEqual([
       ['v2:0', A, 'restore', 'Two words.', ''],
       ['v1:0', B, 'edit', '', 'Two words.'],
@@ -195,6 +196,19 @@ describe('tracked changes', () => {
     ]);
     expect(rejecting(v, (all) => all)).toBe(write(parse(v[0].text)));
     expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v2:')))).toBe(write(parse(v[1].text)));
+  });
+
+  test('a paragraph put back whole keeps its words’ own changes: rejecting every change gives the first version back', () => {
+    // The fuzz's counterexample, small: Bob rewrites a word, Carol moves the paragraph down, Alice moves it back.
+    const v: Step[] = [
+      { author: A, text: 'Due in thirty days.\n\nX.\n\nY.\n', hash: 'v0' },
+      { author: B, text: 'Due in sixty days.\n\nX.\n\nY.\n', hash: 'v1' },
+      { author: C, text: 'X.\n\nY.\n\nDue in sixty days.\n', hash: 'v2' },
+      { author: A, text: 'Due in sixty days.\n\nX.\n\nY.\n', hash: 'v3' },
+    ];
+    expect(rejecting(v, (all) => all)).toBe(v[0].text);
+    // Bob's word is still Bob's, to reject alone.
+    expect(rejecting(v, (all) => all.filter((id) => id.startsWith('v1:')))).toBe(v[0].text);
   });
 
   test('a replacement is one change, with what it put in and what it took out, named by the version that made it', () => {
