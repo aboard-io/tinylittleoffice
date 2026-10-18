@@ -22,7 +22,7 @@
  * card in the lane, at its start a card above it, in the middle splits it; Backspace at the start of an empty card
  * takes it away, else joins it to the card before (where it has no fields to lose), and Delete at the end joins the
  * next in. A card's other keys, and how one is opened and carried across, are the Board's line of that standard's §8,
- * declared in commands.ts. Cards are rows of the kit's `Rows`: a tap on the grip (or a finger held on it), Escape or
+ * declared in commands.ts. Cards are rows of the kit's `Rows`: a tap on a card outside its title (or a finger held on it), Escape or
  * Shift+Up/Down in the title choose them whole, and chosen cards are moved, duplicated, copied (a table as TLO and our
  * HTML), cut, pasted and deleted from the keys or the bar under them. A card opened shows its row's every cell as a
  * field in a dialog (the kit's <to-dialog>, as the Calendar's entries: the cells are fields that are not all words, a
@@ -277,7 +277,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
   declare cur: number;
   /** The lane in hand (the caret's, in its name or a card), by its place; -1 for none. */
   curLane = -1;
-  /** The card being carried by its grip, by its row; -1 for none. */
+  /** The card being carried by a drag, by its row; -1 for none. */
   declare carrying: number;
   declare over: Over | null;
   /** The lane whose menu is open, by its place; -1 for none. */
@@ -304,7 +304,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
    */
   private backs: Step[] = [];
   private agains: Step[] = [];
-  /** Cards chosen whole: the kit's one implementation (keys, the bar under them, the clipboard). The grip's drag is the board's own, across lanes. */
+  /** Cards chosen whole: the kit's one implementation (keys, the bar under them, the clipboard). A card's drag is the board's own, across lanes. */
   readonly rows = new Rows<number>(this, {
     rows: () => this.rowItems(),
     box: () => this.querySelector<HTMLElement>('.board'),
@@ -906,8 +906,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const s = this.rows.range ? this.rows.span() : null;
     const first = s ? this.chosenCards(s)[0] : undefined;
     const from =
-      this.querySelector<HTMLElement>(`.board-context button[aria-label="${t('board-move-to')}"]`) ??
-      (first ? this.querySelector<HTMLElement>(`.board-card[data-row="${first.row}"] .board-grip`) : null);
+      this.querySelector<HTMLElement>(`.board-context button[aria-label="${t('board-move-to')}"]`) ?? (first ? this.querySelector<HTMLElement>(`.board-card[data-row="${first.row}"]`) : null);
     if (!menu || !from) return;
     await menu.updateComplete;
     menu.openAt(from);
