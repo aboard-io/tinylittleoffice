@@ -31,7 +31,7 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "stories",
-    ".storybook"
+    ".storybook/*.ts"
   ],
   "exclude": ["node_modules", "packages/doc/dist"]
 }
