@@ -110,7 +110,7 @@ export class ToTemplatePicker extends LitElement {
     const was = this.chosen;
     this.chosen = '';
     await this.updateComplete;
-    (this.querySelector<HTMLElement>(`[data-app="${CSS.escape(was)}"]`) ?? this.options()[0])?.focus({ preventScroll: true });
+    (this.querySelector<HTMLElement>(`[data-picks="${CSS.escape(was)}"]`) ?? this.options()[0])?.focus({ preventScroll: true });
   }
 
   /** The picker opened: resolves with the template chosen, or null when it is let go. */
@@ -155,7 +155,7 @@ export class ToTemplatePicker extends LitElement {
   }
   /** One of the menu's apps: its icon, its name and its line. */
   private appOption(def: AppDef): TemplateResult {
-    return html`<div role="option" class="to-option to-tp-app" data-app=${def.id} tabindex="-1" aria-selected="false" @pointermove=${hoverFocus} @click=${() => void this.pickApp(def.id)}>
+    return html`<div role="option" class="to-option to-tp-app" data-picks=${def.id} tabindex="-1" aria-selected="false" @pointermove=${hoverFocus} @click=${() => void this.pickApp(def.id)}>
       <span class="to-tp-icon" aria-hidden="true">${icon(def.icon, 24)}</span>
       <span class="to-option-words"><span>${def.name}</span><small>${def.blurb}</small></span>
     </div>`;
