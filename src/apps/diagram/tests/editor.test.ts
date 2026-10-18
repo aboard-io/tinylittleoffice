@@ -425,6 +425,26 @@ test('a connection chosen has a halo, and its words open once, over where they a
   }
 });
 
+test('swimlanes wider than the column keep a readable size and scroll across; a narrow one fits (Paul, 2026-10-18)', async () => {
+  const steps = Array.from({ length: 8 }, (_, i) => `- ${i % 2 ? 'Lab' : 'Desk'}: Step ${i + 1}`).join('\n');
+  const wide = await editor(`---\nkind: lanes\n---\n${steps}\n`);
+  const wrap = wide.el.querySelector<HTMLElement>('.dg-wrap')!;
+  const pic = wide.el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const natural = Number(pic.getAttribute('viewBox')!.split(' ')[2]) * remScale();
+  expect(pic.getBoundingClientRect().width).toBeGreaterThanOrEqual(natural * 0.6 - 1);
+  expect(wrap.scrollWidth).toBeGreaterThan(wrap.clientWidth);
+  // A step's words at that size: no smaller than 9 pixels.
+  const text = thing(wide.el, 'Step 1').querySelector('text')!;
+  expect(text.getBoundingClientRect().height).toBeGreaterThanOrEqual(9);
+  const narrow = await editor('---\nkind: lanes\n---\n- Desk: One\n');
+  const w2 = narrow.el.querySelector<HTMLElement>('.dg-wrap')!;
+  expect(w2.scrollWidth).toBeLessThanOrEqual(w2.clientWidth + 1);
+  // Other kinds fit the column as before.
+  const mind = await editor(`---\nkind: mind\n---\n- Root\n${Array.from({ length: 6 }, (_, i) => `  - Idea ${i}\n    - More ${i}`).join('\n')}\n`);
+  const w3 = mind.el.querySelector<HTMLElement>('.dg-wrap')!;
+  expect(w3.scrollWidth).toBeLessThanOrEqual(w3.clientWidth + 1);
+});
+
 test('a Venn: a tap where two circles cross adds to what they share; a seat dragged to another table moves there', async () => {
   const { el, last } = await editor('---\nkind: venn\n---\n- Fast: espresso\n- Cheap: walking\n');
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;

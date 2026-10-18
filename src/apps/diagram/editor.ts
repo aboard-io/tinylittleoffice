@@ -92,6 +92,8 @@ import '../../kit/ui/menu.ts';
 import { ArrowLeft } from 'lucide';
 import type { IconNode } from '../../kit/draw/icons.ts';
 
+/** The least share of its size a swimlane is drawn at, fitted to the column (a step's words some 11px at the usual size); wider, it scrolls. */
+const READABLE = 0.6;
 /** Each shape by the name Draw's Insert ▾ gives it. */
 const SHAPE_NAME: Record<ShapeName, string> = {
   rectangle: 'draw-rectangle',
@@ -1020,7 +1022,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     const on = tg?.hit ?? null;
     const words = this.wording(tg);
-    const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
+    // Fitted to the column, but swimlanes no smaller than READABLE of their size: wider, the frame scrolls across (Paul,
+    // 2026-10-18: "past four nodes in width it gets too small to read").
+    const least = kind === 'lanes' ? `max(100%, ${Math.round(d.w * READABLE) / 16}rem)` : '100%';
+    const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:${least};max-width:${d.w / 16}rem`;
     const hint = this.joining === '' ? t('diagram-tap-first-thing-to-join') : this.joining !== null ? t('diagram-tap-thing-to-join-name', { name: this.joining }) : kindHint(kind);
     const own = (id: string) => COMMANDS.find((c) => c.id === `diagram.${id}`)!;
     return html`<to-bar class="dg-bar">
