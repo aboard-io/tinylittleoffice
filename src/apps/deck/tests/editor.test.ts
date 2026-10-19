@@ -12,6 +12,8 @@ import type { ToDeckEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import { layoutSlide } from '../view.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { host } from '../../../kit/core/host.ts';
+import { picker } from '../../../kit/draw/image-picture.ts';
 import { remScale } from '../../../kit/ui/zoom.ts';
 import { encodeDoc } from '../../../kit/core/codec.ts';
 
@@ -764,6 +766,33 @@ test('a lone Tiny Little Office link pasted into empty words is its document on 
 /* ---------- Insert ▾: the kit's dialogs, other documents on the slide, the speaker notes ---------- */
 
 const docDialog = () => document.querySelector('to-doc-dialog');
+
+test('Insert ▾ Picture, only where the host keeps pictures: the file chosen is put to the host and its fence goes on the slide, drawn as the picture', async () => {
+  const kept = new Map<string, Blob>();
+  Object.assign(host, {
+    images: {
+      put: async (file: Blob) => (kept.set(`test:${kept.size + 1}`, file), { ref: `test:${kept.size}`, w: 1, h: 1 }),
+      url: (ref: string) => (kept.has(ref) ? URL.createObjectURL(kept.get(ref)!) : ''),
+    },
+  });
+  const was = picker.choose;
+  picker.choose = async () =>
+    new File([Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0)) as BlobPart], 'the-stoop.png', {
+      type: 'image/png',
+    });
+  try {
+    const { el, last } = await editor('## Plan\n');
+    const opener = el.querySelector<HTMLElement>('to-insert button')!;
+    await pick(el, opener, 'Picture…');
+    await until(() => !!last()?.includes('```image'));
+    expect(last()).toBe('## Plan\n\n---\n\n```image {alt="the stoop" w=1 h=1}\ntest:1\n```\n');
+    await until(() => !!el.querySelector('figure.deck-sub svg image'));
+    expect(el.querySelector('figure.deck-sub svg image')!.getAttribute('href')).toMatch(/^blob:/);
+  } finally {
+    picker.choose = was;
+    delete (host as { images?: unknown }).images;
+  }
+});
 
 test('Insert ▾ puts other local documents on the slide: an outline is made in its own editor, and Done puts it on the slide', async () => {
   const { el, last } = await editor('## Plan\n');

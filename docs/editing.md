@@ -250,6 +250,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Table | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
 |  | QR code of this document | insert ▾ |
+|  | Picture… | insert ▾ |
 |  | Date | insert ▾ |
 |  | Horizontal rule | insert ▾ |
 | `Mod+Shift+Enter` | Page break | insert ▾, at: words |
@@ -323,6 +324,7 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Table | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
 |  | QR code of this document | insert ▾ |
+|  | Picture… | insert ▾ |
 | `Mod+Alt+Enter` | Present | bar, at: slide, drawer on a phone |
 |  | Print layout | bar, drawer on a phone |
 |  | Icon | bar |

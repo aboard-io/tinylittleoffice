@@ -323,6 +323,18 @@ common-share = Поделиться…
 common-qr-code = QR-код
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = QR-код этого документа
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = Картинка
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = картинка
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = Картинка…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = Картинка здесь не хранится
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = Картинка, которую хранит эта страница
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = Картинка слишком большая: здесь хранится до { $max }
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = Этот документ весит { $n } байт, а в самый большой QR-код помещается { $max }. Сократите его на { $over } байт, и он поместится.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
@@ -808,6 +820,10 @@ write-newspaper = Газета
 write-narrow-headline-two-columns = Узкий заголовок, две колонки
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = Горизонтальная линия
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = Описать картинку
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = Слова для тех, кто её не видит
 # Insert ▾'s rule in a document: what follows starts the next page.
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = Разрыв страницы

@@ -12,6 +12,7 @@ import { apps } from '../../kit/core/apps.ts';
 import { command, register, type Command, commandsOf } from '../../kit/core/commands.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { UI } from '../../kit/draw/icons.ts';
+import { imagesKept } from '../../kit/draw/image-picture.ts';
 import { FORMATS, LAYOUTS, setHead, TRANSITIONS, type Layout } from './model.ts';
 import { ICON_COLORS, THEMES } from './theme.ts';
 import { geometryOf } from './view.ts';
@@ -58,6 +59,8 @@ const INSERTS: Command<D>[] = [
   cmd('insert.table', 'common-table', { icon: UI.table, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertTable() }),
   cmd('insert.doc', 'common-tiny-little-office-doc-ellipsis', { icon: UI.insert, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertDocument() }),
   cmd('insert.qr', 'common-qr-code-of-this-document', { icon: UI.qr, heading: onSlide, where: ['menu:insert'], does: (d) => d.insertQr() }),
+  // A picture only where the host keeps one (kit/core/host.ts `images`): the site keeps no bytes, so its Insert ▾ never lists it.
+  cmd('insert.image', 'common-picture-ellipsis', { icon: UI.image, heading: onSlide, where: ['menu:insert'], when: () => imagesKept(), does: (d) => void d.insertImage() }),
   ...apps()
     .filter((a) => a.id !== 'deck')
     .map((a) => cmd(`insert.app.${a.id}`, () => a.name, { icon: a.icon, data: true, heading: 'common-new-document', where: ['menu:insert'], does: (d) => d.insertApp(a.id) })),

@@ -15,6 +15,12 @@ import { layout } from '../src/apps/diagram/view.ts';
 import { fitLabel, shapeSvg } from '../src/apps/draw/view.ts';
 import { layoutSlide } from '../src/apps/deck/view.ts';
 import { slidesOf } from '../src/apps/deck/model.ts';
+import { host } from '../src/kit/core/host.ts';
+
+// The fixtures are linted as a page that keeps pictures lints them (kit/core/host.ts `images`): under node there is
+// none, and every picture would be a finding of its own kind, which the last test below asks for on its own.
+const images = { put: async () => ({ ref: 'asset:x' }), url: (ref: string) => `https://pictures.test/${ref}` };
+Object.assign(host, { images });
 
 const FIX = join(import.meta.dirname, 'fixtures/lint');
 const fixture = (name: string) => {
@@ -39,6 +45,7 @@ describe('each finding: a document that trips it, and one that does not', () => 
     ['body', 'body-over'],
     ['sheet-circ', 'formula-error'],
     ['doc-link', 'doc-link'],
+    ['image-no-alt', 'image-no-alt'],
   ])('%s', (name, kind) => {
     expect(kinds(name)).toContain(kind);
     expect(kinds(`${name}.ok`)).toStrictEqual([]);
@@ -47,6 +54,24 @@ describe('each finding: a document that trips it, and one that does not', () => 
   test('every fixture is one of those pairs', () => {
     const names = readdirSync(FIX).filter((f) => f.endsWith('.tlo'));
     for (const f of names.filter((x) => !x.endsWith('.ok.tlo') && x !== 'deck-diagram.tlo')) expect(names).toContain(f.replace(/\.tlo$/, '.ok.tlo'));
+  });
+});
+
+describe('a host-kept picture', () => {
+  test('with no words is a finding; on a page that keeps no pictures, the site above all, it is a finding too, never an error', () => {
+    const { app, text } = fixture('image-no-alt');
+    expect(lint(app, text).map((f) => [f.kind, f.at])).toStrictEqual([['image-no-alt', 'block 3']]);
+    expect(lint(app, text)[0].fix).toContain('alt=');
+    delete (host as { images?: unknown }).images;
+    try {
+      expect(lint(app, text).map((f) => f.kind)).toStrictEqual(['image-no-alt', 'image-not-kept']);
+      expect(lint(app, fixture('image-no-alt.ok').text).map((f) => f.kind)).toStrictEqual(['image-not-kept']);
+      // A body that is no reference a host keeps (an address of the web, the bytes) is named as such.
+      expect(lint('write', '```image {alt=cat}\nhttps://pictures.example/cat.png\n```\n').map((f) => f.kind)).toStrictEqual(['image-ref']);
+      expect(lint('write', '```image {alt=cat}\ndata:image/png;base64,AAAA\n```\n').map((f) => f.kind)).toStrictEqual(['image-ref']);
+    } finally {
+      Object.assign(host, { images });
+    }
   });
 });
 

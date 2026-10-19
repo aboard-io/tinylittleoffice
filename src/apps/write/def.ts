@@ -43,7 +43,7 @@ export default defineApp({
       shows: null,
       build: async (doc, ctx) => docToDocx(parse(doc), ctx),
     },
-    { ext: 'md', label: () => t('common-markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => docToMarkdown(parse(doc)) },
+    { ext: 'md', label: () => t('common-markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc, ctx) => docToMarkdown(parse(doc), ctx) },
     { ext: 'rtf', label: () => t('write-rich-text-rtf'), mime: 'application/rtf', shows: null, build: async (doc, ctx) => utf8(docToRtf(parse(doc), ctx)) },
     // In place of the kit's pictures of the pages: the words still words, in a page anyone can read.
     { ext: 'html', label: () => t('common-web-page-html'), mime: 'text/html', shows: 'own', build: async (doc, ctx) => docToHtml(parse(doc), ctx) },

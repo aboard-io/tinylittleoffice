@@ -24,6 +24,7 @@ import { pdf } from './pdf.ts';
 import { tloText } from '../core/plain.ts';
 import { copyText } from '../share/share.ts';
 import { ensureIcons, iconNames, UI } from '../draw/icons.ts';
+import { readyImages } from '../draw/image-picture.ts';
 import { t } from '../core/i18n.ts';
 import { toast } from '../core/say.ts';
 import { textLayer } from '../text/text-layer.ts';
@@ -265,11 +266,12 @@ export interface Made {
   data: Uint8Array | string;
 }
 
-/** The document built as a file of this format: every icon it names drawn first. */
+/** The document built as a file of this format: every icon it names drawn first, and every host-kept picture's bytes in hand. */
 export async function fileOf(format: Export, { doc, ctx }: Current): Promise<Made> {
   const { def } = ctx;
-  // Every icon the document names is drawn: one outside the starter set waits for the rest of Lucide.
-  await ensureIcons(iconNames(doc));
+  // Every icon the document names is drawn: one outside the starter set waits for the rest of Lucide. A picture the
+  // host keeps is fetched now, since a page drawn still cannot fetch (kit/draw/image-picture.ts readyImages).
+  await Promise.all([ensureIcons(iconNames(doc)), readyImages(doc)]);
   const data = await format.build(doc, ctx);
   return { name: fileName(ctx.title || def.title(doc), slug(def.noun) || def.id, format.ext), mime: format.mime, data };
 }
@@ -302,7 +304,7 @@ export async function viewAs(view: string, current: () => Current): Promise<void
 
 /** Print the document (not a format: the browser's dialog, which saves a PDF too), drawn still. */
 export async function printDoc({ doc, ctx }: Current): Promise<void> {
-  await ensureIcons(iconNames(doc));
+  await Promise.all([ensureIcons(iconNames(doc)), readyImages(doc)]);
   await printPages(pagesOf(doc, ctx, true), titleOf(doc, ctx));
 }
 

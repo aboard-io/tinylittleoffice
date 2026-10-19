@@ -1,0 +1,21 @@
+{
+  "source": "docs/tlo.md and src/doc/image.ts: a host-kept picture, as a page that keeps bytes writes one (2026-10-19)",
+  "docs": [
+    {
+      "name": "a text with a host-kept picture",
+      "text": "---\ntitle: The stoop sale\n---\n# The stoop sale {.title}\n\nEverything must go.\n\n```image {alt=\"The table of records on the stoop\" w=640 h=480}\nasset:7f3a9c\n```\n\nCome early.\n"
+    },
+    {
+      "name": "a picture with a host's own class beside the kernel's attributes",
+      "text": "```image {alt=\"a b\" w=1 h=2 class=thumb}\natlas:img_7Hq\n```\n"
+    },
+    {
+      "name": "a picture with words and no size",
+      "text": "```image {alt=\"The stoop\"}\nasset:x\n```\n"
+    },
+    {
+      "name": "a slide with a picture",
+      "text": "## The stoop {.title}\n\n- Records\n- Lamps\n\n```image {alt=\"The stoop\" w=1200 h=800}\nasset:stoop\n```\n"
+    }
+  ]
+}

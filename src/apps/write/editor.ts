@@ -78,6 +78,7 @@ import '../../kit/text/text.ts';
 import './table.ts';
 import './style.css';
 import { qrBlock } from '../../kit/draw/qr-picture.ts';
+import { chooseImageFile, IMAGE_LANG, imageBlock, imageOf, imagesKept, imageUrl, putImage } from '../../kit/draw/image-picture.ts';
 
 export const tag = 'to-write-editor';
 
@@ -101,10 +102,11 @@ interface Clip {
 const BURST = 700;
 
 export class ToWriteEditor extends DocElement<Doc> {
-  static properties: PropertyDeclarations = { ...DocElement.properties, cardAt: { state: true } };
-  /** The question open in the dialog, if any. */
+  static properties: PropertyDeclarations = { ...DocElement.properties, cardAt: { state: true }, describing: { state: true } };
   /** The card in hand (it has the focus): its block; -1 for none. */
   declare cardAt: number;
+  /** The picture whose words are a field, being described where it is drawn (its card's Edit); -1 for none. */
+  declare describing: number;
   /** The selection the editor last reported, for the bar's pressed states. */
   sel: Sel | null = null;
   /** The last edit's key, time and mark, so a burst's mark says where it ended (for a redo). */
@@ -115,6 +117,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   constructor() {
     super();
     this.cardAt = -1;
+    this.describing = -1;
   }
   protected read(doc: Doc): Doc {
     return doc;
@@ -125,6 +128,8 @@ export class ToWriteEditor extends DocElement<Doc> {
     this.addEventListener('keydown', this.onKey);
     this.addEventListener('focusin', this.onFocusIn);
     this.addEventListener('focusout', this.onFocusOut);
+    this.addEventListener('dragover', this.onDragOver, true);
+    this.addEventListener('drop', this.onDrop, true);
     for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener, true);
   }
   disconnectedCallback() {
@@ -133,6 +138,8 @@ export class ToWriteEditor extends DocElement<Doc> {
     this.removeEventListener('keydown', this.onKey);
     this.removeEventListener('focusin', this.onFocusIn);
     this.removeEventListener('focusout', this.onFocusOut);
+    this.removeEventListener('dragover', this.onDragOver, true);
+    this.removeEventListener('drop', this.onDrop, true);
     for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener, true);
   }
   get text(): ToText {
@@ -277,6 +284,39 @@ export class ToWriteEditor extends DocElement<Doc> {
   insertQr() {
     this.insertBlock(qrBlock());
   }
+  /** Insert ▾ Picture: a file from the device, put to the host that keeps pictures (offered only where one does: commands.ts), its fence at the caret. */
+  async insertImage() {
+    const at = this.where();
+    const file = await chooseImageFile();
+    if (!file) return;
+    const b = await putImage(file, file.name);
+    if (b) this.insertBlock(b, at);
+  }
+  /** A picture file pasted or dropped, where the host keeps pictures: put to it, and its fence in at the caret, or after the card in hand. */
+  private async putImageAt(file: File, at: number | Sel) {
+    const b = await putImage(file, file.name);
+    if (!b) return;
+    if (typeof at !== 'number') return this.insertBlock(b, at);
+    this.change(putAfter(at, [b]), { before: null, after: null, card: at, cardAfter: at + 1 });
+    this.holdCard(at + 1);
+  }
+  /** The picture among what was pasted or dropped, if the host keeps pictures and there is one. */
+  private imageIn(dt: DataTransfer | null): File | null {
+    if (!dt || !imagesKept()) return null;
+    return [...(dt.files ?? [])].find((f) => f.type.startsWith('image/')) ?? null;
+  }
+  /** A picture dragged over the words may be dropped, where the host keeps pictures; anything else is the browser's. */
+  private onDragOver = (e: DragEvent) => {
+    if (imagesKept() && [...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file' && i.type.startsWith('image/'))) e.preventDefault();
+  };
+  private onDrop = (e: DragEvent) => {
+    const file = this.imageIn(e.dataTransfer);
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const held = this.heldIn(e.target);
+    void this.putImageAt(file, held >= 0 ? held : this.where());
+  };
   /** Whether a key is the words' own: typed in them (not a card's, not a field's), so Mod+Shift+R reloads the page from anywhere else. */
   wordsHave(e: KeyboardEvent): boolean {
     const at = e.target as HTMLElement;
@@ -329,6 +369,26 @@ export class ToWriteEditor extends DocElement<Doc> {
     }
     // A document locked with a password: the locked card, which a tap opens for this visit (kit/ui/locked-doc.ts).
     if (b.k === 'fence' && b.lang === LOCKED_LANG) return html`<figure class="write-doc"><to-locked-doc caption .ref=${b.body}></to-locked-doc></figure>`;
+    // A host-kept picture (kit/draw/image-picture.ts): the picture from the host's address, or a card saying it is not kept here; its words under it, a field while they are described.
+    if (b.k === 'fence' && b.lang === IMAGE_LANG && imageOf(b)) {
+      const im = imageOf(b)!;
+      const url = imageUrl(im.ref);
+      const label = t('write-words-for-the-picture');
+      return html`<figure class="write-doc write-picture">
+        ${
+          url
+            ? html`<img src=${url} alt=${im.alt} width=${im.w ?? nothing} height=${im.h ?? nothing} loading="lazy" decoding="async" />`
+            : html`<div class="write-picture-gone" role="img" aria-label=${im.alt || t('common-picture')}>${t('common-picture-not-kept-here')}</div>`
+        }
+        <figcaption>
+          ${
+            this.describing === at
+              ? html`<input class="write-alt" type="text" aria-label=${label} placeholder=${label} .value=${im.alt} enterkeyhint="done" @keydown=${(e: KeyboardEvent) => this.onAltKey(e, at)} @blur=${(e: FocusEvent) => this.describe(at, (e.target as HTMLInputElement).value)} />`
+              : html`<b class=${im.alt ? '' : 'write-alt-none'}>${im.alt || label}</b><small>${t('common-picture')}</small>`
+          }
+        </figcaption>
+      </figure>`;
+    }
     if (b.k === 'fence' && b.lang) {
       const def = lookup.appOf(b.lang);
       const page = def?.view(b.body, { small: true })[0];
@@ -435,8 +495,34 @@ export class ToWriteEditor extends DocElement<Doc> {
   private editOf(at: number): ContextEntry | null {
     const b = this.doc.blocks[at];
     if (!b) return null;
+    if (b.k === 'fence' && b.lang === IMAGE_LANG) return imageOf(b) ? { label: t('write-describe-picture'), icon: SquarePen, keys: 'Enter', does: () => this.startDescribe(at) } : null;
     if (b.k === 'table' || (b.k === 'fence' && b.lang && lookup.appOf(b.lang))) return { label: t('common-edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editCard(at) };
     return null;
+  }
+  /** The picture's words made a field in its caption, with the focus (docs/editing.md: edited where it is drawn, as a lane's name is). */
+  private startDescribe(at: number) {
+    this.describing = at;
+    void this.drawn().then(() => this.querySelector<HTMLInputElement>('.write-alt')?.focus());
+  }
+  /** Enter keeps the words (the field's blur does it); Escape lets them go. */
+  private onAltKey(e: KeyboardEvent, at: number) {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') this.describing = -1;
+      (e.target as HTMLInputElement).blur();
+      if (e.key === 'Escape') this.holdCard(at);
+    }
+  }
+  /** The picture's words as described: the fence written again with them, one step; every other attribute it carries rides along. */
+  private describe(at: number, words: string) {
+    if (this.describing !== at) return;
+    this.describing = -1;
+    const b = this.doc.blocks[at];
+    const im = imageOf(b);
+    const alt = words.trim();
+    if (im && alt !== im.alt && b.k === 'fence') this.change([{ op: 'splice', at, n: 1, blocks: [imageBlock(im.ref, alt, im.w, im.h, b.a)] }], { before: null, after: null, card: at, cardAfter: at });
+    this.holdCard(at);
   }
   /** The card's Edit, as its words say it ('' where it has none), and done: for the card's commands (commands.ts). */
   editLabel(at: number): string {
@@ -462,7 +548,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   /** A document held here, opened in its own app in a new tab: the lesser way, after Edit. */
   private openOf(at: number): ContextEntry[] {
     const b = this.doc.blocks[at];
-    if (b?.k !== 'fence' || !b.lang) return [];
+    if (b?.k !== 'fence' || !b.lang || b.lang === IMAGE_LANG) return [];
     const link = host.link(b.lang, b.body);
     return [{ label: t('common-open-in-new-tab'), icon: UI.open, does: () => void window.open(link, '_blank', 'noopener') }];
   }
@@ -524,6 +610,13 @@ export class ToWriteEditor extends DocElement<Doc> {
   private onClipboard = (e: ClipboardEvent) => {
     const at = this.heldIn(document.activeElement);
     const dt = e.clipboardData;
+    // A picture file pasted anywhere in this editor, where the host keeps pictures: put to it, in at the caret or after the card.
+    const file = e.type === 'paste' && this.contains(e.target as Node) ? this.imageIn(dt) : null;
+    if (file) {
+      e.preventDefault();
+      e.stopPropagation();
+      return void this.putImageAt(file, at >= 0 ? at : this.where());
+    }
     if (at < 0 || !dt) return;
     e.preventDefault();
     e.stopPropagation();
@@ -614,6 +707,9 @@ export class ToWriteEditor extends DocElement<Doc> {
   }
   protected updated(changed: PropertyValues) {
     super.updated(changed);
+    // A picture's words become a field, or a field words again: the cards are the words' to draw, and the blocks they
+    // hold are the same ones, so the words are asked to draw them again.
+    if (changed.has('describing') && changed.get('describing') !== undefined) this.text?.requestUpdate();
     const bar = this.querySelector<ToContext>('to-context.write-cardbar');
     const card = this.cardAt >= 0 ? this.cardEl(this.cardAt) : null;
     if (bar && card) bar.show(card);

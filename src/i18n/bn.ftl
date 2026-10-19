@@ -258,6 +258,18 @@ common-share = শেয়ার…
 common-qr-code = QR কোড
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = এই ডকুমেন্টের QR কোড
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = ছবি
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = ছবি
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = ছবি…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = ছবিটি এখানে রাখা নেই
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = এই পাতায় রাখা একটি ছবি
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = ছবিটি খুব বড়: এখানে সর্বোচ্চ { $max } রাখা যায়
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = এই ডকুমেন্ট { $n } বাইটের; সবচেয়ে বড় QR কোডে { $max } বাইট ধরে। { $over } বাইট ছোট করলে ধরবে।
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
@@ -658,6 +670,10 @@ write-newspaper = পত্রিকা
 write-narrow-headline-two-columns = সরু শিরোনাম, দুই কলাম
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = আড়াআড়ি লাইন
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = ছবির বর্ণনা
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = যারা দেখতে পান না তাদের জন্য কথা
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = পাতা বিরতি
 # en: 9ce3bd4224c8c1780db56b4125ecf3f24bf748b7

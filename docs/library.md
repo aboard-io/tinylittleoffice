@@ -20,6 +20,7 @@ What an app still asked of the site itself, and what replaces it:
 |---|---|---|
 | where a document opens on its own (Open in new tab, See more, a hand-off, a deck's take-home link) | `location` in deck, outline, write | `host.link()` (kit/core/host.ts) |
 | which document a pasted link names | the route's `parseHash` in outline | `host.read()` |
+| where a picture's bytes are kept, on a host that keeps them | nowhere: the site keeps none | `host.images` (absent on the site; Images, where the host keeps them) |
 | a device preference (the trip's map) | kit/core/store.ts | stays: localStorage on the page's own origin, memory without it |
 | the services a trip reaches (place search, map tiles) | kit/core/network.ts | stays, a list a page may override later |
 
@@ -920,6 +921,51 @@ What a page that is not the site arranges, each with the site's way as the defau
   `suggestChart`, `chartPage`, `CHART_KINDS`, and `pageSvg` for any Page); test/package.test.ts's strict program
   imports each.
 - **Compare.** `<to-compare>` says where each side opens with `host.link`, never the address.
+
+## Images, where the host keeps them
+
+No picture from the web, ever (Paul, 2026-10-11); a host-kept image where the host keeps bytes (Paul, 2026-10-19:
+"it shouldn't be there for the URL backend, but for this backend an image module makes sense"). A picture is a
+fence, so the kernel's reader, writer, operations and their transformation are unchanged:
+
+````
+```image {alt="A cat on a mat" w=640 h=480}
+asset:7f3a9c
+```
+````
+
+The body is the host's own reference, one word (`asset:…`, `atlas:img_…`), never a web address and never a data
+URL; any attribute beside `alt`, `w` and `h` (`class=thumb`, a caption) is the host's and rides through every edit.
+The kernel (`tinylittleoffice/doc`, no DOM) has `IMAGE_LANG`, `imageOf(block)` (`{ ref, alt, w?, h? }` or null),
+`imageBlock(ref, alt?, w?, h?, attrs?)`, `isImage` and `imageRefs(doc)`, every reference a document names, its
+inner documents' too, for a server that collects bytes nothing names any more or asks who may see one.
+
+A page turns pictures on by giving its host the capability (kit/core/host.ts `HostImages`):
+
+```js
+import { host } from 'tinylittleoffice/editors';
+Object.assign(host, {
+  images: {
+    put: async (file) => ({ ref: await upload(file) }), // the reference the fence will hold; w and h if read
+    url: (ref) => `/images/${encodeURIComponent(ref)}`, // where the browser fetches it: the host's own origin
+    bytes: async (ref) => new Uint8Array(await (await fetch(`/images/${ref}`)).arrayBuffer()), // for a PDF or PNG
+    maxBytes: 5 * 1024 * 1024, // refused with a word before a put is tried
+  },
+});
+```
+
+Then every app draws an image fence as the picture (kit/draw/image-picture.ts, known to the registry's lookup as the
+QR code is); the Word Processor's and the Presentation Builder's Insert ▾ list Picture…, a file from the device put
+to `images.put`; a picture file pasted or dropped into the Word Processor goes there too; a picture's card in hand
+has Describe picture, its alt edited where it is drawn. The exports: the web page writes `<figure><img src alt width
+height>` at `images.url`, Markdown its picture line at that address, a PDF or PNG writes the bytes in from `images.bytes` (fetched
+before the pages are drawn), and RTF and .docx its alt words (the .docx's own media are a later step).
+`ExportContext.image(ref)`, where a caller sets it, answers in the host's place.
+
+Where `images` is absent, the site and the API above all, nothing is offered and nothing is fetched: a picture
+fence is drawn as a card, "Picture not kept here", with its words, and the lint names it `image-not-kept`, a finding,
+not an error. A picture with no words is `image-no-alt`. The page's own Content-Security-Policy must allow the origin
+`url` gives in `img-src`; the site's does not change.
 
 ## Theming
 

@@ -346,6 +346,18 @@ common-share = Udostępnij…
 common-qr-code = Kod QR
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = Kod QR tego dokumentu
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = Obraz
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = obraz
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = Obraz…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = Obraz nie jest tu przechowywany
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = Obraz przechowywany przez tę stronę
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = Obraz jest za duży: tu przechowuje się do { $max }
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = Ten dokument ma { $n ->
         [one] { $n } bajt
@@ -850,6 +862,10 @@ write-newspaper = Gazeta
 write-narrow-headline-two-columns = Wąski nagłówek, dwie kolumny
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = Linia pozioma
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = Opisz obraz
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = Słowa dla tych, którzy go nie widzą
 # Insert ▾'s rule in a document: what follows starts the next page.
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = Podział strony

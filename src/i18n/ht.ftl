@@ -308,6 +308,18 @@ common-share = Pataje…
 common-qr-code = Kòd QR
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = Kòd QR dokiman sa a
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = Foto
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = foto
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = Foto…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = Foto a pa sere isit la
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = Yon foto paj sa a sere
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = Foto sa a twò gwo: isit la yo sere jiska { $max }
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = Dokiman sa a gen { $n } byte; pi gwo kòd QR a kenbe { $max }. Redui l ak { $over } byte epi l ap antre.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
@@ -777,6 +789,10 @@ write-newspaper = Jounal
 write-narrow-headline-two-columns = Yon tit etwat, de kolòn
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = Liy orizontal
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = Dekri foto a
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = Mo pou moun ki pa ka wè l
 # Insert ▾'s rule in a document: what follows starts the next page.
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = Kase paj

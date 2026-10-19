@@ -56,7 +56,19 @@ A document is a head and a list of blocks. Eight kinds of block:
 Any block may end with attributes: `{#id .class key=value}` (classes before values). A link is words, wherever
 it is: a web address alone on a line, or a link alone on a line, `[The title](https://…)`, is a paragraph like
 any other, and Markdown's picture line, `![alt](address)`, reads as the words `!` and a link whose words are
-the alt (Paul, 2026-10-11: pictures and embeds are gone). Nothing in a document is fetched from another site.
+the alt (Paul, 2026-10-11: no picture from the web, ever, and no embeds). Nothing in a document is fetched from another site.
+A picture a host keeps, where the host keeps bytes (Paul, 2026-10-19), is a fence named `image`: its words and size
+after the language, its body the host's own reference, never a web address or the bytes as a data URL:
+
+````
+```image {alt="The table of records on the stoop" w=640 h=480}
+asset:7f3a9c
+```
+````
+
+A page that keeps no pictures, the site above all, draws it as a card saying the picture is not kept here, with its
+words, and fetches nothing; a page that keeps them draws it from its own address (docs/library.md, Images, where the
+host keeps them). An attribute beyond `alt`, `w` and `h` (`class=thumb`) is the host's, kept as written.
 An address may hold one pair of brackets, as Wikipedia's do (`…/Grand_Concourse_(Bronx)`); a lone bracket is
 written `%28` or `%29`.
 

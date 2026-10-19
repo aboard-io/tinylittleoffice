@@ -16,6 +16,7 @@ import { parseInline, write } from './tlo.ts';
 import { noteRuns, referenceNotes } from './notes.ts';
 import { tableAt } from './table.ts';
 import { evaluateTable, formatCell, type CellValue } from './formula.ts';
+import { imageOf, isImage } from './image.ts';
 
 /** Words with their marks; a footnote's mark is its number (`t`), carrying the note's words as inline Markdown. */
 export type TextRun = Omit<Run, 'ic' | 'fn'> & { note?: string };
@@ -149,8 +150,14 @@ export function textOf(doc: Doc, opts: TextOptions = {}): TextNode[] {
         return void out.push({ k: 'break' });
       case 'table':
         return void out.push(tableNode(doc, at));
-      case 'fence':
+      case 'fence': {
+        // A host-kept picture (image.ts) is its words for whoever cannot see it; with none, nothing is said of it.
+        if (isImage(b)) {
+          const alt = imageOf(b)?.alt.trim();
+          return void (alt && out.push({ k: 'p', runs: [{ t: alt }] }));
+        }
         return void out.push((b.lang && opts.inner?.(b.lang, b.body)) || { k: 'pre', lang: b.lang, body: b.body });
+      }
       case 'edge': {
         const item: TextItem = { runs: [{ t: `${b.from.trim()} ${ARROWS[b.dir]} ${b.to.trim()}${b.label?.trim() ? `: ${b.label.trim()}` : ''}` }] };
         if (edges) edges.items.push(item);

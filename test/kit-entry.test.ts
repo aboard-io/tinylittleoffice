@@ -12,6 +12,7 @@ import { exportsOf } from './lints.ts';
 import { appOf, apps, registerApp } from '../src/kit/core/apps.ts';
 import { defineApp } from '../src/kit/core/app.ts';
 import { QR_LANG } from '../src/kit/draw/qr-picture.ts';
+import { IMAGE_LANG } from '../src/kit/draw/image-picture.ts';
 import { LOCKED_LANG } from '../src/kit/share/locked.ts';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -104,8 +105,8 @@ describe('an app registered from outside the suite', () => {
     expect(page.svg).toContain('<g id="tally-drawn"/>');
   });
 
-  test('never takes a name the registry knows: its own for another app, an app’s, the QR code’s or a locked document’s', () => {
-    for (const id of ['write', QR_LANG, LOCKED_LANG]) expect(() => registerApp({ ...tally, id }), id).toThrow(`an app "${id}" is registered already`);
+  test('never takes a name the registry knows: its own for another app, an app’s, the QR code’s, the picture’s or a locked document’s', () => {
+    for (const id of ['write', QR_LANG, IMAGE_LANG, LOCKED_LANG]) expect(() => registerApp({ ...tally, id }), id).toThrow(`an app "${id}" is registered already`);
     expect(() => registerApp({ ...tally, title: () => 'Another' })).toThrow('an app "tally" is registered already');
     expect(appOf('write')!.name).toBe('Word Processor');
   });

@@ -295,6 +295,18 @@ common-share = 共有…
 common-qr-code = QRコード
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = ドキュメントのQRコード
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = 画像
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = 画像
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = 画像…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = 画像はここには保存されていません
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = このページが保存する画像
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = 画像が大きすぎます。ここで保存できるのは{ $max }までです
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = このドキュメントは{ $n }バイトで、QRコードに入る最大は{ $max }バイトです。{ $over }バイト短くすれば収まります。
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
@@ -756,6 +768,10 @@ write-newspaper = 新聞
 write-narrow-headline-two-columns = 細い見出しと2段組み
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = 横線
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = 画像を説明
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = 画像が見えない人のための言葉
 # Insert ▾'s rule in a document: what follows starts the next page.
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = 改ページ

@@ -90,7 +90,7 @@ export { defineApp, isStill, type AppDef, type DocChange, type Editor, type Expo
 export { DocElement, firstAt, type DocOps, type DocPick, type DocRemote, type Entry, type Picked } from './kit/core/element.ts';
 export { appOf, registerApp } from './kit/core/apps.ts';
 export { editorTag, mount, setup, type Mounted, type Own } from './kit/core/mount.ts';
-export { host, type Host, type Placed } from './kit/core/host.ts';
+export { host, type Host, type HostImages, type Placed } from './kit/core/host.ts';
 export { command, commandsOf, contextOf, drawnIn, inScope, keysText, labelOf, live, register, registered, run, runKey, type Command, type Drawn, type Where, type Words } from './kit/core/commands.ts';
 export { addStrings, language, onLanguage, setLanguage, t } from './kit/core/i18n.ts';
 export { toast, type Action } from './kit/core/say.ts';

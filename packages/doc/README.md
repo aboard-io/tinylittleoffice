@@ -88,7 +88,8 @@ as the site (docs/library.md), through five more entry points, each built by `np
 - `tinylittleoffice/doc`, `dist/doc.js`: the kernel (src/kernel.ts), the document's model, TLO in and out, the
   operations and their inverses, tables and formulas, the document as JSON, what a server that orders several
   people's operations needs (`transform`, `rebase`, `applyEdits`), and who did what in a document several people
-  write (`track`, `trackOn`, `changesOf`, `rejectOps`, as the kit serves them). One file, no dependencies, no DOM:
+  write (`track`, `trackOn`, `changesOf`, `rejectOps`, as the kit serves them), and a host-kept picture's fence
+  (`IMAGE_LANG`, `imageOf`, `imageBlock`, `isImage`, `imageRefs`: docs/library.md, Images, where the host keeps them). One file, no dependencies, no DOM:
   Node 24, a Worker or a page.
 - `tinylittleoffice/commands`, `dist/commands.js`: the command registry for a program (src/commands.ts). A command is
   declared as the editors' are, and may carry what a program reads of it: `input` and `output` as JSON Schema objects,
@@ -147,6 +148,7 @@ tools(registered(), 'team'); // [{ name: 'lead.create', description: 'Create a l
 import { mount, host } from 'tinylittleoffice/editors';
 import 'tinylittleoffice/editors.css';
 Object.assign(host, { link: (app, text) => `/doc/${save(app, text)}` }); // where a placed document opens
+Object.assign(host, { images: { put: upload, url: (ref) => `/images/${ref}` } }); // pictures, where this host keeps bytes
 const { editor } = await mount('write', text, main, (next) => save(next)); // the editor, drawn; told every edit
 ```
 

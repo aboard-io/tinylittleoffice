@@ -29,6 +29,9 @@ export {
   writeInline,
 } from './tlo.ts';
 
+export type { Image } from './image.ts';
+export { IMAGE_LANG, imageBlock, imageOf, imageRefs, isImage } from './image.ts';
+
 export type { Op } from './ops.ts';
 export { keptDoc, MAX_DEPTH } from './json.ts';
 export {

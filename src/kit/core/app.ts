@@ -71,6 +71,11 @@ export interface ExportContext {
   title: string;
   /** The link to the document, so a file can point home. */
   link: string;
+  /**
+   * Where a host-kept picture's bytes are, by its reference (doc/image.ts), for a file that writes one in: an address
+   * or a data: URL, null for none. Absent, the host's own answer (kit/draw/image-picture.ts imageHref).
+   */
+  image?: (ref: string) => string | null;
 }
 
 /**

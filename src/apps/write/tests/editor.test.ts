@@ -14,6 +14,8 @@ import { templates } from '../templates.ts';
 import { isWords } from '../../../kit/text/textops.ts';
 import { mount, tick, until } from '../../../../test/browser/helpers.ts';
 import { remScale } from '../../../kit/ui/zoom.ts';
+import { host } from '../../../kit/core/host.ts';
+import { picker } from '../../../kit/draw/image-picture.ts';
 
 async function editor(value = ''): Promise<{ el: ToWriteEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
@@ -1029,4 +1031,99 @@ test('a paste from Google Docs keeps the heading, the items and their depth, the
     ['1', 'nested'],
     ['0', '**not bold**'],
   ]);
+});
+
+/* ---------- a host-kept picture: Insert ▾ Picture only where the host keeps one; the card, its words, a pasted file ---------- */
+
+/** A 1×1 PNG, the smallest picture a browser reads. */
+const PNG = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+const png = (name = 'cat-on-mat.png', bytes: BlobPart = PNG as BlobPart) => new File([bytes], name, { type: 'image/png' });
+/** A page that keeps pictures, for the length of a test: each file put is kept here and served from a blob: address of this page's own. */
+function keepingPictures(): () => void {
+  const kept = new Map<string, Blob>();
+  const images = {
+    maxBytes: 1024,
+    put: async (file: Blob) => {
+      const ref = `test:${kept.size + 1}`;
+      kept.set(ref, file);
+      return { ref };
+    },
+    url: (ref: string) => (kept.has(ref) ? URL.createObjectURL(kept.get(ref)!) : ''),
+    bytes: async (ref: string) => new Uint8Array(await kept.get(ref)!.arrayBuffer()),
+  };
+  Object.assign(host, { images });
+  return () => void delete (host as { images?: unknown }).images;
+}
+
+test('Insert ▾ lists Picture… only where the host keeps pictures: the file chosen is put to the host, its fence goes in at the caret (an empty line after it, as every block put in has) with its name as words and its size, drawn as the picture; Describe picture makes the words a field', async () => {
+  const done = keepingPictures();
+  const was = picker.choose;
+  picker.choose = async () => png();
+  try {
+    const { el, last } = await editor('Before\n');
+    el.text.focus();
+    el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
+    await tick();
+    const opener = el.querySelector<HTMLElement>('to-insert button')!;
+    await pick(el, opener, 'Picture…');
+    await until(() => !!last()?.includes('```image'));
+    expect(last()).toBe('Before\n\n```image {alt="cat on mat" w=1 h=1}\ntest:1\n```\n\n<br>\n');
+    await until(() => !!el.querySelector('.write-picture img'));
+    const img = el.querySelector<HTMLImageElement>('.write-picture img')!;
+    expect(img.alt).toBe('cat on mat');
+    expect(img.getAttribute('src')).toMatch(/^blob:/);
+    expect(el.querySelector('.write-picture figcaption')!.textContent).toContain('cat on mat');
+    // The card in hand: its Edit is Describe picture, and Enter makes the words a field; Enter again keeps them, one step.
+    el.querySelector<HTMLElement>('.tx-card')!.focus();
+    await until(() => el.cardAt === 1);
+    expect(el.editLabel(1)).toBe('Describe picture');
+    key(el.querySelector<HTMLElement>('.tx-card')!, 'Enter');
+    await until(() => !!el.querySelector<HTMLInputElement>('.write-alt'));
+    const field = el.querySelector<HTMLInputElement>('.write-alt')!;
+    expect(field.value).toBe('cat on mat');
+    field.value = 'A cat on a mat';
+    key(field, 'Enter');
+    await until(() => !!last()?.includes('alt="A cat on a mat"'));
+    expect(last()).toBe('Before\n\n```image {alt="A cat on a mat" w=1 h=1}\ntest:1\n```\n\n<br>\n');
+    await until(() => !el.querySelector('.write-alt'));
+    // Escape lets the words typed go.
+    key(el.querySelector<HTMLElement>('.tx-card')!, 'Enter');
+    await until(() => !!el.querySelector<HTMLInputElement>('.write-alt'));
+    el.querySelector<HTMLInputElement>('.write-alt')!.value = 'Nothing';
+    key(el.querySelector<HTMLInputElement>('.write-alt')!, 'Escape');
+    await until(() => !el.querySelector('.write-alt'));
+    expect(last()).toContain('alt="A cat on a mat"');
+    // A pasted picture file goes to the host too, in after the card in hand; one heavier than the host keeps goes nowhere.
+    const dt = new DataTransfer();
+    dt.items.add(png('stoop.png'));
+    el.querySelector<HTMLElement>('.tx-card')!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    await until(() => !!last()?.includes('test:2'));
+    expect(last()).toBe('Before\n\n```image {alt="A cat on a mat" w=1 h=1}\ntest:1\n```\n\n```image {alt=stoop w=1 h=1}\ntest:2\n```\n\n<br>\n');
+    const heavy = new DataTransfer();
+    heavy.items.add(png('heavy.png', new Uint8Array(2048)));
+    const before = last();
+    el.querySelector<HTMLElement>('.tx-card')!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: heavy, bubbles: true, cancelable: true }));
+    await tick();
+    await tick();
+    expect(last()).toBe(before);
+  } finally {
+    picker.choose = was;
+    done();
+  }
+});
+
+test('on a page that keeps no pictures (the site): a picture is a card saying so, with its words; nothing is fetched, and Insert ▾ has no Picture', async () => {
+  const { el } = await editor('```image {alt="The stoop" w=640 h=480}\nasset:x\n```\n');
+  await until(() => !!el.querySelector('.write-picture-gone'));
+  expect(el.querySelector('.write-picture-gone')!.textContent).toBe('Picture not kept here');
+  expect(el.querySelector('.write-picture img, img')).toBeNull();
+  expect(el.querySelector('.write-picture figcaption')!.textContent).toContain('The stoop');
+  expect(el.editLabel(0)).toBe('Describe picture');
+  expect(el.opensIn(0)).toBe(false);
+  const opener = el.querySelector<HTMLElement>('to-insert button')!;
+  opener.click();
+  await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
+  const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
+  expect(labels.filter((l) => /Picture/.test(l))).toEqual([]);
+  opener.click();
 });

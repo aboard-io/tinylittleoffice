@@ -207,6 +207,17 @@ share-could-not-copy = Could not copy
 common-share = Share…
 common-qr-code = QR code
 common-qr-code-of-this-document = QR code of this document
+# A picture a host keeps (kit/draw/image-picture.ts): what a picture fence is called where it is drawn, and the lower-case noun for one.
+common-picture = Picture
+common-picture-lowercase = picture
+# Insert ▾'s item, in the Word Processor and the Presentation Builder, only on a page that keeps pictures: it opens the device's file picker.
+common-picture-ellipsis = Picture…
+# The card drawn in a picture's place on a page that keeps no pictures (the site): nothing is fetched from anywhere.
+common-picture-not-kept-here = Picture not kept here
+# The one line said of a picture fence where an app's blurb is asked for.
+common-picture-kept-by-this-page = A picture this page keeps
+# Said when a chosen file weighs more than the page keeps; { $max } is the most, as "2048 KB".
+common-picture-too-large = That picture is too large: up to { $max } is kept here
 share-this-document-is-n-bytes = This document is { $n } bytes; the largest QR code holds { $max }. Shorten it by { $over } bytes and it will fit.
 share-this-document-is-n-characters = This document is { $n } characters; a short link holds { $max }. Shorten it by { $over } and it will fit.
 share-expires-after = Expires after
@@ -484,6 +495,10 @@ write-newspaper = Newspaper
 write-narrow-headline-two-columns = A narrow headline, two columns
 # Insert ▾'s horizontal rule in a document: a light line across the page, nothing more.
 write-horizontal-rule = Horizontal rule
+# A picture card's Edit: its words for whoever cannot see it become a field in its caption.
+write-describe-picture = Describe picture
+# That field's label and placeholder, and the caption's words while a picture has none.
+write-words-for-the-picture = Words for whoever cannot see it
 # Insert ▾'s rule in a document: what follows starts the next page.
 write-page-break = Page break
 common-ok = OK

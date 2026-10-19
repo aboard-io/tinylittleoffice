@@ -136,12 +136,13 @@ export const POOLS: Record<string, string[]> = {
   page: ['https://en.wikipedia.org/wiki/Grand_Concourse_(Bronx)', 'https://x.y/A_(b)_1.jpg', 'https://www.youtube.com/watch?v=eRVYwDtI2E8'],
   href: ['https://x.y/', 'https://e.com/a_b?q=1', 'mailto:a@b.c', 'tel:+1', '#top', 'https://x.y/a%20b'],
   icon: ['star', 'rocket', 'map-pin', 'x', 'a1'],
-  ident: ['a', 'id', 'big', 'x-y', 'due', 'depth', 'chart', 'lock', '2'],
+  ident: ['a', 'id', 'big', 'x-y', 'due', 'depth', 'chart', 'lock', '2', 'alt', 'w', 'class'],
   name: ['Name', 'Qty', 'Price', '# of units', 'Time', '', '🚀 Launch', 'שם', 'a|b', 'Note'],
   currency: ['£', 'GBP', 'R$', 'eur'],
   cell: ['1', '2.5', 'words', '=A1+B1', '=SUM(A1:B3)', 'a \\| b', 'x\\\\y', '1<br>2', '🚀', 'שלום', '| lead', '-', '#'],
-  lang: ['sheet', 'Draw', 'js', 'qr', 'notes'],
-  body: ['a | b', '--- | ---', '```', '~~~', 'x', '', '# not a heading', '  indented'],
+  lang: ['sheet', 'Draw', 'js', 'qr', 'notes', 'image'],
+  // (A host-kept picture's body is its reference, one word: doc/image.ts.)
+  body: ['a | b', '--- | ---', '```', '~~~', 'x', '', '# not a heading', '  indented', 'asset:abc', 'atlas:img_7Hq'],
   node: ['A', 'Web', 'Two words', '🚀', 'שלום', '#id', 'a-b'],
 };
 
@@ -386,7 +387,7 @@ const blockOf = (line: fc.Arbitrary<Run[]>, lines: (max: number) => fc.Arbitrary
     {
       weight: 1,
       arbitrary: fc
-        .record({ lang: pick(['', 'sheet', 'draw', 'js', 'qr']), body: fc.array(pick(POOLS.body), { maxLength: 3 }).map((ls) => ls.join('\n')), a: arbitraryAttrs })
+        .record({ lang: pick(['', 'sheet', 'draw', 'js', 'qr', 'image']), body: fc.array(pick(POOLS.body), { maxLength: 3 }).map((ls) => ls.join('\n')), a: arbitraryAttrs })
         .map(({ lang, body, a }): Block => withA({ k: 'fence', lang, body }, a)),
     },
     {

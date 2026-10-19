@@ -316,6 +316,18 @@ common-share = שעירן…
 common-qr-code = QR קאוד
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = QR קאוד פון דעם דאקומענט
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = בילד
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = בילד
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = בילד…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = דאס בילד ווערט דא נישט געהאלטן
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = א בילד וואס די דאזיקע זייט האלט
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = דאס בילד איז צו גרויס: דא האלט מען ביז { $max }
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = דער דאקומענט איז { $n } בייטס; דער גרעסטער QR קאוד האלט { $max }. מאכט אים קירצער מיט { $over } בייטס און ער וועט אריינגיין.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
@@ -787,6 +799,10 @@ write-newspaper = צייטונג
 write-narrow-headline-two-columns = א שמאלער קעפל, צוויי שפאלטן
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = האריזאנטאלע ליניע
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = באשרייבן דאס בילד
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = ווערטער פאר די וואס קענען עס נישט זען
 # Insert ▾'s rule in a document: what follows starts the next page.
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = זייט־ברעך

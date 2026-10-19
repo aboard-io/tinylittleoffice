@@ -76,6 +76,7 @@ import '../../kit/draw/notes.ts';
 import '../../kit/text/text.ts';
 import './style.css';
 import { qrBlock } from '../../kit/draw/qr-picture.ts';
+import { chooseImageFile, putImage } from '../../kit/draw/image-picture.ts';
 
 export const tag = 'to-deck-editor';
 
@@ -663,6 +664,13 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   /** Insert ▾'s QR code of this document, on the slide. */
   insertQr() {
     this.putSub(qrBlock());
+  }
+  /** Insert ▾'s Picture, on the slide: a file from the device, put to the host that keeps pictures (offered only where one does: commands.ts). */
+  async insertImage() {
+    const file = await chooseImageFile();
+    if (!file) return;
+    const b = await putImage(file, file.name);
+    if (b) this.putSub(b);
   }
   /** Four more pages, in a format that grows by sheets. */
   morePages() {

@@ -20,8 +20,11 @@ parsed by its view and written by the code (`writeInline`), never typed; an `opt
 those the column already holds or a new one.
 
 There is no embed kind: another document is a `fence` named for its app (`isInnerDoc`). There is no picture kind
-and no thing from the web: a web address, or a link, alone on a line is a `p` of words, and `![alt](address)` reads
-as the words `!` and a link. A table's lock and chart are not fields of the block: they
+and no picture from the web, ever: a web address, or a link, alone on a line is a `p` of words, and `![alt](address)`
+reads as the words `!` and a link. A picture a host keeps, where the host keeps bytes, is a fence named `image` whose
+body is the host's reference and whose attributes hold `alt`, `w` and `h` (image.ts: `IMAGE_LANG`, `imageOf`,
+`imageBlock`, and `imageRefs`, every reference a document names, for a server's collection and its ACLs; Paul,
+2026-10-19). A table's lock and chart are not fields of the block: they
 ride on the head for a sheet document (its first table) and on the table's attributes anywhere else (`tableAt`,
 `withTable`), and `chart-at: top` beside the chart draws it above the table (a chart put in goes there; one without
 it stays below).

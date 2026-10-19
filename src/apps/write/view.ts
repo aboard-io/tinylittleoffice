@@ -13,6 +13,8 @@ import { siteOf } from '../../kit/core/route.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, monoWidth, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw/draw.ts';
 import { glyphNamed } from '../../kit/draw/icons.ts';
 import { LOCKED_LANG, placedLink } from '../../kit/share/locked.ts';
+import { imageHref, imagePage } from '../../kit/draw/image-picture.ts';
+import { t } from '../../kit/core/i18n.ts';
 import { XML_HEAD, zip } from '../../kit/file/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/core/app.ts';
 import {
@@ -34,6 +36,8 @@ import {
   type Run,
   linkable,
   linkTarget,
+  imageOf,
+  isImage,
 } from '../../doc/index.ts';
 import { currencyAt } from '../sheet/model.ts';
 import { tablePage } from '../sheet/view.ts';
@@ -263,6 +267,14 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
       const scale = Math.min(1, cw / page.w);
       const h = page.h * scale;
       bits.push({ h: h + 16, first: h + 16, svg: (y) => place(page, M, y, page.w * scale, h) });
+      continue;
+    }
+    // A host-kept picture: drawn whole at the column's width, from the bytes the export fetched first or the host's address; a card with its words where none keeps it.
+    if (isImage(b) && imageOf(b)) {
+      const im = imageOf(b)!;
+      const page = imagePage(im);
+      const h = Math.min(480, (page.h * cw) / page.w);
+      bits.push({ h: h + 16, first: h + 16, svg: (y) => place(page, M, y, cw, h) });
       continue;
     }
     if (b.k === 'fence') {
@@ -512,7 +524,7 @@ function tableHtml(doc: Doc, at: number): string {
 }
 
 /** The body of the text as HTML: headings, paragraphs, nested lists, tables, documents held in it as figures, the footnotes at the end. */
-function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
+function bodyHtml(doc: Doc, site = '', stem = 'fn', ctx?: Pick<ExportContext, 'image'>): string {
   const next = noteNumbers();
   const inner = (b: { runs: Run[] }) => b.runs.map((run) => (run.fn === undefined ? htmlRun(run) : noteMarkHtml(next(), stem))).join('');
   const title = titleBlock(doc);
@@ -547,6 +559,13 @@ function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
           return `<p>${xml(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}</p>`;
         case 'fence': {
           if (!b.lang) return `<pre>${xml(b.body)}</pre>`;
+          // A host-kept picture: the picture from the host's address with its words; the words alone where none keeps it.
+          if (isImage(b) && imageOf(b)) {
+            const im = imageOf(b)!;
+            const href = imageHref(im.ref, ctx);
+            const size = `${im.w ? ` width="${im.w}"` : ''}${im.h ? ` height="${im.h}"` : ''}`;
+            return `<figure class="picture">${href ? `<img src="${xml(href)}" alt="${xml(im.alt)}"${size}>` : `<p class="gone">${xml(t('common-picture-not-kept-here'))}</p>`}${im.alt ? `<figcaption>${xml(im.alt)}</figcaption>` : ''}</figure>`;
+          }
           const def = appOfLazy(b.lang);
           const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
           const page = def?.view(b.body, { small: true })[0];
@@ -600,6 +619,7 @@ li.task{list-style:none;margin-left:-1.4em}li.done{color:${MUTED}}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:1em;margin:0 0 1.5em}.fields dt{font-size:.7em;letter-spacing:.06em;text-transform:uppercase;color:${MUTED}}.fields dd{margin:.2em 0 0}
 table{border-collapse:collapse;margin:0 0 1em;font-size:.95em}th{background:${SHADE};text-align:left;font-size:.85em;padding:.4em .7em;border:1px solid ${LINE}}td{padding:.4em .7em;border:1px solid ${LINE}}td.n{text-align:right;font-variant-numeric:tabular-nums}
 figure{margin:1em 0}figure.doc svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figcaption,figure.doc{color:${MUTED};font-size:.9em}
+figure.picture img{display:block;max-width:100%;height:auto;border-radius:8px}figure.picture .gone{padding:1em;background:${SHADE};border-radius:8px;color:${MUTED}}
 mark{background:#fde68a}pre{padding:.8em 1em;background:${SHADE};border-radius:8px;overflow:auto;font-size:.85em}
 a{color:${ACCENT}}.fn a{text-decoration:none}.fn-notes{margin-top:2em;font-size:.8em;color:${MUTED}}.fn-notes hr{width:72px;margin:0 0 .6em;border:0;border-top:1px solid ${LINE}}.fn-notes ol{padding-left:1.6em}
 hr.rule{margin:1.25em 0;border:0;border-top:1px solid ${LINE}}
@@ -610,7 +630,7 @@ ${lookCss(look)}
 </head>
 <body>
 <main>
-${bodyHtml(doc, siteAt(ctx.link))}
+${bodyHtml(doc, siteAt(ctx.link), 'fn', ctx)}
 </main>${ctx.link ? `\n<footer><p><a href="${xml(ctx.link)}">Open in Tiny Little Office</a></p></footer>` : ''}
 </body>
 </html>
@@ -619,11 +639,20 @@ ${bodyHtml(doc, siteAt(ctx.link))}
 
 /* ---------- Markdown ---------- */
 
-/** The text as Markdown anyone reads: its footnotes in the reference form, [^1] with "[^1]: the note" at the end. */
-export const docToMarkdown = (doc: Doc): string => {
+/**
+ * The text as Markdown anyone reads: its footnotes in the reference form, [^1] with "[^1]: the note" at the end; a
+ * host-kept picture as Markdown's own picture line at the host's address, or its words alone where none keeps it.
+ */
+export const docToMarkdown = (doc: Doc, ctx?: Pick<ExportContext, 'image'>): string => {
   const md = referenceNotes(doc);
+  const picture = (b: Block): Block => {
+    const im = imageOf(b);
+    if (!im) return b;
+    const href = imageHref(im.ref, ctx);
+    return { k: 'p', runs: href ? [{ t: '!' }, { t: im.alt || t('common-picture'), href }] : im.alt ? [{ t: im.alt }] : [] };
+  };
   // A horizontal rule is Markdown's own rule, written plain: the class is ours, and the `---` reads as a rule anywhere.
-  return write({ ...md, blocks: md.blocks.map((b) => (isRule(b) ? { k: 'hr' } : b)) });
+  return write({ ...md, blocks: md.blocks.map((b) => (isRule(b) ? { k: 'hr' } : isImage(b) ? picture(b) : b)) });
 };
 
 /* ---------- RTF ---------- */
@@ -703,6 +732,12 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
     if (b.k === 'fence') {
       if (!b.lang) {
         out.push(`{\\pard\\sa160\\f0\\fs20 ${b.body.split('\n').map(rtfText).join('\\line ')}\\par}`);
+        continue;
+      }
+      // A host-kept picture: its words, set apart (the bytes are a later step, as .docx's media are).
+      if (isImage(b)) {
+        const im = imageOf(b);
+        if (im?.alt) out.push(`{\\pard\\sb120\\sa120\\li360 {\\i ${rtfText(im.alt)}}\\par}`);
         continue;
       }
       const def = appOfLazy(b.lang);
@@ -846,6 +881,12 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
             .map((l) => plain(l, '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="18"/>'))
             .join('<w:r><w:br/></w:r>')}</w:p>`,
         );
+        continue;
+      }
+      // A host-kept picture: its words, in italics (word/media and a <w:drawing> are a later step).
+      if (isImage(b)) {
+        const im = imageOf(b);
+        if (im?.alt) paras.push(`<w:p><w:pPr><w:ind w:left="360"/></w:pPr>${plain(im.alt, '<w:i/>')}</w:p>`);
         continue;
       }
       const def = appOfLazy(b.lang);

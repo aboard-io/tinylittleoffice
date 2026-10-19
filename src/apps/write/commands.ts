@@ -10,6 +10,7 @@
 import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Palette, Pilcrow, Ruler, Scissors, SeparatorHorizontal, CornerDownLeft, Minus } from 'lucide';
 import { rule } from '../../doc/index.ts';
 import { apps } from '../../kit/core/apps.ts';
+import { imagesKept } from '../../kit/draw/image-picture.ts';
 import { register, type Command, commandsOf } from '../../kit/core/commands.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { UI } from '../../kit/draw/icons.ts';
@@ -44,6 +45,8 @@ const INSERTS: Command<W>[] = [
   cmd('insert.table', 'common-table', { icon: UI.table, where: ['menu:insert'], does: (w) => w.insertTable() }),
   cmd('insert.doc', 'common-tiny-little-office-doc-ellipsis', { icon: UI.insert, where: ['menu:insert'], does: (w) => w.insertDocument() }),
   cmd('insert.qr', 'common-qr-code-of-this-document', { icon: UI.qr, where: ['menu:insert'], does: (w) => w.insertQr() }),
+  // A picture only where the host keeps one (kit/core/host.ts `images`): the site keeps no bytes, so its Insert ▾ never lists it.
+  cmd('insert.image', 'common-picture-ellipsis', { icon: UI.image, where: ['menu:insert'], when: () => imagesKept(), does: (w) => void w.insertImage() }),
   cmd('insert.date', 'common-date', { icon: UI.calendar, where: ['menu:insert'], does: (w) => w.text.exec('date') }),
   cmd('insert.rule', 'write-horizontal-rule', { icon: Minus, where: ['menu:insert'], does: (w) => w.insertBlock(rule()) }),
   cmd('insert.break', 'write-page-break', {

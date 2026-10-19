@@ -13,7 +13,7 @@
  *                           Columns in the dialog's bar to set its size; resolves the table block, or null.
  */
 import { LitElement, html, nothing } from 'lit';
-import { COL_NAMES, MAX_COLS, ROWS, parse, write, type Block, type TableBlock } from '../../doc/index.ts';
+import { COL_NAMES, IMAGE_LANG, MAX_COLS, ROWS, parse, write, type Block, type TableBlock } from '../../doc/index.ts';
 import { lookup, type AppDef, type Editor } from '../core/app.ts';
 import { icon, UI } from '../draw/icons.ts';
 import { LOCKED_LANG, setOpened } from '../share/locked.ts';
@@ -169,8 +169,8 @@ declare global {
  */
 export async function editDoc(o: { app: string; text: string; heading?: string; sizing?: boolean; into?: Element }): Promise<string | null> {
   const def = lookup.appOf(o.app);
-  // A QR code is drawn, not edited (kit/draw/qr-picture.ts).
-  if (!def || o.app === 'qr' || o.app === LOCKED_LANG) return null;
+  // A QR code is drawn, not edited (kit/draw/qr-picture.ts); a picture's words are edited where it is drawn (kit/draw/image-picture.ts).
+  if (!def || o.app === 'qr' || o.app === IMAGE_LANG || o.app === LOCKED_LANG) return null;
   const d = document.createElement('to-doc-dialog');
   d.heading = o.heading ?? '';
   d.sizing = !!o.sizing;

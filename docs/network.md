@@ -29,7 +29,10 @@ not on this list is refused by the browser itself.
 A document fetches nothing from any other site but a trip's map (OpenFreeMap's in the Trip Planner, OpenStreetMap's
 tiles under a trip drawn anywhere else), by the Map switch. A link in it is
 words that go somewhere when the reader follows them; nothing else in a document is drawn from another site's
-address.
+address. A picture a host keeps (an `image` fence naming the host's reference, src/doc/image.ts) is drawn on the site
+as a card with its words, since the site keeps no bytes and its host has no pictures: nothing is fetched for it. A
+page of a host that keeps pictures fetches them from that host's own address, which that page's own
+Content-Security-Policy allows; the site's policy stays as it is.
 
 ## Why each of these is asked directly
 

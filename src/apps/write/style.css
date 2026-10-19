@@ -529,6 +529,34 @@
   .write-doc figcaption small {
     color: var(--to-paper-muted);
   }
+  /* A host-kept picture (kit/draw/image-picture.ts): the picture whole at the column's width; a shaded card where no host keeps it; its words under it, a field while they are described. */
+  .write-picture img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 70dvh;
+    object-fit: contain;
+  }
+  .write-picture-gone {
+    padding: 2rem 1rem;
+    text-align: center;
+    background: var(--to-paper-shade);
+    color: var(--to-paper-muted);
+  }
+  .write-picture figcaption b.write-alt-none {
+    font-weight: normal;
+    color: var(--to-paper-muted);
+  }
+  .write-picture .write-alt {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid var(--to-paper-line);
+    border-radius: 0.375rem;
+    background: #fff;
+    color: var(--to-paper-ink);
+  }
   /* The notes under the text: a thin rule, small type, each with the way back to its mark. */
   .write-notes {
     margin-top: 1.5rem;

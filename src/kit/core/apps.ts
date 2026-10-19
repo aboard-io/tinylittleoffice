@@ -22,6 +22,7 @@ import anim from '../../apps/anim/def.ts';
 import trip from '../../apps/trip/def.ts';
 import calc from '../../apps/calc/def.ts';
 import { QR_LANG, qrPicture } from '../draw/qr-picture.ts';
+import { IMAGE_LANG, imagePicture } from '../draw/image-picture.ts';
 import { LOCKED_LANG, lockedDoc } from '../share/locked.ts';
 
 const SUITE: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, cal, trip];
@@ -30,8 +31,8 @@ const ALL: AppDef[] = [...SUITE];
 
 export const apps = (): AppDef[] => SUITE;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
-// A document's QR code (kit/draw/qr-picture.ts) and a document locked with a password (kit/share/locked.ts) are drawn by the hosts as documents they hold, though neither is an app.
-lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === LOCKED_LANG ? lockedDoc : undefined);
+// A document's QR code (kit/draw/qr-picture.ts), a host-kept picture (kit/draw/image-picture.ts) and a document locked with a password (kit/share/locked.ts) are drawn by the hosts as documents they hold, though none is an app.
+lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === IMAGE_LANG ? imagePicture : id === LOCKED_LANG ? lockedDoc : undefined);
 
 /**
  * Whether two definitions are the same app: the same object, or (a module loaded twice, or again by a hot reload) the
@@ -49,7 +50,7 @@ function sameDef(a: object, b: object): boolean {
 
 /**
  * An app built outside the suite, put in the registry after the suite's: from now on `appOf(def.id)` is `def`. Its id
- * names nothing the registry knows (an app's, or the QR code's and the locked document's above), or this throws, so a
+ * names nothing the registry knows (an app's, or the QR code's, the picture's and the locked document's above), or this throws, so a
  * second registration of one id is an error rather than an app quietly replaced; unless it is the same definition
  * again (sameDef: the module imported twice, or reloaded unchanged), which is nothing to do.
  */

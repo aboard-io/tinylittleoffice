@@ -407,7 +407,16 @@ test('tlo: a link of ours in plain words, its payload holding "~~" or "__", is k
   expect(parseInline(`[the plan](${href})`)).toStrictEqual([{ t: 'the plan', href }]);
 });
 
-test('tlo: a picture line and a link alone on a line are words with a link, written back as they came (Paul, 2026-10-11: no pictures, no embeds)', () => {
+test('tlo: a host-kept picture is an image fence with its words and size as attributes, byte for byte, any other attribute riding along (Paul, 2026-10-19)', () => {
+  const text = '```image {alt="A cat on a mat" w=640 h=480}\nasset:7f3a9c\n```\n';
+  expect(write(parse(text))).toBe(text);
+  expect(parse(text).blocks).toStrictEqual([{ k: 'fence', lang: 'image', body: 'asset:7f3a9c', a: { kv: { alt: 'A cat on a mat', w: '640', h: '480' } } }]);
+  // What a host of its own writes beside them (a class, a caption) is the fence's, untouched by the kernel.
+  for (const t of ['```image {alt="a b" w=1 h=2 class=thumb}\natlas:img_7Hq\n```\n', '```image {#fig1 .wide alt=cat}\nasset:x\n```\n', '```image\nasset:x\n```\n']) expect(write(parse(t))).toBe(t);
+  expect(write(parse(text))).toBe(write(parse(write(parse(text)))));
+});
+
+test('tlo: a picture line and a link alone on a line are words with a link, written back as they came (Paul, 2026-10-11: no pictures from the web, no embeds)', () => {
   for (const text of ['![alt](https://example.org/x.png)\n', '[Title](https://youtu.be/x)\n', '  ![a  b](https://x.y/a_(b).jpg)  {.wide}\n']) {
     const d = parse(text);
     expect(d.blocks).toHaveLength(1);

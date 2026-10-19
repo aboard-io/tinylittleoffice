@@ -10,12 +10,17 @@
  * document could be inside this one, as a fence named by its app (Paul 2026-10-12: an agent
  * shipped four companion links from a deck's bullets, believing a slide could not hold a chart or an animation).
  *
+ * A host-kept picture (doc/image.ts) with no words for whoever cannot see it is a finding; so is one on a page that
+ * keeps no pictures (the site, the API, the command line: kit/core/host.ts `images`), where it is drawn as a card
+ * saying so, not an error, since the document is sound and opens whole where its host is.
+ *
  * A document fenced inside another (a diagram on a slide, a chart in a text) is linted by its own app, its
  * findings at the fence's block. Every table, wherever it is, has its formulas worked out (apps/sheet/lint.ts):
  * one whose value is an error is a finding. Loaded lazily by src/api.ts (`lint`, `measure`) and the command line.
  */
-import { parse, textCounts, textOf, type Doc } from './doc/index.ts';
+import { imageOf, isImage, parse, textCounts, textOf, type Doc } from './doc/index.ts';
 import { appOf } from './kit/core/apps.ts';
+import { host } from './kit/core/host.ts';
 import { textLayer } from './kit/text/text-layer.ts';
 import { lintDiagram, measureDiagram } from './apps/diagram/lint.ts';
 import { lintDeck, measureDeck } from './apps/deck/lint.ts';
@@ -61,6 +66,33 @@ function docLinks(doc: Doc): Found[] {
   );
 }
 
+/** Each picture: one with no words, and, where this page keeps no pictures, one that cannot be shown here. */
+function pictures(doc: Doc): Found[] {
+  return doc.blocks.flatMap((b, block) => {
+    if (!isImage(b)) return [];
+    const im = imageOf(b);
+    if (!im)
+      return [
+        {
+          block,
+          kind: 'image-ref',
+          words: 'a picture whose body is no reference a host keeps: one word, not an address and not the bytes',
+          fix: 'put the reference the host gave in the fence, alone',
+        },
+      ];
+    const out: Found[] = [];
+    if (!im.alt.trim()) out.push({ block, kind: 'image-no-alt', words: 'a picture with no words for whoever cannot see it', fix: 'say what it shows on the fence: {alt="…"}' });
+    if (!host.images)
+      out.push({
+        block,
+        kind: 'image-not-kept',
+        words: 'a picture this page does not keep: it is drawn as a card saying so',
+        fix: 'open the document where its pictures are kept, or say it in words',
+      });
+    return out;
+  });
+}
+
 /** Where block i is, as a person finds it: a deck's slide, else the block's number (from 1). */
 function placeOf(app: string, doc: Doc): (i: number) => string {
   if (app !== 'deck') return (i) => `block ${i + 1}`;
@@ -72,7 +104,7 @@ function placeOf(app: string, doc: Doc): (i: number) => string {
 export function lint(app: string, text: string, url = ''): Finding[] {
   const doc = parse(text);
   const where = placeOf(app, doc);
-  const out: Finding[] = [...lintOf(app, text), ...docLinks(doc)].map((f) => ({ app, at: where(f.block), ...f }));
+  const out: Finding[] = [...lintOf(app, text), ...docLinks(doc), ...pictures(doc)].map((f) => ({ app, at: where(f.block), ...f }));
   doc.blocks.forEach((b, i) => {
     if (b.k !== 'fence' || !linted(b.lang)) return;
     for (const f of lintOf(b.lang, b.body)) out.push({ ...f, app: b.lang, at: where(i), block: i });

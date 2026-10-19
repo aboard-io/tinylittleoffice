@@ -296,6 +296,18 @@ common-share = 分享…
 common-qr-code = 二维码
 # en: 7f8c79bef572d079a2e70de568104a605b4050cf
 common-qr-code-of-this-document = 此文档的二维码
+# en: 61852524b8f8fb65ef0743aec389512536cc7b64
+common-picture = 图片
+# en: 0e66b49d04a43c19bcb2e13a53aff5d174f610fc
+common-picture-lowercase = 图片
+# en: 22f28423a03ce76e4856d14de46b843c1f27e5b8
+common-picture-ellipsis = 图片…
+# en: dd722264c1ee9eec4920b634875457cebfc388e1
+common-picture-not-kept-here = 图片未保存在此处
+# en: 3166432a2daa014cff73f0912bcdc3208242fbe6
+common-picture-kept-by-this-page = 此页面保存的图片
+# en: f12c273d1ebff17c0cf1acc1622ee371adc8825a
+common-picture-too-large = 图片太大：此处最多保存 { $max }
 # en: 5987984bd3953aa88448226f480b1c67ad98ab52
 share-this-document-is-n-bytes = 此文档有 { $n } 字节，最大的二维码只能容纳 { $max }。缩短 { $over } 字节就能放下。
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
@@ -757,6 +769,10 @@ write-newspaper = 报纸
 write-narrow-headline-two-columns = 窄幅大标题，分两栏
 # en: 62fb6cfda0506f0ed73ad066151086d3eed2296d
 write-horizontal-rule = 水平线
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+write-describe-picture = 描述图片
+# en: bded7b8308bd918ea1d8237a90927f56efe6a030
+write-words-for-the-picture = 给看不到图片的人的文字
 # Insert ▾'s rule in a document: what follows starts the next page.
 # en: 830b8871f026d13b7b94d6723471f2b4e152e360
 write-page-break = 分页符

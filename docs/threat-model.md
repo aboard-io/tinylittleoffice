@@ -93,7 +93,10 @@ whether the place is honest.
 
 **A tracking picture inside a document.** A document fetches nothing from any other site but a trip's map tiles
 (by the Map switch; The map's provider, below): there are no pictures from the web and no embeds, so it cannot hold a tracking pixel. Markdown's picture line reads as a
-link, which asks before it opens (above).
+link, which asks before it opens (above). A host-kept picture (an `image` fence, src/doc/image.ts) names the host's
+own reference, never an address: the site keeps no pictures and draws one as a card with its words, fetching
+nothing, and a page of a host that keeps them fetches it from that host alone (the host's `images.url`, which its
+own Content-Security-Policy's `img-src` allows). A body that is a web address or a data URL is no picture at all.
 
 **A lost phone with Save in browser on.** Off is the default and writes nothing to the device but two preferences
 that say nothing of a document: the size of everything (`tinyoffice.size`) and the theme (`to-theme`), both
@@ -196,7 +199,7 @@ carry the reader's address to OpenFreeMap or OpenStreetMap, and which squares of
 | No logs in the site or the shortener (observability off, no console calls, tests hold both) | A record of who asked for what |
 | The link guard before every link that leaves | A scam link disguised by its words |
 | No app draws a document as a web page of its own: a document never runs code | A phishing page served from our own domain |
-| A document fetches nothing from any other site but a trip's map tiles (by the Map switch): no pictures from the web, no embeds | Tracking pixels; a picture's or an embed's site learning who reads |
+| A document fetches nothing from any other site but a trip's map tiles (by the Map switch): no pictures from the web, no embeds; a host-kept picture only from its host, never on the site | Tracking pixels; a picture's or an embed's site learning who reads |
 | Content-Security-Policy listing every host; no third-party scripts or fonts | Telemetry, and code injected through a document running at all |
 | WebCrypto, no crypto library | A dependency's bug or compromise in the part that matters most; and code a reader can check in an hour |
 
