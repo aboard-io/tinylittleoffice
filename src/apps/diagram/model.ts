@@ -42,6 +42,7 @@
  * in another; a connection is a `splice` of an edge block; the kind is a `head` op.
  */
 import { plainText, write } from '../../doc/index.ts';
+import { t } from '../../kit/core/i18n.ts';
 import {
   apply,
   applyAll,
@@ -441,7 +442,7 @@ export function newThing(doc: Doc, key?: string): Draft {
   if (kind === 'seating') {
     // A table's name is offered, chosen whole so the first letter typed replaces it.
     const n = lines.length + 1;
-    const name = n === 1 ? 'Top table' : `Table ${n}`;
+    const name = n === 1 ? t('diagram-top-table') : t('diagram-table-n', { n });
     return { ...draftOf(afterLines(doc), 0, li(0, [{ t: `${name}: ` }])), sel: [0, name.length] };
   }
   return draftOf(afterLines(doc), 0, li(0, []));
@@ -624,10 +625,11 @@ function laneRuns(lines: Line[], name: string): Run[] {
   return l?.key ? sliceRuns(l.runs, l.key.from, l.key.to) : [{ t: escapeWords(name, { colon: true }) }];
 }
 
-/** The name a new lane is given: "Lane 2" after one lane (or from `n`), the next number no lane has. */
+/** The name a new lane is given, in the reader's language: "Lane 2" after one lane (or from `n`), the next number no lane has. */
 export function newLaneName(lanes: string[], n = lanes.length + 1): string {
-  while (lanes.some((x) => x.toLowerCase() === `lane ${n}`)) n++;
-  return `Lane ${n}`;
+  const name = (n: number) => t('diagram-lane-n', { n });
+  while (lanes.some((x) => x.toLowerCase() === name(n).toLowerCase())) n++;
+  return name(n);
 }
 
 function keyed(l: Line, key: Run[]): Op[] {

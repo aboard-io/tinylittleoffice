@@ -2585,6 +2585,12 @@ diagram-idea = 아이디어
 diagram-person = 사람
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = 단계
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = 레인 { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = 헤드 테이블
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = 테이블 { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = 집합
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54

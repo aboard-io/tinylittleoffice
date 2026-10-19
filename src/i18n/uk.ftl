@@ -2706,6 +2706,12 @@ diagram-idea = Ідея
 diagram-person = Особа
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = Крок
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = Доріжка { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = Головний стіл
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = Стіл { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = Множина
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54

@@ -9,6 +9,7 @@ import { pageSvg, textWidth } from '../../../kit/draw/draw.ts';
 import { applyAll, invertAll, parse, write, type Block, type Doc, type Op, type Run } from '../../../doc/index.ts';
 import { iconOf, labelLines, readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
+import { register, setLanguage } from '../../../kit/core/i18n.ts';
 import {
   charsOf,
   childOf,
@@ -45,6 +46,7 @@ import {
   thingBlocks,
   tidy,
   withIcon,
+  newLaneName,
   type Hit,
 } from '../model.ts';
 import { templates } from '../templates.ts';
@@ -239,6 +241,17 @@ describe('commands as ops', () => {
     // The table's offered name is chosen whole, so the first letter typed replaces it and the ": " stays.
     expect(newThing(doc('seating', '- Top table: Jo\n')).sel).toEqual([0, 7]);
     expect(newThing(doc('seating', '')).sel).toEqual([0, 9]);
+  });
+  test('a new lane and a new table are named in the reader’s language, numbered past the names there are', async () => {
+    register('de', readFileSync(joinPath(import.meta.dirname, '../../../i18n/de.ftl'), 'utf8'));
+    await setLanguage('de');
+    try {
+      expect(newLaneName(['Kasse'])).toBe('Bahn 2');
+      expect(newLaneName(['Kasse', 'bahn 2'])).toBe('Bahn 3');
+      expect(charsOf(newThing(doc('seating', '- Ehrentisch: Jo\n')).block.runs)).toBe('Tisch 2: ');
+    } finally {
+      await setLanguage(null);
+    }
   });
   test('a thing more in a list is the line with a comma on the end, replacing it once typed', () => {
     const d = doc('venn', '- Fast: sprinting\n- Cheap: walking\n');

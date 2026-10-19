@@ -2617,6 +2617,12 @@ diagram-idea = 想法
 diagram-person = 人物
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = 步驟
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = 泳道 { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = 主桌
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = { $n } 號桌
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = 集合
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54

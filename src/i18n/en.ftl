@@ -1466,6 +1466,11 @@ diagram-network = Network
 diagram-idea = Idea
 diagram-person = Person
 diagram-step = Step
+# A new swimlane's name, offered until it is renamed; written into the document.
+diagram-lane-n = Lane { $n }
+# A new seating chart's first table, and the ones after it; written into the document.
+diagram-top-table = Top table
+diagram-table-n = Table { $n }
 diagram-set = Set
 diagram-thing = Item
 # The picture, and the line editor over a thing
