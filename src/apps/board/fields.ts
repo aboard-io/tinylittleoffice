@@ -2,7 +2,7 @@
  * A card's fields as the editor draws them, in the reader's language (model.ts says which, and how: `cardFieldsOf`):
  * an amount short (whole amounts without their cents, as a pipeline is read: $12,000), a day short (Dec 15, and the
  * year only when it is not this one), a person as their initials and a hue of their own, the same for the same name on
- * every card. The model's words (`shown`) stay the Spreadsheet's, for a page, a print and a screen reader; these are
+ * every card (and everywhere else the kit draws them: kit/ui/initials.ts). The model's words (`shown`) stay the Spreadsheet's, for a page, a print and a screen reader; these are
  * the card's face. No DOM: the editor's tests and a host's page use them alike.
  */
 import { serialToIso } from '../../doc/index.ts';
@@ -34,17 +34,8 @@ export function dayShort(v: unknown, lang: string = language(), now = new Date()
   }
 }
 
-/** A person's initials: the first letter of their first and last words ("Maya Patel" MP, "Leo" L), as a reader writes them. */
-export function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return '';
-  const first = (w: string) => [...w][0]?.toLocaleUpperCase() ?? '';
-  return words.length === 1 ? first(words[0]) : first(words[0]) + first(words[words.length - 1]);
-}
-
-/** A hue of a person's own, 0 to 359, the same for the same name (case and spaces aside) wherever it is drawn. */
-export function hueOf(name: string): number {
-  let h = 0;
-  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
-  return h % 360;
-}
+/**
+ * A person's initials and a hue of their own are the kit's (kit/ui/initials.ts), the same on a card, in a typed table's
+ * person cell and in a page's <to-avatar>: served here under the Board's names.
+ */
+export { hueOf, initial as initials } from '../../kit/ui/initials.ts';

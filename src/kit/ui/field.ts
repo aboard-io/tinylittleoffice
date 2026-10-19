@@ -2,9 +2,12 @@
  * <to-field>: one fact of a host's record changed where it is shown (docs/library.md, The kit's small pieces): a
  * person's title, a company's size, a lead's close date. It reads as words (a link where it has `href`), and a click on
  * its words (not on a link), or on its pencil, makes it a field of its type: words, a number or an amount, a date or a
- * moment, one of its `options`, an email, an address, a phone number, or lines of words (`multiline`). Enter keeps it
- * (Shift+Enter is a new line in lines), the focus leaving keeps it, Escape lets it go; words where a number belongs are
- * not kept, and the field says so.
+ * moment, one of its `options`, an email, an address, a phone number, lines of words (`multiline`), or another of the
+ * host's records (`record`: a person's company, a task's assignee). Enter keeps it (Shift+Enter is a new line in
+ * lines), the focus leaving keeps it, Escape lets it go; words where a number belongs are not kept, and the field says
+ * so. A record is picked, not typed: the field searches the host's records as a typed table's record cell does
+ * (kit/ui/record-pick.ts), `search(q, signal)` the host's own answer, Down and Up through those found, Enter chooses
+ * (the field emptied, none), Escape or leaving lets it go.
  *
  * An edit is shown at once and told in `fieldchange`, cancelable, `{ value, before, wait }` (FieldChange), as a typed
  * table's "rowchange" is (kit/ui/table.ts): a page that refuses it calls `preventDefault()`, or hands `wait` a promise
@@ -14,22 +17,40 @@
  *
  * - `value`, `type` (FieldType), `label` (its name: the pencil's "Edit Title", the field's name), `placeholder` (what it
  *   says when empty), `href` (where its words open), `options` (an enum's), `currency` and `decimals` (money's),
- *   `multiline`, and `readonly` (words alone, no pencil).
+ *   `multiline`, `search` (a record's: RecordSearch), and `readonly` (words alone, no pencil). A record's `value` is
+ *   `{ id, label, href? }` (RecordValue) or an id alone; its change is told with the id as `value` and the record
+ *   chosen as `record`.
  */
 import { LitElement, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { live } from 'lit/directives/live.js';
 import { icon, UI } from '../draw/icons.ts';
 import { t } from '../core/i18n.ts';
-import { cellWords, inputOf, isEmpty, parseInput, sameValue, type EnumOption, type TableColumn, type TableRow } from './table-model.ts';
+import { RecordPicking } from './record-pick.ts';
+import {
+  cellWords,
+  inputOf,
+  isEmpty,
+  parseInput,
+  recordOf,
+  sameValue,
+  type EnumOption,
+  type RecordOption,
+  type RecordSearch,
+  type RecordValue,
+  type TableColumn,
+  type TableRow,
+} from './table-model.ts';
 
 /** What a field holds, and so how it is shown and edited. */
-export type FieldType = 'text' | 'number' | 'money' | 'date' | 'datetime' | 'enum' | 'email' | 'url' | 'tel';
+export type FieldType = 'text' | 'number' | 'money' | 'date' | 'datetime' | 'enum' | 'email' | 'url' | 'tel' | 'record';
 
 /** A change made in a field, told to the page to keep or refuse ("fieldchange", cancelable). */
 export interface FieldChange {
-  /** What it holds now: words, a number, a day ("2027-03-01"), a moment, an option's value; null for empty. */
+  /** What it holds now: words, a number, a day ("2027-03-01"), a moment, an option's value, a record's id; null for empty. */
   value: unknown;
   before: unknown;
+  /** A record's: the record chosen, as the search offered it, or null where the field was emptied. */
+  record?: RecordValue | null;
   /** The page's answer, when it comes later: a promise that rejects, or comes back false, puts the words back. */
   wait(answer: Promise<unknown>): void;
 }
@@ -48,6 +69,7 @@ export class ToField extends LitElement {
     currency: {},
     decimals: { type: Number },
     multiline: { type: Boolean },
+    search: { attribute: false },
     readonly: { type: Boolean, reflect: true },
     editing: { state: true },
   };
@@ -60,12 +82,16 @@ export class ToField extends LitElement {
   declare currency: string;
   declare decimals: number | undefined;
   declare multiline: boolean;
+  /** A record's search: the host's records for the words typed. */
+  declare search: RecordSearch | undefined;
   declare readonly: boolean;
   /** The field is open. */
   declare editing: boolean;
   readonly uid = `to-field-${++n}`;
   /** An edit shown while the page has not given its value again. */
   private kept: unknown = KEPT_NONE;
+  /** A record's picker (kit/ui/record-pick.ts), open while a record field is edited. */
+  private picker = new RecordPicking(this);
 
   constructor() {
     super();
@@ -78,6 +104,7 @@ export class ToField extends LitElement {
     this.currency = '';
     this.decimals = undefined;
     this.multiline = false;
+    this.search = undefined;
     this.readonly = false;
     this.editing = false;
   }
@@ -86,6 +113,9 @@ export class ToField extends LitElement {
   }
   protected willUpdate(changed: PropertyValues<this>) {
     if (changed.has('value')) this.kept = KEPT_NONE;
+  }
+  protected updated() {
+    if (this.editing && this.type === 'record') this.picker.place(this.field);
   }
 
   /** What is shown: the edit kept, else the page's value. */
@@ -99,7 +129,7 @@ export class ToField extends LitElement {
   /** The field as a typed table's column, whose words and parsing it shares. */
   private column(): TableColumn {
     const type = this.type === 'email' || this.type === 'url' || this.type === 'tel' ? 'text' : this.type;
-    return { key: 'v', label: this.label, type, options: this.options, currency: this.currency || undefined, decimals: this.decimals };
+    return { key: 'v', label: this.label, type, options: this.options, currency: this.currency || undefined, decimals: this.decimals, search: this.search };
   }
   private row(): TableRow {
     return { id: 0, v: this.shown };
@@ -109,6 +139,7 @@ export class ToField extends LitElement {
   async edit() {
     if (this.readonly || this.editing) return;
     this.editing = true;
+    if (this.type === 'record') this.picker.begin(this.search);
     await this.updateComplete;
     const f = this.field;
     f?.focus();
@@ -119,7 +150,13 @@ export class ToField extends LitElement {
   private end(keep: boolean, refocus = true) {
     if (!this.editing) return;
     const f = this.field;
-    if (keep && f) {
+    if (keep && f && this.type === 'record') {
+      // A record is kept only by being chosen: the one in hand, or none where the field was emptied; words that found nothing keep the field open.
+      const held = this.picker.held;
+      if (held) this.commit(held.id, held);
+      else if (!f.value.trim()) this.commit(null, null);
+      else if (refocus) return;
+    } else if (keep && f) {
       const value = parseInput(this.column(), f.value);
       if (value === undefined) {
         // Words that are not of its type: kept by nobody. A key keeps the field open to mend them; leaving lets them go.
@@ -127,27 +164,34 @@ export class ToField extends LitElement {
       } else this.commit(value);
     }
     this.editing = false;
+    this.picker.end();
     if (refocus) void this.updateComplete.then(() => this.querySelector<HTMLElement>('.to-fd-edit')?.focus());
   }
-  private commit(raw: unknown) {
-    const value = typeof raw === 'string' && this.type !== 'enum' ? (raw.trim() ? raw.trim() : null) : raw;
-    const before = this.shown;
+  /** The edit kept: a value, or for a record its id with the record chosen (the words shown; null, emptied). */
+  private commit(raw: unknown, record?: RecordOption | null) {
+    const isRecord = this.type === 'record';
+    const value = typeof raw === 'string' && this.type !== 'enum' && !isRecord ? (raw.trim() ? raw.trim() : null) : raw;
+    const before = isRecord ? (recordOf(this.column(), this.row())?.id ?? null) : this.shown;
     if (sameValue(value, before)) return;
     const was = this.kept;
-    this.kept = value;
+    const shown = isRecord ? (record ?? null) : value;
+    this.kept = shown;
     // Refused, what was shown before it comes back: an edit kept before it and not yet given back as the value, or the value.
     const back = () => {
-      if (this.kept !== value) return;
+      if (this.kept !== shown) return;
       this.kept = was;
       this.requestUpdate();
     };
-    const change: FieldChange = { value, before, wait: (answer) => void answer.then((ok) => ok === false && back(), back) };
+    const change: FieldChange = { value, before, ...(isRecord ? { record: record ?? null } : {}), wait: (answer) => void answer.then((ok) => ok === false && back(), back) };
     if (!this.dispatchEvent(new CustomEvent<FieldChange>('fieldchange', { detail: change, bubbles: true, composed: true, cancelable: true }))) back();
     this.requestUpdate();
   }
   private onKey = (e: KeyboardEvent) => {
     if (e.isComposing) return;
-    if (e.key === 'Enter' && !(this.multiline && e.shiftKey)) {
+    if (this.type === 'record' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      this.picker.move(e.key === 'ArrowDown' ? 1 : -1);
+    } else if (e.key === 'Enter' && !(this.multiline && e.shiftKey)) {
       e.preventDefault();
       this.end(true);
     } else if (e.key === 'Escape') {
@@ -156,7 +200,8 @@ export class ToField extends LitElement {
       this.end(false);
     }
   };
-  private onBlur = () => this.end(true, false);
+  /** Leaving keeps the words; a record, kept only by being chosen, is let go. */
+  private onBlur = () => this.end(this.type !== 'record', false);
   private onWordsClick = (e: MouseEvent) => {
     if ((e.target as Element).closest('a')) return;
     void this.edit();
@@ -165,6 +210,26 @@ export class ToField extends LitElement {
   private input(): TemplateResult {
     const start = inputOf(this.column(), this.row());
     const on = { key: this.onKey, blur: this.onBlur, input: (e: Event) => (e.currentTarget as HTMLElement).removeAttribute('aria-invalid') };
+    if (this.type === 'record')
+      return html`<input
+          class="to-fd-input to-fd-pick"
+          id="${this.uid}-f"
+          type="text"
+          role="combobox"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label=${this.label || nothing}
+          aria-expanded="true"
+          aria-controls="${this.uid}-pick"
+          aria-autocomplete="list"
+          aria-activedescendant=${this.picker.active(this.uid)}
+          placeholder=${t('search-label')}
+          .value=${start}
+          @input=${(e: Event) => this.picker.type((e.currentTarget as HTMLInputElement).value)}
+          @keydown=${on.key}
+          @blur=${on.blur}
+        />
+        ${this.picker.list(this.uid, this.label, (o) => this.commitPicked(o))}`;
     if (this.type === 'enum')
       return html`<select class="to-fd-input" id="${this.uid}-f" aria-label=${this.label || nothing} @keydown=${on.key} @blur=${on.blur}>
         ${isEmpty(this.shown) ? html`<option value="" selected></option>` : nothing}
@@ -187,12 +252,21 @@ export class ToField extends LitElement {
       @blur=${on.blur}
     />`;
   }
+  /** A record clicked in the picker: kept and the field closed, the focus back on the pencil. */
+  private commitPicked(o: RecordOption) {
+    if (!this.editing) return;
+    this.commit(o.id, o);
+    this.editing = false;
+    this.picker.end();
+    void this.updateComplete.then(() => this.querySelector<HTMLElement>('.to-fd-edit')?.focus());
+  }
   render() {
     if (this.editing) return html`<span class="to-fd to-fd-editing">${this.input()}</span>`;
     const words = cellWords(this.column(), this.row());
+    const href = (this.type === 'record' ? recordOf(this.column(), this.row())?.href : undefined) ?? this.href;
     const shown = words
-      ? this.href
-        ? html`<a class="to-fd-link" href=${this.href}>${words}</a>`
+      ? href
+        ? html`<a class="to-fd-link" href=${href}>${words}</a>`
         : html`<span class="to-fd-text ${this.multiline ? 'to-fd-lines' : ''}">${words}</span>`
       : html`<span class="to-fd-empty">${this.placeholder || '–'}</span>`;
     return html`<span class="to-fd ${this.readonly ? '' : 'to-fd-can'}" @click=${this.readonly ? nothing : this.onWordsClick}>

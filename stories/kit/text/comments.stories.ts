@@ -6,8 +6,9 @@
  * a reply (with "@" for the host's people), Resolve. Words selected bring up the bubble's Comment, which opens a box
  * beside them (kit/text/quote.ts `quoteAt`). The comments are the host's, kept here in memory as a host's server keeps
  * them (kit/text/review.ts Comment): the margin says what was asked ("comment-send", "comment-resolve",
- * "comment-delete") and the host keeps it, then hands the comments back. Asking the host's assistant is the last
- * story: a comment that asks it is answered in the thread, with a tracked change the assistant made in answer.
+ * "comment-delete") and the host keeps it, then hands the comments back. Asking the host's assistant is the next to
+ * last story: a comment that asks it is answered in the thread, with a tracked change the assistant made in answer.
+ * The last is a record's thread (`plain`): no words, no quotes, the box at the foot.
  */
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { action } from 'storybook/actions';
@@ -254,5 +255,44 @@ export const SheetAtTheStart: Story = {
     Object.assign(frame.style, { maxWidth: '36rem', gridTemplateColumns: 'minmax(0, 1fr)' });
     frame.querySelector('to-comments')!.anchor = 'start';
     return frame;
+  },
+};
+
+/**
+ * A record's thread (`plain`): comments on what has no words to pin to, a lead or a row of a model, in a box of the
+ * same kind. No quotes and never a sheet: the threads in a column, each a note that opens to its replies, and the box
+ * to write a new one at the foot. The host keeps the comments as in the other stories.
+ */
+export const Record: Story = {
+  render: (args) => {
+    let comments: Comment[] = [
+      { id: 'r1', by: CAROL, text: 'Their CFO is leaving at the end of the quarter; the renewal may slip.', created_at: at(1) },
+      { id: 'r2', parent_id: 'r1', by: BOB, text: 'Heard the same. I will ask who takes it over.', created_at: at(5) },
+      { id: 'r3', by: ALICE, text: 'Value is still the old number; the new scope adds the second office.', created_at: at(2) },
+    ];
+    const margin = document.createElement('to-comments');
+    Object.assign(margin, { comments, people: CAST, me: ALICE, canComment: args.canComment, plain: true });
+    margin.style.maxWidth = '28rem';
+    const keep = (next: Comment[]) => {
+      comments = next;
+      margin.comments = comments;
+    };
+    margin.addEventListener('comment-send', (e) => {
+      const sent = (e as CustomEvent<CommentSend>).detail;
+      action('comment-send')({ ...sent, done: undefined });
+      keep([...comments, { id: `r${comments.length + 1}-${Date.now()}`, parent_id: sent.parent_id, by: ALICE, text: sent.text, created_at: new Date().toISOString() }]);
+      sent.done(true);
+    });
+    margin.addEventListener('comment-resolve', (e) => {
+      const { thread_id, resolved } = (e as CustomEvent<{ thread_id: string; resolved: boolean }>).detail;
+      action('comment-resolve')({ thread_id, resolved });
+      keep(comments.map((c) => (c.id === thread_id ? { ...c, resolved_at: resolved ? new Date().toISOString() : null } : c)));
+    });
+    margin.addEventListener('comment-delete', (e) => {
+      const { id } = (e as CustomEvent<{ id: string }>).detail;
+      action('comment-delete')(id);
+      keep(comments.map((c) => (c.id === id ? { ...c, deleted_at: new Date().toISOString() } : c)));
+    });
+    return margin;
   },
 };

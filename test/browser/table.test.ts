@@ -471,15 +471,15 @@ test('a record’s cell: a link, edited by a picker that searches the host’s r
   expect(field.getAttribute('role')).toBe('combobox');
   expect(document.activeElement).toBe(field);
   // Opened, the search is asked for '' at once; the records found are listed in a popover under the cell.
-  await until(() => el.querySelectorAll('.to-dt-pop [role=option]').length === 3, 'the records were never listed');
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 3, 'the records were never listed');
   expect(asked).toStrictEqual(['']);
-  expect(el.querySelector('.to-dt-pop')!.matches(':popover-open')).toBe(true);
+  expect(el.querySelector('.to-rp-pop')!.matches(':popover-open')).toBe(true);
   await userEvent.keyboard('clear');
-  await until(() => el.querySelectorAll('.to-dt-pop [role=option]').length === 1, 'the search did not narrow');
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 1, 'the search did not narrow');
   expect(asked.at(-1)).toBe('clear');
   // Typed a letter at a time, only the last words are asked (a moment after the last key).
   expect(asked.length).toBeLessThan(4);
-  expect(field.getAttribute('aria-activedescendant')).toBe(el.querySelector('.to-dt-pop [role=option]')!.id);
+  expect(field.getAttribute('aria-activedescendant')).toBe(el.querySelector('.to-rp-pop [role=option]')!.id);
   await userEvent.keyboard('{Enter}');
   await until(() => told.length === 1);
   expect(told[0]).toMatchObject({ id: 'l2', column: 'company', value: 'c2', before: null, record: { id: 'c2', label: 'Clear Channel' } });
@@ -493,7 +493,7 @@ test('a record’s cell: a link, edited by a picker that searches the host’s r
   expect(told.length).toBe(1);
   el.addEventListener('rowchange', (e) => e.preventDefault(), { once: true });
   leadCell(el, 'l1', 1).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-  await until(() => el.querySelectorAll('.to-dt-pop [role=option]').length === 3);
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 3);
   await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
   await until(() => told.length === 2);
   expect(told[1]).toMatchObject({ value: 'c3', before: 'c1' });

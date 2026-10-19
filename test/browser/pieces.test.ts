@@ -180,3 +180,79 @@ test('a field of a type: money in whole units read as the Spreadsheet reads it, 
   await link.edit();
   expect(link.field).toBeNull();
 });
+
+const COMPANIES = [
+  { id: 'c1', label: 'Acme', detail: 'acme.com', href: '#/companies/c1' },
+  { id: 'c2', label: 'Clear Channel', detail: 'clearchannel.com', href: '#/companies/c2' },
+  { id: 'c3', label: 'Mubadala', href: '#/companies/c3' },
+];
+
+test('a record field: a link, picked from the host’s search as it is typed; Enter takes the one in hand, emptied none, Escape and leaving let go; refused, the record goes back', async () => {
+  const el = await field('<to-field label="Company" type="record" placeholder="No company"></to-field>');
+  const asked: string[] = [];
+  el.search = async (q) => {
+    asked.push(q);
+    await new Promise((ok) => setTimeout(ok, 10));
+    return COMPANIES.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
+  };
+  el.value = { id: 'c1', label: 'Acme', href: '#/companies/c1' };
+  await el.updateComplete;
+  expect(el.querySelector('a.to-fd-link')!.getAttribute('href')).toBe('#/companies/c1');
+  expect(el.textContent?.trim()).toBe('Acme');
+  const told: FieldChange[] = [];
+  el.addEventListener('fieldchange', (e) => told.push((e as CustomEvent<FieldChange>).detail));
+  await el.edit();
+  const input = el.field as HTMLInputElement;
+  expect(input.getAttribute('role')).toBe('combobox');
+  expect(input.value).toBe('Acme');
+  // Opened, the search is asked for '' at once; the records found are listed in a popover under the field.
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 3, 'the records were never listed');
+  expect(asked).toStrictEqual(['']);
+  expect(el.querySelector('.to-rp-pop')!.matches(':popover-open')).toBe(true);
+  await userEvent.keyboard('{Control>}a{/Control}clear');
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 1, 'the search did not narrow');
+  expect(asked.at(-1)).toBe('clear');
+  expect(input.getAttribute('aria-activedescendant')).toBe(el.querySelector('.to-rp-pop [role=option]')!.id);
+  await userEvent.keyboard('{Enter}');
+  await until(() => told.length === 1);
+  expect(told[0]).toMatchObject({ value: 'c2', before: 'c1', record: { id: 'c2', label: 'Clear Channel' } });
+  expect(el.textContent?.trim()).toBe('Clear Channel');
+  expect(el.querySelector('a.to-fd-link')!.getAttribute('href')).toBe('#/companies/c2');
+  await until(() => document.activeElement === el.querySelector('.to-fd-edit'), 'the focus did not come back to the pencil');
+  // Down and Up walk the records; Escape lets the picker go, nothing told.
+  await el.edit();
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 3);
+  await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+  expect(el.querySelector('[role=option][aria-selected=true]')!.textContent).toContain('Mubadala');
+  await userEvent.keyboard('{Escape}');
+  await until(() => !el.field);
+  expect(told.length).toBe(1);
+  expect(el.querySelector('.to-rp-pop')).toBeNull();
+  // Emptied, none; leaving lets go without choosing.
+  await el.edit();
+  await userEvent.keyboard('{Control>}a{/Control}{Backspace}{Enter}');
+  await until(() => told.length === 2);
+  expect(told[1]).toMatchObject({ value: null, before: 'c2', record: null });
+  expect(el.textContent?.trim()).toBe('No company');
+  await el.edit();
+  await userEvent.keyboard('mub');
+  el.field!.blur();
+  await until(() => !el.field);
+  expect(told.length).toBe(2);
+  // Refused, the record before comes back.
+  el.addEventListener('fieldchange', (e) => e.preventDefault(), { once: true });
+  await el.edit();
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 3);
+  await userEvent.keyboard('{Enter}');
+  await until(() => told.length === 3);
+  expect(told[2]).toMatchObject({ value: 'c1', before: null });
+  await el.updateComplete;
+  expect(el.textContent?.trim()).toBe('No company');
+  // A click on a record in the list chooses it.
+  await el.edit();
+  await until(() => el.querySelectorAll('.to-rp-pop [role=option]').length === 3);
+  el.querySelectorAll<HTMLElement>('.to-rp-pop [role=option]')[2].click();
+  await until(() => told.length === 4);
+  expect(told[3]).toMatchObject({ value: 'c3', record: { id: 'c3', label: 'Mubadala' } });
+  expect(el.textContent?.trim()).toBe('Mubadala');
+});

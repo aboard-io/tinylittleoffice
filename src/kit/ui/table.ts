@@ -44,8 +44,10 @@ import { repeat } from 'lit/directives/repeat.js';
 import { ArrowDown, ArrowUp, Columns3, Ellipsis } from 'lucide';
 import { icon, UI, type IconNode } from '../draw/icons.ts';
 import { onLanguage, t } from '../core/i18n.ts';
-import { hoverFocus, place, type MenuItem, type ToMenu } from './menu.ts';
+import { type MenuItem, type ToMenu } from './menu.ts';
 import './menu.ts';
+import { hueOf, initial } from './initials.ts';
+import { RecordPicking } from './record-pick.ts';
 import { reveal } from './scroll.ts';
 import { Slots } from './slots.ts';
 import {
@@ -113,20 +115,10 @@ interface Fonts {
   lineH: number;
 }
 
-/** A record cell's picker: the words typed, what the search answered, and the record in hand. */
-interface Picking {
-  q: string;
-  options: RecordOption[];
-  status: 'loading' | 'done' | 'error';
-  at: number;
-}
-
 /** Rows drawn beyond those in sight, above and below, so a quick scroll finds them drawn. */
 const OVER = 8;
 /** A row's height before one is measured, in CSS pixels (2.75rem at the browser's default). */
 const ROW_GUESS = 44;
-/** How long after the last key a record's search is asked, in ms (the search box's). */
-const ASK_MS = 150;
 /** A column that fits is at most this wide unless it says (rem). */
 const FIT_MAX = 24;
 /** The words of a cell measured, for a column that fits and a row that grows (one canvas for every table). */
@@ -159,7 +151,6 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     empty: {},
     active: { state: true },
     editing: { state: true },
-    picking: { state: true },
     top: { state: true },
   };
   declare rows: R[];
@@ -186,8 +177,6 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   declare active: { r: number; c: number };
   /** The cell being edited, and what its editor starts with. */
   declare editing: { r: number; c: number; start: string } | null;
-  /** A record cell's picker, while one is being edited. */
-  declare picking: Picking | null;
   /** How far the box is scrolled, in CSS pixels: which rows are drawn. */
   declare top: number;
 
@@ -218,8 +207,8 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   private widthsAt = '';
   /** The row whose menu is open. */
   private menuRow: R | null = null;
-  private asking: AbortController | null = null;
-  private askTimer = 0;
+  /** A record cell's picker (kit/ui/record-pick.ts), open while a record cell is being edited. */
+  private picker = new RecordPicking(this);
   /** The type the cells are drawn in, read once an update. */
   private fontsNow: Fonts | null = null;
   private unlisten = () => {};
@@ -243,7 +232,6 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     this.empty = '';
     this.active = { r: 0, c: 0 };
     this.editing = null;
-    this.picking = null;
     this.top = 0;
   }
   createRenderRoot() {
@@ -267,7 +255,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     this.sized = null;
     this.unlisten();
     cancelAnimationFrame(this.frame);
-    this.stopAsking();
+    this.picker.end();
   }
 
   /** The box that scrolls. */
@@ -324,7 +312,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     this.measure();
     this.refit();
     if (this.grows) this.measureRows();
-    this.placePicker();
+    this.picker.place(this.querySelector('.to-dt-pick'));
   }
 
   // ---- widths and heights ----
@@ -578,10 +566,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     if (typeOf(col) === 'boolean') return this.commit(col, row, !this.valueAt(col, row));
     this.active = { r, c };
     this.editing = { r, c, start: inputOf({ ...col, value: (x: R) => this.valueAt(col, x) }, row) };
-    if (typeOf(col) === 'record') {
-      this.picking = { q: '', options: [], status: 'loading', at: -1 };
-      void this.ask(col, '');
-    }
+    if (typeOf(col) === 'record') this.picker.begin(col.search);
     void this.updateComplete.then(() => {
       const field = this.querySelector<HTMLInputElement | HTMLSelectElement>('.to-dt-editor');
       field?.focus({ preventScroll: true });
@@ -593,7 +578,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     const at = this.editing;
     if (!at) return;
     this.editing = null;
-    this.endPicking();
+    this.picker.end();
     if (keep && field) {
       const col = this.shown[at.c - this.off];
       const row = this.view[at.r];
@@ -625,49 +610,6 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
 
   // ---- a record's picker ----
 
-  /** The records for `q` asked of the column's search, the question before let go; at once for the first, a moment after the last key for the rest. */
-  private ask(col: TableColumn<R>, q: string, wait = 0) {
-    this.stopAsking();
-    if (!col.search) {
-      this.picking = { q, options: [], status: 'done', at: -1 };
-      return;
-    }
-    const asking = new AbortController();
-    this.asking = asking;
-    const go = async () => {
-      try {
-        const options = await col.search!(q, asking.signal);
-        if (asking.signal.aborted || !this.picking) return;
-        this.picking = { q, options, status: 'done', at: options.length ? 0 : -1 };
-      } catch {
-        if (asking.signal.aborted || !this.picking) return;
-        this.picking = { q, options: [], status: 'error', at: -1 };
-      }
-    };
-    if (wait) this.askTimer = window.setTimeout(() => void go(), wait);
-    else void go();
-  }
-  private stopAsking() {
-    clearTimeout(this.askTimer);
-    this.asking?.abort();
-    this.asking = null;
-  }
-  private endPicking() {
-    this.stopAsking();
-    this.picking = null;
-    this.querySelector<HTMLElement>('.to-dt-pop')?.hidePopover?.();
-  }
-  /** The picker under the cell being edited, inside the screen. */
-  private placePicker() {
-    const pop = this.querySelector<HTMLElement>('.to-dt-pop');
-    if (!pop || !this.picking) return;
-    if (!pop.matches(':popover-open')) pop.showPopover();
-    const cell = pop.closest<HTMLElement>('[role=gridcell]');
-    if (cell) {
-      pop.style.setProperty('--to-dt-pop-w', `${cell.offsetWidth}px`);
-      place(pop, cell);
-    }
-  }
   /** A record chosen in the picker (null: none, the field emptied), kept and told; the focus back on its cell. */
   private choose(option: RecordOption | null) {
     const at = this.editing;
@@ -675,32 +617,26 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     const col = this.shown[at.c - this.off];
     const row = this.view[at.r];
     this.editing = null;
-    this.endPicking();
+    this.picker.end();
     if (col && row) this.commit(col, row, option ? option.id : null, option);
     void this.focusCell();
   }
-  private onPickInput = (e: Event) => {
-    const col = this.shown[(this.editing?.c ?? 0) - this.off];
-    if (!col || !this.picking) return;
-    const q = (e.currentTarget as HTMLInputElement).value;
-    this.picking = { ...this.picking, q, status: 'loading', at: -1 };
-    this.ask(col, q.trim(), ASK_MS);
-  };
+  private onPickInput = (e: Event) => this.picker.type((e.currentTarget as HTMLInputElement).value);
   private onPickKey = (e: KeyboardEvent) => {
-    const p = this.picking;
+    const p = this.picker.state;
     if (!p || e.isComposing) return;
-    const k = p.options.length;
     const field = e.currentTarget as HTMLInputElement;
+    const held = this.picker.held;
     switch (e.key) {
       case 'ArrowDown':
-        if (k) this.picking = { ...p, at: p.at < 0 ? 0 : (p.at + 1) % k };
+        this.picker.move(1);
         break;
       case 'ArrowUp':
-        if (k) this.picking = { ...p, at: p.at < 0 ? k - 1 : (p.at - 1 + k) % k };
+        this.picker.move(-1);
         break;
       case 'Enter':
         // The record in hand; the field emptied, none; words that found nothing, nothing kept yet.
-        if (p.options[p.at] && p.status === 'done') this.choose(p.options[p.at]);
+        if (held) this.choose(held);
         else if (!field.value.trim()) this.choose(null);
         else return void e.preventDefault();
         break;
@@ -709,7 +645,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         break;
       case 'Tab': {
         const c = this.active.c + (e.shiftKey ? -1 : 1);
-        if (p.options[p.at] && p.status === 'done' && p.q === field.value.trim()) this.choose(p.options[p.at]);
+        if (held && p.q === field.value.trim()) this.choose(held);
         else this.endEdit(false);
         this.moveTo(this.active.r, c);
         break;
@@ -720,11 +656,11 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     }
     e.preventDefault();
     e.stopPropagation();
-    void this.updateComplete.then(() => reveal(this.querySelector(`#${this.uid}-o${this.picking?.at ?? -1}`)));
+    void this.updateComplete.then(() => reveal(this.querySelector(`#${this.uid}-o${this.picker.state?.at ?? -1}`)));
   };
   /** Left for somewhere else: a record is kept only by being chosen. */
   private onPickBlur = () => {
-    if (this.editing && this.picking) this.endEdit(false);
+    if (this.editing && this.picker.state) this.endEdit(false);
   };
 
   // ---- a row's actions ----
@@ -905,7 +841,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     const { label, href } = link;
     if (!label) return '';
     const person = typeOf(col) === 'person';
-    const words = html`${person ? html`<span class="to-dt-initial" aria-hidden="true">${[...label.trim()][0]?.toUpperCase() ?? ''}</span>` : nothing}<span>${label}</span>`;
+    const words = html`${person ? html`<span class="to-dt-initial" aria-hidden="true" style=${`--to-av-hue: ${hueOf(label)}`}>${initial(label)}</span>` : nothing}<span>${label}</span>`;
     if (href) return html`<a class="to-dt-link" href=${href} tabindex="-1">${words}</a>`;
     return html`<button type="button" class="to-dt-link" tabindex="-1" @click=${() => this.say('cellpick', { id: row.id, column: col.key, value: v, row })}>${words}</button>`;
   }
@@ -934,20 +870,8 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         return cellWords(col, row, v);
     }
   }
-  /** A record's editor: a field that searches the host's records as it is typed, the records found in a list under it. */
-  private picker(col: TableColumn<R>): TemplateResult {
-    const p = this.picking ?? { q: '', options: [], status: 'loading' as const, at: -1 };
-    const said =
-      p.status === 'loading'
-        ? t('search-searching')
-        : p.status === 'error'
-          ? t('search-failed')
-          : p.options.length
-            ? t('search-n-found', { n: p.options.length })
-            : p.q
-              ? t('search-nothing-found', { q: p.q })
-              : t('table-no-records');
-    const keep = (e: Event) => e.preventDefault();
+  /** A record's editor: a field that searches the host's records as it is typed, the records found in a list under it (kit/ui/record-pick.ts). */
+  private recordEditor(col: TableColumn<R>): TemplateResult {
     return html`<input
         class="to-dt-editor to-dt-pick"
         type="text"
@@ -958,33 +882,21 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         aria-expanded="true"
         aria-controls="${this.uid}-pick"
         aria-autocomplete="list"
-        aria-activedescendant=${p.at >= 0 ? `${this.uid}-o${p.at}` : nothing}
+        aria-activedescendant=${this.picker.active(this.uid)}
         placeholder=${t('search-label')}
         .value=${this.editing!.start}
         @input=${this.onPickInput}
         @keydown=${this.onPickKey}
         @blur=${this.onPickBlur}
       />
-      <div class="to-dt-pop" popover="manual">
-        <div class="to-sb-list" id="${this.uid}-pick" role="listbox" aria-label=${col.label}>
-          ${p.options.map(
-            (
-              o,
-              i,
-            ) => html`<div id="${this.uid}-o${i}" role="option" class="to-sb-hit" aria-selected=${String(i === p.at)} @pointerdown=${keep} @pointermove=${hoverFocus} @click=${() => this.choose(o)}>
-              <span class="to-sb-words"><span>${o.label}</span>${o.detail ? html`<small>${o.detail}</small>` : nothing}</span>
-            </div>`,
-          )}
-        </div>
-        <p class="to-sb-said ${p.status === 'done' && p.options.length ? 'to-sb-quiet' : ''}" role="status">${said}</p>
-      </div>`;
+      ${this.picker.list(this.uid, col.label, (o) => this.choose(o))}`;
   }
   /** The cell's editor: a field for its type. */
   private editor(col: TableColumn<R>): TemplateResult {
     const start = this.editing!.start;
     const on = { key: this.onEditorKey, blur: this.onEditorBlur };
     const type = typeOf(col);
-    if (type === 'record') return this.picker(col);
+    if (type === 'record') return this.recordEditor(col);
     if (type === 'enum')
       return html`<select class="to-dt-editor" aria-label=${col.label} @keydown=${on.key} @blur=${on.blur}>
         ${(col.options ?? []).map((o) => html`<option value=${o.value} ?selected=${o.value === start}>${o.label ?? o.value}</option>`)}

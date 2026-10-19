@@ -5,7 +5,7 @@
 // (<to-comments>): its notes beside the words they quote, never meeting, placed again as the words move, here or by
 // another's ops, a thread opened, a reply and a new thread sent to the host, and on a phone a sheet.
 import { expect, test } from 'vitest';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import '../../src/editors.css';
 import {
   changesOf,
@@ -320,4 +320,51 @@ test('<to-comments>: beside or a sheet by the width of the frame it and the word
   } finally {
     unpin();
   }
+});
+
+test('<to-comments> plain, a record’s thread: no words, no quotes, never a sheet; the threads in a column, the box at the foot, a new comment sent with no quote', async () => {
+  await page.viewport(420, 800);
+  document.body.innerHTML = '<div id="frame" style="width: 20rem"></div>';
+  const el = document.createElement('to-comments') as ToComments;
+  const comments: Comment[] = [
+    { id: 'r1', by: A, text: 'Their CFO is leaving.', created_at: '2026-10-18T10:00:00Z' },
+    { id: 'r2', parent_id: 'r1', by: B, text: 'Heard the same.', created_at: '2026-10-18T10:01:00Z' },
+    { id: 'r3', by: B, text: 'Value is the old number.', created_at: '2026-10-18T10:02:00Z' },
+  ];
+  Object.assign(el, { comments, people: PEOPLE, me: A, canComment: true, plain: true });
+  document.querySelector('#frame')!.append(el);
+  await el.updateComplete;
+  // Narrow, and still no sheet: the threads are in sight, with no toggle, no New comment and no heading for the whole document.
+  expect(el.hasAttribute('data-sheet')).toBe(false);
+  expect(el.hasAttribute('plain')).toBe(true);
+  expect(el.querySelector('.to-comments-toggle')).toBeNull();
+  expect(el.querySelector('.to-comments-new')).toBeNull();
+  expect(el.querySelector('.to-comments-sub')).toBeNull();
+  expect(getComputedStyle(el.querySelector('.to-comments-in')!).display).not.toBe('none');
+  expect([...el.querySelectorAll('.to-comments-whole [data-thread]')].map((n) => n.getAttribute('data-thread'))).toStrictEqual(['r1', 'r3']);
+  expect(el.querySelector('[data-thread="r1"] .to-note-more')!.textContent).toContain('1');
+  // The box at the foot, with no Cancel; a comment sent from it has no quote and no parent.
+  const box = el.querySelector('.to-comments-in > .to-draft to-comment-box')!;
+  expect(box).not.toBeNull();
+  expect(box.querySelector('.to-comment-cancel, [data-cancel]')).toBeNull();
+  const sent: unknown[] = [];
+  el.addEventListener('comment-send', (e) => {
+    const d = (e as CustomEvent<CommentSend>).detail;
+    sent.push({ text: d.text, parent_id: d.parent_id, quote: d.quote });
+    d.done(true);
+  });
+  const field = box.querySelector<HTMLTextAreaElement | HTMLInputElement>('.to-comment-field')!;
+  field.focus();
+  await userEvent.keyboard('Renewal may slip.{Control>}{Enter}{/Control}');
+  await until(() => sent.length === 1, 'the comment was never sent');
+  expect(sent[0]).toStrictEqual({ text: 'Renewal may slip.', parent_id: null, quote: null });
+  // A thread opened: its comments, no quote line, a reply box, Resolve.
+  el.querySelector<HTMLButtonElement>('[data-thread="r1"] .to-note-open')!.click();
+  await el.updateComplete;
+  const open = el.querySelector('[data-thread="r1"]')!;
+  expect(open.querySelector('.to-note-quote')!.textContent!.trim()).toBe('');
+  expect([...open.querySelectorAll('.to-comment')].map((c) => c.getAttribute('data-comment'))).toStrictEqual(['r1', 'r2']);
+  expect(open.querySelector('to-comment-box')).not.toBeNull();
+  expect(open.querySelector('.to-thread-resolve')).not.toBeNull();
+  await page.viewport(1280, 800);
 });

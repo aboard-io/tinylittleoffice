@@ -131,6 +131,12 @@ What an app still asked of the site itself, and what replaces it:
     idea and a network's words in the dark (step 8); who reviewed, `canDelete`, the sheet's button and its frame's
     width (The components); `pickTemplate` of a few apps (A template picker); and a search hit listed, not chosen (A
     search box). Each has its test and its story.
+18. **What a host's pages lacked.** Done (2026-10-19, for a host whose pages drew each of these themselves, every page
+    a little differently): a page's parts, `<to-section>`, `<to-tabs>` and `<to-avatar>` with `initial` and `hueOf`,
+    which the Board's cards and the table's person cells draw by too; `<to-field type="record">`, a fact that is
+    another record, picked from the host's search (its picker the table's, kit/ui/record-pick.ts); `<to-comments>`
+    `plain` for a record's thread (The kit's small pieces, The components); and `.to-empty` in kit.css, so a host's
+    page has it. Each has its test and its story.
 
 ## The Storybook
 
@@ -364,16 +370,42 @@ rules are host.css's, so the site's bytes are as they were.
   no Cancel unless said. Where yes destroys (`danger`), it is drawn in the danger color and the focus starts on no;
   else on yes. `.to-btn.to-danger` is that button's look, for any button of a page's own (Delete in a header).
 - **A fact changed where it is shown.** `<to-field>` (kit/ui/field.ts): `value`, `type` (FieldType: `text`, `number`,
-  `money`, `date`, `datetime`, `enum`, `email`, `url`, `tel`), `label` (its name: the pencil's "Edit Title"),
+  `money`, `date`, `datetime`, `enum`, `email`, `url`, `tel`, `record`), `label` (its name: the pencil's "Edit Title"),
   `placeholder` (what it says when empty), `href` (its words a link), `options` (an enum's), `currency` and
-  `decimals` (money's), `multiline` (lines of words, Shift+Enter a new line), `readonly`. Its words are a table
-  cell's (`cellWords`: money in its currency, a date in the page's language, an option's label). A click on its words
-  (not a link), its pencil, or `edit()` makes it a field of its type, its words chosen; Enter keeps, the focus leaving
-  keeps, Escape lets go, and words where a number belongs are not kept (the field says so). The edit is shown at once
-  and told in `fieldchange`, cancelable, `{ value, before, wait }` (FieldChange), as `<to-table>`'s `rowchange` is: a
-  page that refuses it calls `preventDefault()` or hands `wait` a promise that rejects or comes back false, and what
-  was shown before comes back; a kept edit is shown until the page gives `value` again. The focus goes back to the
-  pencil.
+  `decimals` (money's), `multiline` (lines of words, Shift+Enter a new line), `search` (a record's), `readonly`. Its
+  words are a table cell's (`cellWords`: money in its currency, a date in the page's language, an option's label). A
+  click on its words (not a link), its pencil, or `edit()` makes it a field of its type, its words chosen; Enter keeps,
+  the focus leaving keeps, Escape lets go, and words where a number belongs are not kept (the field says so). The edit
+  is shown at once and told in `fieldchange`, cancelable, `{ value, before, wait }` (FieldChange), as `<to-table>`'s
+  `rowchange` is: a page that refuses it calls `preventDefault()` or hands `wait` a promise that rejects or comes back
+  false, and what was shown before comes back; a kept edit is shown until the page gives `value` again. The focus goes
+  back to the pencil.
+- **A fact that is another record.** `<to-field type="record">`: a person's company, a task's assignee. Its `value`
+  is `{ id, label, href? }` (RecordValue) or an id alone, drawn as a link where it has an address (the value's, else
+  `href`); edited, it is the table's record picker (kit/ui/record-pick.ts `RecordPicking`, which an element of the
+  page's own may use too): a field (`role=combobox`) whose records are the field's `search(q, signal)` (RecordSearch,
+  the host's own answer, asked for '' as it opens and a moment after the last key), the records found in a popover
+  under it, Down and Up through them, Enter chooses (the field emptied, none), a click on one chooses it, Escape or
+  leaving lets it go; it says Searching…, that the search failed, or that nothing was found, as the table's does. The
+  choice is `fieldchange` with the record's id as `value`, the id before as `before` and the record chosen as `record`
+  (null, none), shown at once and put back if refused, as any edit is.
+- **A part of a page.** `<to-section>` (kit/ui/section.ts): `heading`, `count` (drawn after it; null, none said),
+  `level` (2), `empty` (what it says with nothing in it: "No meetings yet"), and the slot `actions` at the heading's
+  end. Everything else the page puts in it is its body, left where the page put it (a `<to-table>`, a list), under the
+  heading; the empty words are drawn where `count` is 0, or where no count is said and the page gave it nothing. It
+  is a `region` named by its heading. One look for a person's projects, a lead's meetings, a company's people.
+- **A page's views.** `<to-tabs>` (kit/ui/tabs.ts): `tabs` (Tab: `{ value, label, href?, count?, icon? }`), `value`
+  (the current one's) and `label` (the row's name). A `<nav>` of links to the views' addresses (buttons where there is
+  none), the current one `aria-current` ("page"; "true" on a button), a count after its words. A tab taken is told in
+  `tabpick`, cancelable, `{ value, tab }`, and shown current at once: a page that routes itself prevents the link and
+  goes there its own way, and gives `value` again on the route.
+- **A person drawn small.** `<to-avatar>` (kit/ui/avatar.ts): `name`, `href` (a link to their page), `size` (`s`
+  1.5rem, `m` 1.75rem, `l` 2.5rem; or the page's `--to-av-size`). Their initials (`initial`: the first letter of
+  their first and last words) in a disc of a hue of their own (`hueOf`: the same for the same name wherever it is
+  drawn, as the Board's cards and the table's person cells draw it), their name for a screen reader and as its title;
+  a few in a row go in a `.to-avatars`. Both functions are kit/ui/initials.ts's, pure, served by `tinylittleoffice/kit`.
+- **Nothing here yet.** `.to-empty` (kit.css, so a host's page has it as the site's views do): words and a button in a
+  column, with room around them; a section's empty words wear it.
 
 ```ts
 import { confirm, type FieldChange } from 'tinylittleoffice/kit';
@@ -548,15 +580,18 @@ waiting for them.
   on the whole document. It tells "comment-send" (`CommentSend`: `text`, `ask`, `mentions`, `parent_id`, `quote`, and
   `done(ok)`, which empties the box once the host has kept the words or keeps them where it refused),
   "comment-resolve" `{ thread_id, resolved }` and "comment-delete" `{ id }`, and the panel's "review-accept" and
-  "review-reject".
+  "review-reject". `plain` is a record's thread: comments on what has no words to pin to (a lead's, a row's of a
+  model), in a box of the same kind, with no words, no quotes and never a sheet: the threads in a column, each a note
+  that opens, no heading for the whole document, and the box to write a new one at the foot (no New comment, no
+  Cancel) where the reader may comment; its "comment-send" has `quote` null and `parent_id` null.
 - **`<to-comment-box>`** (kit/ui/comment-box.ts), the margin's box: a plain field marked `data-comment-box`, "@" with
   letters offering `people` (the assistant first), Comment or Reply, Ask, Cancel; "comment-box-send" (`BoxSend`).
 
 The words are the kit's, in every language (en.ftl's `review-` and `comments-` groups). Their sheet is
 src/styles/review.css, in editors.css alone. A host that built its own redline, margin, comment box and reviews (who
 reviewed, who rejected, what is settled, where a change stands) can replace them with these; what stays its own is its
-server's rule for the steps it keeps, the order of operations (which `mount`'s `onOps` and `applyRemote` serve) and a
-thread on what has no words to pin to (a record's, in a box of the same kind).
+server's rule for the steps it keeps and the order of operations (which `mount`'s `onOps` and `applyRemote` serve); a
+thread on what has no words to pin to (a record's) is `<to-comments plain>`.
 
 ```ts
 import { changesOf, drawChanges, mount, reviewsOf, track, wordsOf, type Comment, type Review, type Step } from 'tinylittleoffice/kit';

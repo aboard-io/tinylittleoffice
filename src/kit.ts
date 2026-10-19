@@ -73,8 +73,12 @@
  *   SearchKind, SearchAction, SearchPick); `<to-header>` (ToHeader), a page's header without the shell (Crumb); and
  *   `pickTemplate` and `<to-template-picker>` (ToTemplatePicker), a template chosen and handed back (PickedTemplate);
  *   and the small pieces: `<to-segmented>` (ToSegmented, Segment), a choice of a few; `confirm` (Confirm), a question
- *   asked in the kit's dialog, its yes in the danger color (`.to-btn.to-danger`) where it destroys; and `<to-field>`
- *   (ToField, FieldType, FieldChange), a fact changed where it is shown;
+ *   asked in the kit's dialog, its yes in the danger color (`.to-btn.to-danger`) where it destroys; `<to-field>`
+ *   (ToField, FieldType, FieldChange), a fact changed where it is shown, a record among its types, picked from the
+ *   host's search as a table's record cell is (RecordPicking, Picking, for an element of the page's own that picks
+ *   one); and a page's parts: `<to-section>` (ToSection), a heading with its count, its actions and its empty words
+ *   over the page's own things; `<to-tabs>` (ToTabs, Tab), a page's views along a row, one current; and
+ *   `<to-avatar>` (ToAvatar), a person drawn small, by `initial` and `hueOf`, as the Board's cards draw them;
  * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
  *   whichever of the `backends` owns the address (a link, a sealed link, a short link, a journal's: Backend, Opened,
  *   Ask), and `place` puts it in an editor on the page (Placement); a document several people edit at once is made by
@@ -167,6 +171,11 @@ export { pickTemplate, ToTemplatePicker, type PickedTemplate } from './kit/ui/te
 export { ToSegmented, type Segment } from './kit/ui/segmented.ts';
 export { confirm, type Confirm } from './kit/ui/confirm.ts';
 export { ToField, type FieldChange, type FieldType } from './kit/ui/field.ts';
+export { RecordPicking, type Picking } from './kit/ui/record-pick.ts';
+export { ToSection } from './kit/ui/section.ts';
+export { ToTabs, type Tab } from './kit/ui/tabs.ts';
+export { ToAvatar } from './kit/ui/avatar.ts';
+export { hueOf, initial } from './kit/ui/initials.ts';
 export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
 export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, pageSvg, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
 export { CHART_KINDS, chartData, chartPage, suggestChart, type ChartData, type ChartKind, type Flow } from './kit/draw/chart.ts';

@@ -20,6 +20,10 @@
  *   under their own heading, resolved threads folded under Resolved.
  * - `ask`, the host's assistant, is offered first by "@", and each box has Ask beside Comment: a comment that
  *   asks says so (`to_assistant`), and until a comment of the assistant's answers it the thread says it is answering.
+ * - `plain`: a thread on what has no words to pin to (a record's: a lead's, a row's of a model), in a box of the same
+ *   kind. No words and no quotes, never a sheet: the threads in a column, each a note that opens, and the box to
+ *   write a new one at the foot where the reader may comment, with no New comment button and no heading for the
+ *   whole document.
  *
  * Storage is the host's: the margin is given the comments as its server keeps them (kit/text/review.ts Comment, made
  * into threads by `threadsOf`), its people (Person), who reads (`me`), and for a reply's changes the tracked changes and
@@ -72,6 +76,7 @@ export class ToComments extends LitElement {
     canComment: { type: Boolean, attribute: 'can-comment' },
     canReview: { type: Boolean, attribute: 'can-review' },
     canDelete: { attribute: false },
+    plain: { type: Boolean, reflect: true },
     anchor: { reflect: true },
     prefix: {},
     open: { state: true },
@@ -94,6 +99,8 @@ export class ToComments extends LitElement {
   declare canReview: boolean;
   /** Whether the reader may delete a comment (Delete drawn on it); null: their own alone. An asker may delete the assistant's reply to them, say. */
   declare canDelete: ((comment: Comment) => boolean) | null;
+  /** A record's thread: no words, no quotes, never a sheet, the box at the foot. */
+  declare plain: boolean;
   /** Where the phone's sheet button sits along the page's foot: at its `end` (the default) or its `start`, clear of a host's own button. */
   declare anchor: 'start' | 'end';
   /** The highlights' prefix for the comments' words (redline.ts PREFIX unless a page holding two documents names one apart). */
@@ -122,6 +129,7 @@ export class ToComments extends LitElement {
     this.canComment = false;
     this.canReview = false;
     this.canDelete = null;
+    this.plain = false;
     this.anchor = 'end';
     this.prefix = PREFIX;
     this.open = '';
@@ -187,6 +195,7 @@ export class ToComments extends LitElement {
    * the margin's parent, with no words) is at least 760px wide. The margin's own container decides, not the viewport.
    */
   get beside(): boolean {
+    if (this.plain) return true;
     const said = getComputedStyle(this).getPropertyValue('--to-comments-beside').trim();
     if (said) return said !== '0';
     const frame = this.frameOf();
@@ -336,16 +345,21 @@ export class ToComments extends LitElement {
     const resolved = threads.filter((th) => th.resolved);
     const draft = this.draft;
     const draftTop = draft?.quote ? pinned.get(DRAFT) : undefined;
-    return html`<button type="button" class="to-btn to-comments-toggle" aria-expanded=${this.sheet ? 'true' : 'false'} @click=${() => (this.sheet = !this.sheet)}>
-        ${t('comments-comments')} <span class="to-comments-count">${open.length || ''}</span>
-      </button>
+    const plain = this.plain;
+    return html`${
+      plain
+        ? nothing
+        : html`<button type="button" class="to-btn to-comments-toggle" aria-expanded=${this.sheet ? 'true' : 'false'} @click=${() => (this.sheet = !this.sheet)}>
+            ${t('comments-comments')} <span class="to-comments-count">${open.length || ''}</span>
+          </button>`
+    }
       <section class="to-comments-in" ?data-open=${this.sheet} aria-labelledby="to-comments-head" @keydown=${this.onKey}>
         <div class="to-comments-top">
           <h2 class="to-comments-head" id="to-comments-head">${t('comments-comments')} <span class="to-comments-count">${open.length || ''}</span></h2>
-          ${this.canComment && !(draft && !draft.quote) ? html`<button type="button" class="to-btn to-comments-new" @click=${() => this.write(null)}>${t('comments-new')}</button>` : nothing}
-          <button type="button" class="to-btn to-comments-shut" @click=${() => (this.sheet = false)}>${t('common-close')}</button>
+          ${this.canComment && !plain && !(draft && !draft.quote) ? html`<button type="button" class="to-btn to-comments-new" @click=${() => this.write(null)}>${t('comments-new')}</button>` : nothing}
+          ${plain ? nothing : html`<button type="button" class="to-btn to-comments-shut" @click=${() => (this.sheet = false)}>${t('common-close')}</button>`}
         </div>
-        ${draft && !draft.quote ? html`<div class="to-note to-draft">${this.box(null)}</div>` : nothing}
+        ${draft && !draft.quote && !plain ? html`<div class="to-note to-draft">${this.box(null)}</div>` : nothing}
         ${!open.length && !resolved.length && !draft ? html`<p class="to-hint to-comments-none">${this.canComment && words ? t('comments-select-words') : t('comments-none')}</p>` : nothing}
         <div class="to-comments-notes">
           ${draft?.quote && draftTop !== undefined ? html`<div class="to-note to-draft" data-top=${draftTop}><p class="to-note-quote">“${draft.quote.quote.split('\n')[0]}”</p>${this.box(null)}</div>` : nothing}
@@ -353,8 +367,9 @@ export class ToComments extends LitElement {
         </div>
         ${draft?.quote && draftTop === undefined ? html`<div class="to-note to-draft"><p class="to-note-quote">“${draft.quote.quote.split('\n')[0]}”</p>${this.box(null)}</div>` : nothing}
         ${moved.length ? html`<h3 class="to-comments-sub">${t('comments-words-changed')}</h3><div class="to-comments-moved">${moved.map((th) => this.thread(th))}</div>` : nothing}
-        ${whole.length ? html`<h3 class="to-comments-sub">${t('comments-whole-document')}</h3><div class="to-comments-whole">${whole.map((th) => this.thread(th))}</div>` : nothing}
+        ${whole.length ? html`${plain ? nothing : html`<h3 class="to-comments-sub">${t('comments-whole-document')}</h3>`}<div class="to-comments-whole">${whole.map((th) => this.thread(th))}</div>` : nothing}
         ${resolved.length ? html`<details class="to-comments-resolved"><summary>${t('comments-resolved')} <span class="to-comments-count">${resolved.length}</span></summary>${resolved.map((th) => this.thread(th))}</details>` : nothing}
+        ${plain && this.canComment ? html`<div class="to-note to-draft">${this.box(null)}</div>` : nothing}
       </section>`;
   }
 
@@ -364,7 +379,7 @@ export class ToComments extends LitElement {
       .ask=${this.ask}
       label=${parent ? t('comments-reply') : t('common-comment')}
       send=${parent ? t('comments-reply') : t('common-comment')}
-      ?cancelable=${!parent}
+      ?cancelable=${!parent && !this.plain}
       @comment-box-send=${(e: Event) => this.send(e, parent)}
       @comment-box-cancel=${(e: Event) => (e.stopPropagation(), (this.draft = null))}
     ></to-comment-box>`;
@@ -387,7 +402,7 @@ export class ToComments extends LitElement {
     const asking = this.ask ? th.comments.filter((c, i) => c.to_assistant && !th.comments.slice(i + 1).some((r) => r.by === this.ask!.id)) : [];
     return html`<div class=${cls} data-thread=${th.id} data-top=${top ?? nothing} role="group" aria-label=${t('comments-by', { name: this.nameOf(first.by) })}>
       <div class="to-thread-head">
-        <p class="to-note-quote">${th.quote ? `“${th.quote.split('\n')[0]}”` : t('comments-whole-document')}</p>
+        <p class="to-note-quote">${th.quote ? `“${th.quote.split('\n')[0]}”` : this.plain ? nothing : t('comments-whole-document')}</p>
         <button type="button" class="to-btn to-thread-close" @click=${() => (this.open = '')}>${t('common-close')}</button>
       </div>
       <ol class="to-thread">

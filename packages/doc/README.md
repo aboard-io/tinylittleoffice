@@ -106,7 +106,11 @@ as the site (docs/library.md), through five more entry points, each built by `np
 - `tinylittleoffice/kit`: an app of your own beside the suite's (src/kit.ts): `defineApp`, `DocElement` for its editor,
   `registerApp` to put it beside the suite's apps and `addStrings` for its words, then `mount` as for any app; the
   commands, the kit's elements, its drawing and Lit itself, all from the editors' own file (`dist/editors.js`, so there
-  is one Lit and one registry; docs/library.md, An app built outside). And who did what in a document several people write: `track` and
+  is one Lit and one registry; docs/library.md, An app built outside). What a host's own pages are made of: a typed
+  table (`<to-table>`), a search box, a page's header, a template picker, and the small pieces, `<to-segmented>`,
+  `confirm`, `<to-field>` (a fact edited where it is shown, a record among its types, picked from the host's search),
+  `<to-section>`, `<to-tabs>`, `<to-avatar>` with `initial` and `hueOf`, and `<to-comments plain>` for a record's
+  thread (docs/library.md, A typed table and after). And who did what in a document several people write: `track` and
   `changesOf` from its versions by their authors, `rejectOps` for the edit that takes a change back, drawn over a Word
   Processor's words with `ghostsOf`, `paint` and `pinComments`, and "@" offering the page's people (docs/library.md,
   Tracked changes and comments for a host).
