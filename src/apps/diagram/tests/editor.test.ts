@@ -262,6 +262,18 @@ test('a tap in a lane adds a step to it, its name already written', async () => 
   expect(last()).toBe('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n- Shop: Packs\n');
 });
 
+test('a tap in the margin above the first lane, or beside the lanes, adds to the lane beside it, not to a lane of no name', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Desk:\n- Lab:\n');
+  const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const desk = thing(el, 'Desk').getBoundingClientRect();
+  const r = pic.getBoundingClientRect();
+  await tap(el, pic, { clientX: r.left + r.width / 2, clientY: r.top + 2 });
+  expect(last()).toBe('---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Step\n');
+  await key(el, 'Escape');
+  await tap(el, pic, { clientX: r.right - 2, clientY: desk.top + desk.height / 2 });
+  expect(last()).toBe('---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Step\n');
+});
+
 test('at phone width: the bar one row, nothing wider than the screen, the line editor on it', async () => {
   await page.viewport(390, 844);
   try {

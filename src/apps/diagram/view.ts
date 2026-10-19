@@ -761,6 +761,13 @@ export function regionAt(d: Diagram, x: number, y: number): string | undefined {
   return inside.length ? inside.map((s) => s.region).join(' & ') : undefined;
 }
 
+/** The swimlane under a point, or the one nearest it above or below: a tap in the margin is in the lane beside it. */
+export function laneAt(d: Diagram, x: number, y: number): string | undefined {
+  const bands = d.shapes.filter((s) => s.region !== undefined);
+  const off = (s: DShape) => Math.max(s.y - y, y - s.y - s.h, 0);
+  return regionAt(d, x, y) ?? bands.sort((a, b) => off(a) - off(b))[0]?.region;
+}
+
 /**
  * The diagram's one page, with words for anyone who cannot see it: as big as its kind lays it out. As a
  * thumbnail (`thumb`) a picture more than twice as wide as tall (a family tree of many) is its middle, twice as

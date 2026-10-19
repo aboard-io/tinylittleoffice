@@ -86,7 +86,7 @@ import {
   type Hit,
   type KindId,
 } from './model.ts';
-import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
+import { laneAt, layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/file/exports.ts';
 import '../../kit/ui/bar.ts';
 import '../../kit/ui/context.ts';
@@ -880,7 +880,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (this.joining !== null) return this.joinTo(hit);
     if (hit) return this.open(hit);
     const [x, y] = this.point(e);
-    this.openDraft(newThing(this.doc, regionAt(this.view.d, x, y)));
+    this.openDraft(newThing(this.doc, (this.view.kind === 'lanes' ? laneAt : regionAt)(this.view.d, x, y)));
   };
   /**
    * Join, from the bar or the thing's own row: armed from the thing in hand (open or focused), the next thing tapped
@@ -1044,7 +1044,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const next = right.filter((s) => s.x === near).sort((a, b) => Math.abs(a.y + a.h / 2 - y) - Math.abs(b.y + b.h / 2 - y))[0];
     const gap = 14;
     const line = next ? next.x - gap : others.length ? Math.max(...others.map((s) => s.x + s.w)) + gap : x;
-    const lane = regionAt(this.view.d, x, y);
+    const lane = laneAt(this.view.d, x, y);
     return { lane, slot: next ? others.indexOf(next) : others.length, at: line, band: shapes.find((s) => s.region !== undefined && s.region === lane) };
   }
   private showSlot(x: number, y: number, i: number) {
