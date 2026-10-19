@@ -74,7 +74,7 @@ describe('the module graph: no cycle, and each layer imports only what is under 
   });
 });
 
-describe('the kit in its six folders (docs/kernel.md §11): nothing at its root, no barrel, every import naming its file', () => {
+describe('the kit in its seven folders (docs/kernel.md §11): nothing at its root, no barrel, every import naming its file', () => {
   test('the fixture’s problems are found', () => {
     const fixture: Module[] = [
       { path: 'src/kit/stray.ts', source: '' },
@@ -90,10 +90,10 @@ describe('the kit in its six folders (docs/kernel.md §11): nothing at its root,
     expect(kitProblems(fixture)).toStrictEqual([
       "a file at the kit's root, in none of its folders: src/kit/stray.ts",
       'a barrel in the kit: src/kit/core/index.ts',
-      'an import of the kit names no file in its six folders: src/apps/a/editor.ts → src/kit/draw.ts',
-      'an import of the kit names no file in its six folders: src/apps/a/editor.ts → src/kit/misc/c.ts',
-      'an import of the kit names no file in its six folders: src/apps/a/editor.ts → src/kit/core',
-      'an import of the kit names no file in its six folders: src/kit/ui/manual.ts → src/kit/stray.tlo?raw',
+      'an import of the kit names no file in its seven folders: src/apps/a/editor.ts → src/kit/draw.ts',
+      'an import of the kit names no file in its seven folders: src/apps/a/editor.ts → src/kit/misc/c.ts',
+      'an import of the kit names no file in its seven folders: src/apps/a/editor.ts → src/kit/core',
+      'an import of the kit names no file in its seven folders: src/kit/ui/manual.ts → src/kit/stray.tlo?raw',
     ]);
   });
   test('src/ and what reads it (test, scripts, packages, e2e, dev) have none, and the kit holds the six folders and nothing beside them', () => {
@@ -308,6 +308,12 @@ const STALE_OK: Record<string, string> = {
   'src/kit/draw/icons-meta.ts': 'Lucide’s own tags for its icons ("signature", "kanban"), generated from its release',
   'src/i18n/fr.ftl': '"une signature" is French for a byline',
   'docs/self-host.md': '`npm audit signatures`, npm’s check of a package’s provenance',
+  'docs/groups.md': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/group/client.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/group/envelope.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/group/keys.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'src/kit/group/group.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
+  'test/groups.test.ts': 'ECDSA signatures on what a group’s members write (issue #21), not the signing of a document that was removed',
 };
 
 /**
