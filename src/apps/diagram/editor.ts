@@ -401,7 +401,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     // Beside an icon the words sit right of it, as Draw sets them: half the icon and its gap further on.
     const f = fitLabel(s);
     const by = f.big && s.k !== 't' ? ((f.laid.px * f.big + 6) / 2) * (r.width / d.w) : 0;
-    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft + by, r.top - box.top + wrap.scrollTop, THEME);
+    // A lane's name is where it is held as the picture scrolls across (pinned, below).
+    const held = this.pinned(s) ? this.pin * (r.width / d.w) : 0;
+    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft + by + held, r.top - box.top + wrap.scrollTop, THEME);
     Object.assign(el.style, w.style);
     el.classList.toggle('left', w.left);
     el.classList.toggle('wrap', w.wrap);
@@ -1099,6 +1101,29 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   /* ---------- the bar ---------- */
 
   /** Mod with the wheel (a trackpad's pinch is one) zooms the picture; the wheel alone scrolls. */
+  /**
+   * Swimlanes scrolled across: their names held at the frame's left edge, over a strip of their band, so the steps
+   * far along still say whose they are (drawn last, over them; the stylesheet's .dg-pin moves them by --dg-pin).
+   */
+  private onScroll = () => {
+    const pic = this.querySelector<SVGSVGElement>('.dg-pic');
+    if (this.view.kind !== 'lanes' || !pic || !this.wrap) return;
+    this.pin = (this.wrap.scrollLeft * this.view.d.w) / pic.getBoundingClientRect().width;
+    pic.style.setProperty('--dg-pin', `${this.pin}px`);
+    if (this.target?.hit.k === 'lane') this.placeWords();
+  };
+  /** How far across, in the picture's own units, swimlanes' names are held (onScroll). */
+  private pin = 0;
+  /** A swimlane's name, or the "+" of the band for a new one: held at the left as the picture scrolls. */
+  private pinned(s: DShape): boolean {
+    return this.view.kind === 'lanes' && s.k === 't' && (s.hit?.k === 'lane' || (!s.hit && s.text === '+'));
+  }
+  /** A pinned name over the left of its band: the surface, then the band's own colour, then the name. */
+  private held(s: DShape, i: number, all: DShape[], on: Hit | null) {
+    const band = all.find((b) => b.region !== undefined && b.y <= s.y && s.y <= b.y + b.h);
+    const strip = band ? { ...band, w: s.x + s.w + 4 - band.x } : undefined;
+    return svg`<g class="dg-pin">${strip ? svg`<rect x=${strip.x} y=${strip.y} width=${strip.w} height=${strip.h} fill="var(--to-surface)" />${unsafeSVG(shapeSvg(strip, all, THEME, false))}` : nothing}${this.thing(s, i, all, on)}</g>`;
+  }
   private onWheel = (e: WheelEvent) => {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
@@ -1153,11 +1178,12 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
         ${this.undoTools()}
       </to-bar>
       <p class="dg-hint to-hint" aria-live="polite">${hint}</p>
-      <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel}>
-        <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}
+      <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel} @scroll=${this.onScroll}>
+        <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${kind === 'lanes' ? `${width};--dg-pin:${this.pin}px` : width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}
           @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>
           <defs>${unsafeSVG(arrowDefs('var(--to-ink)'))}</defs>
-          ${d.shapes.map((s, i) => this.thing(s, i, d.shapes, on))}
+          ${d.shapes.map((s, i) => (this.pinned(s) ? nothing : this.thing(s, i, d.shapes, on)))}
+          ${d.shapes.map((s, i) => (this.pinned(s) ? this.held(s, i, d.shapes, on) : nothing))}
           ${kind === 'lanes' ? svg`<line class="dg-slot" hidden />` : nothing}
         </svg>
         ${d.shapes.length ? nothing : html`<p class="dg-empty to-hint">${t('diagram-tap-here-to-add-first', { thing: thingName(kind).toLowerCase() })}</p>`}

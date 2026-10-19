@@ -274,6 +274,25 @@ test('a tap in the margin above the first lane, or beside the lanes, adds to the
   expect(last()).toBe('---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Step\n');
 });
 
+test('wide swimlanes scrolled across keep their lanes’ names at the left, over the steps, their words opening there', async () => {
+  const steps = Array.from({ length: 12 }, (_, i) => `- ${i % 2 ? 'Lab' : 'Desk'}: Step ${i + 1}\n`).join('');
+  const { el } = await editor(`---\nkind: lanes\n---\n${steps}`);
+  const wrap = el.querySelector<HTMLElement>('.dg-wrap')!;
+  expect(wrap.scrollWidth).toBeGreaterThan(wrap.clientWidth);
+  const left = () => thing(el, 'Lab').getBoundingClientRect().left - wrap.getBoundingClientRect().left;
+  const before = left();
+  wrap.scrollLeft = wrap.scrollWidth;
+  wrap.dispatchEvent(new Event('scroll'));
+  await settle(el);
+  expect(Math.abs(left() - before)).toBeLessThan(2);
+  // Drawn after the steps, so over them.
+  const all = [...el.querySelectorAll('.dg-pic g.dg-thing')];
+  expect(all.indexOf(thing(el, 'Lab'))).toBeGreaterThan(all.indexOf(thing(el, 'Step 12')));
+  await tap(el, thing(el, 'Lab'));
+  const [w, n] = [line(el).getBoundingClientRect(), thing(el, 'Lab').getBoundingClientRect()];
+  expect(Math.abs(w.left - n.left)).toBeLessThan(12);
+});
+
 test('at phone width: the bar one row, nothing wider than the screen, the line editor on it', async () => {
   await page.viewport(390, 844);
   try {

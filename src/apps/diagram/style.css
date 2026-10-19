@@ -72,6 +72,10 @@
   .ghost :is(rect, ellipse, polygon, path, polyline) {
     stroke-dasharray: 4 3;
   }
+  /* A swimlane's name, held at the frame's left as the picture scrolls across (the editor's onScroll sets --dg-pin). */
+  .dg-pin {
+    transform: translateX(var(--dg-pin, 0));
+  }
   /* Where a swimlane's step being dragged would go. */
   .dg-slot {
     stroke: var(--to-accent);
