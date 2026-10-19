@@ -1889,6 +1889,8 @@ common-diagram-maker = דיאגראם־מאכער
 common-drag-to-move = שלעפט צו רוקן
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = צייכענען ווי א מיינד־מעפ
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = צייכענען ווי שווים־באנען
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = צייכענען ווי א נעטווערק
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da
@@ -2658,6 +2660,12 @@ diagram-idea = אידעע
 diagram-person = מענטש
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = שריט
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = באן { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = דער הויפּט־טיש
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = טיש { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = גרופע
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54
@@ -2667,8 +2675,8 @@ diagram-thing = זאך
 diagram-tap-empty-space-for-thing = דריקט אויף א ליידיגן ארט צו צולייגן א זאך. צו פארבינדן צוויי, דריקט "פארבינדן" און דריקט אויף ביידע, אדער שלעפט איינס אויף דעם אנדערן.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = דריקט דא צוצולייגן דאס ערשטע: { $thing }.
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = דריקט אין א באן צו צולייגן א שריט. דריקט אויף א שריט אים צו רעדאקטירן. שלעפט אים צו אן אנדער באן, אדער אויף א שריט אז ער זאל קומען נאך אים.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = דריקט אין א באן צו צולייגן א שריט. דריקט אויף א שריט אים צו רעדאקטירן, אדער שלעפט אים צו אן אנדער באן אדער ארט.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = דריקט אויף דער זאך צו וועלכער צו פארבינדן { $name }. דריקט אויף א ליידיגן ארט צו אנולירן.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
@@ -2681,6 +2689,12 @@ diagram-add-under-it = צולייגן אונטן
 diagram-add-one-more = צולייגן נאך איינס
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = צולייגן נאכדעם
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = צולייגן א צווייג
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = פארעם
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = די געוויינטלעכע פארעם
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = צולייגן א שריט
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

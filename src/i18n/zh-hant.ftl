@@ -1851,6 +1851,8 @@ common-diagram-maker = 圖解
 common-drag-to-move = 拖曳以移動
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = 畫成心智圖
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = 畫成泳道圖
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = 畫成網路圖
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da
@@ -2615,6 +2617,12 @@ diagram-idea = 想法
 diagram-person = 人物
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = 步驟
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = 泳道 { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = 主桌
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = { $n } 號桌
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = 集合
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54
@@ -2624,8 +2632,8 @@ diagram-thing = 項目
 diagram-tap-empty-space-for-thing = 點一下空白處即可新增項目。要連接兩個項目，按「連接」後點一下兩者，或把一個拖到另一個上。
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = 點這裡新增第一個{ $thing }。
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = 在泳道中點一下即可新增步驟。點一下步驟即可編輯。把它拖到另一條泳道，或拖到某個步驟上排在它後面。
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = 在泳道中點一下即可新增步驟。點一下步驟即可編輯，拖曳它可移到另一條泳道或位置。
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = 點一下要與 { $name } 連接的項目。點一下空白處可取消。
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
@@ -2638,6 +2646,12 @@ diagram-add-under-it = 在下方新增
 diagram-add-one-more = 再新增一個
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = 在後面新增
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = 新增分支
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = 圖形
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = 預設圖形
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = 新增步驟
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

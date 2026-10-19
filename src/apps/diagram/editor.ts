@@ -3,7 +3,8 @@
  * or in the circles tapped), its words offered and chosen; tap a thing and its words are typed where they are
  * drawn, in a <to-text> laid exactly over them (the Drawing Tool's overlay, placed by `wordsOver`), with the few
  * things to do to it underneath (one more like it, a picture, a connection, take it away); Enter starts the
- * next; drag a thing onto another to put it under or after it, into a lane or a set to move it there. The
+ * next; drag a thing onto another to put it under or after it, into a set to move it there, and a swimlane's step
+ * to the lane and the place it is let go (the others keep theirs; a tap's new step goes last). The
  * kind is a menu in the one bar. Every change is the kernel's operations (model.ts): a `text` op on the line
  * for the words typed, a `splice` when a thing comes or goes, a `move` when one moves; nothing else
  * touches the document.
@@ -26,7 +27,7 @@
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { apply, applyAll, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, applyAll, family, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { cmdMenu, cmdTool } from '../../kit/ui/bar.ts';
 import { contextOf, drawnIn, runKey } from '../../kit/core/commands.ts';
 import COMMANDS, { PICTURE, WORDS } from './commands.ts';
@@ -34,10 +35,11 @@ import { GENERATOR, docToHtml, pasteFrom } from '../../kit/text/clipboard.ts';
 import { type ContextEntry, type ToContext } from '../../kit/ui/context.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/core/element.ts';
 import { t } from '../../kit/core/i18n.ts';
+import { currentHash } from '../../kit/core/route.ts';
 import type { TextOps, ToText } from '../../kit/text/text.ts';
 import { caret, insertRuns } from '../../kit/text/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
-import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
+import { arrowDefs, fitLabel, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
 import {
   charsOf,
@@ -52,10 +54,13 @@ import {
   joins,
   kindOf,
   lineOf,
+  linesOf,
   demoteThing,
   moveAcross,
   moveThing,
   nextThing,
+  placeStep,
+  stepName,
   newThing,
   partFor,
   promoteThing,
@@ -68,6 +73,12 @@ import {
   rename,
   setEdge,
   setKind,
+  setShape,
+  setBranch,
+  branchOf,
+  shapeOf,
+  SHAPES,
+  type ShapeName,
   thingBlocks,
   tidy,
   withIcon,
@@ -75,12 +86,46 @@ import {
   type Hit,
   type KindId,
 } from './model.ts';
-import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
+import { laneAt, layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/file/exports.ts';
 import '../../kit/ui/bar.ts';
 import '../../kit/ui/context.ts';
 import '../../kit/ui/insert.ts';
 import '../../kit/ui/menu.ts';
+import { ArrowLeft } from 'lucide';
+import type { IconNode } from '../../kit/draw/icons.ts';
+
+/** The least share of its size a swimlane is drawn at, fitted to the column (a step's words some 11px at the usual size); wider, it scrolls. */
+const READABLE = 0.6;
+/** Each shape by the name Draw's Insert ▾ gives it. */
+const SHAPE_NAME: Record<ShapeName, string> = {
+  rectangle: 'draw-rectangle',
+  rounded: 'draw-rounded-box',
+  ellipse: 'draw-ellipse',
+  diamond: 'draw-diamond',
+  hexagon: 'draw-hexagon',
+  parallelogram: 'draw-parallelogram',
+  cylinder: 'draw-cylinder',
+  note: 'common-note',
+};
+/** Each shape drawn small, as its button shows it; its kind's usual one an outline dashed. */
+const SHAPE_ICON: Record<ShapeName | 'usual', IconNode> = {
+  usual: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 4, 'stroke-dasharray': '3 3' }]],
+  rectangle: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 1 }]],
+  rounded: [['rect', { x: 3, y: 6, width: 18, height: 12, rx: 5 }]],
+  ellipse: [['ellipse', { cx: 12, cy: 12, rx: 9, ry: 6.5 }]],
+  diamond: [['path', { d: 'M12 3 21 12 12 21 3 12Z' }]],
+  hexagon: [['path', { d: 'M7.5 5h9l4.5 7-4.5 7h-9L3 12Z' }]],
+  parallelogram: [['path', { d: 'M7 6h14l-4 12H3Z' }]],
+  cylinder: [
+    ['ellipse', { cx: 12, cy: 6, rx: 8, ry: 3 }],
+    ['path', { d: 'M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6' }],
+  ],
+  note: [
+    ['path', { d: 'M4 4h16v11l-5 5H4Z' }],
+    ['path', { d: 'M15 20v-5h5' }],
+  ],
+};
 import '../../kit/text/text.ts';
 import { remScale } from '../../kit/ui/zoom.ts';
 import { pinchZoom } from '../../kit/ui/pinch.ts';
@@ -172,7 +217,23 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
 
   protected read(doc: Doc): DiagramView {
-    return { kind: kindOf(doc), d: layout(doc) };
+    const kind = kindOf(doc);
+    const g = this.ghost;
+    if (!g || g.doc !== doc) {
+      this.ghost = null;
+      return { kind, d: layout(doc, true) };
+    }
+    // The picture as it would be with the next thing in it, every shape naming the document's own lines and
+    // connections (those after the ghost one back by one), the ghost and the lines that reach it drawn as ghosts.
+    const at = g.draft.at;
+    const d = layout(applyAll(doc, commitDraft(g.draft, g.block)), true);
+    const back = (n: number) => (n > at ? n - 1 : n);
+    const shapes = d.shapes.map((x): DShape => {
+      if (((x.hit?.k === 'line' || (x.hit?.k === 'edge' && x.hit.branch)) && x.hit.at === at) || x.flow?.includes(at)) return { ...x, hit: undefined, flow: undefined, ghost: true };
+      const hit = x.hit && (x.hit.k === 'line' || x.hit.k === 'edge') ? { ...x.hit, at: back(x.hit.at) } : x.hit;
+      return { ...x, hit, ...(x.flow ? { flow: [back(x.flow[0]), back(x.flow[1])] as [number, number] } : {}) };
+    });
+    return { kind, d: { ...d, shapes } };
   }
   connectedCallback() {
     super.connectedCallback();
@@ -277,7 +338,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    */
   private targetFor(hit: Hit): { tg: Target; runs: Run[] } | null {
     if (hit.k !== 'line') {
-      const name = hit.k === 'edge' ? (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '') : hit.name;
+      const name = hit.k !== 'edge' ? hit.name : hit.branch ? branchOf(this.doc, hit.at).label : (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '');
       return { tg: { hit, at: -1, span: [0, 0], lines: false, dated: false, name }, runs: name ? [{ t: name }] : [] };
     }
     const b = this.doc.blocks[hit.at];
@@ -331,12 +392,18 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const wrap = this.wrap;
     const pic = this.querySelector<SVGSVGElement>('.dg-pic');
     const { d } = this.view;
-    const s = tg ? d.shapes[this.indexOf(tg)] : undefined;
+    // A connection's words open where they are drawn, beside its line, where it has any.
+    const s = tg ? (d.shapes.find((x) => x.k === 't' && tg.hit.k === 'edge' && sameHit(x.hit, tg.hit)) ?? d.shapes[this.indexOf(tg)]) : undefined;
     if (!el || !s || !wrap || !pic) return;
     const r = pic.getBoundingClientRect();
     const box = wrap.getBoundingClientRect();
     // Measured on the screen, set in the wrap's own lengths, which are the screen's.
-    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft, r.top - box.top + wrap.scrollTop, THEME);
+    // Beside an icon the words sit right of it, as Draw sets them: half the icon and its gap further on.
+    const f = fitLabel(s);
+    const by = f.big && s.k !== 't' ? ((f.laid.px * f.big + 6) / 2) * (r.width / d.w) : 0;
+    // A lane's name is where it is held as the picture scrolls across (pinned, below).
+    const held = this.pinned(s) ? this.pin * (r.width / d.w) : 0;
+    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft + by + held, r.top - box.top + wrap.scrollTop, THEME);
     Object.assign(el.style, w.style);
     el.classList.toggle('left', w.left);
     el.classList.toggle('wrap', w.wrap);
@@ -345,15 +412,20 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
    * A new thing: in the document at once, its words offered (the kind's "New idea", "Name", a table's next name)
    * and chosen, so the first letter typed replaces them; Escape takes it away again. The words open over it.
    */
-  openDraft(d: Draft) {
+  /** A draft's line with its words offered where none were given ("Step", "New idea"), and where they are. */
+  private offered(d: Draft): { block: Extract<Block, { k: 'li' }>; sel: [number, number] } {
     const kind = this.view.kind;
-    let block = d.block;
-    let [a, b] = d.sel;
-    if (a === b) {
-      const words = newWords(kind, isListed(kind) && !!lineOf(block, d.at).key);
-      block = { ...block, runs: normalRuns([...sliceRuns(block.runs, 0, a), { t: words }, ...sliceRuns(block.runs, a, runLength(block.runs))]) };
-      b = a + words.length;
-    }
+    const [a, b] = d.sel;
+    if (a !== b) return { block: d.block, sel: [a, b] };
+    const words = newWords(kind, isListed(kind) && !!lineOf(d.block, d.at).key);
+    const runs = normalRuns([...sliceRuns(d.block.runs, 0, a), { t: words }, ...sliceRuns(d.block.runs, a, runLength(d.block.runs))]);
+    return { block: { ...d.block, runs }, sel: [a, a + words.length] };
+  }
+  openDraft(d: Draft) {
+    const {
+      block,
+      sel: [a, b],
+    } = this.offered(d);
     this.session++;
     this.openText = write(this.doc);
     const mark: Mark = { before: null, after: null };
@@ -363,6 +435,54 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.targetFor(hit)?.tg;
     const at = tg ? tg.span[0] : 0;
     this.open(hit, [Math.max(0, a - at), Math.max(0, b - at)], false);
+    this.fresh = this.session;
+  }
+  /** The next thing offered as a ghost, the focus on it (where it adds one line; one more of a list is not offered). */
+  private offerNext(d: Draft | null) {
+    if (!d || d.n !== 0) return;
+    this.ghost = { doc: this.doc, draft: d, block: this.offered(d).block };
+    this.view = this.read(this.doc);
+    this.requestUpdate();
+    void this.updateComplete.then(() => this.querySelector<SVGGElement>('.dg-pic g.ghost[tabindex]')?.focus({ preventScroll: true }));
+  }
+  /** The ghost let go, if there is one: the picture as the document has it. */
+  private dropGhost() {
+    if (!this.ghost) return;
+    this.ghost = null;
+    this.view = this.read(this.doc);
+    this.requestUpdate();
+  }
+  /** The ghost tapped (or Enter on it): made real, its words open and chosen. */
+  private realize() {
+    const g = this.ghost;
+    if (!g) return;
+    this.dropGhost();
+    this.openDraft(g.draft);
+  }
+  /**
+   * A swimlane's own line tapped: a connection in the document from now, its words open to be typed. Closed with
+   * none, or with Escape, it is taken away again, and the document is as it was (Paul, 2026-10-18: "I cannot select a
+   * connection between steps").
+   */
+  private openFlow([from, to]: [number, number]) {
+    const lines = linesOf(this.doc);
+    const [a, b] = [lines.find((l) => l.at === from), lines.find((l) => l.at === to)];
+    if (!a || !b) return;
+    const before = write(this.doc);
+    const at = this.doc.blocks.length;
+    this.change([{ op: 'splice', at, n: 0, blocks: [{ k: 'edge', from: stepName(lines, a), to: stepName(lines, b), dir: '->' }] }], null);
+    this.open({ k: 'edge', at });
+    this.openText = before;
+    this.flowEdge = { at, before };
+  }
+  /** Back to the document as it was (`text`), by undoing: the words' Escape, a tapped line left without words. */
+  private restore(text: string) {
+    this.restoring = true;
+    try {
+      for (let n = 0; n < 200 && this.canUndo && write(this.doc) !== text; n++) this.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+    } finally {
+      this.restoring = false;
+    }
   }
   /** The thing drawn for the characters [a, b) of line `at`: the smallest part of it that holds them. */
   private hitOn(at: number, a: number, b: number): Hit {
@@ -384,14 +504,25 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     if (!tg) return;
     this.target = null;
+    this.shaping = null;
     this.openText = null;
     this.wordsBlocks = IDLE;
     const el = this.wordsEl;
     if (el) {
       el.hidden = true;
+      // The caret goes with them: Safari keeps it in the hidden words, where the picture's next Backspace would delete
+      // what draws them, and nothing typed after shows (Paul, 2026-10-18).
+      if (el.contains(getSelection()?.anchorNode ?? null)) getSelection()?.removeAllRanges();
       el.blocks = this.wordsBlocks;
     }
     this.ctx?.hide();
+    const flow = this.flowEdge;
+    this.flowEdge = null;
+    // A swimlane's own line, tapped and given no words (nor a plain line in place of its arrow), goes back to being one.
+    if (flow && tg.hit.k === 'edge' && tg.hit.at === flow.at) {
+      const e = edgesOf(this.doc).find((x) => x.at === flow.at);
+      if (e && !e.label && e.dir === '->') this.restore(flow.before);
+    }
     if (tidyUp && tg.at >= 0) this.edit(tidy(this.doc, tg.at));
   }
   /** Done: the words kept, the focus back on the thing they were opened on. */
@@ -456,8 +587,11 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       el.sel = r.sel;
       return;
     }
-    if (tg.hit.k === 'edge') return this.shutAndFocus();
-    this.next(tg);
+    // Enter is done with the words (Paul, 2026-10-18: "When I'm editing a node and hit return don't auto-add the next
+    // node. Just let it sit"); after a new thing, the next is offered as a ghost, real only if it is tapped.
+    if (this.fresh !== this.session || tg.hit.k === 'edge' || tg.hit.k === 'lane') return this.shutAndFocus();
+    this.shut();
+    this.offerNext(nextThing(this.doc, tg.hit));
   };
   /** Done with these words, and the next thing like this one made, its words open (Enter; a comma ending a thing of a list). */
   private next(tg: Target) {
@@ -486,14 +620,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     e.stopPropagation();
     const was = this.openText;
     const hit = this.openHitAt;
-    if (was !== null && write(this.doc) !== was) {
-      this.restoring = true;
-      try {
-        for (let n = 0; n < 200 && this.canUndo && write(this.doc) !== was; n++) this.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
-      } finally {
-        this.restoring = false;
-      }
-    }
+    if (was !== null && write(this.doc) !== was) this.restore(was);
+    this.flowEdge = null;
     this.shut(false);
     void this.focusThing(hit);
   };
@@ -522,6 +650,43 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
 
   /* ---------- the things to do to the thing open ---------- */
+
+  /**
+   * The thing Enter offers after a new one (Paul, 2026-10-18: "auto-add a ghost node. If I tap the ghost node next,
+   * then make it real. If I don't, then remove it"): drawn, never in the document, for the document it was made for.
+   */
+  private ghost: { doc: Doc; draft: Draft; block: Extract<Block, { k: 'li' }> } | null = null;
+  /** The session of words a new thing opened (a tap on empty space, Insert, Add, a ghost made real): Enter offers the next. */
+  private fresh = -1;
+  /** A swimlane's own line made a connection when tapped, to be given words: taken away again if it is given none. */
+  private flowEdge: { at: number; before: string } | null = null;
+  /** The thing whose shapes the row shows in place of its things to do, while it does (Shape). */
+  private shaping: Extract<Hit, { k: 'line' }> | null = null;
+  /**
+   * Shape, from the thing's row: the row becomes the shapes, each drawn, the one it has pressed (Paul, 2026-10-18:
+   * "preview shapes as a horizontal submenu"); one chosen, or Back, and the row is its things to do again.
+   */
+  chooseShape(hit: Hit) {
+    if (hit.k !== 'line') return;
+    this.shaping = hit;
+    this.requestUpdate();
+  }
+  private shapeItems(hit: Extract<Hit, { k: 'line' }>): ContextEntry[] {
+    const now = shapeOf(this.doc, hit.at);
+    const done = () => {
+      this.shaping = null;
+      this.requestUpdate();
+    };
+    const to = (name: ShapeName | null) => () => {
+      done();
+      this.change(setShape(this.doc, hit.at, name), hit);
+    };
+    return [
+      { label: t('deck-back'), icon: ArrowLeft, does: done },
+      { label: t('diagram-shape-usual'), icon: SHAPE_ICON.usual, pressed: !now, does: to(null) },
+      ...(Object.keys(SHAPES) as ShapeName[]).map((name) => ({ label: t(SHAPE_NAME[name]), icon: SHAPE_ICON[name], pressed: now === name, does: to(name) })),
+    ];
+  }
 
   async iconFor(hit: Hit) {
     const { chooseIcon } = await import('../../kit/ui/icons-picker.ts');
@@ -661,6 +826,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /** The things to do to the thing open (commands.ts), in the standard's order: Move up, Move down, the kind's own, a tree's Indent and Bring out, Duplicate | Copy, Cut, Paste | Delete. */
   private contextItems(tg: Target | null): ContextEntry[] {
+    if (tg?.hit && this.shaping && sameHit(this.shaping, tg.hit)) return this.shapeItems(this.shaping);
     return tg?.hit ? (contextOf(COMMANDS, this) as ContextEntry[]) : [];
   }
   /** A new thing, its words opened (Add under it, Add a step). */
@@ -676,10 +842,14 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   setKindTo(k: KindId) {
     this.shut();
     this.change(setKind(this.doc, k), null);
+    // Chosen once, never typed: into the link at once, not when typing would pause, so a reload straight after
+    // keeps it (a reload follows the address as it was when it began; Paul, 2026-10-18: "I switch to swimlanes. It
+    // works. I reload the URL, it's back to family tree").
+    currentHash();
   }
   /** A connection drawn as a plain line or an arrow. */
   toggleArrow(hit: Hit, arrow: boolean) {
-    if (hit.k === 'edge') this.change(setEdge(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit);
+    if (hit.k === 'edge') this.change((hit.branch ? setBranch : setEdge)(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit);
   }
   printCards() {
     void printPages(placeCards(this.doc), this.doc.head.title || t('diagram-place-cards'));
@@ -702,12 +872,17 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onClick = (e: MouseEvent) => {
     if (performance.now() < this.quietUntil || (e.target as Element).closest('.dg-words')) return;
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
-    const hit = g ? this.view.d.shapes[+g.dataset.i!]?.hit : undefined;
+    const shape = g ? this.view.d.shapes[+g.dataset.i!] : undefined;
+    const hit = shape?.hit;
+    // The ghost tapped is made real; anything else tapped lets it go first (the hit is already the document's).
+    if (shape?.ghost && this.ghost) return this.realize();
+    this.dropGhost();
     if (this.target) return this.shut();
+    if (shape?.flow && this.joining === null) return this.openFlow(shape.flow);
     if (this.joining !== null) return this.joinTo(hit);
     if (hit) return this.open(hit);
     const [x, y] = this.point(e);
-    this.openDraft(newThing(this.doc, regionAt(this.view.d, x, y)));
+    this.openDraft(newThing(this.doc, (this.view.kind === 'lanes' ? laneAt : regionAt)(this.view.d, x, y)));
   };
   /**
    * Join, from the bar or the thing's own row: armed from the thing in hand (open or focused), the next thing tapped
@@ -733,14 +908,18 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private nameOf(hit: Hit): string {
     if (hit.k === 'line') {
       const b = this.doc.blocks[hit.at];
-      return b?.k === 'li' ? lineOf(b, hit.at).all.words : '';
+      if (b?.k !== 'li') return '';
+      // A swimlane's step by its words, and its lane's where two steps have the same ones.
+      return this.view.kind === 'lanes' ? stepName(linesOf(this.doc), lineOf(b, hit.at)) : lineOf(b, hit.at).all.words;
     }
     return hit.k === 'edge' ? '' : hit.name;
   }
   /** A press outside the words, the things under them, the picture and the bar: the words close (kept), as a menu's would. */
   private onOutside = (e: PointerEvent) => {
-    if (!this.target) return;
     const at = e.target as Element | null;
+    // A press anywhere but the picture lets a ghost go (in the picture, the tap decides).
+    if (this.ghost && at && !this.wrap?.contains(at)) this.dropGhost();
+    if (!this.target) return;
     if (!at || this.wrap?.contains(at) || at.closest?.('to-context, dialog, [popover], to-bar')) return;
     this.shut();
   };
@@ -768,6 +947,18 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.isComposing) return;
     const at = e.target as Element;
+    // On the ghost, Enter or Space makes it real; so does a letter typed, which the words then take, as the focus
+    // is in them before the key types (Paul, 2026-10-18: "and I start typing, make the ghost item real then too").
+    // Any other key lets it go.
+    if (this.ghost) {
+      if (at.closest?.('g.ghost') && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        return this.realize();
+      }
+      if (at.closest?.('g.ghost') && e.key.length === 1 && !e.ctrlKey && !e.metaKey) return this.realize();
+      if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) this.dropGhost();
+      return;
+    }
     if (at.closest('input, textarea, select, [contenteditable], to-text, dialog, [popover], to-bar, button')) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
@@ -832,10 +1023,39 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = this.querySelector<SVGGElement>(`.dg-pic g[data-i="${d.i}"]`);
     g?.setAttribute('transform', `translate(${x - d.x} ${y - d.y})`);
     g?.classList.add('dragging');
+    if (this.view.kind === 'lanes') return this.showSlot(x, y, d.i);
     const over = this.overAt(e, g);
     this.querySelectorAll('.dg-pic g.over').forEach((el) => el !== over && el.classList.remove('over'));
     over?.classList.add('over');
   };
+  /**
+   * Where a step of a swimlane let go at (x, y) would go: the lane under it, and before the nearest step to the right
+   * of the point (in the column steps stand in side by side, the one nearest it up or down), as its sibling; past
+   * the last, at the end. `slot` is that step's place among the others in their order, as placeStep takes it, the
+   * dragged one's branches left out; `at` where the line that shows it is drawn, in the gap before that step.
+   */
+  private slotAt(x: number, y: number, i: number): { lane: string | undefined; slot: number; at: number; band?: DShape } {
+    const shapes = this.view.d.shapes;
+    const me = shapes[i]?.hit;
+    const from = me?.k === 'line' ? me.at : -1;
+    const end = from >= 0 ? family(this.doc, from) : -1;
+    const at = (s: DShape) => (s.hit?.k === 'line' ? s.hit.at : -1);
+    const others = shapes.filter((s) => s.hit?.k === 'line' && (at(s) < from || at(s) >= end)).sort((a, b) => at(a) - at(b));
+    const right = others.filter((s) => s.x + s.w / 2 > x);
+    const near = Math.min(...right.map((s) => s.x));
+    const next = right.filter((s) => s.x === near).sort((a, b) => Math.abs(a.y + a.h / 2 - y) - Math.abs(b.y + b.h / 2 - y))[0];
+    const gap = 14;
+    const line = next ? next.x - gap : others.length ? Math.max(...others.map((s) => s.x + s.w)) + gap : x;
+    const lane = laneAt(this.view.d, x, y);
+    return { lane, slot: next ? others.indexOf(next) : others.length, at: line, band: shapes.find((s) => s.region !== undefined && s.region === lane) };
+  }
+  private showSlot(x: number, y: number, i: number) {
+    const line = this.querySelector<SVGLineElement>('.dg-slot');
+    const { at, band } = this.slotAt(x, y, i);
+    if (!line) return;
+    line.toggleAttribute('hidden', !band);
+    if (band) for (const [k, v] of Object.entries({ x1: at, x2: at, y1: band.y, y2: band.y + band.h })) line.setAttribute(k, String(v));
+  }
   /** The thing under the pointer, the one being dragged aside. */
   private overAt(e: PointerEvent, dragged: Element | null): SVGGElement | null {
     return (
@@ -853,6 +1073,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = this.querySelector<SVGGElement>(`.dg-pic g[data-i="${d.i}"]`);
     g?.removeAttribute('transform');
     g?.classList.remove('dragging');
+    if (this.view.kind === 'lanes') {
+      this.querySelector('.dg-slot')?.setAttribute('hidden', '');
+      const [x, y] = this.point(e);
+      const { lane, slot } = this.slotAt(x, y, d.i);
+      if (lane !== undefined && d.hit.k === 'line') this.change(placeStep(this.doc, d.hit.at, lane, slot), d.hit, null);
+      return;
+    }
     const over = this.overAt(e, g);
     this.querySelectorAll('.dg-pic g.over').forEach((el) => el.classList.remove('over'));
     const onto = over ? this.view.d.shapes[+over.dataset.i!]?.hit : undefined;
@@ -868,11 +1095,35 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = this.querySelector<SVGGElement>(`.dg-pic g[data-i="${d.i}"]`);
     g?.removeAttribute('transform');
     g?.classList.remove('dragging');
+    this.querySelector('.dg-slot')?.setAttribute('hidden', '');
   };
 
   /* ---------- the bar ---------- */
 
   /** Mod with the wheel (a trackpad's pinch is one) zooms the picture; the wheel alone scrolls. */
+  /**
+   * Swimlanes scrolled across: their names held at the frame's left edge, over a strip of their band, so the steps
+   * far along still say whose they are (drawn last, over them; the stylesheet's .dg-pin moves them by --dg-pin).
+   */
+  private onScroll = () => {
+    const pic = this.querySelector<SVGSVGElement>('.dg-pic');
+    if (this.view.kind !== 'lanes' || !pic || !this.wrap) return;
+    this.pin = (this.wrap.scrollLeft * this.view.d.w) / pic.getBoundingClientRect().width;
+    pic.style.setProperty('--dg-pin', `${this.pin}px`);
+    if (this.target?.hit.k === 'lane') this.placeWords();
+  };
+  /** How far across, in the picture's own units, swimlanes' names are held (onScroll). */
+  private pin = 0;
+  /** A swimlane's name, or the "+" of the band for a new one: held at the left as the picture scrolls. */
+  private pinned(s: DShape): boolean {
+    return this.view.kind === 'lanes' && s.k === 't' && (s.hit?.k === 'lane' || (!s.hit && s.text === '+'));
+  }
+  /** A pinned name over the left of its band: the surface, then the band's own colour, then the name. */
+  private held(s: DShape, i: number, all: DShape[], on: Hit | null) {
+    const band = all.find((b) => b.region !== undefined && b.y <= s.y && s.y <= b.y + b.h);
+    const strip = band ? { ...band, w: s.x + s.w + 4 - band.x } : undefined;
+    return svg`<g class="dg-pin">${strip ? svg`<rect x=${strip.x} y=${strip.y} width=${strip.w} height=${strip.h} fill="var(--to-surface)" />${unsafeSVG(shapeSvg(strip, all, THEME, false))}` : nothing}${this.thing(s, i, all, on)}</g>`;
+  }
   private onWheel = (e: WheelEvent) => {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
@@ -889,22 +1140,33 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   /* ---------- drawing ---------- */
 
-  private thing(s: DShape, i: number, all: DShape[], on: number) {
+  private thing(s: DShape, i: number, all: DShape[], on: Hit | null) {
     const hit = s.hit;
-    // The thing whose words are being typed is drawn without them: the words over it hold them, nothing doubles.
-    const body = unsafeSVG(shapeSvg(i === on ? { ...s, text: '' } : s, all, THEME, !!hit));
+    // The thing whose words are being typed is drawn with them hidden (the stylesheet's .on text): the words over it
+    // hold them, nothing doubles, and its icon stays drawn, a new one at once (Paul, 2026-10-18).
+    const body = unsafeSVG(shapeSvg(s, all, THEME, !!hit || !!s.flow));
+    // The ghost: drawn faint, a tap (or Enter) away from being real; the lines that reach it, faint with it.
+    const box = s.k !== 'w' && s.k !== 'v' && s.k !== 't';
+    if (s.ghost && box) return svg`<g class="dg-thing ghost" data-i=${i} tabindex="0" role="button" aria-label=${s.text}>${body}</g>`;
+    if (s.ghost) return svg`<g class="ghost">${body}</g>`;
+    // A swimlane's own line: tapped, a connection to give words to.
+    if (s.flow) return svg`<g class="dg-thing edge" data-i=${i} tabindex="-1" role="button" aria-label=${t('diagram-connection')}>${body}</g>`;
     if (!hit) return svg`<g>${body}</g>`;
     const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) || hit.k === 'edge' ? t('diagram-connection') : t('diagram-empty'));
     // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.
     const stop = hit.k === 'edge' && s.k === 't' ? '-1' : '0';
-    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${i === on ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}</g>`;
+    // Every shape drawn for the thing open is it: a connection's line and its words alike (its words not twice).
+    return svg`<g class="dg-thing ${hit.k === 'edge' ? 'edge' : ''} ${hit.k === 'edge' && hit.branch ? 'branch' : ''} ${sameHit(hit, on) ? 'on' : ''}" data-i=${i} tabindex=${stop} role="button" aria-label=${words}>${body}</g>`;
   }
   render() {
     const { kind, d } = this.view;
     const tg = this.target;
-    const on = tg ? this.indexOf(tg) : -1;
+    const on = tg?.hit ?? null;
     const words = this.wording(tg);
-    const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
+    // Fitted to the column, but swimlanes no smaller than READABLE of their size: wider, the frame scrolls across (Paul,
+    // 2026-10-18: "past four nodes in width it gets too small to read").
+    const least = kind === 'lanes' ? `max(100%, ${Math.round(d.w * READABLE) / 16}rem)` : '100%';
+    const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:${least};max-width:${d.w / 16}rem`;
     const hint = this.joining === '' ? t('diagram-tap-first-thing-to-join') : this.joining !== null ? t('diagram-tap-thing-to-join-name', { name: this.joining }) : kindHint(kind);
     const own = (id: string) => COMMANDS.find((c) => c.id === `diagram.${id}`)!;
     return html`<to-bar class="dg-bar">
@@ -916,18 +1178,20 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
         ${this.undoTools()}
       </to-bar>
       <p class="dg-hint to-hint" aria-live="polite">${hint}</p>
-      <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel}>
-        <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}
+      <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel} @scroll=${this.onScroll}>
+        <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${kind === 'lanes' ? `${width};--dg-pin:${this.pin}px` : width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}
           @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>
           <defs>${unsafeSVG(arrowDefs('var(--to-ink)'))}</defs>
-          ${d.shapes.map((s, i) => this.thing(s, i, d.shapes, on))}
+          ${d.shapes.map((s, i) => (this.pinned(s) ? nothing : this.thing(s, i, d.shapes, on)))}
+          ${d.shapes.map((s, i) => (this.pinned(s) ? this.held(s, i, d.shapes, on) : nothing))}
+          ${kind === 'lanes' ? svg`<line class="dg-slot" hidden />` : nothing}
         </svg>
         ${d.shapes.length ? nothing : html`<p class="dg-empty to-hint">${t('diagram-tap-here-to-add-first', { thing: thingName(kind).toLowerCase() })}</p>`}
         <to-text class="dg-words" hidden shape="line" no-bubble .blocks=${this.wordsBlocks} .label=${words.label} .placeholder=${words.placeholder}
           @keydown=${{ handleEvent: this.onWordsKey, capture: true }} @focusout=${this.onWordsBlur}
           @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
       </div>
-      <to-context class="dg-context" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>`;
+      <to-context class="dg-context ${this.shaping ? 'shaping' : ''}" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToDiagramEditor);

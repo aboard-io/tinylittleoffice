@@ -319,6 +319,26 @@ test('the link is written fifteen seconds after the typing stops, once; at once 
   }
 });
 
+// A diagram's kind is chosen once, never typed: it is written at once, so a reload straight after keeps it (Paul,
+// 2026-10-18: "I switch to swimlanes. It works. I reload the URL, it's back to family tree").
+test('a diagram’s kind chosen is in the link at once, with no pause and no read', async () => {
+  const shell = await mount(`#/v1/diagram/${encodeDoc('---\nkind: family\n---\n- Ada + Charles\n  - Byron\n')}`);
+  await until(() => !!shell.querySelector('to-diagram-editor .dg-kind > button'));
+  const written = vi.spyOn(history, 'replaceState');
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  try {
+    shell.querySelector<HTMLButtonElement>('to-diagram-editor .dg-kind > button')!.click();
+    vi.useRealTimers();
+    await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].find((x) => x.textContent!.includes('Swimlanes'))!.click();
+    expect(decodeDoc(location.hash.split('/')[3] ?? '')).toMatch(/kind: lanes/);
+  } finally {
+    vi.useRealTimers();
+    written.mockRestore();
+  }
+});
+
 // A link shared with a network carries its preview card's id (?c=, kit/share/card.ts) for the network's fetcher alone.
 test('a link with ?c= opens its document, routed by the hash alone, and the address loses the card at once', async () => {
   /** The shell started at an address with a query, as a network's reader arrives. */

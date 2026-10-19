@@ -196,9 +196,16 @@ line) holds the row numbers of the two shapes in X and Y; `Points` and `Rot` col
 
 **diagram** (Diagram Maker): list items and connections, the head's `kind:` saying how they are drawn:
 `mind` and `family` (a nested list), `org` (`- Name | Role`, a dotted line an edge `~ Ben -- Eve: advises`),
-`lanes` (`- Who: what they do`), `timeline` (`- When: what happened`), `venn` (`- Set: thing, thing`, and
-`- A & B: thing`), `seating` (`- Table: Ann, Bob`; its place cards print eight to a sheet), `net` (edges, and
-`- name` for a thing on its own). A thing's own words never separate: where one of them would read as a separator the
+`lanes` (`- Who: what they do`, a step a line: the steps on the margin in order, the steps indented under one its
+branches, each rejoining at the next step on the margin; `- Desk:` alone names a lane, the lanes drawn in the order
+they are first named; edges join any two steps, a step named by its words or by `Who: words` where two have the same),
+`timeline` (`- When: what happened`), `venn` (`- Set: thing, thing`, and `- A & B: thing`), `seating`
+(`- Table: Ann, Bob`; its place cards print eight to a sheet), `net` (edges, and `- name` for a thing on its own).
+An item's line to the one above is written as the Outliner writes it, and a tree (`mind`, `org`, `family`) and
+`lanes` draw it so: `{.from}` an arrow to it, `{.to}` back, `{.both}`, and `{label=Yes}` its words. Where a kind
+draws its things as boxes (the trees, `lanes`, `net`) an item's class gives it Draw's shape: `{.rectangle}`,
+`{.rounded}`, `{.ellipse}`, `{.diamond}`, `{.hexagon}`, `{.parallelogram}`, `{.cylinder}`, `{.note}`; without one,
+`lanes` draws a step where the flow starts or ends round, a step ending in `?` a hexagon, any other a box. A thing's own words never separate: where one of them would read as a separator the
 code writes a backslash before it, `\,` a comma in a thing of a list, `\:` a colon ending a word in a key (or in a
 line with none), `\|` a bar that is not a second line, `\&` an ampersand in a set's name, `\\` a backslash before
 one of them; the backslash is in the item's words, so the text holds it doubled (`- Top table: Smith\\, Jones, Ann`

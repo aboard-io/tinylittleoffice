@@ -1880,6 +1880,8 @@ common-diagram-maker = Kreyatè Dyagram
 common-drag-to-move = Rale pou deplase
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = Trase kòm yon kat lide
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = Trase kòm koulwa
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = Trase kòm yon rezo
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da
@@ -2650,6 +2652,12 @@ diagram-idea = Lide
 diagram-person = Moun
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = Etap
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = Koulwa { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = Tab prensipal
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = Tab { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = Ansanm
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54
@@ -2659,8 +2667,8 @@ diagram-thing = Atik
 diagram-tap-empty-space-for-thing = Tape yon espas vid pou ajoute yon atik. Pou lye de, peze Lye epi tape tou de, oswa rale youn sou lòt la.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Tape isit la pou ajoute premye { $thing } la.
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = Tape nan yon koulwa pou ajoute yon etap. Tape yon etap pou edite l. Rale l nan yon lòt koulwa, oswa sou yon etap pou l vin apre li.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = Tape nan yon koulwa pou ajoute yon etap. Tape yon etap pou edite l, oswa rale l nan yon lòt koulwa oswa yon lòt plas.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Tape atik pou lye { $name } avè l la. Tape yon espas vid pou anile.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
@@ -2673,6 +2681,12 @@ diagram-add-under-it = Ajoute anba
 diagram-add-one-more = Ajoute yon lòt
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = Ajoute apre
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = Ajoute yon branch
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = Fòm
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = Fòm abityèl li
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = Ajoute yon etap
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

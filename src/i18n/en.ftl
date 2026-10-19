@@ -1057,6 +1057,7 @@ common-presentation-builder = Presentation Builder
 common-diagram-maker = Diagram Maker
 common-drag-to-move = Drag to move
 outline-draw-as-mind-map = Draw as a mind map
+outline-draw-as-swimlanes = Draw as swimlanes
 outline-draw-as-network = Draw as a network
 outline-draw-as-org-chart = Draw as an org chart
 outline-empty = Empty
@@ -1465,18 +1466,26 @@ diagram-network = Network
 diagram-idea = Idea
 diagram-person = Person
 diagram-step = Step
+# A new swimlane's name, offered until it is renamed; written into the document.
+diagram-lane-n = Lane { $n }
+# A new seating chart's first table, and the ones after it; written into the document.
+diagram-top-table = Top table
+diagram-table-n = Table { $n }
 diagram-set = Set
 diagram-thing = Item
 # The picture, and the line editor over a thing
 diagram-tap-empty-space-for-thing = Tap empty space to add an item. To connect two, press Join and tap both, or drag one onto the other.
 diagram-tap-here-to-add-first = Tap here to add the first { $thing }.
-diagram-tap-in-lane-to-add = Tap in a lane to add a step. Tap a step to edit it. Drag it to another lane, or onto a step to follow it.
+diagram-tap-in-lane-to-add = Tap in a lane to add a step. Tap a step to edit it, or drag it to another lane or place.
 diagram-tap-thing-to-join-name = Tap the item to connect { $name } to. Tap empty space to cancel.
 diagram-tap-first-thing-to-join = Tap the first item, then the other. Tap empty space to cancel.
 diagram-this-thing = This item
 diagram-add-under-it = Add below
 diagram-add-one-more = Add another
 diagram-add-after-it = Add after
+diagram-add-branch = Add a branch
+diagram-shape = Shape
+diagram-shape-usual = Its usual shape
 diagram-add-step = Add a step
 diagram-join = Join
 diagram-make-it-plain-line = Plain line
