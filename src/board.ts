@@ -21,7 +21,9 @@
  * is nothing to add.
  *
  * Beside it, everything `tinylittleoffice/board/model` serves (apps/board/model.ts), for a page that builds or changes
- * a board itself; and the types of the editor (`ToBoardEditor`, `<to-board-editor>`) and of a pick (`PickedCard`).
+ * a board itself (the lanes' looks among it: `LaneLook`, `LANE_COLORS`, `setLaneLook`); and the types of the editor
+ * (`ToBoardEditor`, `<to-board-editor>`), of a pick (`PickedCard`), of a lane's events (`LaneEvents`) and of a card's
+ * look (`CardLook`).
  */
 import { appOf, registerApp } from './kit/core/apps.ts';
 import board from './apps/board/def.ts';
@@ -29,7 +31,7 @@ import './apps/board/editor.ts';
 
 export { board };
 export * from './apps/board/model.ts';
-export type { LaneEvent, LaneEvents, LaneTone, PickedCard, ToBoardEditor } from './apps/board/editor.ts';
+export type { CardLook, LaneEvent, LaneEvents, LaneTone, PickedCard, ToBoardEditor } from './apps/board/editor.ts';
 
 /** The Board put beside the suite's apps. Once: a second call does nothing. */
 export function registerBoard(): void {

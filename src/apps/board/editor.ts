@@ -72,6 +72,23 @@
  * won tinted the success color, a lost one quieter, each kind its `data-tone` for a page's own rules. Its name's hint
  * says how to rename it on this device: a double click under a mouse, a double tap under a finger (which is heard as
  * one: two taps on the name, near each other in place and time).
+ *
+ * A lane's look (model.ts `LaneLook`: its width, narrow, normal or wide; collapsed, a strip of its name and its count
+ * that a tap opens again; its color, one of the Board's palette, blue, green, amber, red, violet, teal and gray, or a
+ * tone of the page's own) is the document's, in the head's `lane-looks:`, under the page's `laneLook(name)` where it
+ * answers, field by field; `laneTone` still wins for the color. It is drawn as `data-width`, `data-collapsed` and
+ * `data-tone` on the lane, the width as `--to-board-lane-w`, which a page sets on the element for every lane. The
+ * lane's menu changes it (Narrow lane, Widen lane, Collapse lane or Expand lane, Lane color…, a menu of the palette),
+ * told first as "lanelook" `{ name, look }`, the look the lane would then have, whole, and written into `lane-looks:`
+ * unless the page makes it (`own-lanes`), as the other lane events are. A card's look is the page's alone
+ * (`cardLook(card)`: `{ tone }`, a palette color or the page's own), drawn as `data-tone` on the card: a stale deal
+ * tinted amber.
+ *
+ * A lane is reordered by dragging its head, wherever a lane may be changed: a mouse's press on it, outside its menu and
+ * its name while that is a field, carries the lane once it has moved 6px (a double click still renames), a finger's
+ * once held still a moment and then moved; a ghost of its head follows the pointer, a rule beside the lane it would
+ * land by shows where (before it, or after the last), the board scrolls near its edges, and let go it is a "lanemove"
+ * `{ name, from, to }`, made unless the page refuses it or makes it (model.ts `moveLane`). Escape lets it go.
  */
 import { ArrowDown, ArrowUp, CalendarDays, Copy, Ellipsis } from 'lucide';
 import { applyAll, COL_NAMES, parse, parseInline, plainText, transform, write, writeInline, type Block, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
@@ -99,6 +116,8 @@ import {
   cardFieldsOf,
   cardsTable,
   duplicateCards,
+  LANE_COLORS,
+  LANE_WIDTHS,
   moveBack,
   moveCard,
   moveCards,
@@ -111,12 +130,14 @@ import {
   removeLane,
   renameLane,
   setCells,
+  setLaneLook,
   setTitle,
   type BoardView,
   type Card,
   type CardField,
   type Field,
   type Lane,
+  type LaneLook,
   type ShownField,
 } from './model.ts';
 import { dayShort, hueOf, initials, moneyShort } from './fields.ts';
@@ -141,6 +162,30 @@ export type PickedCard = { at: number; row: number };
  */
 /** What kind a lane is, as a page says it (`laneTone`): won, lost, neutral, or a kind of the page's own, drawn by its own rules on `data-tone`. */
 export type LaneTone = 'won' | 'lost' | 'neutral' | (string & {});
+/** How a card looks beyond its fields, as a page says it (`cardLook`): its tone, one of the Board's palette (model.ts `LANE_COLORS`) or the page's own, drawn as `data-tone` on the card. */
+export interface CardLook {
+  tone?: string | null;
+}
+/** The palette's colors as the lane menu's swatches show them: the stylesheet's own (style.css, `--to-board-tone`), in the light theme. */
+const SWATCHES: Record<string, string> = {
+  blue: 'hsl(220 70% 48%)',
+  green: 'hsl(145 55% 38%)',
+  amber: 'hsl(38 85% 46%)',
+  red: 'hsl(0 70% 50%)',
+  violet: 'hsl(270 60% 52%)',
+  teal: 'hsl(175 60% 34%)',
+  gray: 'hsl(220 8% 50%)',
+};
+/** The palette's colors named in the reader's language: the suite's words where it has them, the Board's for the rest. */
+const COLOR_NAMES: Record<string, () => string> = {
+  blue: () => t('common-blue'),
+  green: () => t('common-green'),
+  amber: () => t('board-amber'),
+  red: () => t('common-red'),
+  violet: () => t('board-violet'),
+  teal: () => t('board-teal'),
+  gray: () => t('board-gray'),
+};
 /** Two taps this near in place (CSS px) and time (ms) are a double tap. */
 const TAP_PX = 24;
 const TAP_MS = 400;
@@ -149,6 +194,8 @@ export interface LaneEvents {
   laneadd: { name: string; at: number };
   lanemove: { name: string; from: number; to: number };
   lanedelete: { name: string; cards: number };
+  /** Lane `name`'s look changed from its menu, or its strip tapped open: the look it would then have, whole (a field left out is none). */
+  lanelook: { name: string; look: LaneLook };
 }
 export type LaneEvent<K extends keyof LaneEvents = keyof LaneEvents> = CustomEvent<LaneEvents[K]>;
 /** Where the selection was when an edit began (the entry's mark): cards chosen whole, or the caret in a card's title. */
@@ -183,12 +230,13 @@ const PRESS = 200;
 const HOLD = 500;
 const EDGE = 48;
 const SPEED = 18;
-/** A press on a card: the pointer, where it went down, the card, a finger's or a pen's, whether it may carry the card yet, has, or was held to choose it. */
+/** A press on a card (`row`) or on a lane's head (`lane`, the card -1): the pointer, where it went down, a finger's or a pen's, whether it may carry the card or the lane yet, has, or was held to choose the card. */
 interface Press {
   id: number;
   x: number;
   y: number;
   row: number;
+  lane: number;
   touch: boolean;
   armed: boolean;
   moved: boolean;
@@ -260,7 +308,11 @@ export class ToBoardEditor extends DocElement<BoardView> {
     ownLanes: { type: Boolean, attribute: 'own-lanes', reflect: true },
     cardFields: { attribute: false },
     laneTone: { attribute: false },
+    laneLook: { attribute: false },
+    cardLook: { attribute: false },
     carrying: { state: true },
+    carryingLane: { state: true },
+    overLane: { state: true },
     lifting: { state: true },
     menuAt: { state: true },
     opened: { state: true },
@@ -280,6 +332,14 @@ export class ToBoardEditor extends DocElement<BoardView> {
   declare cardFields: CardField[] | null;
   /** What kind each lane is, by its name (a stage won, lost): drawn by the board as the lane's tone; null for none. */
   declare laneTone: ((name: string) => LaneTone | null | undefined) | null;
+  /** How each lane looks, by its name (model.ts `LaneLook`: its width, collapsed, its color), over the document's `lane-looks:` field by field; null for the document's alone. */
+  declare laneLook: ((name: string) => LaneLook | null | undefined) | null;
+  /** How each card looks beyond its fields (`CardLook`: its tone), drawn as `data-tone` on the card; null for none. */
+  declare cardLook: ((card: Card) => CardLook | null | undefined) | null;
+  /** The lane being carried by a drag of its head, by its place; -1 for none. */
+  declare carryingLane: number;
+  /** Where the carried lane would land: its place among the other named lanes; null for none. */
+  declare overLane: number | null;
   /** The card a finger or a pen holds, lifted, ready to be carried, by its row; -1 for none. */
   declare lifting: number;
   /** The lane whose name is a field, being renamed, by its place; -1 for none. */
@@ -347,8 +407,12 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.ownLanes = false;
     this.cardFields = null;
     this.laneTone = null;
+    this.laneLook = null;
+    this.cardLook = null;
     this.cur = -1;
     this.carrying = -1;
+    this.carryingLane = -1;
+    this.overLane = null;
     this.lifting = -1;
     this.renaming = -1;
     this.laneError = '';
@@ -740,7 +804,9 @@ export class ToBoardEditor extends DocElement<BoardView> {
    * as a double click on it does; for a page's own control too. Nothing where the lanes may not be changed.
    */
   startRename(i: number) {
-    if (!this.lanesChange || !this.view.lanes[i]) return;
+    const l = this.view.lanes[i];
+    // A collapsed lane shows no name to type in: its strip is opened first.
+    if (!this.lanesChange || !l || this.lookOf(l).collapsed) return;
     void this.focusLane(i, true);
   }
   /**
@@ -886,6 +952,69 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.edit(moveLane(this.doc, l.name, at + by));
     this.menuAt = this.view.lanes.findIndex((x) => x.name === l.name);
   }
+  /* ---------- a lane's look ---------- */
+
+  /** A lane's look: the page's answer (`laneLook`) over the document's `lane-looks:`, field by field; plain where neither says. */
+  lookOf(l: Lane): LaneLook {
+    const own = l.name ? this.laneLook?.(l.name) : null;
+    const look: LaneLook = { ...this.view.looks[l.name], ...own };
+    for (const k of Object.keys(look) as (keyof LaneLook)[]) if (look[k] === undefined || look[k] === null) delete look[k];
+    return look;
+  }
+  /** A lane's tone, drawn as `data-tone`: the page's kind (`laneTone`) where it says one, else the look's color. */
+  private toneOf(l: Lane): string | null {
+    return (l.name && this.laneTone?.(l.name)) || this.lookOf(l).color || null;
+  }
+  /** The look of the lane whose menu is open; plain where none is. */
+  menuLook(): LaneLook {
+    const l = this.menuLane;
+    return l ? this.lookOf(l) : {};
+  }
+  /** Narrow lane, Widen lane: the lane a step along the widths (narrow, normal, wide); nothing past the ends. */
+  sizeMenuLane(by: -1 | 1) {
+    if (!this.menuLane) return;
+    const width = LANE_WIDTHS[LANE_WIDTHS.indexOf(this.menuLook().width ?? 'normal') + by];
+    if (width) this.setLook(this.menuAt, { width });
+  }
+  /** Collapse lane, Expand lane: the lane a strip of its name and its count, or open again. */
+  foldMenuLane() {
+    if (this.menuLane) this.setLook(this.menuAt, { collapsed: !this.menuLook().collapsed });
+  }
+  /** Lane color…: a menu of the palette beside the lane's menu button, the lane's color checked. */
+  async colorMenu() {
+    const i = this.menuAt;
+    await this.updateComplete;
+    const menu = this.querySelector<ToMenu>('to-menu.board-color-menu');
+    const from = this.querySelector<HTMLElement>(`.board-lane[data-lane="${i}"] .board-more`);
+    if (!menu || !from) return;
+    await menu.updateComplete;
+    menu.openAt(from);
+  }
+  /** The palette, for Lane color…: no color, then each color with its swatch, the lane's checked. */
+  private colorItems(): MenuItem[] {
+    const have = this.menuLook().color ?? '';
+    return [
+      { label: t('board-no-color'), checked: !have, does: () => this.setLook(this.menuAt, { color: '' }) },
+      ...LANE_COLORS.map((c) => ({ label: COLOR_NAMES[c]?.() ?? c, swatch: SWATCHES[c], checked: have === c, does: () => this.setLook(this.menuAt, { color: c }) })),
+    ];
+  }
+  /**
+   * Lane `i`'s look changed by `change` (its fields over the look it has; a width normal, collapsed false or a color ''
+   * takes that away): told first ("lanelook", the look it would then have, whole), then written into the head's
+   * `lane-looks:` (model.ts `setLaneLook`), unless the page refuses it or makes it itself.
+   */
+  setLook(i: number, change: LaneLook) {
+    const l = this.view.lanes[i];
+    if (!l?.name) return;
+    const next = { ...this.lookOf(l), ...change };
+    const look: LaneLook = {};
+    if (next.width && next.width !== 'normal') look.width = next.width;
+    if (next.collapsed) look.collapsed = true;
+    if (next.color) look.color = next.color;
+    if (!this.tell('lanelook', { name: l.name, look })) return;
+    this.edit(setLaneLook(this.doc, l.name, look));
+  }
+
   deleteMenuLane() {
     const l = this.menuLane;
     if (!l) return;
@@ -1226,26 +1355,43 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const words = el.closest<ToText>('to-text');
     return !!words && !words.locked && words.contains(document.activeElement);
   }
-  /** A press on a card, outside its controls and outside words being typed: it may carry the card (`move`), or be a click (`cardTap`). */
+  /** The lanes with a name, as `lanes:` holds them: the places "lanemove" and `moveLane` count. */
+  private namedLanes(): Lane[] {
+    return this.view.lanes.filter((l) => l.name);
+  }
+  /** Whether lane `i` may be carried by its head: the lanes may be changed, it has a name, and there is another to pass. */
+  private laneCarries(i: number): boolean {
+    return this.lanesChange && !!this.view.lanes[i]?.name && this.namedLanes().length > 1;
+  }
+  /**
+   * A press on a card, outside its controls and outside words being typed: it may carry the card (`move`), or be a
+   * click (`cardTap`). A press on a lane's head, outside its menu and its name while that is a field: it may carry the
+   * lane, where lanes may be changed.
+   */
   private down = (e: PointerEvent) => {
     if (this.laneError && this.renaming < 0) this.laneError = '';
     if (e.button !== 0 || !e.isPrimary || this.readOnly || this.press) return;
     const el = e.target instanceof Element ? e.target : null;
-    const box = el?.closest<HTMLElement>('.board-card');
-    if (!el || !box || !this.contains(box) || el.closest('button, a[href], input, select, textarea, [popover], dialog') || this.typing(el)) return;
-    const c = this.cardAt(Number(box.dataset.row));
-    if (!c) return;
+    if (!el || el.closest('button, a[href], input, select, textarea, [popover], dialog') || this.typing(el)) return;
+    const box = el.closest<HTMLElement>('.board-card');
+    const head = box ? null : el.closest<HTMLElement>('.board-head');
+    const lane = head ? Number(head.closest<HTMLElement>('.board-lane')?.dataset.lane) : -1;
+    const c = box && this.contains(box) ? this.cardAt(Number(box.dataset.row)) : undefined;
+    if (!c && !(head && this.contains(head) && this.laneCarries(lane) && this.renaming !== lane)) return;
     this.dragged = false;
     const touch = e.pointerType === 'touch' || e.pointerType === 'pen';
-    const press: Press = { id: e.pointerId, x: e.clientX, y: e.clientY, row: c.row, touch, armed: !touch, moved: false, held: false, timers: [] };
+    const press: Press = { id: e.pointerId, x: e.clientX, y: e.clientY, row: c ? c.row : -1, lane: c ? -1 : lane, touch, armed: !touch, moved: false, held: false, timers: [] };
     if (touch)
       press.timers.push(
-        // Held still a moment, the card lifts: it may be carried now, and the finger no longer scrolls (`onTouchMove`).
+        // Held still a moment, the card lifts: it may be carried now, and the finger no longer scrolls (`onTouchMove`). A lane's head likewise, with no lift to show.
         window.setTimeout(() => {
           if (this.press !== press || press.moved) return;
           press.armed = true;
-          this.lifting = press.row;
+          if (c) this.lifting = press.row;
         }, PRESS),
+      );
+    if (touch && c)
+      press.timers.push(
         // Held still half a second, the card is chosen, or the chosen ones extended to it (the standard's hold); it may still be carried.
         window.setTimeout(() => {
           if (this.press !== press || press.moved) return;
@@ -1257,10 +1403,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.press = press;
     this.point = { x: e.clientX, y: e.clientY };
   };
-  /** A mouse's press on a card is the board's: no caret and no words selected under it, so it can carry the card (a click puts the caret where it was, `cardTap`). */
+  /** A mouse's press on a card, or on a lane's head, is the board's: no caret and no words selected under it, so it can carry them (a click puts the caret where it was, `cardTap`). */
   private onMouseDown = (e: MouseEvent) => {
     const el = e.target instanceof Element ? e.target : null;
-    if (this.press && !this.press.touch && el?.closest('.board-card') && !this.typing(el)) e.preventDefault();
+    if (this.press && !this.press.touch && el?.closest('.board-card, .board-head') && !this.typing(el)) e.preventDefault();
   };
   /** A finger that may carry a card does not scroll the page, nor bring up the browser's menu. */
   private onTouchMove = (e: TouchEvent) => {
@@ -1277,13 +1423,73 @@ export class ToBoardEditor extends DocElement<BoardView> {
       if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < (p.touch ? TOUCH_SLOP : SLOP)) return;
       // A finger that moves before the card lifted is scrolling the page: no press of the board's.
       if (!p.armed) return this.stop();
-      this.carryFrom(p);
+      if (p.lane >= 0) this.carryLaneFrom(p);
+      else this.carryFrom(p);
     }
     e.preventDefault();
     this.follow();
     this.aim();
     this.edges();
   };
+  /** A lane's drag begins: the lane dimmed where it is, a ghost of its head under the pointer, the pointer the board's until it is let go. */
+  private carryLaneFrom(p: Press) {
+    for (const x of p.timers) clearTimeout(x);
+    p.moved = true;
+    const l = this.view.lanes[p.lane];
+    const box = this.querySelector<HTMLElement>(`.board-lane[data-lane="${p.lane}"]`);
+    if (!l || !box) return;
+    if (this.contains(document.activeElement)) this.querySelector<HTMLElement>('.board')?.focus({ preventScroll: true });
+    document.getSelection()?.removeAllRanges();
+    this.rows.release();
+    const r = box.getBoundingClientRect();
+    const g = document.createElement('section');
+    g.className = 'board-lane board-ghost board-lane-ghost';
+    g.setAttribute('aria-hidden', 'true');
+    if (box.dataset.tone) g.dataset.tone = box.dataset.tone;
+    render(html`<header class="board-head"><div class="board-lane-name"><div class="tx">${l.name}</div></div><span class="board-count">${l.cards.length}</span></header>`, g);
+    g.style.width = `${Math.round(r.width)}px`;
+    this.ghostAt = { dx: p.x - r.left, dy: p.y - r.top };
+    document.body.append(g);
+    this.ghost = g;
+    this.carryingLane = p.lane;
+    this.overLane = this.namedLanes().indexOf(l);
+    this.follow();
+    try {
+      this.querySelector<HTMLElement>('.board')?.setPointerCapture(p.id);
+    } catch {
+      // A pointer that is not really down (a test's) cannot be captured; the board hears it as long as it is over it.
+    }
+  }
+  /**
+   * Where the carried lane would land: its place among the other named lanes, counting those whose middle the pointer
+   * has passed, along the lanes' own line (sideways where they stand side by side, the lane before on the right where
+   * the language runs that way; down the column where they are stacked).
+   */
+  private aimLane() {
+    const { x, y } = this.point;
+    const board = this.querySelector<HTMLElement>('.board');
+    if (!board) return;
+    const stacked = getComputedStyle(board).flexDirection === 'column';
+    const rtl = getComputedStyle(this).direction === 'rtl';
+    let to = 0;
+    this.view.lanes.forEach((l, i) => {
+      if (!l.name || i === this.carryingLane) return;
+      const r = this.querySelector<HTMLElement>(`.board-lane[data-lane="${i}"]`)?.getBoundingClientRect();
+      if (!r) return;
+      const passed = stacked ? y > r.top + r.height / 2 : rtl ? x < r.left + r.width / 2 : x > r.left + r.width / 2;
+      if (passed) to++;
+    });
+    if (this.overLane !== to) this.overLane = to;
+  }
+  /** How lane `i` is marked while a lane is carried: the rule before it where the carried lane would land, after it where that is past the last; nothing elsewhere. */
+  private dropAt(i: number): 'before' | 'after' | null {
+    if (this.carryingLane < 0 || this.overLane === null) return null;
+    const others = this.view.lanes.filter((l, k) => l.name && k !== this.carryingLane);
+    const at = others.indexOf(this.view.lanes[i]);
+    if (at < 0) return null;
+    if (at === this.overLane) return 'before';
+    return this.overLane === others.length && at === others.length - 1 ? 'after' : null;
+  }
   /** The drag begins: the card lifted from its place (a slot its size there), a ghost of it under the pointer, the pointer the board's until it is let go. */
   private carryFrom(p: Press) {
     for (const x of p.timers) clearTimeout(x);
@@ -1316,6 +1522,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const g = document.createElement('div');
     g.className = 'board-card board-ghost';
     g.setAttribute('aria-hidden', 'true');
+    if (card.dataset.tone) g.dataset.tone = card.dataset.tone;
     render(this.face(c, html`<div class="board-title"><div class="tx">${c.title || '–'}</div></div>`), g);
     g.style.width = `${Math.round(r.width)}px`;
     this.ghostAt = { dx: x - r.left, dy: y - r.top };
@@ -1329,8 +1536,9 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.ghost.style.left = `${Math.round(this.point.x - this.ghostAt.dx)}px`;
     this.ghost.style.top = `${Math.round(this.point.y - this.ghostAt.dy)}px`;
   }
-  /** Where the carried card would land: the lane under the pointer, before the first of its other cards whose middle is below it; between lanes, where it was last. */
+  /** Where the carried card would land: the lane under the pointer, before the first of its other cards whose middle is below it; between lanes, where it was last. A carried lane, `aimLane`. */
   private aim() {
+    if (this.carryingLane >= 0) return this.aimLane();
     const { x, y } = this.point;
     const lane = document
       .elementsFromPoint(x, y)
@@ -1358,7 +1566,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const speed = (d: number) => (d < EDGE ? Math.ceil(((EDGE - Math.max(0, d)) / EDGE) * SPEED) : 0);
     const step = () => {
       this.scrolling = 0;
-      if (this.carrying < 0 || !sc.isConnected || !board) return;
+      if ((this.carrying < 0 && this.carryingLane < 0) || !sc.isConnected || !board) return;
       const { x, y } = this.point;
       const r = sc === document.scrollingElement ? new DOMRect(0, 0, innerWidth, innerHeight) : sc.getBoundingClientRect();
       const b = board.getBoundingClientRect();
@@ -1384,12 +1592,22 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const p = this.press;
     if (!p || e.pointerId !== p.id) return;
     const over = this.over;
+    const overLane = this.overLane;
     this.stop();
     if (!p.moved) return;
     this.dragged = true;
+    if (p.lane >= 0) return this.dropLane(p.lane, overLane);
     const c = this.cardAt(p.row);
     if (c && over) this.carry(c, over.lane, over.pos, false);
   };
+  /** The carried lane let go at place `to` among the other named lanes: told first ("lanemove"), then moved (model.ts `moveLane`); nothing where it is let go where it was. */
+  private dropLane(i: number, to: number | null) {
+    const l = this.view.lanes[i];
+    const from = l ? this.namedLanes().indexOf(l) : -1;
+    if (!l || from < 0 || to === null || to === from) return;
+    if (!this.tell('lanemove', { name: l.name, from, to })) return;
+    this.edit(moveLane(this.doc, l.name, to));
+  }
   private stop = () => {
     if (this.press?.moved) this.dragged = true;
     for (const x of this.press?.timers ?? []) clearTimeout(x);
@@ -1397,8 +1615,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.ghost?.remove();
     this.ghost = null;
     this.carrying = -1;
+    this.carryingLane = -1;
     this.lifting = -1;
     this.over = null;
+    this.overLane = null;
     cancelAnimationFrame(this.scrolling);
     this.scrolling = 0;
   };
@@ -1544,6 +1764,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     return html`<li
       class="board-card ${c.row === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${c.row === this.carrying ? 'dragging' : ''} ${c.row === this.lifting ? 'lifting' : ''}"
       data-row=${c.row}
+      data-tone=${this.cardLook?.(c)?.tone || nothing}
       ?readonly=${this.carryOnly}
       aria-label=${c.title || '–'}
       aria-description=${t('board-card-n-tap-chooses-it', { n, lane })}
@@ -1573,9 +1794,18 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const money = moneyColumn(this.view);
     const renaming = this.renaming === i;
     const sum = money >= 0 ? moneyShort(laneSum(this.view, i, money), this.currencyOf(money)) : '';
-    const tone = l.name ? this.laneTone?.(l.name) : null;
-    return html`<section class="board-lane ${slot >= 0 ? 'over' : ''}" data-lane=${i} data-tone=${tone || nothing} aria-label=${l.name || t('board-lane')}>
-      <header class="board-head ${renaming ? 'renaming' : ''}" ?readonly=${!renaming} @focusin=${() => (this.curLane = i)} @keydown=${(e: KeyboardEvent) => this.laneKey(e, i)}>
+    const look = this.lookOf(l);
+    const tone = this.toneOf(l);
+    const count = html`<span class="board-count" aria-label=${t('board-n-cards', { n: l.cards.length })}>${l.cards.length}</span>`;
+    // Collapsed, the lane is a strip: its name and its count on a button that opens it, and its menu.
+    const head = look.collapsed
+      ? html`<header class="board-head folded" @focusin=${() => (this.curLane = i)}>
+          <button type="button" class="board-unfold" title=${t('board-expand-lane')} @click=${() => this.setLook(i, { collapsed: false })}>
+            <span class="board-folded-name">${l.name || t('board-lane')}</span>${count}
+          </button>
+          ${this.lanesChange ? this.laneMore(l, i) : nothing}
+        </header>`
+      : html`<header class="board-head ${renaming ? 'renaming' : ''} ${this.laneCarries(i) ? 'carries' : ''}" ?readonly=${!renaming} @focusin=${() => (this.curLane = i)} @keydown=${(e: KeyboardEvent) => this.laneKey(e, i)}>
         <to-text
           class="board-lane-name"
           shape="line"
@@ -1592,10 +1822,20 @@ export class ToBoardEditor extends DocElement<BoardView> {
           @text-exit=${(e: Event) => e.stopPropagation()}
           @text-selectall=${(e: Event) => e.stopPropagation()}
         ></to-text>
-        <span class="board-count" aria-label=${t('board-n-cards', { n: l.cards.length })}>${l.cards.length}</span>
+        ${count}
         ${this.lanesChange ? this.laneMore(l, i) : nothing}
         ${sum ? html`<span class="board-sum" title=${t('board-lane-total', { sum })}><span class="sr-only">${t('board-lane-total', { sum })}</span><span aria-hidden="true">${sum}</span></span>` : nothing}
-      </header>
+      </header>`;
+    return html`<section
+      class="board-lane ${slot >= 0 ? 'over' : ''} ${i === this.carryingLane ? 'carried' : ''}"
+      data-lane=${i}
+      data-tone=${tone || nothing}
+      data-width=${look.width && look.width !== 'normal' ? look.width : nothing}
+      ?data-collapsed=${!!look.collapsed}
+      data-drop=${this.dropAt(i) ?? nothing}
+      aria-label=${l.name || t('board-lane')}
+    >
+      ${head}
       ${this.laneError && this.errorAt === i ? html`<p class="board-lane-error" role="alert">${this.laneError}</p>` : nothing}
       ${
         items.length
@@ -1647,7 +1887,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
             ${this.undoTools()}
           </to-bar>`
     }
-      <div class="board ${this.carrying >= 0 ? 'carrying' : ''}" role="group" tabindex="-1" aria-label=${t('board-board')}>
+      <div class="board ${this.carrying >= 0 || this.carryingLane >= 0 ? 'carrying' : ''}" role="group" tabindex="-1" aria-label=${t('board-board')}>
         ${v.lanes.map((l, i) => this.lane(l, i))}
         ${this.lanesChange ? html`<button type="button" class="to-btn board-add-lane" @click=${() => this.insertLane(true)}>${icon(UI.plus, 18)}<span>${t('board-add-lane')}</span></button>` : nothing}
       </div>
@@ -1658,6 +1898,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
           : html`<to-menu class="board-menu" .label=${this.menuLane ? t('board-options-for-lane', { lane: this.menuLane.name || '–' }) : t('board-lane-options')} .items=${drawnIn(BOARD, 'menu:lane', this)}></to-menu>`
       }
       <to-menu class="board-moveto" .label=${t('board-move-to')} .items=${this.moveToItems()}></to-menu>
+      ${this.lanesChange ? html`<to-menu class="board-color-menu" .label=${t('board-lane-color')} .items=${this.colorItems()}></to-menu>` : nothing}
       ${this.renderDialog()}`;
   }
 }

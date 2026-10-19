@@ -23,6 +23,14 @@
  * empty is in a lane of no name, which `lanes:` never holds. Within a lane the cards are in the order of their rows:
  * the table's own order, whatever lanes it interleaves, so a table from the Spreadsheet is a board as it is.
  *
+ * How a lane looks beside its cards is the head's `lane-looks:` (`LaneLook`): entries between commas, each a lane's
+ * name, `=`, and the look's words, a width (`narrow` or `wide`; normal is said by nothing), `collapsed` (the lane
+ * folded to a strip of its name and its count) and a color (one of the Board's palette, `LANE_COLORS`, or a tone of
+ * the page's own), in any order: `lane-looks: Inbound=narrow, Lost=gray collapsed, Won=green wide`. A name is escaped
+ * as `lanes:` escapes it, and an `=` in it `\=`. A lane with no entry looks as every lane does. `setLaneLook` writes
+ * a lane's look whole, `renameLane` carries it to the new name and `removeLane` takes it away, so a look rides with
+ * its lane through the kernel's undo and shared editing as `lanes:` does.
+ *
  * Every command is pure: given the document, the `Op[]` that does it, through the kernel's operations
  * (src/doc), so undo and shared editing (the kernel's `rebase` and `transform`) work unchanged. A card moved writes its lane cell (`cells`) and, where its place among the
  * lane's cards changes, takes its row out and puts it in again just before the card it now precedes, or just after the
@@ -108,6 +116,18 @@ export interface Lane {
   name: string;
   cards: Card[];
 }
+/** How wide a lane is drawn: narrow, normal (every lane's, unless said) or wide. */
+export type LaneWidth = 'narrow' | 'normal' | 'wide';
+/**
+ * How a lane looks beside its cards (the head's `lane-looks:`, or a page's `laneLook`): its width, whether it is
+ * collapsed to a strip of its name and its count, and its color, one of the Board's palette (`LANE_COLORS`) or a tone
+ * of the page's own. A field left out is none: normal, open, no color.
+ */
+export interface LaneLook {
+  width?: LaneWidth;
+  collapsed?: boolean;
+  color?: string;
+}
 export interface BoardView {
   /** The table's block index; -1 while the document has none. */
   at: number;
@@ -118,7 +138,14 @@ export interface BoardView {
   lanes: Lane[];
   /** Every card, lane by lane. */
   cards: Card[];
+  /** The lanes' looks by name, from the head's `lane-looks:`; a lane with none looks as every lane does. */
+  looks: Record<string, LaneLook>;
 }
+
+/** The colors a lane or a card may be given by name, each drawn by the Board's stylesheet; any other word is a tone of the page's own, drawn by its own rules. */
+export const LANE_COLORS: readonly string[] = ['blue', 'green', 'amber', 'red', 'violet', 'teal', 'gray'];
+/** The widths, narrowest first: a step along them is Narrow lane or Widen lane. */
+export const LANE_WIDTHS: readonly LaneWidth[] = ['narrow', 'normal', 'wide'];
 
 const flat = (s: string | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();
 
@@ -146,6 +173,71 @@ export const lanesText = (names: string[]): string | undefined =>
     .filter(Boolean)
     .map((n) => n.replace(/[\\,]/g, '\\$&'))
     .join(', ') || undefined;
+
+/** `v` cut at each `sep` a backslash does not escape, the parts as written (their escapes kept, for `unescaped`). */
+function cut(v: string, sep: string): string[] {
+  const out: string[] = [];
+  let part = '';
+  for (let i = 0; i < v.length; i++) {
+    if (v[i] === '\\' && i + 1 < v.length) part += v[i] + v[++i];
+    else if (v[i] === sep) (out.push(part), (part = ''));
+    else part += v[i];
+  }
+  out.push(part);
+  return out;
+}
+/** A backslash before a comma, an equals sign or a backslash taken away; elsewhere it is a letter of the name. */
+const unescaped = (s: string) => s.replace(/\\([\\,=])/g, '$1');
+
+/** Whether a look says nothing: normal width, open, no color. */
+export const plainLook = (look: LaneLook | null | undefined): boolean => !look || ((!look.width || look.width === 'normal') && !look.collapsed && !look.color);
+/** A look from its words: a width, "collapsed", a color, in any order and any case; a word that is none of these is passed over. */
+function lookOf(words: string): LaneLook {
+  const look: LaneLook = {};
+  for (const w of words.toLowerCase().split(/\s+/).filter(Boolean)) {
+    if (w === 'narrow' || w === 'wide') look.width = w;
+    else if (w === 'normal') delete look.width;
+    else if (w === 'collapsed') look.collapsed = true;
+    else if (!look.color && /^[a-z][a-z0-9-]*$/.test(w)) look.color = w;
+  }
+  return look;
+}
+/** A look as its words: its width where not normal, "collapsed" where it is, its color; '' for a plain one. */
+const lookWords = (look: LaneLook): string =>
+  [
+    look.width && look.width !== 'normal' ? look.width : '',
+    look.collapsed ? 'collapsed' : '',
+    (look.color ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, ''),
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+/** The head's `lane-looks:` as looks by lane name: entries between commas, each a name, `=` and the look's words; a plain look, a repeated name and an entry with no `=` are left out. */
+export function laneLooksOf(value: string | undefined): Record<string, LaneLook> {
+  const out: Record<string, LaneLook> = {};
+  for (const entry of cut(value ?? '', ',')) {
+    const [rawName, ...rest] = cut(entry, '=');
+    const name = flat(unescaped(rawName));
+    if (!name || !rest.length || out[name]) continue;
+    const look = lookOf(rest.join('='));
+    if (!plainLook(look)) out[name] = look;
+  }
+  return out;
+}
+/** Looks as `lane-looks:` writes them: each lane's name (a comma, an equals sign or a backslash in it escaped), `=`, the look's words; undefined (the key taken away) for none. */
+export function laneLooksText(looks: Record<string, LaneLook>): string | undefined {
+  return (
+    Object.entries(looks)
+      .flatMap(([name, look]) => {
+        const words = lookWords(look);
+        return flat(name) && words ? [`${flat(name).replace(/[\\,=]/g, '\\$&')}=${words}`] : [];
+      })
+      .join(', ') || undefined
+  );
+}
 
 /** Which column holds the lane: Status or Stage by name, else the first `option` column, else the last (header). */
 function laneColumn(cols: Column[]): number {
@@ -179,7 +271,8 @@ export function boardOf(doc: Doc): BoardView {
   const at = firstTable(doc);
   const fixed = lanesOf(doc.head.lanes);
   const lanes: Lane[] = fixed.map((name) => ({ name, cards: [] }));
-  if (at < 0) return { at, laneCol: -1, titleCol: -1, cols: [], lanes, cards: [] };
+  const looks = laneLooksOf(doc.head['lane-looks']);
+  if (at < 0) return { at, laneCol: -1, titleCol: -1, cols: [], lanes, cards: [], looks };
   const b = doc.blocks[at] as TableBlock;
   const laneCol = laneColumn(b.cols);
   const titleCol = titleColumn(b.cols, laneCol);
@@ -196,7 +289,7 @@ export function boardOf(doc: Doc): BoardView {
     const [title, raw] = titleCol >= 0 ? [shown(row, titleCol), flat(cells[titleCol])] : ['', ''];
     lanes[lane].cards.push({ row, lane, title, raw, fields, values: b.cols.map((_, col) => values[row]?.[col] ?? null) });
   });
-  return { at, laneCol, titleCol, cols: b.cols, lanes, cards: lanes.flatMap((l) => l.cards) };
+  return { at, laneCol, titleCol, cols: b.cols, lanes, cards: lanes.flatMap((l) => l.cards), looks };
 }
 
 /** The lanes' names, the nameless one left out (`lanes:` never holds it). */
@@ -232,12 +325,17 @@ export const boardColumns = (names: ColumnNames = ENGLISH_NAMES): Column[] => [c
 
 /**
  * A board as a document, from a host's own records: these lanes in this order in the head's `lanes:` (an empty lane
- * kept), a table of these columns, and a row for each card, its cells in the columns' order. The kernel writes it
- * (`write`), so it is canonical; boardOf reads it back.
+ * kept), a table of these columns, a row for each card, its cells in the columns' order, and, given, the lanes' looks
+ * by name in `lane-looks:` (a stage's color, a lane folded). The kernel writes it (`write`), so it is canonical;
+ * boardOf reads it back.
  */
-export function boardDoc(lanes: readonly string[], cols: readonly Column[], rows: readonly (readonly string[])[] = []): Doc {
+export function boardDoc(lanes: readonly string[], cols: readonly Column[], rows: readonly (readonly string[])[] = [], looks: Record<string, LaneLook> = {}): Doc {
+  const head: Record<string, string> = {};
   const named = lanesText([...lanes]);
-  return { head: named ? { lanes: named } : {}, blocks: [{ k: 'table', cols: [...cols], rows: rows.map((r) => [...r]) }] };
+  if (named) head.lanes = named;
+  const looked = laneLooksText(looks);
+  if (looked) head['lane-looks'] = looked;
+  return { head, blocks: [{ k: 'table', cols: [...cols], rows: rows.map((r) => [...r]) }] };
 }
 
 /** A new board, as text: these lanes (To do, Doing and Done unless given), a table of these columns (a title and a status) to hold its cards, and no card. */
@@ -452,7 +550,34 @@ export function renameLane(doc: Doc, from: string, to: string): Op[] {
   // The nameless lane named: a lane like the others, where its cards put it.
   if (!lane.name) return cells;
   const head: Op[] = lanesOf(doc.head.lanes).includes(lane.name) ? [{ op: 'head', key: 'lanes', value: lanesText(want) }] : [];
-  return keeping(doc, [...head, ...cells], want);
+  // Its look goes with it, unless the lane it joins has one of its own.
+  const looks: Op[] = v.looks[lane.name] ? [{ op: 'head', key: 'lane-looks', value: laneLooksText(lookRenamed(v.looks, lane.name, name)) }] : [];
+  return keeping(doc, [...head, ...looks, ...cells], want);
+}
+/** The looks with lane `from`'s under `to`, where `to` has none of its own (else `from`'s is dropped), in the order they were. */
+function lookRenamed(looks: Record<string, LaneLook>, from: string, to: string): Record<string, LaneLook> {
+  return Object.fromEntries(Object.entries(looks).flatMap(([k, l]) => (k !== from ? [[k, l]] : looks[to] ? [] : [[to, l]])));
+}
+
+/**
+ * Lane `name`'s look as given, whole (a field left out is none: a width normal, the lane open, no color), in the
+ * head's `lane-looks:`; null, or a plain look, takes its entry away. Nothing where the board has no such lane, or the
+ * look is what it has.
+ */
+export function setLaneLook(doc: Doc, name: string, look: LaneLook | null): Op[] {
+  const v = boardOf(doc);
+  const n = flat(name);
+  if (!n || !v.lanes.some((l) => l.name === n)) return [];
+  const next = look ?? {};
+  const looks: Record<string, LaneLook> = {};
+  let seen = false;
+  for (const [k, l] of Object.entries(v.looks)) {
+    if (k !== n) looks[k] = l;
+    else if (((seen = true), !plainLook(next))) looks[k] = next;
+  }
+  if (!seen && !plainLook(next)) looks[n] = next;
+  const value = laneLooksText(looks);
+  return value === laneLooksText(v.looks) ? [] : [{ op: 'head', key: 'lane-looks', value }];
 }
 
 /** A lane of no cards called `name`, at place `at` among the lanes (the end when not given): `lanes:` alone. */
@@ -484,6 +609,8 @@ export function removeLane(doc: Doc, name: string): Op[] {
   const want = named(v).filter((n) => n !== lane.name);
   const rows = lane.cards.map((c) => c.row).sort((a, b) => b - a);
   const ops: Op[] = rows.map((r) => ({ op: 'rows', at: v.at, r, n: 1 }));
+  // Its look goes with it.
+  if (v.looks[lane.name]) ops.unshift({ op: 'head', key: 'lane-looks', value: laneLooksText(Object.fromEntries(Object.entries(v.looks).filter(([k]) => k !== lane.name))) });
   if (lanesOf(doc.head.lanes).includes(lane.name)) ops.unshift({ op: 'head', key: 'lanes', value: lanesText(want) });
   return keeping(doc, ops, want);
 }

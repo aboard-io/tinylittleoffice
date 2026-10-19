@@ -119,7 +119,12 @@ as the site (docs/library.md), through five more entry points, each built by `np
   `mount('board', …)` draws it, its kit taken from the editors' own file. Its stylesheet is `tinylittleoffice/board.css`,
   beside `editors.css`; its model alone, pure and with no DOM, for a server that makes and changes boards, is
   `tinylittleoffice/board/model` (`dist/board-model.js`, which imports the kernel from `dist/doc.js`). Its words are in
-  the editors' languages (docs/library.md, The library's own apps).
+  the editors' languages (docs/library.md, The library's own apps). A page sets on the editor what a card shows
+  (`cardFields`), each lane's kind (`laneTone`: won, lost), each lane's look (`laneLook`: narrow or wide, collapsed to
+  a strip, a color of the palette: blue, green, amber, red, violet, teal, gray) and each card's (`cardLook`: a tone),
+  and hears each change to a lane before it is made (`lanerename`, `laneadd`, `lanemove`, `lanedelete`, `lanelook`); a
+  board document keeps its lanes' looks itself, in the head's `lane-looks:` beside `lanes:` (the model's
+  `setLaneLook`, and `boardDoc`'s fourth argument), and a lane is reordered from its menu or by dragging its head.
 
 Each is typed, and so is the API (`tinylittleoffice`): the declarations are in `dist/types/` (the stylesheets', empty,
 are `editors.css.d.ts` and `board.css.d.ts`), and a TypeScript program reads them with nothing more installed, under `skipLibCheck`, since the commands' declarations name Lucide's `IconNode`

@@ -1,8 +1,9 @@
 /**
  * The Board's commands (the kit's registry, kit/core/commands.ts), its editor the context: the bar (Insert ▾ a card
  * after the one in hand or a lane after the one in hand, and the hand-off, the cards opened in the Spreadsheet), a
- * lane's menu (Rename lane, Add a card, Move left, Move right, Delete lane; carried only, where the page makes the
- * lanes' changes, `own-lanes`, all but Add a card), the board's own items in the bar under
+ * lane's menu (Rename lane, Add a card, Move left, Move right, Narrow lane, Widen lane, Collapse lane or Expand lane,
+ * Lane color…, Delete lane; carried only, where the page makes the lanes' changes, `own-lanes`, all but Add a card),
+ * the board's own items in the bar under
  * chosen cards (Open, which edits a card's fields in a dialog, and Move to…, a menu of the lanes: a phone's way across,
  * having no drag), the card's dialog's Delete, and the keys (the editing standard, docs/editing.md §6, and the
  * Board's line in §8, which says them for a person). On chosen cards Mod+Left/Right, and the
@@ -16,11 +17,13 @@
  *
  * They are declared in the scope `board`, the app's id, as each app of the suite declares its own; `mount` registers
  * them (the definition's `commands`) before it draws the editor. A label is the id of a message (src/i18n/, the Board's or the suite's
- * `common-…`), said by `t()` in the reader's language.
+ * `common-…`), said by `t()` in the reader's language; Collapse lane's says what the lane would become, so it is a
+ * function of the editor that asks `t()` for one of two.
  */
-import { ArrowLeft, ArrowRight, Columns3, MoveHorizontal, PanelTop, SquarePen, Table2 } from 'lucide';
+import { ArrowLeft, ArrowRight, ChevronsLeftRight, ChevronsRightLeft, Columns3, FoldHorizontal, MoveHorizontal, Palette, PanelTop, SquarePen, Table2 } from 'lucide';
 import { UI } from '../../kit/draw/icons.ts';
 import { commandsOf, register, type Command } from '../../kit/core/commands.ts';
+import { t } from '../../kit/core/i18n.ts';
 import type { ToBoardEditor } from './editor.ts';
 
 type B = ToBoardEditor;
@@ -40,6 +43,22 @@ const BOARD: Command<B>[] = [
   cmd('lane.card', 'board-add-card', { icon: UI.plus, where: ['menu:lane'], when: (b) => !!b.menuLane && !b.carryOnly, does: (b) => b.addToLane(b.menuLane!.name) }),
   cmd('lane.left', 'common-move-left', { icon: ArrowLeft, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(-1), does: (b) => b.moveMenuLane(-1) }),
   cmd('lane.right', 'common-move-right', { icon: ArrowRight, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(1), does: (b) => b.moveMenuLane(1) }),
+  // The lane's look (editor.ts, A lane's look): a step narrower or wider, folded to a strip or opened, and its color from the palette.
+  cmd('lane.narrow', 'board-narrow-lane', {
+    icon: ChevronsRightLeft,
+    where: ['menu:lane'],
+    when: (b) => !!b.menuLane,
+    disabled: (b) => b.menuLook().width === 'narrow',
+    does: (b) => b.sizeMenuLane(-1),
+  }),
+  cmd('lane.widen', 'board-widen-lane', { icon: ChevronsLeftRight, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => b.menuLook().width === 'wide', does: (b) => b.sizeMenuLane(1) }),
+  cmd('lane.collapse', (b) => (b?.menuLook().collapsed ? t('board-expand-lane') : t('board-collapse-lane')), {
+    icon: FoldHorizontal,
+    where: ['menu:lane'],
+    when: (b) => !!b.menuLane,
+    does: (b) => b.foldMenuLane(),
+  }),
+  cmd('lane.color', 'board-lane-color', { icon: Palette, where: ['menu:lane'], when: (b) => !!b.menuLane, takesFocus: true, does: (b) => b.colorMenu() }),
   cmd('lane.delete', 'board-delete-lane', { icon: UI.trash, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.deleteMenuLane() }),
   // Chosen cards: the bar under them, and their keys.
   cmd('card.open', 'common-open', {

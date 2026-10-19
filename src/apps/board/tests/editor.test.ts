@@ -487,7 +487,7 @@ test('carried only, a page that makes its lanes’ changes (own-lanes) has them 
   lanes(el)[1].querySelector<HTMLButtonElement>('.board-more')!.click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
   const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(items).toEqual(['Rename lane', 'Move left', 'Move right', 'Delete lane']);
+  expect(items).toEqual(['Rename lane', 'Move left', 'Move right', 'Narrow lane', 'Widen lane', 'Collapse lane', 'Lane color…', 'Delete lane']);
   (document.querySelector('[popover]:popover-open') as HTMLElement).hidePopover();
   await rename(el, 1);
   expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('true');
@@ -1577,4 +1577,228 @@ test('at phone width the bar’s every button is on the screen, Undo and Redo to
   } finally {
     await page.viewport(1100, 800);
   }
+});
+
+/** The items of the one menu open, by their words. */
+const openItems = () => [...document.querySelectorAll<HTMLButtonElement>('[popover]:popover-open [role^=menuitem]')];
+const closeMenu = () => (document.querySelector('[popover]:popover-open') as HTMLElement | null)?.hidePopover();
+
+test('a lane’s look from its menu: Narrow lane and Widen lane step its width, Collapse lane folds it to a strip its button opens, Lane color… tints it; each drawn, written into lane-looks:, told first as lanelook, and undone', async () => {
+  const { el, last } = await editor();
+  const told: unknown[] = [];
+  el.addEventListener('lanelook', (e) => {
+    expect(e.bubbles && e.cancelable).toBe(true);
+    told.push((e as CustomEvent).detail);
+  });
+  const menu = (i: number) => lanes(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
+  const widthOf = (i: number) => parseFloat(getComputedStyle(lanes(el)[i]).width);
+  const normal = widthOf(1);
+  await pick(el, menu(1), 'Narrow lane');
+  expect(lanes(el)[1].dataset.width).toBe('narrow');
+  expect(widthOf(1)).toBeLessThan(normal);
+  expect(widthOf(0)).toBe(normal);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=narrow');
+  expect(told).toStrictEqual([{ name: 'Doing', look: { width: 'narrow' } }]);
+  // At the narrowest, Narrow lane is dimmed; Widen lane goes back to normal, then wide.
+  menu(1).click();
+  await until(() => openItems().length > 0);
+  expect(openItems().find((x) => x.textContent!.trim() === 'Narrow lane')!.disabled).toBe(true);
+  expect(openItems().find((x) => x.textContent!.trim() === 'Widen lane')!.disabled).toBe(false);
+  closeMenu();
+  await pick(el, menu(1), 'Widen lane');
+  expect(lanes(el)[1].hasAttribute('data-width')).toBe(false);
+  expect(widthOf(1)).toBe(normal);
+  expect(parse(last()!).head['lane-looks']).toBeUndefined();
+  await pick(el, menu(1), 'Widen lane');
+  expect(lanes(el)[1].dataset.width).toBe('wide');
+  expect(widthOf(1)).toBeGreaterThan(normal);
+  // Lane color…: the palette, No color first, each color a swatch; chosen, the lane is tinted and says its tone.
+  await pick(el, menu(1), 'Lane color…');
+  await until(() => !!document.querySelector('[popover]:popover-open .to-swatch'));
+  expect(openItems().map((x) => x.textContent!.trim())).toEqual(['No color', 'Blue', 'Green', 'Amber', 'Red', 'Violet', 'Teal', 'Gray']);
+  expect(openItems()[0].getAttribute('aria-checked')).toBe('true');
+  expect(openItems()[3].querySelector('.to-swatch')).not.toBeNull();
+  const ground = () => getComputedStyle(lanes(el)[1]).backgroundColor;
+  const plain = ground();
+  openItems()[3].click();
+  await settle(el);
+  expect(lanes(el)[1].dataset.tone).toBe('amber');
+  expect(ground()).not.toBe(plain);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=wide amber');
+  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 'wide', color: 'amber' } });
+  // Collapse lane: a strip of its name and its count, its cards out of sight, narrower than half a lane; its menu offers Expand lane; the strip opens it.
+  await pick(el, menu(1), 'Collapse lane');
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(true);
+  expect(cards(el, 1)[0].getClientRects()).toHaveLength(0);
+  expect(lanes(el)[1].querySelector('.board-lane-name')).toBeNull();
+  const strip = () => lanes(el)[1].querySelector<HTMLButtonElement>('.board-unfold')!;
+  expect([strip().querySelector('.board-folded-name')!.textContent, strip().querySelector('.board-count')!.textContent]).toEqual(['Doing', '2']);
+  expect(strip().getAttribute('title')).toBe('Expand lane');
+  expect(widthOf(1)).toBeLessThan(normal / 2);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=wide collapsed amber');
+  menu(1).click();
+  await until(() => openItems().length > 0);
+  const items = openItems().map((x) => x.textContent!.trim());
+  expect(items).toContain('Expand lane');
+  expect(items).not.toContain('Collapse lane');
+  closeMenu();
+  // Collapsed, the name is not renamed; opened by its strip, it is.
+  el.startRename(1);
+  await settle(el);
+  expect(el.renaming).toBe(-1);
+  strip().click();
+  await settle(el);
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
+  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 'wide', color: 'amber' } });
+  expect(cards(el, 1)[0].getClientRects()).not.toHaveLength(0);
+  // Each a step of the undo.
+  await undo(el);
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(true);
+  await undo(el);
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
+  expect(lanes(el)[1].dataset.tone).toBe('amber');
+  // Refused by the page: nothing changes.
+  el.addEventListener('lanelook', (e) => e.preventDefault());
+  const was = last();
+  await pick(el, menu(0), 'Collapse lane');
+  expect(told.at(-1)).toStrictEqual({ name: 'To do', look: { collapsed: true } });
+  expect(last()).toBe(was);
+  expect(lanes(el)[0].hasAttribute('data-collapsed')).toBe(false);
+});
+
+test('a lane’s look as the page says it (laneLook) over the document’s, laneTone winning for the color; a card’s tone as the page says it (cardLook); the page’s own lanes are told a look and nothing is written', async () => {
+  const { el } = await editor(BOARD.replace('lanes: To do, Doing, Done\n', 'lanes: To do, Doing, Done\nlane-looks: Doing=narrow blue\n'));
+  expect(lanes(el)[1].dataset.width).toBe('narrow');
+  expect(lanes(el)[1].dataset.tone).toBe('blue');
+  expect(lanes(el)[0].hasAttribute('data-tone')).toBe(false);
+  el.laneLook = (name) => (name === 'Doing' ? { width: 'wide' } : name === 'Done' ? { collapsed: true, color: 'teal' } : null);
+  await settle(el);
+  // The page's width over the document's, the document's color kept under it.
+  expect(lanes(el)[1].dataset.width).toBe('wide');
+  expect(lanes(el)[1].dataset.tone).toBe('blue');
+  expect(lanes(el)[2].hasAttribute('data-collapsed')).toBe(true);
+  expect(lanes(el)[2].dataset.tone).toBe('teal');
+  el.laneTone = (name) => (name === 'Done' ? 'won' : null);
+  await settle(el);
+  expect(lanes(el)[2].dataset.tone).toBe('won');
+  expect(lanes(el)[1].dataset.tone).toBe('blue');
+  // A card's tone: drawn and tinted, the others as they were.
+  const plainCard = getComputedStyle(cards(el, 0)[0]).backgroundColor;
+  el.cardLook = (c) => (c.title === 'Book the room' ? { tone: 'amber' } : null);
+  await settle(el);
+  expect(cards(el, 0)[0].dataset.tone).toBe('amber');
+  expect(getComputedStyle(cards(el, 0)[0]).backgroundColor).not.toBe(plainCard);
+  expect(cards(el, 1).every((c) => !c.hasAttribute('data-tone'))).toBe(true);
+  el.cardLook = null;
+  await settle(el);
+  expect(cards(el, 0)[0].hasAttribute('data-tone')).toBe(false);
+  // The page's own lanes: a look from the menu is told, the look it would then have whole, and nothing is written here.
+  Object.assign(el, { laneLook: null, laneTone: null, ownLanes: true });
+  await settle(el);
+  const told: unknown[] = [];
+  el.addEventListener('lanelook', (e) => told.push((e as CustomEvent).detail));
+  const before = el.value;
+  await pick(el, lanes(el)[1].querySelector<HTMLButtonElement>('.board-more')!, 'Collapse lane');
+  expect(told).toStrictEqual([{ name: 'Doing', look: { width: 'narrow', collapsed: true, color: 'blue' } }]);
+  expect(el.value).toBe(before);
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
+});
+
+test('a lane dragged by its head, by a mouse: a ghost of its head, a rule where it would land, let go a lanemove and the lane moved; let go where it was nothing; Escape lets it go; the page’s own lanes are told alone; carried only, no drag', async () => {
+  const { el, last, heard } = await editor();
+  const told: unknown[] = [];
+  el.addEventListener('lanemove', (e) => told.push((e as CustomEvent).detail));
+  const head = (i: number) => lanes(el)[i].querySelector<HTMLElement>('.board-head')!;
+  const rect = (i: number) => lanes(el)[i].getBoundingClientRect();
+  expect(getComputedStyle(laneName(el, 2).tx).cursor).toBe('grab');
+  const h = head(2).getBoundingClientRect();
+  const at = (type: string, x: number, y: number) => pointer(head(2), type, x, y, 21);
+  at('pointerdown', h.left + 4, h.top + 4);
+  // The mouse's press is the board's: no words selected under it.
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: h.left + 4, clientY: h.top + 4 });
+  head(2).dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  // Less than 6px is no drag.
+  at('pointermove', h.left + 7, h.top + 5);
+  await settle(el);
+  expect(el.carryingLane).toBe(-1);
+  at('pointermove', rect(0).left + 10, rect(0).top + 10);
+  await settle(el);
+  expect(el.carryingLane).toBe(2);
+  expect(el.overLane).toBe(0);
+  expect(lanes(el)[2].classList.contains('carried')).toBe(true);
+  expect(lanes(el)[0].dataset.drop).toBe('before');
+  expect(lanes(el)[1].hasAttribute('data-drop')).toBe(false);
+  const ghost = document.querySelector<HTMLElement>('.board-lane-ghost')!;
+  expect([ghost.querySelector('.board-lane-name')!.textContent, ghost.querySelector('.board-count')!.textContent]).toEqual(['Done', '0']);
+  expect(ghost.getAttribute('aria-hidden')).toBe('true');
+  expect(Math.abs(ghost.getBoundingClientRect().width - rect(2).width)).toBeLessThan(6);
+  // Past the middle of the second lane only: between the first and the second.
+  at('pointermove', rect(0).right - 4, rect(0).top + 10);
+  await settle(el);
+  expect(el.overLane).toBe(1);
+  expect(lanes(el)[1].dataset.drop).toBe('before');
+  at('pointermove', rect(0).left + 10, rect(0).top + 10);
+  at('pointerup', rect(0).left + 10, rect(0).top + 10);
+  await settle(el);
+  expect(document.querySelector('.board-lane-ghost')).toBeNull();
+  expect(el.querySelector('.carried, [data-drop]')).toBeNull();
+  expect(told).toStrictEqual([{ name: 'Done', from: 2, to: 0 }]);
+  expect(drawn(el).map(([n]) => n)).toEqual(['Done', 'To do', 'Doing']);
+  expect(parse(last()!).head.lanes).toBe('Done, To do, Doing');
+  // The click the drag ends with is no tap.
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+  head(0).dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
+  // Past the last lane: a rule after it, and the lane goes to the end.
+  pointer(head(0), 'pointerdown', rect(0).left + 4, rect(0).top + 4, 22);
+  pointer(head(0), 'pointermove', rect(2).right - 4, rect(2).top + 4, 22);
+  await settle(el);
+  expect(el.overLane).toBe(2);
+  expect(lanes(el)[2].dataset.drop).toBe('after');
+  pointer(head(0), 'pointerup', rect(2).right - 4, rect(2).top + 4, 22);
+  await settle(el);
+  expect(told.at(-1)).toStrictEqual({ name: 'Done', from: 0, to: 2 });
+  expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
+  // Let go where it was: nothing told, nothing changed.
+  const n = heard.length;
+  drag(head(1), rect(1).left + 30, rect(1).top + 4, 23);
+  await settle(el);
+  expect(heard).toHaveLength(n);
+  expect(told).toHaveLength(2);
+  // Escape lets a drag go.
+  pointer(head(1), 'pointerdown', rect(1).left + 4, rect(1).top + 4, 24);
+  pointer(head(1), 'pointermove', rect(0).left + 10, rect(0).top + 10, 24);
+  await settle(el);
+  expect(el.carryingLane).toBe(1);
+  key(el, 'Escape');
+  pointer(head(1), 'pointerup', rect(0).left + 10, rect(0).top + 10, 24);
+  await settle(el);
+  expect(el.carryingLane).toBe(-1);
+  expect(told).toHaveLength(2);
+  expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
+  // Undone: the first move taken back puts the order back.
+  await undo(el);
+  await undo(el);
+  expect(parse(last()!).head.lanes).toBe('To do, Doing, Done');
+  // The page's own lanes: told, and nothing moved here.
+  el.ownLanes = true;
+  await settle(el);
+  const was = last();
+  drag(head(2), rect(0).left + 10, rect(0).top + 10, 25);
+  await settle(el);
+  expect(told.at(-1)).toStrictEqual({ name: 'Done', from: 2, to: 0 });
+  expect(last()).toBe(was);
+  expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
+  // Carried only, without the page's own lanes, a lane is not carried.
+  Object.assign(el, { ownLanes: false, carryOnly: true });
+  await settle(el);
+  expect(getComputedStyle(laneName(el, 2).tx).cursor).not.toBe('grab');
+  pointer(head(2), 'pointerdown', rect(2).left + 4, rect(2).top + 4, 26);
+  pointer(head(2), 'pointermove', rect(0).left + 10, rect(0).top + 10, 26);
+  await settle(el);
+  expect(el.carryingLane).toBe(-1);
+  pointer(head(2), 'pointerup', rect(0).left + 10, rect(0).top + 10, 26);
+  await settle(el);
+  expect(told).toHaveLength(3);
 });

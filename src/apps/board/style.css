@@ -17,7 +17,12 @@
    that sheet's tokens (--to-surface, --to-touch…). Its rules are in the `apps` layer, as each suite app's own sheet
    is; the layers' order is said first, the same order editors.css gives them, so the cascade is the same whichever of
    the two the page loads first and a page's own rules outside a layer outrank both. A page that gives its lanes a
-   height of their own sets --to-board-lane-h; a lane's cards then scroll inside it. */
+   height of their own sets --to-board-lane-h; a lane's cards then scroll inside it. A page that gives every lane a
+   width of its own sets --to-board-lane-w (17rem unless it does); a lane's own look (data-width: narrow, wide) sets it
+   on the lane, a collapsed lane (data-collapsed) is a strip of its name written downward and its count, and a lane or
+   a card given one of the palette's colors (data-tone: blue, green, amber, red, violet, teal, gray) is tinted in it,
+   the lane as a won lane is tinted in the success color, the card lightly with a rule along its start. A lane carried
+   by its head is dimmed where it stands, and a rule beside another lane (data-drop) says where it would land. */
 @layer tokens, kit, apps, responsive, a11y;
 @layer apps {
   to-board-editor {
@@ -46,7 +51,7 @@
   .board-lane {
     /* What a screen reader alone is told (.sr-only) is placed inside its lane, never past the board's scroll. */
     position: relative;
-    flex: 0 0 17rem;
+    flex: 0 0 var(--to-board-lane-w, 17rem);
     min-width: 0;
     padding: 0.375rem 0.5rem 0.5rem;
     background: var(--to-surface-2);
@@ -55,6 +60,118 @@
   }
   .board-lane.over {
     border-color: var(--to-accent);
+  }
+  /* A lane's width, as its look says: narrow, wide; normal is the page's token. */
+  .board-lane[data-width='narrow'] {
+    --to-board-lane-w: 11rem;
+  }
+  .board-lane[data-width='wide'] {
+    --to-board-lane-w: 24rem;
+  }
+  /* Collapsed: a strip as wide as its name written downward, its cards and its sum kept out of sight (drawn, so the keys and a drag still find them). */
+  .board-lane[data-collapsed] {
+    flex-basis: auto;
+    padding: 0.375rem 0.25rem 0.5rem;
+  }
+  .board-lane[data-collapsed] .board-cards,
+  .board-lane[data-collapsed] .board-none,
+  .board-lane[data-collapsed] .board-lane-error {
+    display: none;
+  }
+  .board-head.folded {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.375rem;
+    align-items: center;
+  }
+  .board-unfold {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: var(--to-touch);
+    padding: 0.375rem 0;
+    color: var(--to-ink);
+    font: 600 1rem/1.5 var(--to-font);
+    background: none;
+    border: 0;
+    border-radius: var(--to-radius-sm);
+    cursor: pointer;
+  }
+  .board-unfold:focus-visible {
+    outline: 0.125rem solid var(--to-accent);
+  }
+  .board-folded-name {
+    max-height: 14rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    writing-mode: vertical-rl;
+  }
+  /* A lane carried by its head: dimmed where it stands, and the head says it can be carried. */
+  .board-head.carries:not(.renaming) .board-lane-name .tx {
+    cursor: grab;
+  }
+  .board-lane.carried {
+    opacity: 0.4;
+  }
+  /* Where the carried lane would land: a rule in the gap before the lane it would stand before, or after the last. */
+  .board-lane[data-drop]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0.1875rem;
+    background: var(--to-accent);
+    border-radius: var(--to-radius-pill);
+  }
+  .board-lane[data-drop='before']::before {
+    inset-inline-start: -0.5625rem;
+  }
+  .board-lane[data-drop='after']::before {
+    inset-inline-end: -0.5625rem;
+  }
+  /* The ghost of a carried lane: its head alone, on the lane's own ground. */
+  .board-lane-ghost {
+    padding: 0.375rem 0.5rem;
+    opacity: 0.95;
+  }
+  /* The palette, on a lane or a card given a color by name: a hue each, lighter in the dark theme, so the tint keeps its contrast in either. */
+  .board-lane[data-tone='blue'],
+  .board-card[data-tone='blue'] {
+    --to-board-tone: hsl(220 70% var(--to-board-tone-l, 48%));
+  }
+  .board-lane[data-tone='green'],
+  .board-card[data-tone='green'] {
+    --to-board-tone: hsl(145 55% var(--to-board-tone-l, 38%));
+  }
+  .board-lane[data-tone='amber'],
+  .board-card[data-tone='amber'] {
+    --to-board-tone: hsl(38 85% var(--to-board-tone-l, 46%));
+  }
+  .board-lane[data-tone='red'],
+  .board-card[data-tone='red'] {
+    --to-board-tone: hsl(0 70% var(--to-board-tone-l, 50%));
+  }
+  .board-lane[data-tone='violet'],
+  .board-card[data-tone='violet'] {
+    --to-board-tone: hsl(270 60% var(--to-board-tone-l, 52%));
+  }
+  .board-lane[data-tone='teal'],
+  .board-card[data-tone='teal'] {
+    --to-board-tone: hsl(175 60% var(--to-board-tone-l, 34%));
+  }
+  .board-lane[data-tone='gray'],
+  .board-card[data-tone='gray'] {
+    --to-board-tone: hsl(220 8% var(--to-board-tone-l, 50%));
+  }
+  :root[data-theme='dark'] to-board-editor {
+    --to-board-tone-l: 64%;
+  }
+  .board-lane:is([data-tone='blue'], [data-tone='green'], [data-tone='amber'], [data-tone='red'], [data-tone='violet'], [data-tone='teal'], [data-tone='gray']) {
+    background: color-mix(in oklab, var(--to-board-tone) 12%, var(--to-surface-2));
+    border-color: color-mix(in oklab, var(--to-board-tone) 25%, var(--to-border));
+    box-shadow: inset 0 0.1875rem 0 var(--to-board-tone);
   }
   /* A lane's kind, as the page says it (laneTone): won, the success color's tint and a rule along its top; lost, quieter. */
   .board-lane[data-tone='won'] {
@@ -171,6 +288,14 @@
       border-color 0.12s,
       box-shadow 0.12s,
       scale 0.12s;
+  }
+  /* A card given one of the palette's colors (cardLook): tinted lightly, a rule along its start. */
+  .board-card:is([data-tone='blue'], [data-tone='green'], [data-tone='amber'], [data-tone='red'], [data-tone='violet'], [data-tone='teal'], [data-tone='gray']) {
+    background: color-mix(in oklab, var(--to-board-tone) 9%, var(--to-surface));
+    border-color: color-mix(in oklab, var(--to-board-tone) 35%, var(--to-border));
+    box-shadow:
+      inset 0.1875rem 0 0 var(--to-board-tone),
+      var(--to-shadow);
   }
   .board-card:hover {
     border-color: var(--to-border-strong);
@@ -332,7 +457,8 @@
   }
   /* The menus a lane's button and the bar under chosen cards open have no button of their own. */
   .board-menu > button,
-  .board-moveto > button {
+  .board-moveto > button,
+  .board-color-menu > button {
     display: none;
   }
   /* A card opened: its fields, a row each, its name before it. */
@@ -393,7 +519,7 @@
     margin-right: auto;
     color: var(--to-danger);
   }
-  /* Narrower than two lanes: one under another, each the column's width. */
+  /* Narrower than two lanes: one under another, each the column's width; a collapsed lane a row, its name along it; a carried lane lands above or below. */
   @container board (max-width: 34.75rem) {
     .board {
       flex-direction: column;
@@ -402,6 +528,33 @@
     }
     .board-lane {
       flex: none;
+    }
+    .board-head.folded,
+    .board-unfold {
+      flex-direction: row;
+    }
+    .board-unfold {
+      flex: 1;
+      min-width: 0;
+      padding: 0 0.375rem;
+    }
+    .board-folded-name {
+      max-width: 100%;
+      max-height: none;
+      writing-mode: horizontal-tb;
+    }
+    .board-lane[data-drop]::before {
+      top: auto;
+      bottom: auto;
+      inset-inline: 0;
+      width: auto;
+      height: 0.1875rem;
+    }
+    .board-lane[data-drop='before']::before {
+      top: -0.5rem;
+    }
+    .board-lane[data-drop='after']::before {
+      bottom: -0.5rem;
     }
   }
   .board-total {

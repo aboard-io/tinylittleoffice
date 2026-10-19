@@ -3514,6 +3514,27 @@ board-delete-lane = Supprimer la colonne
 board-move-to = Déplacer vers…
 # en: 7b4bff0cec6d8f2a2abd46cfaa219d8214122ca1
 board-rename-lane = Renommer la colonne
+# en: 79b66240efe711f91cce563f1d617c7c4e6f5455
+board-narrow-lane = Rétrécir la colonne
+# en: 4b56664ff2a4f5e3664a8a72c81014417656228d
+board-widen-lane = Élargir la colonne
+# en: 989daa44bce2c13fd826839f682b673c2ba00556
+board-collapse-lane = Replier la colonne
+# en: 44ffae7e426c6c6cb6e36b7913029f4bd286eff5
+board-expand-lane = Déplier la colonne
+# en: cf6dc32236a1e2d47ecd9b400ed36569290b3a78
+board-lane-color = Couleur de la colonne…
+# en: 1d5c5b44886211206754a909bcf3b856de371f32
+board-no-color = Sans couleur
+# en: 27a01d4772038a3f83552908e0470604e773f8af
+board-amber = Ambre
+# same
+# en: ddcd2f2e783a0ee9fa8d93732423a0504c651596
+board-violet = Violet
+# en: df0ad373b7ff60d6a8987458fb00c1e4832ef605
+board-teal = Bleu canard
+# en: 4f9beff18cc6852b012093ba97421788466bb3bf
+board-gray = Gris
 # en: a5912ab4a43981f406eba8185371c4b3651e648b
 board-card-in-lane-beside = La carte voisine dans la colonne précédente ou suivante
 # en: a200dd9231cf71181960586345e66a1b8bb3e738

@@ -32,6 +32,9 @@ import {
   removeLane,
   renameLane,
   setCell,
+  setLaneLook,
+  laneLooksOf,
+  laneLooksText,
   setCells,
   setTitle,
 } from '../model.ts';
@@ -357,6 +360,7 @@ test('for any board, every command’s ops apply and invert back, and leave a bo
         addCard(d, name, 'New card', at),
         addLane(d, 'Later', at),
         moveLane(d, name, at),
+        setLaneLook(d, name, { width: 'narrow', color: 'blue' }),
         removeCards(d, [row, row + 1]),
         duplicateCards(d, [row]),
         setTitle(d, row, 'Renamed'),
@@ -681,4 +685,53 @@ test('for any board, a card’s fields resolved hold each column once, never the
     }),
     { numRuns: RUNS },
   );
+});
+
+test('lane-looks: looks by lane name, a width, collapsed and a color in any order and any case; a name escaped as lanes: escapes it, and an = too; written back canonical', () => {
+  expect(laneLooksOf(undefined)).toStrictEqual({});
+  expect(laneLooksOf('Doing=narrow, Won = Green WIDE, Lost=collapsed gray, Odd\\, one=blue, A\\=B=teal, Nothing=, Plain=normal, Doing=red, =amber, Who knows')).toStrictEqual({
+    Doing: { width: 'narrow' },
+    Won: { width: 'wide', color: 'green' },
+    Lost: { collapsed: true, color: 'gray' },
+    'Odd, one': { color: 'blue' },
+    'A=B': { color: 'teal' },
+  });
+  expect(laneLooksText({ Doing: { width: 'narrow' }, 'Odd, one': { color: 'blue', collapsed: true, width: 'normal' }, 'A=B': {}, '': { color: 'red' }, 'Back\\slash': { color: 'Amber' } })).toBe(
+    'Doing=narrow, Odd\\, one=collapsed blue, Back\\\\slash=amber',
+  );
+  expect(laneLooksText({})).toBeUndefined();
+  // What is written is what is read.
+  const looks = { Doing: { width: 'narrow' as const }, 'A=B, or so': { collapsed: true, color: 'violet' } };
+  expect(laneLooksOf(laneLooksText(looks))).toStrictEqual(looks);
+});
+
+test('setLaneLook: a lane’s look whole, in lane-looks:, taken away by null or a plain one; a rename carries it, a delete takes it, a lane joined to one with its own leaves it; boardDoc takes the looks', () => {
+  const d = parse(BOARD);
+  expect(boardOf(d).looks).toStrictEqual({});
+  const narrow = roundTrip(d, setLaneLook(d, 'Doing', { width: 'narrow' }));
+  expect(narrow.head['lane-looks']).toBe('Doing=narrow');
+  expect(boardOf(narrow).looks).toStrictEqual({ Doing: { width: 'narrow' } });
+  const two = roundTrip(narrow, setLaneLook(narrow, 'Done', { color: 'green', collapsed: true }));
+  expect(two.head['lane-looks']).toBe('Doing=narrow, Done=collapsed green');
+  // Whole: a field left out is none; what it has already is nothing; a lane it has not is nothing.
+  const re = roundTrip(two, setLaneLook(two, 'Doing', { color: 'blue' }));
+  expect(re.head['lane-looks']).toBe('Doing=blue, Done=collapsed green');
+  expect(setLaneLook(re, 'Doing', { color: 'blue' })).toEqual([]);
+  expect(setLaneLook(re, 'Nowhere', { color: 'blue' })).toEqual([]);
+  expect(setLaneLook(re, '', { color: 'blue' })).toEqual([]);
+  const gone = roundTrip(re, setLaneLook(re, 'Doing', null));
+  expect(gone.head['lane-looks']).toBe('Done=collapsed green');
+  expect(roundTrip(gone, setLaneLook(gone, 'Done', { width: 'normal', collapsed: false, color: '' })).head['lane-looks']).toBeUndefined();
+  // The look rides with its lane.
+  expect(roundTrip(two, renameLane(two, 'Doing', 'In progress')).head['lane-looks']).toBe('In progress=narrow, Done=collapsed green');
+  expect(roundTrip(two, renameLane(two, 'Doing', 'Done')).head['lane-looks']).toBe('Done=collapsed green');
+  expect(roundTrip(two, renameLane(two, 'Done', 'Blocked')).head['lane-looks']).toBe('Doing=narrow, Blocked=collapsed green');
+  expect(roundTrip(two, removeLane(two, 'Done')).head['lane-looks']).toBe('Doing=narrow');
+  expect(roundTrip(two, removeLane(two, 'Doing')).head['lane-looks']).toBe('Done=collapsed green');
+  expect(roundTrip(two, moveLane(two, 'Done', 0)).head['lane-looks']).toBe('Doing=narrow, Done=collapsed green');
+  // A board from a host's records, its lanes' looks with it; a plain look is left out.
+  const doc = boardDoc(['Inbound', 'Won'], boardColumns(), [], { Won: { color: 'green' }, Inbound: {} });
+  expect(doc.head).toStrictEqual({ lanes: 'Inbound, Won', 'lane-looks': 'Won=green' });
+  expect(boardOf(doc).looks).toStrictEqual({ Won: { color: 'green' } });
+  expect(boardDoc(['Inbound'], boardColumns()).head).toStrictEqual({ lanes: 'Inbound' });
 });

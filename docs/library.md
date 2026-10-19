@@ -727,12 +727,34 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
   - **A lane's kind** (`laneTone`, a property: `(name) => LaneTone | null`, LaneTone `'won' | 'lost' | 'neutral'` or a
     kind of the page's own): drawn on the lane as `data-tone`; won is tinted the success color with a rule along its
     top, lost quieter (a gray rule, its cards a little faded), neutral and none as any lane, and any other kind is the
-    page's to draw by its own rules on `[data-tone]`.
+    page's to draw by its own rules on `[data-tone]`. The palette below is drawn too: a kind named `blue`, `green`,
+    `amber`, `red`, `violet`, `teal` or `gray` tints the lane in that color.
+  - **A lane's look** (`LaneLook`, from `tinylittleoffice/board/model`: `{ width?: 'narrow' | 'normal' | 'wide',
+    collapsed?: boolean, color?: string }`): its width (17rem unless the page sets `--to-board-lane-w` on the element;
+    narrow 11rem, wide 24rem), whether it is collapsed to a strip of its name written downward and its count (a tap on
+    the strip opens it), and its color, one of the palette (`LANE_COLORS`) or a tone of the page's own. It is the
+    document's, in the head's `lane-looks:` (`Inbound=narrow, Lost=gray collapsed, Won=green wide`, model.ts), under
+    the page's `laneLook` (a property: `(name) => LaneLook | null`) where that answers, field by field; `laneTone`
+    still wins for the color. Drawn as `data-width`, `data-collapsed` and `data-tone` on the lane. A lane's menu changes
+    it, Narrow lane, Widen lane, Collapse lane (Expand lane once it is), Lane color… (a menu of the palette, with
+    swatches), each told first as `lanelook` `{ name, look }`, the look the lane would then have, whole, and written into
+    `lane-looks:` unless the page makes it; the model's `setLaneLook(doc, name, look)` writes one, `boardDoc` takes the
+    looks as its fourth argument, a rename carries a look to the new name and a delete takes it away, so it round-trips
+    and syncs as `lanes:` does.
+  - **A card's look** (`cardLook`, a property: `(card) => CardLook | null`, CardLook `{ tone?: string }`): drawn on the
+    card as `data-tone`; a palette color tints the card lightly with a rule along its start (a stale deal amber), and
+    any other tone is the page's to draw.
+  - **A lane dragged by its head**, wherever a lane may be changed (`own-lanes` too): a mouse's press on the head,
+    outside its menu and its name while that is a field, carries the lane once it has moved 6px (a double click still
+    renames); a finger's once held still 200ms and then moved. A ghost of the head follows the pointer, a rule beside
+    the lane it would land by says where (before it, or after the last), the board scrolls near its edges, Escape lets
+    it go, and let go it is a `lanemove` `{ name, from, to }`, as the menu's Move left and Move right tell one.
   - **The bar on a phone**: where the board is narrower than 26rem the bar's count of cards goes (each lane says its
     own), so Insert, the Spreadsheet's button, Undo and Redo are all on the screen.
-  - **A lane's change, told first** (`LaneEvents`, `LaneEvent`): before a lane is renamed, added, moved or deleted the
-    board fires, bubbling and cancelable, `lanerename` `{ from, to }`, `laneadd` `{ name, at }`, `lanemove`
-    `{ name, from, to }` (places among the named lanes) or `lanedelete` `{ name, cards }` (how many cards go with it).
+  - **A lane's change, told first** (`LaneEvents`, `LaneEvent`): before a lane is renamed, added, moved, deleted or
+    given a look the board fires, bubbling and cancelable, `lanerename` `{ from, to }`, `laneadd` `{ name, at }`,
+    `lanemove` `{ name, from, to }` (places among the named lanes), `lanedelete` `{ name, cards }` (how many cards go
+    with it) or `lanelook` `{ name, look }`.
     A page that refuses it calls `preventDefault()`, and nothing changes; a page that makes it through its own command
     (a CRM whose stages are its records) calls `preventDefault()`, runs its command and gives the board its new
     document. A page that makes every one of them sets `own-lanes` (`ownLanes`): the board tells them and makes none,
