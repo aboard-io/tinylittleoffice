@@ -1191,7 +1191,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
           @keydown=${{ handleEvent: this.onWordsKey, capture: true }} @focusout=${this.onWordsBlur}
           @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
       </div>
-      <to-context class="dg-context" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>`;
+      <to-context class="dg-context ${this.shaping ? 'shaping' : ''}" .label=${t('diagram-this-thing')} .items=${this.contextItems(tg)}></to-context>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToDiagramEditor);

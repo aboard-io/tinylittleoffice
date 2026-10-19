@@ -76,6 +76,12 @@
   .dg-pin {
     transform: translateX(var(--dg-pin, 0));
   }
+  /* The shapes to choose from wrap onto a second line where one is too narrow for them all, a phone's (Paul,
+     2026-10-19: "Make it two lines"), rather than scroll some out of sight. */
+  .dg-context.shaping .to-context {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
   /* Where a swimlane's step being dragged would go. */
   .dg-slot {
     stroke: var(--to-accent);
