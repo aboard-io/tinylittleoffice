@@ -6,7 +6,7 @@ import '../../../src/kit/ui/template-picker.ts';
 import type { ToTemplatePicker } from '../../../src/kit/ui/template-picker.ts';
 import { registerBoard } from '../../../src/board.ts';
 
-/** A host's few apps, as Atlas keeps documents of them: the Board among them, registered as a page registers it. */
+/** A host's few apps, as a host might keep documents of them: the Board among them, registered as a page registers it. */
 registerBoard();
 const FEW = ['write', 'deck', 'sheet', 'outline', 'board'];
 

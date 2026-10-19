@@ -122,8 +122,8 @@ What an app still asked of the site itself, and what replaces it:
     components); five drawing bugs, each with its test (a paragraph taken out last never drawn; one put back whole not
     drawn as restored; a change's words run together; a hint written over drawn word by word; Compare's links made from
     the address); the kit's other elements exported; and a host's page arranged (A host's page).
-17. **What a host's rebuild found.** Done (2026-10-18, for a host that had worked around each: Atlas's pages, its docs/web.md
-    "What the library draws"): `<to-table>`'s column that fits its words, rows that grow, a record picker, a row's own
+17. **What a host's rebuild found.** Done (2026-10-18, for a host that had worked around each in
+    its own pages): `<to-table>`'s column that fits its words, rows that grow, a record picker, a row's own
     editable, row actions and money in whole units (A typed table); the kit's small pieces, `<to-segmented>`,
     `confirm`, `.to-btn.to-danger` and `<to-field>` (The kit's small pieces); `<to-header>`'s title given while it is
     typed in, and a long one (A page's header); the Board's lane kinds, Add lane, `startRename`, a double tap and its
@@ -350,7 +350,7 @@ if (picked) await run('document.create', { project, title: picked.title, text: p
 
 ## The kit's small pieces
 
-What a host's pages are made of beside the table, the search and the header (Atlas built each of its own, of the kit's
+What a host's pages are made of beside the table, the search and the header (a host built each of its own, of the kit's
 classes, until these came), in kit/ui/ and served by `tinylittleoffice/kit` and `/editors` with their types; their
 rules are host.css's, so the site's bytes are as they were.
 
