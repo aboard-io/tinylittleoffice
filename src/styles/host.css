@@ -19,6 +19,8 @@
     display: block;
     min-width: 0;
     --to-dt-row-h: 2.75rem;
+    /* How wide the first column is once the box has scrolled sideways (below), in rem. */
+    --to-dt-pin-w: 9rem;
   }
   .to-dt-bar {
     display: flex;
@@ -157,6 +159,36 @@
   @container to-dt (width < 30em) {
     .to-dt-pin {
       position: static;
+    }
+  }
+  /* Once the box has scrolled sideways (`scrolled`, kit/ui/table.ts) the first column gives way to the rest: it narrows
+     to --to-dt-pin-w, its words cut at the last whole word that fits (they wrap, and only the first line is drawn; a
+     word longer than the line ends in an ellipsis), the whole in the cell's title and read whole; at the start it is
+     as wide as its words again (Paul, 2026-10-20: "In tables, the left column must truncate as I move to the right.
+     Something like 'Young Center for Immigrant Children's Rights' should become 'Young Center'"). A column that wraps
+     keeps its width, its rows' heights its words'. In a narrow box the column scrolls away instead (above). */
+  .to-dt-gives {
+    width: 100%;
+  }
+  .to-dt-words {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .to-dt-gives {
+      transition: width 0.15s ease-out;
+    }
+  }
+  @container to-dt (width >= 30em) {
+    .to-dt-box[scrolled] .to-dt-gives {
+      width: min(100%, var(--to-dt-pin-w));
+    }
+    .to-dt-box[scrolled] .to-dt-gives :is(.to-dt-words, .to-dt-link > span:last-child, .to-dt-sort > span) {
+      min-width: 0;
+      max-height: 1lh;
+      white-space: normal;
+      overflow-wrap: normal;
     }
   }
   .to-dt-check {

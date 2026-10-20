@@ -37,8 +37,11 @@
  * - **Size.** The table scrolls in a box of its own, its headings stuck to the top and its first column (and the boxes)
  *   to the start, as the Spreadsheet's grid does (on a phone, sideways too: the page never scrolls, kit/ui/scroll.ts);
  *   in a box narrower than 30em (a phone's) the first column scrolls with the rest, which would otherwise have a sliver
- *   of the box to scroll in (host.css). A cell's words and boxes start at its top, in line with the first line of a row
- *   that grows.
+ *   of the box to scroll in (host.css). Once the box has scrolled sideways the first column gives way, narrowed to
+ *   `--to-dt-pin-w` and its words cut at the last whole word that fits, the whole in its `title` and read whole (the
+ *   cut is drawn, not written), and scrolled back to the start it opens again (Paul, 2026-10-20: "In tables, the left
+ *   column must truncate as I move to the right"): the box wears `scrolled`, set from its scroll in a frame. A cell's
+ *   words and boxes start at its top, in line with the first line of a row that grows.
  *   Only the rows in sight are drawn, each the one height (`--to-dt-row-h`), so 5,000 rows are as quick as fifty
  *   (test/browser/table.test.ts measures it); where a column `wrap`s, a row grows to hold its words, and the rows are
  *   placed by their heights, measured where drawn and reckoned from their words where not. A column that `fit`s is as
@@ -135,6 +138,19 @@ const widthOf = (words: string, font: string): number => {
   if (!ruler) return words.length * 8;
   ruler.font = font;
   return ruler.measureText(words).width;
+};
+/**
+ * A column stuck at the start, as wide as it is once the box is off its start: the first column given way to
+ * `--to-dt-pin-w` (host.css, in rem) where it is wider, mid-way or not; the boxes their own width.
+ */
+const pinWidth = (el: HTMLElement): number => {
+  if (!el.classList.contains('to-dt-gives')) return el.offsetWidth;
+  const token = getComputedStyle(el).getPropertyValue('--to-dt-pin-w').trim();
+  const size = parseFloat(token);
+  if (!Number.isFinite(size)) return el.offsetWidth;
+  const root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const px = token.endsWith('rem') ? size * root : token.endsWith('em') ? size * (parseFloat(getComputedStyle(el).fontSize) || root) : size;
+  return Math.min(el.offsetWidth, px);
 };
 
 let n = 0;
@@ -464,13 +480,19 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
       this.requestUpdate();
     }
   }
-  private onScroll = () => {
-    if (this.frame) return;
-    this.frame = requestAnimationFrame(() => {
-      this.frame = 0;
-      const box = this.box;
-      if (box && Math.abs(box.scrollTop - this.top) >= this.rowH / 2) this.top = box.scrollTop;
-    });
+  /** The box scrolled: which rows are drawn, and whether it is off its start sideways (`scrolled`, where the first column gives way). Once a frame. */
+  private onScroll = {
+    passive: true,
+    handleEvent: () => {
+      if (this.frame) return;
+      this.frame = requestAnimationFrame(() => {
+        this.frame = 0;
+        const box = this.box;
+        if (!box) return;
+        box.toggleAttribute('scrolled', Math.abs(box.scrollLeft) >= 1);
+        if (Math.abs(box.scrollTop - this.top) >= this.rowH / 2) this.top = box.scrollTop;
+      });
+    },
   };
   /** The rows drawn: those in sight and OVER more each way, and the row in hand wherever it is, so the focus is never lost. */
   private windowOf(): number[] {
@@ -735,14 +757,15 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     }
     const cell = this.cellAt(r, c);
     if (!cell || !box) return;
-    // Sideways, past the columns stuck at the start (the boxes, the first column), which a cell scrolls under.
+    // Sideways, past the columns stuck at the start (the boxes, the first column), which a cell scrolls under: the
+    // first column as narrow as it is once the box is off its start, which a cell past it is (none is under it there).
     if (!cell.classList.contains('to-dt-pin') && !cell.classList.contains('to-dt-acts')) {
-      const pinned = [...(cell.parentElement?.querySelectorAll<HTMLElement>('.to-dt-pin') ?? [])].reduce((w, el) => w + (getComputedStyle(el).position === 'sticky' ? el.offsetWidth : 0), 0);
+      const pinned = [...(cell.parentElement?.querySelectorAll<HTMLElement>('.to-dt-pin') ?? [])].reduce((w, el) => w + (getComputedStyle(el).position === 'sticky' ? pinWidth(el) : 0), 0);
       const rtl = getComputedStyle(box).direction === 'rtl';
       const left = rtl ? box.scrollWidth - cell.offsetLeft - cell.offsetWidth : cell.offsetLeft;
       const from = Math.abs(box.scrollLeft);
       let to = from;
-      if (left < from + pinned) to = left - pinned;
+      if (left < from + pinned) to = Math.max(0, left - pinned);
       else if (left + cell.offsetWidth > from + box.clientWidth) to = left + cell.offsetWidth - box.clientWidth;
       if (to !== from) box.scrollLeft = rtl ? -to : to;
     }
@@ -930,7 +953,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     return html`<div
       role="columnheader"
       id="${this.uid}-h-${c}"
-      class="to-dt-cell ${num ? 'to-dt-num' : ''} ${c === this.off ? 'to-dt-pin' : ''}"
+      class="to-dt-cell ${num ? 'to-dt-num' : ''} ${c === this.off ? `to-dt-pin ${col.wrap ? '' : 'to-dt-gives'}` : ''}"
       aria-colindex=${c + 1}
       aria-sort=${ariaSort}
       tabindex=${this.active.r === -1 && this.active.c === c ? 0 : -1}
@@ -964,17 +987,20 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         const editing = this.editing?.r === r && this.editing.c === c;
         const type = typeOf(col);
         const num = type === 'number' || type === 'money';
+        // The first column's words in a span of their own, which is cut at a word once the column gives way (host.css).
+        const face = editing ? this.editor(col) : this.face(col, row);
         return html`<div
           role="gridcell"
           id="${this.uid}-${r}-${c}"
-          class="to-dt-cell to-dt-t-${type} ${num ? 'to-dt-num' : ''} ${i === 0 ? 'to-dt-pin' : ''} ${editing ? 'to-dt-editing' : ''} ${col.wrap ? 'to-dt-wrap' : ''}"
+          class="to-dt-cell to-dt-t-${type} ${num ? 'to-dt-num' : ''} ${i === 0 ? `to-dt-pin ${col.wrap ? '' : 'to-dt-gives'}` : ''} ${editing ? 'to-dt-editing' : ''} ${col.wrap ? 'to-dt-wrap' : ''}"
+          title=${i === 0 && !col.wrap && name ? name : nothing}
           data-r=${r}
           data-c=${c}
           aria-colindex=${c + 1}
           aria-readonly=${canEdit(col, row) ? nothing : 'true'}
           tabindex=${at(c) ? 0 : -1}
         >
-          ${editing ? this.editor(col) : this.face(col, row)}
+          ${i === 0 && typeof face === 'string' && face ? html`<span class="to-dt-words">${face}</span>` : face}
         </div>`;
       })}
       ${

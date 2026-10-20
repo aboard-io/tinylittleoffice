@@ -384,6 +384,66 @@ test('at a phone’s width the table scrolls sideways in its own box, the page n
   }
 });
 
+test('scrolled sideways, the first column gives way to the rest, cut at a word, and opens again at the start', async () => {
+  await page.viewport(1000, 800);
+  try {
+    const TITLE = "Young Center for Immigrant Children's Rights";
+    const cols: TableColumn<Row>[] = [{ key: 'name', label: 'Name', type: 'text', fit: true }, ...COLS.slice(1).map((c) => ({ ...c, width: '12rem' }))];
+    const el = await table({ columns: cols }, [{ ...ROWS[0], name: TITLE }, ...ROWS.slice(1)]);
+    const box = el.querySelector<HTMLElement>('.to-dt-box')!;
+    const name = cell(el, TITLE, 'Name');
+    const words = name.querySelector<HTMLElement>('.to-dt-words')!;
+    const wide = name.getBoundingClientRect().width;
+    // At the start, as wide as its words, every one of them read.
+    expect(words.scrollWidth).toBeLessThanOrEqual(words.clientWidth + 1);
+    expect(wide).toBeGreaterThan(200);
+    expect(name.title).toBe(TITLE);
+    expect(box.hasAttribute('scrolled')).toBe(false);
+    // The words of the first line drawn: the characters as high as the first.
+    const firstLine = () => {
+      const text = [...words.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && n.textContent === TITLE)!;
+      const range = document.createRange();
+      const top = (i: number) => {
+        range.setStart(text, i);
+        range.setEnd(text, i + 1);
+        return range.getBoundingClientRect().top;
+      };
+      let i = 1;
+      while (i < TITLE.length && Math.abs(top(i) - top(0)) < 2) i++;
+      return TITLE.slice(0, i);
+    };
+    expect(firstLine()).toBe(TITLE);
+    const oneLine = words.getBoundingClientRect().height;
+
+    box.scrollLeft = 300;
+    const narrow = 9 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    await until(() => box.hasAttribute('scrolled') && Math.abs(name.getBoundingClientRect().width - narrow) < 1, 'the first column never narrowed');
+    const head = el.querySelector<HTMLElement>('[role=columnheader].to-dt-pin')!;
+    expect(head.getBoundingClientRect().width).toBeCloseTo(narrow, 0);
+    expect(name.getBoundingClientRect().left).toBeCloseTo(box.getBoundingClientRect().left + 1, 0);
+    // Its words cut at a word: the first line a whole word or more, shorter than the title; the rest not drawn.
+    const seen = firstLine();
+    expect(seen.length).toBeLessThan(TITLE.length);
+    expect(seen.trim().length).toBeGreaterThan(0);
+    expect(TITLE[seen.length] === ' ' || seen.endsWith(' ')).toBe(true);
+    // One line drawn, the next not: the span no taller than a line and a half.
+    expect(words.getBoundingClientRect().height).toBeLessThan(1.5 * oneLine);
+    expect(name.title).toBe(TITLE);
+    expect(name.textContent?.trim()).toBe(TITLE);
+    // A cell walked to from the narrowed column is beside it, not under it.
+    name.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    await until(() => (document.activeElement as HTMLElement).dataset.c === '1');
+    expect(document.activeElement!.getBoundingClientRect().left).toBeGreaterThanOrEqual(name.getBoundingClientRect().right - 1);
+
+    box.scrollLeft = 0;
+    await until(() => !box.hasAttribute('scrolled') && Math.abs(name.getBoundingClientRect().width - wide) < 1, 'the first column never opened again');
+    expect(firstLine()).toBe(TITLE);
+  } finally {
+    await page.viewport(1280, 800);
+  }
+});
+
 interface Lead extends TableRow {
   title: string;
   company: { id: string; label: string; href?: string } | null;
