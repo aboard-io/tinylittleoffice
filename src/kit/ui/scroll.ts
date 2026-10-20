@@ -12,11 +12,11 @@
  *                         for a caret, after an edit, a focus moved, the column settled or the window put back; after an
  *                         edit (`middle`), a caret below the middle is brought to it, as a typewriter keeps its line
  *   seen()                what can be seen: the visible window
- *   room()                where a menu, the context bar, the link box or the completion list may sit: the column's
- *                         box (<to-chrome>) within what can be seen
+ *   room()                where a menu, the context bar, the link box or the completion list may sit: the page's
+ *                         frame (.to-page: <to-chrome>, or a host's, kit/ui/page-frame.ts) within what can be seen
  *   pinWindow()           the window put back at its top, should the browser have slid it (iOS does, for a box focused
  *                         and for a caret it finds under the keyboard); true when it had to
- *   gliding()             the column is moving for a phone's keyboard (kit/ui/chrome.ts): the caret is kept in sight once it settles
+ *   gliding()             the column is moving for a phone's keyboard (kit/ui/page-frame.ts): the caret is kept in sight once it settles
  *
  * test/scroll.test.ts fails if any other module reads `window.scrollY` or scrolls the window.
  */
@@ -42,7 +42,7 @@ export function scrollerOf(el: Element | null, axis: 'x' | 'y' = 'y'): HTMLEleme
     const more = axis === 'y' ? at.scrollHeight > at.clientHeight : at.scrollWidth > at.clientWidth;
     if (more && scrolls(axis === 'y' ? look.overflowY : look.overflowX)) return at as HTMLElement;
   }
-  return el?.closest<HTMLElement>('.to-main') ?? ((document.scrollingElement as HTMLElement) || document.documentElement);
+  return el?.closest<HTMLElement>('.to-main, .to-column > main') ?? ((document.scrollingElement as HTMLElement) || document.documentElement);
 }
 
 /** What can be seen: the visual viewport (above a phone's keyboard, inside a pinch). */
@@ -56,7 +56,7 @@ export function seen(): Box {
 /** Where something placed over the page may sit: the column's box within what can be seen (all of it, outside the shell). */
 export function room(): Box {
   const s = seen();
-  const col = document.querySelector('to-chrome')?.getBoundingClientRect();
+  const col = document.querySelector('.to-page')?.getBoundingClientRect();
   return col && col.height ? cut(col, s) : s;
 }
 
@@ -72,7 +72,7 @@ function inner(sc: HTMLElement): Box {
   // 2026-10-10: a new row of the outline appeared under the nav and was unreachable). An app's own box placed over the
   // column says so with `data-covers` (the Presentation Builder's rail, pinned above the bar while a slide is typed on
   // a phone): it covers while it is out of the flow, and is content like any other while it is in it.
-  if (sc.classList.contains('to-main') || sc.classList.contains('to-column')) {
+  if (sc.matches('.to-main, .to-column, .to-column > main')) {
     const placed = (el: Element) => /^(absolute|fixed|sticky)$/.test(getComputedStyle(el).position);
     for (const el of [sc.querySelector('to-bar'), document.querySelector('.to-context[data-docked]:popover-open'), ...[...sc.querySelectorAll('[data-covers]')].filter(placed)]) {
       const b = el?.getBoundingClientRect();
@@ -196,5 +196,5 @@ export function pinWindow(): boolean {
   return true;
 }
 
-/** The column is gliding to a keyboard's height (kit/ui/chrome.ts): where the caret should be kept is known once it settles, and it is kept then. */
-export const gliding = (): boolean => !!document.querySelector('to-chrome[gliding]');
+/** The column is gliding to a keyboard's height (kit/ui/page-frame.ts): where the caret should be kept is known once it settles, and it is kept then. */
+export const gliding = (): boolean => !!document.querySelector('.to-page[gliding]');

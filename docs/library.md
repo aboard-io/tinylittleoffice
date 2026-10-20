@@ -51,9 +51,11 @@ What an app still asked of the site itself, and what replaces it:
    functions, A page's own commands; `setup`, `mount` and `editorTag`, an app's element ready to create, from
    kit/core/mount.ts; `host`; `appOf` and `registerApp`; `setLanguage`, `t` and `addStrings`; `toast`; and the types
    `AppDef`, `Editor`, `DocChange`, `DocOps`, `DocRemote`, `DocPick`, `Picked`, `Mounted`, `Host`, `Placed` and
-   `Action`, a toast's), and beside it what only a page sets: `apps` (the suite's, in order), `chosenLanguage` and
-   `languages`, `setTheme`, `theme`, `keepThemeAt` and the type `Theme`, `keepSize`, `keepSizeAt` and `size`, and
-   `pageCommands` (the site's page keys, for a page that draws a bar of its own): see A host's page.
+   `Action`, a toast's; and what a host's page draws its chrome with, A host's page: `PageFrame`, `mark`, `pinWindow`,
+   `THEMES`, `themeName`, `setTheme`, `theme` and the type `Theme`, `loadIcons`, `ensureIcons` and `dateText`), and
+   beside it what only a page sets: `apps` (the suite's, in order), `chosenLanguage` and `languages`, `keepThemeAt`,
+   `keepSize`, `keepSizeAt` and `size`, and `pageCommands` (the site's page keys, for a page that draws a bar of its
+   own): see A host's page.
 3. **The stylesheet for a page that is not the site.** Done: src/editors.css is everything an editor needs (the
    fonts, the tokens, the kit, the text editor, the rules by width and by a person's settings, and each app's own sheet,
    which its editor brings), and src/styles/page.css is the site's page and chrome (`html` and `body`, `<to-shell>`,
@@ -846,7 +848,8 @@ record in hand. `tinylittleoffice/editors` exports what declares, draws and answ
 - running: `live` (in force and not disabled), `run`, and `runKey(e, commands, context)` (a key answered by a scope:
   the first command in force whose key it is runs, and the key stops there);
 - drawing: `cmdTool`, `cmdBtn` and `cmdMenu` (a bar's button, a button with words, a menu: Lit templates, for
-  `<to-bar>`, which the page renders with its own Lit's `render`), `drawnIn` and `contextOf` (the same as plain objects, `Drawn`, for a page that draws with something
+  `<to-bar>`, which the page renders with its own Lit's `render`; each draws nothing for a command not in force, its
+  `when`), `drawnIn` and `contextOf` (the same as plain objects, `Drawn`, for a page that draws with something
   else), `labelOf` (a command's words in a context) and `keysText` (its keys as this device writes them).
 
 `mount(app, text, into, onChange, { commands, context })` answers the page's commands' keys inside the editor, after
@@ -903,6 +906,59 @@ never holds a program's.
 
 What a page that is not the site arranges, each with the site's way as the default:
 
+- **The frame: the column, the header, the menu button and the bar's place.** The site's chrome, which a host's page
+  inherits (one column on every screen, mobile first), is the kit's: kit/ui/page-frame.ts `PageFrame` and
+  src/styles/page-frame.css, in editors.css, which the site's `<to-chrome>` wears as well, so there is one copy. A
+  page draws these, with these classes:
+
+  ```html
+  <host-app class="to-page foot">                      <!-- PageFrame: `editing`, `gliding`, its height, --to-col-h -->
+    <header class="to-page-head">…the way home, the title, the plus…</header>
+    <button class="to-btn to-tool to-page-menu">…</button> <!-- the menu button: tool({ …, size: 24, cls: 'to-page-menu' }) -->
+    <div class="to-column barred">                      <!-- `barred` while the column holds a bar -->
+      <main tabindex="0">
+        <to-bar class="to-page-bar">…</to-bar>          <!-- the page's own bar; or an editor mounted here, its bar -->
+        …the page…
+      </main>
+    </div>
+  </host-app>
+  ```
+
+  `.to-page` is the frame, the visible window's height (`visualViewport.height`, set as it resizes, the window put
+  back at its top whenever the browser slides it, `pinWindow`); its `main` scrolls by itself, and its height is
+  `--to-col-h` for what fills it. `new PageFrame(this)` in a Lit element's constructor holds it (it is a controller;
+  an element of another kind calls its `hostConnected`, `hostUpdated` once its column is drawn, and
+  `hostDisconnected`). `.to-page-head` is the header, a row (wrapping where its words want two) on the surface at the
+  nav's scale, the menu button's room kept at its inline end, its tools without borders; `.to-page-menu` the menu
+  button, floating at the header's inline end on every screen (any button floating with it wears it too: the site's
+  Share), opaque while what it opened is open where it says so (`aria-expanded`). `.to-column` holds the bar and
+  `main`, and `.barred` keeps the bar's room: an editor's `<to-bar>` mounted in `main`, or the page's own
+  `.to-page-bar` (a `<to-bar>`, or the row that holds one, a table's toolbar), is set in the column, under the header
+  on a wide screen and at the column's foot under a finger, above the keyboard and the home indicator, one scrolling
+  row. `.to-page.foot` puts it at the foot on a narrow screen (720px and under) under a mouse too, and pins its pinned
+  tools (Undo, Redo, a command's `pinned`) at its end there as a finger's are (responsive.css); the site's chrome is no
+  `.foot`, so its narrow window keeps the bar under the header. Under a finger, while a box of the frame's has the
+  focus from the person's own tap or key (not the focus a page opens with), the frame is `editing`: the header steps
+  aside, the menu button slides into the very corner, translucent, opaque under a hover, a key's focus, more contrast
+  or a size above 100%; a tap on the header or the menu button is no tap into the page. A keyboard coming or going
+  makes the frame `gliding` while the column moves, the bar fading, the caret kept in sight once it settles. The
+  Presentation Builder's rail and the Spreadsheet's heads step aside for the keyboard in a `.to-page[editing]` as on
+  the site. What stays the site's (page.css): its title box and the meter, the banners, Share's place, and the bar
+  sliding away while a person reads (`indoc`).
+- **The kit's helpers for a chrome.** A host's header and drawer draw with the kit's own, from
+  `tinylittleoffice/kit`: `mark(size?, cls?)`, the library's mark (a turned-down sheet with a link on it) as an SVG
+  string (`unsafeSVG(mark(24))`), for a Home of the kit's look; `tool({ …, size: 24 })`, a header's plus and menu
+  button at 24px, as the site draws its own (`size`, the icon's px, is any `btn`'s and `tool`'s, 20 by default, and a
+  command's through `cmdTool(cmd, c, { size: 24 })`); `pinWindow()`, the window put back at its top (true when it had
+  slid), for a page that pins its own; `THEMES` (`auto`, `light`, `dark`), `themeName(theme)` (its words in the
+  language in use: Match device, Light, Dark), `theme()` and `setTheme(theme)`, for Theme in a drawer, kept where
+  `keepThemeAt` says; `loadIcons()`, the whole of Lucide, once (it resolves when it has joined; `iconNamed` then knows
+  every name, `clipboard-check`, `users`), and `ensureIcons(names)`, the rest of Lucide only where one of
+  `names` is not in the starter set; and `dateText(value, withTime)`, a day (or a day and a time) in the page's
+  language as the table says it.
+- **A menu opened at what was picked.** `<to-menu buttonless>` draws no button of its own: a page opens it with
+  `openAt(el)` beside what was picked (an outline's item, a list's row, a column's head), places it there, and gives
+  the focus back to it when it closes; its keys are any menu's. The table's row menu is one.
 - **The toast.** `setup` listens for a toast said on a page with no `<to-toast>`, and puts one at the end of its body
   the first time; a page that draws its own is never given a second (kit/ui/toast.ts `toastAnywhere`).
 - **Where a dialog goes.** `editDoc({ app, text, into })` and `editTable(table, into)` put their dialog in `into`, an
@@ -995,8 +1051,8 @@ on the root (kit/ui/theme.ts), so a page's own dark values go under the same sel
 - **Shape.** `--to-radius`, `--to-radius-sm`, `--to-radius-pill`, `--to-shadow` and `--to-shadow-pop`.
 - **Room.** `--to-gutter-k` (the gutter, as a number of the scale's 16px: 1, and 0.75 on a narrow screen), `--to-max-w`
   (the measure of a column of words), and `--to-col-h`, the height a canvas or a map fills (the Drawing, the Diagram,
-  the Animator, the Trip Planner's map): the screen less the site's header and bar unless the page sets it, as the
-  site's chrome does to its column's measured height.
+  the Animator, the Trip Planner's map): the screen less the site's header and bar unless the page sets it, as a
+  page's frame does to its column's measured height (`PageFrame`, the site's chrome's and a host's: A host's page).
 - **Size.** `--to-doc` and `--to-nav` (kit/ui/zoom.ts): the size of everything as two plain numbers on the root, which
   `setup()` sets (1.3 at 100%; the nav's stops at 120%). A document's lengths are in rem, and on the site the root's
   font size is the browser's default times `--to-doc` (page.css); the editors' stylesheet leaves the root's font size

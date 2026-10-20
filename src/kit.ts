@@ -79,6 +79,11 @@
  *   one); and a page's parts: `<to-section>` (ToSection), a heading with its count, its actions and its empty words
  *   over the page's own things; `<to-tabs>` (ToTabs, Tab), a page's views along a row, one current; and
  *   `<to-avatar>` (ToAvatar), a person drawn small, by `initial` and `hueOf`, as the Board's cards draw them;
+ * - what a host's page draws its chrome with (docs/library.md, A host's page): the frame (`PageFrame`, FrameOpts:
+ *   the column the visible window's height, `editing` and `gliding`, with page-frame.css's .to-page, .to-page-head,
+ *   .to-page-menu, .to-column and .to-page-bar), the mark (`mark`), the window held at its top (`pinWindow`), the
+ *   themes (`THEMES`, `themeName`, `theme`, `setTheme`, Theme), the rest of Lucide (`loadIcons`, `ensureIcons`), and a
+ *   day as the table says it (`dateText`);
  * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
  *   whichever of the `backends` owns the address (a link, a sealed link, a short link, a journal's: Backend, Opened,
  *   Ask), and `place` puts it in an editor on the page (Placement); a document several people edit at once is made by
@@ -107,7 +112,8 @@ export { ToPreview } from './kit/ui/preview.ts';
 export { ToLockedDoc } from './kit/ui/locked-doc.ts';
 export { editDoc, editTable, ToDocDialog } from './kit/ui/doc-dialog.ts';
 export { chooseIcon, type IconChoice } from './kit/ui/icons-picker.ts';
-export { reveal, scrollerOf, type Reveal } from './kit/ui/scroll.ts';
+export { pinWindow, reveal, scrollerOf, type Reveal } from './kit/ui/scroll.ts';
+export { PageFrame, type FrameOpts } from './kit/ui/page-frame.ts';
 export { ToText, type Ghost, type GhostAt, type Mention, type TextOps } from './kit/text/text.ts';
 export {
   blockFrom,
@@ -164,6 +170,7 @@ export { lastCopied, Rows, type DropHow, type RowDrag, type RowItem, type RowRan
 export { clipText, docToHtml, type Clip } from './kit/text/clipboard.ts';
 export { choicesOf } from './kit/text/columns.ts';
 export { ToTable, type RowAction, type RowActionPick, type RowChange } from './kit/ui/table.ts';
+export { dateText } from './kit/ui/table-model.ts';
 export type { ColumnType, EnumOption, LinkValue, RecordOption, RecordSearch, RecordValue, SortBy, TableColumn, TableRow } from './kit/ui/table-model.ts';
 export { ToSearch, type SearchAction, type SearchHit, type SearchKind, type SearchPick, type Searcher } from './kit/ui/search-box.ts';
 export { ToHeader, type Crumb } from './kit/ui/header.ts';
@@ -176,7 +183,9 @@ export { ToSection } from './kit/ui/section.ts';
 export { ToTabs, type Tab } from './kit/ui/tabs.ts';
 export { ToAvatar } from './kit/ui/avatar.ts';
 export { hueOf, initial } from './kit/ui/initials.ts';
-export { icon, iconNamed, UI, type IconNode } from './kit/draw/icons.ts';
+export { ensureIcons, icon, iconNamed, loadIcons, UI, type IconNode } from './kit/draw/icons.ts';
+export { mark } from './kit/draw/mark.ts';
+export { setTheme, theme, themeName, THEMES, type Theme } from './kit/ui/theme.ts';
 export { ACCENT, clip, FAINT, FONT, INK, LINE, MONO, MUTED, PAPER, pageSvg, rect, SHADE, text, textWidth, utf8, wrapText, xml, type TextStyle } from './kit/draw/draw.ts';
 export { CHART_KINDS, chartData, chartPage, suggestChart, type ChartData, type ChartKind, type Flow } from './kit/draw/chart.ts';
 export { cellText as cellAsShown, sheetToCsv as tableAsCsv } from './apps/sheet/view.ts';

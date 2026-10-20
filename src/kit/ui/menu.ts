@@ -15,6 +15,8 @@
  * `filter` (Insert ▾ has it): letters typed narrow the list to the items with a word that starts with them
  * (case and accents aside), said at the menu's top; Backspace takes a letter back, Escape the letters, then
  * the menu. The arrows walk what is left.
+ * `buttonless`: no button of its own, for a menu a page opens with `openAt` beside what was picked (a table's row, an
+ * outline's item, a column's head); placed beside that, the focus given back to it.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from '../draw/icons.ts';
@@ -240,6 +242,7 @@ export class ToMenu extends LitElement {
     keys: {},
     keep: { type: Boolean },
     filter: { type: Boolean },
+    buttonless: { type: Boolean },
     query: { state: true },
   };
   declare label: string;
@@ -258,6 +261,8 @@ export class ToMenu extends LitElement {
   declare keep: boolean;
   /** Letters typed narrow the items (Insert ▾). */
   declare filter: boolean;
+  /** No button of its own: the page opens it with `openAt`, beside what it opens for. */
+  declare buttonless: boolean;
   /** The letters typed so far, while `filter`. */
   declare query: string;
   /** This opening came from a pointer on a `keep` menu: the focus stays where it was. */
@@ -279,6 +284,7 @@ export class ToMenu extends LitElement {
     this.keys = '';
     this.keep = false;
     this.filter = false;
+    this.buttonless = false;
     this.query = '';
   }
   createRenderRoot() {
@@ -288,8 +294,13 @@ export class ToMenu extends LitElement {
   protected labelText(): string {
     return this.label;
   }
+  /** The menu's own button (none where it is `buttonless`). */
   get button(): HTMLButtonElement {
     return this.querySelector<HTMLButtonElement>(':scope > button')!;
+  }
+  /** What the menu is placed beside and gives the focus back to: the opener `openAt` was given, else its own button, else itself. */
+  private get from(): HTMLElement {
+    return this.anchor ?? this.querySelector<HTMLButtonElement>(':scope > button') ?? this;
   }
   get menu(): HTMLElement {
     return this.querySelector<HTMLElement>(':scope > [popover]')!;
@@ -315,7 +326,7 @@ export class ToMenu extends LitElement {
   }
   private onToggle = (e: Event) => {
     const open = (e as ToggleEvent).newState === 'open';
-    const from = this.anchor ?? this.button;
+    const from = this.from;
     from.setAttribute('aria-expanded', String(open));
     if (open) {
       place(this.menu, from);
@@ -342,7 +353,7 @@ export class ToMenu extends LitElement {
       this.kept = false;
     }
   };
-  private replace = () => this.isOpen && place(this.menu, this.anchor ?? this.button);
+  private replace = () => this.isOpen && place(this.menu, this.from);
   private onKey = (e: KeyboardEvent) => {
     if (this.filter && this.narrow(e)) return;
     const now = document.activeElement as HTMLElement | null;
@@ -375,7 +386,7 @@ export class ToMenu extends LitElement {
     this.query = q;
     void this.updateComplete.then(() => {
       (this.menuItems()[0] ?? this.menu).focus({ preventScroll: true });
-      place(this.menu, this.anchor ?? this.button);
+      place(this.menu, this.from);
     });
     return true;
   }
@@ -404,7 +415,7 @@ export class ToMenu extends LitElement {
   };
   private choose(item: MenuItem | MenuAction) {
     if (!this.isOpen) return;
-    const from = this.anchor ?? this.button;
+    const from = this.from;
     const kept = this.kept;
     this.kept = false;
     this.close();
@@ -453,9 +464,12 @@ export class ToMenu extends LitElement {
       run.push(item);
     }
     flush();
-    return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-keyshortcuts=${keysAria(this.keys || undefined)} aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
+    const button = this.buttonless
+      ? nothing
+      : html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-keyshortcuts=${keysAria(this.keys || undefined)} aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
         ${this.swatch ? html`<span class="to-swatch" style="--swatch:${this.swatch}" aria-hidden="true"></span>` : this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${keysKbd(this.keys)}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
-      </button>
+        </button>`;
+    return html`${button}
       <div id=${this.uid} popover="auto" class="to-menu" role="menu" tabindex="-1" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${this.query ? html`<div class="to-menu-filter" role="status">${parts.length ? t('menu-starting-q', { q: this.query }) : t('menu-nothing-starts-q', { q: this.query })}</div>` : nothing}${parts}</div>`;
   }
 }

@@ -33,6 +33,10 @@
  * (its transitionend, a timer as the fallback). Under reduced motion the height changes at once and the fade alone
  * remains. The caret is kept in sight once the column has settled, not in flight (kit/ui/scroll.ts gliding(), which kit/text/text.ts asks).
  *
+ * The column the visible window's height, the window held at its top, the glide and `editing` are a page's frame's
+ * (kit/ui/page-frame.ts, page-frame.css: this element is a `.to-page`, its header a `.to-page-head`, its menu button
+ * and Share `.to-page-menu`s), which a host's page holds as well; `indoc`, the banners and the title are the site's.
+ *
  * Why a column: Safari on iOS does not make the page shorter for the keyboard, only the visible window, so a bar
  * stuck to the page's top had to be measured into place after events that came late or never (a
  * frame-by-frame watch of the visible window's top). A column the visible window's height puts the bar where it belongs with
@@ -60,8 +64,8 @@ import { icon, UI } from '../draw/icons.ts';
 import { t } from '../core/i18n.ts';
 import { ago, type Kept } from '../share/library.ts';
 import { expiresSentence, SHORT_LINK_MAX, timeLeft } from '../share/short.ts';
-import { pinWindow, redrawCaret, revealCaret } from './scroll.ts';
 import { BAR_HERE, keysAria } from './bar.ts';
+import { ASIDE, PageFrame } from './page-frame.ts';
 import { SHARE } from '../core/keys.ts';
 
 /** The document the header names. */
@@ -91,14 +95,6 @@ export interface Plain {
   /** The Display Link shown as its words rather than its pages: its button says Pages, and the column is not a picture. */
   reading?: boolean;
 }
-
-/** What a person types in: while one of these has the focus, the header steps aside on a phone. */
-const BOX = 'to-text, input, textarea, select, [contenteditable="true"], iframe';
-/** The column's glide, a little longer than its transition (page.css): the fallback should transitionend never come. */
-const GLIDE_MS = 260;
-
-/** What a box hands the focus to and back from without the person having left it: the bar, a menu, a popover, a dialog. */
-const ASIDE = 'to-bar, to-context, [popover], dialog, to-dialog, to-link-pop, to-complete';
 
 /**
  * What page.css slides away under a finger, by its own selectors: the app's bar while the
@@ -191,7 +187,11 @@ export class ToChrome extends LitElement {
   /** Another version of this document kept here, offered in a quiet line; `newer`: the link is from a newer Tiny Little Office. */
   declare other: Kept | null;
   declare newer: boolean;
-  private sized?: ResizeObserver;
+  /**
+   * The column the visible window's height, the window held at its top, the glide with the keyboard and `editing`: a
+   * page's frame (kit/ui/page-frame.ts), which a host's page holds too; `indoc` is worked out beside it, the site's own.
+   */
+  private frame = new PageFrame(this, { main: () => this.column, focused: (at, typed, recent) => this.onFocused(at, typed, recent) });
 
   constructor() {
     super();
@@ -214,38 +214,21 @@ export class ToChrome extends LitElement {
     return this;
   }
   connectedCallback() {
+    // The frame's class: page-frame.css's column, header and menu button are the site's and a host's alike.
+    this.classList.add('to-page');
     super.connectedCallback();
-    window.visualViewport?.addEventListener('resize', this.fit);
-    window.visualViewport?.addEventListener('scroll', this.pin);
-    window.addEventListener('scroll', this.pin);
-    window.addEventListener('resize', this.fit);
-    for (const type of ['focusin', 'focusout', 'beforeinput']) document.addEventListener(type, this.onFocus);
-    for (const type of ['pointerdown', 'keydown']) document.addEventListener(type, this.onPerson, true);
     window.addEventListener('hashchange', this.opened);
-    this.addEventListener('transitionend', this.onGlided);
-    this.addEventListener('scroll', this.pinSelf, true);
     // A bar drawn (a document opened, a bar lent to a dialog and back), a context row docked, a finger arriving: stowed again.
     document.addEventListener(BAR_HERE, this.stow);
     this.rowWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-context-row'] });
     matchMedia(COARSE).addEventListener('change', this.stow);
-    this.fit();
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.visualViewport?.removeEventListener('resize', this.fit);
-    window.visualViewport?.removeEventListener('scroll', this.pin);
-    window.removeEventListener('scroll', this.pin);
-    window.removeEventListener('resize', this.fit);
-    for (const type of ['focusin', 'focusout', 'beforeinput']) document.removeEventListener(type, this.onFocus);
-    for (const type of ['pointerdown', 'keydown']) document.removeEventListener(type, this.onPerson, true);
     window.removeEventListener('hashchange', this.opened);
-    this.removeEventListener('transitionend', this.onGlided);
-    this.removeEventListener('scroll', this.pinSelf, true);
     document.removeEventListener(BAR_HERE, this.stow);
     this.rowWatch.disconnect();
     matchMedia(COARSE).removeEventListener('change', this.stow);
-    clearTimeout(this.settleTimer);
-    this.sized?.disconnect();
   }
 
   /** The column: what scrolls. */
@@ -253,112 +236,30 @@ export class ToChrome extends LitElement {
     return this.querySelector<HTMLElement>('.to-column > main');
   }
 
-  /** The column the visible window's height (the layout viewport's while a desktop's pinch has zoomed in), the window at its top. */
-  private fit = () => {
-    const vv = window.visualViewport;
-    const h = `${vv && vv.scale <= 1.01 ? vv.height : window.innerHeight}px`;
-    // Under a finger a change of height is the keyboard: the bar fades while the column glides (page.css), back when it settles.
-    if (this.style.height && this.style.height !== h && matchMedia('(pointer: coarse)').matches) this.glide();
-    this.style.height = h;
-    this.pin();
-  };
-  /**
-   * The chrome and its column hold still: only `main` scrolls. The browser scrolls any box to bring a focused element
-   * into view, a hidden one too (the bar's button, focused while the bar is away under the column's foot, scrolled the
-   * chrome up by the header's height: the walks found it); so as the window is pinned (scroll.ts pinWindow), these are.
-   */
-  private pinSelf = (e: Event) => {
-    const box = e.target as HTMLElement;
-    if ((box === this || box.classList?.contains('to-column')) && (box.scrollTop || box.scrollLeft)) {
-      box.scrollTo(0, 0);
-      // Put back under a caret iOS has drawn where the box had slid: drawn again where the words are.
-      const at = document.activeElement;
-      if (this.editing && at && this.contains(at)) redrawCaret(at);
-    }
-  };
-  private settleTimer = 0;
-  private glide() {
-    this.toggleAttribute('gliding', true);
-    clearTimeout(this.settleTimer);
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.settleTimer = window.setTimeout(this.settle, reduced ? 140 : GLIDE_MS);
-  }
-  /** The column settled: the bar back, and the caret (where a box has it) kept in sight of what is left above the keyboard. */
-  private settle = () => {
-    clearTimeout(this.settleTimer);
-    if (!this.hasAttribute('gliding')) return;
-    this.removeAttribute('gliding');
-    this.keepCaret();
-  };
-  /** The caret, where a box being edited has it, inside what can be seen of the column (kit/ui/scroll.ts revealCaret, the one rule), and drawn afresh there (redrawCaret: iOS leaves its own where it first drew it). */
-  private keepCaret() {
-    const at = document.activeElement;
-    if (!(this.editing && at && this.contains(at))) return;
-    revealCaret(at);
-    redrawCaret(at);
-  }
-  /**
-   * The window slid (iOS slides it to bring a box it focused, or a caret it finds under the keyboard, into sight: a
-   * scroll of the window, which the visual viewport's own `scroll` does not always tell) is put back at its top, and the
-   * caret is brought into sight the column's way instead (Paul, 2026-10-11: "I keep losing my cursor in Outline
-   * because it's below the keyboard"). While the column glides, it is kept once it settles.
-   */
-  private pin = () => {
-    if (pinWindow() && !this.hasAttribute('gliding')) this.keepCaret();
-  };
-  private onGlided = (e: TransitionEvent) => e.target === this && e.propertyName === 'height' && this.settle();
-
-  /** When the person last touched, clicked or pressed a key: a box focused by the page itself (a document opening) is not editing. */
-  private touched = -Infinity;
   /** Another document opened: not editing it yet, whatever had the focus; unless the person's own tap just made it (startEditing), which counts as their tap into it, once. */
   private opened = () => {
     this.editing = false;
     this.indoc = false;
-    this.touched = performance.now() - madeAt < 3000 ? performance.now() : -Infinity;
+    this.frame.touched = performance.now() - madeAt < 3000 ? performance.now() : -Infinity;
     madeAt = -Infinity;
   };
-  private onPerson = (e: Event) => {
-    // A tap on the bar, in a menu or on the header acts on the box in hand (or elsewhere) without being a tap into it.
-    if ((e.target as Element | null)?.closest?.(`${ASIDE}, .to-burger, .to-header`)) return;
-    this.touched = performance.now();
-    this.onFocus(e);
-  };
   /**
-   * A box took the focus or left it. Taken in a person's own gesture (a tap, a key), or typed in, it is editing; the
-   * focus a document is opened with is not (iOS raises no keyboard for it), so the header stays until the first tap.
-   * A hop to the bar, a menu or a dialog and back is neither.
+   * The document has the focus from the person (its bar, its menus and its dialogs are the document's too): on a phone
+   * its bar comes with it. The focus a document opens with is not theirs (they are reading), as for `editing`, which the
+   * frame works out after this, in the same frame.
    */
-  private onFocus = (e: Event) => {
-    const typed = e.type === 'beforeinput';
-    requestAnimationFrame(() => {
-      const at = document.activeElement;
-      // The document has the focus from the person (its bar, its menus and its dialogs are the document's too): on a phone
-      // its bar comes with it. The focus a document opens with is not theirs (they are reading), as for `editing`.
-      const main = this.column;
-      const inside = !!at && !!main && main !== at && main.contains(at);
-      // A hop to a menu or a dialog of the page's own outside the column (one on the body, as kit/ui/doc-dialog.ts puts
-      // its own) and back is neither: the bar stays as it was, so the focus closing it gives back is not inert.
-      const aside = !inside && !!at && at !== document.body && !!at.closest(ASIDE);
-      const indoc = aside ? this.indoc : inside && (this.indoc || typed || performance.now() - this.touched < 1000);
-      if (indoc !== this.indoc) {
-        this.indoc = indoc;
-        // The bar arriving or leaving changes the column's room: the same glide as a keyboard's, the caret kept in sight once it settles.
-        if (matchMedia('(pointer: coarse)').matches) this.glide();
-      }
-      if (at && at !== document.body && at.closest(ASIDE)) return;
-      const box = !!at && this.contains(at) && !at.closest('.to-header') && !!at.closest(BOX);
-      const editing = box && (this.editing || typed || performance.now() - this.touched < 1000);
-      if (editing !== this.editing) {
-        this.editing = editing;
-        // The header stepping aside moves the words under a caret iOS has already drawn: drawn again once the page is laid out (while the column glides, settle() does it; nothing is kept in flight).
-        if (editing)
-          requestAnimationFrame(() => {
-            const at = document.activeElement;
-            if (this.editing && at && this.contains(at) && !this.hasAttribute('gliding')) redrawCaret(at);
-          });
-      }
-    });
-  };
+  private onFocused(at: Element | null, typed: boolean, recent: boolean) {
+    const main = this.column;
+    const inside = !!at && !!main && main !== at && main.contains(at);
+    // A hop to a menu or a dialog of the page's own outside the column (one on the body, as kit/ui/doc-dialog.ts puts
+    // its own) and back is neither: the bar stays as it was, so the focus closing it gives back is not inert.
+    const aside = !inside && !!at && at !== document.body && !!at.closest(ASIDE);
+    const indoc = aside ? this.indoc : inside && (this.indoc || typed || recent);
+    if (indoc === this.indoc) return;
+    this.indoc = indoc;
+    // The bar arriving or leaving changes the column's room: the same glide as a keyboard's, the caret kept in sight once it settles.
+    if (matchMedia(COARSE).matches) this.frame.glide();
+  }
 
   /** What is slid away (AWAY) is inert; what is back is not. */
   private stow = () => {
@@ -372,13 +273,6 @@ export class ToChrome extends LitElement {
 
   protected updated() {
     this.stow();
-    // The column's height, for what fills it (a canvas, a map): --to-col-h.
-    const col = this.column;
-    if (!col || this.sized) return;
-    // Set a frame later: what it sizes is in the column, and a change it makes is never this observer's to hear again at once.
-    const set = () => this.style.getPropertyValue('--to-col-h') !== `${col.clientHeight}px` && this.style.setProperty('--to-col-h', `${col.clientHeight}px`);
-    this.sized = new ResizeObserver(() => requestAnimationFrame(set));
-    this.sized.observe(col);
   }
 
   /** The title focused: the wide row opens, an automatic name chosen whole (WebKit puts the caret where the tap landed after the focus, so again then). */
@@ -489,13 +383,13 @@ export class ToChrome extends LitElement {
   render() {
     if (this.plain) return this.renderPlain(this.plain);
     // The menu button is a hamburger (Paul, 2026-10-10: "Make the hamburger a hamburger"); the mark is the drawer's.
-    const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('shell-menu')} title=${t('leave-tiny-little-office-menu')} aria-haspopup="dialog" @click=${() => this.say('to-drawer-open')}>${icon(UI.menu, 24)}</button>`;
+    const burger = html`<button type="button" class="to-btn to-tool to-burger to-page-menu" aria-label=${t('shell-menu')} title=${t('leave-tiny-little-office-menu')} aria-haspopup="dialog" @click=${() => this.say('to-drawer-open')}>${icon(UI.menu, 24)}</button>`;
     // Share, at the menu button's inline start on every document, floating with it while the header has stepped aside (Paul, 2026-10-13: "Put the share menu to the left of the hamburger on every document — sharing is very important"); a locked document has no Share until it is opened.
     const share =
       this.doc && !this.doc.locked
-        ? html`<button type="button" class="to-btn to-tool to-share-btn" aria-label=${t('common-share')} title=${t('common-share')} aria-keyshortcuts=${keysAria(SHARE.keys)} aria-haspopup="dialog" @click=${() => this.say('to-share-open')}>${icon(UI.share, 24)}</button>`
+        ? html`<button type="button" class="to-btn to-tool to-share-btn to-page-menu" aria-label=${t('common-share')} title=${t('common-share')} aria-keyshortcuts=${keysAria(SHARE.keys)} aria-haspopup="dialog" @click=${() => this.say('to-share-open')}>${icon(UI.share, 24)}</button>`
         : nothing;
-    const head = html`<header class="to-header ${this.titling ? 'titling' : ''}" aria-label=${t('common-tiny-little-office')} @focusin=${this.openTitle} @focusout=${() => (this.titling = false)} @keydown=${this.titleKey}>${this.doc ? this.renderDoc(this.doc) : html`<a class="to-brand" href="#/">${t('common-tiny-little-office')}</a>`}</header>`;
+    const head = html`<header class="to-header to-page-head ${this.titling ? 'titling' : ''}" aria-label=${t('common-tiny-little-office')} @focusin=${this.openTitle} @focusout=${() => (this.titling = false)} @keydown=${this.titleKey}>${this.doc ? this.renderDoc(this.doc) : html`<a class="to-brand" href="#/">${t('common-tiny-little-office')}</a>`}</header>`;
     // The column scrolls (the room below the last line sees to that even in a short document), so it is in the tab order and the keys scroll it, as the Display Link's column is; a scrollable box no key can reach fails axe's scrollable-region-focusable.
     return html`${share}${burger}${head}${this.renderArrival()}${this.renderOther()}<div class="to-column ${this.barred ? 'barred' : ''}">
       <main class=${this.mainClass} tabindex="0" aria-label=${this.label || nothing}>${this.main}</main>

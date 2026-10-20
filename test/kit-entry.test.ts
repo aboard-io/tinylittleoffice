@@ -69,6 +69,11 @@ describe('the kit entry', () => {
       expect(kit.get(name), name).toBe(true);
   });
 
+  test('serves a host’s page what its chrome draws with: the mark, the window pinned, the frame, the themes, the rest of Lucide, a day as the table says it', () => {
+    for (const name of ['mark', 'pinWindow', 'PageFrame', 'THEMES', 'themeName', 'setTheme', 'theme', 'loadIcons', 'ensureIcons', 'dateText']) expect(kit.get(name), name).toBe(false);
+    for (const name of ['Theme', 'FrameOpts']) expect(kit.get(name), name).toBe(true);
+  });
+
   test('the editors entry exports every name the kit does, as a value where the kit’s is one, since "./kit" is its file at run time', () => {
     expect([...kit].filter(([name, type]) => !editors.has(name) || (!type && editors.get(name)))).toStrictEqual([]);
     // And what it served a page before the kit came.

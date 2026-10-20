@@ -1,6 +1,7 @@
 /* What changes with the width and the pointer: phones first, in WebKit at 390px. Fingers get 44px, type
-   stays at 16px in every box (an iPhone zooms in on anything smaller), and the bar keeps one row. What changes for the
-   site's own page and chrome (the column, the bar's place in it, the header stepping aside while typing) is page.css's. */
+   stays at 16px in every box (an iPhone zooms in on anything smaller), and the bar keeps one row. What changes for a
+   page's frame (the column, the bar's place in it, the header stepping aside while typing) is page-frame.css's, and for
+   the site's own page and chrome page.css's. */
 @layer responsive {
   @media (max-width: 760px) {
     :root {
@@ -100,6 +101,32 @@
     to-drawer,
     to-toast {
       display: none !important;
+    }
+  }
+  /* The same pins wherever the bar is at the column's foot: a mobile-first page's (page-frame.css .to-page.foot) on a
+     narrow screen under a mouse too, as under a finger (above). */
+  @media (max-width: 720px) {
+    .to-page.foot to-bar .to-pin {
+      position: sticky;
+      inset-inline-end: 0;
+      z-index: 1;
+      box-shadow:
+        0 0 0 calc(0.375 * var(--to-nav-font)) var(--to-bg),
+        0 0 calc(0.75 * var(--to-nav-font)) calc(0.5 * var(--to-nav-font)) var(--to-bg);
+    }
+    .to-page.foot to-bar .to-pin:not(.to-pin ~ .to-pin) {
+      margin-inline-start: auto;
+    }
+    .to-page.foot to-bar:not([data-narrow]) .to-pin:has(~ .to-pin) {
+      inset-inline-end: calc(var(--to-touch) + 0.375 * var(--to-nav-font));
+    }
+    .to-page.foot to-bar[data-narrow] .to-pin ~ .to-pin {
+      position: static;
+      box-shadow: none;
+    }
+    .to-page.foot to-bar .to-pin:disabled {
+      opacity: 1;
+      color: color-mix(in srgb, var(--to-ink) 45%, var(--to-surface));
     }
   }
 }

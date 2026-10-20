@@ -88,6 +88,8 @@ export interface BtnOpts {
   hint?: string;
   /** Under a finger, kept at the bar's inline end outside its scroll (a command's `pinned`: Undo, Redo). */
   pinned?: boolean;
+  /** The icon's size in px: 20, a bar's; 24, a header's (a host's plus and its menu button, as the site's are drawn). */
+  size?: number;
 }
 
 // Cancelled on mousedown, not pointerdown: a tap in WebKit whose pointerdown is cancelled fires no click at all, while
@@ -109,11 +111,11 @@ export const keysAria = (keys: string | undefined): string | typeof nothing => (
 
 /** A button with its words on it (two at most, so the bar never wraps them; `hint` says the rest), and an icon before them if it has one. */
 export const btn = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} title=${(o.keys && chords()) || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
+  html`<button type="button" class="to-btn ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} title=${(o.keys && chords()) || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon, o.size) : nothing}<span>${o.label}</span></button>`;
 
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn to-tool ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+  html`<button type="button" class="to-btn to-tool ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon, o.size) : nothing}</button>`;
 
 /**
  * A command of the registry (kit/core/commands.ts) as a bar's icon button, in its context: its words, icon and keys, its
@@ -141,9 +143,20 @@ function drawCmd<C>(draw: (o: BtnOpts) => TemplateResult, cmd: Command<C>, c: C 
     cls: `${over.cls ?? ''} cmd-${cmd.id.replace(/\./g, '-')}`.trim(),
   });
 }
-/** A command that is a menu (`menu`), as the bar's <to-menu>: its items the commands drawn in `menu:<name>` among `all`. */
-export const cmdMenu = <C>(cmd: Command<C>, c: C, all: readonly Command<C>[], cls = '', opts: { caret?: boolean; words?: boolean; icon?: IconNode; keep?: boolean } = {}): TemplateResult =>
-  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${labelOf(cmd, c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
+/**
+ * A command that is a menu (`menu`), as the bar's <to-menu>: its items the commands drawn in `menu:<name>` among `all`;
+ * nothing at all where the command is not in force (`when`), as cmdTool and cmdBtn draw none.
+ */
+export const cmdMenu = <C>(
+  cmd: Command<C>,
+  c: C,
+  all: readonly Command<C>[],
+  cls = '',
+  opts: { caret?: boolean; words?: boolean; icon?: IconNode; keep?: boolean } = {},
+): TemplateResult | typeof nothing =>
+  c !== null && c !== undefined && cmd.when && !cmd.when(c)
+    ? nothing
+    : html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${labelOf(cmd, c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
 
 export interface DateNavOpts {
   /** What is on view: "March 2027". */

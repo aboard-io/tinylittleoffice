@@ -281,9 +281,6 @@
     background: var(--to-surface-2);
     border-color: var(--to-border);
   }
-  .to-dt-menu > button {
-    display: none;
-  }
   /* A record's picker (kit/ui/record-pick.ts): the records found, in a popover under the cell or the field (menu.ts place). */
   .to-rp-pop {
     position: fixed;

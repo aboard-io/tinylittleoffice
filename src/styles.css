@@ -1,8 +1,8 @@
 /* The cascade, said once: tokens under everything, then the kit, then each app's own sheet, then what
    changes by width, then what changes for a person's settings (contrast, motion). An app's style.css
    wraps itself in @layer apps; nothing outside a layer exists. The site's stylesheet is the editors' (editors.css, what
-   a page that is not the site has too) with the site's own page and chrome over it (page.css), whose rules go at the
-   end of each layer. */
+   a page that is not the site has too) with the site's own page and chrome over it (page.css, after the frame a host's
+   page has too, page-frame.css), whose rules go at the end of each layer. */
 @layer tokens, kit, apps, responsive, a11y;
 @import './styles/fonts.css';
 @import './styles/tokens.css';
@@ -10,4 +10,5 @@
 @import './styles/text.css';
 @import './styles/responsive.css';
 @import './styles/a11y.css';
+@import './styles/page-frame.css';
 @import './styles/page.css';

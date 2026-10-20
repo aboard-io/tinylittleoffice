@@ -1090,7 +1090,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         </div>
         ${this.view.length ? nothing : html`<p class="to-dt-empty" role="status">${this.rows.length ? t('table-no-rows-match') : this.empty || t('table-no-rows')}</p>`}
       </div>
-      ${this.rowActions ? html`<to-menu class="to-dt-menu" .label=${t('table-row-actions')} .items=${this.actionItems()}></to-menu>` : nothing}
+      ${this.rowActions ? html`<to-menu class="to-dt-menu" buttonless .label=${t('table-row-actions')} .items=${this.actionItems()}></to-menu>` : nothing}
     </div>`;
   }
 }

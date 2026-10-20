@@ -1,0 +1,285 @@
+/* A page's frame (kit/ui/page-frame.ts; docs/library.md, A host's page): the column the visible window's height, the
+   header at its top, the menu button floating at its inline end, the bar's place in the column (under the header on a
+   wide screen, at the column's foot under a finger), the header stepping aside while a box is typed in but for the
+   menu button, translucent in the corner, and the bar fading while the column glides to a keyboard's height. The site's
+   chrome (<to-chrome>, its header, its menu button and Share) wears these classes, and so does a host's page: one copy,
+   in the site's stylesheet (styles.css) and in the editors' (editors.css), before page.css, which keeps only what is the
+   site's (the title box, the banners, Share's place, the bar that slides away while reading).
+
+   The classes a page draws: .to-page (the frame, which PageFrame sets `editing` and `gliding` on), .to-page-head (its
+   header), .to-page-menu (the menu button, or any button floating with it), .to-column (with .barred while it holds a
+   bar) and its <main>, and .to-page-bar (the page's own bar, or the row that holds it, as an editor's <to-bar> is
+   placed). `.to-page.foot`: the bar at the column's foot on a narrow screen too (720px and under), not only under a
+   finger, its pinned tools pinned there as they are under a finger (responsive.css). */
+@layer kit {
+  .to-page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  /* The header and the menu button are nav, not document: drawn at the nav's scale as the editors' bars are (kit.css,
+     the nav's list). The button is a .to-btn at the nav's size, so its two classes outweigh .to-btn's own size. */
+  .to-page-head,
+  .to-btn.to-page-menu {
+    font-size: var(--to-nav-font);
+    --to-scale: var(--to-nav-font);
+    --to-touch: calc(2.75 * var(--to-nav-font));
+    --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
+    --to-edge-e: max(var(--to-gutter), env(safe-area-inset-right));
+    --to-burger-w: calc(var(--to-edge-e) + var(--to-touch));
+  }
+  /* One row (wrapping where a page's words want two) on the surface, a hairline under it, the menu button's room kept
+     at its inline end. */
+  .to-page-head {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: 0.5em 0.375em;
+    min-height: var(--to-header-h);
+    padding: calc((var(--to-header-h) - var(--to-touch)) / 2) var(--to-gutter);
+    padding-inline-start: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-inline-end: calc(var(--to-burger-w) + 0.375em);
+    background: var(--to-surface);
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-page-head .to-tool,
+  .to-page-head .to-btn {
+    border-color: transparent;
+    background: transparent;
+  }
+  .to-page-head .to-tool:hover {
+    background: var(--to-surface-2);
+  }
+  /* The menu, at the top inline end of the column on every screen (where the words are not: they begin at the other
+     side, and an iPhone's left edge is Safari's back swipe); no border (Paul, 2026-10-10), opaque so what slides under
+     it is behind it; on a card of its own once the header has stepped aside (below). */
+  .to-page-menu {
+    position: absolute;
+    top: calc((var(--to-header-h) - var(--to-touch)) / 2);
+    inset-inline-end: var(--to-edge-e);
+    z-index: 4;
+    width: var(--to-touch);
+    height: var(--to-touch);
+    border-color: transparent;
+    color: var(--to-ink);
+    background: var(--to-surface);
+    /* To the corner and back as the header steps aside and returns (below), never a jump; reduced motion: at once (a11y.css). */
+    transition:
+      top 0.2s ease-out,
+      inset-inline-end 0.2s ease-out,
+      opacity 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  /* The header, then the column: the bar's place and the main, which scrolls. */
+  .to-column {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .to-column > main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* The bar's place: an editor's bar, or the page's own (.to-page-bar), is taken out of the main's flow and set in the
+     column, at its top here and at its bottom under a finger (below), one row however the words are scrolled. Its
+     height is the nav's. */
+  .to-column.barred {
+    padding-top: var(--to-bar-h);
+  }
+  .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+  .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    z-index: 3;
+    height: var(--to-bar-h);
+    margin: 0;
+    overflow-y: hidden;
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+    background: var(--to-bg);
+  }
+}
+@layer apps {
+  @media (max-width: 760px) {
+    /* While a box is typed in the rail leaves the flow for the column's foot, right above the bar and placed as the bar
+       is (above: by the column, over the scrolling main), so with the keyboard up the whole slide stands above it and
+       every other slide is a tap away, with no room wasted under the slide (Paul, 2026-10-13: "a quick way to jump to
+       other slides without leaving edit mode… put the deck preview above the edit bar"; "get rid of all the space below
+       the slides and make sure we can see the whole slide above when we switch into edit"). */
+    .to-page[editing] .to-column > main > to-deck-editor .deck-rail {
+      position: absolute;
+      inset-inline: 0;
+      bottom: var(--to-bar-h);
+      z-index: 2;
+      padding: 0.25rem var(--to-gutter) 0.125rem;
+      background: var(--to-bg);
+      border-top: 1px solid var(--to-border);
+    }
+  }
+  @media (pointer: coarse) {
+    /* A cell being typed in, the keyboard up (Paul, 2026-10-11: "no room to navigate"): the header has stepped aside, the
+       formula strip is the column's top with the menu button at its end (the responsive layer below gives the column's
+       top back), the heads are one line, the letter and the name, and the table's box is the rest. Read from the
+       frame's `editing` alone, which comes a frame after the focus: a tap that takes the focus from a cell (a row's
+       number) lands before the heads move, never on what moved under it. */
+    .to-page[editing] .sheet-fx {
+      padding-inline-end: calc(3.5 * var(--to-nav-font));
+    }
+    .to-page[editing] to-sheet-editor:not(:has(tr.names :focus)) table.sheet tr.names {
+      display: none;
+    }
+    .to-page[editing] to-sheet-editor:not(:has(tr.names :focus)) table.sheet .col-head .nm {
+      display: inline;
+    }
+    .to-page[editing] .sheet-scroll {
+      min-height: 0;
+      max-height: calc(var(--to-col-h) - 2.75rem - 1px - var(--to-gutter));
+    }
+  }
+}
+@layer responsive {
+  @media (pointer: coarse) {
+    /* The keyboard coming or going: the column glides to the visible window's new height, and the bar fades out while
+       it moves and back when it settles (page-frame.ts `gliding`; Paul, 2026-10-10: "it jumps and it's overwhelming"). */
+    .to-page[gliding] {
+      transition: height 0.2s ease-out;
+    }
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      transition:
+        opacity 0.12s ease,
+        transform 0.2s ease-out;
+    }
+    .to-column.barred {
+      transition: padding-bottom 0.2s ease-out;
+    }
+    .to-page[gliding] .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-page[gliding] .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      opacity: 0;
+    }
+    /* Under a finger the bar's place is the column's bottom: above the keyboard while one is up, since the column is
+       the visible window's height, and above the home indicator while none is. */
+    .to-column.barred {
+      padding-top: 0;
+      padding-bottom: var(--to-bar-h);
+    }
+    .to-page:not([editing]) .to-column.barred {
+      padding-bottom: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+    }
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      top: auto;
+      bottom: 0;
+      border-bottom: 0;
+      border-top: 1px solid var(--to-border);
+    }
+    .to-page:not([editing]) .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-page:not([editing]) .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      height: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+      padding-bottom: calc(0.375em + env(safe-area-inset-bottom));
+    }
+    /* While a box has the focus (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger"):
+       the header steps aside, and the menu button slides into the very corner on a card of its own, translucent so the
+       words under it show through ("Make the hamburger translucent when I'm editing. Maybe even move it further top
+       right"); opaque under a hover, a key's focus, and while what it opened is open. Faded, it keeps an edge of its
+       own, so it is still a button over a line of words (the review of 2026-10-11 measured 1.35:1 without one); and it
+       does not fade at all for a person who asked for more: the size above 100% (zoom.ts data-large) or more contrast
+       (below). */
+    .to-page[editing] .to-page-head {
+      display: none;
+    }
+    .to-page[editing] .to-page-menu {
+      top: max(0.25em, env(safe-area-inset-top));
+      inset-inline-end: max(0.25em, env(safe-area-inset-right));
+      opacity: 0.55;
+      border: 1px solid var(--to-border-strong);
+      border-radius: 0.5em;
+      box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
+    }
+    .to-page[editing] .to-page-menu:is(:hover, :focus-visible, [aria-expanded='true']),
+    :root[data-large] .to-page[editing] .to-page-menu {
+      opacity: 1;
+    }
+    /* The column's top keeps the menu button's room, so what is first in it (a row's menu, a stage's) is never under the
+       button until the words are scrolled; the words then go on under it, the header's height theirs. The room is a
+       box of its own at the column's top, never the column's padding: iOS draws the caret of a box inside a scrolling
+       column as if the column's top padding were not there, a caret standing in the dark above the first line of a
+       new document until the first key (Paul, 2026-10-13, read from the device: the words never moved). */
+    .to-page[editing] .to-column > main::before {
+      content: '';
+      display: block;
+      flex: none;
+      height: calc(3.5 * var(--to-nav-font));
+    }
+    /* The Spreadsheet keeps the menu button's room at the end of its formula strip, its first row (sheet/style.css). */
+    .to-page[editing] .to-column > main:has(> to-sheet-editor)::before {
+      display: none;
+    }
+  }
+  /* A page that is mobile first (.foot) has its bar at the column's foot on a narrow screen under a mouse too, as under
+     a finger (above): a host's pages read the same in a phone and in a narrow window. */
+  @media (max-width: 720px) {
+    .to-page.foot .to-column.barred {
+      padding-top: 0;
+      padding-bottom: var(--to-bar-h);
+    }
+    .to-page.foot:not([editing]) .to-column.barred {
+      padding-bottom: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+    }
+    .to-page.foot .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-page.foot .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      top: auto;
+      bottom: 0;
+      border-bottom: 0;
+      border-top: 1px solid var(--to-border);
+    }
+    .to-page.foot:not([editing]) .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-page.foot:not([editing]) .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      height: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+      padding-bottom: calc(0.375em + env(safe-area-inset-bottom));
+    }
+  }
+  @media print {
+    /* Paper has no chrome: the header and the menu button are not printed, as an editor's bar is not (responsive.css). */
+    .to-page-head,
+    .to-page-menu {
+      display: none !important;
+    }
+    /* Paper flows on: the column is as long as what it holds. */
+    .to-page,
+    .to-column,
+    .to-column > main {
+      display: block;
+      height: auto !important;
+      overflow: visible;
+    }
+    .to-column.barred {
+      padding: 0;
+    }
+  }
+}
+@layer a11y {
+  @media (prefers-reduced-motion: reduce) {
+    /* The bar's fade while the column takes a keyboard's height is no motion: it stays, the height changing at once (page-frame.ts). */
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *),
+    .to-column.barred > main .to-page-bar:not(:is(dialog, [popover], .to-dialog) *) {
+      transition: opacity 0.12s ease !important;
+    }
+  }
+  @media (prefers-contrast: more) {
+    /* The menu button does not fade while typing (above): it is the only way to the menu. */
+    .to-page[editing] .to-page-menu {
+      opacity: 1;
+    }
+  }
+}

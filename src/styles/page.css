@@ -5,8 +5,9 @@
    (Share, Privacy, the Display Link, the embed, Compare). The site's stylesheet (styles.css) imports it last, after
    everything an editor needs (editors.css); a page that is not the site has none of it. Its rules go at the end of
    each layer, where they were once among the kit's: none meets a rule of the editors' on one element at the same
-   weight, so the cascade is as it was. An app's rules for the chrome (the deck's rail and the sheet's heads while a box
-   is typed in) are here too, not in the app's own sheet. */
+   weight, so the cascade is as it was. What of the chrome a host's page has too (the frame: the column the visible
+   window's height, the header and the menu button, the bar's place, the header stepping aside while a box is typed in,
+   the deck's rail and the sheet's heads then) is page-frame.css's, which both stylesheets import before this. */
 @layer kit {
   html {
     -webkit-text-size-adjust: 100%;
@@ -40,19 +41,6 @@
       overflow: hidden;
       overscroll-behavior: none;
     }
-  }
-  /* The header, the menu button and Share are nav, not document: drawn at the nav's scale as the editors' bars are
-     (kit.css, the nav's list, which they were once in). The two buttons are buttons (.to-btn) at the nav's size, so
-     theirs outweighs .to-btn's own size, as the list's weight (two classes, from its `.deck-show .ctl`) did. */
-  .to-header,
-  .to-btn.to-burger,
-  .to-btn.to-share-btn {
-    font-size: var(--to-nav-font);
-    --to-scale: var(--to-nav-font);
-    --to-touch: calc(2.75 * var(--to-nav-font));
-    --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
-    --to-edge-e: max(var(--to-gutter), env(safe-area-inset-right));
-    --to-burger-w: calc(var(--to-edge-e) + var(--to-touch));
   }
   /* ---- the Share dialog: one column of sections, hung from the top; a full-screen sheet on a phone ---- */
   .to-share-fit {
@@ -495,48 +483,17 @@
     font-size: calc(0.9375 * var(--to-scale));
     border-radius: var(--to-radius);
   }
-  /* ---- the shell: a column the visible window's height (<to-chrome>, kit/ui/chrome.ts) ---- */
+  /* ---- the shell: a page's frame (page-frame.css: <to-chrome> is a .to-page, its header a .to-page-head, its menu
+     button and Share each a .to-page-menu), and what of it is the site's own ---- */
   to-shell {
     display: block;
   }
-  /* The header, the banners, then the column: the bar's place and .to-main, which scrolls. Its height is the visual
-     viewport's, set as it resizes; 100% until then. */
-  to-chrome {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
+  /* The site's header is one row high, and opens a second for the title (below). */
+  .to-header {
+    height: var(--to-header-h);
+    transition: height 0.2s ease;
   }
-  .to-column {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .to-column > main {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  /* The bar's place: the app's bar is taken out of the document's flow and set in it, at the column's top here and at
-     its bottom under a finger (below), one row however the words are scrolled. Its height is the nav's. */
-  .to-column.barred {
-    padding-top: var(--to-bar-h);
-  }
-  .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    z-index: 3;
-    height: var(--to-bar-h);
-    margin: 0;
-    overflow-y: hidden;
-    border-bottom: 1px solid var(--to-border);
-  }
-  .to-header,
+  /* The page before the app (index.html's header, below) is drawn as the header is, with no frame round it. */
   #to-first > h1 {
     flex: none;
     display: flex;
@@ -550,7 +507,6 @@
     padding-inline-end: calc(var(--to-burger-w) + 0.375em);
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
-    transition: height 0.2s ease;
   }
   /* The home page's header starts where its column does, so the wordmark stands over the apps at every width; a
      document's header keeps the gutter, where an editor's column (.to-wide) starts. */
@@ -559,21 +515,6 @@
   }
   .to-header:has(> .to-brand):dir(rtl) {
     padding-inline-start: var(--to-col-inset-r);
-  }
-  /* The menu, at the top inline end of the column on every screen (where the words are not: they begin at the other
-     side, and an iPhone's left edge is Safari's back swipe); on a card of its own once the header has stepped aside. */
-  .to-burger,
-  .to-share-btn {
-    position: absolute;
-    top: calc((var(--to-header-h) - var(--to-touch)) / 2);
-    inset-inline-end: var(--to-edge-e);
-    z-index: 4;
-    /* To the corner and back as the header steps aside and returns (below), never a jump; reduced motion: at once (below). */
-    transition:
-      top 0.2s ease-out,
-      inset-inline-end 0.2s ease-out,
-      opacity 0.2s ease,
-      box-shadow 0.2s ease;
   }
   /* The title edited wide (Paul: "The title is too small to edit"): on a narrow page the header opens a second row,
      the field across it at 20px, the first row keeping the rest, pushed to the inline end. On a wide page the field is
@@ -596,30 +537,12 @@
       margin-inline-start: auto;
     }
   }
-  .to-header .to-tool,
-  .to-header .to-btn {
-    border-color: transparent;
-    background: transparent;
-  }
   /* Share, a document's, one touch width before the menu button; the header keeps room for both (Paul, 2026-10-13: "sharing is very important"). */
   .to-share-btn {
     inset-inline-end: calc(var(--to-edge-e) + var(--to-touch) + 0.375em);
   }
   to-chrome:has(> .to-share-btn) .to-header {
     --to-burger-w: calc(var(--to-edge-e) + 2 * var(--to-touch) + 0.375em);
-  }
-  /* The hamburger: no border (Paul, 2026-10-10), opaque so what slides under it is behind it. */
-  .to-burger,
-  .to-share-btn {
-    width: var(--to-touch);
-    height: var(--to-touch);
-    border-color: transparent;
-    color: var(--to-ink);
-    /* Opaque: the words scrolled under it while it floats are behind it. */
-    background: var(--to-surface);
-  }
-  .to-header .to-tool:hover {
-    background: var(--to-surface-2);
   }
   .to-here,
   #to-first > h1:has(+ p)::before {
@@ -1345,44 +1268,6 @@
     pointer-events: none;
   }
 }
-@layer apps {
-  @media (max-width: 760px) {
-    /* While a box is typed in (to-chrome[editing]) the rail leaves the flow for the column's foot, right above the bar
-       and placed as the bar is (above: by the column, over the scrolling main), so with the keyboard up the whole
-       slide stands above it and every other slide is a tap away, with no room wasted under the slide (Paul, 2026-10-13:
-       "a quick way to jump to other slides without leaving edit mode… put the deck preview above the edit bar"; "get rid
-       of all the space below the slides and make sure we can see the whole slide above when we switch into edit"). */
-    to-chrome[editing] .to-column > main > to-deck-editor .deck-rail {
-      position: absolute;
-      inset-inline: 0;
-      bottom: var(--to-bar-h);
-      z-index: 2;
-      padding: 0.25rem var(--to-gutter) 0.125rem;
-      background: var(--to-bg);
-      border-top: 1px solid var(--to-border);
-    }
-  }
-  @media (pointer: coarse) {
-    /* A cell being typed in, the keyboard up (Paul, 2026-10-11: "no room to navigate"): the header has stepped aside
-       (kit/ui/chrome.ts), the formula strip is the column's top with the menu button at its end (the responsive layer below gives
-       the column's top back), the heads are one line, the letter and the name, and the table's box is the rest. Read
-       from the chrome's `editing` alone, which comes a frame after the focus: a tap that takes the focus from a cell
-       (a row's number) lands before the heads move, never on what moved under it. */
-    to-chrome[editing] .sheet-fx {
-      padding-inline-end: calc(3.5 * var(--to-nav-font));
-    }
-    to-chrome[editing] to-sheet-editor:not(:has(tr.names :focus)) table.sheet tr.names {
-      display: none;
-    }
-    to-chrome[editing] to-sheet-editor:not(:has(tr.names :focus)) table.sheet .col-head .nm {
-      display: inline;
-    }
-    to-chrome[editing] .sheet-scroll {
-      min-height: 0;
-      max-height: calc(var(--to-col-h) - 2.75rem - 1px - var(--to-gutter));
-    }
-  }
-}
 @layer responsive {
   /* On a phone, or under a finger, a document's frame runs to the screen's edges (above, .to-main). */
   @media (max-width: 640px), (pointer: coarse) {
@@ -1448,23 +1333,11 @@
     }
   }
   @media (pointer: coarse) {
-    /* The keyboard coming or going: the column glides to the visible window's new height, and the bar fades out while
-       it moves and back when it settles (kit/ui/chrome.ts `gliding`; Paul, 2026-10-10: "it jumps and it's overwhelming"). */
-    to-chrome[gliding] {
-      transition: height 0.2s ease-out;
-    }
-    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      transition:
-        opacity 0.12s ease,
-        transform 0.2s ease-out;
-    }
-    .to-column.barred {
-      transition: padding-bottom 0.2s ease-out;
-    }
     /* The bar comes with the focus (kit/ui/chrome.ts: indoc): while nothing in the document has it (reading), the bar
        slides under the column's foot and its room goes with it; an editor whose keys are the
        document (the Calculator and the Calendar: data-bar="always") keeps it. While words are selected the context bar is the row
-       (kit/ui/context.ts: docked), and the bar's own steps aside under it. */
+       (kit/ui/context.ts: docked), and the bar's own steps aside under it. The bar's place under a finger, its glide and
+       the header stepping aside while a box is typed in are a page's frame's (page-frame.css). */
     to-chrome:not([indoc]) .to-column.barred:not(:has(> main > .to-editor[data-bar='always'])),
     :root[data-context-row] .to-column.barred {
       padding-bottom: 0;
@@ -1475,73 +1348,17 @@
       opacity: 0;
       pointer-events: none;
     }
-    to-chrome[gliding] .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      opacity: 0;
-    }
-    /* Under a finger the bar's place is the column's bottom: above the keyboard while one is up, since the column is
-       the visible window's height (kit/ui/chrome.ts), and above the home indicator while none is. */
-    .to-column.barred {
-      padding-top: 0;
-      padding-bottom: var(--to-bar-h);
-    }
-    to-chrome:not([editing]) .to-column.barred {
-      padding-bottom: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
-    }
     /* The page before the app (above, #to-first): no bar's room over the first words either. */
     #to-first > h1 + p {
       margin-top: 0;
     }
-    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      top: auto;
-      bottom: 0;
-      border-bottom: 0;
-      border-top: 1px solid var(--to-border);
-    }
-    to-chrome:not([editing]) .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      height: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
-      padding-bottom: calc(0.375em + env(safe-area-inset-bottom));
-    }
-    /* While a box has the focus (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger"):
-       the header steps aside, a short link's banner goes small, and the menu button slides into the very corner on a
-       card of its own, translucent so the words under it show through ("Make the hamburger translucent when I'm
-       editing. Maybe even move it further top right"); opaque under a hover, a key's focus, and while the drawer is open.
-       Faded, it keeps an edge of its own, so it is still a button over a line of words (the review of 2026-10-11
-       measured 1.35:1 without one); and it does not fade at all for a person who asked for more: the size above 100%
-       (zoom.ts data-large) or more contrast (below). */
-    to-chrome[editing] .to-header {
-      display: none;
-    }
-    to-chrome[editing] .to-burger,
-    to-chrome[editing] .to-share-btn {
-      top: max(0.25em, env(safe-area-inset-top));
-      inset-inline-end: max(0.25em, env(safe-area-inset-right));
-      opacity: 0.55;
-      border: 1px solid var(--to-border-strong);
-      border-radius: 0.5em;
-      box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
-    }
-    to-chrome[editing] .to-share-btn {
+    /* Share floats with the menu button while the header has stepped aside, one touch width before it; opaque while the
+       drawer is open (the menu button's own, page-frame.css). */
+    to-chrome[editing] .to-page-menu.to-share-btn {
       inset-inline-end: calc(max(0.25em, env(safe-area-inset-right)) + var(--to-touch) + 0.25em);
     }
-    to-chrome[editing] :is(.to-burger, .to-share-btn):is(:hover, :focus-visible),
-    :root[data-large] to-chrome[editing] :is(.to-burger, .to-share-btn),
-    to-shell:has(dialog.to-drawer[open]) to-chrome[editing] :is(.to-burger, .to-share-btn) {
+    to-shell:has(dialog.to-drawer[open]) to-chrome[editing] .to-page-menu {
       opacity: 1;
-    }
-    /* The column's top keeps the menu button's room, so what is first in it (a row's menu, a stage's) is never under the
-       button until the words are scrolled; the words then go on under it, the header's height theirs. The room is a
-       box of its own at the column's top, never the column's padding: iOS draws the caret of a box inside a scrolling
-       column as if the column's top padding were not there, a caret standing in the dark above the first line of a
-       new document until the first key (Paul, 2026-10-13, read from the device: the words never moved). */
-    to-chrome[editing] .to-column > main::before {
-      content: '';
-      display: block;
-      flex: none;
-      height: calc(3.5 * var(--to-nav-font));
-    }
-    /* The Spreadsheet keeps the menu button's room at the end of its formula strip, its first row (sheet/style.css). */
-    to-chrome[editing] .to-column > main:has(> to-sheet-editor)::before {
-      display: none;
     }
     to-chrome[editing] .to-arrival {
       padding-top: 0.25rem;
@@ -1560,26 +1377,6 @@
       min-height: 2.25rem;
     }
   }
-  @media print {
-    /* Paper has no chrome: the header, the menu button and Share are not printed, as an editor's bar is not
-       (responsive.css). */
-    .to-header,
-    .to-burger,
-    .to-share-btn {
-      display: none !important;
-    }
-    /* Paper flows on: the column is as long as what it holds. */
-    to-chrome,
-    .to-column,
-    .to-column > main {
-      display: block;
-      height: auto !important;
-      overflow: visible;
-    }
-    .to-column.barred {
-      padding: 0;
-    }
-  }
 }
 @layer a11y {
   :root[data-copying] to-shell,
@@ -1587,17 +1384,5 @@
     color: #000 !important;
     background-color: #fff !important;
     text-shadow: none !important;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    /* The bar's fade while the column takes a keyboard's height is no motion: it stays, the height changing at once (kit/ui/chrome.ts). */
-    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
-      transition: opacity 0.12s ease !important;
-    }
-  }
-  @media (prefers-contrast: more) {
-    /* The menu button does not fade while typing (above): it is the only way to the menu. */
-    to-chrome[editing] :is(.to-burger, .to-share-btn) {
-      opacity: 1;
-    }
   }
 }

@@ -32,7 +32,7 @@ import { KIT_COMMANDS } from './kit/core/keys.ts';
 export * from './kit.ts';
 export { apps } from './kit/core/apps.ts';
 export { chosenLanguage, languages } from './kit/core/i18n.ts';
-export { keepThemeAt, setTheme, theme, type Theme } from './kit/ui/theme.ts';
+export { keepThemeAt } from './kit/ui/theme.ts';
 export { keepSize, keepSizeAt, size } from './kit/ui/zoom.ts';
 
 /** The site's page keys (undo, redo, print, share…), for a page that draws a bar of its own: kit/core/keys.ts. */

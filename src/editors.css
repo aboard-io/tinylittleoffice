@@ -3,7 +3,7 @@
    sheet (an editor brings its own, as it does on the site), then what changes by width, then what changes for a
    person's settings. Four sheets are here and not in the site's: what the site's body gives its editors
    (standalone.css), who did what, drawn over the words for a host that shares a document (changes.css) and listed
-   beside them with its comments (review.css), and the elements a host's own pages are made of, its table, its search, its header and its template picker (host.css). No rule for the body and none for the shell, and none for the root but the tokens (its custom
+   beside them with its comments (review.css), the elements a host's own pages are made of, its table, its search, its header and its template picker (host.css), and the frame a host's page is drawn in, its column, header, menu button and the bar's place (page-frame.css, which the site's stylesheet has too: its chrome wears the same classes). No rule for the body and none for the shell, and none for the root but the tokens (its custom
    properties, and its color-scheme with the theme): the page keeps its own (page.css is the site's). Every rule is in a layer, so a page's own rules outside one
    outrank them all. The npm package serves it as `tinylittleoffice/editors.css` (vite.lib.config.ts). */
 @layer tokens, kit, apps, responsive, a11y;
@@ -17,3 +17,4 @@
 @import './styles/host.css';
 @import './styles/responsive.css';
 @import './styles/a11y.css';
+@import './styles/page-frame.css';

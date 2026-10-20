@@ -336,3 +336,36 @@ test('opened by a pointer from a button that never takes the focus (a row’s bu
   words.remove();
   bullet.remove();
 });
+
+test('a buttonless menu draws no button of its own: openAt opens it beside what was picked, its keys are a menu’s, and Escape gives the focus back there', async () => {
+  document.body.innerHTML = '<div id="box"><button type="button" id="item">An outline’s item</button></div>';
+  const chosen: string[] = [];
+  render(
+    html`<to-menu buttonless .label=${'Item'} .items=${[
+      { label: 'Open', does: () => chosen.push('open') },
+      { label: 'Rename', does: () => chosen.push('rename') },
+    ]}></to-menu>`,
+    document.querySelector('#box')!,
+  );
+  const el = document.querySelector<ToMenu>('to-menu')!;
+  await el.updateComplete;
+  expect(el.querySelector(':scope > button')).toBeNull();
+  const item = document.querySelector<HTMLButtonElement>('#item')!;
+  item.focus();
+  el.openAt(item);
+  await until(() => item.getAttribute('aria-expanded') === 'true', 'the menu never said it was open');
+  // Placed beside the item it was opened for.
+  const [menu, at] = [el.menu.getBoundingClientRect(), item.getBoundingClientRect()];
+  expect(Math.abs(menu.left - at.left)).toBeLessThanOrEqual(4);
+  expect(menu.top).toBeGreaterThanOrEqual(at.bottom);
+  const items = [...el.querySelectorAll<HTMLElement>('[role=menuitem]')];
+  await until(() => document.activeElement === items[0]);
+  items[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await until(() => !el.isOpen);
+  expect(document.activeElement).toBe(item);
+  el.openAt(item);
+  await until(() => item.getAttribute('aria-expanded') === 'true', 'the menu never opened again');
+  el.querySelectorAll<HTMLElement>('[role=menuitem]')[1].click();
+  expect(chosen).toStrictEqual(['rename']);
+  expect(document.activeElement).toBe(item);
+});

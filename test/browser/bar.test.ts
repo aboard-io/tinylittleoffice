@@ -1,8 +1,10 @@
 // The bar: one row that scrolls sideways, saying at its edges where there is more.
 import { test, expect } from 'vitest';
 import { render, html } from 'lit';
-import { cdp } from 'vitest/browser';
-import { tool, btn, cmdTool } from '../../src/kit/ui/bar.ts';
+import { cdp, page } from 'vitest/browser';
+import { tool, btn, cmdMenu, cmdTool } from '../../src/kit/ui/bar.ts';
+import { command } from '../../src/kit/core/commands.ts';
+import '../../src/kit/ui/menu.ts';
 import { REDO, UNDO } from '../../src/kit/core/keys.ts';
 import { keyboard } from '../../src/kit/core/commands.ts';
 import { UI } from '../../src/kit/draw/icons.ts';
@@ -132,5 +134,47 @@ test("a bar's tooltip writes the keys under a mouse and once a keyboard is seen,
   } finally {
     keyboard.seen = false;
     await cdp().send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  }
+});
+
+test('tool() draws its icon at the size it is given (a header’s 24px), 20px otherwise', () => {
+  document.body.innerHTML = '<to-bar></to-bar>';
+  render(html`${tool({ label: 'New', icon: UI.plus, size: 24 })}${tool({ label: 'Bold', icon: UI.bold })}${btn({ label: 'Menu', icon: UI.menu, size: 24 })}`, document.querySelector('to-bar')!);
+  expect([...document.querySelectorAll('button svg')].map((s) => s.getAttribute('width'))).toStrictEqual(['24', '20', '24']);
+});
+
+test('cmdMenu draws nothing for a command not in force (`when`), as cmdTool and cmdBtn draw none; in force, the menu of its items', async () => {
+  const sharing = { shared: false };
+  const share = command<typeof sharing>({ id: 'host.sharemenu', scope: 'host', label: () => 'Share', icon: UI.share, menu: 'sharing', where: ['bar'], when: (p) => p.shared, does: () => undefined });
+  const copy = command<typeof sharing>({ id: 'host.sharemenu.copy', scope: 'host', label: () => 'Copy link', where: ['menu:sharing'], does: () => undefined });
+  const draw = () => {
+    document.body.innerHTML = '<to-bar></to-bar>';
+    render(html`${cmdMenu(share, sharing, [share, copy])}${cmdTool(share, sharing)}`, document.querySelector('to-bar')!);
+    return document.querySelector<HTMLElement & { items: { label: string }[] }>('to-menu');
+  };
+  expect(draw()).toBeNull();
+  expect(document.querySelector('button')).toBeNull();
+  sharing.shared = true;
+  const menu = draw()!;
+  expect(menu.items.map((i) => i.label)).toStrictEqual(['Copy link']);
+});
+
+test('a mobile-first page (.to-page.foot) at 720px and under pins Undo and Redo at its bar’s end under a mouse too; another page does not', async () => {
+  const pinned = async (cls: string) => {
+    document.body.innerHTML = `<div class="${cls}" style="width:390px"><to-bar style="margin:0"></to-bar></div>`;
+    const here = { editor: document.createElement('div') };
+    render(html`${Array.from({ length: 14 }, (_, i) => tool({ label: `Tool ${i}`, icon: UI.bold }))}${cmdTool(UNDO, here)}${cmdTool(REDO, here)}`, document.querySelector('to-bar')!);
+    await new Promise(requestAnimationFrame);
+    return getComputedStyle(document.querySelector('.cmd-kit-undo')!).position;
+  };
+  await page.viewport(700, 800);
+  try {
+    expect(matchMedia('(pointer: coarse)').matches).toBe(false);
+    expect(await pinned('to-page foot')).toBe('sticky');
+    expect(await pinned('to-page')).toBe('static');
+    await page.viewport(900, 800);
+    expect(await pinned('to-page foot')).toBe('static');
+  } finally {
+    await page.viewport(414, 896);
   }
 });

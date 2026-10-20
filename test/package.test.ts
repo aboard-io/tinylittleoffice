@@ -308,6 +308,11 @@ test('packed and installed elsewhere, `tinylittleoffice` lints an example, gives
         'export const boxed = (e: CustomEvent<BoxSend>): boolean => e.detail.ask;',
         'export const draw = (words: Parameters<typeof drawChanges>[0], how: Redraw): Promise<void> => drawChanges(words, track(versions), how);',
         "keepThemeAt('host.theme');",
+        // A host's chrome: the frame, the mark, the window pinned, Theme in a drawer, the rest of Lucide, a day's words.
+        "import { PageFrame, THEMES, dateText, ensureIcons, loadIcons, mark, pinWindow, setTheme, theme, themeName, type FrameOpts, type Theme } from 'tinylittleoffice/kit';",
+        'export const framed = (el: HTMLElement, opts: FrameOpts = {}): PageFrame => new PageFrame(el, opts);',
+        "export const themes: string[] = THEMES.map((th: Theme) => `${themeName(th)}${th === theme() ? ' ✓' : ''}`);",
+        "export const chrome = async (): Promise<string> => { setTheme('dark'); pinWindow(); await Promise.all([loadIcons(), ensureIcons(['clipboard-check'])]); return mark(24) + dateText('2026-10-20', false); };",
         'keepSizeAt(null);',
         // A host's own pages: its records in a typed table, one search across them, its header, a template handed back.
         'interface Person extends TableRow { name: string; deal: number; stage: string }',
