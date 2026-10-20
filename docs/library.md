@@ -78,15 +78,19 @@ What an app still asked of the site itself, and what replaces it:
    them, `tinylittleoffice/doc` serves `transform`, `rebase` and `applyEdits` (src/doc/sync.ts); docs/kernel.md §12 is
    the design, its rules and its properties.
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
-   on and Today) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
+   on and Today, and a page's own commands join that bar: A page's own commands) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
    Those four apps pick, and so does the Diagram Maker (2026-10-18): a thing activated is `{ at, thing, words }` and,
    for a line's thing, `part` (the whole, its key, its words, or a thing of its list by place), for a name only
    connections give or a lane's, `name` (`at` -1): `at` the block of its line (a connection's, its `~` line), `thing`
    what it is (`line`, `edge`, `node` or `lane`), `words` its words as drawn; read-only, it shows no hint on how to
    edit. The Word Processor, the Drawing Tool, the Animator, the Trip Planner and the Calculator have no item to open
-   (their `pickOf` is the element's, null), so they are shown read-only and fire no `docpick`. An outline's fold button picks its item too, and folds nothing: a fold is the document's own
-   (`{.shut}`), so a read-only outline shows the folds it was given. An Animator's Draw mode is a read-only Draw. A
+   (their `pickOf` is the element's, null), so they are shown read-only and fire no `docpick`. An outline's fold arrow
+   folds and opens its item by hand, in the view alone: a fold is the document's own (`{.shut}`), so a read-only
+   outline is shown with the folds it was given and writes none, no `docchange`, and a new document is read with its
+   own folds again. The arrow is picked too, and its `docpick` says so, `{ at, item, part: 'fold', shut }` (`shut` 1
+   where the arrow folds the item, 0 where it opens it), so a page tells a fold from a pick, `{ at, item }`, and opens
+   what the item stands for on a pick alone. An Animator's Draw mode is a read-only Draw. A
    read-only Spreadsheet takes a page's marks on its rows and cells, `editor.marks = [{ row, col?, text, title? }]`
    (`SheetMark`: a count of comments, say), each a small badge at the end of the row's first cell or of the cell named,
    its title said on hover and to a screen reader, drawn over the sheet and never written into the document; a marked
@@ -854,7 +858,12 @@ record in hand. `tinylittleoffice/editors` exports what declares, draws and answ
 
 `mount(app, text, into, onChange, { commands, context })` answers the page's commands' keys inside the editor, after
 the words', the app's and undo's, so a key an inner scope takes (Mod+B, bold) is never the page's (the shell's rule:
-the inner scope wins). Of the site's page's own keys a bare page has nothing for (Mod+F, Mod+S, Mod+P, Mod+K, Mod+/,
+the inner scope wins). And it draws those of them `where: ['bar']` in the editor's own bar, so a host's document page
+has one bar: a group of their own after the editor's tools (a hairline before it, `.to-bar-own`) and before Undo and
+Redo, which stay last, pinned under a finger; a menu (`menu`) by `cmdMenu`, its items the page's commands drawn in
+`menu:<name>`, an icon by `cmdTool`, words by `cmdBtn`, and none not in force (kit/core/element.ts `ownTools`). The
+read-only Calendar's bar (back, on, Today) holds them too, so a page showing a calendar draws no second row. They are
+drawn again with the editor; a page whose context changes outside it calls the editor's `requestUpdate()`. Of the site's page's own keys a bare page has nothing for (Mod+F, Mod+S, Mod+P, Mod+K, Mod+/,
 Mod+Shift+S, Mod+Shift+D), `mount` takes none, and they reach the page's commands and then the browser. Outside the
 editor the keys are the page's to listen for, with the same `runKey`; a key `mount` took is not taken again.
 
@@ -863,8 +872,8 @@ import { command, register, mount, cmdTool } from 'tinylittleoffice/editors';
 const open = command<Pipeline>({ id: 'host.open', scope: 'host', label: (b) => `Open ${b?.record.name ?? 'record'}`,
   keys: 'Mod+Shift+O', where: ['bar'], does: (b) => b.open(b.record) });
 register([open]);
-await mount('write', text, main, save, { commands: [open], context: pipeline });
-render(html`<to-bar>${cmdTool(open, pipeline)}</to-bar>`, bar);
+await mount('write', text, main, save, { commands: [open], context: pipeline }); // Open… in the editor's bar, at its end
+render(html`<to-bar>${cmdTool(open, pipeline)}</to-bar>`, bar); // or in a bar of the page's own, beside no editor
 ```
 
 A command's label is `Words`: a string is the id of a message of the site's (src/i18n/en.ftl), put through `t()` and

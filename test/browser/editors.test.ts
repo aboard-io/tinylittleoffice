@@ -28,6 +28,7 @@ import {
   type DocRemote,
   type Picked,
   type ToFind,
+  UI,
 } from '../../src/editors.ts';
 import type { ToOutlineEditor } from '../../src/apps/outline/editor.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
@@ -311,6 +312,52 @@ test('the page keeps its own body and the editors keep their look: the styleshee
   }
 });
 
+test('a page’s commands given to mount with where bar are drawn in the editor’s bar, a group of their own after the editor’s tools and before Undo and Redo: an icon, a menu of its items, nothing for one not in force', async () => {
+  const record = { name: 'Lee', shared: false, done: [] as string[] };
+  type Rec = typeof record;
+  const changes = command<Rec>({ id: 'host.changes', scope: 'host-doc', label: () => 'Changes', icon: UI.pen, where: ['bar'], does: (r) => void r.done.push('changes') });
+  const share = command<Rec>({ id: 'host.share', scope: 'host-doc', label: () => 'Share', icon: UI.share, menu: 'share', where: ['bar'], does: () => undefined });
+  const link = command<Rec>({ id: 'host.share.link', scope: 'host-doc', label: () => 'Copy link', where: ['menu:share'], does: (r) => void r.done.push('link') });
+  const unshare = command<Rec>({ id: 'host.unshare', scope: 'host-doc', label: () => 'Stop sharing', icon: UI.close, where: ['bar'], when: (r) => r.shared, does: () => undefined });
+  const keyOnly = command<Rec>({ id: 'host.export', scope: 'host-doc', label: () => 'Export', where: ['keys-only'], keys: 'Mod+Shift+8', does: () => undefined });
+  register([changes, share, link, unshare, keyOnly]);
+  document.body.innerHTML = '<main></main>';
+  const { editor } = await mount('write', '# Plans\n', document.querySelector('main')!, () => {}, { commands: inScope('host-doc'), context: record });
+  const bar = editor.querySelector('to-bar')!;
+  const own = bar.querySelector('.to-bar-own')!;
+  expect([...own.querySelectorAll(':scope > button, :scope > to-menu')].map((b) => b.getAttribute('aria-label') ?? (b as HTMLElement & { label: string }).label)).toStrictEqual(['Changes', 'Share']);
+  // After the editor's own tools, before Undo and Redo.
+  const stops = [...bar.querySelectorAll<HTMLElement>('button')].filter((b) => !b.closest('[popover]'));
+  const at = (el: Element) => stops.findIndex((b) => b === el || el.contains(b));
+  expect(at(own)).toBeGreaterThan(at(bar.querySelector('.write-paper')!));
+  expect(at(own)).toBeLessThan(at(bar.querySelector('.cmd-kit-undo')!));
+  own.querySelector<HTMLButtonElement>('.cmd-host-changes')!.click();
+  const menu = own.querySelector<HTMLElement & { items: { label: string; does(): void }[] }>('to-menu.cmd-host-share')!;
+  expect(menu.items.map((i) => i.label)).toStrictEqual(['Copy link']);
+  menu.items[0].does();
+  expect(record.done).toStrictEqual(['changes', 'link']);
+  // A command come into force is drawn when the editor draws again.
+  record.shared = true;
+  const lit = editor as typeof editor & { requestUpdate(): void; updateComplete: Promise<boolean> };
+  lit.requestUpdate();
+  await lit.updateComplete;
+  expect(bar.querySelector('.to-bar-own .cmd-host-unshare')).not.toBeNull();
+});
+
+test('a calendar mounted read-only keeps back, on and Today, and a page’s commands join its bar: one bar, no tools of its own beside them', async () => {
+  const page = { done: [] as string[] };
+  const add = command<typeof page>({ id: 'host.cal.add', scope: 'host-cal', label: () => 'New event', icon: UI.plus, where: ['bar'], does: (p) => void p.done.push('add') });
+  register([add]);
+  document.body.innerHTML = '<main></main>';
+  const { editor } = await mount('cal', '- 2026-10-20 09:00-10:00: Standup\n', document.querySelector('main')!, () => {}, { readOnly: true, commands: [add], context: page });
+  expect(editor.querySelectorAll('to-bar')).toHaveLength(1);
+  const bar = editor.querySelector('to-bar')!;
+  expect(bar.querySelector('.to-datenav')).not.toBeNull();
+  expect(bar.querySelector('.cmd-kit-undo, to-insert')).toBeNull();
+  bar.querySelector<HTMLButtonElement>('.to-bar-own .cmd-host-cal-add')!.click();
+  expect(page.done).toStrictEqual(['add']);
+});
+
 /** An editor of `app` mounted read-only over `text` on a bare page, what the page was told, and the picks it heard. */
 async function shown(app: string, text: string) {
   document.body.innerHTML = '<main class="to-main"></main>';
@@ -375,18 +422,37 @@ test('words mounted read-only are shown, not edited: no bar, not editable, still
   await until(() => !!editor.querySelector('to-bar') && !!editor.querySelector('[contenteditable=true]'), 'the editor never came back editable');
 });
 
-test('an outline mounted read-only: its fold button picks the item as the row does, and folds nothing, a fold being the document’s', async () => {
+test('an outline mounted read-only: its fold arrow folds and opens the item in the view alone, writing nothing, and its pick says it was the arrow; a row picked is a pick', async () => {
   const outline = '- Plan\n  - Book the room\n- Ship\n';
   const { editor, changes, picks } = await shown('outline', outline);
-  const fold = editor.querySelector<HTMLButtonElement>('.ol-fold')!;
-  expect(fold.getAttribute('aria-expanded')).toBe('true');
-  fold.click();
+  const fold = () => editor.querySelector<HTMLButtonElement>('.ol-fold')!;
+  const rows = () => [...editor.querySelectorAll<HTMLElement>('.ol-row[data-at]')].map((r) => r.textContent!.trim());
+  expect(fold().getAttribute('aria-expanded')).toBe('true');
+  fold().click();
+  await editor.updateComplete;
+  expect(fold().getAttribute('aria-expanded')).toBe('false');
+  expect(rows().some((r) => r.includes('Book the room'))).toBe(false);
+  // Enter on the arrow opens it again.
+  key(fold(), 'Enter');
+  await editor.updateComplete;
+  expect(fold().getAttribute('aria-expanded')).toBe('true');
+  expect(rows().some((r) => r.includes('Book the room'))).toBe(true);
   editor.querySelectorAll<HTMLElement>('.ol-row[data-at]')[2].click();
   await editor.updateComplete;
-  expect(picks.map((p) => p.item)).toStrictEqual([0, 2]);
-  expect(editor.querySelector('.ol-fold')!.getAttribute('aria-expanded')).toBe('true');
+  expect(picks).toStrictEqual([
+    { at: 0, item: 0, part: 'fold', shut: 1 },
+    { at: 0, item: 0, part: 'fold', shut: 0 },
+    { at: 2, item: 2 },
+  ]);
+  // A fold is the view's: the document, and the page, never hear of it.
   expect(changes).toStrictEqual([]);
   expect(editor.value).toBe(outline);
+  // A new document is read with its own folds alone.
+  fold().click();
+  await editor.updateComplete;
+  editor.value = '- Plan\n  - Book the room\n';
+  await editor.updateComplete;
+  expect(fold().getAttribute('aria-expanded')).toBe('true');
 });
 
 test('a bare page’s toast offers an action: a button after the words, named by its label, held while it has the focus, and pressed it runs', async () => {

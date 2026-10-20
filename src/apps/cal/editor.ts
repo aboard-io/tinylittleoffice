@@ -922,12 +922,13 @@ export class ToCalEditor extends DocElement<CalView> {
     const docZone = v.zone;
     const ink = CAL_COLORS[this.ink];
     const own = (id: string) => COMMANDS.find((c) => c.id === `cal.${id}`)!;
-    // Read-only, where you are is still moved through (back, on, Today), and nothing else is drawn.
+    // Read-only, where you are is still moved through (back, on, Today), and nothing else of its own is drawn: a page's
+    // own commands join it (kit/core/element.ts ownTools), so a page holding it has one bar.
     return html`<to-bar class="cal-bar">
         ${this.nav()}
         ${
           this.readOnly
-            ? nothing
+            ? this.ownTools()
             : html`${cmdMenu(own('view'), this, COMMANDS, 'cal-view', { icon: v.gantt ? ChartGantt : this.mode === 'year' ? Grid3x3 : CalendarDays })}
                 <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
                 ${cmdMenu(own('ink'), this, COMMANDS, 'cal-ink', { icon: dot(ink.hex) })}

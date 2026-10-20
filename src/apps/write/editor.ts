@@ -219,13 +219,30 @@ export class ToWriteEditor extends DocElement<Doc> {
   };
   /**
    * Everything the bar shows, as one key: the block's kind, its alignment and the marks at the caret, the look, the
-   * paper, Undo and Redo, the language. The bar is drawn again only when it changes (`guard`), so a letter typed
-   * into a paragraph draws the words and not the bar.
+   * paper, Undo and Redo, the language, and what the page's own tools show (`ownKey`). The bar is drawn again only when
+   * it changes (`guard`), so a letter typed into a paragraph draws the words and not the bar.
    */
   private barKey(): string {
     const x = this.sel ? this.text : null;
     const m = x?.marks ?? {};
-    return [this.text ? 1 : 0, x?.kind ?? '', x?.alignment ?? 'left', m.b, m.i, m.u, m.s, m.h, m.c, !!m.href, lookOf(this.doc).id, paperOf(this.doc), this.canUndo, this.canRedo, language()].join('|');
+    return [
+      this.text ? 1 : 0,
+      x?.kind ?? '',
+      x?.alignment ?? 'left',
+      m.b,
+      m.i,
+      m.u,
+      m.s,
+      m.h,
+      m.c,
+      !!m.href,
+      lookOf(this.doc).id,
+      paperOf(this.doc),
+      this.canUndo,
+      this.canRedo,
+      language(),
+      this.ownKey(),
+    ].join('|');
   }
   private barDrawn = '';
 

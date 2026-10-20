@@ -175,10 +175,17 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     byStatus: { state: true },
     showing: { state: true },
   };
-  /** Items folded shut, by block index: the document's own (`{.shut}`, model.ts SHUT), so the link carries the folds and an undo brings them back. */
+  /**
+   * Items folded shut, by block index: the document's own (`{.shut}`, model.ts SHUT), so the link carries the folds and
+   * an undo brings them back. Read-only, a reader's own folds over them (`viewFolds`), which write nothing.
+   */
   get folded(): Set<number> {
-    return new Set(this.items.flatMap((it) => (it.shut ? [it.at] : [])));
+    const shut = new Set(this.items.flatMap((it) => (it.shut ? [it.at] : [])));
+    if (this.readOnly) for (const [at, s] of this.viewFolds) s ? shut.add(at) : shut.delete(at);
+    return shut;
   }
+  /** Read-only, the items a reader folded or opened by their arrows, by block index: the view's, never the document's (a new document starts without them). */
+  private viewFolds = new Map<number, boolean>();
   /** The item zoomed in on, by block index; -1 for the whole outline. */
   declare zoom: number;
   /** The chosen row, by block index; -1 for none. */
@@ -254,6 +261,8 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     return readOutline(doc);
   }
   protected willUpdate(changed: Map<string, unknown>) {
+    // A new document (not this editor's own text, nor another's ops on it) is read with its own folds alone.
+    if (changed.has('value') && !this.ours(this.value)) this.viewFolds.clear();
     super.willUpdate(changed);
     // Loose words (headings, paragraphs) arriving are made an outline: one splice, undoable like any edit (a document
     // arriving has no history yet; one undone back to loose words is left as the undo left it).
@@ -289,6 +298,12 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   /** The zoom is a block index: moved with its block, dropped with it (the folds are the blocks' own). */
   private remap(ops: Op[]) {
     if (this.zoom >= 0) this.zoom = mapAt(ops, this.zoom);
+  }
+  /** Another's ops: a reader's own folds follow the items they belong to. */
+  protected followed(ops: Op[]) {
+    if (!this.viewFolds.size) return;
+    const was = [...this.viewFolds];
+    this.viewFolds = new Map(was.map(([at, s]) => [mapAt(ops, at), s] as const).filter(([at]) => at >= 0));
   }
   connectedCallback() {
     super.connectedCallback();
@@ -593,17 +608,33 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const move = ops.find((o) => o.op === 'move');
     return move && move.op === 'move' ? move.to : at;
   }
-  /** Read-only, an item activated (its row, anything on it, its fold button too: a fold is the document's own, so it stays as given) is picked (kit/core/element.ts): its block, and its place among the items, from 0. */
+  /**
+   * Read-only, an item activated (its row, anything on it) is picked (kit/core/element.ts): its block, and its place
+   * among the items, from 0. Its fold arrow is picked too, and says so (`part: 'fold'`, with `shut`, 1 where the arrow
+   * folds it and 0 where it opens it), so a page tells a fold from a pick; the arrow folds it as well (`chose`), in the
+   * view alone.
+   */
   protected pickOf(el: Element): Picked | null {
     const row = el.closest<HTMLElement>('.ol-row[data-at]');
     const at = Number(row?.dataset.at ?? -1);
-    return row && at >= 0 && this.contains(row) ? { at, item: indexAt(this.view, at) } : null;
+    if (!row || at < 0 || !this.contains(row)) return null;
+    const item = indexAt(this.view, at);
+    return el.closest('.ol-fold') ? { at, item, part: 'fold', shut: this.folded.has(at) ? 0 : 1 } : { at, item };
   }
+  /** Read-only, a fold arrow picked folds or opens its item in the view. */
+  protected chose(pick: Picked) {
+    if (pick.part === 'fold') this.fold(pick.at, pick.shut === 1);
+  }
+  /** An item folded or opened: written in the document (`{.shut}`); read-only, in the view alone, nothing written. */
   fold(at: number, shut = !this.folded.has(at)) {
-    this.edit(setShut(this.doc, at, shut));
+    if (!this.readOnly) return this.edit(setShut(this.doc, at, shut));
+    this.viewFolds.set(at, shut);
+    this.requestUpdate();
   }
   foldAll(shut: boolean) {
-    this.edit(setShutAll(this.doc, this.view, shut));
+    if (!this.readOnly) return this.edit(setShutAll(this.doc, this.view, shut));
+    this.view.items.forEach((it, i) => (hasChildren(this.view.items, i) || !shut) && this.viewFolds.set(it.at, shut));
+    this.requestUpdate();
   }
   zoomTo(at: number) {
     this.zoom = at;

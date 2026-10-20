@@ -15,7 +15,7 @@
  */
 import type { DocChange, Editor } from './app.ts';
 import { appOf } from './apps.ts';
-import type { DocElement, DocOps } from './element.ts';
+import type { DocElement, DocOps, OwnTools } from './element.ts';
 import type { Op } from '../../doc/index.ts';
 import { pageKey, type Page } from './keys.ts';
 import { register, runKey, type Command } from './commands.ts';
@@ -58,7 +58,8 @@ export async function editorTag(app: string): Promise<string> {
 
 /**
  * What else a page gives `mount`: its own commands and the context they act on (the page's own: its records, its
- * pipeline), and for a shared document `onOps`, told each change's ops and how many the editor had applied before them
+ * pipeline), their keys answered inside the editor and those `where` the bar drawn in the editor's bar, a group of their
+ * own after the editor's tools and before Undo and Redo; and for a shared document `onOps`, told each change's ops and how many the editor had applied before them
  * (kit/core/element.ts DocOps), before `onChange` is told its text; `readOnly`, a document shown and not edited, drawn so
  * from the first (the element's `readonly`: no bar, no typing, and a "docpick" for an item activated).
  */
@@ -88,6 +89,9 @@ export async function mount<C>(app: string, text: string, into: Element, onChang
   editor.classList.add('to-editor');
   editor.value = text;
   if (own?.readOnly) editor.readOnly = true;
+  // The page's commands drawn in the editor's bar, a group of their own (kit/core/element.ts ownTools); their keys below.
+  // (The element keeps a page's commands of any context: OwnTools<never>, which this page's are once their context is forgotten.)
+  if (own?.commands?.length) (editor as unknown as DocElement<unknown>).own = { commands: own.commands, context: own.context } as unknown as OwnTools<never>;
   const onOps = own?.onOps;
   if (onOps) editor.addEventListener('docops', (e) => onOps((e as DocOps).detail.ops, (e as DocOps).detail.base));
   editor.addEventListener('docchange', (e) => onChange((e as DocChange).detail));

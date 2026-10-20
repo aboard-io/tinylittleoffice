@@ -22,10 +22,17 @@
  * focus order, and one activated (Enter, a click, a tap) says so in a "docpick" event: `{ at }`, the item's block, and
  * the app's own key for it where it has one (`pickOf`), for the page to open what the item stands for. Another's ops
  * still land (`applyRemote`), and a new `value` is still a new document.
+ *
+ * A page's own commands handed to `mount` (kit/core/mount.ts Own) are the element's `own`: those drawn in the bar
+ * (`where: ['bar']`) are a group of their own in the editor's bar, after the editor's tools and before Undo and Redo
+ * (`ownTools()`, which `undoTools()` draws first, and the read-only Calendar's bar draws where it has no undo), each as
+ * the kit draws a command: a menu by cmdMenu, an icon by cmdTool, words by cmdBtn. The bar is drawn again with the
+ * editor; a page whose context changes outside it asks for that (`requestUpdate()`).
  */
-import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
+import { html, LitElement, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
 import { applyAll, cross, invertAll, isText, keptDoc, parse, sayableRuns, write, type Doc, type Op } from '../../doc/index.ts';
-import { cmdTool } from '../ui/bar.ts';
+import { cmdBtn, cmdMenu, cmdTool } from '../ui/bar.ts';
+import { labelOf, type Command } from './commands.ts';
 import { REDO, UNDO } from './keys.ts';
 
 /**
@@ -71,6 +78,12 @@ export type Picked = { at: number } & Record<string, number | string>;
 /** What a page hears when an item of a read-only editor is activated: "docpick", bubbling. */
 export type DocPick = CustomEvent<Picked>;
 
+/** A page's own commands and the context they act on, drawn in the editor's bar (mount's `commands` and `context`). */
+export interface OwnTools<C = unknown> {
+  commands: readonly Command<C>[];
+  context: C;
+}
+
 /** What a person does that would change a read-only document, refused before anything inside hears it. */
 const REFUSED = ['beforeinput', 'paste', 'cut', 'drop', 'dragstart'];
 
@@ -97,10 +110,12 @@ export function firstAt(entry: Pick<Entry, 'ops'>): number {
 const BURST = 700;
 
 export abstract class DocElement<V> extends LitElement {
-  static properties: PropertyDeclarations = { value: {}, readOnly: { type: Boolean, attribute: 'readonly', reflect: true } };
+  static properties: PropertyDeclarations = { value: {}, readOnly: { type: Boolean, attribute: 'readonly', reflect: true }, own: { attribute: false } };
   declare value: string;
   /** Shown, not edited (the header): no bar, no typing, no drag, and a "docpick" for an item activated. */
   declare readOnly: boolean;
+  /** The page's own commands for the bar, and their context (the header): null for none. A page's of any context is one (`never`). */
+  declare own: OwnTools<never> | null;
   /** The document as the kernel reads it (public: an app's commands read it, kit/core/commands.ts). */
   doc: Doc = { head: {}, blocks: [] };
   view!: V;
@@ -117,6 +132,7 @@ export abstract class DocElement<V> extends LitElement {
     super();
     this.value = '';
     this.readOnly = false;
+    this.own = null;
   }
   createRenderRoot() {
     return this;
@@ -339,9 +355,41 @@ export abstract class DocElement<V> extends LitElement {
   get canRedo(): boolean {
     return this.redo.length > 0;
   }
-  /** Undo and Redo, the last two tools of every app's bar (the page's commands, kit/core/keys.ts): they never take the focus, are off with nothing to do, and under a finger are pinned at the bar's end, always on screen (bar.ts, responsive.css). */
+  /**
+   * The page's own commands drawn in the bar (`own`, the header): those `where` the bar and in force, a group of their
+   * own; nothing where the page gave none.
+   */
+  protected ownTools(): unknown {
+    const own = this.own;
+    const shown = this.ownShown();
+    if (!own || !shown.length) return nothing;
+    return html`<span class="to-bar-own">${shown.map((c) => (c.menu ? cmdMenu(c, own.context, own.commands) : c.icon ? cmdTool(c, own.context) : cmdBtn(c, own.context)))}</span>`;
+  }
+  /** The page's commands the bar draws: `where` the bar, and in force. */
+  private ownShown(): readonly Command<never>[] {
+    const own = this.own;
+    const has = own?.context !== null && own?.context !== undefined;
+    return own?.commands.filter((c) => c.where?.includes('bar') && (!c.when || !has || c.when(own.context))) ?? [];
+  }
+  /**
+   * What the page's commands in the bar show, as one key (their words, pressed, off): an app that draws its bar again
+   * only when its key changes (the Word Processor's) puts this in it, so the page's tools are drawn again with theirs.
+   */
+  protected ownKey(): string {
+    const own = this.own;
+    if (!own) return '';
+    const has = own.context !== null && own.context !== undefined;
+    return this.ownShown()
+      .map((c) => `${c.id}:${labelOf(c, has ? own.context : undefined)}:${has && c.pressed ? c.pressed(own.context) : ''}:${has && c.disabled ? c.disabled(own.context) : ''}`)
+      .join(',');
+  }
+  /**
+   * Undo and Redo, the last two tools of every app's bar (the page's commands, kit/core/keys.ts): they never take the
+   * focus, are off with nothing to do, and under a finger are pinned at the bar's end, always on screen (bar.ts,
+   * responsive.css). Before them, the page's own commands (`ownTools`), so the editor's tools come first.
+   */
   protected undoTools(): unknown[] {
     const here = { editor: this };
-    return [cmdTool(UNDO, here, { disabled: !this.canUndo }), cmdTool(REDO, here, { disabled: !this.canRedo })];
+    return [this.ownTools(), cmdTool(UNDO, here, { disabled: !this.canUndo }), cmdTool(REDO, here, { disabled: !this.canRedo })];
   }
 }
