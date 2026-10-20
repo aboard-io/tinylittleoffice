@@ -13,7 +13,7 @@ import { siteOf } from '../../kit/core/route.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, monoWidth, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw/draw.ts';
 import { glyphNamed } from '../../kit/draw/icons.ts';
 import { LOCKED_LANG, placedLink } from '../../kit/share/locked.ts';
-import { imageHref, imagePage } from '../../kit/draw/image-picture.ts';
+import { imageData, imageHref, imagePage, type ImageData } from '../../kit/draw/image-picture.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { XML_HEAD, zip } from '../../kit/file/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/core/app.ts';
@@ -683,7 +683,28 @@ function rtfRun(run: Run, next: () => number = noteNumbers()): string {
   return on ? `{${on} ${inner}}` : inner;
 }
 
-/** The text as RTF: paragraphs, headings, lists, a table as a table, links, footnotes as marks with the notes at the end. */
+/** The widest a picture is set in a file of pages: the column of Letter with an inch each side, 6.5in at 96 pixels an inch. */
+const PICTURE_MAX_PX = 624;
+/** A picture's size on paper in pixels: its own, narrowed to the column; 4:3 where it says none. */
+function pictureSize(d: ImageData): { w: number; h: number } {
+  const w = d.w || 480;
+  const h = d.h || Math.round((w * 3) / 4);
+  const k = Math.min(1, PICTURE_MAX_PX / w);
+  return { w: Math.round(w * k), h: Math.round(h * k) };
+}
+
+/** A picture as RTF's \pict, its bytes in hexadecimal: a PNG or a JPEG, the two RTF readers draw; null for another kind or none. */
+function rtfPict(d: ImageData | null): string | null {
+  const blip = d?.mime === 'image/png' ? '\\pngblip' : d?.mime === 'image/jpeg' ? '\\jpegblip' : '';
+  if (!d || !blip) return null;
+  const { w, h } = pictureSize(d);
+  let hex = '';
+  for (let i = 0; i < d.bytes.length; i++) hex += (i && i % 64 === 0 ? '\n' : '') + d.bytes[i].toString(16).padStart(2, '0');
+  // Its own size in pixels, and the size it is set at in twentieths of a point (15 to a pixel at 96 an inch).
+  return `{\\pict${blip}\\picw${d.w || w}\\pich${d.h || h}\\picwgoal${w * 15}\\pichgoal${h * 15}\n${hex}}`;
+}
+
+/** The text as RTF: paragraphs, headings, lists, a table as a table, links, a host-kept picture (its bytes where the host gives them, else its words), footnotes as marks with the notes at the end. */
 export function docToRtf(doc: Doc, ctx: ExportContext): string {
   const look = lookOf(doc);
   // The look's faces: f0 the body, f1 the headings (Helvetica for the sans, as RTF readers have it).
@@ -734,10 +755,13 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
         out.push(`{\\pard\\sa160\\f0\\fs20 ${b.body.split('\n').map(rtfText).join('\\line ')}\\par}`);
         continue;
       }
-      // A host-kept picture: its words, set apart (the bytes are a later step, as .docx's media are).
+      // A host-kept picture: the picture itself where its bytes are in hand (a PNG or a JPEG, which RTF holds), its
+      // words under it; its words alone, set apart, where they are not.
       if (isImage(b)) {
         const im = imageOf(b);
-        if (im?.alt) out.push(`{\\pard\\sb120\\sa120\\li360 {\\i ${rtfText(im.alt)}}\\par}`);
+        const pict = im && rtfPict(imageData(im, ctx));
+        if (pict) out.push(`{\\pard\\qc\\sb120\\sa60 ${pict}\\par}`);
+        if (im?.alt) out.push(`{\\pard${pict ? '\\qc\\sa120' : '\\sb120\\sa120\\li360'} {\\i ${rtfText(im.alt)}}\\par}`);
         continue;
       }
       const def = appOfLazy(b.lang);
@@ -786,6 +810,9 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
 /* ---------- Word ---------- */
 
 const W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+/** The document's own: a picture drawn in it is DrawingML, inline in a run. */
+const PIC_NS = 'http://schemas.openxmlformats.org/drawingml/2006/picture';
+const DOC_NS = `${W_NS} xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="${PIC_NS}"`;
 const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 /** Paper in twentieths of a point, and the margin: Letter with an inch, A4 with 25 mm. */
 const TWIPS: Record<string, { w: number; h: number; m: number }> = { letter: { w: 12240, h: 15840, m: 1440 }, a4: { w: 11906, h: 16838, m: 1417 } };
@@ -812,14 +839,33 @@ function docxRun(run: Run, rel: (url: string) => string, next: () => number = no
  * The text as a Word document (.docx): the smallest WordprocessingML that Word, LibreOffice and Pages all
  * open. Paragraphs, the title and headings as styles, the marks, lists bulleted or numbered to three
  * levels (each numbered list starting at 1), links, alignment, the paper from the header, a table block as
- * a table of its worked-out values, another document as a link to it. Footnotes are marks in the text and
- * the notes as small paragraphs at the end (Word's own notes are deep).
+ * a table of its worked-out values, another document as a link to it, a host-kept picture as the picture (its
+ * bytes, where the host gives them, in word/media) or its words. Footnotes are marks in the text and the notes as small
+ * paragraphs at the end (Word's own notes are deep).
  */
 export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
-  const rels: string[] = [];
-  const rel = (url: string) => {
-    const i = rels.indexOf(url);
-    return `rId${(i < 0 ? rels.push(url) : i + 1) + 2}`;
+  // The document's relationships after the styles' and the numbering's (rId1, rId2): its links, and its pictures' media.
+  const rels: { type: 'hyperlink' | 'image'; target: string }[] = [];
+  const relOf = (type: 'hyperlink' | 'image', target: string) => {
+    const i = rels.findIndex((r) => r.type === type && r.target === target);
+    return `rId${(i < 0 ? rels.push({ type, target }) : i + 1) + 2}`;
+  };
+  const rel = (url: string) => relOf('hyperlink', url);
+  // A host-kept picture's bytes, once each, as word/media/imageN.(png|jpeg|gif), the kinds Word, LibreOffice and Pages all draw.
+  const media = new Map<string, { path: string; data: ImageData }>();
+  let drawings = 0;
+  const picture = (ref: string, d: ImageData | null, alt: string): string | null => {
+    const ext = d?.mime === 'image/png' ? 'png' : d?.mime === 'image/jpeg' ? 'jpeg' : d?.mime === 'image/gif' ? 'gif' : '';
+    if (!d || !ext) return null;
+    let m = media.get(ref);
+    if (!m) media.set(ref, (m = { path: `media/image${media.size + 1}.${ext}`, data: d }));
+    const id = relOf('image', m.path);
+    const n = ++drawings;
+    // Pixels at 96 an inch, in English Metric Units (9525 to a pixel).
+    const { w, h } = pictureSize(d);
+    const [cx, cy] = [w * 9525, h * 9525];
+    const said = xml(alt);
+    return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Picture ${n}" descr="${said}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="${PIC_NS}"><pic:pic><pic:nvPicPr><pic:cNvPr id="${n}" name="${m.path.slice(6)}" descr="${said}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
   };
   const site = siteAt(ctx.link);
   // Every numbered list is a numbering instance of its own, so each starts again at 1.
@@ -883,10 +929,13 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
         );
         continue;
       }
-      // A host-kept picture: its words, in italics (word/media and a <w:drawing> are a later step).
+      // A host-kept picture: the picture itself where its bytes are in hand (word/media, a relationship, a <w:drawing>),
+      // its words under it in italics; its words alone, set in, where they are not.
       if (isImage(b)) {
         const im = imageOf(b);
-        if (im?.alt) paras.push(`<w:p><w:pPr><w:ind w:left="360"/></w:pPr>${plain(im.alt, '<w:i/>')}</w:p>`);
+        const drawn = im && picture(im.ref, imageData(im, ctx), im.alt);
+        if (drawn) paras.push(`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>${drawn}</w:p>`);
+        if (im?.alt) paras.push(`<w:p><w:pPr>${drawn ? '<w:jc w:val="center"/>' : '<w:ind w:left="360"/>'}</w:pPr>${plain(im.alt, '<w:i/>')}</w:p>`);
         continue;
       }
       const def = appOfLazy(b.lang);
@@ -945,12 +994,14 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
     const centred = caps || (look.indent && id === 'Title');
     return `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="${before}" w:after="120"/>${centred ? '<w:jc w:val="center"/>' : ''}<w:outlineLvl w:val="${id === 'Heading2' ? 1 : 0}"/></w:pPr><w:rPr>${face(look.head)}${caps ? '<w:smallCaps/>' : '<w:b/>'}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr></w:style>`;
   };
+  const kinds = [...new Set([...media.values()].map((m) => m.path.slice(m.path.lastIndexOf('.') + 1)))];
   return zip({
-    '[Content_Types].xml': `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`,
+    '[Content_Types].xml': `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${kinds.map((k) => `<Default Extension="${k}" ContentType="image/${k}"/>`).join('')}<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`,
     '_rels/.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/officeDocument" Target="word/document.xml"/></Relationships>`,
-    'word/_rels/document.xml.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/styles" Target="styles.xml"/><Relationship Id="rId2" Type="${REL_NS}/numbering" Target="numbering.xml"/>${rels.map((url, i) => `<Relationship Id="rId${i + 3}" Type="${REL_NS}/hyperlink" Target="${xml(url)}" TargetMode="External"/>`).join('')}</Relationships>`,
+    'word/_rels/document.xml.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/styles" Target="styles.xml"/><Relationship Id="rId2" Type="${REL_NS}/numbering" Target="numbering.xml"/>${rels.map((r, i) => `<Relationship Id="rId${i + 3}" Type="${REL_NS}/${r.type}" Target="${xml(r.target)}"${r.type === 'hyperlink' ? ' TargetMode="External"' : ''}/>`).join('')}</Relationships>`,
     'word/styles.xml': `${XML_HEAD}<w:styles ${W_NS}><w:docDefaults><w:rPrDefault><w:rPr>${face(look.body)}<w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>${heading('Title', 'Title', 52, 0)}${heading('Heading1', 'heading 1', 32, 360)}${heading('Heading2', 'heading 2', 26, 240)}<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/></w:pPr><w:rPr><w:i/><w:color w:val="52525B"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="60"/><w:contextualSpacing/></w:pPr></w:style><w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="4F46E5"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`,
     'word/numbering.xml': `${XML_HEAD}<w:numbering ${W_NS}><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>${levels('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>${levels('decimal')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>${nums.join('')}</w:numbering>`,
-    'word/document.xml': `${XML_HEAD}<w:document ${W_NS}><w:body>${paras.join('')}${sect}</w:body></w:document>`,
+    'word/document.xml': `${XML_HEAD}<w:document ${drawings ? DOC_NS : W_NS}><w:body>${paras.join('')}${sect}</w:body></w:document>`,
+    ...Object.fromEntries([...media.values()].map((m) => [`word/${m.path}`, m.data.bytes])),
   });
 }

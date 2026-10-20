@@ -65,6 +65,47 @@ export function imageHref(ref: string, ctx?: Pick<ExportContext, 'image'>): stri
   return inlined.get(ref) ?? host.images?.url(ref) ?? null;
 }
 
+/** A picture's bytes as a file that writes them in takes them (a .docx's media, an RTF's pict). */
+export interface ImageData {
+  mime: string;
+  bytes: Uint8Array;
+  /** Its size in pixels, as the fence says it or the bytes do; absent where neither does. */
+  w?: number;
+  h?: number;
+}
+
+/** The size a PNG, a GIF or a JPEG says it is, from its bytes; undefined for another kind or bytes that say none. */
+function pixelSize(b: Uint8Array, mime: string): { w: number; h: number } | undefined {
+  const at16 = (i: number) => (b[i] << 8) | b[i + 1];
+  if (mime === 'image/png' && b.length >= 24) return { w: (at16(16) << 16) | at16(18), h: (at16(20) << 16) | at16(22) };
+  if (mime === 'image/gif' && b.length >= 10) return { w: b[6] | (b[7] << 8), h: b[8] | (b[9] << 8) };
+  if (mime === 'image/jpeg')
+    for (let i = 2; i + 9 < b.length;) {
+      if (b[i] !== 0xff) return undefined;
+      const marker = b[i + 1];
+      // A start of frame (SOF0 to SOF15 but DHT, JPG and DAC) holds the height, then the width.
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) return { w: at16(i + 7), h: at16(i + 5) };
+      i += 2 + at16(i + 2);
+    }
+  return undefined;
+}
+
+/**
+ * A picture's bytes where they are in hand, for a file that writes them in: the context's answer or the bytes
+ * readyImages kept (`images.bytes`), as a data: URL read back; null where none are (a host that gives no bytes, a
+ * picture that did not come), and the file says the picture's words instead.
+ */
+export function imageData(im: Image, ctx?: Pick<ExportContext, 'image'>): ImageData | null {
+  const href = imageHref(im.ref, ctx);
+  const m = href ? /^data:([^;,]+);base64,([\s\S]*)$/.exec(href) : null;
+  if (!m) return null;
+  const bin = atob(m[2]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const size = im.w && im.h ? { w: im.w, h: im.h } : pixelSize(bytes, m[1]);
+  return { mime: m[1], bytes, ...size };
+}
+
 /** The address a picture is shown at in a page that may fetch (an editor, a web page): the host's, never the bytes; null where no host keeps it. */
 export const imageUrl = (ref: string): string | null => host.images?.url(ref) ?? null;
 

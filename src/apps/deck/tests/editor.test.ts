@@ -794,6 +794,55 @@ test('Insert ▾ Picture, only where the host keeps pictures: the file chosen is
   }
 });
 
+test('a picture file pasted or dropped, where the host keeps pictures, is put to the host and goes on the slide; where it keeps none, a paste of one is the words’ as before', async () => {
+  const png = (name: string) =>
+    new File([Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0)) as BlobPart], name, {
+      type: 'image/png',
+    });
+  const withFile = (name: string) => {
+    const dt = new DataTransfer();
+    dt.items.add(png(name));
+    return dt;
+  };
+  // No host keeps pictures (the site): the paste goes on to the words, untouched by the deck.
+  {
+    const { el, last } = await editor('## Plan\n');
+    const paste = new ClipboardEvent('paste', { clipboardData: withFile('stoop.png'), bubbles: true, cancelable: true });
+    box(el, 'words').dispatchEvent(paste);
+    await settle(el);
+    expect(last() ?? '## Plan\n').not.toContain('```image');
+  }
+  const kept = new Map<string, Blob>();
+  Object.assign(host, {
+    images: {
+      put: async (file: Blob) => (kept.set(`test:${kept.size + 1}`, file), { ref: `test:${kept.size}`, w: 1, h: 1 }),
+      url: (ref: string) => (kept.has(ref) ? URL.createObjectURL(kept.get(ref)!) : ''),
+    },
+  });
+  try {
+    const { el, last } = await editor('## Plan\n');
+    // Pasted in the words of a slide with nothing on it: on that slide.
+    const paste = new ClipboardEvent('paste', { clipboardData: withFile('the-stoop.png'), bubbles: true, cancelable: true });
+    box(el, 'words').dispatchEvent(paste);
+    expect(paste.defaultPrevented).toBe(true);
+    await until(() => !!last()?.includes('test:1'));
+    expect(last()).toBe('## Plan\n\n---\n\n```image {alt="the stoop" w=1 h=1}\ntest:1\n```\n');
+    await until(() => !!el.querySelector('figure.deck-sub svg image'));
+    // Dropped on the editor while the slide holds one already: on a new slide after it, as Insert ▾ puts one.
+    const over = new DragEvent('dragover', { dataTransfer: withFile('porch.png'), bubbles: true, cancelable: true });
+    el.dispatchEvent(over);
+    expect(over.defaultPrevented).toBe(true);
+    const drop = new DragEvent('drop', { dataTransfer: withFile('porch.png'), bubbles: true, cancelable: true });
+    el.querySelector('figure.deck-sub')!.dispatchEvent(drop);
+    expect(drop.defaultPrevented).toBe(true);
+    await until(() => !!last()?.includes('test:2'));
+    expect(last()).toContain('```image {alt=porch w=1 h=1}\ntest:2\n```');
+    expect(kept.size).toBe(2);
+  } finally {
+    delete (host as { images?: unknown }).images;
+  }
+});
+
 test('Insert ▾ puts other local documents on the slide: an outline is made in its own editor, and Done puts it on the slide', async () => {
   const { el, last } = await editor('## Plan\n');
   const opener = el.querySelector<HTMLElement>('to-insert button')!;

@@ -19,6 +19,8 @@
  * its sheets on request; presenting takes the focus and shows one slide at a time with the transition the
  * header names, and ends on the QR code of the deck. Two fingers on the slide in the show zoom it in place, as in a
  * spatial canvas (kit/ui/pinch.ts pinchZoom): the show is its frame, scrolled to the rest; a pinch never turns a slide.
+ * Where the host keeps pictures (kit/core/host.ts `images`), a picture file pasted or dropped on the editor goes to the
+ * host and is on the slide as Insert ▾ Picture puts it; where it keeps none, a paste and a drop are as they were.
  */
 import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
@@ -76,7 +78,7 @@ import '../../kit/draw/notes.ts';
 import '../../kit/text/text.ts';
 import './style.css';
 import { qrBlock } from '../../kit/draw/qr-picture.ts';
-import { chooseImageFile, putImage } from '../../kit/draw/image-picture.ts';
+import { chooseImageFile, imagesKept, putImage } from '../../kit/draw/image-picture.ts';
 
 export const tag = 'to-deck-editor';
 
@@ -195,6 +197,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.addEventListener('keydown', this.onEditKey);
     this.addEventListener('text-escape', this.onTextEscape);
     this.addEventListener('text-selectall', this.onSelectAll);
+    // Capturing: a picture file is the slide's before the words or the rail hear the paste.
+    this.addEventListener('paste', this.onPicturePaste, true);
+    this.addEventListener('dragover', this.onPictureOver);
+    this.addEventListener('drop', this.onPictureDrop);
     window.addEventListener('keydown', this.onShowKey);
     window.addEventListener(OPENED_EVENT, this.onOpened);
     // The show is a picture to two fingers (Paul, 2026-10-11: "I should be able to pinch zoom where appropriate in view
@@ -223,6 +229,9 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.removeEventListener('keydown', this.onEditKey);
     this.removeEventListener('text-escape', this.onTextEscape);
     this.removeEventListener('text-selectall', this.onSelectAll);
+    this.removeEventListener('paste', this.onPicturePaste, true);
+    this.removeEventListener('dragover', this.onPictureOver);
+    this.removeEventListener('drop', this.onPictureDrop);
     window.removeEventListener('keydown', this.onShowKey);
     window.removeEventListener(OPENED_EVENT, this.onOpened);
     this.unpinch?.();
@@ -668,10 +677,37 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   /** Insert ▾'s Picture, on the slide: a file from the device, put to the host that keeps pictures (offered only where one does: commands.ts). */
   async insertImage() {
     const file = await chooseImageFile();
-    if (!file) return;
+    if (file) await this.putPicture(file);
+  }
+  /** A picture file put to the host, and its fence on the slide (on this one if it has nothing on it, else on a new one after it). */
+  private async putPicture(file: File) {
     const b = await putImage(file, file.name);
     if (b) this.putSub(b);
   }
+  /** The picture among what was pasted or dropped, where the host keeps pictures, the deck is edited and not shown; null otherwise. */
+  private pictureIn(e: Event, dt: DataTransfer | null): File | null {
+    if (!dt || !imagesKept() || this.readOnly || this.showing >= 0 || (e.target as Element | null)?.closest?.('.deck-show')) return null;
+    return [...(dt.files ?? [])].find((f) => f.type.startsWith('image/')) ?? null;
+  }
+  /** A picture file pasted anywhere in the editor (the words, the rail, a slide chosen): on the slide, not in the words. */
+  private onPicturePaste = (e: ClipboardEvent) => {
+    const file = this.pictureIn(e, e.clipboardData);
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void this.putPicture(file);
+  };
+  /** A picture dragged over the editor may be dropped, where the host keeps pictures; anything else is the browser's. */
+  private onPictureOver = (e: DragEvent) => {
+    if (imagesKept() && !this.readOnly && [...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file' && i.type.startsWith('image/'))) e.preventDefault();
+  };
+  private onPictureDrop = (e: DragEvent) => {
+    const file = this.pictureIn(e, e.dataTransfer);
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void this.putPicture(file);
+  };
   /** Four more pages, in a format that grows by sheets. */
   morePages() {
     const g = geometryOf(this.settings.format);

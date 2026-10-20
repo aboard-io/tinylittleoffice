@@ -144,6 +144,15 @@ What an app still asked of the site itself, and what replaces it:
     another record, picked from the host's search (its picker the table's, kit/ui/record-pick.ts); `<to-comments>`
     `plain` for a record's thread (The kit's small pieces, The components); and `.to-empty` in kit.css, so a host's
     page has it. Each has its test and its story.
+19. **What a host's chrome copied.** Done (2026-10-20, for a host that inherited the site's chrome, its bar, its drawer
+    and the Outliner, and had copied or worked around each): the frame, its column, header, menu button and the bar's
+    place, the kit's (`PageFrame`, page-frame.css, which the site's chrome wears too), with `.foot` for a bar at the
+    foot of a narrow window and its pinned tools pinned there; the kit's helpers for a chrome (`mark`, `pinWindow`,
+    `THEMES`, `themeName`, `setTheme`, `theme`, `loadIcons`, `ensureIcons`, `dateText`) and `tool`'s icon size; a
+    menu with no button of its own (`buttonless`); `cmdMenu` honoring `when` (A host's page); a page's commands in
+    the editor's bar and in the read-only Calendar's (A page's own commands); a read-only outline folded by hand,
+    its pick saying the arrow (step 8); and a picture's bytes in .docx and .rtf, and pasted or dropped on a slide
+    (Images, where the host keeps them). Each has its test.
 
 ## The Storybook
 
@@ -1021,10 +1030,15 @@ Object.assign(host, {
 
 Then every app draws an image fence as the picture (kit/draw/image-picture.ts, known to the registry's lookup as the
 QR code is); the Word Processor's and the Presentation Builder's Insert ▾ list Picture…, a file from the device put
-to `images.put`; a picture file pasted or dropped into the Word Processor goes there too; a picture's card in hand
+to `images.put`; a picture file pasted or dropped into either goes there too (the Word Processor's at the caret, the
+Presentation Builder's on the slide as Insert ▾ puts one: on this one if it holds nothing, else on a new one after it); a picture's card in hand
 has Describe picture, its alt edited where it is drawn. The exports: the web page writes `<figure><img src alt width
 height>` at `images.url`, Markdown its picture line at that address, a PDF or PNG writes the bytes in from `images.bytes` (fetched
-before the pages are drawn), and RTF and .docx its alt words (the .docx's own media are a later step).
+before the pages are drawn), and RTF and .docx the picture itself where the host gives the bytes: the .docx its
+media (word/media/imageN, a relationship, an inline `<w:drawing>` with the alt as its description) and the RTF a
+`\pict` of the bytes in hexadecimal, each at its own size narrowed to the column (6.5 inches), its words under it in
+italics, for a PNG or a JPEG (and a GIF in .docx, which Word, LibreOffice and Pages draw); without bytes, or of another
+kind, its alt words alone, as before.
 `ExportContext.image(ref)`, where a caller sets it, answers in the host's place.
 
 Where `images` is absent, the site and the API above all, nothing is offered and nothing is fetched: a picture

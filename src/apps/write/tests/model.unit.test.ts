@@ -434,3 +434,65 @@ test("a look named for an Object's own property is sans (a review, 2026-10-17)",
   for (const name of ['constructor', 'toString', '__proto__']) expect(lookOf(parse(`---\nlook: ${name}\n---\nA\n`)).id, name).toBe('sans');
   expect(lookOf(parse('---\nlook: book\n---\nA\n')).id).toBe('book');
 });
+
+/* ---------- a host-kept picture written into a file, over a stub host ---------- */
+
+/** A PNG of one pixel, the bytes a stub host keeps; the fence says it is 640 by 480, wider than the page's column (6.5 inches at 96 pixels an inch). */
+const PNG = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+const PICTURED = (ref: string) => `# Plan\n\n\`\`\`image {alt="A cat on a mat" w=640 h=480}\n${ref}\n\`\`\`\n\nAfter.\n`;
+/** `check` under each host: none (the site), one that gives an address and no bytes, and one that gives the bytes (fetched first, as the kit's exports fetch them). */
+async function underHosts(ref: string, check: (bytes: boolean) => void) {
+  const { host } = await import('../../../kit/core/host.ts');
+  const { readyImages } = await import('../../../kit/draw/image-picture.ts');
+  const url = (r: string) => `https://host.test/images/${r}`;
+  try {
+    for (const images of [undefined, { put: async () => ({ ref: '' }), url }]) {
+      Object.assign(host, { images });
+      check(false);
+    }
+    Object.assign(host, { images: { put: async () => ({ ref: '' }), url, bytes: async (r: string) => (r === ref ? PNG : null) } });
+    await readyImages(PICTURED(ref));
+    check(true);
+  } finally {
+    delete (host as { images?: unknown }).images;
+  }
+}
+
+test('a host-kept picture in .docx: the picture itself where the host gives its bytes (word/media, a relationship, an inline drawing, its words under it), its words alone where it gives none', async () => {
+  await underHosts('asset:docx-cat', (bytes) => {
+    const files = unzipSync(docToDocx(parse(PICTURED('asset:docx-cat')), ctx));
+    const doc = strFromU8(files['word/document.xml']);
+    const rels = strFromU8(files['word/_rels/document.xml.rels']);
+    expect(doc).toContain('<w:i/></w:rPr><w:t xml:space="preserve">A cat on a mat</w:t>');
+    if (!bytes) {
+      expect(Object.keys(files).filter((f) => f.startsWith('word/media/'))).toStrictEqual([]);
+      expect(doc).not.toContain('<w:drawing>');
+      expect(rels).not.toContain('/image"');
+      return;
+    }
+    expect(files['word/media/image1.png']).toStrictEqual(PNG);
+    const id = /Id="(rId\d+)" Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/image" Target="media\/image1\.png"\/>/.exec(rels)?.[1];
+    expect(id).toBeDefined();
+    expect(strFromU8(files['[Content_Types].xml'])).toContain('<Default Extension="png" ContentType="image/png"/>');
+    expect(doc).toContain('xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"');
+    expect(doc).toContain(`<a:blip r:embed="${id}"/>`);
+    // Narrowed to the column, its proportions kept: 624 by 468 pixels, 9525 English Metric Units each.
+    expect(doc).toContain(`<wp:extent cx="${624 * 9525}" cy="${468 * 9525}"/>`);
+    expect(doc).toContain('descr="A cat on a mat"');
+    expect(doc.indexOf('<w:drawing>')).toBeLessThan(doc.indexOf('>A cat on a mat</w:t>'));
+  });
+});
+
+test('a host-kept picture in .rtf: the picture itself where the host gives its bytes (a \\pict, the bytes in hexadecimal, its words under it), its words alone, set in, where it gives none', async () => {
+  await underHosts('asset:rtf-cat', (bytes) => {
+    const rtf = docToRtf(parse(PICTURED('asset:rtf-cat')), ctx);
+    if (!bytes) {
+      expect(rtf).not.toContain('\\pict');
+      expect(rtf).toContain('{\\pard\\sb120\\sa120\\li360 {\\i A cat on a mat}\\par}');
+      return;
+    }
+    expect(rtf).toContain(`{\\pict\\pngblip\\picw640\\pich480\\picwgoal${624 * 15}\\pichgoal${468 * 15}\n89504e470d0a1a0a`);
+    expect(rtf).toContain('{\\pard\\qc\\sa120 {\\i A cat on a mat}\\par}');
+    expect(rtf).not.toContain('\\li360 {\\i A cat');
+  });
+});
