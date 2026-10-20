@@ -58,11 +58,14 @@
   .to-dt-add {
     margin-inline-start: auto;
   }
+  /* The box neither hands a scroll on to the page nor bounces past its own ends: on a phone a drag past the start
+     drew the grid pushed down and to the right of the box, blank before it (Paul, 2026-10-20: "Lock the grid a little,
+     this state shouldn't be possible"). */
   .to-dt-box {
     position: relative;
     container: to-dt / inline-size;
     overflow: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
     max-height: var(--to-dt-h, min(36rem, 75vh));
     background: var(--to-surface);
     border: 1px solid var(--to-border);
