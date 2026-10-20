@@ -30,8 +30,15 @@
  * - **Keys.** It is a grid (ARIA's): one cell takes Tab, the arrows walk the cells and the headings, Home and End the
  *   row's ends (with Mod the table's), Page Up and Page Down a screenful; Enter edits or activates, Space ticks a
  *   row's box (or the cell's, or sorts by a heading), Escape lets an edit go.
+ * - **A box** (a row's, the heading's, a boolean cell's) is let toggle itself when tapped, and the table's state follows
+ *   it: a click cancelled (preventDefault) is put back by the browser after its handlers, and Safari put it back after
+ *   the table had drawn it ticked (Paul, 2026-10-20: "The company checkbox is unchecked even though I expect that"), so
+ *   a tap on a phone ticked the row and showed an empty box. The `live` binding draws what the state says either way.
  * - **Size.** The table scrolls in a box of its own, its headings stuck to the top and its first column (and the boxes)
- *   to the start, as the Spreadsheet's grid does (on a phone, sideways too: the page never scrolls, kit/ui/scroll.ts).
+ *   to the start, as the Spreadsheet's grid does (on a phone, sideways too: the page never scrolls, kit/ui/scroll.ts);
+ *   in a box narrower than 30em (a phone's) the first column scrolls with the rest, which would otherwise have a sliver
+ *   of the box to scroll in (host.css). A cell's words and boxes start at its top, in line with the first line of a row
+ *   that grows.
  *   Only the rows in sight are drawn, each the one height (`--to-dt-row-h`), so 5,000 rows are as quick as fifty
  *   (test/browser/table.test.ts measures it); where a column `wrap`s, a row grows to hold its words, and the rows are
  *   placed by their heights, measured where drawn and reckoned from their words where not. A column that `fit`s is as
@@ -730,7 +737,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     if (!cell || !box) return;
     // Sideways, past the columns stuck at the start (the boxes, the first column), which a cell scrolls under.
     if (!cell.classList.contains('to-dt-pin') && !cell.classList.contains('to-dt-acts')) {
-      const pinned = [...(cell.parentElement?.querySelectorAll<HTMLElement>('.to-dt-pin') ?? [])].reduce((w, el) => w + el.offsetWidth, 0);
+      const pinned = [...(cell.parentElement?.querySelectorAll<HTMLElement>('.to-dt-pin') ?? [])].reduce((w, el) => w + (getComputedStyle(el).position === 'sticky' ? el.offsetWidth : 0), 0);
       const rtl = getComputedStyle(box).direction === 'rtl';
       const left = rtl ? box.scrollWidth - cell.offsetLeft - cell.offsetWidth : cell.offsetLeft;
       const from = Math.abs(box.scrollLeft);
@@ -852,7 +859,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     if (isEmpty(v)) return nothing;
     switch (typeOf(col)) {
       case 'boolean':
-        return html`<input type="checkbox" class="to-dt-check" tabindex="-1" aria-label=${col.label} .checked=${live(!!v)} ?disabled=${!canEdit(col, row)} @click=${(e: Event) => e.preventDefault()} />`;
+        return html`<input type="checkbox" class="to-dt-check" tabindex="-1" aria-label=${col.label} .checked=${live(!!v)} ?disabled=${!canEdit(col, row)} />`;
       case 'enum': {
         const o = optionOf(col, v);
         return html`<span class="to-chip tint" style=${o.color ? `--chip: ${o.color}` : nothing}>${o.label ?? o.value}</span>`;
@@ -948,7 +955,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
       ${
         this.selectable
           ? html`<div role="gridcell" id="${this.uid}-${r}-0" class="to-dt-cell to-dt-pin to-dt-box-cell" data-r=${r} data-c="0" aria-colindex="1" tabindex=${at(0) ? 0 : -1}>
-            <input type="checkbox" class="to-dt-check" tabindex="-1" aria-label=${t('table-select-name', { name })} .checked=${live(on)} @click=${(e: Event) => e.preventDefault()} />
+            <input type="checkbox" class="to-dt-check" tabindex="-1" aria-label=${t('table-select-name', { name })} .checked=${live(on)} />
           </div>`
           : nothing
       }
@@ -1059,10 +1066,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
                     .checked=${live(all)}
                     .indeterminate=${some}
                     ?disabled=${!this.view.length}
-                    @click=${(e: Event) => {
-                      e.preventDefault();
-                      this.tickAll();
-                    }}
+                    @click=${() => this.tickAll()}
                   />
                 </div>`
                 : nothing

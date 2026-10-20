@@ -60,6 +60,7 @@
   }
   .to-dt-box {
     position: relative;
+    container: to-dt / inline-size;
     overflow: auto;
     overscroll-behavior: contain;
     max-height: var(--to-dt-h, min(36rem, 75vh));
@@ -102,13 +103,16 @@
   .to-dt-row[aria-selected='true'] > .to-dt-cell {
     background: color-mix(in oklab, var(--to-accent-soft) 60%, var(--to-surface));
   }
+  /* A cell's words, boxes and links start at its top, in line with the first line of a row that grows, never halfway
+     down it (Paul, 2026-10-20: "Checkboxes should be top aligned in table cells. Top align should always be default");
+     a one-line row sees no difference, its one line centred by the padding. */
   .to-dt-cell {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.25rem;
     min-width: 0;
     height: var(--to-dt-row-h);
-    padding: 0 0.625rem;
+    padding: calc((var(--to-dt-row-h) - 1lh) / 2) 0.625rem;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -129,7 +133,9 @@
     justify-content: flex-end;
     font-variant-numeric: tabular-nums;
   }
-  /* The boxes and the first column stay at the start as the rest scrolls under them. */
+  /* The boxes and the first column stay at the start as the rest scrolls under them, where the box is wide enough
+     for the rest to have room: in a narrow one (a phone's) they would be most of it, with a sliver scrolling beside
+     them (Paul, 2026-10-20: "the column that is scrollable is maybe 7% of the screen"), so there the whole grid scrolls. */
   .to-dt-pin {
     position: sticky;
     inset-inline-start: 0;
@@ -137,7 +143,7 @@
   }
   .to-dt-box-cell {
     justify-content: center;
-    padding: 0;
+    padding-inline: 0;
   }
   .to-dt-box-cell + .to-dt-pin {
     inset-inline-start: 2.75rem;
@@ -145,10 +151,16 @@
   .to-dt-pin:not(.to-dt-box-cell) {
     border-inline-end: 1px solid var(--to-border);
   }
+  @container to-dt (width < 30em) {
+    .to-dt-pin {
+      position: static;
+    }
+  }
   .to-dt-check {
     width: 1.125rem;
     height: 1.125rem;
-    margin: 0;
+    /* In line with the first line of words beside it. */
+    margin: calc((1lh - 1.125rem) / 2) 0 0;
     accent-color: var(--to-accent);
   }
   .to-dt-t-boolean {

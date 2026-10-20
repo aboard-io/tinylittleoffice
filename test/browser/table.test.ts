@@ -233,6 +233,15 @@ test('rows ticked one by one, by Shift and a click, and all at once', async () =
   box(2).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
   await el.updateComplete;
   expect(told).toStrictEqual([['a'], ['a', 'b', 'c']]);
+  // A tap on the box itself (not the cell round it) leaves it ticked once the browser has had its say after the click.
+  box(3).querySelector('input')!.click();
+  await el.updateComplete;
+  await new Promise((ok) => setTimeout(ok, 0));
+  expect([told.at(-1), box(3).querySelector('input')!.checked]).toStrictEqual([['a', 'b', 'c', 'd'], true]);
+  box(3).querySelector('input')!.click();
+  await el.updateComplete;
+  await new Promise((ok) => setTimeout(ok, 0));
+  expect([told.at(-1), box(3).querySelector('input')!.checked]).toStrictEqual([['a', 'b', 'c'], false]);
   expect(el.querySelectorAll('[role=row][aria-selected=true]').length).toBe(3);
   const all = el.querySelector<HTMLInputElement>('.to-dt-head input')!;
   expect(all.indeterminate).toBe(true);
@@ -359,10 +368,11 @@ test('at a phone’s width the table scrolls sideways in its own box, the page n
     const box = el.querySelector<HTMLElement>('.to-dt-box')!;
     expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
-    // The boxes and the names stay at the start as the rest scrolls under them.
+    // In a box this narrow the boxes and the names scroll with the rest: stuck at the start they would be most of it.
     box.scrollLeft = 200;
     const name = cell(el, 'Ada', 'Name');
-    expect(Math.round(name.getBoundingClientRect().left - box.getBoundingClientRect().left)).toBeLessThan(60);
+    expect(name.getBoundingClientRect().left).toBeLessThan(box.getBoundingClientRect().left);
+    expect(getComputedStyle(name).position).toBe('static');
     el.querySelector<HTMLElement>('[tabindex="0"]')!.focus();
     box.scrollLeft = 0;
     await userEvent.keyboard('{End}');
@@ -434,6 +444,11 @@ test('money in whole units; a column that fits its widest words; a row that grow
   expect(long.height).toBeGreaterThan(short.height * 1.5);
   expect(Math.round(after.top)).toBe(Math.round(long.bottom));
   expect(leadCell(el, 'l2', 0).scrollHeight).toBeLessThanOrEqual(leadCell(el, 'l2', 0).clientHeight + 1);
+  // The other cells of the tall row start at its top, in line with the title's first line, not halfway down it.
+  const title = leadCell(el, 'l2', 0).getBoundingClientRect();
+  const run = document.createRange();
+  run.selectNodeContents(leadCell(el, 'l2', 2));
+  expect(run.getBoundingClientRect().top).toBeLessThan(title.top + short.height / 2);
 });
 
 test('rows that grow are windowed by their heights: 5,000 drawn a few at a time, scrolled to the end and walked there', async () => {

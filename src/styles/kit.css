@@ -1091,11 +1091,15 @@
   }
 
   /* ---- the toast ---- */
+  /* As wide as its words up to a measure, and never wider than the screen less a gutter each side: long words wrap
+     at the measure, not a word a line (Paul, 2026-10-20, a toast on a phone drawn as a tall narrow column). */
   .to-toast {
     position: fixed;
     left: 50%;
     bottom: max(1em, env(safe-area-inset-bottom));
     transform: translate(-50%, 0.5em);
+    width: max-content;
+    max-width: min(36em, 100vw - 2 * var(--to-gutter));
     padding: 0.625em 1em;
     background: var(--to-ink);
     color: var(--to-bg);
@@ -1118,6 +1122,10 @@
     display: flex;
     align-items: center;
     gap: 0.75em;
+  }
+  .to-toast.act > span {
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .to-toast.shown.act {
     pointer-events: auto;
