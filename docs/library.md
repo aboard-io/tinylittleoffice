@@ -258,7 +258,7 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   a number's column are not kept, and the field says so.
 - **Its size.** The table scrolls in a box of its own, as the Spreadsheet's grid does (the page never scrolls:
   kit/ui/scroll.ts): its headings stuck to the top, the boxes and the first column to the start. Once the box has
-  scrolled sideways the first column gives way to the rest, narrowed to `--to-dt-pin-w` (9rem) with its words cut at
+  scrolled sideways the first column gives way to the rest, narrowed to `--to-dt-pin-w` (11rem, about twenty characters, a column that wraps too) with its words cut at
   the last whole word that fits (an ellipsis where one word is longer), the whole in its `title` and read whole, and
   it opens again at the start (Paul, 2026-10-20: "In tables, the left column must truncate as I move to the right.
   Something like 'Young Center for Immigrant Children's Rights' should become 'Young Center'"). At a phone's width

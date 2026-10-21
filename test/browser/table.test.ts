@@ -384,11 +384,14 @@ test('at a phone’s width the table scrolls sideways in its own box, the page n
   }
 });
 
-test('scrolled sideways, the first column gives way to the rest, cut at a word, and opens again at the start', async () => {
+test.each([
+  ['a column that does not wrap', false],
+  ['a column that wraps', true],
+])('scrolled sideways, the first column gives way to the rest, cut at a word, and opens again at the start: %s', async (_what, wrap) => {
   await page.viewport(1000, 800);
   try {
     const TITLE = "Young Center for Immigrant Children's Rights";
-    const cols: TableColumn<Row>[] = [{ key: 'name', label: 'Name', type: 'text', fit: true }, ...COLS.slice(1).map((c) => ({ ...c, width: '12rem' }))];
+    const cols: TableColumn<Row>[] = [{ key: 'name', label: 'Name', type: 'text', fit: true, wrap }, ...COLS.slice(1).map((c) => ({ ...c, width: '12rem' }))];
     const el = await table({ columns: cols }, [{ ...ROWS[0], name: TITLE }, ...ROWS.slice(1)]);
     const box = el.querySelector<HTMLElement>('.to-dt-box')!;
     const name = cell(el, TITLE, 'Name');
@@ -416,7 +419,8 @@ test('scrolled sideways, the first column gives way to the rest, cut at a word, 
     const oneLine = words.getBoundingClientRect().height;
 
     box.scrollLeft = 300;
-    const narrow = 9 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+    // About twenty characters: --to-dt-pin-w, the one width for the heading and the rows.
+    const narrow = 11 * parseFloat(getComputedStyle(document.documentElement).fontSize);
     await until(() => box.hasAttribute('scrolled') && Math.abs(name.getBoundingClientRect().width - narrow) < 1, 'the first column never narrowed');
     const head = el.querySelector<HTMLElement>('[role=columnheader].to-dt-pin')!;
     expect(head.getBoundingClientRect().width).toBeCloseTo(narrow, 0);

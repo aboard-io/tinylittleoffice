@@ -37,11 +37,13 @@
  * - **Size.** The table scrolls in a box of its own, its headings stuck to the top and its first column (and the boxes)
  *   to the start, as the Spreadsheet's grid does (on a phone, sideways too: the page never scrolls, kit/ui/scroll.ts);
  *   in a box narrower than 30em (a phone's) the first column scrolls with the rest, which would otherwise have a sliver
- *   of the box to scroll in (host.css). Once the box has scrolled sideways the first column gives way, narrowed to
- *   `--to-dt-pin-w` and its words cut at the last whole word that fits, the whole in its `title` and read whole (the
- *   cut is drawn, not written), and scrolled back to the start it opens again (Paul, 2026-10-20: "In tables, the left
- *   column must truncate as I move to the right"): the box wears `scrolled`, set from its scroll in a frame. A cell's
- *   words and boxes start at its top, in line with the first line of a row that grows.
+ *   of the box to scroll in (host.css). Once the box has scrolled sideways the first column gives way, whether it wraps
+ *   or not, narrowed to `--to-dt-pin-w` (about twenty characters) and its words cut at the last whole word that fits,
+ *   the whole in its `title` and read whole (the cut is drawn, not written), and scrolled back to the start it opens
+ *   again (Paul, 2026-10-20: "In tables, the left column must truncate as I move to the right"; 2026-10-21: "shrink it
+ *   and truncate text to about 20 characters"): the box wears `scrolled`, set from its scroll in a frame. A cell's
+ *   words and boxes start at its top, in line with the first line of a row that grows, the box's margin reckoned in
+ *   the cell's own line (`font: inherit`), not the control's.
  *   Only the rows in sight are drawn, each the one height (`--to-dt-row-h`), so 5,000 rows are as quick as fifty
  *   (test/browser/table.test.ts measures it); where a column `wrap`s, a row grows to hold its words, and the rows are
  *   placed by their heights, measured where drawn and reckoned from their words where not. A column that `fit`s is as
@@ -953,7 +955,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     return html`<div
       role="columnheader"
       id="${this.uid}-h-${c}"
-      class="to-dt-cell ${num ? 'to-dt-num' : ''} ${c === this.off ? `to-dt-pin ${col.wrap ? '' : 'to-dt-gives'}` : ''}"
+      class="to-dt-cell ${num ? 'to-dt-num' : ''} ${c === this.off ? 'to-dt-pin to-dt-gives' : ''}"
       aria-colindex=${c + 1}
       aria-sort=${ariaSort}
       tabindex=${this.active.r === -1 && this.active.c === c ? 0 : -1}
@@ -992,8 +994,8 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         return html`<div
           role="gridcell"
           id="${this.uid}-${r}-${c}"
-          class="to-dt-cell to-dt-t-${type} ${num ? 'to-dt-num' : ''} ${i === 0 ? `to-dt-pin ${col.wrap ? '' : 'to-dt-gives'}` : ''} ${editing ? 'to-dt-editing' : ''} ${col.wrap ? 'to-dt-wrap' : ''}"
-          title=${i === 0 && !col.wrap && name ? name : nothing}
+          class="to-dt-cell to-dt-t-${type} ${num ? 'to-dt-num' : ''} ${i === 0 ? 'to-dt-pin to-dt-gives' : ''} ${editing ? 'to-dt-editing' : ''} ${col.wrap ? 'to-dt-wrap' : ''}"
+          title=${i === 0 && name ? name : nothing}
           data-r=${r}
           data-c=${c}
           aria-colindex=${c + 1}

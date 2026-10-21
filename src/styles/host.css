@@ -20,7 +20,7 @@
     min-width: 0;
     --to-dt-row-h: 2.75rem;
     /* How wide the first column is once the box has scrolled sideways (below), in rem. */
-    --to-dt-pin-w: 9rem;
+    --to-dt-pin-w: 11rem;
   }
   .to-dt-bar {
     display: flex;
@@ -162,11 +162,13 @@
     }
   }
   /* Once the box has scrolled sideways (`scrolled`, kit/ui/table.ts) the first column gives way to the rest: it narrows
-     to --to-dt-pin-w, its words cut at the last whole word that fits (they wrap, and only the first line is drawn; a
-     word longer than the line ends in an ellipsis), the whole in the cell's title and read whole; at the start it is
-     as wide as its words again (Paul, 2026-10-20: "In tables, the left column must truncate as I move to the right.
-     Something like 'Young Center for Immigrant Children's Rights' should become 'Young Center'"). A column that wraps
-     keeps its width, its rows' heights its words'. In a narrow box the column scrolls away instead (above). */
+     to --to-dt-pin-w, about twenty characters, its words cut at the last whole word that fits (they wrap, and only the
+     first line is drawn; a word longer than the line ends in an ellipsis), the whole in the cell's title and read
+     whole; at the start it is as wide as its words again (Paul, 2026-10-20: "In tables, the left column must truncate
+     as I move to the right. Something like 'Young Center for Immigrant Children's Rights' should become 'Young
+     Center'"; 2026-10-21: "The fixed left column stays too wide when I scroll. shrink it and truncate text to about 20
+     characters"). A column that wraps gives way like any other, its one line drawn while the box is off its start, the
+     row as tall as its other cells; in a narrow box the column scrolls away instead (above). */
   .to-dt-gives {
     width: 100%;
   }
@@ -185,6 +187,8 @@
       width: min(100%, var(--to-dt-pin-w));
     }
     .to-dt-box[scrolled] .to-dt-gives :is(.to-dt-words, .to-dt-link > span:last-child, .to-dt-sort > span) {
+      /* A block, so the line's height holds: a wrapping cell's link is inline. */
+      display: block;
       min-width: 0;
       max-height: 1lh;
       white-space: normal;
@@ -192,6 +196,10 @@
     }
   }
   .to-dt-check {
+    /* The cell's font, so the 1lh below is the cell's line and not the control's own (Paul, 2026-10-21: "the checkboxes
+       are aligned a few pixels too high"; a form control's line is its own font's, 15px or so, which put the box above
+       the words). */
+    font: inherit;
     width: 1.125rem;
     height: 1.125rem;
     /* In line with the first line of words beside it. */
@@ -281,7 +289,9 @@
     min-height: var(--to-dt-row-h);
   }
   .to-dt-wrap {
-    padding-block: 0.625rem;
+    /* Its first line centred where a one-line cell's is, whatever its line-height, so the boxes and words beside it sit
+       on the same line. */
+    padding-block: calc((var(--to-dt-row-h) - 1lh) / 2);
     line-height: 1.4;
     white-space: normal;
     overflow-wrap: anywhere;
