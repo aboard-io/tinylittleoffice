@@ -61,6 +61,20 @@ async function pick(el: ToWriteEditor, opener: HTMLElement, words: string) {
 }
 const invoice = () => templates().find((t) => t.id === 'invoice')!.doc;
 
+test('the bar groups block styles, marks, lists, page settings and history', async () => {
+  const { el } = await editor('Some words\n');
+  const bar = el.querySelector('to-bar')!;
+  await until(() => !!bar.querySelector('[data-group-start]'));
+  const groups = (name: string) => [...bar.querySelectorAll<HTMLElement>(`[data-tool-group="${name}"]`)];
+  expect(groups('blocks').map((button) => button.getAttribute('aria-label'))).toEqual(['Title', 'Heading', 'Subheading', 'Paragraph']);
+  for (const name of ['blocks', 'marks', 'lists', 'page', 'history']) {
+    const buttons = groups(name);
+    expect(buttons.length).toBeGreaterThan(1);
+    expect(buttons[0].hasAttribute('data-group-start')).toBe(true);
+    expect(buttons.slice(1).every((button) => !button.hasAttribute('data-group-start'))).toBe(true);
+  }
+});
+
 test('typing is the document; the bar makes the block a title and marks the words; the word count keeps up', async () => {
   const { el, last } = await editor();
   el.text.focus();

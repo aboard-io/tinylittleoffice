@@ -21,8 +21,8 @@ const fns = 'calc-functions';
 const more = 'calc-units-and-algebra';
 
 const CALC: Command<K>[] = [
-  cmd('calc', 'common-calculator', { icon: Calculator, where: ['bar'], document: true, pressed: (k) => !graph(k), does: (k) => k.mode('calc') }),
-  cmd('graph', 'calc-graph', { icon: ChartSpline, where: ['bar'], document: true, pressed: graph, does: (k) => k.mode('graph') }),
+  cmd('calc', 'common-calculator', { icon: Calculator, where: ['bar'], group: 'mode', document: true, pressed: (k) => !graph(k), does: (k) => k.mode('calc') }),
+  cmd('graph', 'calc-graph', { icon: ChartSpline, where: ['bar'], group: 'mode', document: true, pressed: graph, does: (k) => k.mode('graph') }),
   cmd('insert', 'common-insert', { icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
   typed('sin', 'calc-sine', 'sin(', fns),
   typed('cos', 'calc-cosine', 'cos(', fns),

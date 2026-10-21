@@ -80,8 +80,8 @@ const SHEET: Command<S>[] = [
     does: (s) => s.fill(true),
   }),
   cmd('fillright', 'sheet-fill-right-from-first-column', { icon: ArrowRightToLine, where: ['bar', 'context'], group: 'fill', disabled: (s) => !s.many, does: (s) => s.fill(false) }),
-  cmd('fit', 'sheet-fit-columns-to-page', { icon: Maximize2, where: ['bar'], document: true, pressed: (s) => !s.widths, does: (s) => (s.widths = null) }),
-  cmd('showall', 'sheet-show-all-text', { icon: Scaling, where: ['bar'], document: true, pressed: (s) => !!s.widths, does: (s) => s.showAll() }),
+  cmd('fit', 'sheet-fit-columns-to-page', { icon: Maximize2, where: ['bar'], group: 'view', document: true, pressed: (s) => !s.widths, does: (s) => (s.widths = null) }),
+  cmd('showall', 'sheet-show-all-text', { icon: Scaling, where: ['bar'], group: 'view', document: true, pressed: (s) => !!s.widths, does: (s) => s.showAll() }),
   cmd('lock', (s) => (s && s.locked(s.sel[0], s.sel[1]) ? t('sheet-unlock-these-cells') : t('sheet-lock-these-cells-so-reader')), {
     icon: Lock,
     where: ['bar'],
