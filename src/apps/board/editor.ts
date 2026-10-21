@@ -2,10 +2,11 @@
  * <to-board-editor>: the Board app. The lanes are columns side by side, about 16rem each, that scroll sideways on a
  * wide screen; where the board is narrower than two lanes (a phone, or the size of everything grown by a pinch) they
  * stack, one under another the column's width, so the words reflow and the page never scrolls sideways. Each lane is
- * its name, how many cards it holds, the sum of their amounts where the table has a column of money, and a menu (Rename
- * lane, Add a card, Move left, Move right, Delete lane). A lane's name is renamed where it is drawn: a double click on
- * it, Enter or F2 on it, or its menu's Rename makes it a field, its words chosen; Enter keeps the name, Escape lets it
- * go, the focus leaving keeps it, and a name that is empty or another lane's is refused, said under the name.
+ * its name, how many cards it holds and the sum of their amounts where the table has a column of money; a lane has no
+ * menu, being shaped where it is drawn (A lane in hand, below). A lane's name is renamed where it is drawn: a double
+ * click on it, Enter or F2 on it, or Rename lane (the drawer's search) makes it a field, its words chosen; Enter keeps
+ * the name, Escape lets it go, the focus leaving keeps it, and a name that is empty or another lane's is refused, said
+ * under the name.
  *
  * A card is its title (a one-line <to-text> of its cell's words as the Spreadsheet shows them), the line under it (a
  * deal's company) and a few of its fields, each drawn as what it is (an amount, a day, a person's initials, a chip, a
@@ -53,7 +54,7 @@
  * A page that lets its cards be carried and nothing else be changed (a CRM's pipeline: a lead's stage changes there, the
  * rest on the lead's own page) sets `carry-only`. A card is carried by a drag, by the keys (Alt+Up/Down along
  * its lane and Mod+Alt+Left/Right across, in its title; on chosen cards Alt+Up/Down and Mod+Left/Right), by Move to…
- * and by its dialog's lane, and that is all: no bar and no lane's menu are drawn; the titles and the lanes' names are
+ * and by its dialog's lane, and that is all: no bar is drawn and no lane is put in hand; the titles and the lanes' names are
  * shown, not typed (the kit's words inside `[readonly]`); the bar under chosen cards holds Move up, Move down, Open,
  * Move to… and Copy; the dialog shows every field and changes the lane alone; a thing typed, pasted, cut or dropped is
  * refused before anything hears it, and `edit` writes nothing, a move being `moved`. So every op it tells is a move's
@@ -64,7 +65,7 @@
  * `{ from, to }`, "laneadd" `{ name, at }`, "lanemove" `{ name, from, to }` and "lanedelete" `{ name, cards }`, each
  * bubbling and cancelable (LaneEvent). A page that calls `preventDefault()` refuses it, or makes it through its own
  * command and gives the board its new document; a page that sets `own-lanes` makes them all itself, and the board only
- * tells them, carried only too (where its lanes' names, their menus and Rename are then offered).
+ * tells them, carried only too (where its lanes' names, a lane in hand and Rename are then offered).
  *
  * Wherever a lane may be changed, Add lane is a button after the last lane (a "laneadd" at the end, carried only and
  * the page's own lanes too), and `startRename(i)` makes lane `i`'s name a field from the page's own control. A page
@@ -73,24 +74,42 @@
  * says how to rename it on this device: a double click under a mouse, a double tap under a finger (which is heard as
  * one: two taps on the name, near each other in place and time).
  *
- * A lane's look (model.ts `LaneLook`: its width, narrow, normal or wide; collapsed, a strip of its name and its count
- * that a tap opens again; its color, one of the Board's palette, blue, green, amber, red, violet, teal and gray, or a
- * tone of the page's own) is the document's, in the head's `lane-looks:`, under the page's `laneLook(name)` where it
- * answers, field by field; `laneTone` still wins for the color. It is drawn as `data-width`, `data-collapsed` and
- * `data-tone` on the lane, the width as `--to-board-lane-w`, which a page sets on the element for every lane. The
- * lane's menu changes it (Narrow lane, Widen lane, Collapse lane or Expand lane, Lane color…, a menu of the palette),
- * told first as "lanelook" `{ name, look }`, the look the lane would then have, whole, and written into `lane-looks:`
- * unless the page makes it (`own-lanes`), as the other lane events are. A card's look is the page's alone
+ * A lane's look (model.ts `LaneLook`: its width, a number of rem from 8 to 36, the words of before read as 11, 17 and
+ * 24; collapsed, a strip of its name and its count that a tap opens again; its color, one of the Board's palette, blue,
+ * green, amber, red, violet, teal and gray, or a tone of the page's own) is the document's, in the head's
+ * `lane-looks:`, under the page's `laneLook(name)` where it answers, field by field; `laneTone` still wins for the
+ * color. It is drawn as `data-width`, `data-collapsed` and `data-tone` on the lane, the width as `--to-board-lane-w`
+ * on it, which a page sets on the element for every lane that has none of its own. A lane in hand changes it (below),
+ * and so do Narrow lane and Widen lane (a step of 2rem), Collapse lane or Expand lane and Lane color… from the drawer's
+ * search; each change is told first as "lanelook" `{ name, look }`, the look the lane would then have, whole, and
+ * written into `lane-looks:` unless the page makes it (`own-lanes`), as the other lane events are.
+ *
+ * A lane in hand (Paul, 2026-10-21: "Instead of a dropdown menu for the pipeline, when I double click or tap on a
+ * column, make it reshapable with handles -- i can narrow or widen it, and it snaps to minimum size once it gets below a
+ * threshold. Pop up color dots to pick on the top and make the title editable when I double click. When I tap away or
+ * hit escape lock in the changes. Make them sticky across sessions on a browser."): a double click on a lane's head,
+ * anywhere on it but its name while that is a field, or a tap on it under a finger, puts the lane in hand
+ * (`data-shaping` on it), one lane at a time, wherever a lane may be changed. In hand it has a handle at its start and
+ * at its end (`role="separator"`, the arrow keys a rem at a time), which a pointer drags to narrow or widen it as it
+ * moves: no narrower than 8rem and no wider than 36rem, a width under 10rem snapping to 8rem, and dragged under 5rem the
+ * lane folds to its strip, which its handle drawn out past 8rem opens again. Where the lanes stack a width means
+ * nothing, so no handles are drawn there. Along the top of its head is a row of dots, no color and each of the
+ * palette's, the lane's own ringed, a tap coloring it; a double click on its name renames it, as ever; and where a lane
+ * had its menu it has buttons for the rest: Move left, Move right, Add a card (where cards are added) and Delete lane.
+ * Escape, or a press or the focus anywhere outside its head (the page, another lane, a card), lets it go. Every change
+ * was made as it came (a drag's when it is let go), told and written as any look is, so letting the lane go is the end
+ * of shaping it and saves nothing; a page keeps the look where it keeps it (the document's `lane-looks:`, or for a
+ * page that answers `laneLook`, its own store). A card's look is the page's alone
  * (`cardLook(card)`: `{ tone }`, a palette color or the page's own), drawn as `data-tone` on the card: a stale deal
  * tinted amber.
  *
- * A lane is reordered by dragging its head, wherever a lane may be changed: a mouse's press on it, outside its menu and
- * its name while that is a field, carries the lane once it has moved 6px (a double click still renames), a finger's
+ * A lane is reordered by dragging its head, wherever a lane may be changed: a mouse's press on it, outside its buttons,
+ * its dots and its name while that is a field, carries the lane once it has moved 6px (a double click still renames), a finger's
  * once held still a moment and then moved; a ghost of its head follows the pointer, a rule beside the lane it would
  * land by shows where (before it, or after the last), the board scrolls near its edges, and let go it is a "lanemove"
  * `{ name, from, to }`, made unless the page refuses it or makes it (model.ts `moveLane`). Escape lets it go.
  */
-import { ArrowDown, ArrowUp, CalendarDays, Copy, Ellipsis } from 'lucide';
+import { ArrowDown, ArrowUp, CalendarDays, Copy } from 'lucide';
 import { applyAll, COL_NAMES, parse, parseInline, plainText, transform, write, writeInline, type Block, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
 import { DocElement, type DocPick, type Entry } from '../../kit/core/element.ts';
 import { Rows, lastCopied, type RowItem, type RowRange, type RowSpan } from '../../kit/text/rows.ts';
@@ -117,7 +136,11 @@ import {
   cardsTable,
   duplicateCards,
   LANE_COLORS,
-  LANE_WIDTHS,
+  LANE_MAX,
+  LANE_MIN,
+  LANE_REM,
+  LANE_SNAP,
+  laneRem,
   moveBack,
   moveCard,
   moveCards,
@@ -132,6 +155,7 @@ import {
   setCells,
   setLaneLook,
   setTitle,
+  shapedLook,
   type BoardView,
   type Card,
   type CardField,
@@ -166,7 +190,7 @@ export type LaneTone = 'won' | 'lost' | 'neutral' | (string & {});
 export interface CardLook {
   tone?: string | null;
 }
-/** The palette's colors as the lane menu's swatches show them: the stylesheet's own (style.css, `--to-board-tone`), in the light theme. */
+/** The palette's colors as a lane's dots show them: the stylesheet's own (style.css, `--to-board-tone`), in the light theme. */
 const SWATCHES: Record<string, string> = {
   blue: 'hsl(220 70% 48%)',
   green: 'hsl(145 55% 38%)',
@@ -189,12 +213,21 @@ const COLOR_NAMES: Record<string, () => string> = {
 /** Two taps this near in place (CSS px) and time (ms) are a double tap. */
 const TAP_PX = 24;
 const TAP_MS = 400;
+/** A lane's edges, where its handles are: its start and its end, as the language runs. */
+type Edge = 'start' | 'end';
+/** How far Narrow lane and Widen lane step, and an arrow key on a handle, in rem. */
+const STEP_REM = 2;
+const KEY_REM = 1;
+/** The commands the lane in hand draws as buttons on its head (commands.ts). */
+const HAND_TOOLS = ['board.lane.left', 'board.lane.right', 'board.lane.card', 'board.lane.delete'];
+/** The root's rem in CSS px, which the board's container measures by. */
+const remPx = () => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
 export interface LaneEvents {
   lanerename: { from: string; to: string };
   laneadd: { name: string; at: number };
   lanemove: { name: string; from: number; to: number };
   lanedelete: { name: string; cards: number };
-  /** Lane `name`'s look changed from its menu, or its strip tapped open: the look it would then have, whole (a field left out is none). */
+  /** Lane `name`'s look changed in hand (its handles, its dots), from a command, or its strip tapped open: the look it would then have, whole (a field left out is none), its width a number of rem. */
   lanelook: { name: string; look: LaneLook };
 }
 export type LaneEvent<K extends keyof LaneEvents = keyof LaneEvents> = CustomEvent<LaneEvents[K]>;
@@ -314,7 +347,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     carryingLane: { state: true },
     overLane: { state: true },
     lifting: { state: true },
-    menuAt: { state: true },
+    inHand: { state: true },
+    shaped: { state: true },
     opened: { state: true },
     renaming: { state: true },
     laneError: { state: true },
@@ -355,8 +389,12 @@ export class ToBoardEditor extends DocElement<BoardView> {
   /** The card being carried by a drag, by its row; -1 for none. */
   declare carrying: number;
   declare over: Over | null;
-  /** The lane whose menu is open, by its place; -1 for none. */
-  declare menuAt: number;
+  /** The lane in hand, being shaped (A lane in hand), by its name; '' for none. */
+  declare inHand: string;
+  /** The width and the fold a handle's drag gives the lane in hand as it moves, made when it is let go; null for none. */
+  declare shaped: { width: number; collapsed: boolean } | null;
+  /** The handle being dragged: its pointer, its lane's edge, where it was pressed and the lane's width then, in rem. */
+  private grip: { id: number; edge: Edge; x: number; from: number; folded: boolean } | null = null;
   /** The card whose dialog is open; null for none. */
   declare opened: Opened | null;
   private readonly uid = `to-board-${++boards}`;
@@ -417,7 +455,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.renaming = -1;
     this.laneError = '';
     this.over = null;
-    this.menuAt = -1;
+    this.inHand = '';
+    this.shaped = null;
     this.opened = null;
   }
   connectedCallback() {
@@ -445,6 +484,9 @@ export class ToBoardEditor extends DocElement<BoardView> {
     // On the window, capturing: before the rows controller, which hears the clipboard on the document.
     for (const type of UNCHANGED) window.addEventListener(type, this.onUnchanged, true);
     for (const type of ['docundo', 'docredo']) this.addEventListener(type, this.onHistory, true);
+    // On the document, capturing: a press or the focus anywhere outside the lane in hand lets it go.
+    for (const type of ['pointerdown', 'focusin']) document.addEventListener(type, this.onAway, true);
+    this.addEventListener('keydown', this.onHandKey, true);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -464,6 +506,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.removeEventListener('keydown', this.onKept, true);
     for (const type of UNCHANGED) window.removeEventListener(type, this.onUnchanged, true);
     for (const type of ['docundo', 'docredo']) this.removeEventListener(type, this.onHistory, true);
+    for (const type of ['pointerdown', 'focusin']) document.removeEventListener(type, this.onAway, true);
+    this.removeEventListener('keydown', this.onHandKey, true);
     this.stop();
   }
 
@@ -828,6 +872,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     }
     this.drafts.delete(key);
     [this.renaming, this.laneError] = [-1, refused];
+    // The lane in hand stays in hand by its new name (a page's own lanes, once it has renamed it).
+    if (!refused && this.inHand === l.name) this.inHand = name;
     if (!refused && name !== l.name && this.tell('lanerename', { from: l.name, to: name })) this.edit(renameLane(this.doc, l.name, name));
     this.requestUpdate();
     return true;
@@ -888,7 +934,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     if (!to || !this.contains(to)) this.cur = -1;
   };
 
-  /* ---------- the bar and a lane's menu ---------- */
+  /* ---------- the bar and a lane's own ---------- */
 
   /** Insert ▾ Card: an empty card after the one in hand (the last chosen, or the caret's), else at the end of the lane in hand or the first. */
   insertCard() {
@@ -928,111 +974,241 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.edit(addLane(this.doc, name, at));
     this.startRename(this.view.lanes.findIndex((l) => l.name === name));
   }
-  /** The lane menu's Rename lane. */
-  renameMenuLane() {
-    if (this.menuLane) this.startRename(this.menuAt);
+  /** Rename lane: the lane in hand's name (else the caret's lane's) a field, the lane in hand. */
+  renameHandLane() {
+    const i = this.handAt;
+    if (!this.handLane) return;
+    this.shape(i);
+    this.startRename(i);
   }
   /** The hand-off: the same table, opened in the Spreadsheet in a tab of its own, where the page says documents open. */
   openInSheet() {
     window.open(host.link('sheet', write(this.doc)), '_blank', 'noopener');
   }
-  /** The lane whose menu is open. */
-  get menuLane(): Lane | undefined {
-    return this.view.lanes[this.menuAt];
+  /** The place of the lane in hand; -1 for none. */
+  get shaping(): number {
+    return this.inHand ? this.view.lanes.findIndex((l) => l.name === this.inHand) : -1;
+  }
+  /** Where a lane's own command acts: the lane in hand, else the lane the caret is in (its name or a card); -1 for none. */
+  get handAt(): number {
+    const i = this.shaping;
+    return i >= 0 ? i : this.curLane;
+  }
+  /** The lane a lane's own command acts on (`handAt`). */
+  get handLane(): Lane | undefined {
+    return this.view.lanes[this.handAt];
   }
   laneCanMove(by: -1 | 1): boolean {
-    const l = this.menuLane;
-    return !!l && !!l.name && !!this.view.lanes[this.menuAt + by]?.name;
+    const l = this.handLane;
+    return !!l && !!l.name && !!this.view.lanes[this.handAt + by]?.name;
   }
-  moveMenuLane(by: -1 | 1) {
-    const l = this.menuLane;
+  /** Move left, Move right: the lane a place along, told first ("lanemove"); in hand, it stays in hand where it goes. */
+  moveHandLane(by: -1 | 1) {
+    const l = this.handLane;
     if (!l || !this.laneCanMove(by)) return;
     const at = this.view.lanes.filter((x) => x.name).indexOf(l);
     if (!this.tell('lanemove', { name: l.name, from: at, to: at + by })) return;
     this.edit(moveLane(this.doc, l.name, at + by));
-    this.menuAt = this.view.lanes.findIndex((x) => x.name === l.name);
   }
   /* ---------- a lane's look ---------- */
 
-  /** A lane's look: the page's answer (`laneLook`) over the document's `lane-looks:`, field by field; plain where neither says. */
+  /** A lane's look: the page's answer (`laneLook`) over the document's `lane-looks:`, field by field, its width as rem (a word of before read as model.ts `laneRem` reads it); plain where neither says. */
   lookOf(l: Lane): LaneLook {
     const own = l.name ? this.laneLook?.(l.name) : null;
     const look: LaneLook = { ...this.view.looks[l.name], ...own };
     for (const k of Object.keys(look) as (keyof LaneLook)[]) if (look[k] === undefined || look[k] === null) delete look[k];
+    const width = laneRem(look.width);
+    if (width === undefined) delete look.width;
+    else look.width = width;
     return look;
   }
   /** A lane's tone, drawn as `data-tone`: the page's kind (`laneTone`) where it says one, else the look's color. */
   private toneOf(l: Lane): string | null {
     return (l.name && this.laneTone?.(l.name)) || this.lookOf(l).color || null;
   }
-  /** The look of the lane whose menu is open; plain where none is. */
-  menuLook(): LaneLook {
-    const l = this.menuLane;
+  /** The look of the lane a lane's own command acts on (`handLane`); plain where there is none. */
+  handLook(): LaneLook {
+    const l = this.handLane;
     return l ? this.lookOf(l) : {};
   }
-  /** Narrow lane, Widen lane: the lane a step along the widths (narrow, normal, wide); nothing past the ends. */
-  sizeMenuLane(by: -1 | 1) {
-    if (!this.menuLane) return;
-    const width = LANE_WIDTHS[LANE_WIDTHS.indexOf(this.menuLook().width ?? 'normal') + by];
-    if (width) this.setLook(this.menuAt, { width });
+  /** The width of the lane a lane's own command acts on, in rem (`widthOf`). */
+  handWidth(): number {
+    return this.widthOf(this.handAt);
   }
-  /** Collapse lane, Expand lane: the lane a strip of its name and its count, or open again. */
-  foldMenuLane() {
-    if (this.menuLane) this.setLook(this.menuAt, { collapsed: !this.menuLook().collapsed });
+  /** Lane `i`'s width in rem: its look's, else as it is drawn (the page's width), else the normal 17. */
+  private widthOf(i: number): number {
+    const l = this.view.lanes[i];
+    const width = l ? this.lookOf(l).width : undefined;
+    if (typeof width === 'number') return width;
+    const box = this.querySelector<HTMLElement>(`.board-lane[data-lane="${i}"]:not([data-collapsed])`);
+    const px = box?.getBoundingClientRect().width ?? 0;
+    return px ? px / remPx() : LANE_REM.normal;
   }
-  /** Lane color…: a menu of the palette beside the lane's menu button, the lane's color checked. */
-  async colorMenu() {
-    const i = this.menuAt;
-    await this.updateComplete;
-    const menu = this.querySelector<ToMenu>('to-menu.board-color-menu');
-    const from = this.querySelector<HTMLElement>(`.board-lane[data-lane="${i}"] .board-more`);
-    if (!menu || !from) return;
-    await menu.updateComplete;
-    menu.openAt(from);
-  }
-  /** The palette, for Lane color…: no color, then each color with its swatch, the lane's checked. */
-  private colorItems(): MenuItem[] {
-    const have = this.menuLook().color ?? '';
-    return [
-      { label: t('board-no-color'), checked: !have, does: () => this.setLook(this.menuAt, { color: '' }) },
-      ...LANE_COLORS.map((c) => ({ label: COLOR_NAMES[c]?.() ?? c, swatch: SWATCHES[c], checked: have === c, does: () => this.setLook(this.menuAt, { color: c }) })),
-    ];
+  /** Narrow lane, Widen lane: the lane a step narrower or wider (`resize`). */
+  sizeHandLane(by: -1 | 1) {
+    if (this.handLane) this.resize(this.handAt, by * STEP_REM);
   }
   /**
-   * Lane `i`'s look changed by `change` (its fields over the look it has; a width normal, collapsed false or a color ''
-   * takes that away): told first ("lanelook", the look it would then have, whole), then written into the head's
-   * `lane-looks:` (model.ts `setLaneLook`), unless the page refuses it or makes it itself.
+   * Lane `i` `by` rem wider (narrower where it is less than 0), as the keys and the commands change it: no narrower
+   * than the least (a width under the snap is the least, and from the least a step wider is the snap), no wider than the
+   * most; a folded lane is opened at the least by a step wider, and is never folded by one narrower.
+   */
+  private resize(i: number, by: number) {
+    const l = this.view.lanes[i];
+    if (!l?.name) return;
+    if (this.lookOf(l).collapsed) {
+      if (by > 0) this.setLook(i, { collapsed: false, width: LANE_MIN });
+      return;
+    }
+    const rem = this.widthOf(i) + by;
+    this.setLook(i, { width: shapedLook(by > 0 ? Math.max(rem, LANE_SNAP) : Math.max(rem, LANE_MIN)).width });
+  }
+  /** Collapse lane, Expand lane: the lane a strip of its name and its count, or open again. */
+  foldHandLane() {
+    if (this.handLane) this.setLook(this.handAt, { collapsed: !this.handLook().collapsed });
+  }
+  /** Lane color…: the lane put in hand, the focus on its dot of the color it has, the dots its colors. */
+  async colorHandLane() {
+    const i = this.handAt;
+    if (!this.handLane) return;
+    if (this.lookOf(this.handLane).collapsed) this.setLook(i, { collapsed: false });
+    this.shape(i);
+    await this.updateComplete;
+    const dots = this.querySelector<HTMLElement>(`.board-lane[data-lane="${i}"] .board-dots`);
+    (dots?.querySelector<HTMLElement>('[aria-pressed="true"]') ?? dots?.querySelector<HTMLElement>('button'))?.focus({ preventScroll: true });
+  }
+  /**
+   * Lane `i`'s look changed by `change` (its fields over the look it has; a width of none or `normal`, collapsed false or
+   * a color '' takes that away): told first ("lanelook", the look it would then have, whole, its width a number of rem),
+   * then written into the head's `lane-looks:` (model.ts `setLaneLook`), unless the page refuses it or makes it itself.
    */
   setLook(i: number, change: LaneLook) {
     const l = this.view.lanes[i];
     if (!l?.name) return;
     const next = { ...this.lookOf(l), ...change };
     const look: LaneLook = {};
-    if (next.width && next.width !== 'normal') look.width = next.width;
+    const width = laneRem(next.width);
+    if (width !== undefined) look.width = width;
     if (next.collapsed) look.collapsed = true;
     if (next.color) look.color = next.color;
     if (!this.tell('lanelook', { name: l.name, look })) return;
     this.edit(setLaneLook(this.doc, l.name, look));
   }
 
-  deleteMenuLane() {
-    const l = this.menuLane;
+  deleteHandLane() {
+    const l = this.handLane;
     if (!l) return;
-    const i = this.menuAt;
+    const i = this.handAt;
     if (!this.tell('lanedelete', { name: l.name, cards: l.cards.length })) return;
     this.edit(removeLane(this.doc, l.name));
-    this.menuAt = -1;
+    this.unshape();
     const near = this.view.lanes[Math.min(i, this.view.lanes.length - 1)];
     if (near?.cards[0]) void this.focusTitle(near.cards[0].row, 'end');
     else if (near) void this.focusLane(this.view.lanes.indexOf(near));
     else void this.updateComplete.then(() => this.querySelector<HTMLElement>('to-insert button')?.focus({ preventScroll: true }));
   }
-  private async openMenu(i: number, from: HTMLElement) {
-    this.menuAt = i;
-    await this.updateComplete;
-    const menu = this.querySelector<ToMenu>('to-menu.board-menu');
-    await menu?.updateComplete;
-    menu?.openAt(from);
+
+  /* ---------- a lane in hand ---------- */
+
+  /** Lane `i` put in hand (`data-shaping`): its handles, its dots and its buttons drawn, and any other lane let go. Nothing where the lanes may not be changed, or for the lane of no name. */
+  shape(i: number) {
+    const l = this.view.lanes[i];
+    if (!this.lanesChange || !l?.name || this.inHand === l.name) return;
+    this.grip = null;
+    [this.inHand, this.shaped] = [l.name, null];
+  }
+  /** The lane in hand let go. Its every change was made as it came, so this ends the shaping and saves nothing. */
+  unshape() {
+    if (!this.inHand) return;
+    this.grip = null;
+    [this.inHand, this.shaped] = ['', null];
+  }
+  /** Whether `el` is the lane in hand's own: its head, its handles, what is said under its name; not its cards. */
+  private inHandHas(el: Element | null): boolean {
+    const box = this.querySelector<HTMLElement>(`.board-lane[data-lane="${this.shaping}"]`);
+    return !!el && !!box?.contains(el) && !el.closest('.board-cards, .board-none');
+  }
+  /** A press or the focus anywhere outside the lane in hand (the page, another lane, a card) lets it go. */
+  private onAway = (e: Event) => {
+    if (!this.inHand) return;
+    const el = e.composedPath()[0];
+    if (!this.inHandHas(el instanceof Element ? el : null)) this.unshape();
+  };
+  /** Escape lets the lane in hand go, unless its name is a field (whose Escape puts the name back) or a handle is being dragged (whose Escape puts the width back). */
+  private onHandKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || !this.inHand || e.isComposing || this.press) return;
+    if (this.grip) {
+      [this.grip, this.shaped] = [null, null];
+    } else if (this.renaming >= 0) return;
+    else this.unshape();
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  /** A double click on a lane's head puts it in hand; on its name, it renames it too. Not on its buttons, its dots or its handles, nor on its name while that is a field. */
+  private headDouble(e: MouseEvent, i: number) {
+    const el = e.target instanceof Element ? e.target : null;
+    if (!el || el.closest('button, [role="separator"]')) return;
+    const name = !!el.closest('.board-lane-name');
+    if (name && this.renaming === i) return;
+    this.shape(i);
+    if (name) this.startRename(i);
+  }
+  /** A finger's or a pen's tap on a lane's head puts it in hand (a press that carried the lane is no tap). */
+  private headTap(e: PointerEvent, i: number) {
+    if (e.pointerType === 'mouse' || this.press?.moved || this.renaming === i) return;
+    const el = e.target instanceof Element ? e.target : null;
+    if (!el || el.closest('button, [role="separator"]')) return;
+    this.shape(i);
+  }
+  /** Which way a pointer moving right takes an edge outward: right at the end and left at the start, mirrored where the language runs right to left. */
+  private outward(edge: Edge): 1 | -1 {
+    const rtl = getComputedStyle(this).direction === 'rtl';
+    return (edge === 'end') !== rtl ? 1 : -1;
+  }
+  /** A handle pressed: the pointer the handle's until it is let go, the lane's width then (a folded lane's its strip's). */
+  private gripDown(e: PointerEvent, i: number, edge: Edge) {
+    if (e.button !== 0 || !e.isPrimary) return;
+    const l = this.view.lanes[i];
+    const box = this.querySelector<HTMLElement>(`.board-lane[data-lane="${i}"]`);
+    if (!l || !box) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const folded = !!this.lookOf(l).collapsed;
+    this.grip = { id: e.pointerId, edge, x: e.clientX, from: folded ? box.getBoundingClientRect().width / remPx() : this.widthOf(i), folded };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // A pointer that is not really down (a test's) cannot be captured; the handle hears it as long as it is over it.
+    }
+  }
+  /** A handle dragged: the lane drawn as wide as the pointer makes it, snapped to the least, folded under the fold (model.ts `shapedLook`). */
+  private gripMove(e: PointerEvent) {
+    const g = this.grip;
+    if (!g || e.pointerId !== g.id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const next = shapedLook(g.from + (this.outward(g.edge) * (e.clientX - g.x)) / remPx(), g.folded);
+    if (this.shaped?.width !== next.width || this.shaped.collapsed !== next.collapsed) this.shaped = next;
+  }
+  /** A handle let go: the width (and the fold) it gave the lane made, as any look is (`setLook`). */
+  private gripUp(e: PointerEvent, i: number) {
+    const g = this.grip;
+    if (!g || e.pointerId !== g.id) return;
+    e.stopPropagation();
+    const next = this.shaped;
+    [this.grip, this.shaped] = [null, null];
+    const l = this.view.lanes[i];
+    const was = l ? this.lookOf(l) : null;
+    // Let go where it was (folded still, or the width it had): nothing changes, and nothing is told.
+    if (!next || !was || (next.collapsed ? !!was.collapsed : !was.collapsed && was.width === next.width)) return;
+    this.setLook(i, next.collapsed ? { collapsed: true } : { width: next.width, collapsed: false });
+  }
+  /** A handle's keys: Left and Right a rem narrower or wider, as the edge moves on the screen. */
+  private gripKey(e: KeyboardEvent, i: number, edge: Edge) {
+    if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.resize(i, (e.key === 'ArrowRight' ? 1 : -1) * this.outward(edge) * KEY_REM);
   }
 
   /* ---------- cards chosen whole (the kit's Rows) ---------- */
@@ -1365,14 +1541,14 @@ export class ToBoardEditor extends DocElement<BoardView> {
   }
   /**
    * A press on a card, outside its controls and outside words being typed: it may carry the card (`move`), or be a
-   * click (`cardTap`). A press on a lane's head, outside its menu and its name while that is a field: it may carry the
-   * lane, where lanes may be changed.
+   * click (`cardTap`). A press on a lane's head, outside its buttons, its dots and its name while that is a field: it
+   * may carry the lane, where lanes may be changed. A lane's handles are their own (`gripDown`).
    */
   private down = (e: PointerEvent) => {
     if (this.laneError && this.renaming < 0) this.laneError = '';
     if (e.button !== 0 || !e.isPrimary || this.readOnly || this.press) return;
     const el = e.target instanceof Element ? e.target : null;
-    if (!el || el.closest('button, a[href], input, select, textarea, [popover], dialog') || this.typing(el)) return;
+    if (!el || el.closest('button, a[href], input, select, textarea, [popover], dialog, [role="separator"]') || this.typing(el)) return;
     const box = el.closest<HTMLElement>('.board-card');
     const head = box ? null : el.closest<HTMLElement>('.board-head');
     const lane = head ? Number(head.closest<HTMLElement>('.board-lane')?.dataset.lane) : -1;
@@ -1794,18 +1970,29 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const money = moneyColumn(this.view);
     const renaming = this.renaming === i;
     const sum = money >= 0 ? moneyShort(laneSum(this.view, i, money), this.currencyOf(money)) : '';
-    const look = this.lookOf(l);
+    const inHand = this.shaping === i;
+    // In hand, a handle's drag draws the lane as it moves, over the look it has.
+    const look = inHand && this.shaped ? { ...this.lookOf(l), ...this.shaped } : this.lookOf(l);
+    const width = typeof look.width === 'number' && !look.collapsed ? look.width : undefined;
     const tone = this.toneOf(l);
     const count = html`<span class="board-count" aria-label=${t('board-n-cards', { n: l.cards.length })}>${l.cards.length}</span>`;
-    // Collapsed, the lane is a strip: its name and its count on a button that opens it, and its menu.
+    // Collapsed, the lane is a strip: its name and its count on a button that opens it, and in hand its buttons.
     const head = look.collapsed
       ? html`<header class="board-head folded" @focusin=${() => (this.curLane = i)}>
           <button type="button" class="board-unfold" title=${t('board-expand-lane')} @click=${() => this.setLook(i, { collapsed: false })}>
             <span class="board-folded-name">${l.name || t('board-lane')}</span>${count}
           </button>
-          ${this.lanesChange ? this.laneMore(l, i) : nothing}
+          ${inHand ? this.handTools() : nothing}
         </header>`
-      : html`<header class="board-head ${renaming ? 'renaming' : ''} ${this.laneCarries(i) ? 'carries' : ''}" ?readonly=${!renaming} @focusin=${() => (this.curLane = i)} @keydown=${(e: KeyboardEvent) => this.laneKey(e, i)}>
+      : html`<header
+          class="board-head ${renaming ? 'renaming' : ''} ${this.laneCarries(i) ? 'carries' : ''}"
+          ?readonly=${!renaming}
+          @focusin=${() => (this.curLane = i)}
+          @keydown=${(e: KeyboardEvent) => this.laneKey(e, i)}
+          @dblclick=${(e: MouseEvent) => this.headDouble(e, i)}
+          @pointerup=${(e: PointerEvent) => this.headTap(e, i)}
+        >
+        ${inHand ? this.dots(l, i, look) : nothing}
         <to-text
           class="board-lane-name"
           shape="line"
@@ -1814,7 +2001,6 @@ export class ToBoardEditor extends DocElement<BoardView> {
           label=${renaming ? t('board-lane-name') : l.name || t('board-lane')}
           title=${this.lanesChange && !renaming ? this.renameHint() : nothing}
           placeholder=${t('board-lane-name')}
-          @dblclick=${() => this.renaming !== i && this.startRename(i)}
           @pointerup=${(e: PointerEvent) => this.laneTap(e, i)}
           @text-ops=${(e: CustomEvent<TextOps>) => this.onLaneOps(e, l)}
           @text-enter=${(e: Event) => (e.stopPropagation(), this.laneEnter(l, i))}
@@ -1823,18 +2009,21 @@ export class ToBoardEditor extends DocElement<BoardView> {
           @text-selectall=${(e: Event) => e.stopPropagation()}
         ></to-text>
         ${count}
-        ${this.lanesChange ? this.laneMore(l, i) : nothing}
+        ${inHand ? this.handTools() : nothing}
         ${sum ? html`<span class="board-sum" title=${t('board-lane-total', { sum })}><span class="sr-only">${t('board-lane-total', { sum })}</span><span aria-hidden="true">${sum}</span></span>` : nothing}
       </header>`;
     return html`<section
       class="board-lane ${slot >= 0 ? 'over' : ''} ${i === this.carryingLane ? 'carried' : ''}"
       data-lane=${i}
       data-tone=${tone || nothing}
-      data-width=${look.width && look.width !== 'normal' ? look.width : nothing}
+      data-width=${width ?? nothing}
+      style=${width === undefined ? nothing : `--to-board-lane-w: ${width}rem`}
       ?data-collapsed=${!!look.collapsed}
+      ?data-shaping=${inHand}
       data-drop=${this.dropAt(i) ?? nothing}
       aria-label=${l.name || t('board-lane')}
     >
+      ${inHand ? this.handle(l, i, 'start', width) : nothing}
       ${head}
       ${this.laneError && this.errorAt === i ? html`<p class="board-lane-error" role="alert">${this.laneError}</p>` : nothing}
       ${
@@ -1849,7 +2038,55 @@ export class ToBoardEditor extends DocElement<BoardView> {
           : nothing
       }
       ${l.cards.some((c) => c.row !== this.carrying) || slot >= 0 ? nothing : html`<p class="to-hint board-none">${t('board-no-cards')}</p>`}
+      ${inHand ? this.handle(l, i, 'end', width) : nothing}
     </section>`;
+  }
+  /** One of the lane in hand's handles, at its start or its end: a separator a pointer drags and the arrow keys move, its width in rem its value (none while it is folded). */
+  private handle(l: Lane, i: number, edge: Edge, width: number | undefined) {
+    const now = width ?? (this.lookOf(l).collapsed ? undefined : Math.round(this.widthOf(i)));
+    return html`<div
+      class="board-handle"
+      data-edge=${edge}
+      role="separator"
+      aria-orientation="vertical"
+      tabindex="0"
+      aria-label=${edge === 'start' ? t('board-lane-start-edge', { lane: l.name }) : t('board-lane-end-edge', { lane: l.name })}
+      aria-valuemin=${LANE_MIN}
+      aria-valuemax=${LANE_MAX}
+      aria-valuenow=${now ?? nothing}
+      @pointerdown=${(e: PointerEvent) => this.gripDown(e, i, edge)}
+      @pointermove=${(e: PointerEvent) => this.gripMove(e)}
+      @pointerup=${(e: PointerEvent) => this.gripUp(e, i)}
+      @pointercancel=${() => ([this.grip, this.shaped] = [null, null])}
+      @keydown=${(e: KeyboardEvent) => this.gripKey(e, i, edge)}
+    ></div>`;
+  }
+  /** The lane in hand's dots, along the top of its head: no color, then each of the palette's, the lane's own ringed (pressed); a tap colors the lane. */
+  private dots(l: Lane, i: number, look: LaneLook) {
+    const have = look.color ?? '';
+    const dot = (color: string, label: string) =>
+      html`<button
+        type="button"
+        class="board-dot"
+        data-color=${color || nothing}
+        style=${SWATCHES[color] ? `--to-board-dot: ${SWATCHES[color]}` : nothing}
+        aria-label=${label}
+        title=${label}
+        aria-pressed=${String(have === color)}
+        @click=${() => this.setLook(i, { color })}
+      ></button>`;
+    return html`<div class="board-dots" role="group" aria-label=${t('board-colors-of-lane', { lane: l.name })}>
+      ${dot('', t('board-no-color'))}${LANE_COLORS.map((c) => dot(c, COLOR_NAMES[c]?.() ?? c))}
+    </div>`;
+  }
+  /** The lane in hand's buttons, where a lane had its menu: Move left, Move right, Add a card (where cards are added) and Delete lane, each its command (commands.ts). */
+  private handTools() {
+    return html`<span class="board-hand-tools">${HAND_TOOLS.map((id) =>
+      cmdTool(
+        BOARD.find((c) => c.id === id)!,
+        this,
+      ),
+    )}</span>`;
   }
   /**
    * Carried only, the bar under chosen cards (the rows controller's, which shows it): what carries them, Move up, Move
@@ -1865,12 +2102,6 @@ export class ToBoardEditor extends DocElement<BoardView> {
       { label: t('common-copy'), icon: Copy, keys: 'Mod+C', does: () => this.rows.copyOut(false) },
     ];
     return html`<to-context class="to-rows-context board-context" .label=${t('board-chosen-cards')} .items=${items}></to-context>`;
-  }
-  /** A lane's menu's button: Rename lane, Add a card, Move left, Move right, Delete lane. */
-  private laneMore(l: Lane, i: number) {
-    return html`<button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('board-options-for-lane', { lane: l.name || '–' })} title=${t('board-lane-options')} @click=${(e: Event) => void this.openMenu(i, e.currentTarget as HTMLElement)}>
-          ${icon(Ellipsis, 18)}
-        </button>`;
   }
   render() {
     const v = this.view;
@@ -1892,13 +2123,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
         ${this.lanesChange ? html`<button type="button" class="to-btn board-add-lane" @click=${() => this.insertLane(true)}>${icon(UI.plus, 18)}<span>${t('board-add-lane')}</span></button>` : nothing}
       </div>
       ${this.carryOnly ? this.carriedContext() : this.rows.renderContext()}
-      ${
-        !this.lanesChange
-          ? nothing
-          : html`<to-menu class="board-menu" .label=${this.menuLane ? t('board-options-for-lane', { lane: this.menuLane.name || '–' }) : t('board-lane-options')} .items=${drawnIn(BOARD, 'menu:lane', this)}></to-menu>`
-      }
       <to-menu class="board-moveto" .label=${t('board-move-to')} .items=${this.moveToItems()}></to-menu>
-      ${this.lanesChange ? html`<to-menu class="board-color-menu" .label=${t('board-lane-color')} .items=${this.colorItems()}></to-menu>` : nothing}
       ${this.renderDialog()}`;
   }
 }

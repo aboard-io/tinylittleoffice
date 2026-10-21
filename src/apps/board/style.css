@@ -2,7 +2,10 @@
    column holds; where the board is narrower than two lanes (a phone, or the size of everything grown by a pinch: the
    container's rem is the root's, so it follows the size) they stack, a lane the column's width, so the words reflow and
    the page never scrolls sideways. A lane is a tinted panel: its name (a heading, a field while it is renamed), its
-   count, its menu and, under them, the sum of its amounts; then its cards.
+   count and, under them, the sum of its amounts; then its cards. A lane in hand (data-shaping) is outlined, a handle
+   along its start and its end (a thin line, thicker under the pointer or while dragged; none where the lanes stack, a
+   width meaning nothing there), a row of color dots along the top of its head, the lane's own ringed, and small
+   buttons where its count ends.
 
    A card is a small sheet with one order of reading (Paul, 2026-10-18: "badly designed with poor type and information
    hierarchy"): its title first, the largest and the heaviest; the line under it (a deal's company) in a second ink;
@@ -18,8 +21,8 @@
    is; the layers' order is said first, the same order editors.css gives them, so the cascade is the same whichever of
    the two the page loads first and a page's own rules outside a layer outrank both. A page that gives its lanes a
    height of their own sets --to-board-lane-h; a lane's cards then scroll inside it. A page that gives every lane a
-   width of its own sets --to-board-lane-w (17rem unless it does); a lane's own look (data-width: narrow, wide) sets it
-   on the lane, a collapsed lane (data-collapsed) is a strip of its name written downward and its count, and a lane or
+   width of its own sets --to-board-lane-w (17rem unless it does); a lane's own look (data-width, a number of rem) sets
+   it on the lane, a collapsed lane (data-collapsed) is a strip of its name written downward and its count, and a lane or
    a card given one of the palette's colors (data-tone: blue, green, amber, red, violet, teal, gray) is tinted in it,
    the lane as a won lane is tinted in the success color, the card lightly with a rule along its start. A lane carried
    by its head is dimmed where it stands, and a rule beside another lane (data-drop) says where it would land. */
@@ -61,12 +64,85 @@
   .board-lane.over {
     border-color: var(--to-accent);
   }
-  /* A lane's width, as its look says: narrow, wide; normal is the page's token. */
-  .board-lane[data-width='narrow'] {
-    --to-board-lane-w: 11rem;
+  /* A lane in hand, being shaped: outlined, its handles and its dots drawn. */
+  .board-lane[data-shaping] {
+    border-color: var(--to-accent);
+    box-shadow: 0 0 0 1px var(--to-accent);
   }
-  .board-lane[data-width='wide'] {
-    --to-board-lane-w: 24rem;
+  /* Its handles: a strip its height along each edge, a thin line in it, thicker under the pointer, while dragged and focused. */
+  .board-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 0.875rem;
+    cursor: ew-resize;
+    touch-action: none;
+  }
+  .board-handle[data-edge='start'] {
+    inset-inline-start: -0.4375rem;
+  }
+  .board-handle[data-edge='end'] {
+    inset-inline-end: -0.4375rem;
+  }
+  .board-handle::after {
+    content: '';
+    position: absolute;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    inset-inline-start: calc(50% - 0.0625rem);
+    width: 0.125rem;
+    background: var(--to-accent);
+    border-radius: var(--to-radius-pill);
+  }
+  .board-handle:is(:hover, :active, :focus-visible)::after {
+    inset-inline-start: calc(50% - 0.1875rem);
+    width: 0.375rem;
+  }
+  .board-handle:focus-visible {
+    outline: none;
+  }
+  /* Its dots, along the top of its head: no color (an empty ring), then the palette's; the lane's own ringed. */
+  .board-dots {
+    display: flex;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.125rem 0.25rem 0.25rem;
+  }
+  .board-dot {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    background: var(--to-board-dot, var(--to-surface));
+    border: 1px solid var(--to-border);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .board-dot[aria-pressed='true'] {
+    box-shadow:
+      0 0 0 0.125rem var(--to-surface),
+      0 0 0 0.25rem var(--to-ink);
+  }
+  .board-dot:focus-visible {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: 0.25rem;
+  }
+  /* Its buttons, where its count ends. */
+  .board-hand-tools {
+    display: inline-flex;
+    flex-wrap: wrap;
+  }
+  .board-hand-tools .to-btn {
+    color: var(--to-ink-2);
+    background: none;
+    border-color: transparent;
+  }
+  .board-hand-tools .to-btn:hover {
+    color: var(--to-ink);
+  }
+  .board-head.folded .board-hand-tools {
+    flex-direction: column;
   }
   /* Collapsed: a strip as wide as its name written downward, its cards and its sum kept out of sight (drawn, so the keys and a drag still find them). */
   .board-lane[data-collapsed] {
@@ -238,14 +314,6 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius-pill);
-  }
-  .board-more {
-    color: var(--to-ink-3);
-    background: none;
-    border-color: transparent;
-  }
-  .board-more:hover {
-    color: var(--to-ink);
   }
   .board-sum {
     order: 3;
@@ -455,10 +523,8 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  /* The menus a lane's button and the bar under chosen cards open have no button of their own. */
-  .board-menu > button,
-  .board-moveto > button,
-  .board-color-menu > button {
+  /* The menu the bar under chosen cards opens has no button of its own. */
+  .board-moveto > button {
     display: none;
   }
   /* A card opened: its fields, a row each, its name before it. */
@@ -528,6 +594,18 @@
     }
     .board-lane {
       flex: none;
+    }
+    /* Stacked, a lane is the column's width: a lane in hand has no handles to change it. */
+    .board-handle {
+      display: none;
+    }
+    /* A phone's dots are a finger's. */
+    .board-dot {
+      width: var(--to-touch);
+      height: var(--to-touch);
+    }
+    .board-head.folded .board-hand-tools {
+      flex-direction: row;
     }
     .board-head.folded,
     .board-unfold {

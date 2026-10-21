@@ -24,9 +24,12 @@
  * the table's own order, whatever lanes it interleaves, so a table from the Spreadsheet is a board as it is.
  *
  * How a lane looks beside its cards is the head's `lane-looks:` (`LaneLook`): entries between commas, each a lane's
- * name, `=`, and the look's words, a width (`narrow` or `wide`; normal is said by nothing), `collapsed` (the lane
- * folded to a strip of its name and its count) and a color (one of the Board's palette, `LANE_COLORS`, or a tone of
- * the page's own), in any order: `lane-looks: Inbound=narrow, Lost=gray collapsed, Won=green wide`. A name is escaped
+ * name, `=`, and the look's words, a width (a number of rem, from `LANE_MIN` to `LANE_MAX`; the page's own width is
+ * said by nothing), `collapsed` (the lane folded to a strip of its name and its count) and a color (one of the Board's
+ * palette, `LANE_COLORS`, or a tone of the page's own), in any order: `lane-looks: Inbound=11, Lost=gray collapsed,
+ * Won=green 24`. A width was once a word, and a document written then still reads: `narrow` is 11, `wide` 24 and
+ * `normal` the page's own (`LANE_REM`); what is written is the number (Paul, 2026-10-21: a lane shaped by its handles,
+ * editor.ts, A lane in hand). A name is escaped
  * as `lanes:` escapes it, and an `=` in it `\=`. A lane with no entry looks as every lane does. `setLaneLook` writes
  * a lane's look whole, `renameLane` carries it to the new name and `removeLane` takes it away, so a look rides with
  * its lane through the kernel's undo and shared editing as `lanes:` does.
@@ -116,7 +119,7 @@ export interface Lane {
   name: string;
   cards: Card[];
 }
-/** How wide a lane is drawn: narrow, normal (every lane's, unless said) or wide. */
+/** A lane's width as it was once said, in words: narrow, normal (every lane's, unless said) or wide; read as `LANE_REM` says. */
 export type LaneWidth = 'narrow' | 'normal' | 'wide';
 /**
  * How a lane looks beside its cards (the head's `lane-looks:`, or a page's `laneLook`): its width, whether it is
@@ -124,7 +127,8 @@ export type LaneWidth = 'narrow' | 'normal' | 'wide';
  * of the page's own. A field left out is none: normal, open, no color.
  */
 export interface LaneLook {
-  width?: LaneWidth;
+  /** A number of rem (`laneRem` reads it); a word, from a document or a page of before, is read as `LANE_REM` says. */
+  width?: number | LaneWidth;
   collapsed?: boolean;
   color?: string;
 }
@@ -144,8 +148,32 @@ export interface BoardView {
 
 /** The colors a lane or a card may be given by name, each drawn by the Board's stylesheet; any other word is a tone of the page's own, drawn by its own rules. */
 export const LANE_COLORS: readonly string[] = ['blue', 'green', 'amber', 'red', 'violet', 'teal', 'gray'];
-/** The widths, narrowest first: a step along them is Narrow lane or Widen lane. */
-export const LANE_WIDTHS: readonly LaneWidth[] = ['narrow', 'normal', 'wide'];
+/** The words a width was once said in, as rem: what a document or a page written before a width was a number means by them. */
+export const LANE_REM: Readonly<Record<LaneWidth, number>> = { narrow: 11, normal: 17, wide: 24 };
+/** The least width an open lane is drawn at, and the most, in rem. */
+export const LANE_MIN = 8;
+export const LANE_MAX = 36;
+/** A lane shaped narrower than this (rem) snaps to `LANE_MIN`: there are no widths between. */
+export const LANE_SNAP = 10;
+/** A lane shaped narrower than this (rem) folds to its strip. */
+export const LANE_FOLD = 5;
+
+/** A width as rem: a number within `LANE_MIN` and `LANE_MAX`, whole; a word as `LANE_REM` says, `normal` none (the page's own); undefined for none or for anything else. */
+export function laneRem(width: unknown): number | undefined {
+  if (width === 'narrow' || width === 'wide') return LANE_REM[width];
+  const n = typeof width === 'number' ? width : typeof width === 'string' && /^\d+(\.\d+)?(rem)?$/i.test(width.trim()) ? parseFloat(width) : NaN;
+  return Number.isFinite(n) && n > 0 ? Math.min(LANE_MAX, Math.max(LANE_MIN, Math.round(n))) : undefined;
+}
+/**
+ * The look a hand gives a lane drawn `rem` wide by its handle: under `LANE_FOLD` it folds (and opens again at
+ * `LANE_MIN`); under `LANE_SNAP`, `LANE_MIN`; else the width, whole, no more than `LANE_MAX`. A folded lane (`folded`)
+ * stays folded until it is drawn out past `LANE_MIN`.
+ */
+export function shapedLook(rem: number, folded = false): { width: number; collapsed: boolean } {
+  if (rem < (folded ? LANE_MIN : LANE_FOLD)) return { width: LANE_MIN, collapsed: true };
+  if (rem < LANE_SNAP) return { width: LANE_MIN, collapsed: false };
+  return { width: Math.min(LANE_MAX, Math.round(rem)), collapsed: false };
+}
 
 const flat = (s: string | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();
 
@@ -189,23 +217,24 @@ function cut(v: string, sep: string): string[] {
 /** A backslash before a comma, an equals sign or a backslash taken away; elsewhere it is a letter of the name. */
 const unescaped = (s: string) => s.replace(/\\([\\,=])/g, '$1');
 
-/** Whether a look says nothing: normal width, open, no color. */
-export const plainLook = (look: LaneLook | null | undefined): boolean => !look || ((!look.width || look.width === 'normal') && !look.collapsed && !look.color);
-/** A look from its words: a width, "collapsed", a color, in any order and any case; a word that is none of these is passed over. */
+/** Whether a look says nothing: the page's width, open, no color. */
+export const plainLook = (look: LaneLook | null | undefined): boolean => !look || (laneRem(look.width) === undefined && !look.collapsed && !look.color);
+/** A look from its words: a width (a number of rem, or a word of before), "collapsed", a color, in any order and any case; a word that is none of these is passed over. */
 function lookOf(words: string): LaneLook {
   const look: LaneLook = {};
   for (const w of words.toLowerCase().split(/\s+/).filter(Boolean)) {
-    if (w === 'narrow' || w === 'wide') look.width = w;
+    const rem = laneRem(w);
+    if (rem !== undefined) look.width = rem;
     else if (w === 'normal') delete look.width;
     else if (w === 'collapsed') look.collapsed = true;
     else if (!look.color && /^[a-z][a-z0-9-]*$/.test(w)) look.color = w;
   }
   return look;
 }
-/** A look as its words: its width where not normal, "collapsed" where it is, its color; '' for a plain one. */
+/** A look as its words: its width as a number of rem where it has one, "collapsed" where it is, its color; '' for a plain one. */
 const lookWords = (look: LaneLook): string =>
   [
-    look.width && look.width !== 'normal' ? look.width : '',
+    String(laneRem(look.width) ?? ''),
     look.collapsed ? 'collapsed' : '',
     (look.color ?? '')
       .trim()

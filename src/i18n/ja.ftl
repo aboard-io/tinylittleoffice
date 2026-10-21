@@ -3396,10 +3396,6 @@ board-open-cards-in-spreadsheet = カードを表計算で開く
 board-card = カード
 # en: 8ccf7349a24f44599bb594439759d55772afee20
 board-lane = 列
-# en: 19ccf26dc8e702d98d74975dc1be88ac35befe92
-board-lane-options = 列のオプション
-# en: 7f51ca5da34a388508ed9fc5f8ac44c5562f5173
-board-options-for-lane = { $lane }のオプション
 # en: 5e8cce6827d0497950b63c967f9543df9fa8b1a4
 board-add-card = カードを追加
 # en: 9b16c4bcc3877580d2535eb47b42650501308935
@@ -3428,6 +3424,12 @@ board-violet = バイオレット
 board-teal = ティール
 # en: 4f9beff18cc6852b012093ba97421788466bb3bf
 board-gray = グレー
+# en: c52dd3a44c600625ec6d6e3a1dc3bcf7fecf50c8
+board-colors-of-lane = { $lane } の色
+# en: 580f671b9dca0b2766eb9f113b7fb73cc6567cf0
+board-lane-start-edge = { $lane } の始端
+# en: 446c3fc4f586750fcdcaa6ef32168d5a49d0ff1d
+board-lane-end-edge = { $lane } の終端
 # en: a5912ab4a43981f406eba8185371c4b3651e648b
 board-card-in-lane-beside = 前または次の列の隣のカード
 # en: a200dd9231cf71181960586345e66a1b8bb3e738

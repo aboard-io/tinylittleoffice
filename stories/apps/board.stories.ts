@@ -72,15 +72,15 @@ export const PipelineForAHost: AppStory = {
 };
 
 /**
- * The lanes' looks, from the document itself (the head's `lane-looks:`, model.ts): Inbound narrow, Negotiating wide
- * and amber, Won green, and Lost collapsed to a strip of its name and its count, which a tap opens; each lane's menu
- * changes them (Narrow lane, Widen lane, Collapse lane, Lane color…), told first as "lanelook" and written back into
- * the head. A card's look is the page's (`cardLook`): the deals closing soonest, within a month of the first, are
+ * The lanes' looks, from the document itself (the head's `lane-looks:`, model.ts): Inbound 11rem, Negotiating 24rem
+ * and amber, Won green, and Lost collapsed to a strip of its name and its count, which a tap opens; a lane put in hand
+ * (a double click or a tap on its head) changes them, its handles dragged to narrow, widen or fold it and its dots
+ * coloring it, each told first as "lanelook" and written back into the head. A card's look is the page's (`cardLook`): the deals closing soonest, within a month of the first, are
  * tinted amber. The story's play drags the Won lane left by its head, past Negotiating and Proposal, so it opens
  * with a lane dragged left (a "lanemove" in the Actions panel) and the rest to try by hand; a page whose stages are
  * its own records gives the looks with `laneLook(name)` instead, and hears "lanelook" with `own-lanes`.
  */
-const LOOKS = 'Inbound=narrow, Negotiating=wide amber, Won=green, Lost=collapsed gray';
+const LOOKS = 'Inbound=11, Negotiating=24 amber, Won=green, Lost=collapsed gray';
 const looked = (ctx: unknown): string => write(applyAll(parse(pipeline(ctx)), [{ op: 'head', key: 'lane-looks', value: LOOKS }]));
 /** The cards closing within a month of the one closing first, by the Close column's serial day: amber. */
 function soonest(view: BoardView): (card: Card) => { tone: string } | null {

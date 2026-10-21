@@ -735,7 +735,7 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
     title alone. Each lane shows its count and, where the table has a column of money, the sum of its first one
     (`moneyColumn`, `laneSum`).
   - **A lane renamed where it is drawn**: a double click on its name (a double tap under a finger: two taps on it
-    within 400ms and 24px), Enter or F2 on it, or its menu's Rename lane make it a field, its words chosen; Enter keeps
+    within 400ms and 24px), Enter or F2 on it, or Rename lane (the drawer's search) make it a field, its words chosen; Enter keeps
     it, Escape lets it go, the focus leaving keeps it, and a name that is empty or another lane's is refused and said
     under it (role=alert). The name's hint says the way that fits the device: "Double-click to rename" under a mouse,
     "Double-tap to rename" where the pointer is coarse and nothing hovers. `startRename(i)` does the same from a page's
@@ -749,26 +749,48 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
     top, lost quieter (a gray rule, its cards a little faded), neutral and none as any lane, and any other kind is the
     page's to draw by its own rules on `[data-tone]`. The palette below is drawn too: a kind named `blue`, `green`,
     `amber`, `red`, `violet`, `teal` or `gray` tints the lane in that color.
-  - **A lane's look** (`LaneLook`, from `tinylittleoffice/board/model`: `{ width?: 'narrow' | 'normal' | 'wide',
-    collapsed?: boolean, color?: string }`): its width (17rem unless the page sets `--to-board-lane-w` on the element;
-    narrow 11rem, wide 24rem), whether it is collapsed to a strip of its name written downward and its count (a tap on
-    the strip opens it), and its color, one of the palette (`LANE_COLORS`) or a tone of the page's own. It is the
-    document's, in the head's `lane-looks:` (`Inbound=narrow, Lost=gray collapsed, Won=green wide`, model.ts), under
-    the page's `laneLook` (a property: `(name) => LaneLook | null`) where that answers, field by field; `laneTone`
-    still wins for the color. Drawn as `data-width`, `data-collapsed` and `data-tone` on the lane. A lane's menu changes
-    it, Narrow lane, Widen lane, Collapse lane (Expand lane once it is), Lane color… (a menu of the palette, with
-    swatches), each told first as `lanelook` `{ name, look }`, the look the lane would then have, whole, and written into
+  - **A lane's look** (`LaneLook`, from `tinylittleoffice/board/model`: `{ width?: number | 'narrow' | 'normal' |
+    'wide', collapsed?: boolean, color?: string }`): its width, a number of rem from `LANE_MIN` (8) to `LANE_MAX` (36)
+    (17rem unless the page sets `--to-board-lane-w` on the element; the words of before still read, narrow 11, normal
+    the page's own and wide 24, `LANE_REM`, and `laneRem` reads any of them), whether it is collapsed to a strip of its
+    name written downward and its count (a tap on the strip opens it), and its color, one of the palette
+    (`LANE_COLORS`) or a tone of the page's own. It is the document's, in the head's `lane-looks:` (`Inbound=11,
+    Lost=gray collapsed, Won=green 24`, model.ts; a width is written as its number, a document of before read with its
+    words), under the page's `laneLook` (a property: `(name) => LaneLook | null`) where that answers, field by field;
+    `laneTone` still wins for the color. Drawn as `data-width` (the rem), `data-collapsed` and `data-tone` on the lane,
+    the width as `--to-board-lane-w` on it. A lane in hand changes it (below), and so do Narrow lane and Widen lane (a
+    step of 2rem), Collapse lane (Expand lane once it is) and Lane color… from the drawer's search; each is told first as
+    `lanelook` `{ name, look }`, the look the lane would then have, whole, its width a number, and written into
     `lane-looks:` unless the page makes it; the model's `setLaneLook(doc, name, look)` writes one, `boardDoc` takes the
     looks as its fourth argument, a rename carries a look to the new name and a delete takes it away, so it round-trips
     and syncs as `lanes:` does.
+  - **A lane in hand** (Paul, 2026-10-21: "Instead of a dropdown menu for the pipeline, when I double click or tap on
+    a column, make it reshapable with handles -- i can narrow or widen it, and it snaps to minimum size once it gets
+    below a threshold. Pop up color dots to pick on the top and make the title editable when I double click. When I tap
+    away or hit escape lock in the changes. Make them sticky across sessions on a browser."): a lane has no menu. A
+    double click on its head (anywhere but its name while that is a field), or a tap on it under a finger, puts it in
+    hand, `data-shaping` on it, one lane at a time, wherever a lane may be changed. In hand it has a handle along its
+    start and its end (`role="separator"`, its label "Start edge of Doing", its value the rem; Left and Right move it a
+    rem), which a pointer (a mouse, a pen or a finger) drags to narrow or widen the lane as it moves, made when it is
+    let go: no narrower than 8rem and no wider than 36rem, under 10rem it snaps to 8rem (`LANE_SNAP`), under 5rem it
+    folds to its strip (`LANE_FOLD`), and a folded lane's handle drawn out past 8rem opens it (`shapedLook`). Where the
+    lanes stack (the board narrower than two lanes) no handles are drawn, a width meaning nothing there. Along the top
+    of its head is a row of dots, no color and each of the palette's, the lane's own ringed, a tap coloring it at once;
+    a double click on its name renames it; and where its menu was are buttons for the rest, Move left, Move right, Add
+    a card (where cards are added) and Delete lane. Escape (no name being typed), or a press or the focus anywhere
+    outside its head (the page, another lane, a card), lets it go. Each change was made as it came, told and written as
+    any look is, so letting it go is the end of shaping it and saves nothing: a look is kept where the page keeps it,
+    the document's `lane-looks:`, or for a page that answers `laneLook` its own store (a CRM keeps a lane's width and
+    fold per browser).
   - **A card's look** (`cardLook`, a property: `(card) => CardLook | null`, CardLook `{ tone?: string }`): drawn on the
     card as `data-tone`; a palette color tints the card lightly with a rule along its start (a stale deal amber), and
     any other tone is the page's to draw.
   - **A lane dragged by its head**, wherever a lane may be changed (`own-lanes` too): a mouse's press on the head,
-    outside its menu and its name while that is a field, carries the lane once it has moved 6px (a double click still
-    renames); a finger's once held still 200ms and then moved. A ghost of the head follows the pointer, a rule beside
-    the lane it would land by says where (before it, or after the last), the board scrolls near its edges, Escape lets
-    it go, and let go it is a `lanemove` `{ name, from, to }`, as the menu's Move left and Move right tell one.
+    outside its buttons, its dots and its name while that is a field, carries the lane once it has moved 6px (a double
+    click still puts it in hand); a finger's once held still 200ms and then moved. A ghost of the head follows the
+    pointer, a rule beside the lane it would land by says where (before it, or after the last), the board scrolls near
+    its edges, Escape lets it go, and let go it is a `lanemove` `{ name, from, to }`, as a lane in hand's Move left and
+    Move right tell one.
   - **The bar on a phone**: where the board is narrower than 26rem the bar's count of cards goes (each lane says its
     own), so Insert, the Spreadsheet's button, Undo and Redo are all on the screen.
   - **A lane's change, told first** (`LaneEvents`, `LaneEvent`): before a lane is renamed, added, moved, deleted or
@@ -778,7 +800,7 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
     A page that refuses it calls `preventDefault()`, and nothing changes; a page that makes it through its own command
     (a CRM whose stages are its records) calls `preventDefault()`, runs its command and gives the board its new
     document. A page that makes every one of them sets `own-lanes` (`ownLanes`): the board tells them and makes none,
-    and offers them carried only too (each lane's menu, but Add a card, and Rename).
+    and offers them carried only too (a lane in hand, but Add a card, and Rename).
   - **A table of the same cards** is the page's (`<to-table>`, A typed table): `boardOf(doc)` gives its columns
     (`cols`, typed) and its cards, each with its row worked out (`Card.values`, a value a column: a number for money,
     a serial day for a date) and its row (`Card.row`, the id a table's row keeps); `setCell(doc, row, col, words)` is

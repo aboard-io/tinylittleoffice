@@ -22,6 +22,7 @@ import { page } from 'vitest/browser';
 import { applyAll, parse, write, type Op } from '../../../doc/index.ts';
 import { appOf } from '../../../kit/core/apps.ts';
 import { caret } from '../../../kit/text/textops.ts';
+import { labelOf } from '../../../kit/core/commands.ts';
 import { host } from '../../../kit/core/host.ts';
 import type { DocPick, Picked } from '../../../kit/core/element.ts';
 import type { ToDialog } from '../../../kit/ui/dialog.ts';
@@ -29,6 +30,7 @@ import type { ToText } from '../../../kit/text/text.ts';
 import type { ToBoardEditor } from '../editor.ts';
 import { install, registerBoard } from '../../../board.ts';
 import def from '../def.ts';
+import COMMANDS from '../commands.ts';
 import { moveCard } from '../model.ts';
 import { board, settle, tick, until, type Heard } from './page.ts';
 
@@ -341,6 +343,32 @@ async function rename(el: ToBoardEditor, i: number) {
   laneName(el, i).dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
   await settle(el);
 }
+/** Lane `i` put in hand as a person puts it: a double click on its head, outside its name (on its count). */
+async function hold(el: ToBoardEditor, i: number) {
+  lanes(el)
+    [i].querySelector<HTMLElement>('.board-head .board-count')!
+    .dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+  await settle(el);
+}
+/** The buttons of lane `i` in hand, where its menu was. */
+const handTools = (el: HTMLElement, i: number) => [...lanes(el)[i].querySelectorAll<HTMLButtonElement>('.board-hand-tools button')];
+const toolNames = (el: HTMLElement, i: number) => handTools(el, i).map((b) => b.getAttribute('aria-label'));
+/** Lane `i` put in hand and its button `label` pressed. */
+async function tool(el: ToBoardEditor, i: number, label: string) {
+  await hold(el, i);
+  const b = handTools(el, i).find((x) => x.getAttribute('aria-label') === label);
+  if (!b) throw new Error(`no button ${label} among ${toolNames(el, i).join(' | ')}`);
+  b.click();
+  await settle(el);
+}
+/** A lane's own command (commands.ts `board.lane.<id>`) run as the drawer's search runs it: on the lane in hand, else the caret's lane. */
+async function runLane(el: ToBoardEditor, id: string) {
+  const cmd = COMMANDS.find((c) => c.id === `board.lane.${id}`)!;
+  expect(!cmd.when || cmd.when(el), `${cmd.id} in force`).toBe(true);
+  await cmd.does(el);
+  await settle(el);
+}
+const shaping = (el: HTMLElement) => lanes(el).map((l) => l.hasAttribute('data-shaping'));
 
 test('a lane’s name is shown, and renamed where it is drawn: a double click, Enter or F2 make it a field; Enter keeps it (its cards’ cells and lanes:), Escape lets it go', async () => {
   const { el, last } = await editor();
@@ -427,15 +455,14 @@ test('a lane’s change is told first, and a page refuses it or makes it itself:
       expect(e.bubbles && e.cancelable).toBe(true);
       if (refuse) e.preventDefault();
     });
-  const menu = (i: number) => lanes(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
   // Refused, each: the board as it was.
   await rename(el, 1);
   await type(el, () => laneName(el, 1), 'Active');
   input(laneName(el, 1), 'insertParagraph');
   await settle(el);
   expect(said(laneName(el, 1))).toBe('Doing');
-  await pick(el, menu(0), 'Move right');
-  await pick(el, menu(2), 'Delete lane');
+  await tool(el, 0, 'Move right');
+  await tool(el, 2, 'Delete lane');
   await caretIn(el, title(el, 1, 0));
   await pick(el, el.querySelector<HTMLButtonElement>('to-insert > button')!, 'Lane');
   expect(heard).toStrictEqual([
@@ -452,14 +479,14 @@ test('a lane’s change is told first, and a page refuses it or makes it itself:
   await type(el, () => laneName(el, 1), 'Active');
   input(laneName(el, 1), 'insertParagraph');
   await settle(el);
-  await pick(el, menu(0), 'Move right');
+  await tool(el, 0, 'Move right');
   expect(drawn(el).map(([n]) => n)).toEqual(['Active', 'To do', 'Done']);
   expect(heard.at(-1)).toStrictEqual(['lanemove', { name: 'To do', from: 0, to: 1 }]);
   // own-lanes: told, never made here; the page gives the board its new document.
   el.ownLanes = true;
   await settle(el);
   const before = last();
-  await pick(el, menu(2), 'Delete lane');
+  await tool(el, 2, 'Delete lane');
   await rename(el, 0);
   await type(el, () => laneName(el, 0), 'Live');
   input(laneName(el, 0), 'insertParagraph');
@@ -472,23 +499,25 @@ test('a lane’s change is told first, and a page refuses it or makes it itself:
   expect(drawn(el).map(([n]) => n)).toEqual(['Active', 'To do', 'Done']);
 });
 
-test('carried only, a page that makes its lanes’ changes (own-lanes) has them offered and told: Rename and a lane’s menu, no card added, nothing changed here', async () => {
+test('carried only, a page that makes its lanes’ changes (own-lanes) has them offered and told: Rename and a lane in hand, no card added, nothing changed here', async () => {
   const { el, heard } = await editor();
   const told: unknown[] = [];
   el.addEventListener('lanerename', (e) => told.push((e as CustomEvent).detail));
   Object.assign(el, { carryOnly: true });
   await settle(el);
-  expect(el.querySelector('.board-more')).toBeNull();
+  await hold(el, 1);
+  expect(shaping(el)).toEqual([false, false, false]);
   await rename(el, 1);
   expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('false');
   el.ownLanes = true;
   await settle(el);
-  expect(el.querySelectorAll('.board-more')).toHaveLength(3);
-  lanes(el)[1].querySelector<HTMLButtonElement>('.board-more')!.click();
-  await until(() => !!document.querySelector('[popover]:popover-open'));
-  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
-  expect(items).toEqual(['Rename lane', 'Move left', 'Move right', 'Narrow lane', 'Widen lane', 'Collapse lane', 'Lane color…', 'Delete lane']);
-  (document.querySelector('[popover]:popover-open') as HTMLElement).hidePopover();
+  await hold(el, 1);
+  expect(shaping(el)).toEqual([false, true, false]);
+  expect(toolNames(el, 1)).toEqual(['Move left', 'Move right', 'Delete lane']);
+  expect(lanes(el)[1].querySelectorAll('.board-dots button')).toHaveLength(8);
+  // The rest of a lane's own are the drawer's search's: in force on the lane in hand, Add a card not among them.
+  const offered = COMMANDS.filter((c) => c.id.startsWith('board.lane.') && c.id !== 'board.lane.new' && (!c.when || c.when(el))).map((c) => c.id);
+  expect(offered).toEqual(['board.lane.rename', 'board.lane.left', 'board.lane.right', 'board.lane.narrow', 'board.lane.widen', 'board.lane.collapse', 'board.lane.color', 'board.lane.delete']);
   await rename(el, 1);
   expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('true');
   await type(el, () => laneName(el, 1), 'Active');
@@ -499,7 +528,7 @@ test('carried only, a page that makes its lanes’ changes (own-lanes) has them 
   expect(el.value).toBe(BOARD);
 });
 
-test('Insert ▾ a card after the one in hand and a lane after the one in hand; a lane’s menu adds, moves and deletes', async () => {
+test('Insert ▾ a card after the one in hand and a lane after the one in hand; a lane in hand adds, moves and deletes', async () => {
   const { el, last } = await editor();
   const insert = () => el.querySelector<HTMLButtonElement>('to-insert > button')!;
   await caretIn(el, title(el, 1, 0));
@@ -521,14 +550,18 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   expect(document.activeElement).toBe(laneName(el, 2).tx);
   key(laneName(el, 2).tx, 'Escape');
   await settle(el);
-  const menu = (i: number) => lanes(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
-  expect(menu(2).getAttribute('aria-label')).toBe('Options for New lane');
-  await pick(el, menu(2), 'Move right');
+  await hold(el, 2);
+  expect(toolNames(el, 2)).toEqual(['Move left', 'Move right', 'Add a card', 'Delete lane']);
+  for (const b of handTools(el, 2)) expect(b.title).toBe(b.getAttribute('aria-label'));
+  // Moved, it stays in hand where it goes.
+  await tool(el, 2, 'Move right');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done', 'New lane']);
-  await pick(el, menu(3), 'Move left');
+  expect(shaping(el)).toEqual([false, false, false, true]);
+  expect(handTools(el, 3).find((b) => b.getAttribute('aria-label') === 'Move right')!.disabled).toBe(true);
+  await tool(el, 3, 'Move left');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'New lane', 'Done']);
-  // Rename lane: the name where it is drawn, chosen whole, so typing replaces it; kept on Enter.
-  await pick(el, menu(2), 'Rename lane');
+  // Rename lane (the drawer's search): the name where it is drawn, chosen whole, so typing replaces it; kept on Enter, the lane still in hand.
+  await runLane(el, 'rename');
   expect(document.activeElement).toBe(laneName(el, 2).tx);
   expect(laneName(el, 2).sel).toMatchObject({ anchor: { offset: 0 }, focus: { offset: 8 } });
   input(laneName(el, 2), 'insertText', 'Review');
@@ -539,10 +572,13 @@ test('Insert ▾ a card after the one in hand and a lane after the one in hand; 
   // Kept, the name is shown and has the focus.
   expect(document.activeElement).toBe(laneName(el, 2).tx);
   expect(drawn(el)[2]).toEqual(['Review', []]);
-  await pick(el, menu(2), 'Add a card');
+  expect(shaping(el)).toEqual([false, false, true, false]);
+  await tool(el, 2, 'Add a card');
   expect(drawn(el)[2]).toEqual(['Review', ['']]);
   expect(document.activeElement).toBe(title(el, 2, 0).tx);
-  await pick(el, menu(2), 'Delete lane');
+  // The focus in a card, the lane is let go.
+  expect(shaping(el)).toEqual([false, false, false, false]);
+  await tool(el, 2, 'Delete lane');
   expect(drawn(el).map(([n]) => n)).toEqual(['To do', 'Doing', 'Done']);
   expect(last()).toContain('lanes: To do, Doing, Done');
   await undo(el);
@@ -842,7 +878,15 @@ test('at phone width: the lanes stacked, the full width, cards a finger tall, 16
     expect(a.width).toBeGreaterThan(300);
     for (const x of el.querySelectorAll<HTMLElement>('.board-lane, .board-card')) expect(x.getBoundingClientRect().right).toBeLessThanOrEqual(390);
     for (const c of el.querySelectorAll<HTMLElement>('.board-card')) expect(c.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
-    for (const g of el.querySelectorAll<HTMLElement>('.board-more')) expect(Math.min(g.getBoundingClientRect().width, g.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    // A lane in hand: its buttons and its dots a finger's, and no handles, the lanes being the column's width.
+    await hold(el, 1);
+    expect(shaping(el)).toEqual([false, true, false]);
+    const fingers = lanes(el)[1].querySelectorAll<HTMLElement>('.board-hand-tools button, .board-dot');
+    expect(fingers.length).toBe(12);
+    for (const g of fingers) expect(Math.min(g.getBoundingClientRect().width, g.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    for (const g of lanes(el)[1].querySelectorAll<HTMLElement>('.board-handle')) expect(g.getClientRects()).toHaveLength(0);
+    key(laneName(el, 1).tx, 'Escape');
+    await settle(el);
     for (const x of el.querySelectorAll<HTMLElement>('.board-title .tx, .board-lane-name .tx')) expect(parseFloat(getComputedStyle(x).fontSize)).toBeGreaterThanOrEqual(16);
     // The bar, and the bar under chosen cards, each one row inside the screen.
     const oneRow = (bar: HTMLElement) => {
@@ -882,7 +926,8 @@ test('every lane and every card has a name: the lane’s, the card’s title; th
   const { el } = await editor();
   expect(lanes(el).map((l) => l.getAttribute('aria-label'))).toEqual(['To do', 'Doing', 'Done']);
   expect([...el.querySelectorAll('.board-card')].map((c) => c.getAttribute('aria-label'))).toEqual(['Book the room', 'Write the brief', 'Send invites']);
-  for (const g of el.querySelectorAll('.board-more')) expect(g.getAttribute('aria-label')).toBeTruthy();
+  await hold(el, 0);
+  for (const g of lanes(el)[0].querySelectorAll('.board-head button, .board-handle')) expect(g.getAttribute('aria-label')).toBeTruthy();
   expect(cards(el, 1)[1].getAttribute('aria-description')).toBe('Card 2 in Doing: tap to select, drag to move');
   for (const x of el.querySelectorAll<ToText>('to-text')) expect(x.tx.getAttribute('aria-label')).toBeTruthy();
   expect(el.querySelector('.board')!.getAttribute('aria-label')).toBe('Board');
@@ -1048,13 +1093,14 @@ test('another’s ops taken in (applyRemote): the board drawn again, nothing tol
   ]);
 });
 
-test('read-only: no bar and no lane menus, nothing typed or carried, and a card activated is picked with its table and its row', async () => {
+test('read-only: no bar and no lane in hand, nothing typed or carried, and a card activated is picked with its table and its row', async () => {
   const { el, heard } = await board(BOARD, { readOnly: true });
   const picks: Picked[] = [];
   el.addEventListener('docpick', (e) => picks.push((e as DocPick).detail));
   expect(el.readOnly).toBe(true);
   expect(el.querySelector('to-bar')).toBeNull();
-  expect(el.querySelector('.board-more')).toBeNull();
+  await hold(el, 0);
+  expect(el.querySelector('[data-shaping], .board-handle, .board-dots, .board-hand-tools')).toBeNull();
   expect(drawn(el)).toEqual([
     ['To do', ['Book the room']],
     ['Doing', ['Write the brief', 'Send invites']],
@@ -1179,14 +1225,14 @@ function movesOnly(text: string, ops: Op[]): boolean {
   return !out.length;
 }
 
-test('carried only: no bar and no lane menus, the words shown and not typed; typing, Enter, a paste, a cut, Delete and Mod+D change nothing', async () => {
+test('carried only: no bar and no lane in hand, the words shown and not typed; typing, Enter, a paste, a cut, Delete and Mod+D change nothing', async () => {
   const { el, heard } = await editor();
   el.carryOnly = true;
   await settle(el);
   expect(el.hasAttribute('carry-only')).toBe(true);
   expect(el.querySelector('to-bar')).toBeNull();
-  expect(el.querySelector('.board-more')).toBeNull();
-  expect(el.querySelector('to-menu.board-menu')).toBeNull();
+  await hold(el, 0);
+  expect(el.querySelector('[data-shaping], .board-handle, .board-dots, .board-hand-tools')).toBeNull();
   for (const x of el.querySelectorAll<ToText>('to-text')) expect(x.tx.getAttribute('contenteditable')).toBe('false');
   // Typed into a title or a lane's name: refused before it hears it.
   for (const x of [title(el, 1, 0), laneName(el, 0)]) {
@@ -1233,7 +1279,8 @@ test('carried only: no bar and no lane menus, the words shown and not typed; typ
   el.carryOnly = false;
   await settle(el);
   expect(el.querySelector('to-bar.board-bar')).not.toBeNull();
-  expect(el.querySelectorAll('.board-more')).toHaveLength(3);
+  await hold(el, 0);
+  expect(toolNames(el, 0)).toEqual(['Move left', 'Move right', 'Add a card', 'Delete lane']);
   for (const x of el.querySelectorAll<ToText>('.board-title')) expect(x.tx.getAttribute('contenteditable')).toBe('true');
 });
 
@@ -1579,102 +1626,251 @@ test('at phone width the bar’s every button is on the screen, Undo and Redo to
   }
 });
 
-/** The items of the one menu open, by their words. */
-const openItems = () => [...document.querySelectorAll<HTMLButtonElement>('[popover]:popover-open [role^=menuitem]')];
-const closeMenu = () => (document.querySelector('[popover]:popover-open') as HTMLElement | null)?.hidePopover();
+const rem = () => parseFloat(getComputedStyle(document.documentElement).fontSize);
+const handleOf = (el: HTMLElement, i: number, edge: 'start' | 'end') => lanes(el)[i].querySelector<HTMLElement>(`.board-handle[data-edge="${edge}"]`)!;
+/** A handle pressed by a mouse and moved `dx` px, a step at a time; let go there unless `hold` says not. */
+async function pull(el: ToBoardEditor, i: number, edge: 'start' | 'end', dx: number, { id = 31, letGo = true } = {}) {
+  const r = handleOf(el, i, edge).getBoundingClientRect();
+  const [x, y] = [r.left + r.width / 2, r.top + r.height / 2];
+  pointer(handleOf(el, i, edge), 'pointerdown', x, y, id);
+  for (const k of [1, 2, 3, 4]) {
+    pointer(handleOf(el, i, edge), 'pointermove', x + (dx * k) / 4, y, id);
+    await el.updateComplete;
+  }
+  if (letGo) pointer(handleOf(el, i, edge), 'pointerup', x + dx, y, id);
+  await settle(el);
+}
 
-test('a lane’s look from its menu: Narrow lane and Widen lane step its width, Collapse lane folds it to a strip its button opens, Lane color… tints it; each drawn, written into lane-looks:, told first as lanelook, and undone', async () => {
+test('a lane in hand: a double click on its head, or a finger’s tap, puts it in hand, one at a time; its handles, its dots along the top, its buttons; no lane menu anywhere', async () => {
+  const { el, last } = await editor();
+  expect(el.querySelector('.board-more, to-menu.board-menu, to-menu.board-color-menu, .board-lane [aria-haspopup]')).toBeNull();
+  expect(el.querySelector('[data-shaping], .board-handle, .board-dots, .board-hand-tools')).toBeNull();
+  await hold(el, 1);
+  expect(shaping(el)).toEqual([false, true, false]);
+  // The handles: a strip the lane's height at each edge, a separator the keys move.
+  const lane = lanes(el)[1].getBoundingClientRect();
+  expect(
+    (['start', 'end'] as const).map((edge) => {
+      const h = handleOf(el, 1, edge);
+      return [h.getAttribute('role'), h.getAttribute('aria-orientation'), h.getAttribute('aria-label'), h.tabIndex, h.getAttribute('aria-valuenow')];
+    }),
+  ).toEqual([
+    ['separator', 'vertical', 'Start edge of Doing', 0, '17'],
+    ['separator', 'vertical', 'End edge of Doing', 0, '17'],
+  ]);
+  const end = handleOf(el, 1, 'end').getBoundingClientRect();
+  const start = handleOf(el, 1, 'start').getBoundingClientRect();
+  expect(Math.abs(end.height - lane.height)).toBeLessThanOrEqual(2);
+  expect(Math.abs(end.left + end.width / 2 - lane.right)).toBeLessThanOrEqual(2);
+  expect(Math.abs(start.left + start.width / 2 - lane.left)).toBeLessThanOrEqual(2);
+  expect(getComputedStyle(handleOf(el, 1, 'end')).cursor).toBe('ew-resize');
+  // The dots: no color, then the palette, the lane's own ringed, along the top of its head, over its name.
+  const dots = [...lanes(el)[1].querySelectorAll<HTMLButtonElement>('.board-dots button')];
+  expect(dots.map((d) => d.getAttribute('aria-label'))).toEqual(['No color', 'Blue', 'Green', 'Amber', 'Red', 'Violet', 'Teal', 'Gray']);
+  expect(dots.map((d) => d.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false', 'false', 'false', 'false', 'false']);
+  expect(lanes(el)[1].querySelector('.board-dots')!.getAttribute('aria-label')).toBe('Colors for Doing');
+  expect(dots[0].getBoundingClientRect().bottom).toBeLessThanOrEqual(laneName(el, 1).getBoundingClientRect().top + 1);
+  expect(getComputedStyle(dots[1]).backgroundColor).not.toBe(getComputedStyle(dots[2]).backgroundColor);
+  expect(toolNames(el, 1)).toEqual(['Move left', 'Move right', 'Add a card', 'Delete lane']);
+  // One lane at a time; out of hand a lane's head is its name and its count.
+  await hold(el, 0);
+  expect(shaping(el)).toEqual([true, false, false]);
+  expect(lanes(el)[1].querySelector('.board-handle, .board-dots, .board-hand-tools')).toBeNull();
+  expect([...lanes(el)[1].querySelector('.board-head')!.children].map((x) => x.className.trim())).toEqual(['board-lane-name', 'board-count']);
+  // A finger's tap on a head puts that lane in hand (the press elsewhere letting the other go).
+  const count = lanes(el)[2].querySelector<HTMLElement>('.board-count')!;
+  const c = count.getBoundingClientRect();
+  pointer(count, 'pointerdown', c.left + 2, c.top + 2, 41, 'touch');
+  pointer(count, 'pointerup', c.left + 2, c.top + 2, 41, 'touch');
+  await settle(el);
+  expect(shaping(el)).toEqual([false, false, true]);
+  // Putting a lane in hand writes nothing.
+  expect(last()).toBeUndefined();
+});
+
+test('a lane’s handles: dragged, it is as wide as the pointer makes it as it moves, written as a number of rem when let go; under 10rem it snaps to 8, under 5rem it folds, and a folded lane’s handle drawn out past 8rem opens it', async () => {
   const { el, last } = await editor();
   const told: unknown[] = [];
-  el.addEventListener('lanelook', (e) => {
-    expect(e.bubbles && e.cancelable).toBe(true);
-    told.push((e as CustomEvent).detail);
-  });
-  const menu = (i: number) => lanes(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
-  const widthOf = (i: number) => parseFloat(getComputedStyle(lanes(el)[i]).width);
-  const normal = widthOf(1);
-  await pick(el, menu(1), 'Narrow lane');
-  expect(lanes(el)[1].dataset.width).toBe('narrow');
-  expect(widthOf(1)).toBeLessThan(normal);
-  expect(widthOf(0)).toBe(normal);
-  expect(parse(last()!).head['lane-looks']).toBe('Doing=narrow');
-  expect(told).toStrictEqual([{ name: 'Doing', look: { width: 'narrow' } }]);
-  // At the narrowest, Narrow lane is dimmed; Widen lane goes back to normal, then wide.
-  menu(1).click();
-  await until(() => openItems().length > 0);
-  expect(openItems().find((x) => x.textContent!.trim() === 'Narrow lane')!.disabled).toBe(true);
-  expect(openItems().find((x) => x.textContent!.trim() === 'Widen lane')!.disabled).toBe(false);
-  closeMenu();
-  await pick(el, menu(1), 'Widen lane');
-  expect(lanes(el)[1].hasAttribute('data-width')).toBe(false);
-  expect(widthOf(1)).toBe(normal);
-  expect(parse(last()!).head['lane-looks']).toBeUndefined();
-  await pick(el, menu(1), 'Widen lane');
-  expect(lanes(el)[1].dataset.width).toBe('wide');
-  expect(widthOf(1)).toBeGreaterThan(normal);
-  // Lane color…: the palette, No color first, each color a swatch; chosen, the lane is tinted and says its tone.
-  await pick(el, menu(1), 'Lane color…');
-  await until(() => !!document.querySelector('[popover]:popover-open .to-swatch'));
-  expect(openItems().map((x) => x.textContent!.trim())).toEqual(['No color', 'Blue', 'Green', 'Amber', 'Red', 'Violet', 'Teal', 'Gray']);
-  expect(openItems()[0].getAttribute('aria-checked')).toBe('true');
-  expect(openItems()[3].querySelector('.to-swatch')).not.toBeNull();
-  const ground = () => getComputedStyle(lanes(el)[1]).backgroundColor;
-  const plain = ground();
-  openItems()[3].click();
+  el.addEventListener('lanelook', (e) => told.push((e as CustomEvent).detail));
+  const width = (i: number) => lanes(el)[i].getBoundingClientRect().width;
+  await hold(el, 1);
+  const before = width(1);
+  const other = width(0);
+  // The end handle 6rem out: the lane 6rem wider as the pointer moves, nothing written until it is let go.
+  await pull(el, 1, 'end', 6 * rem(), { letGo: false });
+  expect(Math.abs(width(1) - before - 6 * rem())).toBeLessThanOrEqual(1);
+  expect(last()).toBeUndefined();
+  const h = handleOf(el, 1, 'end').getBoundingClientRect();
+  pointer(handleOf(el, 1, 'end'), 'pointerup', h.left + h.width / 2, h.top + h.height / 2, 31);
   await settle(el);
-  expect(lanes(el)[1].dataset.tone).toBe('amber');
-  expect(ground()).not.toBe(plain);
-  expect(parse(last()!).head['lane-looks']).toBe('Doing=wide amber');
-  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 'wide', color: 'amber' } });
-  // Collapse lane: a strip of its name and its count, its cards out of sight, narrower than half a lane; its menu offers Expand lane; the strip opens it.
-  await pick(el, menu(1), 'Collapse lane');
+  expect(Math.abs(width(1) - before - 6 * rem())).toBeLessThanOrEqual(1);
+  expect(width(0)).toBe(other);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=23');
+  expect(lanes(el)[1].dataset.width).toBe('23');
+  expect(handleOf(el, 1, 'end').getAttribute('aria-valuenow')).toBe('23');
+  expect(told).toStrictEqual([{ name: 'Doing', look: { width: 23 } }]);
+  expect(shaping(el)).toEqual([false, true, false]);
+  // Down to 9rem: it snaps to the least, 8rem.
+  await pull(el, 1, 'end', (9 - 23) * rem());
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=8');
+  expect(Math.abs(width(1) - 8 * rem())).toBeLessThanOrEqual(1);
+  // The start handle out (leftward, the language running left to right) widens it too.
+  await pull(el, 1, 'start', -4 * rem());
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=12');
+  // Under 5rem it folds to its strip, still in hand, its handles on the strip; its width kept for when it opens.
+  await pull(el, 1, 'end', (4 - 12) * rem());
   expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(true);
-  expect(cards(el, 1)[0].getClientRects()).toHaveLength(0);
-  expect(lanes(el)[1].querySelector('.board-lane-name')).toBeNull();
-  const strip = () => lanes(el)[1].querySelector<HTMLButtonElement>('.board-unfold')!;
-  expect([strip().querySelector('.board-folded-name')!.textContent, strip().querySelector('.board-count')!.textContent]).toEqual(['Doing', '2']);
-  expect(strip().getAttribute('title')).toBe('Expand lane');
-  expect(widthOf(1)).toBeLessThan(normal / 2);
-  expect(parse(last()!).head['lane-looks']).toBe('Doing=wide collapsed amber');
-  menu(1).click();
-  await until(() => openItems().length > 0);
-  const items = openItems().map((x) => x.textContent!.trim());
-  expect(items).toContain('Expand lane');
-  expect(items).not.toContain('Collapse lane');
-  closeMenu();
-  // Collapsed, the name is not renamed; opened by its strip, it is.
-  el.startRename(1);
-  await settle(el);
-  expect(el.renaming).toBe(-1);
-  strip().click();
-  await settle(el);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=12 collapsed');
+  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 12, collapsed: true } });
+  expect(shaping(el)).toEqual([false, true, false]);
+  expect(handleOf(el, 1, 'end').getClientRects()).toHaveLength(1);
+  // Drawn out short of 8rem it stays folded, and nothing is told; past 8rem it opens at 8rem.
+  const strip = width(1) / rem();
+  const n = told.length;
+  await pull(el, 1, 'end', (7 - strip) * rem());
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(true);
+  expect(told).toHaveLength(n);
+  await pull(el, 1, 'end', (9 - strip) * rem());
   expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
-  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 'wide', color: 'amber' } });
-  expect(cards(el, 1)[0].getClientRects()).not.toHaveLength(0);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=8');
+  // Escape while a handle is dragged puts the width back, the lane still in hand.
+  const was = last();
+  await pull(el, 1, 'end', 10 * rem(), { letGo: false });
+  expect(width(1)).toBeGreaterThan(17 * rem());
+  key(handleOf(el, 1, 'end'), 'Escape');
+  pointer(handleOf(el, 1, 'end'), 'pointerup', 0, 0, 31);
+  await settle(el);
+  expect(Math.abs(width(1) - 8 * rem())).toBeLessThanOrEqual(1);
+  expect(last()).toBe(was);
+  expect(shaping(el)).toEqual([false, true, false]);
+  // The keys: Right a rem wider at the end, Left a rem narrower; from the least, a step wider is the snap.
+  handleOf(el, 1, 'end').focus();
+  key(handleOf(el, 1, 'end'), 'ArrowRight');
+  await settle(el);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=10');
+  key(handleOf(el, 1, 'end'), 'ArrowRight');
+  await settle(el);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=11');
+  key(handleOf(el, 1, 'start'), 'ArrowRight');
+  await settle(el);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=10');
   // Each a step of the undo.
   await undo(el);
-  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(true);
-  await undo(el);
-  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=11');
+});
+
+test('a lane in hand colored by a dot, renamed by a double click on its name; Escape, a press elsewhere or the focus in a card lets it go, its look kept', async () => {
+  const { el, last } = await editor();
+  const told: unknown[] = [];
+  el.addEventListener('lanelook', (e) => told.push((e as CustomEvent).detail));
+  await hold(el, 1);
+  const dot = (label: string) => [...lanes(el)[1].querySelectorAll<HTMLButtonElement>('.board-dot')].find((d) => d.getAttribute('aria-label') === label)!;
+  const plain = getComputedStyle(lanes(el)[1]).backgroundColor;
+  dot('Amber').click();
+  await settle(el);
   expect(lanes(el)[1].dataset.tone).toBe('amber');
+  expect(getComputedStyle(lanes(el)[1]).backgroundColor).not.toBe(plain);
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=amber');
+  expect(told).toStrictEqual([{ name: 'Doing', look: { color: 'amber' } }]);
+  expect(dot('Amber').getAttribute('aria-pressed')).toBe('true');
+  expect(dot('No color').getAttribute('aria-pressed')).toBe('false');
+  expect(shaping(el)).toEqual([false, true, false]);
+  // A double click on its name: a field, the lane still in hand; Escape puts the name back and keeps it in hand.
+  await rename(el, 1);
+  expect(laneName(el, 1).tx.getAttribute('contenteditable')).toBe('true');
+  expect(shaping(el)).toEqual([false, true, false]);
+  // (The first Escape lets the words chosen go, the second the field, as a name's Escape does.)
+  key(laneName(el, 1).tx, 'Escape');
+  await settle(el);
+  expect(shaping(el)).toEqual([false, true, false]);
+  key(laneName(el, 1).tx, 'Escape');
+  await settle(el);
+  expect(el.renaming).toBe(-1);
+  expect(shaping(el)).toEqual([false, true, false]);
+  // Renamed, kept on Enter: still in hand, by its new name.
+  await rename(el, 1);
+  await type(el, () => laneName(el, 1), 'Active');
+  input(laneName(el, 1), 'insertParagraph');
+  await settle(el);
+  expect(said(laneName(el, 1))).toBe('Active');
+  expect(parse(last()!).head['lane-looks']).toBe('Active=amber');
+  expect(shaping(el)).toEqual([false, true, false]);
+  // Escape, the name shown: let go, the look as it was made.
+  key(laneName(el, 1).tx, 'Escape');
+  await settle(el);
+  expect(shaping(el)).toEqual([false, false, false]);
+  expect(lanes(el)[1].dataset.tone).toBe('amber');
+  // A press elsewhere on the page lets it go; a press on its own head, its dots or its handles does not.
+  await hold(el, 1);
+  const head = lanes(el)[1].querySelector<HTMLElement>('.board-count')!;
+  pointer(head, 'pointerdown', 0, 0, 51);
+  pointer(head, 'pointerup', 0, 0, 51);
+  pointer(dot('Blue'), 'pointerdown', 0, 0, 52);
+  await settle(el);
+  expect(shaping(el)).toEqual([false, true, false]);
+  pointer(document.body, 'pointerdown', 1, 1, 53);
+  await settle(el);
+  expect(shaping(el)).toEqual([false, false, false]);
+  // Another lane pressed, or the focus in a card (its own lane's too), lets it go.
+  await hold(el, 1);
+  pointer(lanes(el)[0].querySelector('.board-head')!, 'pointerdown', 0, 0, 54);
+  await settle(el);
+  expect(shaping(el)).toEqual([false, false, false]);
+  await hold(el, 1);
+  await caretIn(el, title(el, 1, 0));
+  expect(shaping(el)).toEqual([false, false, false]);
+  expect(parse(last()!).head['lane-looks']).toBe('Active=amber');
+});
+
+test('a lane’s own from the drawer’s search, on the lane in hand or the caret’s: Narrow lane and Widen lane a step of 2rem, Collapse lane and Expand lane, Lane color… its dots, each told and written', async () => {
+  const { el, last } = await editor();
+  const told: unknown[] = [];
+  el.addEventListener('lanelook', (e) => told.push((e as CustomEvent).detail));
+  const cmd = (id: string) => COMMANDS.find((c) => c.id === `board.lane.${id}`)!;
+  // The caret's lane, none in hand.
+  await caretIn(el, title(el, 1, 0));
+  await runLane(el, 'narrow');
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=15');
+  await runLane(el, 'widen');
+  await runLane(el, 'widen');
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=19');
+  for (let k = 0; k < 6; k++) await runLane(el, 'narrow');
+  expect(parse(last()!).head['lane-looks']).toBe('Doing=8');
+  expect(cmd('narrow').disabled!(el)).toBe(true);
+  expect(cmd('widen').disabled!(el)).toBe(false);
+  expect(labelOf(cmd('collapse'), el)).toBe('Collapse lane');
+  await runLane(el, 'collapse');
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(true);
+  expect(labelOf(cmd('collapse'), el)).toBe('Expand lane');
+  expect(cmd('narrow').disabled!(el)).toBe(true);
+  // Lane color…: the lane opened and put in hand, the focus on its own color's dot.
+  await runLane(el, 'color');
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
+  expect(shaping(el)).toEqual([false, true, false]);
+  expect(document.activeElement).toBe(lanes(el)[1].querySelector('.board-dot[aria-pressed="true"]'));
+  expect(document.activeElement!.getAttribute('aria-label')).toBe('No color');
+  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 8 } });
   // Refused by the page: nothing changes.
   el.addEventListener('lanelook', (e) => e.preventDefault());
   const was = last();
-  await pick(el, menu(0), 'Collapse lane');
-  expect(told.at(-1)).toStrictEqual({ name: 'To do', look: { collapsed: true } });
+  await runLane(el, 'collapse');
+  expect(told.at(-1)).toStrictEqual({ name: 'Doing', look: { width: 8, collapsed: true } });
   expect(last()).toBe(was);
-  expect(lanes(el)[0].hasAttribute('data-collapsed')).toBe(false);
+  expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
 });
 
 test('a lane’s look as the page says it (laneLook) over the document’s, laneTone winning for the color; a card’s tone as the page says it (cardLook); the page’s own lanes are told a look and nothing is written', async () => {
-  const { el } = await editor(BOARD.replace('lanes: To do, Doing, Done\n', 'lanes: To do, Doing, Done\nlane-looks: Doing=narrow blue\n'));
-  expect(lanes(el)[1].dataset.width).toBe('narrow');
+  const { el } = await editor(BOARD.replace('lanes: To do, Doing, Done\n', 'lanes: To do, Doing, Done\nlane-looks: Doing=wide blue\n'));
+  // A width of before, in words, reads as its rem: wide is 24.
+  expect(lanes(el)[1].dataset.width).toBe('24');
+  expect(Math.abs(lanes(el)[1].getBoundingClientRect().width - 24 * rem())).toBeLessThanOrEqual(1);
   expect(lanes(el)[1].dataset.tone).toBe('blue');
   expect(lanes(el)[0].hasAttribute('data-tone')).toBe(false);
-  el.laneLook = (name) => (name === 'Doing' ? { width: 'wide' } : name === 'Done' ? { collapsed: true, color: 'teal' } : null);
+  el.laneLook = (name) => (name === 'Doing' ? { width: 'narrow' } : name === 'To do' ? { width: 20 } : name === 'Done' ? { collapsed: true, color: 'teal' } : null);
   await settle(el);
-  // The page's width over the document's, the document's color kept under it.
-  expect(lanes(el)[1].dataset.width).toBe('wide');
+  // The page's width over the document's (a word read as the document's is, a number as it is), the document's color kept under it.
+  expect(lanes(el)[1].dataset.width).toBe('11');
+  expect(lanes(el)[0].dataset.width).toBe('20');
   expect(lanes(el)[1].dataset.tone).toBe('blue');
   expect(lanes(el)[2].hasAttribute('data-collapsed')).toBe(true);
   expect(lanes(el)[2].dataset.tone).toBe('teal');
@@ -1692,14 +1888,15 @@ test('a lane’s look as the page says it (laneLook) over the document’s, lane
   el.cardLook = null;
   await settle(el);
   expect(cards(el, 0)[0].hasAttribute('data-tone')).toBe(false);
-  // The page's own lanes: a look from the menu is told, the look it would then have whole, and nothing is written here.
+  // The page's own lanes: a look from a lane in hand is told, the look it would then have whole, and nothing is written here.
   Object.assign(el, { laneLook: null, laneTone: null, ownLanes: true });
   await settle(el);
   const told: unknown[] = [];
   el.addEventListener('lanelook', (e) => told.push((e as CustomEvent).detail));
   const before = el.value;
-  await pick(el, lanes(el)[1].querySelector<HTMLButtonElement>('.board-more')!, 'Collapse lane');
-  expect(told).toStrictEqual([{ name: 'Doing', look: { width: 'narrow', collapsed: true, color: 'blue' } }]);
+  await hold(el, 1);
+  await pull(el, 1, 'end', -20 * rem());
+  expect(told).toStrictEqual([{ name: 'Doing', look: { width: 24, collapsed: true, color: 'blue' } }]);
   expect(el.value).toBe(before);
   expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
 });

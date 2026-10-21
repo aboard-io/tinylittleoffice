@@ -1937,29 +1937,32 @@ board-open-cards-in-spreadsheet = Open the cards in a spreadsheet
 # Insert ▾ items (nouns): a new card, a new lane.
 board-card = Card
 board-lane = Lane
-board-lane-options = Lane options
-board-options-for-lane = Options for { $lane }
 board-add-card = Add a card
 board-delete-lane = Delete lane
 # A button that opens a list of the lanes, to move the selected cards to one of them.
 board-move-to = Move to…
-# A lane’s menu item: its name becomes a field where it is drawn.
+# A lane’s command: its name becomes a field where it is drawn.
 board-rename-lane = Rename lane
-# A lane’s menu items: the lane drawn a step narrower, or a step wider.
+# A lane’s commands: the lane drawn a step narrower, or a step wider.
 board-narrow-lane = Narrow lane
 board-widen-lane = Widen lane
-# A lane’s menu item: the lane folded to a thin strip showing its name and its count; and the same item once it is folded, which opens it again.
+# A lane’s command: the lane folded to a thin strip showing its name and its count; and the same item once it is folded, which opens it again.
 board-collapse-lane = Collapse lane
 board-expand-lane = Expand lane
-# A lane’s menu item that opens a list of colors to tint the lane with.
+# A lane’s command that shows the lane’s colors (a row of dots on it) to tint the lane with.
 board-lane-color = Lane color…
-# The first item of that list: the lane in no color.
+# The first of those colors: the lane in no color.
 board-no-color = No color
-# Colors of that list (the others are the suite’s: Blue, Green, Red).
+# Colors among them (the others are the suite’s: Blue, Green, Red).
 board-amber = Amber
 board-violet = Violet
 board-teal = Teal
 board-gray = Gray
+# The row of color dots along the top of a lane being shaped, a tap on one coloring the lane; { $lane } is its name.
+board-colors-of-lane = Colors for { $lane }
+# A lane’s two handles while it is being shaped: the thin strip along its start edge (its left, in a language written left to right) and along its end edge, which a drag or the arrow keys move to make the lane narrower or wider; { $lane } is its name.
+board-lane-start-edge = Start edge of { $lane }
+board-lane-end-edge = End edge of { $lane }
 # A key in a card’s title: Left or Right at its end goes to the card beside it in the next lane over.
 board-card-in-lane-beside = The card beside it in the lane before or after
 board-move-card-to-lane-before-or = Move the card to the lane before or after

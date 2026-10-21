@@ -1,10 +1,11 @@
 /**
  * The Board's commands (the kit's registry, kit/core/commands.ts), its editor the context: the bar (Insert ▾ a card
  * after the one in hand or a lane after the one in hand, and the hand-off, the cards opened in the Spreadsheet), a
- * lane's menu (Rename lane, Add a card, Move left, Move right, Narrow lane, Widen lane, Collapse lane or Expand lane,
+ * lane's own (Rename lane, Add a card, Move left, Move right, Narrow lane, Widen lane, Collapse lane or Expand lane,
  * Lane color…, Delete lane; carried only, where the page makes the lanes' changes, `own-lanes`, all but Add a card),
- * the board's own items in the bar under
- * chosen cards (Open, which edits a card's fields in a dialog, and Move to…, a menu of the lanes: a phone's way across,
+ * which have no menu now (Paul, 2026-10-21, a lane shaped in place, editor.ts A lane in hand): the lane in hand draws
+ * Move left, Move right, Add a card and Delete lane as buttons on its head, and the drawer's search finds every one;
+ * the board's own items in the bar under chosen cards (Open, which edits a card's fields in a dialog, and Move to…, a menu of the lanes: a phone's way across,
  * having no drag), the card's dialog's Delete, and the keys (the editing standard, docs/editing.md §6, and the
  * Board's line in §8, which says them for a person). On chosen cards Mod+Left/Right, and the
  * standard's Mod+Alt+Left/Right, carry them to the lane on that side, and Alt+Enter opens one. In a card's title
@@ -12,8 +13,8 @@
  * line's start and end on a Mac, a word on Windows), Up and Down go to the card before or after, Left at the title's
  * start and Right at its end to the card beside it in the lane on that side, Mod+D duplicates it and Alt+Enter opens
  * it. Left and right are the screen's: in a language written right to left the lane before is on the right. A key acts
- * on the card it is typed in (`here`, which the editor sets as the key comes); a lane's menu on the lane whose menu is
- * open (`menuLane`).
+ * on the card it is typed in (`here`, which the editor sets as the key comes); a lane's own on the lane in hand, else
+ * the lane the caret is in (`handLane`).
  *
  * They are declared in the scope `board`, the app's id, as each app of the suite declares its own; `mount` registers
  * them (the definition's `commands`) before it draws the editor. A label is the id of a message (src/i18n/, the Board's or the suite's
@@ -24,6 +25,7 @@ import { ArrowLeft, ArrowRight, ChevronsLeftRight, ChevronsRightLeft, Columns3, 
 import { UI } from '../../kit/draw/icons.ts';
 import { commandsOf, register, type Command } from '../../kit/core/commands.ts';
 import { t } from '../../kit/core/i18n.ts';
+import { LANE_MAX, LANE_MIN } from './model.ts';
 import type { ToBoardEditor } from './editor.ts';
 
 type B = ToBoardEditor;
@@ -38,28 +40,28 @@ const BOARD: Command<B>[] = [
   cmd('lane.new', 'board-lane', { icon: Columns3, where: ['menu:insert'], does: (b) => b.insertLane() }),
   // The hand-off: the same table, as the Spreadsheet draws it, in a tab of its own (the Download table has it too).
   cmd('view.sheet', 'board-open-cards-in-spreadsheet', { icon: Table2, where: ['bar'], document: true, does: (b) => b.openInSheet() }),
-  cmd('lane', 'board-lane-options', { menu: 'lane', where: ['in-doc'], does: () => undefined }),
-  cmd('lane.rename', 'board-rename-lane', { icon: SquarePen, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.renameMenuLane() }),
-  cmd('lane.card', 'board-add-card', { icon: UI.plus, where: ['menu:lane'], when: (b) => !!b.menuLane && !b.carryOnly, does: (b) => b.addToLane(b.menuLane!.name) }),
-  cmd('lane.left', 'common-move-left', { icon: ArrowLeft, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(-1), does: (b) => b.moveMenuLane(-1) }),
-  cmd('lane.right', 'common-move-right', { icon: ArrowRight, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => !b.laneCanMove(1), does: (b) => b.moveMenuLane(1) }),
-  // The lane's look (editor.ts, A lane's look): a step narrower or wider, folded to a strip or opened, and its color from the palette.
+  // A lane's own: drawn in the document, on the lane in hand (editor.ts, A lane in hand), and found by the drawer's search. Each acts on the lane in hand, else the lane the caret is in (`handLane`).
+  cmd('lane.rename', 'board-rename-lane', { icon: SquarePen, where: ['in-doc'], when: (b) => !!b.handLane, does: (b) => b.renameHandLane() }),
+  cmd('lane.card', 'board-add-card', { icon: UI.plus, where: ['in-doc'], when: (b) => !!b.handLane && !b.carryOnly, does: (b) => b.addToLane(b.handLane!.name) }),
+  cmd('lane.left', 'common-move-left', { icon: ArrowLeft, where: ['in-doc'], when: (b) => !!b.handLane, disabled: (b) => !b.laneCanMove(-1), does: (b) => b.moveHandLane(-1) }),
+  cmd('lane.right', 'common-move-right', { icon: ArrowRight, where: ['in-doc'], when: (b) => !!b.handLane, disabled: (b) => !b.laneCanMove(1), does: (b) => b.moveHandLane(1) }),
+  // The lane's look (editor.ts, A lane's look): a step narrower or wider, folded to a strip or opened, and its color, the lane put in hand with its dots.
   cmd('lane.narrow', 'board-narrow-lane', {
     icon: ChevronsRightLeft,
-    where: ['menu:lane'],
-    when: (b) => !!b.menuLane,
-    disabled: (b) => b.menuLook().width === 'narrow',
-    does: (b) => b.sizeMenuLane(-1),
+    where: ['in-doc'],
+    when: (b) => !!b.handLane,
+    disabled: (b) => !!b.handLook().collapsed || b.handWidth() <= LANE_MIN,
+    does: (b) => b.sizeHandLane(-1),
   }),
-  cmd('lane.widen', 'board-widen-lane', { icon: ChevronsLeftRight, where: ['menu:lane'], when: (b) => !!b.menuLane, disabled: (b) => b.menuLook().width === 'wide', does: (b) => b.sizeMenuLane(1) }),
-  cmd('lane.collapse', (b) => (b?.menuLook().collapsed ? t('board-expand-lane') : t('board-collapse-lane')), {
+  cmd('lane.widen', 'board-widen-lane', { icon: ChevronsLeftRight, where: ['in-doc'], when: (b) => !!b.handLane, disabled: (b) => b.handWidth() >= LANE_MAX, does: (b) => b.sizeHandLane(1) }),
+  cmd('lane.collapse', (b) => (b?.handLook().collapsed ? t('board-expand-lane') : t('board-collapse-lane')), {
     icon: FoldHorizontal,
-    where: ['menu:lane'],
-    when: (b) => !!b.menuLane,
-    does: (b) => b.foldMenuLane(),
+    where: ['in-doc'],
+    when: (b) => !!b.handLane,
+    does: (b) => b.foldHandLane(),
   }),
-  cmd('lane.color', 'board-lane-color', { icon: Palette, where: ['menu:lane'], when: (b) => !!b.menuLane, takesFocus: true, does: (b) => b.colorMenu() }),
-  cmd('lane.delete', 'board-delete-lane', { icon: UI.trash, where: ['menu:lane'], when: (b) => !!b.menuLane, does: (b) => b.deleteMenuLane() }),
+  cmd('lane.color', 'board-lane-color', { icon: Palette, where: ['in-doc'], when: (b) => !!b.handLane, takesFocus: true, does: (b) => b.colorHandLane() }),
+  cmd('lane.delete', 'board-delete-lane', { icon: UI.trash, where: ['in-doc'], when: (b) => !!b.handLane, does: (b) => b.deleteHandLane() }),
   // Chosen cards: the bar under them, and their keys.
   cmd('card.open', 'common-open', {
     at: 'rows',
