@@ -19,8 +19,10 @@
     display: block;
     min-width: 0;
     --to-dt-row-h: 2.75rem;
-    /* How wide the first column is once the box has scrolled sideways (below), in rem. */
-    --to-dt-pin-w: 11rem;
+    /* How wide the first column is once the box has scrolled sideways (below): eleven rem, or two fifths of the box where
+       that is less, so in a narrow window or on a phone the columns to its right keep the room (Paul, 2026-10-22: "When
+       I narrow the window, the fixed left column should also narrow and truncate"). The cqw are the box's (to-dt). */
+    --to-dt-pin-w: min(11rem, 40cqw);
   }
   .to-dt-bar {
     display: flex;
@@ -123,9 +125,18 @@
     text-overflow: ellipsis;
     background: var(--to-surface);
   }
-  /* A line under each row, drawn by its cells, whose grounds would cover the row's own. */
+  /* A line under each row, drawn by its cells, whose grounds would cover the row's own; and a line between each column
+     and the next, the heads' and the rows' alike, the last column's end the box's own (Paul, 2026-10-22: "Columns
+     should all have vertical borders, it's too complex to follow"). */
   .to-dt-row > .to-dt-cell {
     border-bottom: 1px solid var(--to-border);
+  }
+  .to-dt-cell {
+    border-inline-end: 1px solid var(--to-border);
+  }
+  .to-dt-cell:last-child,
+  .to-dt-cell:has(+ .to-dt-acts) {
+    border-inline-end: 0;
   }
   .to-dt-head > .to-dt-cell {
     background: var(--to-surface-2);
@@ -138,9 +149,10 @@
     justify-content: flex-end;
     font-variant-numeric: tabular-nums;
   }
-  /* The boxes and the first column stay at the start as the rest scrolls under them, where the box is wide enough
-     for the rest to have room: in a narrow one (a phone's) they would be most of it, with a sliver scrolling beside
-     them (Paul, 2026-10-20: "the column that is scrollable is maybe 7% of the screen"), so there the whole grid scrolls. */
+  /* The boxes and the first column stay at the start as the rest scrolls under them, at every width: once the box is
+     off its start the first column is no wider than --to-dt-pin-w, two fifths of a narrow box, so on a phone the rest
+     has most of it (Paul, 2026-10-20: "the column that is scrollable is maybe 7% of the screen", when it was stuck at
+     its whole width; 2026-10-22: "the fixed left column should also narrow and truncate"). */
   .to-dt-pin {
     position: sticky;
     inset-inline-start: 0;
@@ -153,14 +165,6 @@
   .to-dt-box-cell + .to-dt-pin {
     inset-inline-start: 2.75rem;
   }
-  .to-dt-pin:not(.to-dt-box-cell) {
-    border-inline-end: 1px solid var(--to-border);
-  }
-  @container to-dt (width < 30em) {
-    .to-dt-pin {
-      position: static;
-    }
-  }
   /* Once the box has scrolled sideways (`scrolled`, kit/ui/table.ts) the first column gives way to the rest: it narrows
      to --to-dt-pin-w, about twenty characters, its words cut at the last whole word that fits (they wrap, and only the
      first line is drawn; a word longer than the line ends in an ellipsis), the whole in the cell's title and read
@@ -168,7 +172,7 @@
      as I move to the right. Something like 'Young Center for Immigrant Children's Rights' should become 'Young
      Center'"; 2026-10-21: "The fixed left column stays too wide when I scroll. shrink it and truncate text to about 20
      characters"). A column that wraps gives way like any other, its one line drawn while the box is off its start, the
-     row as tall as its other cells; in a narrow box the column scrolls away instead (above). */
+     row as tall as its other cells. */
   .to-dt-gives {
     width: 100%;
   }
@@ -182,18 +186,16 @@
       transition: width 0.15s ease-out;
     }
   }
-  @container to-dt (width >= 30em) {
-    .to-dt-box[scrolled] .to-dt-gives {
-      width: min(100%, var(--to-dt-pin-w));
-    }
-    .to-dt-box[scrolled] .to-dt-gives :is(.to-dt-words, .to-dt-link > span:last-child, .to-dt-sort > span) {
-      /* A block, so the line's height holds: a wrapping cell's link is inline. */
-      display: block;
-      min-width: 0;
-      max-height: 1lh;
-      white-space: normal;
-      overflow-wrap: normal;
-    }
+  .to-dt-box[scrolled] .to-dt-gives {
+    width: min(100%, var(--to-dt-pin-w));
+  }
+  .to-dt-box[scrolled] .to-dt-gives :is(.to-dt-words, .to-dt-link > span:last-child, .to-dt-sort > span) {
+    /* A block, so the line's height holds: a wrapping cell's link is inline. */
+    display: block;
+    min-width: 0;
+    max-height: 1lh;
+    white-space: normal;
+    overflow-wrap: normal;
   }
   .to-dt-check {
     /* The cell's font, so the 1lh below is the cell's line and not the control's own (Paul, 2026-10-21: "the checkboxes
@@ -259,13 +261,23 @@
   .to-dt-initial {
     --to-av-size: 1.5rem;
   }
+  /* A cell being edited holds its field inside its lines, the field's halo drawn inside the field (Paul, 2026-10-22:
+     "The halo when I click on a stage and get the dropdown bumps into the borders of the cell"); a <to-field> the
+     page draws in a cell the same. */
   .to-dt-editing {
-    padding: 0.125rem;
+    padding: 0.1875rem;
     overflow: visible;
   }
+  .to-dt-cell :is(.to-dt-editor, to-field :is(input, select, textarea, button)):is(:focus, :focus-visible) {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
+  }
   .to-dt-editor {
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
+    /* The cell's height, not a field's touch height, which ran past the row's line. */
+    min-height: 0;
     padding: 0 0.5rem;
     color: var(--to-ink);
     font: inherit;

@@ -183,18 +183,33 @@ export const optionOf = (col: { options?: EnumOption[] }, v: unknown): EnumOptio
 
 /** Formatters by language and options: a date is written thousands of times in a long table, and Intl builds each slowly. */
 const formatters = new Map<string, DateWords>();
-function dateFormat(opts: Intl.DateTimeFormatOptions): DateWords {
-  const key = `${language()}|${JSON.stringify(opts)}`;
+function dateFormat(opts: Intl.DateTimeFormatOptions, lang = language()): DateWords {
+  const key = `${lang}|${JSON.stringify(opts)}`;
   let f = formatters.get(key);
-  if (!f) formatters.set(key, (f = dateWords(opts)));
+  if (!f) formatters.set(key, (f = dateWords(opts, lang)));
   return f;
 }
 
-/** A day or a moment in the page's language: a day as a day ("Mar 1, 2027"), a moment with its time. */
-export function dateText(v: unknown, withTime: boolean): string {
+/**
+ * A day or a moment in the page's language: a day as a day ("Mar 1, 2027"), a moment with its time. `short`, as a
+ * table's cell says it: the day, the month's short name and the year's two digits ("8 Nov 26"; a moment "8 Nov 26,
+ * 14:05"), English laid out day first as en-GB writes it, every other language as its own (Paul, 2026-10-22:
+ * "shorten all of these dates to 8 Nov 26 format").
+ */
+export function dateText(v: unknown, withTime: boolean, short = false): string {
   const at = timeOf(v);
   if (!at) return v === null || v === undefined ? '' : String(v);
-  const opts: Intl.DateTimeFormatOptions = withTime && !at.day ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium', ...(at.day ? { timeZone: 'UTC' } : {}) };
+  const moment = withTime && !at.day;
+  const zone = at.day ? { timeZone: 'UTC' } : {};
+  if (short) {
+    const lang = language();
+    const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: '2-digit', ...(moment ? { hour: '2-digit', minute: '2-digit' } : zone) };
+    const english = /^en\b/.test(lang) || !lang;
+    const words = dateFormat(opts, english ? 'en-GB' : lang).format(at.ms);
+    // en-GB's September is four letters, every other month three.
+    return english ? words.replace(/\bSept\b/, 'Sep') : words;
+  }
+  const opts: Intl.DateTimeFormatOptions = moment ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium', ...zone };
   return dateFormat(opts).format(at.ms);
 }
 
@@ -219,9 +234,9 @@ export function cellWords<R extends TableRow>(col: TableColumn<R>, row: R, v = v
       return n === null ? String(v) : moneyWords(n, col.currency || '$', col.decimals);
     }
     case 'date':
-      return dateText(v, false);
+      return dateText(v, false, true);
     case 'datetime':
-      return dateText(v, true);
+      return dateText(v, true, true);
     case 'boolean':
       return v ? col.label : '';
     case 'enum': {

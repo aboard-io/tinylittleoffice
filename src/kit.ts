@@ -83,7 +83,7 @@
  *   the column the visible window's height, `editing` and `gliding`, with page-frame.css's .to-page, .to-page-head,
  *   .to-page-menu, .to-column and .to-page-bar), the mark (`mark`), the window held at its top (`pinWindow`), the
  *   themes (`THEMES`, `themeName`, `theme`, `setTheme`, Theme), the rest of Lucide (`loadIcons`, `ensureIcons`), and a
- *   day as the table says it (`dateText`);
+ *   day in full or, `short`, as the table says it (`dateText`);
  * - where a document lives (backends/README.md, kit/share/backends.ts): `open` gives the document an address names,
  *   whichever of the `backends` owns the address (a link, a sealed link, a short link, a journal's: Backend, Opened,
  *   Ask), and `place` puts it in an editor on the page (Placement); a document several people edit at once is made by

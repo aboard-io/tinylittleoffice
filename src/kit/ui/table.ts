@@ -35,10 +35,10 @@
  *   the table had drawn it ticked (Paul, 2026-10-20: "The company checkbox is unchecked even though I expect that"), so
  *   a tap on a phone ticked the row and showed an empty box. The `live` binding draws what the state says either way.
  * - **Size.** The table scrolls in a box of its own, its headings stuck to the top and its first column (and the boxes)
- *   to the start, as the Spreadsheet's grid does (on a phone, sideways too: the page never scrolls, kit/ui/scroll.ts);
- *   in a box narrower than 30em (a phone's) the first column scrolls with the rest, which would otherwise have a sliver
- *   of the box to scroll in (host.css). Once the box has scrolled sideways the first column gives way, whether it wraps
- *   or not, narrowed to `--to-dt-pin-w` (about twenty characters) and its words cut at the last whole word that fits,
+ *   to the start, as the Spreadsheet's grid does (on a phone, sideways too: the page never scrolls, kit/ui/scroll.ts).
+ *   Once the box has scrolled sideways the first column gives way, whether it wraps or not, narrowed to
+ *   `--to-dt-pin-w` (about twenty characters, or two fifths of a narrow box, so a phone's or a narrowed window's
+ *   columns to its right keep the room: host.css) and its words cut at the last whole word that fits,
  *   the whole in its `title` and read whole (the cut is drawn, not written), and scrolled back to the start it opens
  *   again (Paul, 2026-10-20: "In tables, the left column must truncate as I move to the right"; 2026-10-21: "shrink it
  *   and truncate text to about 20 characters"): the box wears `scrolled`, set from its scroll in a frame. A cell's
@@ -143,16 +143,17 @@ const widthOf = (words: string, font: string): number => {
 };
 /**
  * A column stuck at the start, as wide as it is once the box is off its start: the first column given way to
- * `--to-dt-pin-w` (host.css, in rem) where it is wider, mid-way or not; the boxes their own width.
+ * `--to-dt-pin-w` (host.css: eleven rem, or two fifths of the box) where it is wider, mid-way or not; the boxes their
+ * own width. The width is the browser's, read from a probe in the cell, since it is reckoned from the box's width.
  */
 const pinWidth = (el: HTMLElement): number => {
   if (!el.classList.contains('to-dt-gives')) return el.offsetWidth;
-  const token = getComputedStyle(el).getPropertyValue('--to-dt-pin-w').trim();
-  const size = parseFloat(token);
-  if (!Number.isFinite(size)) return el.offsetWidth;
-  const root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-  const px = token.endsWith('rem') ? size * root : token.endsWith('em') ? size * (parseFloat(getComputedStyle(el).fontSize) || root) : size;
-  return Math.min(el.offsetWidth, px);
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position: absolute; visibility: hidden; display: block; box-sizing: border-box; inline-size: var(--to-dt-pin-w); block-size: 0; padding: 0; border: 0';
+  el.append(probe);
+  const px = probe.getBoundingClientRect().width;
+  probe.remove();
+  return px > 0 ? Math.min(el.offsetWidth, px) : el.offsetWidth;
 };
 
 let n = 0;

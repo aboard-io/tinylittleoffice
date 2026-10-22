@@ -198,11 +198,14 @@ column's cells hold, and so how each is shown, sorted and edited, is kit/ui/tabl
 reuses the Spreadsheet's words: a number with its commas and money in its currency (the kernel's `formatCell` and
 `formatMoney`), an amount typed as "$1,200" or "1,200 USD" read as a money cell reads it (`parseLiteral`), words ordered
 as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` for both), a date in the page's language
-(kit/core/dates.ts), and a quick search that folds case and accents as the library's does (kit/share/search.ts).
+(kit/core/dates.ts), short (below), and a quick search that folds case and accents as the library's does (kit/share/search.ts).
 
 - **What it takes.** `rows`, each with an `id` (TableRow); `columns` (TableColumn): `key` and `label`, and a `type`
   (ColumnType): `text`, `number`, `money` (with `currency`, a code or a symbol), `date` ("2027-03-01", a Date or ms),
-  `datetime`, `boolean`, `enum` (its `options`, EnumOption: a value, words and a color, in the order a sort keeps),
+  `datetime` (both written short: the day, the month's short name, the year's two digits, "8 Nov 26", a moment with
+  its time, "8 Nov 26, 14:05"; English day first as en-GB writes it, every other language as its own; `dateText(v,
+  withTime, true)` says it so, and without `true` in full, "Nov 8, 2026"; edited, still the browser's date field:
+  Paul, 2026-10-22: "shorten all of these dates to 8 Nov 26 format"), `boolean`, `enum` (its `options`, EnumOption: a value, words and a color, in the order a sort keeps),
   `link` and `person` (`{ label, href }`, or words and the column's `href(row)`), `record` (another of the host's
   records: below), `tags`, or `custom` (`render(value, row)` draws it, `compare` orders it, `text` gives its words);
   `editable` (true, or `editable(row)`, each row's own: below), `hidden`, `sortable`, `width` (a grid track), `fit`
@@ -258,12 +261,19 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   a number's column are not kept, and the field says so.
 - **Its size.** The table scrolls in a box of its own, as the Spreadsheet's grid does (the page never scrolls:
   kit/ui/scroll.ts): its headings stuck to the top, the boxes and the first column to the start. Once the box has
-  scrolled sideways the first column gives way to the rest, narrowed to `--to-dt-pin-w` (11rem, about twenty characters, a column that wraps too) with its words cut at
+  scrolled sideways the first column gives way to the rest, narrowed to `--to-dt-pin-w` (`min(11rem, 40cqw)`: about
+  twenty characters, or two fifths of a box narrower than 27.5rem, so a phone's or a narrowed window's columns to its
+  right keep the room, the heading's cell the same, at every width; a column that wraps too) with its words cut at
   the last whole word that fits (an ellipsis where one word is longer), the whole in its `title` and read whole, and
   it opens again at the start (Paul, 2026-10-20: "In tables, the left column must truncate as I move to the right.
   Something like 'Young Center for Immigrant Children's Rights' should become 'Young Center'"). At a phone's width
   it scrolls sideways in that box, the names in sight, rather than becoming cards, since a card a row would be a
-  height a row and the rows are drawn by their one height. Only the rows in sight are drawn, and eight more each way,
+  height a row and the rows are drawn by their one height. A line runs between every column and the next, the
+  headings' and the rows', the last column's end the box's own (Paul, 2026-10-22: "Columns should all have vertical
+  borders, it's too complex to follow"); a ticked or hovered row's ground is drawn under them as before. A cell being
+  edited holds its field inside its lines at the row's height, the field's focus halo drawn inset (`outline-offset`
+  below zero), and so does a `<to-field>` a page draws in a cell ("The halo when I click on a stage and get the
+  dropdown bumps into the borders of the cell"). Only the rows in sight are drawn, and eight more each way,
   each `--to-dt-row-h` tall (2.75rem, or as tall as its words where a column wraps), so 5,000 rows cost what fifty do. The box is `--to-dt-h` tall at most (36rem,
   or three quarters of the screen) unless the page sets its height; a page that lets it grow with no limit draws every
   row. In Chromium, test/browser/table.test.ts's 5,000 rows are drawn in about 70ms, sorted by money in about 30ms and
@@ -393,7 +403,7 @@ rules are host.css's, so the site's bytes are as they were.
   `money`, `date`, `datetime`, `enum`, `email`, `url`, `tel`, `record`), `label` (its name: the pencil's "Edit Title"),
   `placeholder` (what it says when empty), `href` (its words a link), `options` (an enum's), `currency` and
   `decimals` (money's), `multiline` (lines of words, Shift+Enter a new line), `search` (a record's), `readonly`. Its
-  words are a table cell's (`cellWords`: money in its currency, a date in the page's language, an option's label). A
+  words are a table cell's (`cellWords`: money in its currency, a date in the page's language and short, an option's label). A
   click on its words (not a link), its pencil, or `edit()` makes it a field of its type, its words chosen; Enter keeps,
   the focus leaving keeps, Escape lets go, and words where a number belongs are not kept (the field says so). The edit
   is shown at once and told in `fieldchange`, cancelable, `{ value, before, wait }` (FieldChange), as `<to-table>`'s
@@ -998,8 +1008,8 @@ What a page that is not the site arranges, each with the site's way as the defau
   language in use: Match device, Light, Dark), `theme()` and `setTheme(theme)`, for Theme in a drawer, kept where
   `keepThemeAt` says; `loadIcons()`, the whole of Lucide, once (it resolves when it has joined; `iconNamed` then knows
   every name, `clipboard-check`, `users`), and `ensureIcons(names)`, the rest of Lucide only where one of
-  `names` is not in the starter set; and `dateText(value, withTime)`, a day (or a day and a time) in the page's
-  language as the table says it.
+  `names` is not in the starter set; and `dateText(value, withTime, short?)`, a day (or a day and a time) in the
+  page's language, in full ("Nov 8, 2026"), or with `short` as a table's cell says it ("8 Nov 26").
 - **A menu opened at what was picked.** `<to-menu buttonless>` draws no button of its own: a page opens it with
   `openAt(el)` beside what was picked (an outline's item, a list's row, a column's head), places it there, and gives
   the focus back to it when it closes; its keys are any menu's. The table's row menu is one.

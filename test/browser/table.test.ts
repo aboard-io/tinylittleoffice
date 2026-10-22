@@ -68,7 +68,7 @@ test('a grid: a row of headings and a row a record, each cell typed', async () =
   expect(grid.getAttribute('aria-label')).toBe('People');
   expect([...el.querySelectorAll('[role=columnheader]')].map((h) => h.textContent?.trim())).toStrictEqual(['Name', 'Deal', 'Met', 'VIP', 'Stage', 'Company']);
   expect(cell(el, 'Ada', 'Deal').textContent?.trim()).toBe('$950.00');
-  expect(cell(el, 'Ada', 'Met').textContent?.trim()).toBe('Mar 1, 2027');
+  expect(cell(el, 'Ada', 'Met').textContent?.trim()).toBe('1 Mar 27');
   expect(cell(el, 'Ada', 'VIP').querySelector('input')!.checked).toBe(true);
   expect(cell(el, 'Ada', 'Stage').querySelector('.to-chip')!.textContent).toBe('Won');
   expect(cell(el, 'Ada', 'Company').querySelector('a')!.getAttribute('href')).toBe('#company-Aboard');
@@ -141,7 +141,7 @@ test('an edit is told to the page and shown; refused, at once or later, the cell
   answer = 'refuse';
   await edit('Bea', 'Met', '2027-05-04');
   expect(told.at(-1)).toMatchObject({ id: 'b', column: 'met', value: '2027-05-04', before: '2026-12-31' });
-  expect(cell(el, 'Bea', 'Met').textContent?.trim()).toBe('Dec 31, 2026');
+  expect(cell(el, 'Bea', 'Met').textContent?.trim()).toBe('31 Dec 26');
 
   answer = 'later';
   await edit('Cy', 'Name', 'Cyrus');
@@ -368,11 +368,11 @@ test('at a phone’s width the table scrolls sideways in its own box, the page n
     const box = el.querySelector<HTMLElement>('.to-dt-box')!;
     expect(box.scrollWidth).toBeGreaterThan(box.clientWidth);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
-    // In a box this narrow the boxes and the names scroll with the rest: stuck at the start they would be most of it.
+    // In a box this narrow the names stay at the start, narrowed to two fifths of it, the rest scrolling beside them.
     box.scrollLeft = 200;
     const name = cell(el, 'Ada', 'Name');
-    expect(name.getBoundingClientRect().left).toBeLessThan(box.getBoundingClientRect().left);
-    expect(getComputedStyle(name).position).toBe('static');
+    expect(getComputedStyle(name).position).toBe('sticky');
+    await until(() => box.hasAttribute('scrolled') && name.getBoundingClientRect().width <= 0.4 * box.clientWidth + 1, 'the names never narrowed');
     el.querySelector<HTMLElement>('[tabindex="0"]')!.focus();
     box.scrollLeft = 0;
     await userEvent.keyboard('{End}');
@@ -446,6 +446,65 @@ test.each([
   } finally {
     await page.viewport(1280, 800);
   }
+});
+
+test.each([
+  ['24em', 0.4],
+  ['60em', null],
+])('the first column gives way to two fifths of a narrow box, and to eleven rem of a wide one: %s', async (width, share) => {
+  const cols: TableColumn<Row>[] = [{ key: 'name', label: 'Name', type: 'text', width: '16rem' }, ...COLS.slice(1).map((c) => ({ ...c, width: '12rem' }))];
+  const el = await table({ columns: cols });
+  el.style.width = width;
+  const box = el.querySelector<HTMLElement>('.to-dt-box')!;
+  box.scrollLeft = 200;
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const want = share === null ? 11 * rem : share * box.clientWidth;
+  const name = cell(el, 'Ada', 'Name');
+  await until(() => box.hasAttribute('scrolled') && Math.abs(name.getBoundingClientRect().width - want) < 1, 'the first column never narrowed');
+  if (share !== null) expect(want).toBeLessThan(11 * rem);
+  expect(el.querySelector<HTMLElement>('[role=columnheader].to-dt-pin')!.getBoundingClientRect().width).toBeCloseTo(want, 0);
+  // The cell walked to from it is beside it, not under it.
+  name.focus();
+  await userEvent.keyboard('{ArrowRight}');
+  await until(() => (document.activeElement as HTMLElement).dataset.c === '1');
+  expect(document.activeElement!.getBoundingClientRect().left).toBeGreaterThanOrEqual(name.getBoundingClientRect().right - 1);
+});
+
+test('a line between every column, the heads’ and the rows’, the last none; a field’s halo drawn inside its cell', async () => {
+  const el = await table();
+  const end = (c: HTMLElement) => getComputedStyle(c).borderInlineEndWidth;
+  for (const col of ['Name', 'Deal', 'Met', 'VIP', 'Stage']) {
+    expect(end(cell(el, 'Ada', col)), col).toBe('1px');
+    expect(end(heading(el, col)), col).toBe('1px');
+  }
+  expect(end(cell(el, 'Ada', 'Company'))).toBe('0px');
+  expect(end(heading(el, 'Company'))).toBe('0px');
+  // A ticked row's ground is still drawn, its lines with it.
+  const ticked = await table({ selectable: true, selected: ['a'] } as Partial<ToTable<Row>>);
+  const row = cell(ticked, 'Ada', 'Deal');
+  expect(getComputedStyle(row).backgroundColor).not.toBe(getComputedStyle(cell(ticked, 'Bea', 'Deal')).backgroundColor);
+  expect(end(row)).toBe('1px');
+  expect(end(ticked.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!)).toBe('1px');
+
+  // The Stage's options: the field's halo inset, inside the cell's lines.
+  const stage = cell(ticked, 'Ada', 'Stage');
+  stage.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => !!ticked.querySelector('select.to-dt-editor'), 'no options opened');
+  const field = ticked.querySelector<HTMLSelectElement>('select.to-dt-editor')!;
+  expect(document.activeElement).toBe(field);
+  expect(parseFloat(getComputedStyle(field).outlineOffset)).toBeLessThan(0);
+  const [inner, outer] = [field.getBoundingClientRect(), stage.getBoundingClientRect()];
+  expect(inner.left).toBeGreaterThan(outer.left);
+  expect(inner.right).toBeLessThan(outer.right - 1);
+  expect(inner.top).toBeGreaterThan(outer.top);
+  expect(inner.bottom).toBeLessThan(outer.bottom - 1);
+  // A <to-field> a page draws in a cell the same.
+  const own = document.createElement('div');
+  own.className = 'to-dt-cell';
+  own.innerHTML = '<to-field><select><option>Won</option></select></to-field>';
+  ticked.append(own);
+  own.querySelector('select')!.focus();
+  expect(parseFloat(getComputedStyle(own.querySelector('select')!).outlineOffset)).toBeLessThan(0);
 });
 
 interface Lead extends TableRow {

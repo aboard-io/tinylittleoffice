@@ -154,7 +154,7 @@ describe('a cell’s words', () => {
   test('money in its currency, a date in the page’s language, an option’s label, tags, a link’s words, a box by its column', () => {
     expect(cellWords(col('deal'), people[0])).toBe('$1,200.00');
     expect(cellWords({ ...col('deal'), currency: 'EUR' }, people[0])).toMatch(/1,200\.00/);
-    expect(cellWords(col('met'), people[0])).toBe('Mar 1, 2027');
+    expect(cellWords(col('met'), people[0])).toBe('1 Mar 27');
     expect(cellWords(col('stage'), people[0])).toBe('Won');
     expect(cellWords(col('stage'), people[4])).toBe('new');
     expect(cellWords(col('tags'), people[3])).toBe('vip, pilot');
@@ -170,6 +170,15 @@ describe('a cell’s words', () => {
     expect(dateText('2027-03-01', true)).toBe('Mar 1, 2027');
     expect(dateText(new Date(2027, 2, 1, 9, 30), true)).toMatch(/^Mar 1, 2027.*9:30/);
     expect(dateText('soon', false)).toBe('soon');
+  });
+  test('a cell’s date is short: the day, the month’s short name, the year’s two digits; a moment with its time', () => {
+    expect(dateText('2026-11-08', false, true)).toBe('8 Nov 26');
+    expect(dateText('2026-09-30', false, true)).toBe('30 Sep 26');
+    expect(dateText(new Date(2026, 10, 8, 14, 5), true, true)).toBe('8 Nov 26, 14:05');
+    // A day is the day it says wherever the page is, its time not drawn.
+    expect(dateText('2026-11-08', true, true)).toBe('8 Nov 26');
+    expect(dateText('soon', false, true)).toBe('soon');
+    expect(cellWords({ key: 'seen', label: 'Seen', type: 'datetime' }, { id: 'x', seen: new Date(2026, 10, 8, 9, 5).toISOString() })).toBe('8 Nov 26, 09:05');
   });
   test('nothing in a cell is empty: null, spaces, an empty list', () => {
     expect([null, undefined, '  ', [], Number.NaN].every(isEmpty)).toBe(true);
