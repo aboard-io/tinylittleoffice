@@ -280,7 +280,10 @@
     outline: 0.125rem solid var(--to-accent);
     outline-offset: -0.125rem;
   }
-  .to-dt-editor {
+  /* By the cell, so it outweighs the kit's own fields' rule (kit.css: a text input, a select and a textarea are a touch
+     tall), which otherwise made the editor the row's whole height inside the cell's padding, its last lines under the
+     row below (Paul, 2026-10-23: "The border cuts off below the bottom of the cell"). */
+  .to-dt-cell > .to-dt-editor {
     box-sizing: border-box;
     width: 100%;
     height: 100%;

@@ -758,3 +758,37 @@ test('a row’s actions: a menu at its end, by a click and by the keys, the acti
   await userEvent.keyboard('{Escape}');
   await until(() => !menu.matches(':popover-open'));
 });
+
+test('words pasted on a cell in hand are kept as its value with no editor opened; a status by its option’s name; words a column cannot read, a box or a record, nothing', async () => {
+  const el = await table();
+  const told: RowChange<Row>[] = [];
+  el.addEventListener('rowchange', (e) => told.push((e as CustomEvent<RowChange<Row>>).detail));
+  const paste = async (name: string, col: string, words: string) => {
+    const at = cell(el, name, col);
+    at.focus();
+    const clipboardData = new DataTransfer();
+    clipboardData.setData('text/plain', words);
+    at.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+    await el.updateComplete;
+  };
+  await paste('Ada', 'Deal', '$2,000');
+  expect(told.at(-1)).toMatchObject({ id: 'a', column: 'deal', value: 2000, before: 950 });
+  expect(el.querySelector('.to-dt-editor')).toBeNull();
+  expect(cell(el, 'Ada', 'Deal').textContent?.trim()).toBe('$2,000.00');
+  // A line alone: the editor is a line.
+  await paste('Bea', 'Name', 'Beatrix\nand more');
+  expect(told.at(-1)).toMatchObject({ id: 'b', column: 'name', value: 'Beatrix' });
+  // A status by its option's label, whatever the case, or its value.
+  await paste('Bea', 'Stage', 'won');
+  expect(told.at(-1)).toMatchObject({ id: 'b', column: 'stage', value: 'won' });
+  await paste('Cy', 'Stage', 'WON');
+  expect(told.at(-1)).toMatchObject({ id: 'c', column: 'stage', value: 'won' });
+  // Words where a number belongs, a status that is no option, a box: nothing told, nothing opened.
+  const n = told.length;
+  await paste('Dee', 'Deal', 'lots');
+  await paste('Dee', 'Stage', 'Lost');
+  await paste('Dee', 'VIP', 'false');
+  expect(told.length).toBe(n);
+  expect(el.querySelector('.to-dt-editor')).toBeNull();
+  expect(cell(el, 'Dee', 'Deal').textContent?.trim()).toBe('$1,200.00');
+});

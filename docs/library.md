@@ -256,7 +256,8 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   `aria-selected`, `aria-readonly`): one cell takes Tab; the arrows walk the cells and the headings, Home and End the
   row's ends (Mod: the table's), Page Up and Page Down a screenful; Enter edits a cell (F2 too, a double click, or a
   click on the cell in hand), follows its link, or picks its row; on a heading it sorts (Shift: as well); Space ticks
-  a row's box, a cell's box or the box for all. In an editor (a number field, a date or a moment field, a status's
+  a row's box, a cell's box or the box for all; words pasted on a cell are kept as its value, no editor opened (an
+  amount, a day, a status by its option's name; a line alone). In an editor (a number field, a date or a moment field, a status's
   options, words), Enter keeps the edit, Tab keeps it and moves on, Escape lets it go; words that are not a number in
   a number's column are not kept, and the field says so.
 - **Its size.** The table scrolls in a box of its own, as the Spreadsheet's grid does (the page never scrolls:

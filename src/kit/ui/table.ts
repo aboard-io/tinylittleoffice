@@ -15,7 +15,8 @@
  * - **Editing.** A cell of an `editable` column (or of a row its `editable(row)` says yes to) is edited where it is:
  *   Enter, F2, a double click, or a click on the cell in hand opens its editor (a number field, a date or a moment, the
  *   options of a status, words, or for a record a field that searches the host's records, `search(q)`, as it is typed;
- *   a box is ticked at once), Enter or leaving it keeps the edit and Escape lets it go (a record is kept only chosen). The edit is shown at once and told in a
+ *   a box is ticked at once), Enter or leaving it keeps the edit and Escape lets it go (a record is kept only chosen);
+ *   words pasted on the cell in hand are kept as its value with no editor opened (`onPaste`). The edit is shown at once and told in a
  *   cancelable `rowchange`, `{ id, column, value, before, row, wait }` (RowChange): the page that refuses it calls
  *   `preventDefault()`, or gives `wait` a promise that rejects or comes back false, and the cell goes back to what it
  *   held. A kept edit is shown until the page gives its rows again.
@@ -854,6 +855,29 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     e.preventDefault();
     e.stopPropagation();
   };
+  /**
+   * Words pasted on the cell in hand while no editor is open: kept as the cell's value, as typing them in its editor
+   * and Enter would, so a value is pasted without opening the cell first (Paul, 2026-10-23: "I need to be able to
+   * paste into a value cell without clicking on it first"). A line alone, since the editor is a line; a choice by its
+   * option's value or label; words a typed cell cannot read (letters in an amount's) are left where they are, and a
+   * box's or a record's cell takes none.
+   */
+  private onPaste = (e: ClipboardEvent) => {
+    if (e.defaultPrevented || this.editing || !(e.target as Element).closest?.('[role=gridcell]')) return;
+    const { r, c } = this.active;
+    const col = this.shown[c - this.off];
+    const row = this.view[r];
+    if (r < 0 || !col || !row || !canEdit(col, row)) return;
+    const type = typeOf(col);
+    if (type === 'boolean' || type === 'record') return;
+    const line = (e.clipboardData?.getData('text/plain') ?? '').split(/\r?\n/)[0]?.trim() ?? '';
+    const option = type === 'enum' ? (col.options ?? []).find((o) => o.value === line || (o.label ?? o.value).toLowerCase() === line.toLowerCase()) : null;
+    const value = type === 'enum' ? option?.value : parseInput(col, line);
+    if (value === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.commit(col, row, value);
+  };
   private onClick = (e: MouseEvent) => {
     const cell = (e.target as Element).closest<HTMLElement>('[role=gridcell]');
     if (!cell || this.editing) return;
@@ -1083,6 +1107,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
           aria-multiselectable=${this.selectable ? 'true' : nothing}
           style="--to-dt-cols: ${tracks}; --to-dt-least: ${least}rem; --to-dt-n: ${this.view.length}"
           @keydown=${this.onKey}
+          @paste=${this.onPaste}
           @click=${this.onClick}
           @dblclick=${this.onDblClick}
           @focusin=${(e: FocusEvent) => {
