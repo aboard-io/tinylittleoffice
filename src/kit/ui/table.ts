@@ -14,7 +14,7 @@
  *   `hideable` draws the Columns menu, a column hidden or shown told in `columnschange` (`{ hidden }`, the keys).
  * - **Editing.** A cell of an `editable` column (or of a row its `editable(row)` says yes to) is edited where it is:
  *   Enter, F2, a double click, or a click on the cell in hand opens its editor (a number field, a date or a moment, the
- *   options of a status, words, or for a record a field that searches the host's records, `search(q)`, as it is typed;
+ *   options of a status, which one click opens and drops, words, or for a record a field that searches the host's records, `search(q)`, as it is typed;
  *   a box is ticked at once), Enter or leaving it keeps the edit and Escape lets it go (a record is kept only chosen);
  *   words pasted on the cell in hand are kept as its value with no editor opened (`onPaste`). The edit is shown at once and told in a
  *   cancelable `rowchange`, `{ id, column, value, before, row, wait }` (RowChange): the page that refuses it calls
@@ -617,6 +617,14 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
       const field = this.querySelector<HTMLInputElement | HTMLSelectElement>('.to-dt-editor');
       field?.focus({ preventScroll: true });
       if (field instanceof HTMLInputElement && field.type === 'text') field.select();
+      // A status's options dropped at once, where the browser lets a script (on a click or a key, not otherwise).
+      if (field instanceof HTMLSelectElement) {
+        try {
+          (field as HTMLSelectElement & { showPicker?: () => void }).showPicker?.();
+        } catch {
+          /* no activation: the options drop on the next click or key */
+        }
+      }
     });
   }
   /** The edit kept (`keep`) or let go, and the focus back on its cell. */
@@ -894,8 +902,10 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
       return;
     } else if (editable && typeOf(col) === 'boolean') this.edit(r, c);
     else if (editable) {
-      // A record's link is followed (or told) as any link is; the rest of its cell edits it.
-      if (was && !(e.target as Element).closest('a, button')) this.edit(r, c);
+      // A record's link is followed (or told) as any link is; the rest of its cell edits it. A status's cell on its
+      // first click, its options dropped (Paul, 2026-10-23: "When I click on a table cell that is a dropdown expand the
+      // dropdown. Right now it takes two clicks.").
+      if ((was || typeOf(col) === 'enum') && !(e.target as Element).closest('a, button')) this.edit(r, c);
     } else this.activate(r, c, e);
     if (!this.editing) void this.focusCell();
   };

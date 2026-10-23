@@ -792,3 +792,14 @@ test('words pasted on a cell in hand are kept as its value with no editor opened
   expect(el.querySelector('.to-dt-editor')).toBeNull();
   expect(cell(el, 'Dee', 'Deal').textContent?.trim()).toBe('$1,200.00');
 });
+
+test('one click on a status’s cell opens its options, where another cell’s first click only takes it in hand', async () => {
+  const el = await table();
+  cell(el, 'Bea', 'Stage').click();
+  await until(() => !!el.querySelector('select.to-dt-editor'), 'no options opened on one click');
+  (el.querySelector('select.to-dt-editor') as HTMLSelectElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await until(() => document.activeElement === cell(el, 'Bea', 'Stage'), 'the status’s cell not back in hand');
+  cell(el, 'Bea', 'Deal').click();
+  await until(() => document.activeElement === cell(el, 'Bea', 'Deal'), 'the amount’s cell not in hand');
+  expect(el.querySelector('.to-dt-editor')).toBeNull();
+});
