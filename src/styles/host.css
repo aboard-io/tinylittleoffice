@@ -760,6 +760,11 @@
     padding-block: 0.375em;
     resize: vertical;
   }
+  /* A field's dropdown is exactly its text input's height in WebKit too, which ignores a select's min-height (kit.css, select). */
+  select.to-fd-input {
+    box-sizing: border-box;
+    height: var(--to-touch);
+  }
   .to-fd-input[aria-invalid='true'] {
     border-color: var(--to-danger);
   }

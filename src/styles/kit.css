@@ -1041,6 +1041,14 @@
   textarea {
     padding: 0.75em;
   }
+  /* A dropdown is exactly a text field's height (Paul, 2026-10-23: "make all dropdown/select boxes the same height as 1
+     text input box? They look anemic otherwise"): WebKit sizes a menulist by its words and ignores min-height, so the
+     height is said outright, as the drawer's dropdowns' is (page.css). A table's cell editor keeps the cell's (host.css
+     .to-dt-editor, which outweighs this). */
+  select {
+    box-sizing: border-box;
+    height: var(--to-touch);
+  }
   ::placeholder {
     color: var(--to-placeholder);
     opacity: 1;
