@@ -22,7 +22,9 @@ export class ToBar extends HTMLElement {
     this.setAttribute('role', 'toolbar');
     this.addEventListener('keydown', this.walk);
     this.addEventListener('scroll', this.fade, { passive: true });
-    this.watch = new ResizeObserver(() => this.fadeSoon());
+    // Resized, the fades are set in the frame the width changed, not the next: a page's column narrowed by a panel
+    // beside it never shows the bar's words cut hard for a frame before they fade (Paul, 2026-10-23: "quite flickery").
+    this.watch = new ResizeObserver(() => this.fade());
     this.watch.observe(this);
     new MutationObserver(() => this.fadeSoon()).observe(this, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'class'] });
     this.fadeSoon();

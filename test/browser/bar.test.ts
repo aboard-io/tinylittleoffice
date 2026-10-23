@@ -28,6 +28,27 @@ test('a bar wider than its box fades at the end, then at the start once scrolled
   await until(() => !bar.hasAttribute('data-fade-start') && !bar.hasAttribute('data-fade-end'));
 });
 
+test('a bar narrowed fades at its end in the frame it narrowed, not a frame later', async () => {
+  document.body.innerHTML = '<div style="width:2000px"><to-bar></to-bar></div>';
+  const bar = document.querySelector<HTMLElement>('to-bar')!;
+  render(html`${Array.from({ length: 12 }, (_, i) => tool({ label: `Tool ${i}`, icon: UI.bold }))}`, bar);
+  await until(() => bar.scrollWidth > 0 && !bar.hasAttribute('data-fade-end'));
+  // No fade put off from drawing its tools is still to come (one waiting would run first in the next frame, before
+  // the observers, and set the fade whatever they do).
+  await until(() => (bar as unknown as { soon: number }).soon === 0, 'a fade put off never came');
+  // Read by an observer made after the bar's, so told of the new width in the same frame, just after it.
+  const faded = new Promise<boolean>((ok) => {
+    const seen = new ResizeObserver(() => {
+      if (bar.clientWidth > 300) return;
+      seen.disconnect();
+      ok(bar.hasAttribute('data-fade-end'));
+    });
+    seen.observe(bar);
+  });
+  bar.parentElement!.style.width = '200px';
+  expect(await faded).toBe(true);
+});
+
 test('tool() and btn() are named buttons, 44px to the finger, with a state when they have one', () => {
   document.body.innerHTML = '<to-bar></to-bar>';
   let pressed = false;
