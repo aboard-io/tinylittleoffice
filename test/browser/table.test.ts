@@ -112,6 +112,37 @@ test('a click on a heading sorts by it, each type by its own order, an empty cel
   expect(sorts.length).toBe(6);
 });
 
+test("a click anywhere on a heading sorts, its far end and its padding too; a number's words stay at the end", async () => {
+  // Paul, 2026-10-23: "Let me click on the full column head to sort in addition to the text in the column head."
+  const el = await table();
+  const name = heading(el, 'Name');
+  const words = name.querySelector('button > span')!.getBoundingClientRect();
+  const box = name.getBoundingClientRect();
+  expect(box.right - words.right).toBeGreaterThan(20);
+  // The empty end of the heading, past its words, inside its padding.
+  await userEvent.click(name, { position: { x: name.offsetWidth - 3, y: name.offsetHeight / 2 } });
+  await el.updateComplete;
+  expect(el.sort).toStrictEqual([{ key: 'name', dir: 'asc' }]);
+  expect(name.getAttribute('aria-sort')).toBe('ascending');
+  // Just past the words, on the button that fills the cell.
+  await userEvent.click(name, { position: { x: words.right - box.left + 12, y: name.offsetHeight / 2 } });
+  await el.updateComplete;
+  expect(el.sort).toStrictEqual([{ key: 'name', dir: 'desc' }]);
+  // Shift adds a sort from the empty end as from the words.
+  const deal = heading(el, 'Deal');
+  await userEvent.click(deal, { position: { x: 3, y: deal.offsetHeight / 2 }, modifiers: ['Shift'] });
+  await el.updateComplete;
+  expect(el.sort).toStrictEqual([
+    { key: 'name', dir: 'desc' },
+    { key: 'deal', dir: 'asc' },
+  ]);
+  // A number's heading keeps its words at the cell's end, a word's at its start.
+  const dealWords = deal.querySelector('button > span')!.getBoundingClientRect();
+  const dealBox = deal.getBoundingClientRect();
+  expect(dealWords.left - dealBox.left).toBeGreaterThan(20);
+  expect(words.left - box.left).toBeLessThan(16);
+});
+
 test('an edit is told to the page and shown; refused, at once or later, the cell goes back', async () => {
   const el = await table();
   const told: RowChange<Row>[] = [];

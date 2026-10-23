@@ -5,8 +5,9 @@
  * a box to tick, a status in its color, a link or a person, tags, or a cell of the page's own drawing), and hears what
  * the person does in events. Nothing in a row is changed here: an edit is told to the page, which keeps it or refuses it.
  *
- * - **Sorting.** A click on a heading sorts by it, ascending, then descending, then not at all; Shift and a click sorts
- *   by it as well, after the others. Each type by its own order, an empty cell last, ties in the page's order
+ * - **Sorting.** A click anywhere on a heading sorts by it, ascending, then descending, then not at all; Shift and a
+ *   click sorts by it as well, after the others. Anywhere: the button fills the cell and the cell hears a click on its
+ *   padding (Paul, 2026-10-23: "Let me click on the full column head to sort"). Each type by its own order, an empty cell last, ties in the page's order
  *   (`sortchange`, `{ sort }`; the page may set `sort` itself).
  * - **Finding.** `query` keeps the rows with every word of it somewhere in their cells (the library's search: case and
  *   accents aside), `filter` keeps those a function of the page's keeps; `filterable` draws a box that sets `query`.
@@ -961,6 +962,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
       aria-sort=${ariaSort}
       tabindex=${this.active.r === -1 && this.active.c === c ? 0 : -1}
       @focus=${() => (this.active = { r: -1, c })}
+      @click=${sortable ? (e: MouseEvent) => e.target === e.currentTarget && this.sortBy(col.key, e.shiftKey) : nothing}
     >
       ${
         sortable

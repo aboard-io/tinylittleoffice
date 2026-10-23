@@ -211,9 +211,17 @@
   .to-dt-t-boolean {
     justify-content: center;
   }
+  /* The whole heading sorts, not only its words (Paul, 2026-10-23: "Let me click on the full column head to sort"): the
+     button fills the cell, its words where the cell puts them (a number's at the end), and the cell's padding hears a
+     click too (table.ts). */
+  .to-dt-head > .to-dt-cell:has(> .to-dt-sort) {
+    cursor: pointer;
+  }
   .to-dt-sort {
     display: inline-flex;
+    flex: 1 1 auto;
     align-items: center;
+    justify-content: inherit;
     gap: 0.25rem;
     min-width: 0;
     max-width: 100%;
@@ -229,7 +237,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .to-dt-sort:hover {
+  .to-dt-head > .to-dt-cell:hover > .to-dt-sort {
     color: var(--to-ink);
   }
   .to-dt-sort small {
