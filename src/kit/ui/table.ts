@@ -47,9 +47,10 @@
  *   the cell's own line (`font: inherit`), not the control's.
  *   Only the rows in sight are drawn, each the one height (`--to-dt-row-h`), so 5,000 rows are as quick as fifty
  *   (test/browser/table.test.ts measures it); where a column `wrap`s, a row grows to hold its words, and the rows are
- *   placed by their heights, measured where drawn and reckoned from their words where not. A column that `fit`s is as
- *   wide as its widest words, every row's, measured. The box is as tall as `--to-dt-h` (36rem, or three quarters of
- *   the screen) unless the page sets its height.
+ *   placed by their heights, measured where drawn and reckoned from their words where not, and measured again in the
+ *   frame the box's width changes (a panel opening beside the page), so no row is left over another or a gap under
+ *   it. A column that `fit`s is as wide as its widest words, every row's, measured. The box is as tall as `--to-dt-h`
+ *   (36rem, or three quarters of the screen) unless the page sets its height.
  */
 import { LitElement, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { live } from 'lit/directives/live.js';
@@ -222,6 +223,8 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   private rowH = ROW_GUESS;
   private headH = ROW_GUESS;
   private boxH = 0;
+  /** The box's width when rows that grow were last measured for it (`measure`). */
+  private boxW = 0;
   private sized: ResizeObserver | null = null;
   private frame = 0;
   /** The widths measured for the columns that fit, in CSS pixels, by key. */
@@ -468,7 +471,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     }
   }
 
-  /** The heights the window of rows is reckoned from: a row's, the headings', the box's. */
+  /** The heights the window of rows is reckoned from: a row's, the headings', the box's; and rows that grow measured again at a new width. */
   private measure() {
     const box = this.box;
     if (!box) return;
@@ -482,6 +485,15 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
       [this.rowH, this.headH, this.boxH] = [rowH, headH, boxH];
       this.offsets = null;
       this.requestUpdate();
+    }
+    // Rows that grow are as tall as their words at the columns' widths: the box narrowed or widened (a panel opening
+    // beside the page's column) has its drawn rows, already wrapped anew, measured and placed again now, in the frame
+    // the width changed, not left where the old heights put them, overlapping or with gaps, until the next update
+    // (Paul, 2026-10-23: "The text jumps around and there is sometimes a white gap").
+    const boxW = box.clientWidth;
+    if (this.grows && boxW !== this.boxW) {
+      this.boxW = boxW;
+      this.measureRows();
     }
   }
   /** The box scrolled: which rows are drawn, and whether it is off its start sideways (`scrolled`, where the first column gives way). Once a frame. */

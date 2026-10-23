@@ -605,6 +605,40 @@ test('money in whole units; a column that fits its widest words; a row that grow
   expect(run.getBoundingClientRect().top).toBeLessThan(title.top + short.height / 2);
 });
 
+test('rows that grow are placed again when the table’s width changes: narrowed and widened, each row begins where the one above it ends in the next frame', async () => {
+  document.body.innerHTML = '';
+  const host = document.createElement('div');
+  host.style.width = '1100px';
+  document.body.append(host);
+  const el = document.createElement('to-table') as ToTable<Lead>;
+  const cols: TableColumn<Lead>[] = [
+    { key: 'title', label: 'Title', type: 'text', wrap: true, width: 'minmax(10rem, 1fr)' },
+    { key: 'value', label: 'Value', type: 'money', currency: '$', decimals: 0 },
+  ];
+  Object.assign(el, { columns: cols, label: 'Leads', rows: LEADS.map((l, i) => ({ ...l, title: `${LONG} ${LONG.slice(0, i * 30)}` })) });
+  host.append(el);
+  await el.updateComplete;
+  await el.updateComplete;
+  const placed = () => {
+    const rows = [...el.querySelectorAll<HTMLElement>('.to-dt-body > [role=row]')].sort((a, b) => Number(a.dataset.r) - Number(b.dataset.r));
+    return rows.every((r, i) => i === 0 || Math.abs(r.offsetTop - rows[i - 1].offsetTop - rows[i - 1].offsetHeight) < 1);
+  };
+  // The next frame drawn: a frame's callbacks come before its layout, and the table hears of the new width after it.
+  const frame = () => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+  await until(placed, 'rows overlap or leave gaps as drawn');
+  const tall = el.querySelector<HTMLElement>('.to-dt-body > [role=row]')!.offsetHeight;
+  // Narrowed (a panel opening beside the page's column): the words wrap to more lines, and the rows under them move down at once.
+  host.style.width = '480px';
+  await frame();
+  expect(el.querySelector<HTMLElement>('.to-dt-body > [role=row]')!.offsetHeight).toBeGreaterThan(tall);
+  expect(placed()).toBe(true);
+  // Widened again: the rows close up, no gap left under the shorter ones.
+  host.style.width = '1100px';
+  await frame();
+  expect(el.querySelector<HTMLElement>('.to-dt-body > [role=row]')!.offsetHeight).toBe(tall);
+  expect(placed()).toBe(true);
+});
+
 test('rows that grow are windowed by their heights: 5,000 drawn a few at a time, scrolled to the end and walked there', async () => {
   const many: Lead[] = Array.from({ length: 5000 }, (_, i) => ({ ...LEADS[i % 3], id: `x${i}`, title: i % 7 ? `Lead ${i}` : `${LONG} ${i}` }));
   const t0 = performance.now();
