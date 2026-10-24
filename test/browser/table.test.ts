@@ -543,6 +543,7 @@ interface Lead extends TableRow {
   company: { id: string; label: string; href?: string } | null;
   value: number;
   invite: boolean;
+  stage?: 'lead' | 'won';
 }
 const COMPANIES = [
   { id: 'c1', label: 'Aboard', detail: 'aboard.com' },
@@ -552,7 +553,7 @@ const COMPANIES = [
 const LONG = 'Clear Channel Digital Strategy for the spring outdoor campaign across every city they light up at night';
 const LEADS: Lead[] = [
   { id: 'l1', title: 'Pilot', company: { id: 'c1', label: 'Aboard', href: '#c1' }, value: 12000, invite: false },
-  { id: 'l2', title: LONG, company: null, value: 950.5, invite: true },
+  { id: 'l2', title: LONG, company: null, value: 950.5, invite: true, stage: 'won' },
   { id: 'l3', title: 'Renewal', company: { id: 'c3', label: 'Mubadala' }, value: 1200, invite: false },
 ];
 const asked: string[] = [];
@@ -571,6 +572,7 @@ const LEAD_COLS: TableColumn<Lead>[] = [
     },
   },
   { key: 'value', label: 'Value', type: 'money', currency: '$', decimals: 0, editable: (r) => !r.invite },
+  { key: 'stage', label: 'Stage', type: 'enum', options: [{ value: 'lead' }, { value: 'won', label: 'Won', color: 'var(--to-success)' }], width: '6rem' },
 ];
 async function leads(props: Partial<ToTable<Lead>> = {}, rows: Lead[] = LEADS): Promise<ToTable<Lead>> {
   document.body.innerHTML = '';
@@ -602,7 +604,13 @@ test('money in whole units; a column that fits its widest words; a row that grow
   const title = leadCell(el, 'l2', 0).getBoundingClientRect();
   const run = document.createRange();
   run.selectNodeContents(leadCell(el, 'l2', 2));
-  expect(run.getBoundingClientRect().top).toBeLessThan(title.top + short.height / 2);
+  const money = run.getBoundingClientRect();
+  expect(money.top).toBeLessThan(title.top + short.height / 2);
+  // Its status chip too: centred on that first line, as the words beside it are, not on the row (Paul, 2026-10-24:
+  // "Status should be vertically aligned").
+  const chip = leadCell(el, 'l2', 3).querySelector('.to-chip')!.getBoundingClientRect();
+  expect(Math.abs(chip.top + chip.height / 2 - (money.top + money.height / 2))).toBeLessThan(1.5);
+  expect(chip.top + chip.height / 2).toBeLessThan(long.top + long.height / 2 - 4);
 });
 
 test('rows that grow are placed again when the table’s width changes: narrowed and widened, each row begins where the one above it ends in the next frame', async () => {
@@ -732,8 +740,8 @@ test('a row’s actions: a menu at its end, by a click and by the keys, the acti
   const told: { id: unknown; action: string }[] = [];
   el.addEventListener('rowaction', (e) => told.push((e as CustomEvent).detail));
   const grid = el.querySelector('[role=grid]')!;
-  expect(grid.getAttribute('aria-colcount')).toBe('4');
-  const btn = leadCell(el, 'l1', 3).querySelector<HTMLButtonElement>('button')!;
+  expect(grid.getAttribute('aria-colcount')).toBe('5');
+  const btn = leadCell(el, 'l1', 4).querySelector<HTMLButtonElement>('button')!;
   expect(btn.getAttribute('aria-label')).toBe('Actions for Pilot');
   btn.click();
   const menu = el.querySelector<HTMLElement>('to-menu.to-dt-menu [popover]')!;
@@ -744,9 +752,9 @@ test('a row’s actions: a menu at its end, by a click and by the keys, the acti
   items[1].click();
   expect(told).toMatchObject([{ id: 'l1', action: 'delete' }]);
   // By the keys: the arrows reach the actions' cell, Enter opens its menu, the menu's keys choose.
-  leadCell(el, 'l3', 2).focus();
+  leadCell(el, 'l3', 3).focus();
   await userEvent.keyboard('{ArrowRight}');
-  await until(() => document.activeElement === leadCell(el, 'l3', 3));
+  await until(() => document.activeElement === leadCell(el, 'l3', 4));
   await userEvent.keyboard('{Enter}');
   await until(() => menu.matches(':popover-open') && menu.contains(document.activeElement), 'Enter did not open the menu');
   await userEvent.keyboard('{Enter}');

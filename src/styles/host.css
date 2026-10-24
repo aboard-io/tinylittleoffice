@@ -6,6 +6,13 @@
    Only the editors' stylesheet (editors.css) has this sheet: the site's pages draw none of them. The table is
    document, in rem; its bar, the search box, the header, a section's head and the tabs are nav, in em, at the nav's
    size (kit.css's list, said again here for these). */
+/* A cell's own line height, kept as a registered length so that `1lh` is worked out on the cell (the words' line) and
+   not on the smaller chip that reads it (below, a chip on a row that grew). */
+@property --to-dt-lh {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0;
+}
 @layer kit {
   :is(.to-dt-bar, to-search, to-header, .to-tp-dialog, to-segmented, to-field, .to-sec-head, to-tabs) {
     font-size: var(--to-nav-font);
@@ -124,6 +131,15 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     background: var(--to-surface);
+    --to-dt-lh: 1lh;
+  }
+  /* A chip (a status, a tag) sits on the row's first line, centred on it as the words beside it are, never halfway down
+     a row that grew to wrap another cell's words (Paul, 2026-10-24: "Status should be vertically aligned"); the kit's
+     chip centres itself in whatever holds it (kit.css), which in a stretched cell is the whole row. Its height is its
+     own line and a hairline of padding above and below (kit.css). */
+  .to-dt-cell > .to-chip {
+    align-self: flex-start;
+    margin-block-start: calc((var(--to-dt-lh) - 1lh) / 2 - 1px);
   }
   /* A line under each row, drawn by its cells, whose grounds would cover the row's own; and a line between each column
      and the next, the heads' and the rows' alike, the last column's end the box's own (Paul, 2026-10-22: "Columns
