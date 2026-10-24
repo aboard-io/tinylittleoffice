@@ -26,20 +26,9 @@ import { live } from 'lit/directives/live.js';
 import { icon, UI } from '../draw/icons.ts';
 import { t } from '../core/i18n.ts';
 import { RecordPicking } from './record-pick.ts';
-import {
-  cellWords,
-  inputOf,
-  isEmpty,
-  parseInput,
-  recordOf,
-  sameValue,
-  type EnumOption,
-  type RecordOption,
-  type RecordSearch,
-  type RecordValue,
-  type TableColumn,
-  type TableRow,
-} from './table-model.ts';
+import { type MenuItem, type ToMenu } from './menu.ts';
+import './menu.ts';
+import { cellWords, inputOf, parseInput, recordOf, sameValue, type EnumOption, type RecordOption, type RecordSearch, type RecordValue, type TableColumn, type TableRow } from './table-model.ts';
 
 /** What a field holds, and so how it is shown and edited. */
 export type FieldType = 'text' | 'number' | 'money' | 'date' | 'datetime' | 'enum' | 'email' | 'url' | 'tel' | 'record';
@@ -72,6 +61,7 @@ export class ToField extends LitElement {
     search: { attribute: false },
     readonly: { type: Boolean, reflect: true },
     editing: { state: true },
+    choosing: { state: true },
   };
   declare value: unknown;
   declare type: FieldType;
@@ -87,6 +77,8 @@ export class ToField extends LitElement {
   declare readonly: boolean;
   /** The field is open. */
   declare editing: boolean;
+  /** A choice's menu open: drawn only while it is, so the field's words are its words alone. */
+  declare choosing: boolean;
   readonly uid = `to-field-${++n}`;
   /** An edit shown while the page has not given its value again. */
   private kept: unknown = KEPT_NONE;
@@ -107,6 +99,7 @@ export class ToField extends LitElement {
     this.search = undefined;
     this.readonly = false;
     this.editing = false;
+    this.choosing = false;
   }
   createRenderRoot() {
     return this;
@@ -135,9 +128,10 @@ export class ToField extends LitElement {
     return { id: 0, v: this.shown };
   }
 
-  /** The field opened, its words chosen to type over. */
+  /** The field opened, its words chosen to type over; a choice's options as the kit's menu beside the words. */
   async edit() {
     if (this.readonly || this.editing) return;
+    if (this.type === 'enum') return this.choose();
     this.editing = true;
     if (this.type === 'record') this.picker.begin(this.search);
     await this.updateComplete;
@@ -145,10 +139,10 @@ export class ToField extends LitElement {
     f?.focus();
     if (f instanceof HTMLInputElement && (f.type === 'text' || f.type === 'email' || f.type === 'url' || f.type === 'tel')) f.select();
     if (f instanceof HTMLTextAreaElement) f.select();
-    // A choice's options and a date's calendar drop at once, where the browser lets a script (on a click or a key, not
-    // otherwise), so one click opens them (Paul, 2026-10-24: "I have to click once to establish focus and AGAIN to pop
-    // up the component. I want to click once"); an option chosen is kept at once (the select's change).
-    if (f instanceof HTMLSelectElement || (f instanceof HTMLInputElement && (f.type === 'date' || f.type === 'datetime-local'))) {
+    // A date's calendar drops at once, where the browser lets a script (on a click or a key, not otherwise), so one
+    // click opens it (Paul, 2026-10-24: "I have to click once to establish focus and AGAIN to pop up the component. I
+    // want to click once").
+    if (f instanceof HTMLInputElement && (f.type === 'date' || f.type === 'datetime-local')) {
       try {
         (f as { showPicker?: () => void }).showPicker?.();
       } catch {
@@ -156,6 +150,33 @@ export class ToField extends LitElement {
       }
     }
   }
+  /**
+   * A choice's options as the kit's menu beside the words (header), the one held checked, a swatch where an option has
+   * a colour; one picked is kept at once, and Escape gives the words back. Never the browser's dropdown, which drops
+   * only where a script may open it (Paul, 2026-10-24, of a status: "a select box should pop up. I have to click
+   * twice now"; "Let's be consistent").
+   */
+  private async choose() {
+    this.choosing = true;
+    await this.updateComplete;
+    const menu = this.querySelector<ToMenu>(':scope > to-menu.to-fd-choice');
+    await menu?.updateComplete;
+    const anchor = this.querySelector<HTMLElement>('.to-fd-words, .to-fd-edit, .to-fd');
+    if (!menu || !anchor) return void (this.choosing = false);
+    // Closed (an option picked, Escape, a click elsewhere), the menu goes, and the words are the field's alone again.
+    menu.querySelector('[popover]')?.addEventListener('toggle', (e) => (e as ToggleEvent).newState === 'closed' && (this.choosing = false), { once: true });
+    menu.openAt(anchor);
+  }
+  private choiceItems(): MenuItem[] {
+    const now = this.shown;
+    return this.options.map((o) => ({
+      label: o.label ?? String(o.value),
+      ...(o.color ? { swatch: o.color } : {}),
+      checked: o.value === now,
+      does: () => this.commit(o.value),
+    }));
+  }
+
   /** Where the focus goes once the field closes: the words, which are the control; the pencil, where the words are a link. */
   private refocus() {
     void this.updateComplete.then(() => this.querySelector<HTMLElement>('.to-fd-words, .to-fd-edit')?.focus());
@@ -244,11 +265,7 @@ export class ToField extends LitElement {
           @blur=${on.blur}
         />
         ${this.picker.list(this.uid, this.label, (o) => this.commitPicked(o))}`;
-    if (this.type === 'enum')
-      return html`<select class="to-fd-input" id="${this.uid}-f" aria-label=${this.label || nothing} @change=${() => this.end(true)} @keydown=${on.key} @blur=${on.blur}>
-        ${isEmpty(this.shown) ? html`<option value="" selected></option>` : nothing}
-        ${this.options.map((o) => html`<option value=${o.value} ?selected=${o.value === start}>${o.label ?? o.value}</option>`)}
-      </select>`;
+
     if (this.multiline)
       return html`<textarea class="to-fd-input" id="${this.uid}-f" rows="3" aria-label=${this.label || nothing} .value=${start} @input=${on.input} @keydown=${on.key} @blur=${on.blur}></textarea>`;
     const kind = { date: 'date', datetime: 'datetime-local', email: 'email', url: 'url', tel: 'tel' }[this.type as string] ?? 'text';
@@ -300,9 +317,11 @@ export class ToField extends LitElement {
         ${shown}
         <button type="button" class="to-btn to-tool to-fd-edit" aria-label=${name} title=${t('common-edit')} @click=${(e: Event) => (e.stopPropagation(), void this.edit())}>${icon(UI.pen, 14)}</button>
       </span>`;
+    const choice = this.type === 'enum' && this.choosing ? html`<to-menu class="to-fd-choice" buttonless .label=${this.label} .items=${this.choiceItems()}></to-menu>` : nothing;
     return html`<span class="to-fd to-fd-can" @click=${this.onWordsClick}>
-      <span class="to-fd-words" role="button" tabindex="0" aria-label=${name} @keydown=${this.onWordsKey}>${shown}</span>
-    </span>`;
+        <span class="to-fd-words" role="button" tabindex="0" aria-label=${name} @keydown=${this.onWordsKey}>${shown}</span>
+      </span>
+      ${choice}`;
   }
 }
 if (!customElements.get('to-field')) customElements.define('to-field', ToField);

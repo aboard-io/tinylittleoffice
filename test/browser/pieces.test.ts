@@ -163,12 +163,19 @@ test('a field of a type: money in whole units read as the Spreadsheet reads it, 
   pick.value = 'lead';
   await pick.updateComplete;
   expect(pick.textContent?.trim()).toBe('Lead');
+  // A choice: its options the kit's menu beside the words, the one held checked; one picked is kept at once (Paul, 2026-10-24: "Let's be consistent").
   await pick.edit();
-  const select = pick.field as HTMLSelectElement;
-  select.value = 'won';
-  select.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  const choice = pick.querySelector<HTMLElement>('to-menu.to-fd-choice [popover]')!;
+  await until(() => choice.matches(':popover-open'), 'no options opened');
+  const options = [...choice.querySelectorAll<HTMLElement>('[role^=menuitem]')];
+  expect(options.map((o) => [o.textContent?.trim(), o.getAttribute('aria-checked')])).toStrictEqual([
+    ['Lead', 'true'],
+    ['Won', 'false'],
+  ]);
+  options[1].click();
+  await until(() => !choice.matches(':popover-open'));
   await pick.updateComplete;
-  expect(pick.textContent?.trim()).toBe('Won');
+  expect(pick.querySelector('.to-fd-words')?.textContent?.trim()).toBe('Won');
   const link = await field('<to-field label="Website" type="url" href="#acme"></to-field>');
   link.value = 'acme.com';
   await link.updateComplete;
