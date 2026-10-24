@@ -147,7 +147,7 @@ export class ToField extends LitElement {
     if (f instanceof HTMLTextAreaElement) f.select();
     // A choice's options and a date's calendar drop at once, where the browser lets a script (on a click or a key, not
     // otherwise), so one click opens them (Paul, 2026-10-24: "I have to click once to establish focus and AGAIN to pop
-    // up the component. I want to click once").
+    // up the component. I want to click once"); an option chosen is kept at once (the select's change).
     if (f instanceof HTMLSelectElement || (f instanceof HTMLInputElement && (f.type === 'date' || f.type === 'datetime-local'))) {
       try {
         (f as { showPicker?: () => void }).showPicker?.();
@@ -245,7 +245,7 @@ export class ToField extends LitElement {
         />
         ${this.picker.list(this.uid, this.label, (o) => this.commitPicked(o))}`;
     if (this.type === 'enum')
-      return html`<select class="to-fd-input" id="${this.uid}-f" aria-label=${this.label || nothing} @keydown=${on.key} @blur=${on.blur}>
+      return html`<select class="to-fd-input" id="${this.uid}-f" aria-label=${this.label || nothing} @change=${() => this.end(true)} @keydown=${on.key} @blur=${on.blur}>
         ${isEmpty(this.shown) ? html`<option value="" selected></option>` : nothing}
         ${this.options.map((o) => html`<option value=${o.value} ?selected=${o.value === start}>${o.label ?? o.value}</option>`)}
       </select>`;
