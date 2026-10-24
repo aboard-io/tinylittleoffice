@@ -79,7 +79,9 @@ What an app still asked of the site itself, and what replaces it:
    the design, its rules and its properties.
 8. **Read-only.** Done: `readonly` on an editor (`mount(…, { readOnly: true })`) draws no bar (a calendar keeps back,
    on and Today, and a page's own commands join that bar: A page's own commands) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
-   calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`).
+   calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`). A document that is
+   a part of a host's page and not a page of its own (`mount(…, { fill: true })`, the element's `data-fill`) keeps to
+   the start of its box and takes its width where the app would centre a page's measure: the Outliner so far (2026-10-24).
    Those four apps pick, and so does the Diagram Maker (2026-10-18): a thing activated is `{ at, thing, words }` and,
    for a line's thing, `part` (the whole, its key, its words, or a thing of its list by place), for a name only
    connections give or a lane's, `name` (`at` -1): `at` the block of its line (a connection's, its `~` line), `thing`

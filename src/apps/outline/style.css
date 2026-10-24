@@ -22,6 +22,32 @@
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;
   }
+  /* A part of a host's page (mount's `fill`, kit/core/mount.ts): the outline, its joins, its trail and its footnotes
+     keep to the start of the box and take its width, as the words around them do; nothing is centred. */
+  to-outline-editor[data-fill] {
+    /* Room for the fold arrow alone: a part of a page is not dragged, and its bullets start near the words around it. */
+    --ol-gut: 1.25rem;
+  }
+  [data-fill] :is(.ol, .ol-links, .ol-crumbs, .ol-hint) {
+    max-width: none;
+    margin-inline: 0;
+  }
+  /* The gutter hangs in the page's own margin, as a document's controls do, so the bullets begin where the words
+     around the outline begin. */
+  [data-fill] :is(.ol, .ol-links) {
+    width: calc(100% + var(--ol-gut));
+    margin-inline-start: calc(-1 * var(--ol-gut));
+    padding-inline-end: 0;
+  }
+  [data-fill] .ol-handle {
+    display: none;
+  }
+  [data-fill] .ol-fold {
+    width: var(--ol-gut);
+  }
+  [data-fill] .ol-fn {
+    margin-inline-start: var(--ol-gut);
+  }
   .ol-row {
     position: relative;
     display: flex;

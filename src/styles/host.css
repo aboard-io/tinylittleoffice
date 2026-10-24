@@ -737,8 +737,22 @@
     min-width: 0;
     min-height: var(--to-touch);
   }
-  .to-fd-can > :is(.to-fd-text, .to-fd-empty) {
+  /* The words are the control: typed over by a click, Enter or Space; a quiet ground under them on hover and the
+     focus ring when the keyboard reaches them. */
+  .to-fd-words {
+    display: block;
+    min-width: 0;
+    margin: 0 -0.25em;
+    padding: 0 0.25em;
+    border-radius: var(--to-radius-sm);
     cursor: text;
+  }
+  .to-fd-words:hover {
+    background: var(--to-surface-2);
+  }
+  .to-fd-words:focus-visible {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: 0;
   }
   .to-fd-text,
   .to-fd-link,

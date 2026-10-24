@@ -369,6 +369,20 @@ async function shown(app: string, text: string) {
 }
 const key = (el: Element, key: string, init: KeyboardEventInit = {}) => el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
 
+test('an outline mounted to fill a host’s box keeps to its start: no centred measure, no handles, a gutter for the fold arrow alone', async () => {
+  document.body.innerHTML = '<main class="to-main" style="width: 1200px"></main>';
+  const main = document.querySelector('main')!;
+  const { editor } = await mount('outline', '- One\n  - Under one\n- Two\n', main, () => {}, { readOnly: true, fill: true });
+  await (editor as typeof editor & { updateComplete: Promise<boolean> }).updateComplete;
+  expect(editor.hasAttribute('data-fill')).toBe(true);
+  const ol = editor.querySelector<HTMLElement>('.ol')!;
+  // To the box's end, not an 820px measure centred in it; its gutter hangs in the margin, so its first row begins at the box's start.
+  expect(Math.abs(ol.getBoundingClientRect().right - main.getBoundingClientRect().right)).toBeLessThan(1);
+  const row = editor.querySelector<HTMLElement>('.ol-row')!;
+  expect(Math.abs(row.getBoundingClientRect().left - main.getBoundingClientRect().left)).toBeLessThan(1);
+  expect([...editor.querySelectorAll<HTMLElement>('.ol-handle')].every((h) => h.getClientRects().length === 0)).toBe(true);
+});
+
 test('a calendar mounted read-only: no tools, an event clicked or entered is picked with its block, day and time, and nothing edits it', async () => {
   const now = new Date();
   const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

@@ -61,13 +61,17 @@ export async function editorTag(app: string): Promise<string> {
  * pipeline), their keys answered inside the editor and those `where` the bar drawn in the editor's bar, a group of their
  * own after the editor's tools and before Undo and Redo; and for a shared document `onOps`, told each change's ops and how many the editor had applied before them
  * (kit/core/element.ts DocOps), before `onChange` is told its text; `readOnly`, a document shown and not edited, drawn so
- * from the first (the element's `readonly`: no bar, no typing, and a "docpick" for an item activated).
+ * from the first (the element's `readonly`: no bar, no typing, and a "docpick" for an item activated); `fill`, a
+ * document that is a part of a host's page and not a page of its own (a list on a lead's page), so it keeps to the
+ * start of its box and takes its whole width where the app would centre a page's measure (the element's `data-fill`;
+ * Paul, 2026-10-24: "The outliner tends to be center aligned which is off-target").
  */
 export interface Own<C> {
   commands?: readonly Command<C>[];
   context?: C;
   onOps?: (ops: Op[], base: number) => void;
   readOnly?: boolean;
+  fill?: boolean;
 }
 
 /** An editor mounted: the element, and what takes another's ops in (DocElement's `applyRemote`: applied, nothing told, the history carried over them). */
@@ -89,6 +93,7 @@ export async function mount<C>(app: string, text: string, into: Element, onChang
   editor.classList.add('to-editor');
   editor.value = text;
   if (own?.readOnly) editor.readOnly = true;
+  if (own?.fill) editor.setAttribute('data-fill', '');
   // The page's commands drawn in the editor's bar, a group of their own (kit/core/element.ts ownTools); their keys below.
   // (The element keeps a page's commands of any context: OwnTools<never>, which this page's are once their context is forgotten.)
   if (own?.commands?.length) (editor as unknown as DocElement<unknown>).own = { commands: own.commands, context: own.context } as unknown as OwnTools<never>;

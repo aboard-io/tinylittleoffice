@@ -100,13 +100,16 @@ test('a field edited in place: a click or its pencil opens it, Enter keeps, Esca
     if (answer === 'later') ev.detail.wait(new Promise<boolean>((ok) => (later = ok)));
   });
   expect(el.textContent?.trim()).toBe('Director');
-  const pencil = el.querySelector<HTMLButtonElement>('.to-fd-edit')!;
-  expect(pencil.getAttribute('aria-label')).toBe('Edit Title');
+  // No pencil: the words are the control, a button for the keyboard (Paul, 2026-10-24: a pencil is "Not needed").
+  expect(el.querySelector('.to-fd-edit')).toBeNull();
+  const words = el.querySelector<HTMLElement>('.to-fd-words')!;
+  expect([words.getAttribute('role'), words.getAttribute('tabindex'), words.getAttribute('aria-label')]).toStrictEqual(['button', '0', 'Edit Title']);
   el.querySelector<HTMLElement>('.to-fd-text')!.click();
   await until(() => document.activeElement === el.field, 'a click on the words opened nothing');
   await userEvent.keyboard('Head of Strategy{Enter}');
   expect(told.at(-1)).toMatchObject({ value: 'Head of Strategy', before: 'Director' });
-  await until(() => document.activeElement === el.querySelector('.to-fd-edit'), 'the focus did not come back to the pencil');
+  await until(() => document.activeElement === el.querySelector('.to-fd-words'), 'the focus did not come back to the words');
+  // Enter on the words opens the field too, as Space does.
   expect(el.textContent?.trim()).toBe('Head of Strategy');
   // Escape lets it go.
   await userEvent.keyboard('{Enter}');
@@ -218,6 +221,7 @@ test('a record field: a link, picked from the host’s search as it is typed; En
   expect(told[0]).toMatchObject({ value: 'c2', before: 'c1', record: { id: 'c2', label: 'Clear Channel' } });
   expect(el.textContent?.trim()).toBe('Clear Channel');
   expect(el.querySelector('a.to-fd-link')!.getAttribute('href')).toBe('#/companies/c2');
+  // Words that are a link keep a pencil beside them, where the focus returns: the link itself opens the link.
   await until(() => document.activeElement === el.querySelector('.to-fd-edit'), 'the focus did not come back to the pencil');
   // Down and Up walk the records; Escape lets the picker go, nothing told.
   await el.edit();

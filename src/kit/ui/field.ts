@@ -145,6 +145,20 @@ export class ToField extends LitElement {
     f?.focus();
     if (f instanceof HTMLInputElement && (f.type === 'text' || f.type === 'email' || f.type === 'url' || f.type === 'tel')) f.select();
     if (f instanceof HTMLTextAreaElement) f.select();
+    // A choice's options and a date's calendar drop at once, where the browser lets a script (on a click or a key, not
+    // otherwise), so one click opens them (Paul, 2026-10-24: "I have to click once to establish focus and AGAIN to pop
+    // up the component. I want to click once").
+    if (f instanceof HTMLSelectElement || (f instanceof HTMLInputElement && (f.type === 'date' || f.type === 'datetime-local'))) {
+      try {
+        (f as { showPicker?: () => void }).showPicker?.();
+      } catch {
+        /* no activation: they drop on the next click or key */
+      }
+    }
+  }
+  /** Where the focus goes once the field closes: the words, which are the control; the pencil, where the words are a link. */
+  private refocus() {
+    void this.updateComplete.then(() => this.querySelector<HTMLElement>('.to-fd-words, .to-fd-edit')?.focus());
   }
   /** Kept (`keep`) or let go, and the focus back on the pencil. */
   private end(keep: boolean, refocus = true) {
@@ -165,7 +179,7 @@ export class ToField extends LitElement {
     }
     this.editing = false;
     this.picker.end();
-    if (refocus) void this.updateComplete.then(() => this.querySelector<HTMLElement>('.to-fd-edit')?.focus());
+    if (refocus) this.refocus();
   }
   /** The edit kept: a value, or for a record its id with the record chosen (the words shown; null, emptied). */
   private commit(raw: unknown, record?: RecordOption | null) {
@@ -252,32 +266,42 @@ export class ToField extends LitElement {
       @blur=${on.blur}
     />`;
   }
-  /** A record clicked in the picker: kept and the field closed, the focus back on the pencil. */
+  /** A record clicked in the picker: kept and the field closed, the focus back on the words (or the pencil of a link). */
   private commitPicked(o: RecordOption) {
     if (!this.editing) return;
     this.commit(o.id, o);
     this.editing = false;
     this.picker.end();
-    void this.updateComplete.then(() => this.querySelector<HTMLElement>('.to-fd-edit')?.focus());
+    this.refocus();
   }
+  /** Enter or Space on the words opens the field, as a click does. */
+  private onWordsKey = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      void this.edit();
+    }
+  };
   render() {
     if (this.editing) return html`<span class="to-fd to-fd-editing">${this.input()}</span>`;
     const words = cellWords(this.column(), this.row());
     const href = (this.type === 'record' ? recordOf(this.column(), this.row())?.href : undefined) ?? this.href;
+    const name = t('field-edit-name', { name: this.label || t('common-edit') });
+    // The words are the control (Paul, 2026-10-24: a pencil after an edit is "Not needed"): a button for the keyboard,
+    // opened by a click, Enter or Space, and where the focus returns once the field closes. Words that are a link
+    // stay a link, so a pencil beside them opens the field; a read-only field is words alone.
     const shown = words
       ? href
         ? html`<a class="to-fd-link" href=${href}>${words}</a>`
         : html`<span class="to-fd-text ${this.multiline ? 'to-fd-lines' : ''}">${words}</span>`
       : html`<span class="to-fd-empty">${this.placeholder || '–'}</span>`;
-    return html`<span class="to-fd ${this.readonly ? '' : 'to-fd-can'}" @click=${this.readonly ? nothing : this.onWordsClick}>
-      ${shown}
-      ${
-        this.readonly
-          ? nothing
-          : html`<button type="button" class="to-btn to-tool to-fd-edit" aria-label=${t('field-edit-name', { name: this.label || t('common-edit') })} title=${t('common-edit')} @click=${(e: Event) => (e.stopPropagation(), void this.edit())}>
-              ${icon(UI.pen, 14)}
-            </button>`
-      }
+    if (this.readonly) return html`<span class="to-fd">${shown}</span>`;
+    if (href)
+      return html`<span class="to-fd to-fd-can" @click=${this.onWordsClick}>
+        ${shown}
+        <button type="button" class="to-btn to-tool to-fd-edit" aria-label=${name} title=${t('common-edit')} @click=${(e: Event) => (e.stopPropagation(), void this.edit())}>${icon(UI.pen, 14)}</button>
+      </span>`;
+    return html`<span class="to-fd to-fd-can" @click=${this.onWordsClick}>
+      <span class="to-fd-words" role="button" tabindex="0" aria-label=${name} @keydown=${this.onWordsKey}>${shown}</span>
     </span>`;
   }
 }
