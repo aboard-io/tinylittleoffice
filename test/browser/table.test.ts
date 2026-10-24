@@ -200,13 +200,19 @@ test('an edit is told to the page and shown; refused, at once or later, the cell
   await el.updateComplete;
   expect(told.at(-1)).toMatchObject({ id: 'b', column: 'vip', value: true, before: false });
   expect(cell(el, 'Bea', 'VIP').querySelector('input')!.checked).toBe(true);
+  // A status: its options the kit's menu beside the cell, the one held checked; one picked is kept at once.
   cell(el, 'Bea', 'Stage').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-  await until(() => el.querySelector('.to-dt-editor') instanceof HTMLSelectElement, 'no options');
-  const select = el.querySelector<HTMLSelectElement>('.to-dt-editor')!;
-  select.value = 'won';
-  select.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  const choice = el.querySelector<HTMLElement>('to-menu.to-dt-choice [popover]')!;
+  await until(() => choice.matches(':popover-open'), 'no options');
+  const options = [...choice.querySelectorAll<HTMLElement>('[role^=menuitem]')];
+  expect(options.map((o) => [o.textContent?.trim(), o.getAttribute('aria-checked')])).toStrictEqual([
+    ['Lead', 'true'],
+    ['Won', 'false'],
+  ]);
+  options.find((o) => o.textContent?.includes('Won'))!.click();
   await el.updateComplete;
   expect(told.at(-1)).toMatchObject({ id: 'b', column: 'stage', value: 'won', before: 'lead' });
+  await until(() => !choice.matches(':popover-open'));
 
   // The page's rows given again are the truth: the edits shown over them are let go.
   el.rows = ROWS.map((r) => ({ ...r }));
@@ -517,18 +523,16 @@ test('a line between every column, the heads’ and the rows’, the last none; 
   expect(end(row)).toBe('1px');
   expect(end(ticked.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!)).toBe('1px');
 
-  // The Stage's options: the field's halo inset, inside the cell's lines.
+  // The Stage's options: the kit's menu, placed beside the cell, its items within the screen.
   const stage = cell(ticked, 'Ada', 'Stage');
   stage.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-  await until(() => !!ticked.querySelector('select.to-dt-editor'), 'no options opened');
-  const field = ticked.querySelector<HTMLSelectElement>('select.to-dt-editor')!;
-  expect(document.activeElement).toBe(field);
-  expect(parseFloat(getComputedStyle(field).outlineOffset)).toBeLessThan(0);
-  const [inner, outer] = [field.getBoundingClientRect(), stage.getBoundingClientRect()];
-  expect(inner.left).toBeGreaterThan(outer.left);
-  expect(inner.right).toBeLessThan(outer.right - 1);
-  expect(inner.top).toBeGreaterThan(outer.top);
-  expect(inner.bottom).toBeLessThan(outer.bottom - 1);
+  const choice = ticked.querySelector<HTMLElement>('to-menu.to-dt-choice [popover]')!;
+  await until(() => choice.matches(':popover-open'), 'no options opened');
+  const [menu, outer] = [choice.getBoundingClientRect(), stage.getBoundingClientRect()];
+  expect(menu.top).toBeGreaterThanOrEqual(outer.top - 1);
+  expect(menu.right).toBeLessThanOrEqual(document.documentElement.clientWidth);
+  choice.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await until(() => !choice.matches(':popover-open'));
   // A <to-field> a page draws in a cell the same.
   const own = document.createElement('div');
   own.className = 'to-dt-cell';
@@ -804,9 +808,10 @@ test('words pasted on a cell in hand are kept as its value with no editor opened
 test('one click on a status’s cell opens its options, where another cell’s first click only takes it in hand', async () => {
   const el = await table();
   cell(el, 'Bea', 'Stage').click();
-  await until(() => !!el.querySelector('select.to-dt-editor'), 'no options opened on one click');
-  (el.querySelector('select.to-dt-editor') as HTMLSelectElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  await until(() => document.activeElement === cell(el, 'Bea', 'Stage'), 'the status’s cell not back in hand');
+  const choice = el.querySelector<HTMLElement>('to-menu.to-dt-choice [popover]')!;
+  await until(() => choice.matches(':popover-open'), 'no options opened on one click');
+  choice.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await until(() => !choice.matches(':popover-open') && document.activeElement === cell(el, 'Bea', 'Stage'), 'the status’s cell not back in hand');
   cell(el, 'Bea', 'Deal').click();
   await until(() => document.activeElement === cell(el, 'Bea', 'Deal'), 'the amount’s cell not in hand');
   expect(el.querySelector('.to-dt-editor')).toBeNull();

@@ -13,8 +13,11 @@
  *   accents aside), `filter` keeps those a function of the page's keeps; `filterable` draws a box that sets `query`.
  *   `hideable` draws the Columns menu, a column hidden or shown told in `columnschange` (`{ hidden }`, the keys).
  * - **Editing.** A cell of an `editable` column (or of a row its `editable(row)` says yes to) is edited where it is:
- *   Enter, F2, a double click, or a click on the cell in hand opens its editor (a number field, a date or a moment, the
- *   options of a status, which one click opens and drops, words, or for a record a field that searches the host's records, `search(q)`, as it is typed;
+ *   Enter, F2, a double click, or a click on the cell in hand opens its editor (a number field, a date or a moment, words,
+ *   or for a record a field that searches the host's records, `search(q)`, as it is typed; a status's options are the
+ *   kit's menu beside the cell, open on the one click and on Enter, the one held checked, an option picked kept at
+ *   once, Escape giving the cell back: never the browser's dropdown, which drops only where a script may open it (Paul,
+ *   2026-10-24: "When I click in the table like on a status a select box should pop up. I have to click twice now");
  *   a box is ticked at once), Enter or leaving it keeps the edit and Escape lets it go (a record is kept only chosen);
  *   words pasted on the cell in hand are kept as its value with no editor opened (`onPaste`). The edit is shown at once and told in a
  *   cancelable `rowchange`, `{ id, column, value, before, row, wait }` (RowChange): the page that refuses it calls
@@ -238,6 +241,8 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   private widthsAt = '';
   /** The row whose menu is open. */
   private menuRow: R | null = null;
+  /** The status cell whose options are open as a menu (header). */
+  private choosing: { r: number; c: number } | null = null;
   /** A record cell's picker (kit/ui/record-pick.ts), open while a record cell is being edited. */
   private picker = new RecordPicking(this);
   /** The type the cells are drawn in, read once an update. */
@@ -610,21 +615,17 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     const row = this.view[r];
     if (!col || !row || !canEdit(col, row)) return;
     if (typeOf(col) === 'boolean') return this.commit(col, row, !this.valueAt(col, row));
+    // A status's options are the kit's menu, open on the one click, not the browser's dropdown, which drops only where
+    // a script may open it (Paul, 2026-10-24: "When I click in the table like on a status a select box should pop up.
+    // I have to click twice now").
+    if (typeOf(col) === 'enum') return void this.openChoice(r, c);
     this.active = { r, c };
     this.editing = { r, c, start: inputOf({ ...col, value: (x: R) => this.valueAt(col, x) }, row) };
     if (typeOf(col) === 'record') this.picker.begin(col.search);
     void this.updateComplete.then(() => {
-      const field = this.querySelector<HTMLInputElement | HTMLSelectElement>('.to-dt-editor');
+      const field = this.querySelector<HTMLInputElement>('.to-dt-editor');
       field?.focus({ preventScroll: true });
       if (field instanceof HTMLInputElement && field.type === 'text') field.select();
-      // A status's options dropped at once, where the browser lets a script (on a click or a key, not otherwise).
-      if (field instanceof HTMLSelectElement) {
-        try {
-          (field as HTMLSelectElement & { showPicker?: () => void }).showPicker?.();
-        } catch {
-          /* no activation: the options drop on the next click or key */
-        }
-      }
     });
   }
   /** The edit kept (`keep`) or let go, and the focus back on its cell. */
@@ -716,6 +717,33 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
   private onPickBlur = () => {
     if (this.editing && this.picker.state) this.endEdit(false);
   };
+
+  // ---- a status's options ----
+
+  /** The options of the status cell at `r`, `c`, as a menu beside it, the one it holds checked (header). */
+  async openChoice(r: number, c: number) {
+    this.active = { r, c };
+    this.choosing = { r, c };
+    this.requestUpdate();
+    await this.updateComplete;
+    const menu = this.querySelector<ToMenu>(':scope to-menu.to-dt-choice');
+    await menu?.updateComplete;
+    const anchor = this.cellAt(r, c);
+    if (anchor) menu?.openAt(anchor);
+  }
+  private choiceItems(): MenuItem[] {
+    const at = this.choosing;
+    const col = at && this.shown[at.c - this.off];
+    const row = at && this.view[at.r];
+    if (!col || !row) return [];
+    const now = this.valueAt(col, row);
+    return (col.options ?? []).map((o) => ({
+      label: o.label ?? String(o.value),
+      ...(o.color ? { swatch: o.color } : {}),
+      checked: o.value === now,
+      does: () => this.commit(col, row, o.value),
+    }));
+  }
 
   // ---- a row's actions ----
 
@@ -977,10 +1005,6 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
     const on = { key: this.onEditorKey, blur: this.onEditorBlur };
     const type = typeOf(col);
     if (type === 'record') return this.recordEditor(col);
-    if (type === 'enum')
-      return html`<select class="to-dt-editor" aria-label=${col.label} @keydown=${on.key} @blur=${on.blur}>
-        ${(col.options ?? []).map((o) => html`<option value=${o.value} ?selected=${o.value === start}>${o.label ?? o.value}</option>`)}
-      </select>`;
     const kind = type === 'date' ? 'date' : type === 'datetime' ? 'datetime-local' : 'text';
     const numeric = type === 'number' || type === 'money';
     return html`<input
@@ -1169,6 +1193,7 @@ export class ToTable<R extends TableRow = TableRow> extends LitElement {
         ${this.view.length ? nothing : html`<p class="to-dt-empty" role="status">${this.rows.length ? t('table-no-rows-match') : this.empty || t('table-no-rows')}</p>`}
       </div>
       ${this.rowActions ? html`<to-menu class="to-dt-menu" buttonless .label=${t('table-row-actions')} .items=${this.actionItems()}></to-menu>` : nothing}
+      <to-menu class="to-dt-choice" buttonless .label=${this.choosing ? (this.shown[this.choosing.c - this.off]?.label ?? '') : ''} .items=${this.choiceItems()}></to-menu>
     </div>`;
   }
 }
