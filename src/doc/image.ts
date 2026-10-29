@@ -12,7 +12,10 @@
  * (kit/core/host.ts `images`; Paul, 2026-10-19: "it shouldn't be there for the URL backend, but for this backend an
  * image module makes sense"). A fence needs no new block kind: the reader, the writer, the operations and their
  * transformation take it as any fence, and an attribute beyond these (a class a host writes, `class=thumb`) rides
- * through every edit untouched. These helpers read one and make one, and list a document's references with no DOM,
+ * through every edit untouched. `align=left`, `align=right` or `align=center` sets the picture at its own size (its
+ * `w`, else a column's share) against that side, the words wrapping round it where they can; no `align` is the
+ * picture at the column's width (Paul, 2026-10-29: "add image alignment to the image functions ... They're enormous
+ * now"). `withAlign` writes it, every other attribute riding along. These helpers read one and make one, and list a document's references with no DOM,
  * for a server that collects what nothing names any more or asks who may see a picture.
  */
 import { attr, type Attrs, type Block, type Doc, type FenceBlock } from './model.ts';
@@ -27,7 +30,14 @@ export interface Image {
   alt: string;
   w?: number;
   h?: number;
+  /** Where the picture sits, at its own size; none is the column's width. */
+  align?: Align;
 }
+
+/** The ways a picture is aligned (header). */
+const ALIGNS = ['left', 'center', 'right'] as const;
+export type Align = (typeof ALIGNS)[number];
+const isAlign = (s: string | undefined): s is Align => !!s && (ALIGNS as readonly string[]).includes(s);
 
 /** A reference a host may keep: one word, not an address of the web and not the bytes themselves. */
 const REF = /^(?!(?:https?|data|blob|file|javascript):)[^\s]+$/i;
@@ -42,7 +52,17 @@ export function imageOf(b: Block | undefined | null): Image | null {
   if (!REF.test(ref)) return null;
   const w = px(attr(b, 'w'));
   const h = px(attr(b, 'h'));
-  return { ref, alt: attr(b, 'alt') ?? '', ...(w ? { w } : {}), ...(h ? { h } : {}) };
+  const align = attr(b, 'align');
+  return { ref, alt: attr(b, 'alt') ?? '', ...(w ? { w } : {}), ...(h ? { h } : {}), ...(isAlign(align) ? { align } : {}) };
+}
+
+/** An image fence aligned `align`, or at the column's width for null (header): every other attribute rides along. */
+export function withAlign(b: FenceBlock, align: Align | null): FenceBlock {
+  const kv: Record<string, string> = { ...(b.a?.kv ?? {}) };
+  if (align) kv.align = align;
+  else delete kv.align;
+  const a: Attrs = { ...(b.a?.id ? { id: b.a.id } : {}), ...(b.a?.cls?.length ? { cls: [...b.a.cls] } : {}), ...(Object.keys(kv).length ? { kv } : {}) };
+  return { ...b, ...(Object.keys(a).length ? { a } : { a: undefined }) };
 }
 
 /** Whether a block is an image fence, well formed or not (a lint names the malformed one). */

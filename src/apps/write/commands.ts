@@ -72,6 +72,18 @@ export const CARD: Command<W>[] = [
     when: (w) => heldCard(w) && !!w.editLabel(w.cardAt),
     does: (w) => w.editHeld(),
   }),
+  // A picture in hand set against a side at its own size, or centred; its own alignment pressed again is the column's width.
+  ...(['left', 'center', 'right'] as const).map((side) =>
+    cmd(`card.align.${side}`, side === 'center' ? 'write-center' : `write-align-${side}`, {
+      at: 'card',
+      icon: ALIGN_ICON[side],
+      where: ['context'],
+      group: 'align',
+      when: (w) => heldCard(w) && w.pictureAlign(w.cardAt) !== undefined,
+      pressed: (w) => w.pictureAlign(w.cardAt) === side,
+      does: (w) => w.alignPicture(w.cardAt, side),
+    }),
+  ),
   cmd('card.open', 'common-open-in-new-tab', { icon: UI.open, where: ['context'], group: 'edit', when: (w) => heldCard(w) && w.opensIn(w.cardAt), does: (w) => w.openHeld() }),
   cmd('card.up', 'common-move-up', {
     at: 'card',

@@ -266,6 +266,9 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Letter | paper ▾ |
 |  | A4 | paper ▾ |
 | `Enter` | Edit | context, at: card |
+|  | Align left | context, at: card |
+|  | Center | context, at: card |
+|  | Align right | context, at: card |
 |  | Open in a new tab | context |
 | `Alt+ArrowUp` | Move up | context, at: card |
 | `Alt+ArrowDown` | Move down | context, at: card |

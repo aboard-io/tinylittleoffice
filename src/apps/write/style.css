@@ -537,6 +537,26 @@
     max-height: 70dvh;
     object-fit: contain;
   }
+  /* A picture aligned (src/doc/image.ts `align`): at its own size, at most a share of the column, against its side. */
+  .write-picture-left img,
+  .write-picture-right img,
+  .write-picture-center img {
+    width: auto;
+    max-width: min(100%, 45%);
+  }
+  .write-picture-center img {
+    max-width: min(100%, 60%);
+    margin: 0 auto;
+  }
+  .write-picture-right img {
+    margin-left: auto;
+  }
+  .write-picture-right figcaption {
+    justify-content: flex-end;
+  }
+  .write-picture-center figcaption {
+    justify-content: center;
+  }
   .write-picture-gone {
     padding: 2rem 1rem;
     text-align: center;

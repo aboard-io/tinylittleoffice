@@ -564,7 +564,7 @@ function bodyHtml(doc: Doc, site = '', stem = 'fn', ctx?: Pick<ExportContext, 'i
             const im = imageOf(b)!;
             const href = imageHref(im.ref, ctx);
             const size = `${im.w ? ` width="${im.w}"` : ''}${im.h ? ` height="${im.h}"` : ''}`;
-            return `<figure class="picture">${href ? `<img src="${xml(href)}" alt="${xml(im.alt)}"${size}>` : `<p class="gone">${xml(t('common-picture-not-kept-here'))}</p>`}${im.alt ? `<figcaption>${xml(im.alt)}</figcaption>` : ''}</figure>`;
+            return `<figure class="picture${im.align ? ` align-${im.align}` : ''}">${href ? `<img src="${xml(href)}" alt="${xml(im.alt)}"${size}>` : `<p class="gone">${xml(t('common-picture-not-kept-here'))}</p>`}${im.alt ? `<figcaption>${xml(im.alt)}</figcaption>` : ''}</figure>`;
           }
           const def = appOfLazy(b.lang);
           const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
@@ -619,7 +619,7 @@ li.task{list-style:none;margin-left:-1.4em}li.done{color:${MUTED}}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:1em;margin:0 0 1.5em}.fields dt{font-size:.7em;letter-spacing:.06em;text-transform:uppercase;color:${MUTED}}.fields dd{margin:.2em 0 0}
 table{border-collapse:collapse;margin:0 0 1em;font-size:.95em}th{background:${SHADE};text-align:left;font-size:.85em;padding:.4em .7em;border:1px solid ${LINE}}td{padding:.4em .7em;border:1px solid ${LINE}}td.n{text-align:right;font-variant-numeric:tabular-nums}
 figure{margin:1em 0}figure.doc svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figcaption,figure.doc{color:${MUTED};font-size:.9em}
-figure.picture img{display:block;max-width:100%;height:auto;border-radius:8px}figure.picture .gone{padding:1em;background:${SHADE};border-radius:8px;color:${MUTED}}
+figure.picture img{display:block;max-width:100%;height:auto;border-radius:8px}figure.picture.align-left{float:left;max-width:45%;margin:.25em 1.25em .75em 0}figure.picture.align-right{float:right;max-width:45%;margin:.25em 0 .75em 1.25em}figure.picture.align-center{max-width:60%;margin-left:auto;margin-right:auto}figure.picture.align-center img{margin:0 auto}h1,h2,h3,h4,hr{clear:both}figure.picture .gone{padding:1em;background:${SHADE};border-radius:8px;color:${MUTED}}
 mark{background:#fde68a}pre{padding:.8em 1em;background:${SHADE};border-radius:8px;overflow:auto;font-size:.85em}
 a{color:${ACCENT}}.fn a{text-decoration:none}.fn-notes{margin-top:2em;font-size:.8em;color:${MUTED}}.fn-notes hr{width:72px;margin:0 0 .6em;border:0;border-top:1px solid ${LINE}}.fn-notes ol{padding-left:1.6em}
 hr.rule{margin:1.25em 0;border:0;border-top:1px solid ${LINE}}

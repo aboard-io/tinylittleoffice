@@ -1093,6 +1093,31 @@ test('Insert ▾ lists Picture… only where the host keeps pictures: the file c
     key(el.querySelector<HTMLInputElement>('.write-alt')!, 'Escape');
     await until(() => !el.querySelector('.write-alt'));
     expect(last()).toContain('alt="A cat on a mat"');
+    // Aligned from the card: at its own size against its side, one step; its own alignment again is the column's width.
+    const alignButton = (label: string) => document.querySelector<HTMLButtonElement>(`to-context.write-cardbar .to-context:popover-open button[aria-label="${label}"]`);
+    el.querySelector<HTMLElement>('.tx-card')!.focus();
+    await until(() => !!alignButton('Align right'));
+    expect(barItems()).toEqual(expect.arrayContaining(['Align left', 'Center', 'Align right']));
+    alignButton('Align right')!.click();
+    await until(() => !!last()?.includes('align=right'));
+    expect(last()).toBe('Before\n\n```image {alt="A cat on a mat" w=1 h=1 align=right}\ntest:1\n```\n\n<br>\n');
+    await until(() => !!el.querySelector('.write-picture-right'));
+    expect(el.pictureAlign(1)).toBe('right');
+    await until(() => !!alignButton('Align right'));
+    expect(alignButton('Align right')!.getAttribute('aria-pressed')).toBe('true');
+    alignButton('Align right')!.click();
+    await until(() => !last()?.includes('align='));
+    // Center and Align left, each one step.
+    await until(() => !!alignButton('Center'));
+    alignButton('Center')!.click();
+    await until(() => !!last()?.includes('align=center'));
+    await until(() => !!alignButton('Align left'));
+    alignButton('Align left')!.click();
+    await until(() => !!last()?.includes('align=left'));
+    el.alignPicture(1, 'left');
+    await until(() => !last()?.includes('align='));
+    await until(() => !el.querySelector('.write-picture-right'));
+    expect(el.pictureAlign(1)).toBeNull();
     // A pasted picture file goes to the host too, in after the card in hand; one heavier than the host keeps goes nowhere.
     const dt = new DataTransfer();
     dt.items.add(png('stoop.png'));

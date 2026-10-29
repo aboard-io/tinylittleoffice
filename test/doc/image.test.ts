@@ -3,7 +3,7 @@
 // the text layer saying a picture as its words (Paul, 2026-10-19: an image module for a host that keeps bytes; the
 // site, which keeps none, has no pictures: 2026-10-11).
 import { expect, test } from 'vitest';
-import { IMAGE_LANG, imageBlock, imageOf, imageRefs, isImage, parse, textMarkdown, textOf, write } from '../../src/doc/index.ts';
+import { IMAGE_LANG, imageBlock, imageOf, imageRefs, isImage, parse, textMarkdown, textOf, withAlign, write } from '../../src/doc/index.ts';
 import { lint } from '../../src/lint.ts';
 
 test('an image fence is read: its reference, its words, its size; the size only where it is a whole number of pixels', () => {
@@ -64,4 +64,30 @@ test('the text layer says a picture as its words, and nothing of one with none; 
 test('the lint names a picture with no words, and one this page keeps no pictures for (the API runs where no host keeps any)', () => {
   expect(lint('write', '```image\nasset:x\n```\n').map((f) => f.kind)).toStrictEqual(['image-no-alt', 'image-not-kept']);
   expect(lint('deck', '## Slide\n\n```image {alt="The stoop"}\nasset:x\n```\n').map((f) => [f.kind, f.at])).toStrictEqual([['image-not-kept', 'slide 1']]);
+});
+
+test('a picture is aligned left, right or center by its align attribute, and withAlign writes it with every other attribute riding along', () => {
+  const [b] = parse('```image {.thumb alt="A pair of earbuds" w=240 h=240 align=right}\nasset:9c\n```\n').blocks;
+  expect(imageOf(b)).toStrictEqual({ ref: 'asset:9c', alt: 'A pair of earbuds', w: 240, h: 240, align: 'right' });
+  // An alignment it does not know is the column's width.
+  expect(imageOf(parse('```image {align=diagonal}\nasset:9c\n```\n').blocks[0])).toStrictEqual({ ref: 'asset:9c', alt: '' });
+  if (b.k !== 'fence') throw new Error('a fence');
+  const left = withAlign(b, 'left');
+  expect(imageOf(left)?.align).toBe('left');
+  expect(left.a?.cls).toStrictEqual(['thumb']);
+  expect(left.a?.kv).toMatchObject({ alt: 'A pair of earbuds', w: '240', h: '240', align: 'left' });
+  const full = withAlign(b, null);
+  expect(imageOf(full)?.align).toBeUndefined();
+  expect(write({ head: {}, blocks: [full] })).toBe('```image {.thumb alt="A pair of earbuds" w=240 h=240}\nasset:9c\n```\n');
+  expect(write({ head: {}, blocks: [withAlign(full, 'center')] })).toContain('align=center');
+});
+
+test("an aligned picture is a floated figure in the Word Processor's HTML, at its own size; the headings clear it", async () => {
+  const { file } = await import('../../src/api.ts');
+  const text = '# A story\n\n```image {alt="Earbuds" w=240 h=240 align=right}\nasset:9c\n```\n\nThe words wrap round it.\n\n```image {alt="Wide"}\nasset:wide\n```\n';
+  const html = String(await file('write', text, 'html', { title: 'T', image: (ref: string) => `/a/${ref.slice(6)}` }));
+  expect(html).toContain('<figure class="picture align-right"><img src="/a/9c" alt="Earbuds" width="240" height="240">');
+  expect(html).toContain('<figure class="picture"><img src="/a/wide" alt="Wide">');
+  expect(html).toMatch(/figure\.picture\.align-right\{float:right;max-width:45%/);
+  expect(html).toContain('h1,h2,h3,h4,hr{clear:both}');
 });

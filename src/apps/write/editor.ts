@@ -25,7 +25,7 @@ import { html, nothing, type PropertyDeclarations, type PropertyValues, type Tem
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { guard } from 'lit/directives/guard.js';
 import { SquarePen } from 'lucide';
-import { isRule, parse, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { isRule, parse, withAlign, write, type Align, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/core/app.ts';
 import { cmdTool } from '../../kit/ui/bar.ts';
 import { contextOf, drawnIn, labelOf, runKey } from '../../kit/core/commands.ts';
@@ -391,7 +391,7 @@ export class ToWriteEditor extends DocElement<Doc> {
       const im = imageOf(b)!;
       const url = imageUrl(im.ref);
       const label = t('write-words-for-the-picture');
-      return html`<figure class="write-doc write-picture">
+      return html`<figure class=${`write-doc write-picture${im.align ? ` write-picture-${im.align}` : ''}`}>
         ${
           url
             ? html`<img src=${url} alt=${im.alt} width=${im.w ?? nothing} height=${im.h ?? nothing} loading="lazy" decoding="async" />`
@@ -539,6 +539,19 @@ export class ToWriteEditor extends DocElement<Doc> {
     const im = imageOf(b);
     const alt = words.trim();
     if (im && alt !== im.alt && b.k === 'fence') this.change([{ op: 'splice', at, n: 1, blocks: [imageBlock(im.ref, alt, im.w, im.h, b.a)] }], { before: null, after: null, card: at, cardAfter: at });
+    this.holdCard(at);
+  }
+  /** The alignment of the picture at `at`: its side, null at the column's width, undefined where it is no picture. */
+  pictureAlign(at: number): Align | null | undefined {
+    const im = imageOf(this.doc.blocks[at]);
+    return im ? (im.align ?? null) : undefined;
+  }
+  /** The picture at `at` set against `align`, one step; the alignment it has already puts it back to the column's width. */
+  alignPicture(at: number, align: Align) {
+    const b = this.doc.blocks[at];
+    if (!b || b.k !== 'fence' || this.pictureAlign(at) === undefined) return;
+    const next = this.pictureAlign(at) === align ? null : align;
+    this.change([{ op: 'splice', at, n: 1, blocks: [withAlign(b, next)] }], { before: null, after: null, card: at, cardAfter: at });
     this.holdCard(at);
   }
   /** The card's Edit, as its words say it ('' where it has none), and done: for the card's commands (commands.ts). */
