@@ -375,6 +375,21 @@ test('every template is canonical, has a name, and draws', () => {
   expect(deck.view(tpl('trivia'))[6].svg).toContain('>14<');
 });
 
+test('PowerPoint off a browser: a host-kept PNG on a slide goes in as its own bytes, from the host’s answer, its shape kept', () => {
+  // A PNG's signature and header, 640 by 320: all the writer reads of it.
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, 2, 128, 0, 0, 1, 64]);
+  const url = `data:image/png;base64,${btoa(String.fromCharCode(...png))}`;
+  const text = '---\ntitle: Pictures\n---\n# A picture\n\n```image {alt="A cat"}\nasset:cat\n```\n';
+  const files = unzipSync(deckToPptx(text, { ...ctx, image: (ref) => (ref === 'asset:cat' ? url : null) }));
+  expect(files['ppt/media/sub-1.png']).toStrictEqual(png);
+  const slide = strFromU8(files['ppt/slides/slide1.xml']);
+  expect(slide).toContain('name="A cat"');
+  const ext = /<p:pic>[\s\S]*?<a:ext cx="(\d+)" cy="(\d+)"/.exec(slide)!;
+  expect(Number(ext[1]) / Number(ext[2])).toBeCloseTo(2, 2);
+  // No answer from the host, no picture: the words alone.
+  expect(Object.keys(unzipSync(deckToPptx(text, ctx))).filter((n) => n.startsWith('ppt/media/'))).toStrictEqual([]);
+});
+
 test('PowerPoint: a slide a file, the theme as the colour scheme, the words with their marks, the parts Keynote wants', () => {
   const files = unzipSync(deckToPptx(TALK, ctx));
   const names = Object.keys(files);

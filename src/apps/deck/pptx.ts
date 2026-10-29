@@ -8,9 +8,10 @@
 import type { ExportContext } from '../../kit/core/app.ts';
 import { pageSvg, xml } from '../../kit/draw/draw.ts';
 import { glyphNamed } from '../../kit/draw/icons.ts';
+import { imageData } from '../../kit/draw/image-picture.ts';
 import { raster } from '../../kit/draw/raster.ts';
 import { XML_HEAD, zip } from '../../kit/file/zip.ts';
-import { markNotes, noteNumbers, noteRuns, parse, plainText, type Doc, type Run } from '../../doc/index.ts';
+import { imageOf, markNotes, noteNumbers, noteRuns, parse, plainText, type Doc, type Run } from '../../doc/index.ts';
 import { settingsOf, slideNotes, slidesOf, type Item, type Slide } from './model.ts';
 import { themeOf, type DeckTheme } from './theme.ts';
 import { layoutSlide, lookOf, SH, subPage, SW, type Look } from './view.ts';
@@ -117,10 +118,16 @@ export function deckToPptx(text: string, ctx: ExportContext, png: Record<string,
     addPicture('theme', { x: 0, y: 0, w: SW, h: SH }, '');
     if (L.icon) addPicture(`icon-${s.icon}`, L.icon, s.icon);
     const sub = L.sub ? subPage(doc, s, undefined, false, true) : null;
+    // A host-kept picture that is a PNG goes in as its own bytes where nothing drew it (a server, which has no browser
+    // to raster with), from the host's answer (`ctx.image`): a deck of pictures exported there keeps them.
+    const im = imageOf(s.sub >= 0 ? doc.blocks[s.sub] : null);
+    const own = im && !png[`sub-${n}`] ? imageData(im, ctx) : null;
+    if (own?.mime === 'image/png') png[`sub-${n}`] = own.bytes;
+    if (L.sub && sub && own?.mime === 'image/png' && own.w && own.h) Object.assign(sub, { w: own.w, h: own.h });
     if (L.sub && sub) {
       // Keep the picture's own shape inside the space the slide gives it.
       const k = Math.min(L.sub.w / sub.w, L.sub.h / sub.h);
-      addPicture(`sub-${n}`, { x: L.sub.x + (L.sub.w - sub.w * k) / 2, y: L.sub.y + (L.sub.h - sub.h * k) / 2, w: sub.w * k, h: sub.h * k }, sub.alt ?? '');
+      addPicture(`sub-${n}`, { x: L.sub.x + (L.sub.w - sub.w * k) / 2, y: L.sub.y + (L.sub.h - sub.h * k) / 2, w: sub.w * k, h: sub.h * k }, (own?.mime === 'image/png' ? im?.alt : sub.alt) ?? '');
     }
     const items: Item[] = s.sub >= 0 ? [] : [...s.items, ...(s.layout === '2' ? s.right : [])];
     const centre = cover ? '<a:pPr marL="0" indent="0" algn="ctr"><a:buNone/></a:pPr>' : '';
