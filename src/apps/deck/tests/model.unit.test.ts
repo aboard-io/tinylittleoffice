@@ -26,7 +26,7 @@ import {
   slidesOf,
   titleOf,
 } from '../model.ts';
-import { deckToPptx } from '../pptx.ts';
+import { buildPptx, deckToPptx } from '../pptx.ts';
 import { decodeDoc } from '../../../kit/core/codec.ts';
 import { parseHash } from '../../../kit/core/route.ts';
 import { templates } from '../templates.ts';
@@ -388,6 +388,20 @@ test('PowerPoint off a browser: a host-kept PNG on a slide goes in as its own by
   expect(Number(ext[1]) / Number(ext[2])).toBeCloseTo(2, 2);
   // No answer from the host, no picture: the words alone.
   expect(Object.keys(unzipSync(deckToPptx(text, ctx))).filter((n) => n.startsWith('ppt/media/'))).toStrictEqual([]);
+});
+
+test('PowerPoint off a browser: the host’s drawing makes the theme’s decoration and the icons; with none, the file goes without them', async () => {
+  const drawn: [number, number, string | null][] = [];
+  const raster = async (_svg: string, w: number, h: number, paper: string | null) => (drawn.push([w, h, paper]), new Uint8Array([w % 256, h % 256]));
+  const media = (f: Record<string, Uint8Array>) =>
+    Object.keys(f)
+      .filter((n) => n.startsWith('ppt/media/'))
+      .sort();
+  const files = unzipSync(await buildPptx(TALK, { ...ctx, raster }));
+  expect(media(files)).toContain('ppt/media/theme.png');
+  expect(media(files).some((n) => n.startsWith('ppt/media/icon-'))).toBe(true);
+  expect(drawn.find(([, , paper]) => paper)?.[2]).toMatch(/^#/);
+  expect(media(unzipSync(await buildPptx(TALK, ctx)))).toStrictEqual([]);
 });
 
 test('PowerPoint: a slide a file, the theme as the colour scheme, the words with their marks, the parts Keynote wants', () => {

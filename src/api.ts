@@ -233,15 +233,28 @@ export async function formats(app: string): Promise<string[]> {
  * need no browser to draw them (a sheet's csv and xlsx, a calendar's ics, a text's docx…). Throws for a
  * format the app does not have, or one that needs a browser. `image`, a host's answer for where a picture it keeps
  * is (a data: URL, which a .docx or an RTF writes in), by its reference (doc/image.ts): a server has no page's host.
+ * `raster`, a host's drawing of SVG as a PNG, for the pictures a file draws where there is no browser (a deck's .pptx).
  */
-export async function file(app: string, text: string, ext: string, ctx: { title?: string; link?: string; image?: (ref: string) => string | null } = {}): Promise<Uint8Array | string> {
+export async function file(
+  app: string,
+  text: string,
+  ext: string,
+  ctx: { title?: string; link?: string; image?: (ref: string) => string | null; raster?: (svg: string, w: number, h: number, paper: string | null) => Promise<Uint8Array | null> } = {},
+): Promise<Uint8Array | string> {
   const [{ appOf }, { formatOf }] = await Promise.all([import('./kit/core/apps.ts'), import('./kit/file/exports.ts')]);
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
   // The site's own formats (kit/file/exports.ts formatsOf), those it can build here; one this place cannot make (a WebM,
   // which wants a browser's encoder) is asked to, and says where it is made.
   const format = (await formats(app)).includes(ext) ? (formatOf(def, ext) ?? def.exports?.find((x) => x.ext === ext)) : undefined;
-  if (format) return format.build(text, { def, title: ctx.title ?? def.title(text), link: ctx.link ?? link(app, text), ...(ctx.image ? { image: ctx.image } : {}) });
+  if (format)
+    return format.build(text, {
+      def,
+      title: ctx.title ?? def.title(text),
+      link: ctx.link ?? link(app, text),
+      ...(ctx.image ? { image: ctx.image } : {}),
+      ...(ctx.raster ? { raster: ctx.raster } : {}),
+    });
   throw new Error(`${def.name} makes no .${ext} without a browser: ${(await formats(app)).join(', ')}`);
 }
 

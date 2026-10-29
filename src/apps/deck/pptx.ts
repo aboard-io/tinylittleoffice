@@ -81,11 +81,17 @@ export function pictures(doc: Doc, slides: Slide[], look: Look): Record<string, 
 }
 
 /** Every picture drawn as a PNG in the browser; none where there is no browser (the file is still a presentation). */
-async function drawPictures(doc: Doc, slides: Slide[], look: Look): Promise<Record<string, Uint8Array>> {
+async function drawPictures(doc: Doc, slides: Slide[], look: Look, ctx?: Pick<ExportContext, 'raster'>): Promise<Record<string, Uint8Array>> {
   const out: Record<string, Uint8Array> = {};
-  if (typeof document === 'undefined') return out;
+  // In a browser the page draws them; elsewhere the host's own drawing, where it gives one (ExportContext `raster`),
+  // and a host-kept picture on a slide is left to its own bytes (deckToPptx), since no page here fetches it.
+  const browser = typeof document !== 'undefined';
+  const host = browser ? null : ctx?.raster;
+  if (!browser && !host) return out;
   for (const [key, p] of Object.entries(pictures(doc, slides, look))) {
-    const png = await raster(p.svg, p.w, p.h, 1, key === 'theme' ? look.theme.paper : null);
+    const paper = key === 'theme' ? look.theme.paper : null;
+    if (host && key.startsWith('sub-') && imageOf(doc.blocks[slides[Number(key.slice(4)) - 1]?.sub ?? -1])) continue;
+    const png = host ? await host(p.svg, p.w, p.h, paper).catch(() => null) : await raster(p.svg, p.w, p.h, 1, paper);
     if (png) out[key] = png;
   }
   return out;
@@ -186,5 +192,5 @@ export function deckToPptx(text: string, ctx: ExportContext, png: Record<string,
 export async function buildPptx(text: string, ctx: ExportContext): Promise<Uint8Array> {
   const doc = parse(text);
   const look = lookOf(settingsOf(doc));
-  return deckToPptx(text, ctx, await drawPictures(doc, slidesOf(doc), look));
+  return deckToPptx(text, ctx, await drawPictures(doc, slidesOf(doc), look, ctx));
 }

@@ -76,6 +76,12 @@ export interface ExportContext {
    * or a data: URL, null for none. Absent, the host's own answer (kit/draw/image-picture.ts imageHref).
    */
   image?: (ref: string) => string | null;
+  /**
+   * A host's own drawing of SVG markup as a PNG of w by h, over `paper` (a colour, or null for none), for a file built
+   * where there is no browser to draw it (a server's .pptx: its theme's decoration, its icons, a document on a slide).
+   * Absent there, the file goes without those pictures.
+   */
+  raster?: (svg: string, w: number, h: number, paper: string | null) => Promise<Uint8Array | null>;
 }
 
 /**
