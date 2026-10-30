@@ -376,7 +376,7 @@ test('every template is canonical, has a name, and draws', () => {
 });
 
 test('PowerPoint off a browser: a host-kept PNG on a slide goes in as its own bytes, from the host’s answer, its shape kept', () => {
-  // A PNG's signature and header, 640 by 320: all the writer reads of it.
+  // A PNG's magic bytes and header, 640 by 320: all the writer reads of it.
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, 2, 128, 0, 0, 1, 64]);
   const url = `data:image/png;base64,${btoa(String.fromCharCode(...png))}`;
   const text = '---\ntitle: Pictures\n---\n# A picture\n\n```image {alt="A cat"}\nasset:cat\n```\n';

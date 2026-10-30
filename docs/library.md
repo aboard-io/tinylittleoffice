@@ -81,7 +81,7 @@ What an app still asked of the site itself, and what replaces it:
    on and Today, and a page's own commands join that bar: A page's own commands) and takes no typing, drag or edit; an item activated fires `docpick`, `{ at }` and the app's key (a
    calendar's `date`, `time` or `row`, an outline's `item`, a deck's `slide`, a sheet's `row`, `col`). A document that is
    a part of a host's page and not a page of its own (`mount(…, { fill: true })`, the element's `data-fill`) keeps to
-   the start of its box and takes its width where the app would centre a page's measure: the Outliner so far (2026-10-24).
+   the start of its box and takes its width where the app would center a page's measure: the Outliner so far (2026-10-24).
    Those four apps pick, and so does the Diagram Maker (2026-10-18): a thing activated is `{ at, thing, words }` and,
    for a line's thing, `part` (the whole, its key, its words, or a thing of its list by place), for a name only
    connections give or a lane's, `name` (`at` -1): `at` the block of its line (a connection's, its `~` line), `thing`
@@ -273,7 +273,7 @@ as the Spreadsheet's sort orders them (`compareCells`, taken out of `sortRows` f
   it scrolls sideways in that box, the names in sight, rather than becoming cards, since a card a row would be a
   height a row and the rows are drawn by their one height. A line runs between every column and the next, the
   headings' and the rows', the last column's end the box's own (Paul, 2026-10-22: "Columns should all have vertical
-  borders, it's too complex to follow"); a ticked or hovered row's ground is drawn under them as before. A cell being
+  borders, it's too complex to follow"); a checked or hovered row's ground is drawn under them as before. A cell being
   edited holds its field inside its lines at the row's height, the field's focus halo drawn inset (`outline-offset`
   below zero), and so does a `<to-field>` a page draws in a cell ("The halo when I click on a stage and get the
   dropdown bumps into the borders of the cell"). Only the rows in sight are drawn, and eight more each way,
@@ -964,7 +964,7 @@ never holds a program's.
 What a page that is not the site arranges, each with the site's way as the default:
 
 - **The frame: the column, the header, the menu button and the bar's place.** The site's chrome, which a host's page
-  inherits (one column on every screen, mobile first), is the kit's: kit/ui/page-frame.ts `PageFrame` and
+  inherits (one column on every screen, phone first), is the kit's: kit/ui/page-frame.ts `PageFrame` and
   src/styles/page-frame.css, in editors.css, which the site's `<to-chrome>` wears as well, so there is one copy. A
   page draws these, with these classes:
 
