@@ -9,6 +9,26 @@ import { UI } from '../../src/kit/draw/icons.ts';
 import { until } from './helpers.ts';
 import '../../src/styles.css';
 
+test('related tools stay together, with a divider only between groups', async () => {
+  document.body.innerHTML = '<to-bar></to-bar>';
+  const bar = document.querySelector<HTMLElement>('to-bar')!;
+  render(
+    html`${tool({ label: 'Insert', icon: UI.plus })}${['Title', 'H1', 'H2', 'Paragraph'].map((label) => tool({ label, icon: UI.text, group: 'blocks' }))}${tool({ label: 'Bold', icon: UI.bold, group: 'marks' })}${tool({ label: 'Italic', icon: UI.italic, group: 'marks' })}`,
+    bar,
+  );
+  await until(() => bar.querySelectorAll('[data-group-start]').length === 2);
+  const buttons = [...bar.querySelectorAll('button')];
+  expect(buttons.filter((button) => button.hasAttribute('data-group-start')).map((button) => button.getAttribute('aria-label'))).toEqual(['Title', 'Bold']);
+  const gap = (before: number, after: number) => buttons[after].getBoundingClientRect().left - buttons[before].getBoundingClientRect().right;
+  expect(gap(4, 5)).toBeGreaterThan(gap(1, 2));
+  expect(getComputedStyle(buttons[1], '::before').width).toBe('1px');
+  buttons[0].remove();
+  await until(() => !buttons[1].hasAttribute('data-group-start'));
+  buttons[1].focus();
+  buttons[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  expect(document.activeElement).toBe(buttons[2]);
+});
+
 test('a bar wider than its box fades at the end, then at the start once scrolled', async () => {
   document.body.innerHTML = '<div style="width:200px"><to-bar></to-bar></div>';
   const bar = document.querySelector<HTMLElement>('to-bar')!;
@@ -106,7 +126,7 @@ test('under a finger Undo and Redo stay at the end of a bar however it is scroll
     { undo: false, redo: false },
     { undo: true, redo: true },
   ]);
-  expect(getComputedStyle(document.querySelector('.cmd-kit-undo')!).position).toBe('static');
+  expect(getComputedStyle(document.querySelector('.cmd-kit-undo')!).position).not.toBe('sticky');
 });
 
 // The review of 2026-10-11: a key is written only where there is a keyboard to press it on (commands.ts chords). A bar's

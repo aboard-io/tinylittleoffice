@@ -43,8 +43,8 @@ const DIAGRAM: Command<G>[] = [
     when: (g) => g.view.kind === 'seating',
     does: (g) => g.printCards(),
   }),
-  cmd('zoomout', 'common-zoom-out', { icon: ZoomOut, where: ['bar'], document: true, takesFocus: true, does: (g) => g.zoomBy(-0.25) }),
-  cmd('zoomin', 'common-zoom-in', { icon: ZoomIn, where: ['bar'], document: true, takesFocus: true, does: (g) => g.zoomBy(0.25) }),
+  cmd('zoomout', 'common-zoom-out', { icon: ZoomOut, where: ['bar'], group: 'zoom', document: true, takesFocus: true, does: (g) => g.zoomBy(-0.25) }),
+  cmd('zoomin', 'common-zoom-in', { icon: ZoomIn, where: ['bar'], group: 'zoom', document: true, takesFocus: true, does: (g) => g.zoomBy(0.25) }),
   cmd('up', 'common-move-up', {
     at: 'thing',
     icon: ArrowUp,

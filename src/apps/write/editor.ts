@@ -573,7 +573,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     const x = this.text ?? null;
     const own = (id: string) => COMMANDS.find((c) => c.id === `write.${id}`)!;
     const menu = (id: string, cls: string, icon = own(id).icon!) =>
-      html`<to-menu class=${cls} icon-only keep .label=${labelOf(own(id), this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
+      html`<to-menu class=${cls} data-tool-group=${own(id).group ?? nothing} icon-only keep .label=${labelOf(own(id), this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
     return html`<to-bar class="write-bar">
         <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
         ${cmdTool(own('title'), this)} ${cmdTool(own('heading'), this)} ${cmdTool(own('subheading'), this)} ${cmdTool(own('paragraph'), this)}

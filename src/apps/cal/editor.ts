@@ -906,7 +906,7 @@ export class ToCalEditor extends DocElement<CalView> {
     return html`<to-bar class="cal-bar">
         ${this.nav()}
         ${cmdMenu(own('view'), this, COMMANDS, 'cal-view', { icon: v.gantt ? ChartGantt : this.mode === 'year' ? Grid3x3 : CalendarDays })}
-        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        <to-insert data-tool-group="insert" .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
         ${cmdMenu(own('ink'), this, COMMANDS, 'cal-ink', { icon: dot(ink.hex) })}
         ${cmdBtn(own('zone'), this, { cls: 'cal-zone', keep: false })}
         ${this.undoTools()}
