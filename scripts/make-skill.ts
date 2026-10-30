@@ -10,7 +10,7 @@
  *   skill/tinyoffice/references/    the rest of the guide, a file an app, one for the files and the API, one for the
  *                                   editors' keys, each read when the task needs it (skillFolder)
  *   public/llms-full.txt            the guide whole, without the skill's front matter
- *   public/llms.txt                 the short guide an agent fetches first, under 6 KB (makeShort)
+ *   public/llms.txt                 the short guide an agent fetches first, under 6.5 KB (makeShort)
  *   public/llms/<app>.txt           a page on one app, under 4 KB: its words and rules, its shapes, an example
  *   packages/doc/examples/<app>.json  each shape's example (scripts/shapes.ts), served at /examples/<app>.json
  *
@@ -211,7 +211,7 @@ async function makeExamples(all?: Templates): Promise<Map<string, Example[]>> {
 }
 
 /**
- * /llms.txt: the guide an agent reads first, under 6 KB, the long part a fetch away. Above its first `##`: what
+ * /llms.txt: the guide an agent reads first, under 6.5 KB, the long part a fetch away. Above its first `##`: what
  * Tiny Little Office is (the template's first two sentences), the plain link (a document made with nothing but
  * percent-encoding), the API's line, the three commands that give examples, and where the rest is. Then one
  * example per app as a plain link, how a document goes inside another (with its example link), and the
@@ -249,7 +249,7 @@ export async function makeShort(skill: string, examples?: Map<string, Example[]>
     '## One example per app',
     '',
     // Each app's first example, unless its link runs past 400 characters (the Drawing Tool's and the Animator's tables),
-    // then its shortest: the guide stays under 6 KB, and the app's own page has the rest.
+    // then its shortest: the guide stays under 6.5 KB, and the app's own page has the rest.
     ...apps().map((a) => {
       const all = ex.get(a.id)!;
       const e = all.find((x) => x.link.length <= 400) ?? [...all].sort((x, y) => x.link.length - y.link.length)[0];
