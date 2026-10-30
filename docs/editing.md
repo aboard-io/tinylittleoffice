@@ -19,7 +19,7 @@ with a keyboard (those have a button or a bar item too).
 | Delete, Backspace | Remove what is selected (a thing or a selection of words); with a caret, one character back/forward; at a boundary, join with the neighbor (words) or ask the host (a row) | the contextual bar's Delete |
 | Escape | Step out, one step per press: close the popover or dialog in hand (and stop there), else collapse a range of selected words, else drop the selected thing or leave edit-in-place (the host hears `text-escape`), else return the tool to Select; the focus goes back to where it came from, never to the body | a tap outside |
 | Enter | Confirm or edit: on a selected thing, edit its words in place; in a dialog, the primary button; in words, a new block | double tap / double click |
-| Tab, Shift+Tab | In a list or an outline: indent/outdent the item (its family). In a grid: next/previous cell. Elsewhere: move focus (never trapped) | the bar's Indent/Bring out |
+| Tab, Shift+Tab | In a list or an outline: indent/outdent the item (its family). In a grid: next/previous cell. Elsewhere: move focus (never trapped) | the bar's Indent/Outdent, which in a document also make a plain paragraph a quote and a quote a paragraph again (as "> " does) |
 | Arrows | Move the caret; move between cells; nudge a selected shape by one grid step; move between rows (outline) | drag |
 | Shift+Arrows | Extend the selection: characters, cells, rows (whole nodes in an outline) | Shift+tap, drag |
 | Alt+Arrow Up/Down | Move the selected item(s) up or down past a neighbor (lists, outlines, slides, cards, rows) | drag by the handle, the bar's Move up/down |

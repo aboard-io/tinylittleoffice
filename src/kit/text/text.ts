@@ -1167,8 +1167,12 @@ export class ToText extends LitElement {
       case 'ol':
         return go(setKind(model, sel, cmd));
       case 'indent':
-      case 'outdent':
+      case 'outdent': {
+        // A document's plain paragraph indented is a quote, and a quote brought out a paragraph again; an item moves.
+        const kind = kindAt(model, sel);
+        if (this.shape === 'doc' && kind === (cmd === 'indent' ? 'p' : 'quote')) return go(setKind(model, sel, cmd === 'indent' ? 'quote' : 'p'));
         return go(shiftItems(model, sel, cmd === 'indent' ? 1 : -1));
+      }
       case 'left':
       case 'center':
       case 'right':

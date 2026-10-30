@@ -97,6 +97,32 @@ test('typing is the document; the bar makes the block a title and marks the word
 const press = (target: EventTarget, k: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 const notes = (el: ToWriteEditor) => [...el.querySelectorAll<HTMLElement>('.write-notes to-text.to-note-words .tx')];
 
+test('Indent on a plain paragraph makes it a quote, as "> " does, and Outdent makes it a paragraph again (Paul, 2026-10-19: it was greyed out)', async () => {
+  const { el, last } = await editor('One thing.\n\nAnother.\n\n# Head\n');
+  const bar = el.querySelector('.write-bar')!;
+  // The words chosen, and the bar told, as a tap tells it.
+  const choose = (el: ToWriteEditor, sel: NonNullable<ToWriteEditor['text']['sel']>) => ((el.text.sel = sel), el.text.dispatchEvent(new CustomEvent('text-select', { detail: sel, bubbles: true })));
+  el.text.focus();
+  choose(el, { anchor: { block: 0, offset: 2 }, focus: { block: 0, offset: 2 } });
+  await until(() => !button(bar, 'Indent').disabled);
+  expect(button(bar, 'Outdent').disabled).toBe(true);
+  button(bar, 'Indent').click();
+  await until(() => last() === '> One thing.\n\nAnother.\n\n# Head\n');
+  await until(() => el.querySelector('.write-page .tx blockquote')?.textContent === 'One thing.');
+  await until(() => !button(bar, 'Outdent').disabled);
+  button(bar, 'Outdent').click();
+  await until(() => last() === 'One thing.\n\nAnother.\n\n# Head\n');
+  // A section: every paragraph chosen is quoted together.
+  choose(el, { anchor: { block: 0, offset: 0 }, focus: { block: 1, offset: 3 } });
+  await until(() => !button(bar, 'Indent').disabled);
+  button(bar, 'Indent').click();
+  await until(() => last() === '> One thing.\n\n> Another.\n\n# Head\n');
+  // A heading is not a paragraph: nothing to indent.
+  choose(el, { anchor: { block: 2, offset: 1 }, focus: { block: 2, offset: 1 } });
+  await until(() => button(bar, 'Indent').disabled);
+  expect(last()).toContain('# Head\n');
+});
+
 test('a footnote from the bar: its mark in the words and the caret in its note at the end of the page, typed there; listed and counted', async () => {
   const { el, last } = await editor('Some words\n');
   el.text.focus();

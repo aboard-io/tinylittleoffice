@@ -920,7 +920,7 @@ test('each rule of the walks breaks on the fault it is for, naming it', async ()
       chrome.scrollTop = 40;
       return () => (pad.remove(), (chrome.style.overflow = was), (chrome.scrollTop = 0));
     }),
-  ).toMatch(/^walk broke "window": <to-chrome>.* scrolled to 0, 40: only the column scrolls/);
+  ).toMatch(/^walk broke "window": <to-chrome[.>].* scrolled to 0, 40: only the column scrolls/);
   expect(
     breaks(() => {
       const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;

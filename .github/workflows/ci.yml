@@ -12,6 +12,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Started by .github/workflows/dependencies.yml on a Dependabot branch it has committed to.
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -499,7 +499,7 @@ test("About's body is Paul's three sentences, Aboard, email us and the repositor
   );
   const links = [...words.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
   expect(links).toEqual([
-    ['Aboard', 'https://aboard.com'],
+    ['Aboard', 'https://aboard.com/?utm_source=tlo'],
     ['email us', 'mailto:hello+tlo@aboard.com'],
     ['GitHub repository', 'https://github.com/aboard-io/tinylittleoffice/issues'],
   ]);

@@ -120,7 +120,7 @@ export const NETWORK = {
     host: 'aboard.com',
     what: 'Aboard, who made the site, named at the home page’s foot and in About, a link',
     when: 'after a tap',
-    carries: 'Nothing: it opens in a new tab, and nothing of the document goes with it',
+    carries: 'That the visit came from Tiny Little Office (utm_source=tlo in the address); it opens in a new tab, and nothing of the document goes with it',
     stops: 'Not following the link',
     by: 'kit/ui/home.ts, kit/ui/drawer.ts',
   },
@@ -137,6 +137,9 @@ export const reaches = (): Reach[] => Object.values(NETWORK);
 
 /** An entry's https origin, without a trailing slash. */
 export const origin = (place: Place): string => `https://${NETWORK[place].host}`;
+
+/** The maker's address as the chrome links it: aboard.com, told that the visit came from here. */
+export const MAKER = `${origin('maker')}/?utm_source=tlo`;
 
 /** Whether `host` is one `pattern` names: the name itself, or any host under a "*." name. "*" names no host. */
 export function hostMatches(pattern: string, host: string): boolean {

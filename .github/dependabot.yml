@@ -1,6 +1,6 @@
 # Updates to the dependencies, once a week, as one pull request for the site's and one for the tools'. A pull request
-# that moves a version also runs `npm run docs:deps` on its branch (docs/dependencies.md names each exact version),
-# or CI's check of that page fails it.
+# that moves a version gets `npm run docs:deps` committed to its branch by .github/workflows/dependencies.yml
+# (docs/dependencies.md names each exact version, and CI's check of that page fails it otherwise).
 version: 2
 updates:
   - package-ecosystem: npm
