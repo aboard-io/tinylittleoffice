@@ -43,6 +43,7 @@ import {
   rename,
   setEdge,
   setKind,
+  linesDrawn,
   thingBlocks,
   tidy,
   withIcon,
@@ -456,6 +457,65 @@ describe('commands as ops', () => {
     expect(lanesOf(back).lanes).toEqual(['Patient', 'NP', 'EHR']);
     // Any other change of kind is the kind alone.
     expect(setKind(mind, 'org')).toEqual([{ op: 'head', key: 'kind', value: 'org' }]);
+  });
+  test('swimlanes made a tree and back lose no line, no words on one and no lane; a tree made swimlanes and back loses no line (Paul, 2026-10-30: "Don\'t lose arrows round trip")', () => {
+    const rng = (seed: number) => () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const pick = <T>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
+    /** Steps nested up to two deep, some naming no lane, some branches with words or pointing back, and connections of every kind. */
+    const lanes = (seed: number) => {
+      const r = rng(seed);
+      const n = 2 + Math.floor(r() * 9);
+      let depth = 0;
+      const steps = Array.from({ length: n }, (_, i) => {
+        depth = i ? Math.max(0, Math.min(depth + (r() < 0.3 ? 1 : r() < 0.3 ? -1 : 0), 2)) : 0;
+        const cls = depth && r() < 0.3 ? ` {${r() < 0.5 ? '.to ' : ''}label=${pick(r, ['yes', 'no'])}}` : '';
+        return `${'  '.repeat(depth)}- ${i && r() < 0.2 ? '' : pick(r, ['Desk', 'Lab', 'Ops']) + ': '}S${i}${r() < 0.2 ? '?' : ''}${cls}`;
+      });
+      const names = steps.map((x) => x.match(/S\d+\??/)![0]);
+      const edges = Array.from({ length: Math.floor(r() * 4) }, () => `~ ${pick(r, names)} ${pick(r, ['->', '<-', '<->'])} ${pick(r, names)}${r() < 0.5 ? ': yes' : ''}`).filter(
+        (e) => !/~ (\S+) \S+ \1(:|$)/.test(e),
+      );
+      return doc('lanes', steps.join('\n') + '\n' + (edges.length ? '\n' + edges.join('\n') + '\n' : ''));
+    };
+    /** One tree (a forest of separate ones is drawn joined by swimlanes, which have one flow), its lines of every kind. */
+    const tree = (seed: number) => {
+      const r = rng(seed * 7 + 3);
+      const n = 1 + Math.floor(r() * 9);
+      let depth = 0;
+      const items = Array.from({ length: n }, (_, i) => {
+        depth = i ? Math.max(1, Math.min(depth + (r() < 0.4 ? 1 : r() < 0.3 ? -1 : 0), 3)) : 0;
+        const cls = [pick(r, ['.from', '.to', '.both']), r() < 0.3 ? 'label=x' : ''].filter(Boolean).join(' ');
+        return `${'  '.repeat(depth)}- T${i}${depth ? ` {${cls}}` : ''}`;
+      });
+      const edges = Array.from({ length: Math.floor(r() * 3) }, () => `~ T${Math.floor(r() * n)} ${pick(r, ['->', '<-', '<->', '--'])} T${Math.floor(r() * n)}${r() < 0.5 ? ': z' : ''}`).filter(
+        (e) => !/~ (\S+) \S+ \1(:|$)/.test(e),
+      );
+      return doc('mind', items.join('\n') + '\n' + (edges.length ? '\n' + edges.join('\n') + '\n' : ''));
+    };
+    const to = (d: Doc, k: 'mind' | 'org' | 'family' | 'lanes') => applyAll(d, setKind(d, k));
+    const inLanes = (d: Doc) =>
+      lanesOf(d)
+        .steps.map((x) => `${x.line.words.words} in ${x.lane}`)
+        .sort();
+    for (let seed = 1; seed <= 300; seed++) {
+      const a = lanes(seed);
+      for (const k of ['mind', 'org', 'family'] as const) {
+        const t = to(a, k);
+        const back = to(t, 'lanes');
+        expect(linesDrawn(t), `${write(a)}→ ${k}`).toEqual(linesDrawn(a));
+        expect(linesDrawn(back), `${write(a)}→ ${k} → lanes`).toEqual(linesDrawn(a));
+        expect(inLanes(back)).toEqual(inLanes(a));
+      }
+      const m = tree(seed);
+      const l = to(m, 'lanes');
+      expect(linesDrawn(l), `${write(m)}→ lanes`).toEqual(linesDrawn(m));
+      expect(linesDrawn(to(l, 'mind')), `${write(m)}→ lanes → mind`).toEqual(linesDrawn(m));
+    }
+    // A step that loops back keeps both its lines (the flow on, the connection back); a look-up stays one; a branch its words.
+    const loop = doc('lanes', '- Desk: Ask?\n  - Desk: Fix\n- Desk: Ship\n\n~ Ship -> Fix: again\n');
+    expect(linesDrawn(loop)).toEqual(['desk ask? -> desk fix: ', 'desk fix -> desk ship: ', 'desk ship -> desk fix: again']);
+    expect(linesDrawn(to(loop, 'mind'))).toEqual(linesDrawn(loop));
+    expect(linesDrawn(to(to(loop, 'mind'), 'lanes'))).toEqual(linesDrawn(loop));
   });
   test('a thing takes a shape by its line’s class, Draw’s names, in every kind that draws boxes; set and taken off from its row', () => {
     const mind = doc('mind', '- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do\n');

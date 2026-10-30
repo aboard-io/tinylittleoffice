@@ -871,51 +871,254 @@ export function tidy(doc: Doc, at: number): Op[] {
   return charsOf(want) === charsOf(have) ? [] : [{ op: 'text', at, from, to: l.chars.length, runs: want }];
 }
 
-/** The kind of diagram, as the head says it. */
+/** The kind of diagram, as the head says it: swimlanes made a tree, and a tree made swimlanes, keep every line drawn between their things. */
 export function setKind(doc: Doc, kind: KindId): Op[] {
   if (kindOf(doc) === kind && doc.head.kind === kind) return [];
   const head: Op = { op: 'head', key: 'kind', value: kind };
-  return kindOf(doc) === 'lanes' && isTree(kind) ? [...lanesAsTree(doc), head] : [head];
+  if (kindOf(doc) === 'lanes' && isTree(kind)) return [...lanesAsTree(doc), head];
+  if (isTree(kindOf(doc)) && kind === 'lanes') return [...treeAsLanes(doc), head];
+  return [head];
+}
+
+/** A line drawn between two things (their numbers among the things), its arrow as it reads: "<-" is turned round. */
+interface Rel {
+  a: number;
+  b: number;
+  dir: Exclude<Dir, '<-'>;
+  label: string;
+  /** The connection that draws it, if one does. */
+  e?: Edge;
+}
+const rel = (a: number, b: number, dir: Dir, label: string): Rel => (dir === '<-' ? { a: b, b: a, dir: '->', label } : { a, b, dir, label });
+
+/** What swimlanes draw between their steps: the flow (a branch's line as its line says, `branchOf`) and every connection. */
+function lanesRels(doc: Doc): { names: string[]; rels: Rel[] } {
+  const all = linesOf(doc);
+  const f = lanesFlow(doc);
+  const rels = f.auto.map(([a, b]) => {
+    const { dir, label } = f.branch(a, b) ? branchOf(doc, f.steps[b].at) : { dir: '->' as Dir, label: '' };
+    return rel(a, b, dir === '--' ? '->' : dir, label);
+  });
+  for (const { e, a, b } of f.joined) rels.push({ ...rel(a, b, e.dir, e.label), e });
+  return { names: f.steps.map((l) => laneName(all, l)), rels };
+}
+
+/** What a tree draws between its things: each line to the one above (as `branchOf` says it), and every connection. */
+function treeRels(doc: Doc): { lines: Line[]; rels: Rel[]; parent: number[]; up: number[] } {
+  const lines = linesOf(doc).filter((l) => l.all.words || l.all.icon);
+  const rels: Rel[] = [];
+  const parent: number[] = [];
+  // Each thing's line to the one above, as its number among `rels` (-1 for a root).
+  const up: number[] = [];
+  const path: number[] = [];
+  lines.forEach((l, i) => {
+    // As the tree is drawn: a gap in the depths closes up.
+    const depth = Math.min(l.depth, path.length);
+    path.length = depth;
+    parent.push(depth ? path[depth - 1] : -1);
+    up.push(depth ? rels.push(rel(path[depth - 1], i, branchOf(doc, l.at).dir, branchOf(doc, l.at).label)) - 1 : -1);
+    path.push(i);
+  });
+  const index = (n: string) => ((i) => (i >= 0 ? i : lines.findIndex((l) => same(l.words.words, n))))(lines.findIndex((l) => same(l.all.words, n)));
+  for (const e of edgesOf(doc)) {
+    const [a, b] = [index(e.from), index(e.to)];
+    if (a >= 0 && b >= 0 && a !== b) rels.push({ ...rel(a, b, e.dir, e.label), e });
+  }
+  return { lines, rels, parent, up };
+}
+
+/** Lines drawn, each as words to compare: "desk ready? -> lab ship it: yes", an unarrowed one's ends in order. */
+const relKeys = (names: string[], rels: Rel[]): string[] =>
+  rels
+    .map((r) => {
+      const [a, b] = r.dir === '->' ? [who(names[r.a]), who(names[r.b])] : [who(names[r.a]), who(names[r.b])].sort();
+      return `${a} ${r.dir} ${b}: ${r.label.trim()}`;
+    })
+    .sort();
+
+/**
+ * Every line a diagram draws between its things, as words, the same for swimlanes and a tree: what a change of kind
+ * between them keeps (Paul, 2026-10-30: "Don't lose arrows round trip").
+ */
+export function linesDrawn(doc: Doc): string[] {
+  if (kindOf(doc) === 'lanes') return ((x) => relKeys(x.names, x.rels))(lanesRels(doc));
+  if (!isTree(kindOf(doc))) return [];
+  const { lines, rels } = treeRels(doc);
+  return relKeys(
+    lines.map((l) => l.all.words),
+    rels,
+  );
+}
+
+/** How far lines `got` are from lines `want`: a line lost counts far more than a line more. */
+function apart(got: string[], want: string[]): number {
+  const left = new Map<string, number>();
+  for (const x of want) left.set(x, (left.get(x) ?? 0) + 1);
+  let more = 0;
+  for (const x of got) left.get(x) ? left.set(x, left.get(x)! - 1) : more++;
+  return [...left.values()].reduce((s, x) => s + x, 0) * 1000 + more;
+}
+
+/** A connection's block for line `r`, its ends named in full ("Desk: Ready?"), as the connection it came from was written. */
+function relEdge(doc: Doc, names: string[], r: Rel): Block {
+  const kept = r.e ? (doc.blocks[r.e.at] as Extract<Block, { k: 'edge' }>).a : undefined;
+  return { k: 'edge', from: names[r.a], to: names[r.b], dir: r.dir, ...(r.label ? { label: r.label } : {}), ...(kept ? { a: kept } : {}) };
 }
 
 /**
  * A swimlane made a tree (a mind map, an org chart, a family tree), which reads only its nesting (Paul, 2026-10-18:
  * "The conversion from swimlanes to mindmap loses most of the relationships"): each step under the first step before
- * it that leads into it (a look-up under the step it is looked up from), and every other way the flow goes a
- * connection ("~ A -> B"). Each line to the one above is an arrow ("{.from}", as the Outliner writes it), with the
- * words a connection between the two gave it ("{label=Yes}"); its other connections stay, named by the whole line
- * ("Desk: Ready?"); its steps keep their lanes in their words, so swimlanes again have them back; the lines that only
- * name a lane go.
+ * it that leads into it (a look-up under the step it is looked up from). Its line to the one above is one of the
+ * lines drawn between the two, an arrow ("{.from}", as the Outliner writes it) with its words ("{label=Yes}"); every
+ * other line drawn, the flow's or a connection's, between the two or any others, is a connection ("~ A -> B"), named
+ * by the whole line ("Desk: Ready?"). Each step keeps its lane in its words, so swimlanes again have them back; the
+ * lines that only name a lane go.
  */
 function lanesAsTree(doc: Doc): Op[] {
-  const { steps, joined, flows, both, auto } = lanesFlow(doc);
+  const { names, rels } = lanesRels(doc);
+  const all = linesOf(doc);
+  const steps = all.filter((l) => l.words.words || l.words.icon);
   if (!steps.length) return [];
-  const leads: [number, number][] = [...auto, ...flows, ...both.map(({ a, b }): [number, number] => [a, b])];
-  const parent = steps.map((_, j) => Math.min(Infinity, ...leads.filter(([a, b]) => b === j && a < j).map(([a]) => a)));
+  // What leads into j from before it: an arrow's start, either end of an exchange or a plain line.
+  const into = (r: Rel, j: number) => (r.b === j ? r.a : r.dir !== '->' && r.a === j ? r.b : -1);
+  const parent = steps.map((_, j) => Math.min(Infinity, ...rels.map((r) => into(r, j)).filter((a) => a >= 0 && a < j)));
   const order: [number, number][] = [];
   const walk = (i: number, depth: number) => {
     order.push([i, depth]);
     steps.forEach((_, j) => parent[j] === i && walk(j, depth + 1));
   };
   steps.forEach((_, i) => parent[i] === Infinity && walk(i, 0));
-  const name = (i: number) => steps[i].all.words;
-  const tree = (a: number, b: number) => parent[b] === a || parent[a] === b;
-  // Each line to the one above is the flow's arrow, or the way a connection between the two went (a look-up's "<->"),
-  // with the words it gave it (a "Yes").
-  const said = (i: number): { dir: Dir; label: string } => {
-    const j = joined.find(({ a, b }) => (a === parent[i] && b === i) || (a === i && b === parent[i]));
-    if (!j) return { dir: '->', label: '' };
-    const turned: Record<Dir, Dir> = { '->': '<-', '<-': '->', '<->': '<->', '--': '--' };
-    return { dir: j.a === parent[i] ? j.e.dir : turned[j.e.dir], label: j.e.label };
+  // The line to the one above: the flow's arrow to it first, then an exchange, a plain line, an arrow back.
+  const used = new Set<number>();
+  const rank = (r: Rel, p: number) => (r.dir === '->' ? (r.a === p ? 0 : 3) : r.dir === '<->' ? 1 : 2);
+  const up = (j: number): { dir: Dir; label: string } => {
+    const p = parent[j];
+    const between = rels.map((r, n) => [r, n] as const).filter(([r]) => (r.a === p && r.b === j) || (r.a === j && r.b === p));
+    const [r, n] = between.sort(([x], [y]) => rank(x, p) - rank(y, p))[0];
+    used.add(n);
+    return { dir: r.dir === '->' && r.a === j ? '<-' : r.dir, label: r.label };
   };
   const lines = order.map(([i, depth]) => {
-    const b: Block = { ...(doc.blocks[steps[i].at] as Extract<Block, { k: 'li' }>), depth };
-    return depth ? withBranch(b, said(i)) : b;
+    const l = steps[i];
+    const b = doc.blocks[l.at] as Extract<Block, { k: 'li' }>;
+    const lane = laneOf(all, l.at);
+    const keyed: Block = { ...b, depth, ...(l.key || !lane ? {} : { runs: normalRuns([...laneRuns(all, lane), { t: ': ' }, ...b.runs]) }) };
+    return withBranch(keyed, depth ? up(i) : { dir: '--', label: '' });
   });
-  const kept = joined.filter(({ a, b }) => !tree(a, b)).map(({ e, a, b }) => edgeBlock(doc, e, { from: name(a), to: name(b) }));
-  const more = auto.filter(([a, b]) => !tree(a, b)).map(([a, b]): Block => ({ k: 'edge', from: name(a), to: name(b), dir: '->' }));
-  const rest = doc.blocks.filter((b, at) => b.k !== 'li' && !(b.k === 'edge' && joined.some(({ e }) => e.at === at)));
-  return [{ op: 'splice', at: 0, n: doc.blocks.length, blocks: [...lines, ...rest, ...kept, ...more] }];
+  const edges = rels.flatMap((r, n) => (used.has(n) ? [] : [relEdge(doc, names, r)]));
+  const drawn = new Set(rels.flatMap((r) => (r.e ? [r.e.at] : [])));
+  const rest = doc.blocks.filter((b, at) => b.k !== 'li' && !drawn.has(at));
+  return [{ op: 'splice', at: 0, n: doc.blocks.length, blocks: [...lines, ...rest, ...edges] }];
+}
+
+/**
+ * A tree (a mind map, an org chart, a family tree) made swimlanes, drawing every line the tree did. Swimlanes read
+ * nesting as branches that rejoin the flow at the next step on the margin, and draw no branch to a step a connection
+ * already joins to the one above it; so the tree is kept as it is where that draws the same lines, any line it would
+ * not draw is written as a connection, a line to the one above that points back is one too where a branch ending
+ * there would otherwise rejoin, and where that is not enough the trees are taken in another order, or every step is
+ * put on the margin with each line a connection. Its steps keep the lanes their words name.
+ */
+function treeAsLanes(doc: Doc): Op[] {
+  const { lines, rels, parent, up: lineRel } = treeRels(doc);
+  if (!lines.length) return [];
+  const names = lines.map((l) => l.all.words);
+  // A tree's line with no arrow is a swimlane's branch, which is one.
+  const branchRel = (r: Rel) => !r.e && r.dir === '--';
+  const want = relKeys(
+    names,
+    rels.map((r) => (branchRel(r) ? { ...r, dir: '->' as const } : r)),
+  );
+  const drawn = new Set(rels.flatMap((r) => (r.e ? [r.e.at] : [])));
+  const rest = doc.blocks.filter((b) => b.k !== 'li' && b.k !== 'edge');
+  const unread = doc.blocks.filter((b, at) => b.k === 'edge' && !drawn.has(at));
+  /** The things joined to others by exchanges alone ("<->"): a look-up, which swimlanes draw beside the flow. */
+  const lookups = lines.flatMap((_, i) => (rels.some((r) => r.a === i || r.b === i) && rels.every((r) => (r.a !== i && r.b !== i) || r.dir === '<->') ? [i] : []));
+  /** The swimlanes for these steps at these depths, with these lines to the one above written as connections. */
+  const build = (layout: [number, number][], written: Set<number>): Op[] => {
+    const blocks = layout.map(([i, depth]) => {
+      const b = { ...(doc.blocks[lines[i].at] as Extract<Block, { k: 'li' }>), depth };
+      const n = lineRel[i];
+      return depth && n >= 0 && !written.has(n) ? b : withBranch(b, { dir: '--', label: '' });
+    });
+    // An exchange with a look-up ends at the look-up, which is how swimlanes know one (lanesFlow `aside`).
+    const toLookup = (r: Rel): Rel => (r.dir === '<->' && lookups.includes(r.a) && !lookups.includes(r.b) ? { ...r, a: r.b, b: r.a } : r);
+    const edges = rels.flatMap((r, n) => (r.e || written.has(n) ? [relEdge(doc, names, toLookup(branchRel(r) ? { ...r, dir: '->' } : r))] : []));
+    return [{ op: 'splice', at: 0, n: doc.blocks.length, blocks: [...blocks, ...rest, ...edges, ...unread] }];
+  };
+  /** The lines the swimlanes these ops make draw. */
+  const missed = (ops: Op[]) => ({ got: linesDrawn(applyAll(doc, [...ops, { op: 'head', key: 'kind', value: 'lanes' }])) });
+  /**
+   * The tree as it is, the roots in this order, writing as connections the lines swimlanes would not draw; with
+   * `beside`, a look-up (a step joined to others by exchanges alone, which swimlanes leave out of the flow), the trees
+   * after the first go under it, so nothing is drawn to them or from them that the tree did not draw.
+   */
+  const nested = (roots: number[], beside = -1): Op[] => {
+    const layout: [number, number][] = [];
+    const [first, ...others] = roots;
+    const walk = (i: number, depth: number) => {
+      layout.push([i, depth]);
+      lines.forEach((_, j) => parent[j] === i && walk(j, depth + 1));
+      if (i === beside) others.forEach((r) => walk(r, depth + 1));
+    };
+    walk(first, 0);
+    if (beside < 0) others.forEach((r) => walk(r, 0));
+    // A look-up's exchanges are connections: so swimlanes leave it out of the flow, as the tree did.
+    const written = new Set<number>(rels.flatMap((r, n) => (!r.e && (lookups.includes(r.a) || lookups.includes(r.b)) ? [n] : [])));
+    for (let round = 0; round <= rels.length; round++) {
+      const ops = build(layout, written);
+      const { got } = missed(ops);
+      if (!apart(got, want)) return ops;
+      const left = new Set(got);
+      const more = lineRel.filter((n) => n >= 0 && !written.has(n) && !left.has(relKeys(names, [branchRel(rels[n]) ? { ...rels[n], dir: '->' } : rels[n]])[0]));
+      // A branch that would rejoin where no line is drawn: a line to the one above pointing back from its end, or to its
+      // start from below, written as a connection, stops it.
+      const extra = got.filter((k) => !want.includes(k));
+      const stops = extra.length ? lineRel.filter((n) => n >= 0 && !written.has(n) && rels[n].dir === '->' && rels[n].b === parent[rels[n].a]) : [];
+      const add = more.length ? more : stops;
+      if (!add.length) return ops;
+      add.forEach((n) => written.add(n));
+    }
+    return build(layout, written);
+  };
+  // The trees in order; each of the first few first instead; the rest under a look-up of the first.
+  const roots = lines.flatMap((_, i) => (parent[i] < 0 ? [i] : []));
+  const tries: (() => Op[])[] = [() => nested(roots), ...roots.slice(1, 8).map((r) => () => nested([r, ...roots.filter((x) => x !== r)]))];
+  const rootOf = (i: number): number => (parent[i] < 0 ? i : rootOf(parent[i]));
+  if (roots.length > 1) for (const x of lookups.slice(0, 8)) tries.push(() => nested([rootOf(x), ...roots.filter((y) => y !== rootOf(x))], x));
+  // Every step on the margin, every line a connection.
+  const flat = (order: number[]) =>
+    build(
+      order.map((i): [number, number] => [i, 0]),
+      new Set(lineRel.filter((n) => n >= 0)),
+    );
+  const outOf = (i: number) => rels.some((r) => r.dir !== '<->' && r.a === i);
+  const intoIt = (i: number) => rels.some((r) => r.dir !== '<->' && r.b === i);
+  const all = lines.map((_, i) => i);
+  // Those the flow starts from first, those it ends at last, so no step rejoins one nothing comes into; a step joined
+  // to nothing sits between one with a line out and one with a line in, where nothing rejoins it; a look-up anywhere.
+  const joined = all.filter((i) => !lookups.includes(i) && (outOf(i) || intoIt(i)));
+  const base = [...joined.filter((i) => !intoIt(i)), ...joined.filter((i) => intoIt(i) && outOf(i)), ...joined.filter((i) => !outOf(i))];
+  const alone = all.filter((i) => !lookups.includes(i) && !outOf(i) && !intoIt(i));
+  const placed: number[] = [];
+  if (base.length && intoIt(base[0]) && alone.length) placed.push(alone.shift()!);
+  base.forEach((i, k) => {
+    placed.push(i);
+    const next = base[k + 1];
+    if (alone.length && outOf(i) && (next === undefined || intoIt(next))) placed.push(alone.shift()!);
+  });
+  tries.push(
+    () => flat(all),
+    () => flat([...placed, ...alone, ...lookups]),
+  );
+  let best: { ops: Op[]; off: number } | null = null;
+  for (const t of tries) {
+    const ops = t();
+    const off = apart(missed(ops).got, want);
+    if (!best || off < best.off) best = { ops, off };
+    if (!off) break;
+  }
+  return best!.ops;
 }
 
 /* ---------- a thing whole: copied, pasted, duplicated, moved ---------- */
