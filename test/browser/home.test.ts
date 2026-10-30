@@ -30,7 +30,7 @@ test('the home page ends with whose project it is and where it was made, then th
   expect(f.nextElementSibling).toBeNull();
   expect(lines).toEqual(['An Aboard Foundry project. Made with respect in New York City. · Beta version · GitHub · Email']);
   expect(links.map((a) => [a.textContent, a.href, a.target, a.rel])).toEqual([
-    ['Aboard Foundry', 'https://aboard.com/', '_blank', 'noopener'],
+    ['Aboard Foundry', 'https://aboard.com/?utm_source=tlo', '_blank', 'noopener'],
     ['GitHub', 'https://github.com/aboard-io/tinylittleoffice', '_blank', 'noopener'],
     ['Email', 'mailto:hello+tlo@aboard.com', '', ''],
   ]);
@@ -55,7 +55,7 @@ test('the foot is said in the page’s language, the names Aboard and GitHub kep
   const { lines, links } = foot(shell);
   expect(lines).toEqual(['Un projet Aboard Foundry. Fait avec respect à New York. · Version bêta · GitHub · E-mail']);
   expect(links.map((a) => [a.textContent, a.href])).toEqual([
-    ['Aboard Foundry', 'https://aboard.com/'],
+    ['Aboard Foundry', 'https://aboard.com/?utm_source=tlo'],
     ['GitHub', 'https://github.com/aboard-io/tinylittleoffice'],
     ['E-mail', 'mailto:hello+tlo@aboard.com'],
   ]);

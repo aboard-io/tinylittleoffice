@@ -76,7 +76,7 @@ test('a tag v* deploys: the checks and the three Workers by npm run deploy with 
   expect(release.steps.some((s) => s.uses?.startsWith('actions/attest-build-provenance@'))).toBe(true);
   expect(JSON.stringify(release)).not.toMatch(/secrets\.(CLOUDFLARE|NPM)/);
   // One workflow makes a release: the old release workflow is folded into this one.
-  expect(readdirSync(join(root, '.github/workflows')).sort()).toEqual(['ci.yml', 'deploy.yml', 'pages.yml']);
+  expect(readdirSync(join(root, '.github/workflows')).sort()).toEqual(['ci.yml', 'dependencies.yml', 'deploy.yml', 'pages.yml']);
 });
 
 test('the mirror (docs/mirror.md): after a deploy that succeeded, or by hand, the tag built for GitHub Pages and published there, then its version.json checked', () => {
@@ -126,10 +126,24 @@ test('every action a workflow uses is pinned by its full commit hash, with its v
   expect(seen).toBeGreaterThanOrEqual(6);
 });
 
-test('CI runs on pushes to main and on pull requests, with no secret', () => {
+test('CI runs on pushes to main and on pull requests, and by hand (after a Dependabot branch is given its dependencies page), with no secret', () => {
   const ci = yaml(read('.github/workflows/ci.yml')) as Workflow;
-  expect(ci.on).toEqual({ push: { branches: ['main'] }, pull_request: null });
+  expect(ci.on).toEqual({ push: { branches: ['main'] }, pull_request: null, workflow_dispatch: null });
   expect(read('.github/workflows/ci.yml')).not.toMatch(/secrets\./);
+});
+
+test("Dependabot's pull requests are given the dependencies page its lockfile names, with no secret and no package's scripts, and CI run on that commit", () => {
+  const w = yaml(read('.github/workflows/dependencies.yml')) as Workflow;
+  expect(w.on).toEqual({ pull_request: { branches: ['main'] } });
+  expect(w.permissions).toEqual({ contents: 'read' });
+  const job = w.jobs.page as Job & { if: string };
+  expect(job.if).toContain("github.actor == 'dependabot[bot]'");
+  expect(job.permissions).toEqual({ contents: 'write', actions: 'write' });
+  const runs = job.steps.map((s) => s.run ?? '').join('\n');
+  expect(runs).toContain('npm ci --ignore-scripts');
+  expect(runs.indexOf('npm run docs:deps')).toBeLessThan(runs.indexOf('git push'));
+  expect(runs.indexOf('git push')).toBeLessThan(runs.indexOf('gh workflow run ci.yml'));
+  expect(read('.github/workflows/dependencies.yml')).not.toMatch(/secrets\./);
 });
 
 /**
