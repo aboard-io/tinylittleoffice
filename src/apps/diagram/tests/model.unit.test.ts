@@ -445,7 +445,7 @@ describe('commands as ops', () => {
     const mind = applyAll(lanes, setKind(lanes, 'mind'));
     // Each line to the one above an arrow as the Outliner writes it, a look-up's both ways, a branch's words on it.
     expect(write(mind)).toBe(
-      '---\nkind: mind\n---\n- Patient: Arrives\n  - NP: Triage {.from}\n    - EHR: Record {.both}\n    - NP: Ready? {.from}\n      - NP: Treat {.from}\n        - Patient: Leaves {.from}\n      - NP: Wait {.from label=No}\n\n~ NP: Wait -> Patient: Leaves\n',
+      '---\nkind: mind\nlanes: Patient, NP, EHR\n---\n- Patient: Arrives\n  - NP: Triage {.from}\n    - EHR: Record {.both}\n    - NP: Ready? {.from}\n      - NP: Treat {.from}\n      - NP: Wait {.from label=No}\n        - Patient: Leaves {.from}\n\n~ NP: Treat -> Patient: Leaves\n',
     );
     // A mind map draws them: an arrow on every line, the words on its line.
     const lines = layout(mind).shapes.filter((x) => x.hit?.k === 'edge' && x.hit.branch);
@@ -455,6 +455,7 @@ describe('commands as ops', () => {
     expect(new Set(layout(mind).shapes.flatMap((x) => (x.hit?.k === 'edge' && !x.hit.branch ? [x.hit.at] : []))).size).toBe(edgesOf(mind).length);
     const back = applyAll(mind, setKind(mind, 'lanes'));
     expect(lanesOf(back).lanes).toEqual(['Patient', 'NP', 'EHR']);
+    expect(back.head.lanes).toBeUndefined();
     // Any other change of kind is the kind alone.
     expect(setKind(mind, 'org')).toEqual([{ op: 'head', key: 'kind', value: 'org' }]);
   });
@@ -505,12 +506,22 @@ describe('commands as ops', () => {
         expect(linesDrawn(t), `${write(a)}→ ${k}`).toEqual(linesDrawn(a));
         expect(linesDrawn(back), `${write(a)}→ ${k} → lanes`).toEqual(linesDrawn(a));
         expect(inLanes(back)).toEqual(inLanes(a));
+        expect(lanesOf(back).lanes, `${write(a)}→ ${k} → lanes`).toEqual(lanesOf(a).lanes);
       }
       const m = tree(seed);
       const l = to(m, 'lanes');
       expect(linesDrawn(l), `${write(m)}→ lanes`).toEqual(linesDrawn(m));
       expect(linesDrawn(to(l, 'mind')), `${write(m)}→ lanes → mind`).toEqual(linesDrawn(m));
     }
+    // The handoffs, one rule (Paul, 2026-10-30: "Fix how handoffs work and make it truly consistent"): a loop back adds
+    // its line and takes none away; any number of lines come into a step; a connection of its own on to a later step
+    // is where a step goes instead of the next; a line drawn by a connection is drawn once; a look-up has no branch.
+    const drawn = (body: string) => linesDrawn(doc('lanes', body)).map((x) => x.replace(/desk /g, ''));
+    expect(drawn('- Desk: Arrives\n- Desk: Triage\n- Desk: Leaves\n\n~ Leaves -> Triage: again\n')).toEqual(['arrives -> triage: ', 'leaves -> triage: again', 'triage -> leaves: ']);
+    expect(drawn('- Desk: A\n- Desk: B\n- Desk: C\n- Desk: D\n\n~ A -> C\n')).toEqual(['a -> c: ', 'b -> c: ', 'c -> d: ']);
+    expect(drawn('- Desk: A\n- Desk: B\n\n~ A -> B: go\n')).toEqual(['a -> b: go']);
+    expect(drawn('- Desk: A\n- Desk: B\n  - Desk: C\n- Desk: D\n\n~ A <-> B\n')).toEqual(['a <-> b: ', 'b -> c: ', 'c -> d: ']);
+    expect(drawn('- Desk: A\n- Desk: B\n- Desk: C\n\n~ A <-> B\n')).toEqual(['a -> c: ', 'a <-> b: ']);
     // A step that loops back keeps both its lines (the flow on, the connection back); a look-up stays one; a branch its words.
     const loop = doc('lanes', '- Desk: Ask?\n  - Desk: Fix\n- Desk: Ship\n\n~ Ship -> Fix: again\n');
     expect(linesDrawn(loop)).toEqual(['desk ask? -> desk fix: ', 'desk fix -> desk ship: ', 'desk ship -> desk fix: again']);
@@ -914,7 +925,7 @@ test('a diagram shown as an outline: the list as the outline reads it, a role or
   // Swimlanes go as the tree their flow draws, as to a mind map, and every join finds its items in the outline.
   const lanes = '---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Ready?\n  - Lab: Fix it\n  - Desk: Ship it\n- Desk: Done\n\n~ Ready? -> Fix it: No\n';
   const outline = diagramToOutline(parse(lanes));
-  expect(outline).toBe('- Desk: Ready?\n  - Lab: Fix it {.from label=No}\n    - Desk: Done {.from}\n  - Desk: Ship it {.from}\n\n~ Desk Ship it -> Desk Done\n');
+  expect(outline).toBe('- Desk: Ready?\n  - Lab: Fix it {.from label=No}\n  - Desk: Ship it {.from}\n    - Desk: Done {.from}\n\n~ Lab Fix it -> Desk Done\n');
   const { readOutline, liveLinks } = await import('../../outline/model.ts');
   const read = readOutline(parse(outline));
   expect(liveLinks(read)).toHaveLength(read.links.length);

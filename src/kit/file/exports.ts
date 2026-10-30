@@ -16,7 +16,7 @@ import type { AppDef, Doc, Export, ExportContext, Page } from '../core/app.ts';
 import { INK, MUTED, FONT, pageSvg, stack, fileName, slug, xml } from '../draw/draw.ts';
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from '../ui/menu.ts';
-import { appOf } from '../core/apps.ts';
+import { appOf, handOff } from '../core/apps.ts';
 import { encodeDoc } from '../core/codec.ts';
 import { go, parseHash, routeHash } from '../core/route.ts';
 import { parse, referenceNotes, write } from '../../doc/index.ts';
@@ -391,6 +391,6 @@ export function exportItems(def: AppDef, current: () => Current): MenuItem[] {
     ...formatsOf(def).map(row),
     ...(def.handoffs ?? [])
       .filter((h) => appOf(h.to))
-      .map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('export-open-in'), does: () => go(routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
+      .map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('export-open-in'), does: () => go(routeHash(h.to, encodeDoc(handOff(h, current().doc)))) })),
   ];
 }

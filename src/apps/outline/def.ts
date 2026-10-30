@@ -9,21 +9,7 @@ import { defineApp, type Doc } from '../../kit/core/app.ts';
 import { utf8 } from '../../kit/draw/draw.ts';
 import { textPdf } from '../../kit/file/textpdf.ts';
 import { t } from '../../kit/core/i18n.ts';
-import {
-  liveItems,
-  notesAsItems,
-  outlineBlocks,
-  outlineText,
-  outlineToCal,
-  outlineToDeck,
-  outlineToMind,
-  outlineToLanes,
-  outlineToFamily,
-  outlineToNet,
-  outlineToOrg,
-  readOutline,
-  toOpml,
-} from './model.ts';
+import { liveItems, notesAsItems, outlineBlocks, outlineText, outlineToCal, outlineToDeck, outlineToMind, outlineToFamily, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
 import { appName, outlinePage } from './view.ts';
 import { partOf } from '../../kit/draw/steps.ts';
 
@@ -100,7 +86,8 @@ export default defineApp({
   handoffs: [
     { to: 'deck', label: () => t('common-show-as-slides'), convert: convert(outlineToDeck) },
     { to: 'diagram', label: () => t('outline-draw-as-mind-map'), convert: convert(outlineToMind) },
-    { to: 'diagram', label: () => t('outline-draw-as-swimlanes'), convert: convert(outlineToLanes) },
+    // The tree, made swimlanes by the Diagram Maker's own change of kind: every line it draws kept.
+    { to: 'diagram', label: () => t('outline-draw-as-swimlanes'), convert: convert(outlineToMind), as: 'lanes' },
     { to: 'diagram', label: () => t('outline-draw-as-org-chart'), convert: convert(outlineToOrg) },
     { to: 'diagram', label: () => t('outline-draw-as-family-tree'), convert: convert(outlineToFamily) },
     { to: 'diagram', label: () => t('outline-draw-as-network'), convert: convert(outlineToNet) },

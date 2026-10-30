@@ -27,7 +27,7 @@ import { drawnIn, labelOf, runKey } from '../../kit/core/commands.ts';
 import { BOLD, CODE, FOOTNOTE, HIGHLIGHT, ITALIC, LINK, STRIKE, UNDERLINE } from '../../kit/text/text-commands.ts';
 import type { Handoff } from '../../kit/core/app.ts';
 import COMMANDS from './commands.ts';
-import { appOf } from '../../kit/core/apps.ts';
+import { appOf, handOff } from '../../kit/core/apps.ts';
 import { clipText, docToHtml, GENERATOR, htmlToBlocks, plainOf } from '../../kit/text/clipboard.ts';
 import type { ContextEntry } from '../../kit/ui/context.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/text/rows.ts';
@@ -860,7 +860,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /** The outline opened as another kind of document, in that app, in a new tab. */
   openAs(h: Handoff) {
-    window.open(location.pathname + routeHash(h.to, encodeDoc(h.convert(write(this.doc)))), '_blank', 'noopener');
+    window.open(location.pathname + routeHash(h.to, encodeDoc(handOff(h, write(this.doc)))), '_blank', 'noopener');
   }
   showPage() {
     this.showing = true;

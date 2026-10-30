@@ -390,8 +390,9 @@ test('swimlanes: Join branches from a step, its words a label; two steps with th
   await settle(el);
   await tap(el, things(el).filter((g) => g.getAttribute('aria-label') === 'Ship it')[1]);
   expect(last()).toContain('~ Ready? -> Lab: Ship it');
-  // Drawn at right angles, it opens to its words where it is tapped.
-  const edge = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.edge')!;
+  // Drawn at right angles, it opens to its words where it is tapped (the connection, drawn after the flow's lines:
+  // Desk's "Ship it" still leads on to Lab's, a line into a step taking none away).
+  const edge = [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing.edge')].at(-1)!;
   const lineOf = edge.querySelector('polyline, path')!;
   const r = lineOf.getBoundingClientRect();
   await tap(el, edge, { clientX: r.left + 2, clientY: r.top + 1 });

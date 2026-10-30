@@ -856,17 +856,16 @@ export const outlineToOrg = (v: OutlineView, head: Doc['head'] = {}): string => 
 export const outlineToFamily = (v: OutlineView, head: Doc['head'] = {}): string => peopleOf(v, 'family', head);
 
 /**
- * The outline as a mind map, or as swimlanes (Paul, 2026-10-18: "Can't I write a swimlane in outliner?"): the tree,
- * each item's line to the one above as it is (its arrow and its words, which a mind map and swimlanes read as the
- * outline writes them), each join a connection as it was. In swimlanes, "Who: what they do" is a step in a lane.
+ * The outline as a mind map: the tree, each item's line to the one above as it is (its arrow and its words, which a
+ * mind map reads as the outline writes them), each join a connection as it was. Swimlanes are this, made swimlanes
+ * by the Diagram Maker (Paul, 2026-10-18: "Can't I write a swimlane in outliner?"; def.ts).
  */
-function treeAs(kind: 'mind' | 'lanes', v: OutlineView, head: Doc['head']): string {
+export function outlineToMind(v: OutlineView, head: Doc['head'] = {}): string {
+  const kind = 'mind';
   const tree = v.items.filter((it) => !it.doc).map((it) => itemBlock(it.depth, it.runs, it.dir, it.label, undefined, it.ord));
   const edges: Block[] = liveLinks(v).map((l) => ({ k: 'edge', from: l.from, to: l.to, dir: l.dir, ...(l.label ? { label: l.label } : {}) }));
   return write({ head: { ...(head.title ? { title: head.title } : {}), kind }, blocks: [...tree, ...edges] });
 }
-export const outlineToMind = (v: OutlineView, head: Doc['head'] = {}): string => treeAs('mind', v, head);
-export const outlineToLanes = (v: OutlineView, head: Doc['head'] = {}): string => treeAs('lanes', v, head);
 
 /**
  * The outline as OPML, what every outliner reads. A document is named by its app. An item's footnotes are outlines

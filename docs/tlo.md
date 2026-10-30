@@ -197,8 +197,12 @@ line) holds the row numbers of the two shapes in X and Y; `Points` and `Rot` col
 **diagram** (Diagram Maker): list items and connections, the head's `kind:` saying how they are drawn:
 `mind` and `family` (a nested list), `org` (`- Name | Role`, a dotted line an edge `~ Ben -- Eve: advises`),
 `lanes` (`- Who: what they do`, a step a line: the steps on the margin in order, the steps indented under one its
-branches, each rejoining at the next step on the margin; `- Desk:` alone names a lane, the lanes drawn in the order
-they are first named; edges join any two steps, a step named by its words or by `Who: words` where two have the same),
+branches, each rejoining at the next step on the margin, unless an edge of its own goes on to a later step; an edge
+back to an earlier step is a loop, and the flow still goes on; any number of lines may come into one step; a line the
+flow draws that an edge draws too is drawn once; a step at the far end of `<->` edges alone, with no branch, is a
+look-up beside the flow; `- Desk:` alone names a lane, the lanes drawn in the order they are first named, a tree made
+from swimlanes keeping that order in its head, `lanes: Desk, Lab`, for when it is swimlanes again; edges join any two
+steps, a step named by its words or by `Who: words` where two have the same),
 `timeline` (`- When: what happened`), `venn` (`- Set: thing, thing`, and `- A & B: thing`), `seating`
 (`- Table: Ann, Bob`; its place cards print eight to a sheet), `net` (edges, and `- name` for a thing on its own).
 An item's line to the one above is written as the Outliner writes it, and a tree (`mind`, `org`, `family`) and

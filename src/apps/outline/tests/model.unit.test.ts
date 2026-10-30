@@ -21,7 +21,6 @@ import {
   outlineToDeck,
   outlineToFamily,
   outlineToMind,
-  outlineToLanes,
   outlineToNet,
   outlineToOrg,
   personOf,
@@ -406,12 +405,16 @@ test('a document goes under an item after its family, at its depth', () => {
   ).toEqual(['~ Pricing -> Marketing: feeds', '~ Ops -- Product', '']);
 });
 
-test('a mind map and swimlanes get the tree with each line to the one above as it is, and its joins; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', () => {
+test('a mind map and swimlanes get the tree with each line to the one above as it is, and its joins; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', async () => {
   const v = readOutline(parse(DOC));
   const tree =
     '- Launch\n  - Product {.from}\n    - Pricing {.from label=sets}\n  - Marketing {.both}\n  - Ops {label="part of"}\n  - Support {.to}\n\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n';
   expect(outlineToMind(v)).toBe(`---\nkind: mind\n---\n${tree}`);
-  expect(outlineToLanes(v)).toBe(`---\nkind: lanes\n---\n${tree}`);
+  // Swimlanes are the mind map made swimlanes by the Diagram Maker, as its own change of kind makes them.
+  const { appOf, handOff } = await import('../../../kit/core/apps.ts');
+  const lanes = def.handoffs!.find((h) => h.as === 'lanes')!;
+  expect(handOff(lanes, DOC)).toBe(appOf('diagram')!.takes!(outlineToMind(v), 'lanes'));
+  expect(handOff(lanes, DOC)).toBe(`---\nkind: lanes\n---\n${tree}`);
   expect(outlineToOrg(v, { title: 'Co' })).toBe(
     '---\ntitle: Co\nkind: org\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -- Marketing: feeds\n~ Ops -- Product\n',
   );
