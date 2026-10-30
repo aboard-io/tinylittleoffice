@@ -71,7 +71,7 @@ const deployChecks = () =>
 
 test('CI runs, on every push and pull request, every check the deploy runs, in Chromium and WebKit with the fonts the measuring tests need', () => {
   const ci = yaml(read('.github/workflows/ci.yml')) as { on: Record<string, unknown>; jobs: Record<string, { 'runs-on': string; steps: { run?: string }[] }> };
-  expect(Object.keys(ci.on).sort()).toEqual(['pull_request', 'push']);
+  expect(Object.keys(ci.on).sort()).toEqual(['pull_request', 'push', 'workflow_dispatch']);
   const job = Object.values(ci.jobs)[0];
   expect(Object.keys(ci.jobs)).toEqual(['check']);
   expect(job['runs-on']).toBe('ubuntu-latest');

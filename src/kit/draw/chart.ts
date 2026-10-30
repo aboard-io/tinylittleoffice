@@ -6,7 +6,7 @@
  */
 import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import type { Page } from '../core/app.ts';
-import { FAINT, INK, LINE, MUTED, SERIES, clip, patternDefs, patternFill, r, rect, text } from './draw.ts';
+import { FAINT, INK, LINE, MUTED, SERIES, clip, patternDefs, patternFill, r, rect, text, textWidth } from './draw.ts';
 import { t } from '../core/i18n.ts';
 
 export type ChartKind = 'bar' | 'line' | 'pie' | 'sankey';
@@ -122,6 +122,21 @@ interface SLink {
   i: number;
 }
 
+/** A bar's name in lines of `max` wide, broken after a space or a hyphen ("Direct-to-|consumer"), never inside a word. */
+function nameLines(name: string, max: number): string[] {
+  const out: string[] = [];
+  let cur = '';
+  for (const piece of name.split(/(?<=[ -])/)) {
+    if (cur && textWidth((cur + piece).trimEnd(), 12, true) > max) {
+      out.push(cur.trimEnd());
+      cur = '';
+    }
+    cur += piece;
+  }
+  if (cur.trim()) out.push(cur.trimEnd());
+  return out.map((l) => clip(l, max, 12, true));
+}
+
 /**
  * Flows as a Sankey: a bar for each thing, as tall as what passes through it, in columns from where the
  * flows start to where they end; a band for each flow, as thick as its amount. d3-sankey orders the bars
@@ -144,8 +159,8 @@ function sankeyPage(flows: Flow[], title = '', w = 720, h = 440, upTo = Infinity
     if (!reaches(f.to, f.from, links)) links.push({ source: f.from, target: f.to, value: f.value, i });
   });
   const nw = 14;
-  /** A bar's label, two lines of 12 px: how far apart two labels in a column must be. */
-  const LABEL = 30;
+  /** A label's lines: 12 px type on 14 px of line. */
+  const LINE_H = 14;
   const graph = sankey<SNode, SLink>()
     .nodeId((n) => n.name)
     .nodeWidth(nw)
@@ -160,27 +175,45 @@ function sankeyPage(flows: Flow[], title = '', w = 720, h = 440, upTo = Infinity
     if (l.i >= upTo) continue;
     svg += `<path d="${path(l)!.replace(/-?\d+\.\d+/g, (v) => String(r(+v)))}" fill="none" stroke="${color(l.source as SNode)}" stroke-opacity="0.35" stroke-width="${r(Math.max(1, l.width ?? 1))}"/>`;
   }
-  // A label is two lines, the name over the amount, beside its bar's top (its middle, where the bar is thin). Thin
-  // bars stand closer than two lines are tall, so in each column the labels are spread apart in the bars' order, down
-  // from the top and, where the column is full, back up from the foot: no label over another, each by its own bar.
+  // A label is its name, on two lines at most, over its amount, beside its bar's top (its middle, where the bar is
+  // thin). It has the room between its bar and the next column's, not more: past it a name ran over the next bars and
+  // their labels (apparel's "Garment manufacturing" across "Branded apparel", 2026-10-26), so a long name wraps, and
+  // a white edge keeps it read over the bands it still crosses. Thin bars stand closer than a label is tall, so in
+  // each column the labels are spread apart in the bars' order, down from the top and, where the column is full, back
+  // up from the foot: no label over another, each by its own bar.
   type Laid = (typeof graph.nodes)[number];
   const columns = new Map<number, Laid[]>();
   for (const n of graph.nodes) columns.set(n.x0!, [...(columns.get(n.x0!) ?? []), n]);
+  const xs = [...columns.keys()].sort((a, b) => a - b);
+  // The width is an estimate (draw.ts `textWidth`), and a browser's bold runs wider: a tenth is kept in hand.
+  const roomOf = (x0: number) => Math.max(40, 0.9 * ((xs.find((x) => x > x0) ?? w) - (x0 + nw + 6) - 8));
+  const linesOf = new Map<Laid, string[]>();
+  for (const n of graph.nodes) {
+    const room = roomOf(n.x0!);
+    const all = nameLines(n.name, room);
+    linesOf.set(n, all.length <= 2 ? all : [all[0], clip(all.slice(1).join(' '), room, 12, true)]);
+  }
+  /** How far a label reaches below its first baseline, and so how far the next must stand. */
+  const tall = (n: Laid) => linesOf.get(n)!.length * LINE_H + 16;
   const labelY = new Map<Laid, number>();
   for (const column of columns.values()) {
     column.sort((a, b) => a.y0! - b.y0!);
     const ys = column.map((n) => n.y0! + Math.min(Math.max(2, n.y1! - n.y0!) / 2, 60));
-    for (let i = 1; i < ys.length; i++) ys[i] = Math.max(ys[i], ys[i - 1] + LABEL);
-    ys[ys.length - 1] = Math.min(ys[ys.length - 1], h - 17);
-    for (let i = ys.length - 2; i >= 0; i--) ys[i] = Math.min(ys[i], ys[i + 1] - LABEL);
+    for (let i = 1; i < ys.length; i++) ys[i] = Math.max(ys[i], ys[i - 1] + tall(column[i - 1]));
+    const last = column.length - 1;
+    ys[last] = Math.min(ys[last], h - 3 - (linesOf.get(column[last])!.length - 1) * LINE_H - 14);
+    for (let i = last - 1; i >= 0; i--) ys[i] = Math.min(ys[i], ys[i + 1] - tall(column[i]));
     column.forEach((n, i) => labelY.set(n, Math.max(top + 10, ys[i])));
   }
+  let bars = '';
+  let words = '';
   for (const n of graph.nodes) {
-    const nh = Math.max(2, n.y1! - n.y0!);
-    svg += rect(n.x0!, n.y0!, nw, nh, color(n), 'rx="3"');
-    const ly = labelY.get(n)!;
-    svg += text(n.x0! + nw + 6, ly + 1, clip(n.name, 150, 12, true), { px: 12, bold: true, fill: INK }) + text(n.x0! + nw + 6, ly + 15, fmt(n.value ?? 0), { px: 12, fill: MUTED });
+    bars += rect(n.x0!, n.y0!, nw, Math.max(2, n.y1! - n.y0!), color(n), 'rx="3"');
+    const [x, ly, lines] = [n.x0! + nw + 6, labelY.get(n)!, linesOf.get(n)!];
+    lines.forEach((line, i) => (words += text(x, ly + 1 + i * LINE_H, line, { px: 12, bold: true, fill: INK })));
+    words += text(x, ly + 1 + lines.length * LINE_H, fmt(n.value ?? 0), { px: 12, fill: MUTED });
   }
+  svg += bars + `<g stroke="#fff" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${words}</g>`;
   const shown = flows.slice(0, upTo);
   return { w, h, svg, alt: t('chart-flows-list', { list: shown.map((f) => `${f.from} → ${f.to} ${fmt(f.value)}`).join('; ') }) };
 }

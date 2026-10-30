@@ -49,3 +49,25 @@ test('a column with room keeps each label beside its own bar', () => {
     .sort((a, b) => a - b);
   expect(right.sort((a, b) => a - b).map((y, i) => y - tops[i])).toEqual([61, 61]);
 });
+
+test('a label keeps to the room before the next column, wrapping a long name after a space or a hyphen', async () => {
+  const { textWidth } = await import('../src/kit/draw/draw.ts');
+  // Apparel's money flow (2026-10-26): five columns, and names wider than the gap between them.
+  const f = (from: string, to: string, value: number) => ({ from, to, value });
+  const flows = [
+    f('Fabrics, yarns & leather', 'Garment manufacturing', 42),
+    f('Garment manufacturing', 'Branded apparel', 64),
+    f('Branded apparel', 'Direct-to-consumer & wholesale', 90),
+    f('Direct-to-consumer & wholesale', 'Individual consumers', 180),
+    f('Direct-to-consumer & wholesale', 'E-commerce marketplaces', 25),
+  ];
+  const p = chartPage({ labels: [], series: [], flows }, 'sankey', '', 720, 440);
+  const bars = [...new Set([...p.svg.matchAll(/<rect x="([\d.]+)" y="[\d.]+" width="14"/g)].map((m) => +m[1]))].sort((a, b) => a - b);
+  for (const m of p.svg.matchAll(/<text x="([\d.]+)" y="[\d.]+" font-size="12" font-weight="600"[^>]*>([^<]*)<\/text>/g)) {
+    const [x, words] = [+m[1], m[2].replace(/&amp;/g, '&')];
+    const next = bars.find((b) => b > x) ?? 720;
+    expect(x + textWidth(words, 12, true)).toBeLessThanOrEqual(next);
+  }
+  expect(p.svg).toContain('>Direct-to-</text>');
+  expect(p.svg).not.toMatch(/>[^<]*[a-z]-[a-z][^<]*…<\/text>/);
+});

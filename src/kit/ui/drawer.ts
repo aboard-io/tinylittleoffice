@@ -45,7 +45,7 @@ import { canInstall, install, installByHand, onInstall } from '../core/install.t
 import { size } from './zoom.ts';
 import { toast } from '../core/say.ts';
 import { commitUrl, repoUrl, running, type Version } from '../core/version.ts';
-import { origin } from '../core/network.ts';
+import { MAKER } from '../core/network.ts';
 import './preview.ts';
 import { manualHash } from './manual.ts';
 import { focusBack, handBack, type ToDialog } from './dialog.ts';
@@ -315,7 +315,7 @@ export class ToDrawer extends LitElement {
       </div>
     </dialog>
     <to-dialog class="to-about-dialog" heading=${t('drawer-about-tiny-little-office')} .body=${html`<p>
-        ${linked(t('drawer-tiny-little-office-is-experiment'), { aboard: html`<a href=${origin('maker')} target="_blank" rel="noopener" data-to-chrome>Aboard</a>` })}
+        ${linked(t('drawer-tiny-little-office-is-experiment'), { aboard: html`<a href=${MAKER} target="_blank" rel="noopener" data-to-chrome>Aboard</a>` })}
         ${linked(t('drawer-to-reach-out-with-questions'), { email: html`<a href=${MAIL} data-to-chrome>${t('drawer-email-us')}</a>` })}
         ${linked(t('drawer-if-you-find-bugs-please'), { github: html`<a href=${`${repoUrl()}/issues`} target="_blank" rel="noopener" data-to-chrome>${t('drawer-github-repository')}</a>` })}
       </p>

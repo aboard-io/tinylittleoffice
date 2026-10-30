@@ -1,0 +1,44 @@
+# docs/dependencies.md names each dependency's exact version, and CI fails a tree whose page and lockfile disagree
+# (test/lints.test.ts). Dependabot moves the lockfile and not the page (#29 broke main so, 2026-10-19), so on its pull
+# requests this writes the page again and commits it to the branch. A push with the workflow's own token starts no
+# workflow, so it then starts CI on the new commit by hand. The install runs no package's scripts: the page is read
+# from package.json, the lockfile and node_modules, nothing built.
+# Every action is pinned by its commit, the version beside it (test/deploy.test.ts).
+name: Dependencies page
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  page:
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run docs:deps
+      - name: Commit the page, and run CI on that commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet docs/dependencies.md; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Dependencies page names the versions the lockfile does' docs/dependencies.md
+          git push origin "HEAD:$BRANCH"
+          gh workflow run ci.yml --ref "$BRANCH"

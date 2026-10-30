@@ -79,13 +79,18 @@ export const NUMBERS = cmd('numbers', 'bar-numbered-list', {
   pressed: (x) => x.kind === 'ol',
   does: (x) => x.exec('ol'),
 });
-/** Indent and Bring out: an item that can move moves; anywhere else Tab goes on to move the focus (never trapped). */
+/**
+ * Indent and Outdent: an item that can move moves; in a document a plain paragraph is indented as a quote and a
+ * quote brought out to one, as "> " makes it (Paul, 2026-10-19: indenting a plain paragraph was greyed out). Tab moves
+ * only an item: anywhere else it goes on to move the focus (never trapped).
+ */
+const listed = (x: { kind: string | null }) => x.kind === 'ul' || x.kind === 'ol';
 export const OUTDENT = cmd('outdent', 'common-bring-out', {
   icon: UI.outdent,
   keys: 'Shift+Tab',
   where: ['bar'],
   when: lists,
-  disabled: (x) => !x.sel || (x.kind !== 'ul' && x.kind !== 'ol'),
+  disabled: (x) => !x.sel || !(listed(x) || (x.shape === 'doc' && x.kind === 'quote')),
   does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(-1) : x.exec('outdent')),
 });
 export const INDENT = cmd('indent', 'common-indent', {
@@ -93,7 +98,7 @@ export const INDENT = cmd('indent', 'common-indent', {
   keys: 'Tab',
   where: ['bar'],
   when: lists,
-  disabled: (x) => !x.sel || (x.kind !== 'ul' && x.kind !== 'ol'),
+  disabled: (x) => !x.sel || !(listed(x) || (x.shape === 'doc' && x.kind === 'p')),
   does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(1) : x.exec('indent')),
 });
 
