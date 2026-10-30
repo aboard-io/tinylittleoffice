@@ -130,8 +130,9 @@ export class ToPinboardEditor extends DocElement<BoardView> {
   readonly minZoom = 0.1;
   readonly maxZoom = 4;
   private readonly dots = `pin-dots-${++boards}`;
-  /** The board has been brought into view once for this document. */
+  /** The board has been brought into view for this document; and since, moved or zoomed by the person (until then it is fitted again as its box changes size). */
   private placed = false;
+  private moved = false;
   private resizer: ResizeObserver | null = null;
   private pointers = new Map<number, [number, number]>();
   private pinch: Pinch | null = null;
@@ -171,7 +172,7 @@ export class ToPinboardEditor extends DocElement<BoardView> {
   }
   protected willUpdate(changed: PropertyValues) {
     // A document from outside (not this editor's own echo, nor another's ops it took in) is brought into view afresh.
-    if (changed.has('value') && this.hasUpdated && !this.ours(this.value)) this.placed = false;
+    if (changed.has('value') && this.hasUpdated && !this.ours(this.value)) this.placed = this.moved = false;
     super.willUpdate(changed);
     if (this.editing && !this.view.byId.has(this.editing.id)) this.closeWords(false, false);
   }
@@ -180,7 +181,9 @@ export class ToPinboardEditor extends DocElement<BoardView> {
     if (!canvas || typeof ResizeObserver !== 'function') return;
     this.resizer = new ResizeObserver(() => {
       const r = canvas.getBoundingClientRect();
-      if (r.width !== this.size[0] || r.height !== this.size[1]) this.size = [r.width, r.height];
+      if (r.width === this.size[0] && r.height === this.size[1]) return;
+      this.size = [r.width, r.height];
+      if (!this.moved) this.placed = false;
     });
     this.resizer.observe(canvas);
   }
@@ -351,6 +354,7 @@ export class ToPinboardEditor extends DocElement<BoardView> {
   }
   /** Zoomed by a factor about a point of the canvas (its middle by default), that point staying where it is. */
   zoomBy(f: number, at?: [number, number]) {
+    this.moved = true;
     const [px, py] = at ?? [this.size[0] / 2, this.size[1] / 2];
     const z = clamp(this.zoom * f, this.minZoom, this.maxZoom);
     this.ox = px - ((px - this.ox) * z) / this.zoom;
@@ -463,6 +467,7 @@ export class ToPinboardEditor extends DocElement<BoardView> {
     if (d.mode === 'pan') {
       const moved = d.moved || Math.hypot(screen[0] - d.start[0], screen[1] - d.start[1]) > SLOP;
       if (moved) {
+        this.moved = true;
         this.ox = d.o[0] + screen[0] - d.start[0];
         this.oy = d.o[1] + screen[1] - d.start[1];
       }
@@ -550,6 +555,7 @@ export class ToPinboardEditor extends DocElement<BoardView> {
     const [a, b] = [...this.pointers.values()];
     const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
     const z = clamp((p.z0 * Math.hypot(a[0] - b[0], a[1] - b[1])) / p.d0, this.minZoom, this.maxZoom);
+    this.moved = true;
     // The point of the board that was under the fingers stays under them.
     const [wx, wy] = [(p.mid0[0] - p.o0[0]) / p.z0, (p.mid0[1] - p.o0[1]) / p.z0];
     this.zoom = z;
@@ -562,12 +568,14 @@ export class ToPinboardEditor extends DocElement<BoardView> {
     const r = this.canvas!.getBoundingClientRect();
     if (e.ctrlKey || e.metaKey) return this.zoomBy(Math.exp(-e.deltaY * 0.01), [e.clientX - r.left, e.clientY - r.top]);
     const k = e.deltaMode === 1 ? 16 : 1;
+    this.moved = true;
     this.ox -= e.deltaX * k;
     this.oy -= e.deltaY * k;
   };
   private onDouble(e: MouseEvent) {
     if (this.readOnly) return;
-    const id = this.idAt(e.target);
+    // The pointer's capture sends the click to the board itself: what is under the pointer is asked of the page.
+    const id = this.idAt(e.target) ?? this.idAt(document.elementFromPoint(e.clientX, e.clientY));
     if (id && this.view.byId.get(id)?.k !== 'pen') this.openWords(id);
   }
 

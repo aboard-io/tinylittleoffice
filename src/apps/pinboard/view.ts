@@ -104,13 +104,7 @@ export function itemSvg(it: Item, v: Pick<BoardView, 'byId'>, th: Theme = PRINT,
     const title = o.noWords
       ? ''
       : plainWords(it.words)
-        ? wordsSvg(
-            x + 14,
-            y + 6,
-            { px: WORDS_PX.frame, lines: layWords(it.words, Math.max(24, w - 28), WORDS_PX.frame).lines.slice(0, 1) },
-            it.color ? COLORS[it.color].ink : th.ink,
-            ' font-weight="600"',
-          )
+        ? wordsSvg(x + 14, y + 6, { px: WORDS_PX.frame, lines: layWords(it.words, Math.max(24, w - 28), WORDS_PX.frame).lines.slice(0, 1) }, th.ink, ' font-weight="600"')
         : '';
     // Only the title strip and the edge take the pointer: a press inside a frame is on the board (or on what it holds).
     const hit = o.hit
