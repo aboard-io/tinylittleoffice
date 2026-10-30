@@ -1700,6 +1700,8 @@ common-diagram-maker = ডায়াগ্রাম মেকার
 common-drag-to-move = টেনে সরান
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = মাইন্ড ম্যাপ হিসেবে আঁকুন
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = সুইমলেন হিসেবে আঁকুন
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = নেটওয়ার্ক হিসেবে আঁকুন
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da
@@ -2448,6 +2450,12 @@ diagram-idea = ধারণা
 diagram-person = ব্যক্তি
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = ধাপ
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = লেন { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = প্রধান টেবিল
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = টেবিল { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = সেট
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54
@@ -2456,8 +2464,8 @@ diagram-thing = আইটেম
 diagram-tap-empty-space-for-thing = আইটেম যোগ করতে ফাঁকা জায়গায় ট্যাপ করুন। দুটি জুড়তে “জুড়ুন” চেপে দুটিতেই ট্যাপ করুন, বা একটিকে অন্যটির ওপর টেনে আনুন।
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = প্রথম { $thing } যোগ করতে এখানে ট্যাপ করুন।
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = ধাপ যোগ করতে একটি লেনে ট্যাপ করুন। এডিট করতে কোনো ধাপে ট্যাপ করুন। এটি অন্য লেনে টেনে নিন, বা কোনো ধাপের পরে বসাতে তার ওপর টেনে আনুন।
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = ধাপ যোগ করতে একটি লেনে ট্যাপ করুন। এডিট করতে কোনো ধাপে ট্যাপ করুন, বা সেটি টেনে অন্য লেনে বা জায়গায় নিন।
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = যে আইটেমের সঙ্গে { $name } জুড়বেন তাতে ট্যাপ করুন। বাতিল করতে ফাঁকা জায়গায় ট্যাপ করুন।
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
@@ -2470,6 +2478,12 @@ diagram-add-under-it = নিচে যোগ করুন
 diagram-add-one-more = আরেকটি যোগ করুন
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = পরে যোগ করুন
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = শাখা যোগ করুন
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = আকার
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = এর সাধারণ আকার
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = ধাপ যোগ করুন
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

@@ -1817,6 +1817,8 @@ common-diagram-maker = 다이어그램 메이커
 common-drag-to-move = 끌어서 이동
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = 마인드맵으로 그리기
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = 스윔레인으로 그리기
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = 네트워크로 그리기
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da
@@ -2583,6 +2585,12 @@ diagram-idea = 아이디어
 diagram-person = 사람
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = 단계
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = 레인 { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = 헤드 테이블
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = 테이블 { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = 집합
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54
@@ -2592,8 +2600,8 @@ diagram-thing = 항목
 diagram-tap-empty-space-for-thing = 빈 곳을 탭하면 항목이 추가됩니다. 두 항목을 연결하려면 ‘연결’을 누르고 둘 다 탭하거나, 하나를 다른 하나 위로 끄세요.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = 여기를 탭해서 첫 { $thing } 추가
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = 레인을 탭하면 단계가 추가됩니다. 단계를 탭하면 편집합니다. 다른 레인으로 끌거나, 다른 단계 위로 끌어 그 뒤에 놓으세요.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = 레인을 탭하면 단계가 추가됩니다. 단계를 탭하면 편집하고, 끌면 다른 레인이나 자리로 옮깁니다.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = { $name }에 연결할 항목을 탭하세요. 빈 곳을 탭하면 취소됩니다.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
@@ -2606,6 +2614,12 @@ diagram-add-under-it = 아래에 추가
 diagram-add-one-more = 하나 더 추가
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = 뒤에 추가
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = 가지 추가
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = 도형
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = 기본 도형
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = 단계 추가
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

@@ -6,9 +6,10 @@ import { join as joinPath } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { createHash } from 'node:crypto';
 import { pageSvg, textWidth } from '../../../kit/draw/draw.ts';
-import { applyAll, invertAll, parse, write, type Block, type Doc, type Op } from '../../../doc/index.ts';
+import { applyAll, invertAll, parse, write, type Block, type Doc, type Op, type Run } from '../../../doc/index.ts';
 import { iconOf, labelLines, readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
+import { register, setLanguage } from '../../../kit/core/i18n.ts';
 import {
   charsOf,
   childOf,
@@ -28,6 +29,10 @@ import {
   linesOf,
   demoteThing,
   moveAcross,
+  placeStep,
+  setShape,
+  shapeOf,
+  stepName,
   moveItem,
   moveThing,
   promoteThing,
@@ -38,15 +43,19 @@ import {
   rename,
   setEdge,
   setKind,
+  linesDrawn,
   thingBlocks,
   tidy,
   withIcon,
+  newLaneName,
   type Hit,
 } from '../model.ts';
 import { templates } from '../templates.ts';
-import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf } from '../view.ts';
+import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf, type DShape } from '../view.ts';
 
 const doc = (kind: string, body: string): Doc => parse(`---\nkind: ${kind}\n---\n${body}`);
+const newThingAt = (_d: Doc, x: { at: number; block: { depth: number; runs: Run[] } }) => [x.at, x.block.depth, x.block.runs.map((r) => r.t).join('')];
+const regionsOf = (d: ReturnType<typeof layout>) => d.shapes.filter((s) => s.region !== undefined).map((s) => s.region);
 /** The ops applied, written out; and checked: canonical, and undone exactly by their inverse. */
 function run(d: Doc, ops: Op[]): string {
   const after = applyAll(d, ops);
@@ -58,7 +67,9 @@ function run(d: Doc, ops: Op[]): string {
 const old = (app: string) => (JSON.parse(readFileSync(joinPath(import.meta.dirname, '../../../../test/doc/corpus/apps', `${app}.json`), 'utf8')) as { docs: { text: string }[] }).docs[0].text;
 const count = (d: Doc) => {
   const s = layout(d).shapes;
-  return { things: s.filter((x) => x.k !== 'k' && x.k !== 'j').length, joins: s.filter((x) => x.k === 'k' || x.k === 'j').length, hits: s.filter((x) => x.hit).length };
+  // (A tree's line to the one above is tapped too, as a branch; it is not one of the things.)
+  const thing = (x: DShape) => x.hit && !(x.hit.k === 'edge' && x.hit.branch);
+  return { things: s.filter((x) => x.k !== 'k' && x.k !== 'j').length, joins: s.filter((x) => x.k === 'k' || x.k === 'j').length, hits: s.filter(thing).length };
 };
 
 describe('reading', () => {
@@ -86,18 +97,18 @@ describe('the eight kinds drawn', () => {
     expect(count(doc('org', old('org')))).toEqual({ things: 6, joins: 6, hits: 7 });
     expect(count(doc('mind', old('mind')))).toEqual({ things: 9, joins: 8, hits: 9 });
     expect(count(doc('family', old('family')))).toEqual({ things: 6, joins: 5, hits: 6 });
-    // Four lanes (a band and a name each), six steps, five arrows between them.
-    expect(count(doc('lanes', old('lanes')))).toEqual({ things: 14, joins: 5, hits: 10 });
+    // Four lanes (a band and a name each), six steps, five arrows between them at right angles (a line and a head each).
+    expect(count(doc('lanes', old('lanes')))).toEqual({ things: 24, joins: 0, hits: 10 });
     // Presented, a lane comes with its first step and an arrow with the step it reaches, one click a step (Paul,
     // 2026-10-13: "lane, graphic, lane, graphic"): order to doorstep is Customer, Store, Store, Warehouse, Carrier,
-    // Carrier, Customer, so the shapes shown after each step are 3 (band, name, box), 7 (a new lane, an arrow, a box),
-    // 9 (an arrow and a box), 13, 17, 19, 21: every shape.
+    // Carrier, Customer, so the shapes shown after each step are 3 (band, name, box), 8 (a new lane, an arrow and its
+    // head, a box), 11 (an arrow, its head and a box), 16, 21, 24, 27: every shape.
     const order = doc(
       'lanes',
       '- Customer: Places an order\n- Store: Checks the stock\n- Store: In stock?\n- Warehouse: Picks and packs it\n- Carrier: Picks up the package\n- Carrier: Delivers it\n- Customer: Signs for it\n',
     );
-    expect(layout(order).steps).toEqual([3, 7, 9, 13, 17, 19, 21]);
-    expect(layout(order).shapes).toHaveLength(21);
+    expect(layout(order).steps).toEqual([3, 8, 11, 16, 21, 24, 27]);
+    expect(layout(order).shapes).toHaveLength(27);
     expect(def.steps!(write(order))).toBe(7);
     // The page at step n draws the first so many shapes and no more: the words of the first two lanes come with steps one and two, the third lane's not before step four.
     const at = (n: number) => diagramPage(order, n).svg;
@@ -224,13 +235,24 @@ describe('commands as ops', () => {
     expect(run(d, commitDraft(draft, { ...draft.block, runs: [{ t: 'Cy | CFO' }] }))).toBe('- Ada | CEO\n  - Ben | CTO\n  - Cy | CFO\n');
     // Nothing yet: a root.
     expect(newThing(doc('mind', ''))).toMatchObject({ at: 0, block: { depth: 0, runs: [] } });
-    // A step in a lane starts with the lane's name; a new table is numbered on.
+    // A step in a lane starts with the lane's name, and goes last, so no step moves; a new table is numbered on.
     expect(charsOf(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').block.runs)).toBe('Sales: ');
-    expect(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').at).toBe(1);
+    expect(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').at).toBe(2);
     expect(charsOf(newThing(doc('seating', '- Top table: Jo\n')).block.runs)).toBe('Table 2: ');
     // The table's offered name is chosen whole, so the first letter typed replaces it and the ": " stays.
     expect(newThing(doc('seating', '- Top table: Jo\n')).sel).toEqual([0, 7]);
     expect(newThing(doc('seating', '')).sel).toEqual([0, 9]);
+  });
+  test('a new lane and a new table are named in the reader’s language, numbered past the names there are', async () => {
+    register('de', readFileSync(joinPath(import.meta.dirname, '../../../i18n/de.ftl'), 'utf8'));
+    await setLanguage('de');
+    try {
+      expect(newLaneName(['Kasse'])).toBe('Bahn 2');
+      expect(newLaneName(['Kasse', 'bahn 2'])).toBe('Bahn 3');
+      expect(charsOf(newThing(doc('seating', '- Ehrentisch: Jo\n')).block.runs)).toBe('Tisch 2: ');
+    } finally {
+      await setLanguage(null);
+    }
   });
   test('a thing more in a list is the line with a comma on the end, replacing it once typed', () => {
     const d = doc('venn', '- Fast: sprinting\n- Cheap: walking\n');
@@ -269,9 +291,10 @@ describe('commands as ops', () => {
   test('dragging: under another in a tree; after a step and into its lane; a person to another table, beside another', () => {
     const tree = doc('mind', '- Root\n  - A\n  - B\n    - B1\n');
     expect(run(tree, dropOn(tree, { k: 'line', at: 2, part: 'all' }, { k: 'line', at: 1, part: 'all' }))).toBe('- Root\n  - A\n    - B\n      - B1\n');
+    // A step is put where it is let go, by placeStep, not after what it lands on.
     const lanes = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
-    expect(run(lanes, dropOn(lanes, { k: 'line', at: 0, part: 'words' }, { k: 'line', at: 1, part: 'words' }))).toBe('- Shop: Sells\n- Shop: Calls\n- Sales: Closes\n');
-    expect(run(lanes, dropIn(lanes, { k: 'line', at: 2, part: 'words' }, 'Shop'))).toBe('- Sales: Calls\n- Shop: Sells\n- Shop: Closes\n');
+    expect(dropOn(lanes, { k: 'line', at: 0, part: 'words' }, { k: 'line', at: 1, part: 'words' })).toEqual([]);
+    expect(dropIn(lanes, { k: 'line', at: 2, part: 'words' }, 'Shop')).toEqual([]);
     const time = doc('timeline', '- 1: a\n- 2: b\n- 3: c\n');
     expect(run(time, dropOn(time, { k: 'line', at: 2, part: 'all' }, { k: 'line', at: 0, part: 'all' }))).toBe('- 1: a\n- 3: c\n- 2: b\n');
     const seats = doc('seating', '- Top: Jo, Sam\n- Two: Ann, Bob\n');
@@ -282,6 +305,242 @@ describe('commands as ops', () => {
     // To a table with nobody yet.
     const empty = doc('seating', '- Top: Jo, Sam\n- Two:\n');
     expect(run(empty, moveItem(empty, 0, 0, 1))).toBe('- Top: Sam\n- Two: Jo\n');
+  });
+  test('a step is put where it is let go: its lane, and its place among the others; nothing else moves (#28)', () => {
+    const at = (d: Doc, i: number, lane: string, slot: number) => run(d, placeStep(d, i, lane, slot));
+    const three = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    // Another lane, its place kept; another place, its lane kept; both at once; and the end.
+    expect(at(three, 2, 'Shop', 2)).toBe('- Sales: Calls\n- Shop: Sells\n- Shop: Closes\n');
+    expect(at(three, 2, 'Sales', 0)).toBe('- Sales: Closes\n- Sales: Calls\n- Shop: Sells\n');
+    expect(at(three, 0, 'Shop', 2)).toBe('- Sales:\n- Shop:\n- Shop: Sells\n- Sales: Closes\n- Shop: Calls\n');
+    expect(at(three, 1, 'Shop', 1)).toBe('- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    expect(placeStep(three, 1, 'Shop', 1)).toEqual([]);
+    // A step that names no lane followed the one before it: given its lane's name where it would now follow another.
+    const follows = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
+    expect(at(follows, 0, 'Shop', 0)).toBe('- Sales:\n- Shop:\n- Shop: Calls\n- Sales: Closes\n- Shop: Sells\n');
+    expect(at(follows, 2, 'Shop', 1)).toBe('- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    // One lane with no name, as a blank swimlane or a mind map made one: named "Lane 1" once a step would follow another lane's.
+    const one = doc('lanes', '- Asks\n- Answers\n- Thanks\n');
+    expect(at(one, 1, 'Lane 2', 1)).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
+    expect(at(one, 2, 'Lane 2', 2)).toBe('- Asks\n- Answers\n- Lane 2: Thanks\n');
+    expect(at(one, 2, '', 0)).toBe('- Thanks\n- Asks\n- Answers\n');
+    // The lanes keep their order, a new one at the bottom (Paul, 2026-10-18: four steps, the fourth into Lane 2,
+    // then the second into Lane 3): where a step would name a lane first elsewhere, the lanes are named in order on top.
+    const four = doc('lanes', '- One\n- Two\n- Three\n- Lane 2: Four\n');
+    const placed = applyAll(four, placeStep(four, 1, 'Lane 3', 1));
+    expect(write(placed).split('---\n')[2]).toBe('- Lane 1:\n- Lane 2:\n- Lane 3:\n- Lane 1: One\n- Lane 3: Two\n- Lane 1: Three\n- Lane 2: Four\n');
+    expect(lanesOf(placed).lanes).toEqual(['Lane 1', 'Lane 2', 'Lane 3']);
+    // Those lines are kept, not added to, as steps go on moving.
+    const again = applyAll(placed, placeStep(placed, 6, 'Lane 3', 0));
+    expect(lanesOf(again).lanes).toEqual(['Lane 1', 'Lane 2', 'Lane 3']);
+    expect(write(again).split('---\n')[2]).toMatch(/^- Lane 1:\n- Lane 2:\n- Lane 3:\n- Lane 3: Four\n/);
+    // A step taken away, or moved up or down, leaves every other step its lane and the lanes their order.
+    const kept = doc('lanes', '- Sales: Calls\n- Closes\n- Shop: Sells\n');
+    expect(run(kept, removeThing(kept, { k: 'line', at: 0, part: 'words' }))).toBe('- Sales: Closes\n- Shop: Sells\n');
+    const shuffled = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    expect(lanesOf(applyAll(shuffled, removeThing(shuffled, { k: 'line', at: 0, part: 'words' }))).lanes).toEqual(['Sales', 'Shop']);
+    const down = moveThing(shuffled, { k: 'line', at: 0, part: 'words' }, 1)!;
+    expect(lanesOf(applyAll(shuffled, down.ops)).lanes).toEqual(['Sales', 'Shop']);
+    expect(write(applyAll(shuffled, down.ops)).split('---\n')[2]).toMatch(/- Shop: Sells\n- Sales: Calls\n- Sales: Closes\n$/);
+    // Mod+Alt+Right: the next lane, its place kept.
+    expect(run(three, moveAcross(three, { k: 'line', at: 0, part: 'words' }, 1)!.ops)).toBe('- Sales:\n- Shop:\n- Shop: Calls\n- Shop: Sells\n- Sales: Closes\n');
+  });
+  test('a tap in a lane adds its step last; editing, the lanes end in an empty band for a new one; the picture shown has none', () => {
+    const one = doc('lanes', '- Asks\n- Answers\n');
+    expect(regionsOf(layout(one, true))).toEqual(['', 'Lane 2']);
+    expect(regionsOf(layout(one))).toEqual(['']);
+    expect(regionsOf(layout(doc('lanes', '- Sales: Calls\n- Lane 3: Sells\n'), true))).toEqual(['Sales', 'Lane 3', 'Lane 4']);
+    expect(newThing(one, '')).toMatchObject({ at: 2, block: { runs: [] } });
+    // The lane with no name, once another follows it, is named first, so the step goes last and stays in it.
+    const two = doc('lanes', '- Asks\n- Lane 2: Answers\n');
+    const d = newThing(two, '');
+    expect(d.at).toBe(2);
+    expect(run(two, commitDraft(d, { ...d.block, runs: [...d.block.runs, { t: 'Thanks' }] }))).toBe('- Lane 1: Asks\n- Lane 2: Answers\n- Lane 1: Thanks\n');
+  });
+  test('swimlanes branch by connections, with a mind map’s arrows and words, drawn at right angles; a step’s shape is what it does (Paul, 2026-10-18)', () => {
+    const hospital = doc(
+      'lanes',
+      '- Patient:\n- NP:\n- Nurse:\n- Doctor:\n- EHR:\n- Patient: Arrives at hospital\n- NP: Triage\n- EHR: Retrieve patient record\n- NP: Doctor needed?\n- NP: Treat patient\n- Nurse: Prepare patient\n- Doctor: Treat patient\n- EHR: Update patient record\n- Nurse: Instruct patient\n- Nurse: Discharge\n- Patient: Leaves hospital\n\n' +
+        '~ Triage <-> Retrieve patient record\n~ Doctor needed? -> NP: Treat patient: No\n~ Doctor needed? -> Prepare patient: Yes\n~ NP: Treat patient -> Instruct patient\n~ Doctor: Treat patient -> Instruct patient\n~ Doctor: Treat patient <-> Update patient record\n',
+    );
+    const d = layout(hospital);
+    const box = (words: string, n = 0) => d.shapes.filter((x) => x.hit?.k === 'line' && x.text === words)[n];
+    // Where the flow starts and ends, a pill; a question, a hexagon; anything else, a box.
+    expect(['Arrives at hospital', 'Doctor needed?', 'Triage', 'Retrieve patient record', 'Leaves hospital'].map((w) => box(w).k)).toEqual(['o', 'h', 'r', 'r', 'o']);
+    // Every line runs across or down, never aslant: each pair of points shares an x or a y.
+    const lines = d.shapes.filter((x) => x.k === 'w');
+    const points = (x: (typeof lines)[number]) => Array.from({ length: x.pts!.length / 2 }, (_, i) => [x.x + (x.pts![2 * i] / 100) * x.w, x.y + (x.pts![2 * i + 1] / 100) * x.h]);
+    const aslant = lines.flatMap((l) => points(l).filter((p, i, ps) => i > 0 && Math.abs(p[0] - ps[i - 1][0]) > 0.6 && Math.abs(p[1] - ps[i - 1][1]) > 0.6));
+    expect(aslant).toEqual([]);
+    // The flow by itself: arrives → triage → decision; prepare → treat (doctor); instruct → discharge → leaves. The
+    // record looked up is beside it, a branch leads where it says, and a step left by a connection leads nowhere else.
+    const flowLines = lines.filter((x) => !x.hit);
+    expect(flowLines).toHaveLength(5);
+    expect(lines.filter((x) => x.hit?.k === 'edge')).toHaveLength(6);
+    expect(d.shapes.filter((x) => x.k === 't' && x.hit?.k === 'edge').map((x) => x.text)).toEqual(['No', 'Yes']);
+    // A step is named by its words, or with its lane's where two have the same ones; so Join writes it.
+    const all = linesOf(hospital);
+    const triage = all.find((l) => l.words.words === 'Triage')!;
+    expect(stepName(all, triage)).toBe('Triage');
+    expect(all.filter((l) => l.words.words === 'Treat patient').map((l) => stepName(all, l))).toEqual(['NP: Treat patient', 'Doctor: Treat patient']);
+    // Taken away, a step takes its connections with it; renamed, they follow it.
+    const at = all.find((l) => l.words.words === 'Prepare patient')!.at;
+    expect(write(applyAll(hospital, removeThing(hospital, { k: 'line', at, part: 'words' })))).not.toContain('Prepare patient');
+    const later = applyAll(hospital, [{ op: 'text', at, from: 'Nurse: '.length, to: 'Nurse: Prepare patient'.length, runs: [{ t: 'Prep' }] }]);
+    expect(write(applyAll(later, follow(hospital, later, at)))).toContain('~ Doctor needed? -> Prep: Yes');
+    expect(connect(doc('lanes', '- a\n- b\n'), 'a', 'b')).toEqual([{ op: 'splice', at: 2, n: 0, blocks: [{ k: 'edge', from: 'a', to: 'b', dir: '->' }] }]);
+  });
+  test('a swimlane nests as a mind map: a step leads to the steps under it, each branch rejoining at the next step on the margin (Paul, 2026-10-18)', () => {
+    const d = doc('lanes', '- Desk: Ready?\n  - Desk: Ship it\n  - Lab: Fix it\n    - Lab: Test it\n- Desk: Done\n- Desk: Archive\n');
+    const pic = layout(d);
+    const boxes = pic.shapes.filter((x) => x.hit?.k === 'line');
+    const at = (x: number, y: number) => boxes.find((b) => x >= b.x - 1 && x <= b.x + b.w + 1 && y >= b.y - 1 && y <= b.y + b.h + 1)?.text;
+    const end = (x: DShape, i: number) => at(x.x + (x.pts![i] / 100) * x.w, x.y + (x.pts![i + 1] / 100) * x.h);
+    const flow = pic.shapes.filter((x) => x.k === 'w').map((x) => `${end(x, 0)} → ${end(x, x.pts!.length - 2)}`);
+    expect(flow).toEqual(['Ready? → Ship it', 'Ready? → Fix it', 'Fix it → Test it', 'Ship it → Done', 'Test it → Done', 'Done → Archive']);
+    // A step dragged takes its branches with it, and sits at the depth of the step it goes before.
+    expect(run(d, placeStep(d, 2, 'Lab', 3))).toBe('- Desk: Ready?\n  - Desk: Ship it\n- Desk: Done\n- Lab: Fix it\n  - Lab: Test it\n- Desk: Archive\n');
+    // Enter: the next step after its branches, at its depth; Add a branch: one more under it, in its lane.
+    expect(newThingAt(d, nextThing(d, { k: 'line', at: 0, part: 'words' })!)).toEqual([4, 0, 'Desk: ']);
+    expect(newThingAt(d, childOf(d, 2))).toEqual([4, 2, 'Lab: ']);
+    // Taken away, its branches come out a level to stand where it was.
+    expect(run(d, removeThing(d, { k: 'line', at: 2, part: 'words' }))).toBe('- Desk: Ready?\n  - Desk: Ship it\n  - Lab: Test it\n- Desk: Done\n- Desk: Archive\n');
+    // Tab and Shift+Tab, any step, the first too where there is one before it.
+    expect(run(d, demoteThing(d, { k: 'line', at: 4, part: 'words' })!.ops)).toContain('- Lab: Test it\n  - Desk: Done\n');
+    expect(run(d, promoteThing(d, { k: 'line', at: 2, part: 'words' })!.ops)).toContain('  - Desk: Ship it\n- Lab: Fix it\n  - Lab: Test it\n');
+  });
+  test('swimlanes stack: branches side by side share columns, a step where they rejoin comes after the longest, a look-up sits by its step (Paul, 2026-10-18: "Stack")', () => {
+    const hospital = doc(
+      'lanes',
+      '- Patient: Arrives\n- NP: Triage\n- EHR: Retrieve record\n- NP: Doctor needed?\n  - NP: Treat\n  - Nurse: Prepare\n    - Doctor: Treat patient\n      - EHR: Update record\n- Nurse: Instruct\n- Patient: Leaves\n\n' +
+        '~ Triage <-> Retrieve record\n~ Doctor: Treat patient <-> Update record\n',
+    );
+    const d = layout(hospital);
+    const boxes = d.shapes.filter((x) => x.hit?.k === 'line');
+    const x0 = boxes[0].x;
+    expect(boxes.map((b) => `${Math.round((b.x - x0) / 176)} ${b.text}`)).toEqual([
+      '0 Arrives',
+      '1 Triage',
+      '1 Retrieve record',
+      '2 Doctor needed?',
+      '3 Treat',
+      '3 Prepare',
+      '4 Treat patient',
+      '4 Update record',
+      '5 Instruct',
+      '6 Leaves',
+    ]);
+    // A look-up in its step's column is joined by a line straight down.
+    const look = d.shapes.find((x) => x.k === 'w' && x.hit?.k === 'edge' && !x.hit.branch)!;
+    expect(look.pts).toEqual([0, 0, 0, 100]);
+    // Two steps of one lane never share a column: the later moves on.
+    const two = layout(doc('lanes', '- Desk: Ask?\n  - Desk: Yes\n  - Desk: No\n- Desk: Done\n')).shapes.filter((x) => x.hit?.k === 'line');
+    expect(two.map((b) => Math.round((b.x - two[0].x) / 176))).toEqual([0, 1, 2, 3]);
+  });
+  test('swimlanes made a mind map keep every relationship: the flow as nesting, the rest as connections, the lanes in the words (Paul, 2026-10-18)', () => {
+    const lanes = doc(
+      'lanes',
+      '- Patient:\n- NP:\n- EHR:\n- Patient: Arrives\n- NP: Triage\n- EHR: Record\n- NP: Ready?\n  - NP: Treat\n  - NP: Wait\n- Patient: Leaves\n\n~ Triage <-> Record\n~ Ready? -> Wait: No\n',
+    );
+    const mind = applyAll(lanes, setKind(lanes, 'mind'));
+    // Each line to the one above an arrow as the Outliner writes it, a look-up's both ways, a branch's words on it.
+    expect(write(mind)).toBe(
+      '---\nkind: mind\nlanes: Patient, NP, EHR\n---\n- Patient: Arrives\n  - NP: Triage {.from}\n    - EHR: Record {.both}\n    - NP: Ready? {.from}\n      - NP: Treat {.from}\n      - NP: Wait {.from label=No}\n        - Patient: Leaves {.from}\n\n~ NP: Treat -> Patient: Leaves\n',
+    );
+    // A mind map draws them: an arrow on every line, the words on its line.
+    const lines = layout(mind).shapes.filter((x) => x.hit?.k === 'edge' && x.hit.branch);
+    expect(lines.every((x) => x.k === 'k')).toBe(true);
+    expect(lines.map((x) => x.text).filter(Boolean)).toEqual(['No']);
+    // Every connection is drawn; and back to swimlanes, the same lanes, the same flow.
+    expect(new Set(layout(mind).shapes.flatMap((x) => (x.hit?.k === 'edge' && !x.hit.branch ? [x.hit.at] : []))).size).toBe(edgesOf(mind).length);
+    const back = applyAll(mind, setKind(mind, 'lanes'));
+    expect(lanesOf(back).lanes).toEqual(['Patient', 'NP', 'EHR']);
+    expect(back.head.lanes).toBeUndefined();
+    // Any other change of kind is the kind alone.
+    expect(setKind(mind, 'org')).toEqual([{ op: 'head', key: 'kind', value: 'org' }]);
+  });
+  test('swimlanes made a tree and back lose no line, no words on one and no lane; a tree made swimlanes and back loses no line (Paul, 2026-10-30: "Don\'t lose arrows round trip")', () => {
+    const rng = (seed: number) => () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const pick = <T>(r: () => number, xs: T[]) => xs[Math.floor(r() * xs.length)];
+    /** Steps nested up to two deep, some naming no lane, some branches with words or pointing back, and connections of every kind. */
+    const lanes = (seed: number) => {
+      const r = rng(seed);
+      const n = 2 + Math.floor(r() * 9);
+      let depth = 0;
+      const steps = Array.from({ length: n }, (_, i) => {
+        depth = i ? Math.max(0, Math.min(depth + (r() < 0.3 ? 1 : r() < 0.3 ? -1 : 0), 2)) : 0;
+        const cls = depth && r() < 0.3 ? ` {${r() < 0.5 ? '.to ' : ''}label=${pick(r, ['yes', 'no'])}}` : '';
+        return `${'  '.repeat(depth)}- ${i && r() < 0.2 ? '' : pick(r, ['Desk', 'Lab', 'Ops']) + ': '}S${i}${r() < 0.2 ? '?' : ''}${cls}`;
+      });
+      const names = steps.map((x) => x.match(/S\d+\??/)![0]);
+      const edges = Array.from({ length: Math.floor(r() * 4) }, () => `~ ${pick(r, names)} ${pick(r, ['->', '<-', '<->'])} ${pick(r, names)}${r() < 0.5 ? ': yes' : ''}`).filter(
+        (e) => !/~ (\S+) \S+ \1(:|$)/.test(e),
+      );
+      return doc('lanes', steps.join('\n') + '\n' + (edges.length ? '\n' + edges.join('\n') + '\n' : ''));
+    };
+    /** One tree (a forest of separate ones is drawn joined by swimlanes, which have one flow), its lines of every kind. */
+    const tree = (seed: number) => {
+      const r = rng(seed * 7 + 3);
+      const n = 1 + Math.floor(r() * 9);
+      let depth = 0;
+      const items = Array.from({ length: n }, (_, i) => {
+        depth = i ? Math.max(1, Math.min(depth + (r() < 0.4 ? 1 : r() < 0.3 ? -1 : 0), 3)) : 0;
+        const cls = [pick(r, ['.from', '.to', '.both']), r() < 0.3 ? 'label=x' : ''].filter(Boolean).join(' ');
+        return `${'  '.repeat(depth)}- T${i}${depth ? ` {${cls}}` : ''}`;
+      });
+      const edges = Array.from({ length: Math.floor(r() * 3) }, () => `~ T${Math.floor(r() * n)} ${pick(r, ['->', '<-', '<->', '--'])} T${Math.floor(r() * n)}${r() < 0.5 ? ': z' : ''}`).filter(
+        (e) => !/~ (\S+) \S+ \1(:|$)/.test(e),
+      );
+      return doc('mind', items.join('\n') + '\n' + (edges.length ? '\n' + edges.join('\n') + '\n' : ''));
+    };
+    const to = (d: Doc, k: 'mind' | 'org' | 'family' | 'lanes') => applyAll(d, setKind(d, k));
+    const inLanes = (d: Doc) =>
+      lanesOf(d)
+        .steps.map((x) => `${x.line.words.words} in ${x.lane}`)
+        .sort();
+    for (let seed = 1; seed <= 300; seed++) {
+      const a = lanes(seed);
+      for (const k of ['mind', 'org', 'family'] as const) {
+        const t = to(a, k);
+        const back = to(t, 'lanes');
+        expect(linesDrawn(t), `${write(a)}→ ${k}`).toEqual(linesDrawn(a));
+        expect(linesDrawn(back), `${write(a)}→ ${k} → lanes`).toEqual(linesDrawn(a));
+        expect(inLanes(back)).toEqual(inLanes(a));
+        expect(lanesOf(back).lanes, `${write(a)}→ ${k} → lanes`).toEqual(lanesOf(a).lanes);
+      }
+      const m = tree(seed);
+      const l = to(m, 'lanes');
+      expect(linesDrawn(l), `${write(m)}→ lanes`).toEqual(linesDrawn(m));
+      expect(linesDrawn(to(l, 'mind')), `${write(m)}→ lanes → mind`).toEqual(linesDrawn(m));
+    }
+    // The handoffs, one rule (Paul, 2026-10-30: "Fix how handoffs work and make it truly consistent"): a loop back adds
+    // its line and takes none away; any number of lines come into a step; a connection of its own on to a later step
+    // is where a step goes instead of the next; a line drawn by a connection is drawn once; a look-up has no branch.
+    const drawn = (body: string) => linesDrawn(doc('lanes', body)).map((x) => x.replace(/desk /g, ''));
+    expect(drawn('- Desk: Arrives\n- Desk: Triage\n- Desk: Leaves\n\n~ Leaves -> Triage: again\n')).toEqual(['arrives -> triage: ', 'leaves -> triage: again', 'triage -> leaves: ']);
+    expect(drawn('- Desk: A\n- Desk: B\n- Desk: C\n- Desk: D\n\n~ A -> C\n')).toEqual(['a -> c: ', 'b -> c: ', 'c -> d: ']);
+    expect(drawn('- Desk: A\n- Desk: B\n\n~ A -> B: go\n')).toEqual(['a -> b: go']);
+    expect(drawn('- Desk: A\n- Desk: B\n  - Desk: C\n- Desk: D\n\n~ A <-> B\n')).toEqual(['a <-> b: ', 'b -> c: ', 'c -> d: ']);
+    expect(drawn('- Desk: A\n- Desk: B\n- Desk: C\n\n~ A <-> B\n')).toEqual(['a -> c: ', 'a <-> b: ']);
+    // A step that loops back keeps both its lines (the flow on, the connection back); a look-up stays one; a branch its words.
+    const loop = doc('lanes', '- Desk: Ask?\n  - Desk: Fix\n- Desk: Ship\n\n~ Ship -> Fix: again\n');
+    expect(linesDrawn(loop)).toEqual(['desk ask? -> desk fix: ', 'desk fix -> desk ship: ', 'desk ship -> desk fix: again']);
+    expect(linesDrawn(to(loop, 'mind'))).toEqual(linesDrawn(loop));
+    expect(linesDrawn(to(to(loop, 'mind'), 'lanes'))).toEqual(linesDrawn(loop));
+  });
+  test('a thing takes a shape by its line’s class, Draw’s names, in every kind that draws boxes; set and taken off from its row', () => {
+    const mind = doc('mind', '- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do\n');
+    const kinds = (d: Doc) => layout(d).shapes.flatMap((x) => (x.hit?.k === 'line' ? [x.k] : []));
+    expect(kinds(mind)).toEqual(['e', 'd', 'o']);
+    expect(shapeOf(mind, 1)).toBe('diamond');
+    expect(run(mind, setShape(mind, 2, 'note'))).toBe('- Plan {.ellipse}\n  - Ask {.diamond}\n  - Do {.note}\n');
+    expect(run(mind, setShape(mind, 0, null))).toBe('- Plan\n  - Ask {.diamond}\n  - Do\n');
+    expect(setShape(mind, 1, 'diamond')).toEqual([]);
+    // Other classes stay; a timeline's dots are not boxes, so its classes draw nothing new.
+    const kept = doc('lanes', '- Desk: Ready? {.big .hexagon}\n');
+    expect(run(kept, setShape(kept, 0, 'rectangle'))).toBe('- Desk: Ready? {.big .rectangle}\n');
+    const time = doc('timeline', '- 1990: a {.diamond}\n');
+    expect(layout(time).shapes.some((x) => x.k === 'd')).toBe(false);
   });
   test('a thing of a set dropped where circles cross goes to that overlap, made if no line names it', () => {
     const d = doc('venn', '- Fast: toast, noodles\n- Cheap: walking\n');
@@ -663,6 +922,13 @@ test('a diagram shown as an outline: the list as the outline reads it, a role or
   );
   // A mind map is the tree itself; a bar in a mind map's words is words.
   expect(diagramToOutline(parse('---\nkind: mind\n---\n- Centre\n  - A | B\n  - C\n'))).toBe('- Centre\n  - A | B\n  - C\n');
+  // Swimlanes go as the tree their flow draws, as to a mind map, and every join finds its items in the outline.
+  const lanes = '---\nkind: lanes\n---\n- Desk:\n- Lab:\n- Desk: Ready?\n  - Lab: Fix it\n  - Desk: Ship it\n- Desk: Done\n\n~ Ready? -> Fix it: No\n';
+  const outline = diagramToOutline(parse(lanes));
+  expect(outline).toBe('- Desk: Ready?\n  - Lab: Fix it {.from label=No}\n  - Desk: Ship it {.from}\n    - Desk: Done {.from}\n\n~ Lab Fix it -> Desk Done\n');
+  const { readOutline, liveLinks } = await import('../../outline/model.ts');
+  const read = readOutline(parse(outline));
+  expect(liveLinks(read)).toHaveLength(read.links.length);
   // The hand-off is the first of the Diagram's, to the Outliner.
   expect(def.handoffs![0].to).toBe('outline');
   expect(def.handoffs![0].convert('---\nkind: net\n---\n- A\n- B\n\n~ A -> B: to\n')).toBe('- A\n- B\n\n~ A -> B: to\n');

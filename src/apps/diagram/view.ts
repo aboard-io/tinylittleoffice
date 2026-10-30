@@ -13,10 +13,17 @@ import { t } from '../../kit/core/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
-import { asLabel, edgesOf, kindOf, labelOf, linesOf, same, setKey, setNames, type Hit, type KindId, type Line } from './model.ts';
+import { asLabel, branchOf, edgesOf, kindOf, labelOf, lanesFlow, linesOf, newLaneName, same, setKey, setNames, shapeOf, shapes, SHAPES, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
-export type DShape = Shape & { hit?: Hit; region?: string };
+export type DShape = Shape & {
+  hit?: Hit;
+  region?: string;
+  /** A swimlane's line that its kind draws by itself, from line to line: tapped, it becomes a connection, to be given words. */
+  flow?: [number, number];
+  /** The thing Enter offers next, drawn but not in the document until it is tapped (the editor's). */
+  ghost?: boolean;
+};
 
 export interface Diagram {
   shapes: DShape[];
@@ -113,6 +120,13 @@ function placeTree(roots: Node[]): Placed[] {
 
 const whole = (l: Line): Hit => ({ k: 'line', at: l.at, part: 'all' });
 
+/** A tree's line from shape `parent` to shape `child` (line `at`): an arrow and words where the line says so (branchOf), tapped to give it some. */
+function branchLine(doc: Doc, parent: number, child: number, at: number, c?: Color): DShape {
+  const { dir, label } = branchOf(doc, at);
+  const [a, b] = dir === '<-' ? [child, parent] : [parent, child];
+  return join(a, b, dir !== '--', label, c, 0, { k: 'edge', at, branch: true });
+}
+
 /** Org chart (and family tree): who reports to whom, boxes in rows; "~ A -- B: advises" a dotted line beside ("->" with an arrow). */
 function orgLayout(doc: Doc): Diagram {
   const BW = 156;
@@ -138,7 +152,7 @@ function orgLayout(doc: Doc): Diagram {
     const [x, y] = e.dir === '<-' ? [b, a] : [a, b];
     return a >= 0 && b >= 0 && a !== b ? [join(x, y, e.dir === '->' || e.dir === '<-', e.label, 'p', 2, { k: 'edge', at: e.at })] : [];
   });
-  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false)])), ...dotted]);
+  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [branchLine(doc, p.parent, i, p.node.line.at)])), ...dotted]);
 }
 
 /** Mind map: the idea in the middle of its left edge, its branches out to the right, each branch its own colour. */
@@ -168,7 +182,7 @@ function mindLayout(doc: Doc): Diagram {
     const [a, b] = [at(e.from), at(e.to)];
     return a >= 0 && b >= 0 && a !== b ? crossLink(boxes[a], boxes[b], boxes, root as [number, number], e.dir, e.label, { k: 'edge', at: e.at }) : [];
   });
-  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [join(p.parent, i, false, '', colour[i])])), ...links]);
+  return frame([...boxes, ...placed.flatMap((p, i) => (p.parent < 0 ? [] : [branchLine(doc, p.parent, i, p.node.line.at, colour[i])])), ...links]);
 }
 
 /** Where a line from a box's centre toward (tx, ty) leaves the box. */
@@ -180,7 +194,7 @@ function rim(q: DShape, tx: number, ty: number): [number, number] {
   return [cx + dx * k, cy + dy * k];
 }
 /** Points as Draw's "any shape" keeps them: a box, and each point as hundredths of it. */
-function boxed(k: 'v' | 'w', pts: [number, number][], f: Fill, c: Color, hit?: Hit): DShape {
+function boxed(k: 'v' | 'w', pts: [number, number][], f: Fill, c?: Color, hit?: Hit): DShape {
   const xs = pts.map((p) => p[0]);
   const ys = pts.map((p) => p[1]);
   const [x, y] = [Math.min(...xs), Math.min(...ys)];
@@ -190,7 +204,7 @@ function boxed(k: 'v' | 'w', pts: [number, number][], f: Fill, c: Color, hit?: H
   return s;
 }
 /** An arrowhead at (x, y), pointing along (dx, dy). */
-function head(x: number, y: number, dx: number, dy: number, c: Color): DShape {
+function head(x: number, y: number, dx: number, dy: number, c?: Color): DShape {
   const n = Math.hypot(dx, dy) || 1;
   const [ux, uy] = [dx / n, dy / n];
   const [L, Wd] = [11, 5];
@@ -268,13 +282,31 @@ export function lanesOf(doc: Doc): { lanes: string[]; steps: { line: Line; lane:
   return { lanes: lanes.filter((x) => x || steps.some((s) => s.lane === x)), steps };
 }
 
-function lanesLayout(doc: Doc): Diagram {
+/** Editing (`editing`), an empty band under the last lane: a tap or a drop there is a new lane. */
+function lanesLayout(doc: Doc, editing = false): Diagram {
   const LABEL = 120;
   const COL = 176;
   const ROW = 88;
   const { lanes, steps } = lanesOf(doc);
   if (!lanes.length) return frame([]);
-  const width = LABEL + Math.max(1, steps.length) * COL + 12;
+  const { joined, flows, both, aside, auto, branch } = lanesFlow(doc);
+  const into = (i: number) => auto.some(([, b]) => b === i) || flows.some(([, b]) => b === i) || both.some(({ a, b }) => a === i || b === i);
+  const out = (i: number) => auto.some(([a]) => a === i) || flows.some(([a]) => a === i) || both.some(({ a, b }) => a === i || b === i);
+  // Each step's column (Paul, 2026-10-18: "Stack"): one past the furthest step before it that leads into it, so
+  // branches side by side share columns and the step they rejoin at comes after the longest; a look-up beside the
+  // flow, its partner's; a step nothing before it leads into, the next after the step before it. Two steps of one
+  // lane never share a column: the later moves on one.
+  const col: number[] = [];
+  const taken = new Set<string>();
+  steps.forEach((s, i) => {
+    const partner = both.find(({ b }) => b === i)?.a;
+    const from = [...auto, ...flows].filter(([a, b]) => b === i && a < i).map(([a]) => col[a] + 1);
+    let c = aside(i) && partner !== undefined && partner < i ? col[partner] : from.length ? Math.max(...from) : i ? col[i - 1] + 1 : 0;
+    while (taken.has(`${lanes.indexOf(s.lane)} ${c}`)) c++;
+    taken.add(`${lanes.indexOf(s.lane)} ${c}`);
+    col.push(c);
+  });
+  const width = LABEL + Math.max(1, ...col.map((c) => c + 1)) * COL + 12;
   // The lanes lie behind everything: a band and its name each.
   const bands: DShape[] = lanes.flatMap((lane, i) => {
     const c = COLOR_CYCLE[i % COLOR_CYCLE.length];
@@ -282,10 +314,11 @@ function lanesLayout(doc: Doc): Diagram {
     band.region = lane;
     return [band, shape('t', 8, i * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, lane ? asLabel(lane) : '—', 0, c, undefined, { k: 'lane', name: lane })];
   });
-  // A step that asks a question is a decision.
+  // A step that asks a question is a decision; one the flow starts or ends at, a start or an end; any other, a task.
   const boxes = steps.map((s, i) => {
     const w = s.line.words;
-    return shape(w.words.endsWith('?') ? 'd' : 'o', LABEL + i * COL + 12, lanes.indexOf(s.lane) * ROW + 14, COL - 28, ROW - 36, labelOf(w), 0, undefined, undefined, {
+    const k = w.words.endsWith('?') ? 'h' : !into(i) || !out(i) ? 'o' : 'r';
+    return shape(k, LABEL + col[i] * COL + 12, lanes.indexOf(s.lane) * ROW + 14, COL - 28, ROW - 36, labelOf(w), 0, undefined, undefined, {
       k: 'line',
       at: s.line.at,
       part: 'words',
@@ -306,15 +339,76 @@ function lanesLayout(doc: Doc): Diagram {
   lanes.forEach((lane) => {
     if (!steps.some((s) => s.lane === lane)) band(lane);
   });
-  let prev = -1;
   steps.forEach((s, i) => {
     band(s.lane);
-    if (prev >= 0) shapes.push(join(prev, shapes.length + 1));
-    prev = shapes.length;
+    for (const [from] of auto.filter(([, to]) => to === i)) {
+      // To a branch: its line to the one above, with its words, tapped as such (an arrow, as all of a swimlane's are).
+      if (branch(from, i)) {
+        const { dir, label } = branchOf(doc, s.line.at);
+        shapes.push(...elbow(boxes[from], boxes[i], boxes, dir === '--' ? '->' : dir, label, { k: 'edge', at: s.line.at, branch: true }));
+        continue;
+      }
+      const flow: [number, number] = [steps[from].line.at, s.line.at];
+      shapes.push(...elbow(boxes[from], boxes[i], boxes, '->').map((x): DShape => ({ ...x, flow })));
+    }
     shapes.push(boxes[i]);
     ends.push(shapes.length);
   });
+  for (const { e, a, b } of joined) shapes.push(...elbow(boxes[a], boxes[b], boxes, e.dir, e.label, { k: 'edge', at: e.at }));
+  if (editing) {
+    const more = shape('r', 0, lanes.length * ROW, width, ROW - 8, '', 0);
+    more.region = newLaneName(lanes);
+    shapes.push(more, shape('t', 8, lanes.length * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, '+'));
+  }
   return { ...frame(shapes), steps: ends };
+}
+
+/**
+ * A swimlane's line from step a to step b, at right angles (Paul, 2026-10-18): out of a's right side and into b's
+ * left, turning in the gap before b, or after a where that row is clearer, or along the gap between two lanes where
+ * both are not; back to an earlier step, out of a's foot, along the gap under its lane and into b. An arrowhead
+ * where it points ("->", "<-", "<->"; "--" none), and its words beside its first long stretch.
+ */
+/** Points from their coordinates in pairs: path(x1, y1, x2, y2, …). */
+const path = (...xy: number[]): [number, number][] => xy.flatMap((v, i) => (i % 2 ? [] : [[v, xy[i + 1]] as [number, number]]));
+function elbow(a: DShape, b: DShape, boxes: DShape[], dir: Dir, label = '', hit?: Hit): DShape[] {
+  const GAP = 14;
+  const [ay, by] = [a.y + a.h / 2, b.y + b.h / 2];
+  // Whether a stretch of row y from x1 to x2 passes through no step.
+  const clear = (y: number, x1: number, x2: number) => !boxes.some((q) => q !== a && q !== b && q.y <= y && y <= q.y + q.h && q.x < x2 && q.x + q.w > x1);
+  // The gap under a's lane, or over it, toward b.
+  const lane = by >= ay ? a.y + a.h + 18 : a.y - 18;
+  let pts: [number, number][];
+  if (b.x < a.x + a.w && a.x < b.x + b.w) {
+    // One over the other in a column: straight up or down, or beside the column where a step is in the way.
+    const [x, y1, y2] = by > ay ? [a.x + a.w / 2, a.y + a.h, b.y] : [a.x + a.w / 2, a.y, b.y + b.h];
+    const blocked = boxes.some((q) => q !== a && q !== b && q.x < x && x < q.x + q.w && Math.min(y1, y2) < q.y + q.h && q.y < Math.max(y1, y2));
+    const side = a.x + a.w + GAP;
+    pts = blocked ? path(a.x + a.w, ay, side, ay, side, by, b.x + b.w, by) : path(x, y1, x, y2);
+  } else if (b.x > a.x + a.w) {
+    const [x1, x2, xIn, xOut] = [a.x + a.w, b.x, b.x - GAP, a.x + a.w + GAP];
+    if (ay === by && clear(ay, x1, x2)) pts = path(x1, ay, x2, by);
+    else if (clear(ay, x1, xIn)) pts = path(x1, ay, xIn, ay, xIn, by, x2, by);
+    else if (clear(by, xOut, x2)) pts = path(x1, ay, xOut, ay, xOut, by, x2, by);
+    else pts = path(x1, ay, xOut, ay, xOut, lane, xIn, lane, xIn, by, x2, by);
+  } else {
+    const [ax, bx, under] = [a.x + a.w / 2, b.x + b.w / 2, a.y + a.h + 18];
+    pts = path(ax, a.y + a.h, ax, under, bx, under, bx, b.y > under ? b.y : b.y + b.h);
+  }
+  const out: DShape[] = [boxed('w', pts, 0, undefined, hit)];
+  const [p, q] = [pts[pts.length - 2], pts[pts.length - 1]];
+  if (dir === '->' || dir === '<->') out.push(head(q[0], q[1], q[0] - p[0], q[1] - p[1]));
+  if (dir === '<-' || dir === '<->') out.push(head(pts[0][0], pts[0][1], pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]));
+  if (label) {
+    const w = Math.min(160, textWidth(label, 12) + 12);
+    const long = pts.findIndex((m, j) => j + 1 < pts.length && Math.hypot(pts[j + 1][0] - m[0], pts[j + 1][1] - m[1]) >= 24);
+    const i = Math.max(0, long);
+    const [[x1, y1], [x2, y2]] = [pts[i], pts[i + 1] ?? pts[i]];
+    // Over a stretch across, beside one down.
+    const [lx, ly] = y1 === y2 ? [(x1 + x2) / 2 - w / 2, y1 - 24] : [x1 + 4, (y1 + y2) / 2 - 12];
+    out.push(shape('t', lx, ly, w, 24, asLabel(label), 0, undefined, 1, hit));
+  }
+  return out;
 }
 
 /* ---------- timeline ---------- */
@@ -638,7 +732,7 @@ function netLayout(doc: Doc): Diagram {
 
 /* ---------- the kinds, and the page ---------- */
 
-const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = {
+const LAYOUTS: Record<KindId, (doc: Doc, editing?: boolean) => Diagram> = {
   mind: mindLayout,
   org: orgLayout,
   family: orgLayout,
@@ -649,8 +743,15 @@ const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = {
   net: netLayout,
 };
 
-/** The document as its kind draws it. */
-export const layout = (doc: Doc): Diagram => LAYOUTS[kindOf(doc)](doc);
+/** The document as its kind draws it; `editing`, with what only the editor draws (the band for a new lane). */
+export const layout = (doc: Doc, editing = false): Diagram => shaped(doc, LAYOUTS[kindOf(doc)](doc, editing));
+
+/** Each thing drawn in the shape its line's class gives it ("{.diamond}"), where its kind draws things as boxes. */
+function shaped(doc: Doc, d: Diagram): Diagram {
+  if (!shapes(kindOf(doc))) return d;
+  const named = (s: DShape) => (s.hit?.k === 'line' && s.k !== 't' && s.k !== 'w' && s.k !== 'v' ? shapeOf(doc, s.hit.at) : undefined);
+  return { ...d, shapes: d.shapes.map((s) => ((n) => (n ? { ...s, k: SHAPES[n] } : s))(named(s))) };
+}
 
 /** The regions under a point of the picture: a lane by its plain name, or the sets of a Venn whose circles hold it as a key writes them ("Fast & Cheap", "R\&D & Sales"). */
 export function regionAt(d: Diagram, x: number, y: number): string | undefined {
@@ -658,6 +759,13 @@ export function regionAt(d: Diagram, x: number, y: number): string | undefined {
     (s) => s.region !== undefined && (s.k === 'e' ? ((x - s.x - s.w / 2) / (s.w / 2)) ** 2 + ((y - s.y - s.h / 2) / (s.h / 2)) ** 2 <= 1 : x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h),
   );
   return inside.length ? inside.map((s) => s.region).join(' & ') : undefined;
+}
+
+/** The swimlane under a point, or the one nearest it above or below: a tap in the margin is in the lane beside it. */
+export function laneAt(d: Diagram, x: number, y: number): string | undefined {
+  const bands = d.shapes.filter((s) => s.region !== undefined);
+  const off = (s: DShape) => Math.max(s.y - y, y - s.y - s.h, 0);
+  return regionAt(d, x, y) ?? bands.sort((a, b) => off(a) - off(b))[0]?.region;
 }
 
 /**

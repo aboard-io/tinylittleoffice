@@ -107,6 +107,8 @@ export interface Handoff {
   label: () => string;
   /** This document as the other app reads it (often itself). */
   convert(doc: Doc): Doc;
+  /** What the other app makes of it then, by its own change of kind (`takes`): the Diagram Maker's swimlanes from a tree. */
+  as?: string;
 }
 
 /**
@@ -154,6 +156,11 @@ export interface AppDef {
   view(doc: Doc, opts?: ViewOpts): Page[];
   exports?: Export[];
   handoffs?: Handoff[];
+  /**
+   * A document handed to it (a `Handoff` with `as`) made that kind, as its own change of kind makes it, so a hand-off
+   * and the change agree (Paul, 2026-10-30: "Fix how handoffs work and make it truly consistent").
+   */
+  takes?(doc: Doc, as: string): Doc;
   /**
    * The app's commands (kit/core/commands.ts), lazily: its bar, its menus, its context bars and its keys are drawn and
    * answered from them, and the shortcuts dialog, the drawer's search (kit/ui/drawer.ts) and docs/editing.md's tables

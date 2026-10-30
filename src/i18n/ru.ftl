@@ -1925,6 +1925,8 @@ common-diagram-maker = Редактор схем
 common-drag-to-move = Потяните, чтобы переместить
 # en: 52db9dc3ff903f6d241a91adcbd83848467106c2
 outline-draw-as-mind-map = Показать как карту идей
+# en: d95a2ad1202ca3e58d94c9782bdcb1e904afe76f
+outline-draw-as-swimlanes = Показать как дорожки
 # en: 03683dee41f9db7fad6f8d06c6c6bd776b528ba0
 outline-draw-as-network = Показать как сеть
 # en: c01d65d48941d40cf0e4bad6bc84c525d99421da
@@ -2703,6 +2705,12 @@ diagram-idea = Идея
 diagram-person = Человек
 # en: dc416e1088e4bf094dfc9abe0210e0288f5a169e
 diagram-step = Шаг
+# en: e818d1b014a89db82a11b241637378ca44c757d0
+diagram-lane-n = Дорожка { $n }
+# en: 449bae38d10ded667eaa2d5371ebdf208f62c0ab
+diagram-top-table = Главный стол
+# en: 688dc78a2b1bd6b72aaff78e4634642596ed3aab
+diagram-table-n = Стол { $n }
 # en: 448ab73ba1c21e671e218fb91f2644c834f0c16f
 diagram-set = Множество
 # en: ecdda59aea5ee67d7d854c969ccf7f4f4b4a4c54
@@ -2712,8 +2720,8 @@ diagram-thing = Элемент
 diagram-tap-empty-space-for-thing = Нажмите на пустое место, чтобы добавить элемент. Чтобы соединить два, нажмите «Соединить», затем оба элемента, или перетащите один на другой.
 # en: d4b16450c157188d2cf2e3968faee3709ebeca28
 diagram-tap-here-to-add-first = Коснитесь здесь, чтобы добавить первый элемент: { $thing }.
-# en: ccdb7bfa4c6b71a69f1931253fe6f892a2baf89b
-diagram-tap-in-lane-to-add = Нажмите на дорожку, чтобы добавить шаг. Нажмите на шаг, чтобы изменить его. Перетащите его на другую дорожку или на шаг, чтобы поставить после него.
+# en: 37373f1290537ea3cee3be3f99534ec4acfd391f
+diagram-tap-in-lane-to-add = Нажмите на дорожку, чтобы добавить шаг. Нажмите на шаг, чтобы изменить его, или перетащите его на другую дорожку или в другое место.
 # en: 639d02ad26e5be80f5baf69835b953dfc015178b
 diagram-tap-thing-to-join-name = Нажмите на элемент, с которым соединить { $name }. Нажмите на пустое место, чтобы отменить.
 # en: 5d36f27a0649ac9ae67fb2e66f5be89ebc4719c8
@@ -2726,6 +2734,12 @@ diagram-add-under-it = Добавить ниже
 diagram-add-one-more = Добавить ещё
 # en: be34070c33b5c14155fe70a18891828387dd399d
 diagram-add-after-it = Добавить после
+# en: 5df0e8be499c468b0dab69bb2c4ca50b7721b5e6
+diagram-add-branch = Добавить ветку
+# en: ea5c1a20b7cfcfec8a35fb4c6a419a1314233755
+diagram-shape = Фигура
+# en: f0b053e1c812d5a809f3ff9c206287cc97c84877
+diagram-shape-usual = Обычная фигура
 # en: 90d24ab49426f19e75a2b6c3fd9196603c2e0852
 diagram-add-step = Добавить шаг
 # en: e0d73143de80d17e82de2e017ac156ca3b9c4e01

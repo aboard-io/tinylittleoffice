@@ -3,7 +3,7 @@
  * DOM, no templates: those are a file of their own, asked for with `templates()`), so the API reads it without the
  * editors (vite.api.config.ts); the build reads it too (vite.config.ts).
  */
-import { lookup, type AppDef } from './app.ts';
+import { lookup, type AppDef, type Doc, type Handoff } from './app.ts';
 import { siteOf } from './route.ts';
 import write from '../../apps/write/def.ts';
 import sheet from '../../apps/sheet/def.ts';
@@ -23,6 +23,8 @@ const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, c
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
 // A document's QR code (kit/draw/qr-picture.ts) and a document locked with a password (kit/share/locked.ts) are drawn by the hosts as documents they hold, though neither is an app.
+/** A document handed to another app: as the hand-off converts it, then as that app takes it (`AppDef.takes`). */
+export const handOff = (h: Handoff, doc: Doc): Doc => ((d, to) => (h.as && to?.takes ? to.takes(d, h.as) : d))(h.convert(doc), appOf(h.to));
 lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === LOCKED_LANG ? lockedDoc : undefined);
 
 /** The site's own address, whichever app page we were opened from ("/text/" is a page of the site at "/"): route.ts siteOf. */
