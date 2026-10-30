@@ -556,3 +556,71 @@ test("What is this? is the drawer's first row, above Save in browser, and opens 
   await until(() => shell.querySelector<HTMLInputElement>('.to-title')?.value === 'Introducing Tiny Little Office');
   history.replaceState(null, '', location.pathname);
 });
+
+// Issue #6 (Paul, 2026-10-15: "Maybe we just put their icons underneath the toggle in a big scrollable list view. That
+// would be hard to miss"): the documents saved, under the switch, newest first, each its app's icon, its name and when.
+test('Save in browser on: the documents saved are listed under the switch, newest first, a long list scrolls in its own height, a tap opens one, Delete forgets one', async () => {
+  const { setPrivate } = await import('../../src/kit/share/privacy.ts');
+  const { keep, forgetAll, library } = await import('../../src/kit/share/library.ts');
+  await setPrivate(false);
+  try {
+    forgetAll();
+    const plans = `#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nGo.\n')}`;
+    keep({ id: 'old', app: 'sheet', title: 'Budget', hash: '#/v1/sheet/ybudget', at: Date.now() - 3 * 3600_000 });
+    keep({ id: 'new', app: 'write', title: 'Plans', hash: plans, at: Date.now() });
+    const shell = await mount('#/v1/sheet');
+    const dialog = await openDrawer(shell);
+    const list = dialog.querySelector<HTMLElement>('.to-drawer-save .to-saved')!;
+    // Directly under the switch.
+    expect(list.previousElementSibling!.matches('label.to-switch')).toBe(true);
+    expect(list.getAttribute('aria-label')).toBe('Saved documents');
+    const rows = [...list.querySelectorAll<HTMLAnchorElement>('a.to-saved-open')];
+    expect(rows.map((a) => a.querySelector('.to-found-words span')!.textContent)).toEqual(['Plans', 'Budget']);
+    expect(rows.map((a) => a.querySelector('small')!.textContent)).toEqual(['now', '3 hours ago']);
+    // Each with its app's icon, and Delete at its end as on the home page.
+    expect(rows.every((a) => !!a.querySelector(':scope > .to-icon'))).toBe(true);
+    expect([...list.querySelectorAll('li > button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Delete Plans', 'Delete Budget']);
+    // Delete forgets it, and the row goes.
+    list.querySelectorAll<HTMLButtonElement>('li > button')[1].click();
+    await until(() => list.querySelectorAll('li').length === 1);
+    expect(library().map((k) => k.id)).toEqual(['new']);
+    // A long list scrolls inside its own height, the switch in sight.
+    for (let i = 0; i < 30; i++) keep({ id: `n${i}`, app: 'write', title: `Note ${i}`, hash: `#/v1/write/ynote${i}`, at: Date.now() - 60_000 - i });
+    await until(() => list.querySelectorAll('li').length === 31);
+    expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+    expect(getComputedStyle(list).overflowY).toBe('auto');
+    expect(dialog.querySelector('input[role=switch]')!.getBoundingClientRect().bottom).toBeLessThan(innerHeight);
+    // A tap opens it, and the drawer closes.
+    list.querySelector<HTMLAnchorElement>('a.to-saved-open')!.click();
+    await until(() => location.hash === plans);
+    await until(() => !dialog.open);
+    await until(() => !!shell.querySelector('to-write-editor'));
+  } finally {
+    forgetAll();
+    await setPrivate(true);
+    history.replaceState(null, '', location.pathname);
+  }
+});
+
+test('Save in browser on with nothing saved: a line under the switch says so; off: no list and no line', async () => {
+  const { setPrivate } = await import('../../src/kit/share/privacy.ts');
+  const { forgetAll } = await import('../../src/kit/share/library.ts');
+  await setPrivate(true);
+  try {
+    let shell = await mount('');
+    let dialog = await openDrawer(shell);
+    expect(dialog.querySelector('.to-saved, .to-saved-none')).toBeNull();
+    dialog.close();
+    await setPrivate(false);
+    forgetAll();
+    shell = await mount('');
+    dialog = await openDrawer(shell);
+    const none = dialog.querySelector<HTMLElement>('.to-drawer-save .to-saved-none')!;
+    expect(none.textContent).toBe('Nothing saved yet.');
+    expect(none.previousElementSibling!.matches('label.to-switch')).toBe(true);
+    expect(dialog.querySelector('.to-saved')).toBeNull();
+    dialog.close();
+  } finally {
+    await setPrivate(true);
+  }
+});
