@@ -37,7 +37,7 @@ There is no shared document. Whoever opens a link gets their own copy: what they
 
 ## A document inside a document
 
-Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the ten app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
+Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the eleven app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
 
 Two slides, a cover and then the Moon going around the Earth, an animation on its slide: {{embed}}
 
@@ -72,7 +72,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
 - Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
-- Anything else visual: `draw`; moving: `anim`.
+- Anything else visual: `draw`; moving: `anim`. Notes, pictures and arrows gathered on a board, to pin up and draw on together: `pinboard`.
 
 ## Words
 
@@ -143,6 +143,14 @@ Pixel art: `grid: 16` (or 8, 32, 64) in the head, then a line per row and a lett
 {{tpl:draw:heart}}
 
 {{templates:draw}} {{exports:draw}}
+
+### pinboard: notes, pictures, frames and arrows on a board
+
+A table `Id | Kind | X | Y | W | H | Color | Words`, a row per thing, in whole pixels on a board without edges (X and Y may be negative). Every row has a short id of its own (`n1`, `act1`). Kinds: `note` (a sticky note), `text` (words on nothing), `frame` (a titled region drawn behind everything; what lies inside it moves with it), `picture`, `pen` (a stroke: its Words are its corners, `x:y` pairs as hundredths of its box, `;` between), and `arrow` and `line`, which join two things: their X and Y are the ids of the two things joined, their W and H blank. Color is `yellow`, `orange`, `pink`, `purple`, `blue` or `green`, or blank for the kind's own (a yellow note, black ink, a gray frame). Words are one line of inline Markdown, wrapped where drawn. A picture's bytes are its host's: an image fence after the table, `{#<the row's id> alt="…"}`, holding the host's reference, and the site keeps none, so write no picture for the site.
+
+{{tpl:pinboard:retro}}
+
+{{templates:pinboard}} {{exports:pinboard}}
 
 ### diagram: a diagram drawn from a few lines
 

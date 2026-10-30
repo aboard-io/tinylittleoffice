@@ -3448,3 +3448,69 @@ board-candidates-from-application-to-hire = আবেদন থেকে নি�
 board-content-calendar = কনটেন্ট ক্যালেন্ডার
 # en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
 board-pieces-from-idea-to-published = আইডিয়া থেকে প্রকাশ পর্যন্ত লেখা, চ্যানেল, লেখক আর তারিখসহ।
+
+## the Pinboard
+
+# en: bb800a7fb7594847691e68fddf04d3773def7a18
+common-pinboard = পিনবোর্ড
+# en: 0d1e635fe075f4bd82d894c4dd92129b48f0f9a1
+pinboard-pinboard = পিনবোর্ড
+# en: 4b0d57036ca975b267a3b191da5e825b659958aa
+pinboard-notes-pictures-frames-and-arrows = কিনারাহীন বোর্ডে স্টিকি নোট, ছবি, ফ্রেম আর তীর, একসাথে লাগানো আর আঁকার জন্য।
+# en: 8598222918d3c6e513d63060cf55e2971ded729a
+pinboard-select = বাছাই
+# en: 91b0658329efa06d4da89c23a162b41dfcee5202
+pinboard-frame = ফ্রেম
+# en: cf6c07e7054fad4d6a8affaf62f285e16525c46e
+pinboard-pen = কলম
+# en: 3a4758c3cc8dac2d76026d0733816741f9b21d43
+pinboard-arrow = তীর
+# en: 54076359fdc7f1f0e000b9ae15b96f8b09866acb
+pinboard-pink = গোলাপি
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+pinboard-describe-picture = ছবির বর্ণনা
+# en: b65463cb6a42a17de514acc4659f7fd331e0876a
+pinboard-connect = যুক্ত করুন
+# en: e6870bf25ae91b8017124f5e4d00b70618bd07b7
+pinboard-arrowhead = তীরের মাথা
+# en: 1f65ed95fba62cd5b74b58c2ca9ba63448117160
+pinboard-bring-to-front = সামনে আনুন
+# en: 7aec8a4fdaf3b52226748735cb704f7b5016bf50
+pinboard-fit-everything = সব দেখান
+# en: d1f8e5ea93b2f5a69528707c67d3952e9002539b
+pinboard-in-hand = নির্বাচন
+# en: b2e293c76c7731ba173d848e00aa6bfd36b87c44
+pinboard-empty-board = একটি খালি পিনবোর্ড
+# en: 57153d4279332cc3994f85cdc1dbdac4304316fa
+pinboard-board-of-n-things = { $n ->
+        [one] { $n }টি জিনিসের পিনবোর্ড
+       *[other] { $n }টি জিনিসের পিনবোর্ড
+    }
+# en: 189f828ef6c4b9bacfc42903899c80157ca84ec1
+pinboard-frames-named = ফ্রেম: { $frames }
+# en: 2373ff3116eac10b4931eca349c12138b75b2666
+pinboard-hint-select = ঘুরতে বোর্ড টানুন; কয়েকটি বাছতে Shift দিয়ে টানুন
+# en: a92ceecdf2a7834f25ce9da27d4abe6197a6d920
+pinboard-hint-chosen = সরাতে টানুন, আকার বদলাতে কোণ; লেখা বদলাতে ডাবল-ক্লিক করুন
+# en: 2b358085bf406818fa241418d564857fc948c610
+pinboard-hint-place = একটি রাখতে বোর্ডে ট্যাপ করুন, বা আকার দিতে টানুন
+# en: cda6444462a4646cc06684bfab64a74da24e1ddc
+pinboard-hint-pen = আঁকতে টানুন
+# en: 7fdf4e064a95bf3ccefbe13ab3ce667971cbfb23
+pinboard-hint-arrow = একটিতে চাপুন আর অন্যটিতে ছাড়ুন
+# en: 23737166fd43ec967af7935ac1ceaa03b56ef7fb
+pinboard-hint-typing = লেখা টাইপ করুন; Enter দিলে শেষ
+# en: bd541f35fbfa68a16c98c47f56aff6c308052ab7
+pinboard-hint-read = ঘুরতে টানুন; জুম করতে চিমটি দিন, বা Ctrl আর স্ক্রল
+# en: 252c71587a9461d297f6081c2d14e293a05c3d5d
+pinboard-film-board = চলচ্চিত্র বোর্ড
+# en: ff3eb5186aa2e79d7e732d18868ec89ae6dd9bf3
+pinboard-film-board-blurb = রিয়ার উইন্ডো নিয়ে একটি সেমিনারের বোর্ড: অঙ্ক, সূত্র, মোটিফ আর প্রশ্ন।
+# en: ee196991492736e68decf4218ba45b6e49d1266c
+pinboard-mood-board = মুড বোর্ড
+# en: a0cc8242329729e194a5e4b888017c5d739b5f3a
+pinboard-mood-board-blurb = একটি স্বল্পদৈর্ঘ্য চলচ্চিত্রের রং, আলো, শব্দ আর জায়গা, প্রতিটির একটি ফ্রেম।
+# en: 0bd923f64e464c2afdba58b6bac8ea1abf96b376
+pinboard-retro = রেট্রো
+# en: 85bd05a9371268fbb1d5f8ca56948194525b0e6d
+pinboard-retro-blurb = কী ভালো হয়েছে, কী হয়নি আর এরপর কী চেষ্টা করব, প্রতিটি সমস্যা তার সমাধানের সাথে যুক্ত।

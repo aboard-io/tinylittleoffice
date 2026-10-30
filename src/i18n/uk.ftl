@@ -3599,3 +3599,71 @@ board-candidates-from-application-to-hire = Кандидати від відгу
 board-content-calendar = Контент-план
 # en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
 board-pieces-from-idea-to-published = Матеріали від ідеї до публікації, з каналом, автором і датою.
+
+## the Pinboard
+
+# en: bb800a7fb7594847691e68fddf04d3773def7a18
+common-pinboard = Дошка нотаток
+# en: 0d1e635fe075f4bd82d894c4dd92129b48f0f9a1
+pinboard-pinboard = дошка нотаток
+# en: 4b0d57036ca975b267a3b191da5e825b659958aa
+pinboard-notes-pictures-frames-and-arrows = Стікери, зображення, рамки й стрілки на дошці без країв, щоб разом пришпилювати й малювати.
+# en: 8598222918d3c6e513d63060cf55e2971ded729a
+pinboard-select = Вибрати
+# en: 91b0658329efa06d4da89c23a162b41dfcee5202
+pinboard-frame = Рамка
+# en: cf6c07e7054fad4d6a8affaf62f285e16525c46e
+pinboard-pen = Перо
+# en: 3a4758c3cc8dac2d76026d0733816741f9b21d43
+pinboard-arrow = Стрілка
+# en: 54076359fdc7f1f0e000b9ae15b96f8b09866acb
+pinboard-pink = Рожевий
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+pinboard-describe-picture = Описати картинку
+# en: b65463cb6a42a17de514acc4659f7fd331e0876a
+pinboard-connect = З’єднати
+# en: e6870bf25ae91b8017124f5e4d00b70618bd07b7
+pinboard-arrowhead = Вістря стрілки
+# en: 1f65ed95fba62cd5b74b58c2ca9ba63448117160
+pinboard-bring-to-front = На передній план
+# en: 7aec8a4fdaf3b52226748735cb704f7b5016bf50
+pinboard-fit-everything = Показати все
+# en: d1f8e5ea93b2f5a69528707c67d3952e9002539b
+pinboard-in-hand = Виділення
+# en: b2e293c76c7731ba173d848e00aa6bfd36b87c44
+pinboard-empty-board = Порожня дошка нотаток
+# en: 57153d4279332cc3994f85cdc1dbdac4304316fa
+pinboard-board-of-n-things = { $n ->
+        [one] Дошка нотаток: { $n } елемент
+        [few] Дошка нотаток: { $n } елементи
+        [many] Дошка нотаток: { $n } елементів
+       *[other] Дошка нотаток: { $n } елемента
+    }
+# en: 189f828ef6c4b9bacfc42903899c80157ca84ec1
+pinboard-frames-named = Рамки: { $frames }
+# en: 2373ff3116eac10b4931eca349c12138b75b2666
+pinboard-hint-select = Перетягніть дошку, щоб рухатися нею; Shift і перетягування виділяють кілька
+# en: a92ceecdf2a7834f25ce9da27d4abe6197a6d920
+pinboard-hint-chosen = Перетягніть, щоб зсунути, кут — щоб змінити розмір; подвійний клік — редагування тексту
+# en: 2b358085bf406818fa241418d564857fc948c610
+pinboard-hint-place = Торкніться дошки, щоб поставити його там, або потягніть, щоб задати розмір
+# en: cda6444462a4646cc06684bfab64a74da24e1ddc
+pinboard-hint-pen = Потягніть, щоб малювати
+# en: 7fdf4e064a95bf3ccefbe13ab3ce667971cbfb23
+pinboard-hint-arrow = Натисніть на одне й відпустіть на іншому
+# en: 23737166fd43ec967af7935ac1ceaa03b56ef7fb
+pinboard-hint-typing = Введіть текст; Enter — готово
+# en: bd541f35fbfa68a16c98c47f56aff6c308052ab7
+pinboard-hint-read = Потягніть, щоб рухатися; зведіть пальці або Ctrl і коліщатко — масштаб
+# en: 252c71587a9461d297f6081c2d14e293a05c3d5d
+pinboard-film-board = Дошка фільму
+# en: ff3eb5186aa2e79d7e732d18868ec89ae6dd9bf3
+pinboard-film-board-blurb = Дошка семінару про «Вікно у двір»: акти, докази, мотиви й запитання.
+# en: ee196991492736e68decf4218ba45b6e49d1266c
+pinboard-mood-board = Дошка настрою
+# en: a0cc8242329729e194a5e4b888017c5d739b5f3a
+pinboard-mood-board-blurb = Палітра, світло, звук і місця короткого фільму, по рамці на кожне.
+# en: 0bd923f64e464c2afdba58b6bac8ea1abf96b376
+pinboard-retro = Ретроспектива
+# en: 85bd05a9371268fbb1d5f8ca56948194525b0e6d
+pinboard-retro-blurb = Що вдалося, що ні й що спробувати далі, кожна проблема пов’язана з її рішенням.

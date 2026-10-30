@@ -1994,3 +1994,49 @@ board-hiring = Hiring
 board-candidates-from-application-to-hire = Candidates from application to hire, with the role and the next step.
 board-content-calendar = Content calendar
 board-pieces-from-idea-to-published = Pieces from idea to published, with the channel, the author and the date.
+
+## the Pinboard
+
+# The app's name: a board to pin notes and pictures to, on the home page under Design.
+common-pinboard = Pinboard
+# One document of the app, lower case: "Untitled pinboard", "New pinboard".
+pinboard-pinboard = pinboard
+pinboard-notes-pictures-frames-and-arrows = Sticky notes, pictures, frames and arrows on a board without edges, to pin up and draw on together.
+# A tool in the bar: with it, a tap takes a thing in hand.
+pinboard-select = Select
+# A titled region of the board that things are gathered in ("Act one"), drawn behind them; a noun.
+pinboard-frame = Frame
+pinboard-pen = Pen
+pinboard-arrow = Arrow
+pinboard-pink = Pink
+pinboard-describe-picture = Describe picture
+# A button: an arrow drawn from the first of two things in hand to the second; a verb.
+pinboard-connect = Connect
+# A button on an arrow or a line in hand: whether it ends in an arrowhead.
+pinboard-arrowhead = Arrowhead
+pinboard-bring-to-front = Bring to front
+# A button: the zoom and place that show the whole board.
+pinboard-fit-everything = Fit everything
+# What a screen reader calls the bar under the things in hand.
+pinboard-in-hand = Selection
+pinboard-empty-board = An empty pinboard
+pinboard-board-of-n-things = { $n ->
+        [one] A pinboard of one thing
+       *[other] A pinboard of { $n } things
+    }
+# After the count of things: the frames' titles, joined by commas.
+pinboard-frames-named = Frames: { $frames }
+# The line under the bar, saying what a press does now.
+pinboard-hint-select = Drag the board to move around; Shift and drag to select several
+pinboard-hint-chosen = Drag to move, the corner to resize; double-click to edit the words
+pinboard-hint-place = Tap the board to put one there, or drag to size it
+pinboard-hint-pen = Drag to draw
+pinboard-hint-arrow = Press on one thing and let go on another
+pinboard-hint-typing = Type the words; Enter is done
+pinboard-hint-read = Drag to move around; pinch, or Ctrl and scroll, to zoom
+pinboard-film-board = Film board
+pinboard-film-board-blurb = A seminar’s board on Rear Window: the acts, the clues, the motifs and the questions.
+pinboard-mood-board = Mood board
+pinboard-mood-board-blurb = A short film’s palette, light, sound and places, a frame each.
+pinboard-retro = Retro
+pinboard-retro-blurb = What went well, what didn’t, and what to try next, each problem joined to its fix.

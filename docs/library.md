@@ -1067,6 +1067,11 @@ Object.assign(host, {
 });
 ```
 
+The Pinboard pins pictures as well: a picture file pasted or dropped on its board, or chosen from Insert ▾ Picture…,
+goes to `images.put` and is pinned where it lands, its row in the board's table and its fence after the table carrying
+the row's id (`{#p1 alt="…"}`), so `imageRefs` finds it as it finds any; where the host keeps none, a picture on a board
+is a card with its words, and Insert ▾ offers none.
+
 Then every app draws an image fence as the picture (kit/draw/image-picture.ts, known to the registry's lookup as the
 QR code is); the Word Processor's and the Presentation Builder's Insert ▾ list Picture…, a file from the device put
 to `images.put`; a picture file pasted or dropped into either goes there too (the Word Processor's at the caret, the

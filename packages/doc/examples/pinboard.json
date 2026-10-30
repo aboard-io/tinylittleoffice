@@ -1,0 +1,150 @@
+{
+  "app": "pinboard",
+  "name": "Pinboard",
+  "shapes": [
+    {
+      "id": "frames",
+      "name": "frames of notes",
+      "for": "ideas gathered: frame rows, note rows inside them",
+      "from": "template mood",
+      "text": "Id | Kind | X | Y | W | H | Color | Words\n--- | --- | --- | --- | --- | --- | --- | ---\nplc | frame | 600 | 340 | 560 | 300 | green | Places\np2 | note | 896 | 396 | 240 | 130 | green | The corner bodega at 2 a.m.\n",
+      "link": "https://tinylittleoffice.com/pinboard/#doc=Id+%7C+Kind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Color+%7C+Words%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Aplc+%7C+frame+%7C+600+%7C+340+%7C+560+%7C+300+%7C+green+%7C+Places%0Ap2+%7C+note+%7C+896+%7C+396+%7C+240+%7C+130+%7C+green+%7C+The+corner+bodega+at+2+a.m.",
+      "json": {
+        "head": {},
+        "blocks": [
+          {
+            "k": "table",
+            "cols": [
+              {
+                "name": "Id",
+                "type": "text"
+              },
+              {
+                "name": "Kind",
+                "type": "text"
+              },
+              {
+                "name": "X",
+                "type": "text"
+              },
+              {
+                "name": "Y",
+                "type": "text"
+              },
+              {
+                "name": "W",
+                "type": "text"
+              },
+              {
+                "name": "H",
+                "type": "text"
+              },
+              {
+                "name": "Color",
+                "type": "text"
+              },
+              {
+                "name": "Words",
+                "type": "text"
+              }
+            ],
+            "rows": [
+              [
+                "plc",
+                "frame",
+                "600",
+                "340",
+                "560",
+                "300",
+                "green",
+                "Places"
+              ],
+              [
+                "p2",
+                "note",
+                "896",
+                "396",
+                "240",
+                "130",
+                "green",
+                "The corner bodega at 2 a.m."
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "arrows",
+      "name": "arrows between things",
+      "for": "what leads to what: an arrow row, X and Y the ids it joins",
+      "from": "template retro",
+      "text": "Id | Kind | X | Y | W | H | Color | Words\n--- | --- | --- | --- | --- | --- | --- | ---\nr2 | arrow | d2 | t2 |  |  |  |\nr3 | arrow | d3 | t3 |  |  |  |\n",
+      "link": "https://tinylittleoffice.com/pinboard/#doc=Id+%7C+Kind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Color+%7C+Words%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Ar2+%7C+arrow+%7C+d2+%7C+t2+%7C++%7C++%7C++%7C%0Ar3+%7C+arrow+%7C+d3+%7C+t3+%7C++%7C++%7C++%7C",
+      "json": {
+        "head": {},
+        "blocks": [
+          {
+            "k": "table",
+            "cols": [
+              {
+                "name": "Id",
+                "type": "text"
+              },
+              {
+                "name": "Kind",
+                "type": "text"
+              },
+              {
+                "name": "X",
+                "type": "text"
+              },
+              {
+                "name": "Y",
+                "type": "text"
+              },
+              {
+                "name": "W",
+                "type": "text"
+              },
+              {
+                "name": "H",
+                "type": "text"
+              },
+              {
+                "name": "Color",
+                "type": "text"
+              },
+              {
+                "name": "Words",
+                "type": "text"
+              }
+            ],
+            "rows": [
+              [
+                "r2",
+                "arrow",
+                "d2",
+                "t2",
+                "",
+                "",
+                "",
+                ""
+              ],
+              [
+                "r3",
+                "arrow",
+                "d3",
+                "t3",
+                "",
+                "",
+                "",
+                ""
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

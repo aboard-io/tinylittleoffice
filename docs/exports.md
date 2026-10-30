@@ -53,6 +53,7 @@ there it is drawn still, at its resting moment (`ViewOpts.still`).
 | Drawing Tool | `.svg` | Picture (SVG) |
 | Drawing Tool | `.tile.svg` | Background tile (SVG) |
 | Drawing Tool | `.tile.png` | Background tile (PNG) |
+| Pinboard | `.svg` | Picture (SVG) |
 | Diagram Maker | `.svg` | Picture (SVG) |
 | Animator | `.gif` | Animated GIF |
 | Animator | `.webm` | Video (WebM) |

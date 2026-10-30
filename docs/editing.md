@@ -514,6 +514,33 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown` | Tap or drag to paint; the arrow keys move, Enter paints. | keys only, at: pixels |
 | `Enter`, `Space` | Tap or drag to paint; the arrow keys move, Enter paints. | keys only, at: pixels |
 
+### Pinboard (`pinboard`)
+
+| Keys | Command | Where |
+|---|---|---|
+|  | Note | insert ▾ |
+|  | Text | insert ▾ |
+|  | Frame | insert ▾ |
+|  | Picture… | insert ▾ |
+| `V` | Select | bar, at: canvas |
+| `N` | Note | bar, at: canvas |
+| `T` | Text | bar, at: canvas |
+| `F` | Frame | bar, at: canvas |
+| `P` | Pen | bar, at: canvas |
+| `A` | Arrow | bar, at: canvas |
+|  | Zoom out | bar, drawer on a phone |
+|  | Zoom in | bar, drawer on a phone |
+|  | Fit everything | bar, drawer on a phone |
+| `Enter` | Edit text | context, at: canvas |
+|  | Connect | context |
+|  | Arrowhead | context |
+|  | Bring to front | context |
+| `Mod+D` | Duplicate | context, at: canvas |
+| `Delete`, `Backspace` | Delete | context, at: canvas |
+| `Escape` | Close or deselect | keys only, at: canvas |
+| `Mod+A` | Select all (this field first, then the whole document) | keys only, at: canvas |
+| `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown` | Nudge selected shapes | keys only, at: canvas |
+
 ### Diagram Maker (`diagram`)
 
 | Keys | Command | Where |

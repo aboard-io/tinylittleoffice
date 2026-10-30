@@ -1,0 +1,25 @@
+# Pinboard (`pinboard`), Tiny Little Office
+
+Sticky notes, pictures, frames and arrows on a board without edges, to pin up and draw on together. A document is a link: https://tinylittleoffice.com/pinboard/#doc=<percent-encoded TLO>
+
+A table `Id | Kind | X | Y | W | H | Color | Words`, a row per thing, in whole pixels on a board without edges (X and Y may be negative). Every row has a short id of its own (`n1`, `act1`). Kinds: `note` (a sticky note), `text` (words on nothing), `frame` (a titled region drawn behind everything; what lies inside it moves with it), `picture`, `pen` (a stroke: its Words are its corners, `x:y` pairs as hundredths of its box, `;` between), and `arrow` and `line`, which join two things: their X and Y are the ids of the two things joined, their W and H blank. Color is `yellow`, `orange`, `pink`, `purple`, `blue` or `green`, or blank for the kind's own (a yellow note, black ink, a gray frame). Words are one line of inline Markdown, wrapped where drawn. A picture's bytes are its host's: an image fence after the table, `{#<the row's id> alt="…"}`, holding the host's reference, and the site keeps none, so write no picture for the site.
+
+Templates: Film board, Mood board, Retro. Its own files: `.svg`.
+
+## Shapes
+
+- `frames` frames of notes, ideas gathered: frame rows, note rows inside them
+- `arrows` arrows between things, what leads to what: an arrow row, X and Y the ids it joins
+
+## Example: frames of notes
+
+```
+Id | Kind | X | Y | W | H | Color | Words
+--- | --- | --- | --- | --- | --- | --- | ---
+plc | frame | 600 | 340 | 560 | 300 | green | Places
+p2 | note | 896 | 396 | 240 | 130 | green | The corner bodega at 2 a.m.
+```
+
+As a link: <https://tinylittleoffice.com/pinboard/#doc=Id+%7C+Kind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Color+%7C+Words%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Aplc+%7C+frame+%7C+600+%7C+340+%7C+560+%7C+300+%7C+green+%7C+Places%0Ap2+%7C+note+%7C+896+%7C+396+%7C+240+%7C+130+%7C+green+%7C+The+corner+bodega+at+2+a.m.>
+
+Every shape as a document, a link and JSON: https://tinylittleoffice.com/examples/pinboard.json. The whole description: https://tinylittleoffice.com/llms-full.txt

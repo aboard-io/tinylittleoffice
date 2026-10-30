@@ -29,13 +29,14 @@ Private by default.
 - If you save a short link, it's encrypted with a key the server never sees.
 - If you decide to use the social sharing functionality it will make a preview card and save that on a server.
 
-Ten apps.
+Eleven apps.
 - Word Processor
 - Outliner
 - Presentation Builder
 - Spreadsheet
 - Calculator
 - Drawing Tool
+- Pinboard
 - Diagram Maker
 - Animator
 - Calendar

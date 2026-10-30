@@ -3536,3 +3536,69 @@ board-candidates-from-application-to-hire = קאנדידאטן פון דער א�
 board-content-calendar = אינהאלט קאלענדאר
 # en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
 board-pieces-from-idea-to-published = שטיקער פון א געדאנק ביז ארויסגעגעבן, מיט דעם קאנאל, דעם שרייבער און דעם דאטום.
+
+## the Pinboard
+
+# en: bb800a7fb7594847691e68fddf04d3773def7a18
+common-pinboard = שפּילקע־ברעט
+# en: 0d1e635fe075f4bd82d894c4dd92129b48f0f9a1
+pinboard-pinboard = שפּילקע־ברעט
+# en: 4b0d57036ca975b267a3b191da5e825b659958aa
+pinboard-notes-pictures-frames-and-arrows = קלעפּצעטלעך, בילדער, ראַמען און פֿײַלן אויף אַ ברעט אָן ראַנדן, צוזאַמען צו צושפּילקען און צייכענען.
+# en: 8598222918d3c6e513d63060cf55e2971ded729a
+pinboard-select = אויסקלייבן
+# en: 91b0658329efa06d4da89c23a162b41dfcee5202
+pinboard-frame = ראַם
+# en: cf6c07e7054fad4d6a8affaf62f285e16525c46e
+pinboard-pen = פען
+# en: 3a4758c3cc8dac2d76026d0733816741f9b21d43
+pinboard-arrow = פייל
+# en: 54076359fdc7f1f0e000b9ae15b96f8b09866acb
+pinboard-pink = ראזע
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+pinboard-describe-picture = באשרייבן דאס בילד
+# en: b65463cb6a42a17de514acc4659f7fd331e0876a
+pinboard-connect = פֿאַרבינדן
+# en: e6870bf25ae91b8017124f5e4d00b70618bd07b7
+pinboard-arrowhead = פֿײַל־שפּיץ
+# en: 1f65ed95fba62cd5b74b58c2ca9ba63448117160
+pinboard-bring-to-front = ברענגען אויף פאראויס
+# en: 7aec8a4fdaf3b52226748735cb704f7b5016bf50
+pinboard-fit-everything = ווײַזן אַלץ
+# en: d1f8e5ea93b2f5a69528707c67d3952e9002539b
+pinboard-in-hand = אויסקלײַב
+# en: b2e293c76c7731ba173d848e00aa6bfd36b87c44
+pinboard-empty-board = אַ ליידיק שפּילקע־ברעט
+# en: 57153d4279332cc3994f85cdc1dbdac4304316fa
+pinboard-board-of-n-things = { $n ->
+        [one] אַ שפּילקע־ברעט מיט איין זאַך
+       *[other] אַ שפּילקע־ברעט מיט { $n } זאַכן
+    }
+# en: 189f828ef6c4b9bacfc42903899c80157ca84ec1
+pinboard-frames-named = ראַמען: { $frames }
+# en: 2373ff3116eac10b4931eca349c12138b75b2666
+pinboard-hint-select = שלעפּט דעם ברעט זיך צו רירן; Shift און שלעפּן קלײַבט אויס עטלעכע
+# en: a92ceecdf2a7834f25ce9da27d4abe6197a6d920
+pinboard-hint-chosen = שלעפּט צו רירן, דעם ווינקל צו ענדערן די גרייס; טאָפּל־קליקט צו רעדאַגירן דעם טעקסט
+# en: 2b358085bf406818fa241418d564857fc948c610
+pinboard-hint-place = דריקט אויפֿן ברעט אַוועקצולייגן איינס, אָדער שלעפּט צו געבן די גרייס
+# en: cda6444462a4646cc06684bfab64a74da24e1ddc
+pinboard-hint-pen = שלעפּט צו צייכענען
+# en: 7fdf4e064a95bf3ccefbe13ab3ce667971cbfb23
+pinboard-hint-arrow = דריקט אויף איין זאַך און לאָזט אָפּ אויף אַן אַנדערער
+# en: 23737166fd43ec967af7935ac1ceaa03b56ef7fb
+pinboard-hint-typing = שרײַבט דעם טעקסט; Enter ענדיקט
+# en: bd541f35fbfa68a16c98c47f56aff6c308052ab7
+pinboard-hint-read = שלעפּט זיך צו רירן; קנײַפּט, אָדער Ctrl און דאָס רעדל, צו פֿאַרגרעסערן
+# en: 252c71587a9461d297f6081c2d14e293a05c3d5d
+pinboard-film-board = פֿילם־ברעט
+# en: ff3eb5186aa2e79d7e732d18868ec89ae6dd9bf3
+pinboard-film-board-blurb = דער ברעט פֿון אַ סעמינאַר וועגן „Rear Window“: די אַקטן, די אָנווײַזן, די מאָטיוון און די פֿראַגעס.
+# en: ee196991492736e68decf4218ba45b6e49d1266c
+pinboard-mood-board = שטימונג־ברעט
+# en: a0cc8242329729e194a5e4b888017c5d739b5f3a
+pinboard-mood-board-blurb = די פּאַליטרע, די ליכט, דער קלאַנג און די ערטער פֿון אַ קורצן פֿילם, אַ ראַם יעדעס.
+# en: 0bd923f64e464c2afdba58b6bac8ea1abf96b376
+pinboard-retro = צוריקבליק
+# en: 85bd05a9371268fbb1d5f8ca56948194525b0e6d
+pinboard-retro-blurb = וואָס איז געלונגען, וואָס נישט און וואָס צו פּרוּוון ווײַטער, יעדע פּראָבלעם פֿאַרבונדן מיט איר לייזונג.

@@ -31,7 +31,7 @@ There is no shared document. Whoever opens a link gets their own copy: what they
 
 ## A document inside a document
 
-Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the ten app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
+Any app's document goes inside a Word Processor page, a slide or an outline item: a fence named by any of the eleven app ids (```` ```sheet ````, ```` ```calc ````, ```` ```anim ````…) holding that document's own TLO. Its own app draws it there, and it is edited in place. A slide with one shows it alone under the headline; an animation moves on its slide and plays when presented. A page's or a deck's PDF, and a deck's PowerPoint, carry it drawn. Put a document inside rather than link to it.
 
 Two slides, a cover and then the Moon going around the Earth, an animation on its slide: <https://tinylittleoffice.com/deck/#doc=%23%23+%3Amoon%3A+Why+the+Moon+has+phases+%7B.title%7D%0A%0A---%0A%0A%23%23+%3Amoon%3A+The+model%2C+moving%0A%0A%60%60%60anim%0A---%0Aframes%3A+16%0Afps%3A+4%0Aalt%3A+The+Moon+goes+around+the+Earth%2C+lit+from+the+left+by+the+Sun.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Ai+%7C+2+%7C+21+%7C+8+%7C+8+%7C+0o+%7C+sun%0Ae+%7C+37+%7C+22+%7C+6+%7C+6+%7C+2b+%7C%0Ae+%7C+57+%7C+24+%7C+2+%7C+2+%7C+2+%7C%0A%0AShape+%7C+Keys%0A---+%7C+---%0A2+%7C+0%2C0%2C0%2C0%2C1%2C0%3B+4%2C-144%2C-144%2C0%2C1%2C0%3B+8%2C-288%2C0%2C0%2C1%2C0%3B+12%2C-144%2C144%2C0%2C1%2C0%3B+15%2C-36%2C36%2C0%2C1%2C0%0A%60%60%60>
 
@@ -66,6 +66,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `sheet` | Spreadsheet | A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them. |
 | `calc` | Calculator | A calculator that shows its work: names, units and conversions, and graphs of y = f(x). |
 | `draw` | Drawing Tool | Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile. |
+| `pinboard` | Pinboard | Sticky notes, pictures, frames and arrows on a board without edges, to pin up and draw on together. |
 | `diagram` | Diagram Maker | Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines. |
 | `anim` | Animator | Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes. |
 | `cal` | Calendar | Days and times on a month, a year or a schedule, in any time zone. |
@@ -77,7 +78,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 - Words to read or print: `write`. Notes in a tree: `outline`. Something to present: `deck`. A poster, a zine, badges: `deck` with a `format`.
 - Ideas branching from one topic: `diagram` `mind`. People and reporting lines: `org`. A process with handoffs: `lanes`. Dates along a line: `timeline`. Overlaps: `venn`. Who sits where: `seating`. What talks to what: `net`.
 - Days and times: `cal`; tasks over weeks: `cal` with `view: gantt`. Places in order: `trip`. Things to tick off: `- [ ]` tasks in `write` or `outline`.
-- Anything else visual: `draw`; moving: `anim`.
+- Anything else visual: `draw`; moving: `anim`. Notes, pictures and arrows gathered on a board, to pin up and draw on together: `pinboard`.
 
 ## Words
 
@@ -352,6 +353,40 @@ As a link: <https://tinylittleoffice.com/draw/#doc=---%0Atitle%3A+A+heart%0Agrid
 
 Templates: Flowchart, Birthday card, Event map, Floor plan, Room plan, Wireframe, Logo sketch, Badge, Order to doorstep, Request flow, Three tiers, Pixel heart, Weather icons, Game sprite, Background tile. Its own files: `.svg`, `.tile.svg`, `.tile.png`.
 
+### pinboard: notes, pictures, frames and arrows on a board
+
+A table `Id | Kind | X | Y | W | H | Color | Words`, a row per thing, in whole pixels on a board without edges (X and Y may be negative). Every row has a short id of its own (`n1`, `act1`). Kinds: `note` (a sticky note), `text` (words on nothing), `frame` (a titled region drawn behind everything; what lies inside it moves with it), `picture`, `pen` (a stroke: its Words are its corners, `x:y` pairs as hundredths of its box, `;` between), and `arrow` and `line`, which join two things: their X and Y are the ids of the two things joined, their W and H blank. Color is `yellow`, `orange`, `pink`, `purple`, `blue` or `green`, or blank for the kind's own (a yellow note, black ink, a gray frame). Words are one line of inline Markdown, wrapped where drawn. A picture's bytes are its host's: an image fence after the table, `{#<the row's id> alt="…"}`, holding the host's reference, and the site keeps none, so write no picture for the site.
+
+Retro:
+
+```
+---
+title: Retro: the subway shoot
+---
+Id | Kind | X | Y | W | H | Color | Words
+--- | --- | --- | --- | --- | --- | --- | ---
+well | frame | 0 | 0 | 440 | 560 | green | Went well
+not | frame | 480 | 0 | 440 | 560 | pink | Didn’t go well
+next | frame | 960 | 0 | 440 | 560 | blue | Try next
+w1 | note | 24 | 56 | 184 | 140 | green | Call sheet out two days early
+w2 | note | 232 | 56 | 184 | 140 | green | Sound was clean even on the platform
+w3 | note | 24 | 216 | 184 | 140 | green | Everyone fed by noon
+d1 | note | 504 | 56 | 184 | 140 | pink | Lost an hour finding the permit
+d2 | note | 712 | 56 | 184 | 140 | pink | Batteries died in the second setup
+d3 | note | 504 | 216 | 184 | 140 | pink | Too many takes of the wide shot
+t1 | note | 984 | 56 | 184 | 140 | blue | One folder for permits, shared with everyone
+t2 | note | 1192 | 56 | 184 | 140 | blue | A battery check on the call sheet
+t3 | note | 984 | 216 | 184 | 140 | blue | Three takes of the wide, then move on
+who | text | 24 | 400 | 392 | 52 |  | Owners: Ana (permits), Kofi (batteries)
+r1 | arrow | d1 | t1 |  |  |  |
+r2 | arrow | d2 | t2 |  |  |  |
+r3 | arrow | d3 | t3 |  |  |  |
+```
+
+As a link: <https://tinylittleoffice.com/pinboard/#doc=---%0Atitle%3A+Retro%3A+the+subway+shoot%0A---%0AId+%7C+Kind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Color+%7C+Words%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Awell+%7C+frame+%7C+0+%7C+0+%7C+440+%7C+560+%7C+green+%7C+Went+well%0Anot+%7C+frame+%7C+480+%7C+0+%7C+440+%7C+560+%7C+pink+%7C+Didn%E2%80%99t+go+well%0Anext+%7C+frame+%7C+960+%7C+0+%7C+440+%7C+560+%7C+blue+%7C+Try+next%0Aw1+%7C+note+%7C+24+%7C+56+%7C+184+%7C+140+%7C+green+%7C+Call+sheet+out+two+days+early%0Aw2+%7C+note+%7C+232+%7C+56+%7C+184+%7C+140+%7C+green+%7C+Sound+was+clean+even+on+the+platform%0Aw3+%7C+note+%7C+24+%7C+216+%7C+184+%7C+140+%7C+green+%7C+Everyone+fed+by+noon%0Ad1+%7C+note+%7C+504+%7C+56+%7C+184+%7C+140+%7C+pink+%7C+Lost+an+hour+finding+the+permit%0Ad2+%7C+note+%7C+712+%7C+56+%7C+184+%7C+140+%7C+pink+%7C+Batteries+died+in+the+second+setup%0Ad3+%7C+note+%7C+504+%7C+216+%7C+184+%7C+140+%7C+pink+%7C+Too+many+takes+of+the+wide+shot%0At1+%7C+note+%7C+984+%7C+56+%7C+184+%7C+140+%7C+blue+%7C+One+folder+for+permits%2C+shared+with+everyone%0At2+%7C+note+%7C+1192+%7C+56+%7C+184+%7C+140+%7C+blue+%7C+A+battery+check+on+the+call+sheet%0At3+%7C+note+%7C+984+%7C+216+%7C+184+%7C+140+%7C+blue+%7C+Three+takes+of+the+wide%2C+then+move+on%0Awho+%7C+text+%7C+24+%7C+400+%7C+392+%7C+52+%7C++%7C+Owners%3A+Ana+%28permits%29%2C+Kofi+%28batteries%29%0Ar1+%7C+arrow+%7C+d1+%7C+t1+%7C++%7C++%7C++%7C%0Ar2+%7C+arrow+%7C+d2+%7C+t2+%7C++%7C++%7C++%7C%0Ar3+%7C+arrow+%7C+d3+%7C+t3+%7C++%7C++%7C++%7C>
+
+Templates: Film board, Mood board, Retro. Its own files: `.svg`.
+
 ### diagram: a diagram drawn from a few lines
 
 `kind:` in the head says which, and each is a list:
@@ -599,6 +634,7 @@ For an agent working in the editors in a browser: the keys each app answers, wri
 - **Spreadsheet**: `Mod+Alt+=` Row above; `Mod+D` Fill down from the top row; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Clear cells; `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Mod+Alt+-` Delete ; `Mod+A` Select all (this field first, then the whole document); `Mod+Enter` Done; `Tab`/`Shift+Tab` Indent or outdent a list item; next cell in a table; `F2` Edit cell with cursor at end; `Shift+ArrowUp`/`Shift+ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight` Extend selection; `Space` Check or uncheck a task; `Escape` Close or deselect; `Escape` Restore cell value; `Enter`/`Shift+Enter`/`ArrowDown`/`ArrowUp`/`ArrowLeft`/`ArrowRight` Next or previous.
 - **Calculator**: `Enter` Done; `ArrowUp`/`ArrowDown` Next or previous; `Escape` Clear the line; `Mod+A` Select all (this field first, then the whole document); `Enter` Done; `Escape` Close or deselect; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `Shift+ArrowUp`/`Shift+ArrowDown` Extend selection; `ArrowUp`/`ArrowDown` Next or previous; `Mod+D` Duplicate; `Mod+A` Select all (this field first, then the whole document); `Backspace` Delete.
 - **Drawing Tool**: `V` Select; `R` Rectangle; `E` Ellipse; `D` Diamond; `L` Line; `A` Arrow; `T` Text; `K`/`Shift+K` Join two shapes; `P` Pen; `F` Freehand; `[` Rotate left; `]` Rotate right; `Enter` Edit text; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter` Done; `Escape` Close or deselect; `Backspace` Delete; `Escape` Close or deselect; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Enter` Join two shapes; `Mod+A` Select all (this field first, then the whole document); `Mod+Shift+L` Align: left; `Mod+Shift+E` Align: center; `Mod+Shift+R` Align: right; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge selected shapes; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` Tap or drag to paint; the arrow keys move, Enter paints.; `Enter`/`Space` Tap or drag to paint; the arrow keys move, Enter paints..
+- **Pinboard**: `V` Select; `N` Note; `T` Text; `F` Frame; `P` Pen; `A` Arrow; `Enter` Edit text; `Mod+D` Duplicate; `Delete`/`Backspace` Delete; `Escape` Close or deselect; `Mod+A` Select all (this field first, then the whole document); `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown` Nudge selected shapes.
 - **Diagram Maker**: `Alt+ArrowUp` Move up; `Alt+ArrowDown` Move down; `Tab` Indent; `Shift+Tab` Outdent; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `Enter`/`Space` Edit; `Mod+Alt+ArrowLeft` Move left; `Mod+Alt+ArrowRight` Move right; `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight` Next or previous; `ArrowDown`/`ArrowRight` Next or previous; `Escape` Close or deselect; `Mod+Enter` Done.
 - **Animator**: `Space` Play; `K` Add keyframe; `Enter` Edit text; `Mod+D` Duplicate; `Mod+C` Copy; `Mod+X` Cut; `Mod+V` Paste; `Delete`/`Backspace` Delete; `,`/`.` Previous or next frame; `Home`/`End` First or last frame; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Mod+ArrowLeft`/`Mod+ArrowRight`/`Mod+ArrowUp`/`Mod+ArrowDown` Nudge selected shapes, or step one frame; `Mod+A` Select all (this field first, then the whole document); `Escape` Close or deselect.
 - **Calendar**: `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Edit dates; `Tab`/`Shift+Tab` Indent or outdent a list item; next cell in a table; `Alt+ArrowUp`/`Alt+ArrowDown` Move the selected items up or down; `ArrowUp`/`ArrowDown` Next or previous; `Mod+D` Duplicate; `Mod+Enter` Check or uncheck a task; `Mod+Alt+ArrowLeft` A day earlier; `Mod+Alt+ArrowRight` A day later; `Alt+Enter` Edit dates; `Enter` Event; `Escape` Close or deselect; `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown`/`Shift+ArrowLeft`/`Shift+ArrowRight`/`Shift+ArrowUp`/`Shift+ArrowDown`/`Home`/`End`/`PageUp`/`PageDown` Next or previous; `Delete`/`Backspace` Delete; `Mod+D` Duplicate.

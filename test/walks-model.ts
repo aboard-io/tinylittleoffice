@@ -31,7 +31,7 @@ export interface Model {
 export const FAMILIES: Record<string, string[]> = {
   text: ['write', 'outline', 'deck'],
   grid: ['sheet', 'cal', 'calc'],
-  canvas: ['draw', 'diagram', 'anim'],
+  canvas: ['draw', 'pinboard', 'diagram', 'anim'],
   lists: ['trip'],
 };
 /** The scopes in force in every app: the page's, the words', the rows'. */

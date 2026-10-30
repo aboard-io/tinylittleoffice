@@ -205,6 +205,21 @@ line) holds the row numbers of the two shapes in X and Y; `Points` and `Rot` col
 `r o e d h p c n t i l a v w k j`. Head: `alt:`. Pixel art is `grid: 16` in the head and one paragraph of letters
 (a to h the inks, `.` clear), a line a row; `tile:` in the head is a background.
 
+**pinboard** (Pinboard): a table `Id | Kind | X | Y | W | H | Color | Words` in whole pixels on a board without
+edges, a row per thing, each with an id of its own. Kinds: `note`, `text`, `frame` (drawn behind the rest), `picture`,
+`pen` (its Words its corners, `x:y` hundredths of its box, `;` between) and the joins `arrow` and `line`, whose X and Y
+are the ids of the two things joined. Color: `yellow orange pink purple blue green`, or blank. A picture's bytes are its
+host's image fence after the table, carrying the row's id, `{#p1 alt="…" w=1280 h=720}`.
+
+```
+Id | Kind | X | Y | W | H | Color | Words
+--- | --- | --- | --- | --- | --- | --- | ---
+act1 | frame | 0 | 0 | 680 | 400 | blue | Act one
+n1 | note | 24 | 56 | 200 | 150 |  | Jeff **watches** the windows
+n2 | note | 248 | 56 | 200 | 150 | pink | Lisa
+a1 | arrow | n1 | n2 |  |  |  | sees
+```
+
 **anim** (Animator): a drawing, plus a table `Shape | Keys` (the shape's row number; keys
 `frame,dx,dy,depth,size,spin[,effects]` between `; `). Head: `frames`, `fps`, `loop` (`once`, a number, `bounce`).
 

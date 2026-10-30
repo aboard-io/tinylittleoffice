@@ -3516,3 +3516,69 @@ board-candidates-from-application-to-hire = درخواست سے نوکری تک 
 board-content-calendar = کنٹینٹ کیلنڈر
 # en: 0f84e77fda32b99ff2b28eebd7adca162dcf5f93
 board-pieces-from-idea-to-published = خیال سے اشاعت تک کی تحریریں، چینل، لکھنے والے اور تاریخ کے ساتھ۔
+
+## the Pinboard
+
+# en: bb800a7fb7594847691e68fddf04d3773def7a18
+common-pinboard = پن بورڈ
+# en: 0d1e635fe075f4bd82d894c4dd92129b48f0f9a1
+pinboard-pinboard = پن بورڈ
+# en: 4b0d57036ca975b267a3b191da5e825b659958aa
+pinboard-notes-pictures-frames-and-arrows = بغیر کناروں کے بورڈ پر چپکنے والے نوٹ، تصویریں، فریم اور تیر، مل کر لگانے اور بنانے کے لیے۔
+# en: 8598222918d3c6e513d63060cf55e2971ded729a
+pinboard-select = چنیں
+# en: 91b0658329efa06d4da89c23a162b41dfcee5202
+pinboard-frame = فریم
+# en: cf6c07e7054fad4d6a8affaf62f285e16525c46e
+pinboard-pen = قلم
+# en: 3a4758c3cc8dac2d76026d0733816741f9b21d43
+pinboard-arrow = تیر
+# en: 54076359fdc7f1f0e000b9ae15b96f8b09866acb
+pinboard-pink = گلابی
+# en: 2650fe50995b55bcff1a125aa230176fe066818a
+pinboard-describe-picture = تصویر بیان کریں
+# en: b65463cb6a42a17de514acc4659f7fd331e0876a
+pinboard-connect = جوڑیں
+# en: e6870bf25ae91b8017124f5e4d00b70618bd07b7
+pinboard-arrowhead = تیر کی نوک
+# en: 1f65ed95fba62cd5b74b58c2ca9ba63448117160
+pinboard-bring-to-front = سامنے لائیں
+# en: 7aec8a4fdaf3b52226748735cb704f7b5016bf50
+pinboard-fit-everything = سب دکھائیں
+# en: d1f8e5ea93b2f5a69528707c67d3952e9002539b
+pinboard-in-hand = انتخاب
+# en: b2e293c76c7731ba173d848e00aa6bfd36b87c44
+pinboard-empty-board = ایک خالی پن بورڈ
+# en: 57153d4279332cc3994f85cdc1dbdac4304316fa
+pinboard-board-of-n-things = { $n ->
+        [one] ایک چیز والا پن بورڈ
+       *[other] { $n } چیزوں والا پن بورڈ
+    }
+# en: 189f828ef6c4b9bacfc42903899c80157ca84ec1
+pinboard-frames-named = فریم: { $frames }
+# en: 2373ff3116eac10b4931eca349c12138b75b2666
+pinboard-hint-select = گھومنے کے لیے بورڈ کھینچیں؛ کئی چننے کے لیے Shift کے ساتھ کھینچیں
+# en: a92ceecdf2a7834f25ce9da27d4abe6197a6d920
+pinboard-hint-chosen = ہلانے کے لیے کھینچیں، سائز کے لیے کونا؛ الفاظ بدلنے کے لیے ڈبل کلک کریں
+# en: 2b358085bf406818fa241418d564857fc948c610
+pinboard-hint-place = ایک رکھنے کے لیے بورڈ پر ٹیپ کریں، یا سائز دینے کے لیے کھینچیں
+# en: cda6444462a4646cc06684bfab64a74da24e1ddc
+pinboard-hint-pen = بنانے کے لیے کھینچیں
+# en: 7fdf4e064a95bf3ccefbe13ab3ce667971cbfb23
+pinboard-hint-arrow = ایک چیز پر دبائیں اور دوسری پر چھوڑیں
+# en: 23737166fd43ec967af7935ac1ceaa03b56ef7fb
+pinboard-hint-typing = الفاظ ٹائپ کریں؛ Enter سے مکمل
+# en: bd541f35fbfa68a16c98c47f56aff6c308052ab7
+pinboard-hint-read = گھومنے کے لیے کھینچیں؛ زوم کے لیے چٹکی لیں، یا Ctrl اور اسکرول
+# en: 252c71587a9461d297f6081c2d14e293a05c3d5d
+pinboard-film-board = فلم بورڈ
+# en: ff3eb5186aa2e79d7e732d18868ec89ae6dd9bf3
+pinboard-film-board-blurb = ریئر ونڈو پر ایک سیمینار کا بورڈ: ایکٹ، سراغ، موٹیف اور سوال۔
+# en: ee196991492736e68decf4218ba45b6e49d1266c
+pinboard-mood-board = موڈ بورڈ
+# en: a0cc8242329729e194a5e4b888017c5d739b5f3a
+pinboard-mood-board-blurb = ایک مختصر فلم کے رنگ، روشنی، آواز اور جگہیں، ہر ایک کا اپنا فریم۔
+# en: 0bd923f64e464c2afdba58b6bac8ea1abf96b376
+pinboard-retro = جائزہ
+# en: 85bd05a9371268fbb1d5f8ca56948194525b0e6d
+pinboard-retro-blurb = کیا اچھا رہا، کیا نہیں، اور آگے کیا آزمائیں، ہر مسئلہ اپنے حل سے جڑا۔

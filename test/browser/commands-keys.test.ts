@@ -147,6 +147,13 @@ const PLACES: Record<string, Record<string, Place[]>> = {
     ],
     pixels: [{ tpl: 'draw:flowchart', set: (ed) => ed.setMode(8), at: (ed) => ed.querySelector('.draw-wrap') }],
   },
+  pinboard: {
+    canvas: [
+      { tpl: 'pinboard:retro', at: (ed) => ed.querySelector('.pin-wrap') },
+      { tpl: 'pinboard:retro', set: (ed) => (ed.picked = ['w1']), at: (ed) => ed.querySelector('.pin-wrap') },
+      { tpl: 'pinboard:retro', set: (ed) => (ed.tool = 'note'), at: (ed) => ed.querySelector('.pin-wrap') },
+    ],
+  },
   diagram: {
     thing: [1, 2, 3, 5].flatMap((i) => [
       { tpl: 'diagram:mind-launch', at: (ed: Ed) => ed.querySelectorAll('.dg-pic g.dg-thing')[i] },

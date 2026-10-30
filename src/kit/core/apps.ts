@@ -14,6 +14,7 @@ import { siteOf } from './route.ts';
 import write from '../../apps/write/def.ts';
 import sheet from '../../apps/sheet/def.ts';
 import draw from '../../apps/draw/def.ts';
+import pinboard from '../../apps/pinboard/def.ts';
 import outline from '../../apps/outline/def.ts';
 import deck from '../../apps/deck/def.ts';
 import cal from '../../apps/cal/def.ts';
@@ -25,7 +26,7 @@ import { QR_LANG, qrPicture } from '../draw/qr-picture.ts';
 import { IMAGE_LANG, imagePicture } from '../draw/image-picture.ts';
 import { LOCKED_LANG, lockedDoc } from '../share/locked.ts';
 
-const SUITE: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, cal, trip];
+const SUITE: AppDef[] = [write, outline, deck, sheet, calc, draw, pinboard, diagram, anim, cal, trip];
 /** The suite's apps, then those registered from outside it. */
 const ALL: AppDef[] = [...SUITE];
 

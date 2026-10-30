@@ -1,0 +1,123 @@
+/* Pinboard: the board fills the column under the bar and the hint, the words typed over their thing, the bar of a board only shown. */
+@layer apps {
+  /* The board fills the column: no room below it for a caret at the middle (page.css .to-main.to-wide). */
+  .to-main:has(> to-pinboard-editor) {
+    padding-bottom: var(--to-gutter);
+  }
+  to-pinboard-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* One line, always there, so the board never jumps when the hand changes. */
+  .pin-hint {
+    margin: 0;
+    padding: 0.25rem 0 0.5rem;
+    min-height: 1.6em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* A board only shown has its zoom alone, at the end of a row of its own. */
+  .pin-read-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+  }
+  /* The board is the page: no frame round it, to the screen's edges on a phone, as tall as the column below the bar. */
+  .pin-wrap {
+    position: relative;
+    overflow: hidden;
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
+    height: calc(var(--to-col-h) - 5.875rem);
+    min-height: 12.5rem;
+  }
+  .pin-wrap:focus-visible {
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
+  }
+  svg.pin-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--to-surface);
+    /* Every finger is the board's: one moves it or what it presses, two zoom it (the editor reads them). */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+  }
+  svg.pin-canvas.panning {
+    cursor: grabbing;
+  }
+  svg.pin-canvas.tool {
+    cursor: crosshair;
+  }
+  svg.pin-canvas .pin-item {
+    cursor: move;
+  }
+  /* A frame is taken by its title strip and its edge; inside it, the board (and what it holds). */
+  svg.pin-canvas .pin-frame {
+    cursor: default;
+  }
+  svg.pin-canvas .pin-frame .pin-hit {
+    cursor: move;
+  }
+  svg.pin-canvas .pin-handle {
+    cursor: nwse-resize;
+  }
+  svg.pin-canvas text {
+    font-family: var(--to-font);
+    pointer-events: none;
+  }
+  to-pinboard-editor[readonly] svg.pin-canvas .pin-item {
+    cursor: inherit;
+  }
+  /* The words, typed on the thing itself: an overlay at the thing's own font and the size it is shown (set at 16px or
+     more and scaled, so iOS does not zoom); the editor places it (placeWords). */
+  .pin-words {
+    position: absolute;
+    display: block;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0.125rem;
+    background: transparent;
+    color: var(--to-ink);
+    outline: 1px solid var(--to-accent);
+    outline-offset: 0.125rem;
+    font-family: var(--to-font);
+    line-height: 1.3;
+    transform-origin: 0 0;
+    cursor: text;
+    touch-action: manipulation;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  /* On a note the words are dark, whatever the theme: a note is paper. */
+  .pin-words.pin-on-paper {
+    color: #1f2937;
+  }
+  /* A picture's description is typed on a card under it. */
+  .pin-words.pin-alt {
+    background: var(--to-surface);
+    padding: 0.25rem 0.375rem;
+  }
+  .pin-words > :not(.tx) {
+    position: absolute;
+  }
+  .pin-words .tx {
+    min-height: 0;
+    font-size: inherit;
+    line-height: 1.3;
+  }
+  .pin-words .tx > * {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .pin-words[hidden] {
+    display: none;
+  }
+}

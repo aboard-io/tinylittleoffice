@@ -145,6 +145,10 @@ export const SHAPES: Record<string, Shape[]> = {
     { id: 'pixels', name: 'pixel art', for: 'a picture a square at a time: grid: 16, a letter a square', has: (d) => !!d.head.grid },
     { id: 'tile', name: 'a repeating tile', for: 'a pattern behind a drawing: tile: in the head', has: (d) => !!d.head.tile },
   ],
+  pinboard: [
+    { id: 'frames', name: 'frames of notes', for: 'ideas gathered: frame rows, note rows inside them', has: (d) => ['frame', 'note'].every((k) => tables(d)[0]?.rows.some((r) => r[1] === k)) },
+    { id: 'arrows', name: 'arrows between things', for: 'what leads to what: an arrow row, X and Y the ids it joins', has: (d) => tables(d)[0]?.rows.some((r) => r[1] === 'arrow') ?? false },
+  ],
   diagram: [
     { id: 'mind', name: 'a mind map', for: 'ideas branching from one: kind: mind, a nested list', has: kindIs('mind') },
     { id: 'org', name: 'an org chart', for: 'who reports to whom: kind: org, - Name | Role', has: kindIs('org') },
