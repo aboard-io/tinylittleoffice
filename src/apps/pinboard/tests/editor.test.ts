@@ -1,6 +1,6 @@
 // The Pinboard's editor in a real browser: a tool and a tap pin a note and type its words, a drag moves it as cells on
 // its X and Y, a frame carries what it holds, the arrow tool joins two things, the pen draws, the context bar colors,
-// connects, duplicates, brings to front and deletes, the keys nudge and step out, the board pans and zooms and fits,
+// connects, duplicates, brings to front and deletes, cut, copy and paste keep what is in hand, the keys nudge and step out, the board pans and zooms and fits,
 // a picture pasted or chosen goes to the host and is pinned, read-only only moves and zooms, and two editors sharing
 // one document through docops and applyRemote end with one board.
 import { expect, test } from 'vitest';
@@ -238,6 +238,57 @@ test('the handle resizes; double-click types a frame’s title; the context bar 
   // Mod+A takes everything.
   await key(el, 'a', { ctrlKey: true });
   expect(el.chosen.length).toBe(board(last()).items.length);
+});
+
+test('cut, copy and paste: what is in hand kept in the page, the clipboard given its words; a frame takes what it holds and the arrows between', async () => {
+  const { el, last } = await editor();
+  const writes: string[] = [];
+  const was = navigator.clipboard?.writeText;
+  if (navigator.clipboard) navigator.clipboard.writeText = async (s: string) => void writes.push(s);
+  try {
+    await press(el, 100, 100);
+    await until(() => !!ctxButton(el, 'Copy'));
+    ctxButton(el, 'Copy')!.click();
+    await el.updateComplete;
+    expect(el.clip!.text).toBe('Jeff watches');
+    if (navigator.clipboard) expect(writes).toEqual(['Jeff watches']);
+    // A paste of those words, the board in focus: the note again, a little along.
+    wrap(el).focus();
+    const dt = new DataTransfer();
+    dt.setData('text/plain', 'Jeff watches');
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    await el.updateComplete;
+    expect(
+      board(last())
+        .items.filter((i) => i.words === 'Jeff watches')
+        .map((i) => [i.x, i.y]),
+    ).toEqual([
+      [40, 60],
+      [64, 84],
+    ]);
+    // Mod+V with no paste after it (Safari, to a canvas): again, further along.
+    await key(el, 'v', { ctrlKey: true });
+    await until(() => board(last()).items.filter((i) => i.words === 'Jeff watches').length === 3);
+    expect(board(last()).items.at(-1)).toMatchObject({ x: 88, y: 108 });
+    // Cut the frame: it goes with all it holds and the arrow; pasted, it is back where it was, joined as before.
+    await press(el, 300, 15);
+    expect(el.chosen).toEqual(['f1']);
+    ctxButton(el, 'Cut')!.click();
+    await el.updateComplete;
+    expect(board(last()).items.map((i) => i.id)).toEqual(['n3']);
+    await press(el, 750, 100);
+    await until(() => !!ctxButton(el, 'Paste'));
+    ctxButton(el, 'Paste')!.click();
+    await el.updateComplete;
+    const after = board(last());
+    expect(after.items.find((i) => i.k === 'frame')).toMatchObject({ x: 0, y: 0, words: 'Act one' });
+    const arrow = after.items.find((i) => i.k === 'arrow')!;
+    expect([after.byId.get(arrow.from!)!.words, after.byId.get(arrow.to!)!.words]).toEqual(['Jeff watches', 'Lisa']);
+    expect(after.items).toHaveLength(7);
+    expect(el.chosen).toHaveLength(6);
+  } finally {
+    if (navigator.clipboard && was) navigator.clipboard.writeText = was;
+  }
 });
 
 test('Insert ▾ puts a note, words and a frame in the middle; the frame and text tools place one; the arrow joins two; the pen draws', async () => {

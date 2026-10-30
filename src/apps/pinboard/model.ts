@@ -437,35 +437,52 @@ export function removeItems(doc: Doc, ids: string[]): Op[] {
   return b.ops;
 }
 
-/** Copies of things (and the joins among them), `by` pixels down and to the right, on top; `ids` are the copies'. */
-export function duplicateItems(doc: Doc, ids: string[], by = 24, rand: () => number = Math.random): { ops: Op[]; ids: string[] } {
+/** Things lifted off the board to be put down again (cut, copy, duplicate): the things, the joins among them, and the pictures' fences. */
+export interface Clip {
+  items: Item[];
+  joins: Item[];
+  fences: FenceBlock[];
+}
+
+/** The things of these ids (no joins), the joins between two of them, and their pictures' fences. */
+export function clipOf(doc: Doc, ids: string[]): Clip {
   const v = readBoard(doc);
   const pick = new Set(ids);
-  const things = v.items.filter((i) => pick.has(i.id) && !isJoin(i.k));
-  if (!things.length) return { ops: [], ids: [] };
-  const taken = new Set(v.items.map((i) => i.id));
-  const now = new Map<string, string>();
-  for (const it of things) {
-    const id = newId(it.k, taken, rand);
-    taken.add(id);
-    now.set(it.id, id);
-  }
-  const joins = v.items.filter((i) => isJoin(i.k) && now.has(i.from!) && now.has(i.to!));
-  const copies: NewItem[] = [
-    ...things.map((it) => ({ ...it, id: now.get(it.id)!, x: it.x + by, y: it.y + by })),
-    ...joins.map((j) => {
-      const id = newId(j.k, taken, rand);
-      taken.add(id);
-      return { ...j, id, from: now.get(j.from!), to: now.get(j.to!) };
-    }),
-  ];
-  const fences = things.flatMap((it): FenceBlock[] => {
+  const items = v.items.filter((i) => pick.has(i.id) && !isJoin(i.k));
+  const kept = new Set(items.map((i) => i.id));
+  const joins = v.items.filter((i) => isJoin(i.k) && kept.has(i.from!) && kept.has(i.to!));
+  const fences = items.flatMap((it): FenceBlock[] => {
     const at = v.fences.get(it.id);
     const f = at === undefined ? undefined : (doc.blocks[at] as FenceBlock);
-    return f ? [{ ...f, a: { ...f.a, id: now.get(it.id)! } }] : [];
+    return f ? [f] : [];
+  });
+  return { items, joins, fences };
+}
+
+/** A clip put down (dx, dy) from where it was taken, on top, every thing and join with a new id; `ids` are the copies'. */
+export function pasteItems(doc: Doc, clip: Clip, dx: number, dy: number, rand: () => number = Math.random): { ops: Op[]; ids: string[] } {
+  if (!clip.items.length) return { ops: [], ids: [] };
+  const taken = new Set(readBoard(doc).items.map((i) => i.id));
+  const fresh = (k: Kind) => {
+    const id = newId(k, taken, rand);
+    taken.add(id);
+    return id;
+  };
+  const now = new Map<string, string>();
+  for (const it of clip.items) now.set(it.id, fresh(it.k));
+  const copies: NewItem[] = [
+    ...clip.items.map((it) => ({ ...it, id: now.get(it.id)!, x: it.x + dx, y: it.y + dy })),
+    ...clip.joins.map((j) => ({ ...j, id: fresh(j.k), from: now.get(j.from!), to: now.get(j.to!) })),
+  ];
+  const fences = clip.fences.flatMap((f): FenceBlock[] => {
+    const id = now.get(f.a?.id ?? '');
+    return id ? [{ ...f, a: { ...f.a, id } }] : [];
   });
   return { ops: addItems(doc, copies, fences), ids: copies.map((c) => c.id) };
 }
+
+/** Copies of things (and the joins among them), `by` pixels down and to the right, on top; `ids` are the copies'. */
+export const duplicateItems = (doc: Doc, ids: string[], by = 24, rand: () => number = Math.random): { ops: Op[]; ids: string[] } => pasteItems(doc, clipOf(doc, ids), by, by, rand);
 
 /** Things brought to the front (drawn last among their kind), keeping their order among themselves: each row taken out and put back at the end. */
 export function toFront(doc: Doc, ids: string[]): Op[] {

@@ -34,7 +34,7 @@ test('by the keys: the first has the focus, Down and Enter choose; Blank is a ne
 
 test('every app’s templates under its name; Escape lets it go, and it resolves null', async () => {
   const picked = pickTemplate();
-  await until(() => document.querySelectorAll('to-template-picker .to-tp-group').length === 10, 'not every app');
+  await until(() => document.querySelectorAll('to-template-picker .to-tp-group').length === 11, 'not every app');
   expect(document.querySelector('to-template-picker .to-tp-group h3')!.textContent).toBe('Word Processor');
   await userEvent.keyboard('{Escape}');
   expect(await picked).toBeNull();

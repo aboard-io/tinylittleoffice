@@ -536,6 +536,9 @@ whose rows are the document's own data (the sheet's column kinds, the formula fu
 |  | Arrowhead | context |
 |  | Bring to front | context |
 | `Mod+D` | Duplicate | context, at: canvas |
+| `Mod+X` | Cut | context, at: canvas |
+| `Mod+C` | Copy | context, at: canvas |
+| `Mod+V` | Paste | context, at: canvas |
 | `Delete`, `Backspace` | Delete | context, at: canvas |
 | `Escape` | Close or deselect | keys only, at: canvas |
 | `Mod+A` | Select all (this field first, then the whole document) | keys only, at: canvas |

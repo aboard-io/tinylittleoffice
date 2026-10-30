@@ -2,10 +2,10 @@
  * The Pinboard's commands (kit/core/commands.ts), its editor the context. The bar: Insert ▾ (a note, words, a frame,
  * and a picture where the page keeps pictures), the tools with their letters, the zoom and Fit everything. The
  * context bar under what is in hand: its colors | edit its words (or describe a picture), connect two, an arrowhead on
- * a join | bring to front, duplicate | delete. The canvas's keys: the letters pick tools, never from a bar button, a
- * field or the words; Escape steps out; Mod+A, Mod+D; Enter edits the words; the arrows nudge (Shift by ten).
+ * a join | bring to front, duplicate | cut, copy, paste | delete. The canvas's keys: the letters pick tools, never from a bar button, a
+ * field or the words; Escape steps out; Mod+A, Mod+D, Mod+X, Mod+C, Mod+V; Enter edits the words; the arrows nudge (Shift by ten).
  */
-import { ArrowUpToLine, Copy, Frame, Image, MousePointer2, MoveRight, Pencil, Scan, Spline, StickyNote, Tag, Trash2, Type, ZoomIn, ZoomOut } from 'lucide';
+import { ArrowUpToLine, ClipboardCopy, ClipboardPaste, Copy, Frame, Image, MousePointer2, MoveRight, Pencil, Scan, Scissors, Spline, StickyNote, Tag, Trash2, Type, ZoomIn, ZoomOut } from 'lucide';
 import { register, type Command, commandsOf } from '../../kit/core/commands.ts';
 import { t } from '../../kit/core/i18n.ts';
 import { UI } from '../../kit/draw/icons.ts';
@@ -90,6 +90,18 @@ const ACT: Command<Pb>[] = [
     when: has,
     disabled: (d) => d.chosenItems.every((i) => isJoin(i.k)),
     does: (d) => d.duplicateSel(),
+  }),
+  cmd('cut', 'common-cut', { at: 'canvas', icon: Scissors, keys: 'Mod+X', where: ['context'], group: 'clip', when: has, does: (d) => d.copySel(true) }),
+  cmd('copy', 'common-copy', { at: 'canvas', icon: ClipboardCopy, keys: 'Mod+C', where: ['context'], group: 'clip', when: has, does: (d) => d.copySel(false) }),
+  cmd('paste', 'common-paste', {
+    at: 'canvas',
+    icon: ClipboardPaste,
+    keys: 'Mod+V',
+    native: true,
+    where: ['context'],
+    group: 'clip',
+    when: (d) => !!d.clip && d.editing === null && !d.readOnly,
+    does: (d) => d.pasteClip(),
   }),
   cmd('delete', 'common-delete', { at: 'canvas', icon: Trash2, keys: 'Delete / Backspace', where: ['context'], group: 'delete', when: has, does: (d) => d.removeSel() }),
 ];

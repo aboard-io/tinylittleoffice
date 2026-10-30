@@ -792,7 +792,7 @@ test('on a phone, every app’s Undo is on screen wherever its bar is scrolled',
   await page.viewport(...SIZES.phone);
   await coarse(true);
   const all = Object.entries(FAMILIES).flatMap(([family, ids]) => ids.map((app) => [app, family] as const));
-  expect(all.length).toBe(10);
+  expect(all.length).toBe(11);
   for (const [app, family] of all) {
     const { real } = await start(app, family, 'phone');
     current = real;

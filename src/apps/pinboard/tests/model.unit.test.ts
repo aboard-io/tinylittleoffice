@@ -9,6 +9,7 @@ import {
   addPicture,
   boardText,
   boundsOf,
+  clipOf,
   duplicateItems,
   frameHolds,
   itemsWithin,
@@ -16,6 +17,7 @@ import {
   joinItems,
   moveItems,
   newId,
+  pasteItems,
   patchItem,
   penStroke,
   readBoard,
@@ -121,6 +123,33 @@ test('duplicates are new ids, a step along, the joins among them copied; bring t
   const front = toFront(d, ['n1']);
   expect(readBoard(applyAll(d, front)).items.map((i) => i.id)).toEqual(['f1', 'n2', 'a1', 'n3', 'n1']);
   expect(toFront(d, ['n3'])).toEqual([]);
+});
+
+test('a cut is lifted whole: the things, the joins between them, their pictures; put down, each has a new id', () => {
+  const d = doc();
+  const clip = clipOf(d, ['n1', 'n2', 'n3', 'a1']);
+  expect(clip.items.map((i) => i.id)).toEqual(['n1', 'n2', 'n3']);
+  expect(clip.joins.map((i) => i.id)).toEqual(['a1']);
+  // Cut: taken off the board (the arrow with them), then put down where they were, joined as before.
+  const cut = applyAll(
+    d,
+    removeItems(
+      d,
+      clip.items.map((i) => i.id),
+    ),
+  );
+  expect(readBoard(cut).items.map((i) => i.id)).toEqual(['f1']);
+  const { ops, ids } = pasteItems(cut, clip, 0, 0, () => 0.5);
+  const after = readBoard(applyAll(cut, ops));
+  const [c1, c2, , ca] = ids.map((id) => after.byId.get(id)!);
+  expect([c1.x, c1.y, c2.x, c2.y]).toEqual([40, 60, 300, 60]);
+  expect(ca).toMatchObject({ k: 'arrow', from: c1.id, to: c2.id });
+  expect(new Set(after.items.map((i) => i.id)).size).toBe(5);
+  // A picture's fence goes with it, carrying the copy's id.
+  const pic = applyAll(d, addPicture(d, { id: 'p1', k: 'picture', x: 0, y: 0, w: 320, h: 180, color: '', words: '' }, imageBlock('asset:7f3a9c', 'Yard', 1280, 720)));
+  const put = applyAll(pic, pasteItems(pic, clipOf(pic, ['p1']), 30, 30, () => 0.5).ops);
+  expect(readBoard(put).items.filter((i) => i.k === 'picture' && i.image?.ref === 'asset:7f3a9c')).toHaveLength(2);
+  expect(pasteItems(d, clipOf(d, ['a1']), 0, 0)).toEqual({ ops: [], ids: [] });
 });
 
 test('a frame holds what lies inside it; a box chooses what it holds wholly, and a join whose ends it holds', () => {

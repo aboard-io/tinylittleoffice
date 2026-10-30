@@ -7,7 +7,8 @@
  * Shift and a drag on the board chooses every thing inside the box, a drag moves what is in hand (a frame carries what
  * it holds), the corner's handle resizes it, and a double tap types its words on it (a frame's title, a picture's
  * description). The context bar under what is in hand has its colors, its words, Connect, an arrowhead, Bring to
- * front, Duplicate and Delete. A picture pasted or dropped goes to the page's host (`host.images`) and is pinned where
+ * front, Duplicate, Cut, Copy, Paste and Delete (what is cut or copied is kept in the page, a frame with what it holds,
+ * and the clipboard gets its words; a paste of those words is the things again). A picture pasted or dropped goes to the page's host (`host.images`) and is pinned where
  * it lands. Read-only, the board is moved and zoomed and nothing else. Every change is operations on the document's
  * table (model.ts), so two editors sharing one document through "docops" and `applyRemote` meet in the same board;
  * what is in hand is kept by id, so it stays in hand while others add and take away around it.
@@ -29,10 +30,13 @@ import {
   SIZES,
   addItem,
   addPicture,
+  clipOf,
   boundsOf,
   boxOf,
   drawOrder,
   duplicateItems,
+  nameOf,
+  pasteItems,
   frameHolds,
   isJoin,
   itemsWithin,
@@ -51,6 +55,7 @@ import {
   toFront,
   wordsRuns,
   type BoardView,
+  type Clip,
   type Box,
   type Color,
   type Item,
@@ -141,6 +146,12 @@ export class ToPinboardEditor extends DocElement<BoardView> {
   private wordsFrom: { words: string; alt: string; h: number } | null = null;
   private wordsTimes = 0;
   private lastTap = { id: '', at: 0 };
+  /**
+   * The things last cut or copied (kept in the page; the clipboard gets their words), where they were cut from, and how
+   * many times they were put down here since: each paste a little further along.
+   */
+  clip: (Clip & { text: string; cut: boolean; times: number }) | null = null;
+  private pasteWait = 0;
 
   constructor() {
     super();
@@ -286,6 +297,50 @@ export class ToPinboardEditor extends DocElement<BoardView> {
   duplicateSel() {
     const { ops, ids } = duplicateItems(this.doc, this.chosen);
     this.change(ops, ids);
+  }
+  /** Cut or Copy: what is in hand (a frame with what it holds, and the joins among them) kept to be put down again; the clipboard gets their words. */
+  copySel(cut: boolean) {
+    const clip = clipOf(this.doc, this.withHeld(this.chosen));
+    if (!clip.items.length) return;
+    const n = clip.items.length;
+    const text = clip.items.map(nameOf).filter(Boolean).join('\n') || t('pinboard-board-of-n-things', { n });
+    this.clip = { ...clip, text, cut, times: 0 };
+    void navigator.clipboard?.writeText(text).catch(() => undefined);
+    if (cut)
+      this.change(
+        removeItems(
+          this.doc,
+          clip.items.map((i) => i.id),
+        ),
+        [],
+      );
+  }
+  /**
+   * Paste: what was cut or copied, put down with new ids. Where it came from is in view, a little along each time (a
+   * cut, first where it was); otherwise in the middle of what is shown.
+   */
+  pasteClip() {
+    clearTimeout(this.pasteWait);
+    const c = this.clip;
+    if (!c || this.readOnly) return;
+    const x0 = Math.min(...c.items.map((i) => i.x)),
+      y0 = Math.min(...c.items.map((i) => i.y));
+    const x1 = Math.max(...c.items.map((i) => i.x + i.w)),
+      y1 = Math.max(...c.items.map((i) => i.y + i.h));
+    const [mx, my] = this.middle();
+    const [hw, hh] = this.size.map((s) => s / 2 / this.zoom);
+    const near = Math.abs((x0 + x1) / 2 - mx) < hw && Math.abs((y0 + y1) / 2 - my) < hh;
+    let dx: number, dy: number;
+    if (near) {
+      dx = dy = (c.cut ? 0 : 24) * ++c.times;
+    } else {
+      c.times = 0;
+      [dx, dy] = [Math.round(mx - (x0 + x1) / 2), Math.round(my - (y0 + y1) / 2)];
+    }
+    c.cut = false;
+    const { ops, ids } = pasteItems(this.doc, c, dx, dy);
+    this.change(ops, ids);
+    this.tool = 'select';
   }
   front() {
     this.change(toFront(this.doc, this.chosen));
@@ -585,6 +640,11 @@ export class ToPinboardEditor extends DocElement<BoardView> {
   private onKey = (e: KeyboardEvent) => {
     const at = e.composedPath()[0] as HTMLElement;
     if (e.defaultPrevented || !at.classList?.contains('pin-wrap') || this.readOnly) return;
+    // Mod+V is the browser's (a paste event, onPaste); where none comes (Safari, to a canvas), what was copied anyway
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'v' && this.clip && this.editing === null) {
+      clearTimeout(this.pasteWait);
+      this.pasteWait = window.setTimeout(() => this.pasteClip(), 150);
+    }
     runKey(e, CANVAS_KEYS, this);
   };
   /** Insert ▾ Picture…: a file from the device, pinned in the middle of what is shown. */
@@ -605,9 +665,15 @@ export class ToPinboardEditor extends DocElement<BoardView> {
     this.change(addPicture(this.doc, { id, k: 'picture', x: Math.round(at[0] - w / 2), y: Math.round(at[1] - h / 2), w, h, color: '', words: '' }, fence), [id]);
     this.tool = 'select';
   }
-  /** A picture pasted goes to the host; words pasted are a note. Only while the board has the focus. */
+  /** Things copied here are pasted as themselves; a picture pasted goes to the host; words pasted are a note. Only while the board has the focus. */
   private onPaste = (e: ClipboardEvent) => {
     if (this.readOnly || this.editing || document.activeElement !== this.querySelector('.pin-wrap')) return;
+    clearTimeout(this.pasteWait);
+    // the clipboard still holding the words of what was copied here: those things (anything newer is pasted as itself)
+    if (this.clip && !e.clipboardData?.files?.length && (e.clipboardData?.getData('text/plain') ?? '') === this.clip.text) {
+      e.preventDefault();
+      return void this.pasteClip();
+    }
     const file = [...(e.clipboardData?.files ?? [])].find((f) => f.type.startsWith('image/'));
     if (file) {
       e.preventDefault();
