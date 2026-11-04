@@ -122,7 +122,7 @@ as the site (docs/library.md), through five more entry points, each built by `np
   `tinylittleoffice/board/model` (`dist/board-model.js`, which imports the kernel from `dist/doc.js`). Its words are in
   the editors' languages (docs/library.md, The library's own apps). A page sets on the editor what a card shows
   (`cardFields`), each lane's kind (`laneTone`: won, lost), each lane's look (`laneLook`: narrow or wide, collapsed to
-  a strip, a color of the palette: blue, green, amber, red, violet, teal, gray) and each card's (`cardLook`: a tone),
+  a strip, a color of the palette: blue, green, amber, red, violet, teal, gray) and each card's (`cardLook`: a tone, and an icon before its title),
   and hears each change to a lane before it is made (`lanerename`, `laneadd`, `lanemove`, `lanedelete`, `lanelook`); a
   board document keeps its lanes' looks itself, in the head's `lane-looks:` beside `lanes:` (the model's
   `setLaneLook`, and `boardDoc`'s fourth argument), and a lane is reordered from its menu or by dragging its head.

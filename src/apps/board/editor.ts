@@ -100,8 +100,9 @@
  * was made as it came (a drag's when it is let go), told and written as any look is, so letting the lane go is the end
  * of shaping it and saves nothing; a page keeps the look where it keeps it (the document's `lane-looks:`, or for a
  * page that answers `laneLook`, its own store). A card's look is the page's alone
- * (`cardLook(card)`: `{ tone }`, a palette color or the page's own), drawn as `data-tone` on the card: a stale deal
- * tinted amber.
+ * (`cardLook(card)`: `{ tone, icon }`, a palette color or the page's own, drawn as `data-tone` on the card: a stale
+ * deal tinted amber; and a picture's address, drawn small before the title, a deal's company's logo, hidden when it
+ * does not load).
  *
  * A lane is reordered by dragging its head, wherever a lane may be changed: a mouse's press on it, outside its buttons,
  * its dots and its name while that is a field, carries the lane once it has moved 6px (a double click still renames), a finger's
@@ -186,9 +187,14 @@ export type PickedCard = { at: number; row: number };
  */
 /** What kind a lane is, as a page says it (`laneTone`): won, lost, neutral, or a kind of the page's own, drawn by its own rules on `data-tone`. */
 export type LaneTone = 'won' | 'lost' | 'neutral' | (string & {});
-/** How a card looks beyond its fields, as a page says it (`cardLook`): its tone, one of the Board's palette (model.ts `LANE_COLORS`) or the page's own, drawn as `data-tone` on the card. */
+/**
+ * How a card looks beyond its fields, as a page says it (`cardLook`): its tone, one of the Board's palette (model.ts
+ * `LANE_COLORS`) or the page's own, drawn as `data-tone` on the card; and its icon, a picture's address the page
+ * gives (a company's logo), drawn small before the title, and not at all when it does not load.
+ */
 export interface CardLook {
   tone?: string | null;
+  icon?: string | null;
 }
 /** The palette's colors as a lane's dots show them: the stylesheet's own (style.css, `--to-board-tone`), in the light theme. */
 const SWATCHES: Record<string, string> = {
@@ -1937,10 +1943,24 @@ export class ToBoardEditor extends DocElement<BoardView> {
       @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(c, e.detail.dir))}
       @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}
     ></to-text>`;
+    const look = this.cardLook?.(c);
+    const titled = look?.icon
+      ? html`<div class="board-titled">
+          <img
+            class="board-icon"
+            src=${look.icon}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            @load=${(e: Event) => ((e.currentTarget as HTMLImageElement).hidden = false)}
+            @error=${(e: Event) => ((e.currentTarget as HTMLImageElement).hidden = true)}
+          />${title}
+        </div>`
+      : title;
     return html`<li
       class="board-card ${c.row === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${c.row === this.carrying ? 'dragging' : ''} ${c.row === this.lifting ? 'lifting' : ''}"
       data-row=${c.row}
-      data-tone=${this.cardLook?.(c)?.tone || nothing}
+      data-tone=${look?.tone || nothing}
       ?readonly=${this.carryOnly}
       aria-label=${c.title || '–'}
       aria-description=${t('board-card-n-tap-chooses-it', { n, lane })}
@@ -1948,7 +1968,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
       @click=${(e: MouseEvent) => this.cardTap(c, e)}
       @dblclick=${(e: MouseEvent) => !this.pickable && !(e.target as HTMLElement).closest?.('to-text:not([readonly] *)') && this.openCard(c.row)}
     >
-      ${this.face(c, title)}
+      ${this.face(c, titled)}
     </li>`;
   }
   /** Where the carried card would land in lane `i`, as a slot its height among the lane's cards: the place before which other card, or the end; -1 for none here. */

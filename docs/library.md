@@ -795,9 +795,11 @@ lanes). Before it came here it was a package of its own on the kit, and its sour
     any look is, so letting it go is the end of shaping it and saves nothing: a look is kept where the page keeps it,
     the document's `lane-looks:`, or for a page that answers `laneLook` its own store (a CRM keeps a lane's width and
     fold per browser).
-  - **A card's look** (`cardLook`, a property: `(card) => CardLook | null`, CardLook `{ tone?: string }`): drawn on the
-    card as `data-tone`; a palette color tints the card lightly with a rule along its start (a stale deal amber), and
-    any other tone is the page's to draw.
+  - **A card's look** (`cardLook`, a property: `(card) => CardLook | null`, CardLook `{ tone?: string; icon?: string }`): the tone
+    drawn on the card as `data-tone`; a palette color tints the card lightly with a rule along its start (a stale deal
+    amber), and any other tone is the page's to draw. The icon, a picture's address the page gives (a deal's company's
+    logo), is drawn small (1.25rem) before the title, on its line, with no words of its own (`alt=""`: the title says
+    it), and hidden when it does not load.
   - **A lane dragged by its head**, wherever a lane may be changed (`own-lanes` too): a mouse's press on the head,
     outside its buttons, its dots and its name while that is a field, carries the lane once it has moved 6px (a double
     click still puts it in hand); a finger's once held still 200ms and then moved. A ghost of the head follows the

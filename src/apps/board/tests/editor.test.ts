@@ -1859,7 +1859,7 @@ test('a lane’s own from the drawer’s search, on the lane in hand or the care
   expect(lanes(el)[1].hasAttribute('data-collapsed')).toBe(false);
 });
 
-test('a lane’s look as the page says it (laneLook) over the document’s, laneTone winning for the color; a card’s tone as the page says it (cardLook); the page’s own lanes are told a look and nothing is written', async () => {
+test('a lane’s look as the page says it (laneLook) over the document’s, laneTone winning for the color; a card’s tone and icon as the page says them (cardLook); the page’s own lanes are told a look and nothing is written', async () => {
   const { el } = await editor(BOARD.replace('lanes: To do, Doing, Done\n', 'lanes: To do, Doing, Done\nlane-looks: Doing=wide blue\n'));
   // A width of before, in words, reads as its rem: wide is 24.
   expect(lanes(el)[1].dataset.width).toBe('24');
@@ -1885,9 +1885,22 @@ test('a lane’s look as the page says it (laneLook) over the document’s, lane
   expect(cards(el, 0)[0].dataset.tone).toBe('amber');
   expect(getComputedStyle(cards(el, 0)[0]).backgroundColor).not.toBe(plainCard);
   expect(cards(el, 1).every((c) => !c.hasAttribute('data-tone'))).toBe(true);
+  // A card's icon: a picture before its title, beside it on one line; one that does not load is hidden.
+  const dot = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="red"/></svg>');
+  el.cardLook = (c) => (c.title === 'Book the room' ? { icon: dot } : c.lane === 1 ? { icon: 'data:image/png;base64,bm90IGEgcGljdHVyZQ==' } : null);
+  await settle(el);
+  const img = cards(el, 0)[0].querySelector<HTMLImageElement>('.board-titled > img.board-icon')!;
+  expect(img.getAttribute('alt')).toBe('');
+  await expect.poll(() => img.complete && img.naturalWidth > 0).toBe(true);
+  const heading = cards(el, 0)[0].querySelector<HTMLElement>('.board-titled > .board-title')!;
+  expect(Math.abs(img.getBoundingClientRect().top - heading.getBoundingClientRect().top)).toBeLessThan(rem());
+  expect(img.getBoundingClientRect().right).toBeLessThanOrEqual(heading.getBoundingClientRect().left);
+  expect(cards(el, 2).every((c) => !c.querySelector('.board-icon'))).toBe(true);
+  await expect.poll(() => cards(el, 1)[0].querySelector<HTMLImageElement>('.board-icon')?.hidden).toBe(true);
   el.cardLook = null;
   await settle(el);
   expect(cards(el, 0)[0].hasAttribute('data-tone')).toBe(false);
+  expect(cards(el, 0)[0].querySelector('.board-icon')).toBeNull();
   // The page's own lanes: a look from a lane in hand is told, the look it would then have whole, and nothing is written here.
   Object.assign(el, { laneLook: null, laneTone: null, ownLanes: true });
   await settle(el);

@@ -418,6 +418,27 @@
   .board-title .tx[contenteditable='false'] {
     cursor: inherit;
   }
+  /* A card's icon (`cardLook`'s icon), small before its title, the title taking the rest of the line. */
+  .board-titled {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .board-titled > .board-title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .board-icon {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.0625rem;
+    object-fit: contain;
+    border-radius: 0.25rem;
+  }
+  .board-icon[hidden] {
+    display: none;
+  }
   .board-line {
     margin: 0.125rem 0 0;
     color: var(--to-ink-2);
