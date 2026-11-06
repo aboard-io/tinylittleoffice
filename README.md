@@ -62,6 +62,18 @@ npm test         # every test, under Node and in Chromium
 npm run build    # the site as it ships
 ```
 
+## Deploy with Docker
+```sh
+docker build -t tinylittleoffice docker
+docker run -d --restart=unless-stopped -p 7110:80 -e VITE_ALLOWED_HOSTS=<your_domain> --name tinylittleoffice tinylittleoffice
+```
+
+Then access from `127.0.0.1:7110`
+
+**Notes:**
+- `-e VITE_ALLOWED_HOSTS=<your_domain>` is not required if you're only accessing it from localhost.
+- Allowed hosts is a comma-separated list of domains
+
 How it is made, what it protects against and how to run your own copy are in [docs/](docs/README.md): the
 [threat model](docs/threat-model.md), the [cryptography](docs/crypto/password.md), [self-hosting](docs/self-host.md).
 When tinylittleoffice.com is down, the same tag runs on GitHub Pages at https://aboard-io.github.io/tinylittleoffice/
