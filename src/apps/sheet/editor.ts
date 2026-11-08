@@ -14,9 +14,12 @@
  * reference instead of moving there. Column widths are a view setting, not part of the document.
  *
  * It edits as docs/editing.md §4 says a grid does: a cell reached is selected whole, so typing replaces it (F2
- * puts the caret at the end); Enter, Tab and the arrows move; Escape puts back what the cell held; Mod+D fills
- * down; Alt+Up/Down move rows. A block has a bar under it (fill, Copy, Cut, Paste, Clear), the clipboard holds
- * the cells as text and as our table HTML, and every edit marks the cells it touched so an undo selects them.
+ * puts the caret at the end). A cell shows its value, selected or not, its formula in the strip and in its
+ * description; only a cell edited in place (typed in, F2, a second tap, a key that moves the caret into it) shows
+ * its formula, so a screen reader reads the value as the focus comes to a cell. Enter, Tab and the arrows move;
+ * Escape puts back what the cell held; Mod+D fills down; Alt+Up/Down move rows. A block has a bar under it (fill,
+ * Copy, Cut, Paste, Clear), the clipboard holds the cells as text and as our table HTML, and every edit marks the
+ * cells it touched so an undo selects them.
  *
  * What a column holds changes its cells: a checkbox is a box a tap (or Space) ticks; an option cell offers
  * the words its column already holds (a <datalist>, opened by its caret) and takes new ones; a rich cell is a
@@ -158,6 +161,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     sel: { state: true },
     end: { state: true },
     focused: { state: true },
+    typing: { state: true },
     pointed: { state: true },
     rowsShown: { state: true },
     colsShown: { state: true },
@@ -172,6 +176,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
   /** The far corner of a block of cells; `sel` is the corner it was started from. */
   declare end: [number, number] | null;
   declare focused: boolean;
+  /**
+   * The cell being edited in place (typed in, F2, a second tap, a key that moves the caret into its words): it shows
+   * what was typed, its formula. Every other cell, the selected one too, shows its value, so a cell's words do not
+   * change as the focus comes and goes, and a screen reader reads the value the moment a cell is reached.
+   */
+  declare typing: [number, number] | null;
   /** Rows drawn: the sheet goes to ROWS, but only what is in use (and a little room) is on screen; it grows as you go. */
   declare rowsShown: number;
   /** Columns drawn beyond the table's own: the + adds one before anything is typed into it. */
@@ -188,8 +198,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private dragging = false;
   /** The table's box the ResizeObserver is watching. */
   private watched: Element | null = null;
-  /** A press on a cell not yet selected: the click that ends it selects the cell's words whole (the browser would put a caret there). */
+  /** A press on a cell that did not have the focus: the click that ends it selects the cell's words whole (the browser would put a caret there). */
   private pressed = false;
+  /** A press on the cell that already had the focus, a second tap: the click that ends it edits the cell in place. */
+  private again = false;
   /** What we last put on the clipboard, so pasting it back can move formulas' references. */
   private clip: (ClipData & { r: number; c: number; cut: boolean }) | null = null;
   /** The selected cell as it was when the focus came to it: Escape puts it back. */
@@ -211,6 +223,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     this.sel = [0, 0];
     this.end = null;
     this.focused = false;
+    this.typing = null;
     this.pointed = null;
     this.rowsShown = 30;
     this.colsShown = MIN_COLS;
@@ -248,6 +261,28 @@ export class ToSheetEditor extends DocElement<SheetView> {
   }
   locked(r: number, c: number): boolean {
     return isLocked(this.view.table.lock, r, c);
+  }
+  /** Whether (r, c) is the cell being edited in place. */
+  private typingIn(r: number, c: number): boolean {
+    return !!this.typing && this.typing[0] === r && this.typing[1] === c;
+  }
+  /** The cell edited in place from here on: it shows its formula, as typed, the caret at `pos` (its end when not given). */
+  private typeIn(r: number, c: number, pos?: number) {
+    this.typing = [r, c];
+    void this.caretTo(pos ?? this.raw(r, c).length, this.querySelector<HTMLInputElement>(`#c${r}_${c}`));
+  }
+  /**
+   * What typing made of (r, c): the input's words while it is edited in place. Before that it showed its value, not
+   * what it holds, so what was typed (`typed`: the words, '' for a deletion) replaces the cell whole, as typing on a
+   * selected cell does, whatever part of its value was selected.
+   */
+  private typedValue(r: number, c: number, input: HTMLInputElement, typed: string | null | undefined): string {
+    return this.typingIn(r, c) ? input.value : (typed ?? input.value);
+  }
+  /** `value` written into (r, c), which is edited in place from here on. */
+  private typed(r: number, c: number, value: string) {
+    this.typing = [r, c];
+    this.setCell(r, c, value);
   }
   /** What the cell held when the focus came to it (from the cell or the formula strip), for Escape. */
   private remember(r: number, c: number) {
@@ -738,6 +773,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
   /** The focus come to a cell (its input, or a rich cell's words): it is the selected cell. */
   private entering(r: number, c: number, el: HTMLElement) {
     if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
+    if (!this.typingIn(r, c)) this.typing = null;
     this.sel = [r, c];
     this.focused = true;
     this.remember(r, c);
@@ -748,6 +784,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     // Within a rich cell (its link box, its note box) the focus has not left.
     if (e.relatedTarget instanceof Node && x.contains(e.relatedTarget)) return;
     this.focused = false;
+    this.typing = null;
     this.forget(e, r, c);
   }
 
@@ -771,6 +808,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       if (r >= this.drawn - 2) this.rowsShown = Math.min(ROWS, r + 20);
       this.end = null;
       this.entered = null;
+      this.typing = null;
       this.sel = [r, c];
       void this.updateComplete.then(() => {
         const el = this.querySelector<HTMLElement>(`#c${r}_${c}`);
@@ -792,6 +830,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (r >= this.drawn - 2) this.rowsShown = Math.min(ROWS, this.drawn + 20);
     if (!keepBlock) this.end = null;
     if (r !== this.sel[0] || c !== this.sel[1]) this.entered = null;
+    // A cell reached shows its value, the one left too: editing in place ends here.
+    this.typing = null;
     this.sel = [r, c];
     void this.updateComplete.then(async () => {
       const el = this.querySelector<HTMLElement>(`#c${r}_${c}`);
@@ -830,7 +870,11 @@ export class ToSheetEditor extends DocElement<SheetView> {
   /** The <input> being typed in right now: a cell or the formula strip. */
   private editor(): HTMLInputElement | null {
     const a = document.activeElement;
-    return a instanceof HTMLInputElement && this.contains(a) && a.matches('td input, .sheet-fx .fx') ? a : null;
+    if (!(a instanceof HTMLInputElement) || !this.contains(a)) return null;
+    if (a.matches('.sheet-fx .fx')) return a;
+    // A cell is typed in only once it is edited in place: until then it shows its value, not its formula.
+    const td = a.closest<HTMLElement>('td[data-r]');
+    return td && this.typingIn(Number(td.dataset.r), Number(td.dataset.c)) ? a : null;
   }
 
   /** Put the caret at `pos` in `ed` (or in the selected cell) once the new value has rendered. */
@@ -840,7 +884,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const el = ed ?? this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
     if (!el) return;
     el.focus({ preventScroll: true });
-    // Focusing a cell swaps its computed value for the raw formula on the next render.
+    // A cell edited in place shows its formula from the next render on: the caret is set in that.
     await this.updateComplete;
     el.setSelectionRange(pos, pos);
   }
@@ -874,6 +918,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /** Tapping a cell while editing a formula elsewhere inserts that cell's reference. */
   private onCellDown(e: MouseEvent, r: number, c: number) {
+    // Neither a pointing tap nor a Shift+click selects or edits the cell its click lands on.
+    this.pressed = this.again = false;
     const ed = this.editor();
     if (ed && this.point(ed, r, c)) return e.preventDefault();
     if (e.shiftKey) {
@@ -883,7 +929,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
       return;
     }
     this.end = null;
-    this.pressed = !(e.target as HTMLElement).closest('td.sel');
+    // A second tap is a press on the cell that already has the focus; any other press selects the cell whole.
+    const cell = (e.currentTarget as HTMLElement).querySelector(`#c${r}_${c}`);
+    this.again = !!cell && cell.contains(document.activeElement);
+    this.pressed = !this.again;
     this.dragging = true;
     window.addEventListener('mouseup', () => (this.dragging = false), { once: true });
   }
@@ -918,12 +967,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const val = this.raw(r, c);
     const text = name + '(';
     if (!val.startsWith('=')) {
-      this.setCell(r, c, '=' + text);
+      this.typed(r, c, '=' + text);
       void this.caretTo(text.length + 1);
       return;
     }
     const pos = this.caret && this.caret.r === r && this.caret.c === c ? Math.min(this.caret.pos, val.length) : val.length;
-    this.setCell(r, c, val.slice(0, pos) + text + val.slice(pos));
+    this.typed(r, c, val.slice(0, pos) + text + val.slice(pos));
     void this.caretTo(pos + text.length);
   }
 
@@ -1010,6 +1059,17 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private onKey(e: KeyboardEvent, r: number, c: number, at: Caret) {
     if (e.defaultPrevented || e.isComposing) return;
     if (this.pointWithKey(e)) return;
+    // A cell not yet edited in place shows its value: a key that would move the caret into its words starts the
+    // editing instead, the caret where that key would have put it, in the formula.
+    if (!at.rich && !this.typingIn(r, c) && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      const k = e.key;
+      const pos = k === 'Home' || (k === 'ArrowLeft' && !at.atStart) ? 0 : k === 'End' || (k === 'ArrowRight' && !at.atEnd) ? this.raw(r, c).length : null;
+      if (pos !== null) {
+        e.preventDefault();
+        this.typeIn(r, c, pos);
+        return;
+      }
+    }
     this.here = { r, c, at };
     try {
       if (runKey(e, COMMANDS, this)) return;
@@ -1032,7 +1092,18 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const h = this.here;
     if (!h?.at) return false;
     this.entered = { r: h.r, c: h.c, raw: this.raw(h.r, h.c) };
-    h.at.selectAll();
+    // The cell shows its value again, selected whole once that has rendered.
+    this.typing = null;
+    const at = h.at;
+    void this.updateComplete.then(() => at.selectAll());
+  }
+  /** F2: the cell edited in place, its formula shown, the caret at its end. */
+  editHere(): boolean {
+    const h = this.here;
+    if (!h?.at) return false;
+    if (h.at.rich) h.at.toEnd();
+    else this.typeIn(h.r, h.c);
+    return true;
   }
   /** Tab and Shift+Tab: the next and previous cell, row after row; at either end of the sheet the focus goes on. */
   tabKey(back: boolean): boolean {
@@ -1260,7 +1331,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
             @text-selectall=${(e: Event) => (e.stopPropagation(), this.selectAll())}
           ></to-text>`);
         }
-        const shown = isSel && (type !== 'rich' || raw.startsWith('=')) ? raw : cellText(v, type, currencyAt(this.view, c));
+        // What was typed while the cell is edited in place; its value otherwise, selected or not (`typing`).
+        const shown = isSel && this.typingIn(r, c) ? raw : cellText(v, type, currencyAt(this.view, c));
         const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
         // A checkbox is ticked by a tap on its cell (Space with the keyboard); one worked out by a formula is typed into.
         const tick = type === 'check' && !locked && !raw.startsWith('=');
@@ -1289,7 +1361,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
               (e.target as HTMLInputElement).select();
             }}
             @click=${(e: Event) => {
-              if (!this.pressed) return;
+              if (!this.pressed) {
+                // A second tap edits the cell in place, the caret at the end of its formula; once it is, a tap places the caret.
+                if (this.again && !this.typingIn(r, c)) this.typeIn(r, c);
+                this.again = false;
+                return;
+              }
               this.pressed = false;
               const input = e.target as HTMLInputElement;
               input.select();
@@ -1297,11 +1374,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
               setTimeout(() => document.activeElement === input && input.selectionStart === input.selectionEnd && input.select(), 0);
             }}
             @blur=${(e: FocusEvent) => {
-              this.caret = { r, c, pos: (e.target as HTMLInputElement).selectionStart ?? 0 };
+              // A caret in the formula only while it is edited in place; a value's caret says nothing of where the formula's is.
+              this.caret = this.typingIn(r, c) ? { r, c, pos: (e.target as HTMLInputElement).selectionStart ?? 0 } : null;
               this.leaving(e, r, c);
             }}
-            @input=${(e: InputEvent) => !e.isComposing && this.setCell(r, c, (e.target as HTMLInputElement).value)}
-            @compositionend=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
+            @input=${(e: InputEvent) => !e.isComposing && this.typed(r, c, this.typedValue(r, c, e.target as HTMLInputElement, e.inputType.startsWith('delete') ? '' : (e.data ?? e.dataTransfer?.getData('text/plain'))))}
+            @compositionend=${(e: CompositionEvent) => this.typed(r, c, this.typedValue(r, c, e.target as HTMLInputElement, e.data))}
             @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c, this.inputCaret(e.target as HTMLInputElement))}
           />
           ${
