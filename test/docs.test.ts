@@ -153,7 +153,7 @@ test('a page moved to the record is in history’s index with its date and where
   }
   // A page folded into another is gone, its sentences in the other.
   expect(existsSync(join(root, 'docs/kit.md'))).toBe(false);
-  expect(read('docs/kernel.md')).toContain("## 11. The kit's six folders");
+  expect(read('docs/kernel.md')).toContain("## 11. The kit's seven folders");
 });
 
 test('the README, the package’s README and /llms-full.txt say how the skill is installed', () => {
