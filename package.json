@@ -68,6 +68,7 @@
     "@fluent/bundle": "0.19.1",
     "d3-sankey": "0.12.3",
     "fflate": "0.8.3",
+    "katex": "0.19.1",
     "lit": "3.3.3",
     "lucide": "1.57.0",
     "maplibre-gl": "^6.14.0",

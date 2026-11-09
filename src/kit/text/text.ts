@@ -78,6 +78,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { applyAll, hasClass, isAtomic, listNumbers, normalRuns, runLength, type Block, type Op, type Run } from '../../doc/index.ts';
 import { copyData, pasteFrom, readClip, writeClip } from './clipboard.ts';
 import { contextOf, runKey } from '../core/commands.ts';
@@ -231,6 +232,22 @@ const FORMATS: Record<string, Command> = {
 const LIST = 'tx-list';
 /** What is said and not written: a task's state, read before its words, which the caret, the copy and the IME pass over. */
 const SAID = 'data-said';
+const INLINE_MATH = /(?<![$\\])\$([^$\n]+?)(?<![$\\])\$/g;
+type MathRenderer = (tex: string, displayMode?: boolean) => string;
+let renderMath: MathRenderer | null = null;
+
+export function setTextMathRenderer(renderer: MathRenderer): void {
+  renderMath = renderer;
+}
+
+/** A whole text block written as `$$...$$`, not a paragraph that happens to contain dollar signs. */
+function displayMath(runs: Run[]): { source: string; tex: string } | null {
+  if (runs.length !== 1) return null;
+  const run = runs[0]!;
+  if (run.b || run.i || run.u || run.s || run.h || run.c || run.href || run.ic || run.fn !== undefined) return null;
+  const match = /^\$\$([\s\S]+?)\$\$$/.exec(run.t);
+  return match ? { source: run.t, tex: match[1]!.trim() } : null;
+}
 
 /**
  * A block's element read back as runs: text nodes with the marks of the
@@ -248,6 +265,7 @@ function domToRuns(el: HTMLElement): Run[] {
     if (n.nodeType !== Node.ELEMENT_NODE) return;
     const e = n as HTMLElement;
     if (e.hasAttribute(SAID)) return;
+    if (e.dataset.mathSource !== undefined) return void out.push({ t: e.dataset.mathSource, ...m });
     if (e.dataset.icon !== undefined) return void out.push({ t: '', ic: e.dataset.icon });
     if (e.dataset.fn !== undefined) return void out.push({ t: '', fn: e.dataset.fn });
     if (e.tagName === 'BR') return void (e.dataset.nl !== undefined && out.push({ t: '\n' }));
@@ -444,6 +462,12 @@ export class ToText extends LitElement {
     }
     const el = this.blockElOf(node);
     if (!el) return null;
+    const math = node.nodeType === Node.ELEMENT_NODE ? (node as Element).closest('[data-math-source]') : node.parentElement?.closest('[data-math-source]');
+    if (math) {
+      const before = document.createRange();
+      before.setStartBefore(math);
+      return this.readPos(before.startContainer, before.startOffset);
+    }
     const block = this.blockEls().indexOf(el);
     if (block < 0) return null;
     if (!isWords(model[block])) return skipCard(model, { block, offset: 0 }, 1);
@@ -464,6 +488,10 @@ export class ToText extends LitElement {
       if (n.nodeType !== Node.ELEMENT_NODE) return false;
       const e = n as HTMLElement;
       if (e.hasAttribute(SAID)) return false;
+      if (e.dataset.mathSource !== undefined) {
+        count += e.dataset.mathSource.length;
+        return false;
+      }
       if (e.dataset.atomic !== undefined) {
         count += 1;
         return false;
@@ -497,8 +525,8 @@ export class ToText extends LitElement {
       if (n.nodeType !== Node.ELEMENT_NODE) return null;
       const e = n as HTMLElement;
       if (e.hasAttribute(SAID)) return null;
-      if (e.dataset.atomic !== undefined || e.tagName === 'BR') {
-        const w = e.tagName === 'BR' ? (e.dataset.nl !== undefined ? 1 : 0) : 1;
+      if (e.dataset.mathSource !== undefined || e.dataset.atomic !== undefined || e.tagName === 'BR') {
+        const w = e.dataset.mathSource !== undefined ? e.dataset.mathSource.length : e.tagName === 'BR' ? (e.dataset.nl !== undefined ? 1 : 0) : 1;
         // Before a chip or a line break the position reaches; and before the placeholder <br> of a block with no words
         // (renderRuns), never after it: Safari draws no caret after a block's last <br>, so a new slide's empty boxes took
         // the typing with nothing to show for it (Paul, 2026-10-13: "no cursor appears. I can type but it doesn't look like I can").
@@ -519,6 +547,41 @@ export class ToText extends LitElement {
     const anchor = this.readPos(r.startContainer, r.startOffset);
     const focus = this.readPos(r.endContainer, r.endOffset);
     return anchor && focus ? { anchor, focus } : null;
+  }
+  /** Whether a collapsed caret is at the line edge where native vertical movement can enter an adjacent math block. */
+  private atVerticalEdge(pos: Pos, dir: 'up' | 'down'): boolean {
+    const point = this.domPoint(pos);
+    const block = this.blockEls()[pos.block];
+    if (!point || !block) return false;
+    const range = document.createRange();
+    range.setStart(point[0], point[1]);
+    range.collapse(true);
+    const caret = range.getBoundingClientRect();
+    const bounds = block.getBoundingClientRect();
+    return dir === 'down' ? caret.bottom >= bounds.bottom - 8 : caret.top <= bounds.top + 8;
+  }
+  /** The math itself has no caret positions, so vertical movement treats its before/after edge as one stop. */
+  private moveVerticallyAcrossMath(e: KeyboardEvent): boolean {
+    if (!['ArrowUp', 'ArrowDown'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || (this.shape !== 'doc' && this.shape !== 'lines')) return false;
+    const sel = this.readSel() ?? this.current();
+    if (!e.shiftKey && !collapsed(sel)) return false;
+    const dir = e.key === 'ArrowDown' ? 1 : -1;
+    const focus = sel.focus;
+    const currentBlock = this.model[focus.block];
+    let target: Pos | null = null;
+    if (currentBlock && isWords(currentBlock) && displayMath(currentBlock.runs)) {
+      const neighbor = focus.block + dir;
+      const b = this.model[neighbor];
+      if (b && isWords(b)) target = { block: neighbor, offset: dir > 0 ? 0 : blockLength(b) };
+    } else if (this.atVerticalEdge(focus, dir > 0 ? 'down' : 'up')) {
+      const neighbor = focus.block + dir;
+      const b = this.model[neighbor];
+      if (b && isWords(b) && displayMath(b.runs)) target = { block: neighbor, offset: dir > 0 ? 0 : blockLength(b) };
+    }
+    if (!target) return false;
+    e.preventDefault();
+    this.sel = { anchor: e.shiftKey ? sel.anchor : target, focus: target };
+    return true;
   }
   /** The DOM selection as a model selection, when it sits in this editor. */
   readSel(): Sel | null {
@@ -744,6 +807,7 @@ export class ToText extends LitElement {
       return this.askNote(chip as HTMLElement);
     }
     if (e.key === 'Escape') return this.escape(e);
+    if (this.moveVerticallyAcrossMath(e)) return;
     // In a line, Backspace at the very start and Delete at the very end are the host's (text-exit), decided here on the
     // key: with nothing in the line to delete, Safari on iOS sends no beforeinput for either (Paul, 2026-10-10: at the
     // start of an outline's row, delete did nothing), so the key itself says it, and the beforeinput that may follow is
@@ -1235,6 +1299,29 @@ export class ToText extends LitElement {
     });
     return out;
   }
+  private mathNode(source: string, tex: string, display = false): TemplateResult {
+    return html`<span
+      class=${display ? 'tx-math tx-math-display' : 'tx-math'}
+      data-math-source=${source}
+      contenteditable="false"
+      role="math"
+      aria-label=${tex}
+      >${renderMath ? unsafeHTML(renderMath(tex, display)) : source}</span
+    >`;
+  }
+  private mathWords(s: string): unknown[] {
+    const out: unknown[] = [];
+    let from = 0;
+    for (const match of s.matchAll(INLINE_MATH)) {
+      const at = match.index!;
+      if (at > from) out.push(...this.words(s.slice(from, at)));
+      out.push(this.mathNode(match[0], match[1]!));
+      from = at + match[0].length;
+    }
+    if (!from) return this.words(s);
+    if (from < s.length) out.push(...this.words(s.slice(from)));
+    return out;
+  }
   private renderRuns(runs: Run[], notes: () => number): unknown[] {
     if (!runs.length) return [html`<br />`];
     const out: unknown[] = runs.map((r) => {
@@ -1248,7 +1335,7 @@ export class ToText extends LitElement {
         const n = notes();
         return html`<sup class="fn" data-fn=${r.fn} data-atomic contenteditable="false" tabindex="0" role="button" aria-label=${t('common-footnote-n', { n })}>${n}</sup>`;
       }
-      let node: unknown = this.words(r.t);
+      let node: unknown = r.c ? this.words(r.t) : this.mathWords(r.t);
       if (r.c) node = html`<code>${node}</code>`;
       if (r.h) node = html`<mark>${node}</mark>`;
       if (r.s) node = html`<s>${node}</s>`;
@@ -1286,28 +1373,30 @@ export class ToText extends LitElement {
   private renderBlock(b: Block, at: number, n: number | undefined, notes: () => number, place?: { pos: number; size: number }): TemplateResult {
     if (!isWords(b)) return this.renderCard(b, at);
     const cls = (b.a?.cls ?? []).filter((c) => c === 'center' || c === 'right' || c === 'justify' || c === 'title').join(' ');
-    const inner = this.renderRuns(b.runs, notes);
+    const display = displayMath(b.runs);
+    const inner = display ? [this.mathNode(display.source, display.tex, true)] : this.renderRuns(b.runs, notes);
+    const classes = [cls, display ? 'tx-math-block' : ''].filter(Boolean).join(' ');
     switch (b.k) {
       case 'h':
-        if (b.level === 1) return hasClass(b, 'title') ? html`<h1 class="title ${cls}">${inner}</h1>` : html`<h1 class=${cls}>${inner}</h1>`;
-        if (b.level === 2) return html`<h2 class=${cls}>${inner}</h2>`;
-        if (b.level === 3) return html`<h3 class=${cls}>${inner}</h3>`;
-        return html`<h4 class=${cls} data-level=${b.level}>${inner}</h4>`;
+        if (b.level === 1) return hasClass(b, 'title') ? html`<h1 class="title ${classes}">${inner}</h1>` : html`<h1 class=${classes}>${inner}</h1>`;
+        if (b.level === 2) return html`<h2 class=${classes}>${inner}</h2>`;
+        if (b.level === 3) return html`<h3 class=${classes}>${inner}</h3>`;
+        return html`<h4 class=${classes} data-level=${b.level}>${inner}</h4>`;
       case 'li':
         return html`<li
           role=${place ? 'listitem' : 'none'}
           aria-level=${place ? b.depth + 1 : nothing}
           aria-posinset=${place?.pos ?? nothing}
           aria-setsize=${place?.size ?? nothing}
-          class=${cls}
+          class=${classes}
           style=${`--d:${b.depth}`}
           data-n=${n ?? nothing}
           data-done=${b.done === undefined ? nothing : String(b.done)}
         >${b.done === undefined || !place ? nothing : html`<span class="sr-only" data-said contenteditable="false">${b.done ? t('editor-done-lowercase') : t('editor-not-done')} </span>`}${inner}</li>`;
       case 'quote':
-        return html`<blockquote class=${cls}>${inner}</blockquote>`;
+        return html`<blockquote class=${classes}>${inner}</blockquote>`;
       default:
-        return html`<p class=${cls}>${inner}</p>`;
+        return html`<p class=${classes}>${inner}</p>`;
     }
   }
   render() {

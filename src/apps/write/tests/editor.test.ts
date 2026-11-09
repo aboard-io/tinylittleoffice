@@ -1024,6 +1024,60 @@ test('the Look menu: each look a sample in its own type, the chosen one checked;
   expect(el.querySelector('.write-page')!.getAttribute('data-look')).toBe('sans');
 });
 
+test('inline and display math render in the words while preserving the source positions', async () => {
+  const { el } = await editor('A $x^2$ here.\n\n$$\\frac{a}{b}$$\n');
+  await until(() => el.querySelectorAll('.tx-math .katex').length === 2);
+  const [inline, display] = [...el.text.tx.querySelectorAll<HTMLElement>('.tx-math')];
+  expect(inline?.dataset.mathSource).toBe('$x^2$');
+  expect(display?.dataset.mathSource).toBe('$$\\frac{a}{b}$$');
+  expect(display?.classList.contains('tx-math-display')).toBe(true);
+  expect(display?.parentElement?.classList.contains('tx-math-block')).toBe(true);
+  expect(inline?.querySelector('annotation')?.textContent).toBe('x^2');
+  const before = document.createRange();
+  before.setStartBefore(inline!);
+  expect(el.text.readPos(before.startContainer, before.startOffset)).toEqual({ block: 0, offset: 2 });
+  const after = document.createRange();
+  after.setStartAfter(inline!);
+  expect(el.text.readPos(after.startContainer, after.startOffset)).toEqual({ block: 0, offset: 7 });
+});
+
+test('a document made of one display equation uses the math as one non-editable caret stop', async () => {
+  const { el } = await editor('$$x^2$$\n');
+  await until(() => !!el.text.tx.querySelector('.tx-math-display .katex'));
+  expect(el.text.tx.querySelector('[data-math-caret]')).toBeNull();
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  await tick();
+  const caret = document.getSelection();
+  expect(caret?.anchorNode).toBe(el.text.tx.querySelector('.tx-math-display')?.parentNode);
+  expect(caret?.anchorOffset).toBe(0);
+  expect(el.text.readSel()?.anchor).toEqual({ block: 0, offset: 0 });
+});
+
+test('ArrowUp and ArrowDown visit a display equation between paragraphs', async () => {
+  const { el } = await editor();
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  await type(el, 'First text');
+  input(el.text.tx, 'insertParagraph');
+  await el.updateComplete;
+  await type(el, '$$x^2$$');
+  input(el.text.tx, 'insertParagraph');
+  await el.updateComplete;
+  await type(el, 'Third text');
+  expect(parse(el.value).blocks).toHaveLength(3);
+
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  await userEvent.keyboard('{ArrowDown}');
+  expect(el.text.sel?.focus).toEqual({ block: 1, offset: 0 });
+  await userEvent.keyboard('{ArrowDown}');
+  expect(el.text.sel?.focus).toEqual({ block: 2, offset: 0 });
+  await userEvent.keyboard('{ArrowUp}');
+  expect(el.text.sel?.focus).toEqual({ block: 1, offset: 7 });
+  await userEvent.keyboard('{ArrowUp}');
+  expect(el.text.sel?.focus).toEqual({ block: 0, offset: 10 });
+});
+
 test('§1 opens with the focus in the first words: the caret at their start, the page not scrolled', async () => {
   const { el } = await editor('');
   await el.focusFirst();

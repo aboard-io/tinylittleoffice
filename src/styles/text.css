@@ -136,6 +136,19 @@
     text-decoration: underline;
     text-underline-offset: 0.125rem;
   }
+  to-text .tx .tx-math {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: middle;
+    white-space: normal;
+  }
+  to-text .tx .tx-math-display {
+    margin: 0 0.2em;
+    overflow-x: auto;
+  }
+  to-text .tx .tx-math-block {
+    text-align: center;
+  }
 
   /* The icon chip: one thing the caret steps over, drawn as the icon in the line's colour; a name nothing has is its name, small. */
   to-text .tx .ic {

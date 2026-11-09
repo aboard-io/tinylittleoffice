@@ -20,6 +20,7 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 | `@fluent/bundle` | 0.19.1 | Apache-2.0 | Every string a person sees (src/kit/core/i18n.ts reads src/i18n/<code>.ftl; Paul, 2026-10-15: "Use Fluent"). Intl picks a plural form (PluralRules), writes a number (NumberFormat) and names a language (DisplayNames), and Fluent uses each of them for that; what the browser does not have is a message format: stable ids, a translator's file with comments, and a plural or any other choice written by the translator in the language's own categories, which a hand-rolled syntax had done until then. Part of the one app file. | none (its own: not measured) |
 | `d3-sankey` | 0.12.3 | BSD-3-Clause | Sankey charts (src/kit/draw/chart.ts). SVG draws the picture, but no browser API lays out a flow: placing the nodes in columns and relaxing the links so they cross least is the library's whole job. | 10.8 KB (its own: 6.8 KB) |
 | `fflate` | 0.8.3 | MIT | The link codec and every zip (src/kit/core/codec.ts, src/kit/file/zip.ts). CompressionStream has no preset dictionary, which makes short documents 20 to 35 percent smaller, is asynchronous, and writes a gzip stream, not a zip archive (.docx, .xlsx, .pptx). | 16.1 KB |
+| `katex` | 0.19.1 | MIT | Renders inline and display math in Write (src/kit/text/text.ts, src/apps/write/view.ts). MathML is native in browsers, but KaTeX adds consistent typesetting and TeX input without a network service. | none (its own: not measured) |
 | `lit` | 3.3.3 | BSD-3-Clause | Every element's drawing (the kit and the editors). Custom elements are native; lit adds the drawing of a template again with only its changed parts, which the browser does not do, and reactive properties that ask for it. | 18.1 KB (its own: none) |
 | `lucide` | 1.57.0 | ISC | The icons (src/kit/draw/icons.ts). The browser has no icon set and emoji draw differently on every system; Lucide is SVG paths, each a module, and the whole set is in the app file, so a document may name any icon, online or off. | 461.5 KB |
 | `maplibre-gl` | 6.14.0 | BSD-3-Clause | The Trip Planner's map (src/apps/trip/editor.ts), drawn from OpenFreeMap's vector tiles. The browser has no map: laying out and drawing vector tiles in WebGL, panning and pinch-zooming them, with markers and a route, is the library's whole job. A file of its own in the build, with its worker and its stylesheet, fetched with the first map and never part of the app file (Paul, 2026-10-15: "hot-load it for that path"). | 900.3 KB |
@@ -44,6 +45,7 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 | `@types/geojson` | 7946.0.16 | MIT | `maplibre-gl` | none |
 | `@types/trusted-types` | 2.0.7 | MIT | `lit` | none |
 | `bidi-js` | 1.1.0 | MIT | `maplibre-gl` | none |
+| `commander` | 15.1.0 | MIT | `katex` | not measured |
 | `complex.js` | 2.4.3 | MIT | `mathjs` | 11.2 KB |
 | `d3-array` | 2.12.1 | BSD-3-Clause | `d3-sankey` | 838 B |
 | `d3-path` | 1.0.9 | BSD-3-Clause | `d3-sankey` | 2.0 KB |

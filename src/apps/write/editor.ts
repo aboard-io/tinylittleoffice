@@ -39,7 +39,8 @@ import { language, t } from '../../kit/core/i18n.ts';
 import { noteIndex, noteMarks, type ToNotes } from '../../kit/draw/notes.ts';
 import { askDocLink } from '../../kit/ui/insert-dialogs.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/text/textops.ts';
-import type { NoteAt, TextOps, ToText } from '../../kit/text/text.ts';
+import { setTextMathRenderer, type NoteAt, type TextOps, type ToText } from '../../kit/text/text.ts';
+import { renderMath } from '../../kit/text/math.ts';
 import {
   PAPERS,
   defaultPaper,
@@ -64,9 +65,12 @@ import {
 } from './model.ts';
 import COMMANDS, { CARD, alignIcon } from './commands.ts';
 import { lookOf, type LookId } from './look.ts';
-import { fenceLink } from './view.ts';
+import { fenceLink, setHtmlMathRenderer } from './view.ts';
 import { LOCKED_LANG } from '../../kit/share/locked.ts';
 import '../../kit/ui/locked-doc.ts';
+
+setTextMathRenderer(renderMath);
+setHtmlMathRenderer(renderMath);
 import type { TableCmd, ToWriteTable } from './table.ts';
 import '../../kit/ui/bar.ts';
 import '../../kit/ui/context.ts';

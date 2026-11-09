@@ -438,10 +438,30 @@ const appOfLazy = (id: string) => lookup.appOf(id);
 
 /* ---------- HTML ---------- */
 
+type MathRenderer = (tex: string, displayMode?: boolean, output?: 'htmlAndMathml' | 'mathml') => string;
+let htmlMathRenderer: MathRenderer | undefined;
+
+export function setHtmlMathRenderer(renderer: MathRenderer): void {
+  htmlMathRenderer = renderer;
+}
+
 /** A run's words as HTML, with their marks and links; a web address in plain words is a link too. */
-function markedHtml(run: Run, bold = 'strong', italic = 'em'): string {
+function markedHtml(run: Run, bold = 'strong', italic = 'em', render?: MathRenderer): string {
+  const mathText = (text: string) => {
+    let from = 0;
+    let out = '';
+    const matchMath = (source: string, tex: string, display: boolean) =>
+      `<span class="write-math${display ? ' write-math-display' : ''}" data-math-source="${xml(source)}" role="math">${render ? render(tex, display, 'mathml') : xml(source)}</span>`;
+    for (const m of text.matchAll(/(?<![$\\])\$([^$\n]+?)(?<![$\\])\$/g)) {
+      const at = m.index!;
+      out += xml(text.slice(from, at)).replace(/\n/g, '<br>');
+      out += matchMath(m[0], m[1]!.trim(), false);
+      from = at + m[0].length;
+    }
+    return (out + xml(text.slice(from))).replace(/\n/g, '<br>');
+  };
   let s = runLinks(run)
-    .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t).replace(/\n/g, '<br>')))
+    .map((p) => (p.url ? `<a href="${xml(p.url)}">${run.c ? xml(p.t) : mathText(p.t)}</a>` : run.c ? xml(p.t).replace(/\n/g, '<br>') : mathText(p.t)))
     .join('');
   if (run.c) s = `<code>${s}</code>`;
   if (run.h) s = `<mark>${s}</mark>`;
@@ -451,14 +471,22 @@ function markedHtml(run: Run, bold = 'strong', italic = 'em'): string {
   if (run.b) s = `<${bold}>${s}</${bold}>`;
   return s;
 }
-const htmlRun = (run: Run): string => (run.ic ? `<span class="ic" data-icon="${xml(run.ic)}" role="img" aria-label="${xml(run.ic)}"></span>` : markedHtml(run));
+const htmlRun = (run: Run, render?: MathRenderer): string =>
+  run.ic ? `<span class="ic" data-icon="${xml(run.ic)}" role="img" aria-label="${xml(run.ic)}"></span>` : markedHtml(run, 'strong', 'em', render);
 
 /** A footnote's mark in HTML: its number, raised, a link to the note. `stem` names the ids and keeps two documents on one page apart. */
 const noteMarkHtml = (n: number, stem = 'fn') => `<sup class="fn" role="doc-noteref"><a href="#${stem}-${n}" id="${stem}ref-${n}">${n}</a></sup>`;
 /** The notes themselves, at the end: a thin rule, small type, each with a way back to its mark. Nothing when there are none. */
-function endnotesHtml(notes: string[], stem = 'fn'): string {
+function endnotesHtml(notes: string[], stem = 'fn', render?: MathRenderer): string {
   if (!notes.length) return '';
-  return `<section class="fn-notes" role="doc-endnotes" aria-label="Footnotes"><hr><ol>${notes.map((fn, i) => `<li id="${stem}-${i + 1}">${noteRuns(fn).map(htmlRun).join('')} <a href="#${stem}ref-${i + 1}" role="doc-backlink" aria-label="Back to the text">↩</a></li>`).join('')}</ol></section>`;
+  return `<section class="fn-notes" role="doc-endnotes" aria-label="Footnotes"><hr><ol>${notes
+    .map(
+      (fn, i) =>
+        `<li id="${stem}-${i + 1}">${noteRuns(fn)
+          .map((run) => htmlRun(run, render))
+          .join('')} <a href="#${stem}ref-${i + 1}" role="doc-backlink" aria-label="Back to the text">↩</a></li>`,
+    )
+    .join('')}</ol></section>`;
 }
 
 /** Blocks as pieces of HTML, the list items properly nested: item(b) is what a list item holds, other(b) the whole of any other block. */
@@ -510,9 +538,16 @@ function tableHtml(doc: Doc, at: number): string {
 }
 
 /** The body of the text as HTML: headings, paragraphs, nested lists, tables, documents held in it as figures, the footnotes at the end. */
-function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
+function bodyHtml(doc: Doc, site = '', stem = 'fn', render?: MathRenderer): string {
   const next = noteNumbers();
-  const inner = (b: { runs: Run[] }) => b.runs.map((run) => (run.fn === undefined ? htmlRun(run) : noteMarkHtml(next(), stem))).join('');
+  const inner = (b: { runs: Run[] }) => {
+    if (b.runs.length === 1) {
+      const run = b.runs[0]!;
+      const display = !run.b && !run.i && !run.u && !run.s && !run.h && !run.c && !run.href && /^\$\$([\s\S]+?)\$\$$/.exec(run.t);
+      if (display) return `<span class="write-math write-math-display" data-math-source="${xml(run.t)}" role="math">${render ? render(display[1]!.trim(), true, 'mathml') : xml(run.t)}</span>`;
+    }
+    return b.runs.map((run) => (run.fn === undefined ? htmlRun(run, render) : noteMarkHtml(next(), stem))).join('');
+  };
   const title = titleBlock(doc);
   const fields = fieldsOf(doc);
   const fieldsHtml = fields.length
@@ -556,7 +591,7 @@ function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
     },
   );
   if (!title && fieldsHtml) parts.unshift(fieldsHtml);
-  const notes = endnotesHtml(notesOf(doc.blocks), stem);
+  const notes = endnotesHtml(notesOf(doc.blocks), stem, render);
   return [...parts, ...(notes ? [notes] : [])].join('\n');
 }
 
@@ -577,7 +612,8 @@ function lookCss(look: Look): string {
 }
 
 /** The text as a standalone web page, the words still words. */
-export function docToHtml(doc: Doc, ctx: ExportContext): string {
+export function docToHtml(doc: Doc, ctx: ExportContext, render?: MathRenderer): string {
+  render ??= htmlMathRenderer;
   const title = ctx.title || (titleBlock(doc) ? plainText(titleBlock(doc)!.runs) : '') || 'Document';
   const paper = PAPERS[paperOf(doc)];
   const look = lookOf(doc);
@@ -596,6 +632,7 @@ h1.title{font-size:2.6em;line-height:1.1;letter-spacing:-0.02em;margin:0 0 .6em}
 p,li{margin:0 0 .6em}blockquote{margin:0 0 .6em;padding-left:12px;border-left:3px solid ${LINE};color:${MUTED}}
 li.task{list-style:none;margin-left:-1.4em}li.done{color:${MUTED}}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:1em;margin:0 0 1.5em}.fields dt{font-size:.7em;letter-spacing:.06em;text-transform:uppercase;color:${MUTED}}.fields dd{margin:.2em 0 0}
+.write-math{display:inline-block;max-width:100%;vertical-align:middle}.write-math-display{display:block;text-align:center;margin:.4em 0;overflow-x:auto}
 table{border-collapse:collapse;margin:0 0 1em;font-size:.95em}th{background:${SHADE};text-align:left;font-size:.85em;padding:.4em .7em;border:1px solid ${LINE}}td{padding:.4em .7em;border:1px solid ${LINE}}td.n{text-align:right;font-variant-numeric:tabular-nums}
 figure{margin:1em 0}figure.doc svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figcaption,figure.doc{color:${MUTED};font-size:.9em}
 mark{background:#fde68a}pre{padding:.8em 1em;background:${SHADE};border-radius:8px;overflow:auto;font-size:.85em}
@@ -608,7 +645,7 @@ ${lookCss(look)}
 </head>
 <body>
 <main>
-${bodyHtml(doc, siteAt(ctx.link))}
+${bodyHtml(doc, siteAt(ctx.link), 'fn', render)}
 </main>${ctx.link ? `\n<footer><p><a href="${xml(ctx.link)}">Open in Tiny Little Office</a></p></footer>` : ''}
 </body>
 </html>
