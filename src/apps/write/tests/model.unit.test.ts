@@ -29,6 +29,7 @@ import {
 import { writeToDeck, writeToOutline } from '../convert.ts';
 import { templates } from '../templates.ts';
 import { LOOK_IDS, lookOf } from '../look.ts';
+import { renderMath } from '../../../kit/text/math.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
 
 const ctx = { def: write_, title: 'Test', link: 'https://tinylittleoffice.com/#/v1/write/rAbc' };
@@ -427,4 +428,15 @@ test("the files wear the look: the web page's CSS, Word's and RTF's font names, 
   expect(docToRtf(doc('mixed'), ctx)).toContain('{\\f0\\fswiss\\fcharset0 Helvetica;}{\\f1\\froman\\fcharset0 Georgia;}');
   expect(docToRtf(doc('news'), ctx)).toContain('\\cols2');
   expect(docToRtf(doc('book'), ctx)).toContain('\\fi360');
+});
+
+test('the web page renders inline and display math as MathML, but leaves code literal', async () => {
+  const source = 'Inline $x^2$ and `not $math$`.\n\n$$\\frac{a}{b}$$\n';
+  const canonical = write(parse(source));
+  expect(write(parse(canonical))).toBe(canonical);
+  const html = docToHtml(parse(canonical), ctx, renderMath);
+  expect(html).toContain('data-math-source="$x^2$"');
+  expect(html).toContain('<code>not $math$</code>');
+  expect(html).toContain('<mfrac>');
+  expect(html).toContain('<annotation encoding="application/x-tex">\\frac{a}{b}</annotation>');
 });

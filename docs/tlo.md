@@ -21,7 +21,7 @@ document; it never parses text of its own.
    a theme) is a `key: value` line in the head.
 5. **Read leniently, write canonically.** Markdown as a person or a model loosely writes it is read (other bullet
    marks, a table with outer pipes, `Price: money`, Markdown's reference footnotes); the writer writes one form.
-6. **Words are inline Markdown.** `**bold**`, `*italic*`, `++underline++`, `~~strike~~`, `==highlight==`, `` `code` `` (its words verbatim, in a monospace face),
+6. **Words are inline Markdown.** `**bold**`, `*italic*`, `++underline++`, `~~strike~~`, `==highlight==`, `` `code` `` (its words verbatim, in a monospace face), `$x^2$` for inline math and `$$\\frac{a}{b}$$` for a display equation,
    `:icon-name:`, `[words](address)` and `^[a footnote]`; `\` escapes. The writer escapes as little as reads back.
    Words that would read as syntax are written so they read back as the same words, whatever runs sit beside them
    (a pasted `**`, `:smile:`, `[a](b)` or `^[` stays words): first with only `\\` doubled, and where that would read

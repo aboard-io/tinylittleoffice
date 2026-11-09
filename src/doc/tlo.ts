@@ -21,7 +21,7 @@
  *
  * An address may hold one pair of brackets, as Wikipedia's do; a lone bracket is written escaped (%28, %29).
  * Any block may end with attributes, "{#id .kind key=value}".
- * Inline: **bold**, *italic*, ++underline++, ~~strike~~, ==highlight==, [words](address), :icon:,
+ * Inline: **bold**, *italic*, ++underline++, ~~strike~~, ==highlight==, `$x^2$`, [words](address), :icon:,
  * ^[a footnote's words] (notes.ts says how notes are drawn).
  *
  * Read leniently, write canonically: and what is canonical is written back
