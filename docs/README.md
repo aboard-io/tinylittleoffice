@@ -9,6 +9,7 @@ Tiny Little Office is; start here for how it is made and why.
 - [editing.md](editing.md): the one editing standard every app keeps, by keyboard, pointer and finger.
 - [tlo.md](tlo.md): the document format, as a person or a language model learns it.
 - [exports.md](exports.md): the files each app's documents become, and the apps they open in (generated).
+- [import.md](import.md): the plan for opening files: the door (a picker, the manifest, paste), text and Markdown as they are, a sub-kilobyte CSV parser with a corpus as its oracle, then ICS, OPML and the office formats.
 - [translation.md](translation.md): the twenty-one languages: how a string is written, translated and checked, and the type each is set in.
 
 Each app's templates are described beside its code, in [src/apps/write/templates.md](../src/apps/write/templates.md) and its
