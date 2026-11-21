@@ -24,7 +24,7 @@ export class ToBar extends HTMLElement {
     this.addEventListener('scroll', this.fade, { passive: true });
     this.watch = new ResizeObserver(() => this.fadeSoon());
     this.watch.observe(this);
-    new MutationObserver(() => this.fadeSoon()).observe(this, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'class'] });
+    new MutationObserver(() => this.fadeSoon()).observe(this, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'class', 'data-tool-group'] });
     this.fadeSoon();
     this.dispatchEvent(new Event(BAR_HERE, { bubbles: true }));
   }
@@ -63,6 +63,13 @@ export class ToBar extends HTMLElement {
   };
   /** What the edges say: scrolled past the start, more past the end; and under 360px, room for one pinned tool (Undo) alone. */
   fade = () => {
+    let previous: string | undefined;
+    for (const child of this.children) {
+      if ((child as HTMLElement).hidden) continue;
+      const group = child.getAttribute('data-tool-group') ?? '';
+      child.toggleAttribute('data-group-start', previous !== undefined && group !== previous);
+      previous = group;
+    }
     const more = this.scrollWidth - this.clientWidth - this.scrollLeft;
     this.toggleAttribute('data-narrow', this.clientWidth < 360);
     this.toggleAttribute('data-fade-start', this.scrollLeft > 1);
@@ -88,6 +95,7 @@ export interface BtnOpts {
   hint?: string;
   /** Under a finger, kept at the bar's inline end outside its scroll (a command's `pinned`: Undo, Redo). */
   pinned?: boolean;
+  group?: string;
 }
 
 // Cancelled on mousedown, not pointerdown: a tap in WebKit whose pointerdown is cancelled fires no click at all, while
@@ -109,11 +117,11 @@ export const keysAria = (keys: string | undefined): string | typeof nothing => (
 
 /** A button with its words on it (two at most, so the bar never wraps them; `hint` says the rest), and an icon before them if it has one. */
 export const btn = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} title=${(o.keys && chords()) || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
+  html`<button type="button" class="to-btn ${cls(o)}" data-tool-group=${o.group ?? nothing} ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} title=${(o.keys && chords()) || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
 
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn to-tool ${cls(o)}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+  html`<button type="button" class="to-btn to-tool ${cls(o)}" data-tool-group=${o.group ?? nothing} ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-keyshortcuts=${o.keys ? ariaKeys(o.keys) : nothing} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
 
 /**
  * A command of the registry (kit/core/commands.ts) as a bar's icon button, in its context: its words, icon and keys, its
@@ -134,6 +142,7 @@ function drawCmd<C>(draw: (o: BtnOpts) => TemplateResult, cmd: Command<C>, c: C 
     hint: say(cmd.hint, has ? c : undefined),
     keep: !cmd.takesFocus,
     pinned: cmd.pinned,
+    group: cmd.group,
     pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
     disabled: !has || !!cmd.disabled?.(c),
     does: (e) => void (has && run(cmd, c, e)),
@@ -143,7 +152,7 @@ function drawCmd<C>(draw: (o: BtnOpts) => TemplateResult, cmd: Command<C>, c: C 
 }
 /** A command that is a menu (`menu`), as the bar's <to-menu>: its items the commands drawn in `menu:<name>` among `all`. */
 export const cmdMenu = <C>(cmd: Command<C>, c: C, all: readonly Command<C>[], cls = '', opts: { caret?: boolean; words?: boolean; icon?: IconNode; keep?: boolean } = {}): TemplateResult =>
-  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${labelOf(cmd, c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
+  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" data-tool-group=${cmd.group ?? nothing} ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${labelOf(cmd, c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
 
 export interface DateNavOpts {
   /** What is on view: "March 2027". */

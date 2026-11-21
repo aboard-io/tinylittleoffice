@@ -302,11 +302,19 @@ const KEYS: Command<Dr>[] = [
 
 const PIXELS: Command<Dr>[] = [
   ...PIXEL_INKS.map((ink) =>
-    cmd(`pixel.${ink.k}`, ink.name, { data: true, swatch: () => TILE_INKS[ink.k], where: ['bar'], when: (d) => !!d.view.grid, pressed: (d) => d.ink === ink.k, does: (d) => (d.ink = ink.k) }),
+    cmd(`pixel.${ink.k}`, ink.name, {
+      data: true,
+      swatch: () => TILE_INKS[ink.k],
+      where: ['bar'],
+      group: 'inks',
+      when: (d) => !!d.view.grid,
+      pressed: (d) => d.ink === ink.k,
+      does: (d) => (d.ink = ink.k),
+    }),
   ),
-  cmd('eraser', 'draw-eraser', { icon: Eraser, where: ['bar'], when: (d) => !!d.view.grid, pressed: (d) => d.ink === '.', does: (d) => (d.ink = '.') }),
-  cmd('pencil', 'draw-pencil', { icon: Pencil, where: ['bar'], when: (d) => !!d.view.grid, pressed: (d) => d.pmode === 'pen', does: (d) => d.paintWith('pen') }),
-  cmd('bucket', 'draw-fill', { icon: PaintBucket, where: ['bar'], when: (d) => !!d.view.grid, pressed: (d) => d.pmode === 'fill', does: (d) => d.paintWith('fill') }),
+  cmd('eraser', 'draw-eraser', { icon: Eraser, where: ['bar'], group: 'paint', when: (d) => !!d.view.grid, pressed: (d) => d.ink === '.', does: (d) => (d.ink = '.') }),
+  cmd('pencil', 'draw-pencil', { icon: Pencil, where: ['bar'], group: 'paint', when: (d) => !!d.view.grid, pressed: (d) => d.pmode === 'pen', does: (d) => d.paintWith('pen') }),
+  cmd('bucket', 'draw-fill', { icon: PaintBucket, where: ['bar'], group: 'paint', when: (d) => !!d.view.grid, pressed: (d) => d.pmode === 'fill', does: (d) => d.paintWith('fill') }),
   cmd('clear', 'draw-clear-grid', { icon: Trash2, where: ['bar'], when: (d) => !!d.view.grid, disabled: (d) => !tileFilled(d.view.pixels), does: (d) => d.clearPixels() }),
   cmd('background', 'draw-background', {
     hint: 'draw-use-as-background',
@@ -335,6 +343,7 @@ const TOOL_CMDS: Command<Dr>[] = [
       hint: x.hint,
       keys: x.id === 'k' ? 'K / Shift+K' : x.key,
       where: ['bar'],
+      group: 'tools',
       pressed: (d) => d.tool === x.id,
       does: (d, e) => d.pickTool(x.id, e),
     }),
@@ -371,8 +380,8 @@ const DRAW: Command<Dr>[] = [
     when: canvas,
     does: (d) => d.openAlt(),
   }),
-  cmd('zoomout', 'common-zoom-out', { icon: ZoomOut, where: ['bar'], document: true, takesFocus: true, when: canvas, disabled: (d) => d.zoom <= 0.5, does: (d) => d.zoomBy(-0.25) }),
-  cmd('zoomin', 'common-zoom-in', { icon: ZoomIn, where: ['bar'], document: true, takesFocus: true, when: canvas, disabled: (d) => d.zoom >= 4, does: (d) => d.zoomBy(0.25) }),
+  cmd('zoomout', 'common-zoom-out', { icon: ZoomOut, where: ['bar'], group: 'zoom', document: true, takesFocus: true, when: canvas, disabled: (d) => d.zoom <= 0.5, does: (d) => d.zoomBy(-0.25) }),
+  cmd('zoomin', 'common-zoom-in', { icon: ZoomIn, where: ['bar'], group: 'zoom', document: true, takesFocus: true, when: canvas, disabled: (d) => d.zoom >= 4, does: (d) => d.zoomBy(0.25) }),
   ...INK,
   ...STYLES,
   ...SIZE,

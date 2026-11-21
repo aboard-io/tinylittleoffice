@@ -27,7 +27,7 @@ const kind = (w: W) => (w.text?.sel ? w.text.kind : null);
 const heldCard = (w: W) => w.cardAt >= 0 && w.isCard(w.cardAt);
 
 const block = (id: string, k: 'title' | 'h1' | 'h2' | 'p', label: string, icon: Command['icon']): Command<W> =>
-  cmd(id, label, { icon, where: ['bar'], pressed: (w) => kind(w) === k, does: (w) => w.text.exec(k === 'p' || kind(w) !== k ? k : 'p') });
+  cmd(id, label, { icon, where: ['bar'], group: 'blocks', pressed: (w) => kind(w) === k, does: (w) => w.text.exec(k === 'p' || kind(w) !== k ? k : 'p') });
 const align = (how: Alignment, label: string, icon: Command['icon'], key: string): Command<W> =>
   cmd(how, label, {
     at: 'words',
@@ -107,15 +107,22 @@ const WRITE: Command<W>[] = [
   block('heading', 'h1', 'bar-heading', UI.heading1),
   block('subheading', 'h2', 'write-subheading', UI.heading),
   block('paragraph', 'p', 'write-paragraph', Pilcrow),
-  cmd('icon', 'common-icon', { icon: UI.icon, where: ['bar'], does: (w) => w.insertIcon() }),
+  cmd('icon', 'common-icon', { icon: UI.icon, where: ['bar'], group: 'link', does: (w) => w.insertIcon() }),
   cmd('align', 'write-align', { icon: UI.alignLeft, menu: 'align', where: ['bar'], does: () => undefined }),
   align('left', 'write-align-left', UI.alignLeft, 'L'),
   align('center', 'write-center', UI.alignCenter, 'E'),
   align('right', 'write-align-right', UI.alignRight, 'R'),
   align('justify', 'write-justify', UI.alignJustify, 'J'),
-  cmd('look', (w) => t('common-look-theme', { theme: (w ? lookOf(w.doc) : LOOKS.sans).name() }), { icon: Palette, menu: 'look', where: ['bar'], document: true, does: () => undefined }),
+  cmd('look', (w) => t('common-look-theme', { theme: (w ? lookOf(w.doc) : LOOKS.sans).name() }), { icon: Palette, menu: 'look', where: ['bar'], group: 'page', document: true, does: () => undefined }),
   ...LOOK_IDS.map((id) => cmd(`look.${id}`, LOOKS[id].name, { data: true, hint: () => LOOKS[id].sample(), where: ['menu:look'], pressed: (w) => lookOf(w.doc).id === id, does: (w) => w.setLook(id) })),
-  cmd('paper', (w) => t('write-paper-paper', { paper: PAPERS[w ? paperOf(w.doc) : 'letter'].name }), { icon: Ruler, menu: 'paper', where: ['bar'], document: true, does: () => undefined }),
+  cmd('paper', (w) => t('write-paper-paper', { paper: PAPERS[w ? paperOf(w.doc) : 'letter'].name }), {
+    icon: Ruler,
+    menu: 'paper',
+    where: ['bar'],
+    group: 'page',
+    document: true,
+    does: () => undefined,
+  }),
   ...(Object.keys(PAPERS) as Paper[]).map((p) =>
     cmd(`paper.${p}`, p === 'a4' ? 'write-a4' : 'write-letter', { where: ['menu:paper'], pressed: (w) => paperOf(w.doc) === p, does: (w) => w.setPaper(p) }),
   ),
