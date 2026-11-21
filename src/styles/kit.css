@@ -1445,6 +1445,46 @@
   .to-drawer-section.to-drawer-save {
     border-top: 0;
   }
+  /* The documents saved, under the switch (drawer.ts renderSaved; Paul, 2026-10-15: "a big scrollable list view. That
+     would be hard to miss"): rows like the search's, each its app's icon, its name and when, its Delete at the end as on
+     the home page; a long list scrolls inside its own height, half the screen at most, the switch staying in sight. */
+  .to-saved {
+    list-style: none;
+    margin: 0;
+    padding: 0.25em;
+    max-height: min(22em, 50dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .to-saved li {
+    display: flex;
+    align-items: center;
+  }
+  .to-saved-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.625em;
+    min-height: var(--to-touch);
+    padding: 0 0.625em;
+    color: var(--to-ink);
+    text-decoration: none;
+    border-radius: var(--to-radius-sm);
+  }
+  .to-saved-open:hover {
+    background: var(--to-surface-2);
+  }
+  .to-saved .to-tool {
+    border-color: transparent;
+    background: transparent;
+    color: var(--to-ink-3);
+  }
+  .to-saved-none {
+    margin: 0;
+  }
   /* A select goes under its label when the two do not fit on one line (the nav at its largest, a long language). */
   .to-drawer-prefs .to-field {
     flex-wrap: wrap;

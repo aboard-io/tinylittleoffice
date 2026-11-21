@@ -128,6 +128,10 @@ drawer-what-is-this = Che cos’è?
 drawer-turn-on-to-save-files = Attiva per salvare i file nel tuo browser.
 # en: af191ab94c0b2f93d5e90820805b9c7f419ce80d
 drawer-turn-off-to-remove-all = Disattiva per rimuovere tutti i file e le impostazioni.
+# en: d0d345f50784d6824741e549ee71454543c78be3
+drawer-saved-documents = Documenti salvati
+# en: 554e6e19563b1e1ea4d41590fa05e816c744b38f
+drawer-nothing-saved-yet = Ancora niente di salvato.
 # en: db5f691e51583d80782a9c51e78f01c49ccefd02
 common-nothing-saved-in-this-browser = Niente salvato in questo browser
 # en: 15f47f2fab9454be9fab70ba4bd89293fdc40c0a

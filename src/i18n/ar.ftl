@@ -153,6 +153,10 @@ drawer-what-is-this = ما هذا؟
 drawer-turn-on-to-save-files = شغّله لحفظ الملفات في متصفحك.
 # en: af191ab94c0b2f93d5e90820805b9c7f419ce80d
 drawer-turn-off-to-remove-all = أوقفه لإزالة كل الملفات والإعدادات.
+# en: d0d345f50784d6824741e549ee71454543c78be3
+drawer-saved-documents = المستندات المحفوظة
+# en: 554e6e19563b1e1ea4d41590fa05e816c744b38f
+drawer-nothing-saved-yet = لم يُحفظ شيء بعد.
 # en: db5f691e51583d80782a9c51e78f01c49ccefd02
 common-nothing-saved-in-this-browser = لا شيء محفوظ في هذا المتصفح
 # en: 15f47f2fab9454be9fab70ba4bd89293fdc40c0a

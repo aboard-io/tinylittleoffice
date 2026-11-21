@@ -6,7 +6,11 @@
  *    Default the page's) and Close.
  * 2. What is this?: the manual, a deck kept in the tree (manual.ts, manual.tlo) and compiled into its link, above
  *    Save in browser (Paul, 2026-10-14).
- * 3. Save in browser: the switch (off by default), and under it what turning it over does.
+ * 3. Save in browser: the switch (off by default), and under it what turning it over does; on, the documents saved,
+ *    newest first, each its app's icon, its name and when it was saved, a tap opening it and its Delete at the end as
+ *    on the home page, in a list that scrolls inside its own height; nothing saved yet, a line saying so (Paul,
+ *    2026-10-15, issue #6: "Maybe we just put their icons underneath the toggle in a big scrollable list view. That
+ *    would be hard to miss"; three readers had turned the switch on and could not find what they had saved).
  * 4. The size of everything (zoom.ts, the page's commands of kit/core/keys.ts): the eye and the stepper, no words.
  * 5. One search for anything (Mod+K opens the drawer with it focused): apps, documents kept here, templates and the
  *    commands in force where the person was (the words', the app's, the page's, each with its keys at the row's end),
@@ -33,8 +37,8 @@ import type { AppDef } from '../core/app.ts';
 import { apps, siteRoot } from '../core/apps.ts';
 import { mark } from '../draw/mark.ts';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { MAIL, preloadTemplates, templateHash, templatesOf as arrivedTemplates } from './home.ts';
-import { library } from '../share/library.ts';
+import { keptTitle, MAIL, preloadTemplates, templateHash, templatesOf as arrivedTemplates } from './home.ts';
+import { ago, forget, library, onLibrary, type Kept } from '../share/library.ts';
 import { icon, UI } from '../draw/icons.ts';
 import { startEditing } from './chrome.ts';
 import { routeHash } from '../core/route.ts';
@@ -121,7 +125,14 @@ export class ToDrawer extends LitElement {
     window.addEventListener('hashchange', away);
     // The size row says the size as a pinch changes it (kit/ui/pinch.ts), the drawer open or not.
     window.addEventListener('to-size', redraw);
-    this.offs = [onLanguage(redraw), onPrivacy(redraw), onInstall(redraw), () => window.removeEventListener('hashchange', away), () => window.removeEventListener('to-size', redraw)];
+    this.offs = [
+      onLanguage(redraw),
+      onPrivacy(redraw),
+      onInstall(redraw),
+      onLibrary(redraw),
+      () => window.removeEventListener('hashchange', away),
+      () => window.removeEventListener('to-size', redraw),
+    ];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -268,6 +279,7 @@ export class ToDrawer extends LitElement {
             <input type="checkbox" role="switch" .checked=${keeping()} @change=${(e: Event) => void this.togglePrivate(e)} />
             <span class="to-switch-words"><b>${t('drawer-save-in-browser')}</b><small>${keeping() ? t('drawer-turn-off-to-remove-all') : t('drawer-turn-on-to-save-files')}</small></span>
           </label>
+          ${keeping() ? this.renderSaved(kept) : nothing}
         </section>
         <!-- The size of everything: the eye and the stepper, no words (Paul, 2026-10-12); its name is the screen reader's. -->
         <div class="to-field to-size" role="group" aria-label=${t('drawer-size-of-everything')}>${icon(UI.view, 18)}<div class="to-size-step">
@@ -328,6 +340,26 @@ export class ToDrawer extends LitElement {
           ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('leave-running-commit-commit', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
           : nothing
       }`}></to-dialog>`;
+  }
+
+  /** Under the switch, while it is on: every document saved, newest first, its app's icon, its name and when; a tap opens it, and its Delete is the home page's. Nothing saved, a line that says so. */
+  private renderSaved(kept: Kept[]): TemplateResult {
+    const byId = new Map(apps().map((a) => [a.id, a]));
+    const rows = kept.flatMap((k) => {
+      const a = byId.get(k.app);
+      return a ? [{ a, k, title: keptTitle(k) }] : [];
+    });
+    if (!rows.length) return html`<p class="to-hint to-saved-none">${t('drawer-nothing-saved-yet')}</p>`;
+    const lang = document.documentElement.lang;
+    return html`<ul class="to-saved" aria-label=${t('drawer-saved-documents')}>
+      ${rows.map(
+        ({ a, k, title }) =>
+          html`<li>
+            <a class="to-saved-open" href=${k.hash} @click=${() => this.close()}>${icon(a.icon, 20)}<span class="to-found-words"><span>${title}</span><small>${ago(k.at, lang)}</small></span></a>
+            <button type="button" class="to-btn to-tool" aria-label=${t('home-forget-title', { title })} title=${t('common-forget')} @click=${() => forget(k.id)}>${icon(UI.close, 16)}</button>
+          </li>`,
+      )}
+    </ul>`;
   }
 
   /** A button of the size stepper: the page's command (kit/core/keys.ts), its words its name. */

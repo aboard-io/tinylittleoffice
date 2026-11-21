@@ -95,6 +95,10 @@ drawer-save-in-browser = Save in browser
 drawer-what-is-this = What is this?
 drawer-turn-on-to-save-files = Turn on to save files in your browser.
 drawer-turn-off-to-remove-all = Turn off to remove all files and settings.
+# Under the switch while it is on: the name, for a screen reader, of the list of the documents saved in this browser.
+drawer-saved-documents = Saved documents
+# Under the switch while it is on, in the list's place, when no document is saved in this browser yet.
+drawer-nothing-saved-yet = Nothing saved yet.
 common-nothing-saved-in-this-browser = Nothing saved in this browser
 common-saving-in-this-browser = Saving in this browser
 drawer-remove-all-files-and-settings = Remove all files and settings from this browser?

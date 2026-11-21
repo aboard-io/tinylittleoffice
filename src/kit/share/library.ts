@@ -37,8 +37,23 @@ export function library(): Kept[] {
   }
 }
 
-/** Newest first, one entry per hash (the newest), at most MOST; when storage is full, halves until it fits. */
+/** Who is told when the library changes: the home page's lists and the drawer's, so a document deleted in one is gone from the other. */
+const told = new Set<() => void>();
+/** Be told of every change to the library; returns the way to stop. */
+export function onLibrary(fn: () => void): () => void {
+  told.add(fn);
+  return () => told.delete(fn);
+}
+const tell = () => told.forEach((fn) => fn());
+
+/** Written, and whoever listens told. */
 function write(all: Kept[]) {
+  put(all);
+  tell();
+}
+
+/** Newest first, one entry per hash (the newest), at most MOST; when storage is full, halves until it fits. */
+function put(all: Kept[]) {
   const seen = new Set<string>();
   const list = all.sort((a, b) => b.at - a.at).filter((k) => !seen.has(k.hash) && !!seen.add(k.hash));
   if (!list.length) return store.remove(KEY);
@@ -79,7 +94,9 @@ export function forget(id: string) {
 }
 
 export function forgetAll() {
-  if (keeping()) store.remove(KEY);
+  if (!keeping()) return;
+  store.remove(KEY);
+  tell();
 }
 
 /** A document's first words, for one with no name: the first line that says something, marks and front matter left out. */

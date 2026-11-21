@@ -126,6 +126,10 @@ drawer-what-is-this = Wat is dit?
 drawer-turn-on-to-save-files = Zet aan om bestanden in je browser op te slaan.
 # en: af191ab94c0b2f93d5e90820805b9c7f419ce80d
 drawer-turn-off-to-remove-all = Zet uit om alle bestanden en instellingen te verwijderen.
+# en: d0d345f50784d6824741e549ee71454543c78be3
+drawer-saved-documents = Opgeslagen documenten
+# en: 554e6e19563b1e1ea4d41590fa05e816c744b38f
+drawer-nothing-saved-yet = Nog niets opgeslagen.
 # en: db5f691e51583d80782a9c51e78f01c49ccefd02
 common-nothing-saved-in-this-browser = Niets opgeslagen in deze browser
 # en: 15f47f2fab9454be9fab70ba4bd89293fdc40c0a
