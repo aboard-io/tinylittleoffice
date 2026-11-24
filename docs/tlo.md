@@ -23,6 +23,9 @@ document; it never parses text of its own.
    marks, a table with outer pipes, `Price: money`, Markdown's reference footnotes); the writer writes one form.
 6. **Words are inline Markdown.** `**bold**`, `*italic*`, `++underline++`, `~~strike~~`, `==highlight==`, `` `code` `` (its words verbatim, in a monospace face),
    `:icon-name:`, `[words](address)` and `^[a footnote]`; `\` escapes. The writer escapes as little as reads back.
+   An emoji's shortcode as chat writes it (`:raising_hand:`, `:tada:`, `:thumbs_up:`: src/doc/shortcodes.ts, none of
+   them an icon's name) is read as the emoji itself, words like any other, and written as the emoji; a `:name:` that
+   names neither an icon nor an emoji stays words, and the lint names it (kind `icon`).
    Words that would read as syntax are written so they read back as the same words, whatever runs sit beside them
    (a pasted `**`, `:smile:`, `[a](b)` or `^[` stays words): first with only `\\` doubled, and where that would read
    differently, with every mark escaped: `\*`, `\_`, `` \` ``, `\\`, an `=`, `+` or `~` doubled or at either end

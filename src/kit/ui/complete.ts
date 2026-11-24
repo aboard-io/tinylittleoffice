@@ -13,6 +13,7 @@
  */
 import { LitElement, html, nothing } from 'lit';
 import { icon, iconNamed } from '../draw/icons.ts';
+import { shortcodeEmoji } from '../../doc/shortcodes.ts';
 import { completeIcons } from '../draw/icons-search.ts';
 import { t } from '../core/i18n.ts';
 import { reveal, room } from './scroll.ts';
@@ -49,12 +50,12 @@ export function completions(query: string, icons: boolean): Completion[] {
   return [...take, ...e.slice(0, MAX - take.length)];
 }
 
-/** What ":name:" typed in full becomes: the icon by that name (where icons are offered), else the emoji by that name, else null. */
+/** What ":name:" typed in full becomes: the icon by that name (where icons are offered), else the emoji by that name or shortcode (`:tada:`, doc/shortcodes.ts), else null. */
 export function completeNamed(name: string, icons: boolean): Completion | null {
   const n = name.toLowerCase();
   if (icons && iconNamed(n)) return { kind: 'icon', value: n, name: n };
-  const c = emoji?.emojiNamed(n);
-  return c ? { kind: 'emoji', value: c, name: emoji!.emojiName(c) } : null;
+  const c = emoji?.emojiNamed(n) || shortcodeEmoji(n);
+  return c ? { kind: 'emoji', value: c, name: emoji?.emojiName(c) || n } : null;
 }
 
 let ids = 0;

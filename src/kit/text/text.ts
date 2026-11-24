@@ -1289,7 +1289,7 @@ export class ToText extends LitElement {
       .map((r) => (isAtomic(r) ? '\uFFFC' : r.t))
       .join('')
       .slice(0, offset);
-    const m = /(?:^|\s):([A-Za-z0-9][A-Za-z0-9-]*)$/.exec(before);
+    const m = /(?:^|\s):([A-Za-z0-9][A-Za-z0-9_-]*)$/.exec(before);
     if (m) return { block, start: offset - m[1].length - 1, end: offset, query: m[1].toLowerCase(), sigil: ':' };
     const at = this.mentions.length ? /(?:^|[\s(“"'])@([\p{L}\p{N}.'’-]*)$/u.exec(before) : null;
     return at ? { block, start: offset - at[1].length - 1, end: offset, query: at[1].toLowerCase(), sigil: '@' } : null;

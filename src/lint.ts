@@ -10,6 +10,10 @@
  * document could be inside this one, as a fence named by its app (Paul 2026-10-12: an agent
  * shipped four companion links from a deck's bullets, believing a slide could not hold a chart or an animation).
  *
+ * A `:name:` in words that draws nothing (kind `icon`) is a finding: an icon run that names no Lucide icon, or words
+ * like an emoji's shortcode the reader knew no emoji for (src/doc/shortcodes.ts), both shown as typed (Atlas wrote
+ * `## :raising_hand: Questions` into a deck, 2026-11-23). The API's `lint` waits for the whole of Lucide first.
+ *
  * A host-kept picture (doc/image.ts) with no words for whoever cannot see it is a finding; so is one on a page that
  * keeps no pictures (the site, the API, the command line: kit/core/host.ts `images`), where it is drawn as a card
  * saying so, not an error, since the document is sound and opens whole where its host is.
@@ -27,6 +31,7 @@ import { lintDeck, measureDeck } from './apps/deck/lint.ts';
 import { lintSheet, measureSheet } from './apps/sheet/lint.ts';
 import { slidesOf } from './apps/deck/model.ts';
 import { SHORT_LINK_MAX } from './kit/share/short.ts';
+import { iconNamed, iconsComplete } from './kit/draw/icons.ts';
 
 /** One thing the eye would have seen: the block it is about, what kind of finding, the words that say it, what to do. */
 export interface Found {
@@ -46,10 +51,12 @@ export interface Finding extends Found {
 export const LINK_MAX = 2000;
 
 const LINTS: Record<string, (text: string) => Found[]> = { diagram: lintDiagram, deck: lintDeck };
+/** The apps whose documents are words, where a `:name:` is an icon in the words (a drawing's or a diagram's labels name theirs their own way). */
+const WORDS = new Set(['write', 'deck', 'outline']);
 /** The apps a fence may hold that the lint reads: those with a lint of their own, and the sheet, whose tables every document's lint reads. */
-const linted = (lang: string) => lang in LINTS || lang === 'sheet';
+const linted = (lang: string) => lang in LINTS || lang === 'sheet' || WORDS.has(lang);
 /** A document's own findings in an app: its app's, and its tables'. */
-const lintOf = (app: string, text: string): Found[] => [...(LINTS[app]?.(text) ?? []), ...lintSheet(text)];
+const lintOf = (app: string, text: string): Found[] => [...(LINTS[app]?.(text) ?? []), ...lintSheet(text), ...(WORDS.has(app) ? unknownIcons(parse(text)) : [])];
 
 /**
  * A link to a Tiny Little Office document: an app's plain link (`/<app>/#doc=`, `#md=`, with or without a title
@@ -90,6 +97,34 @@ function pictures(doc: Doc): Found[] {
         fix: 'open the document where its pictures are kept, or say it in words',
       });
     return out;
+  });
+}
+
+/** A `:name:` left as words: a shortcode-like name, with a `_` (no icon's name has one), that the reader took for no emoji. */
+const UNREAD = /(?<![A-Za-z0-9\\/]):([a-z0-9][a-z0-9-]*_[a-z0-9_-]*):/g;
+
+/**
+ * Each `:name:` in words that draws nothing: an icon run whose name is no Lucide icon's (known only once the whole of
+ * Lucide has joined, which `lint` in the API waits for: `iconsComplete`), and words that look like an emoji's
+ * shortcode the reader did not know (src/doc/shortcodes.ts), which are shown as typed. A time ("10:30") or an
+ * address is never one.
+ */
+function unknownIcons(doc: Doc): Found[] {
+  const complete = iconsComplete();
+  return doc.blocks.flatMap((b, block) => {
+    if (!('runs' in b)) return [];
+    const names = new Set<string>();
+    for (const r of b.runs) {
+      if (r.ic) {
+        if (complete && !iconNamed(r.ic)) names.add(r.ic);
+      } else if (r.fn === undefined && !r.c) for (const m of r.t.matchAll(UNREAD)) names.add(m[1]);
+    }
+    return [...names].map((name) => ({
+      block,
+      kind: 'icon',
+      words: `:${name}: names no icon and no emoji: it shows as the words ":${name}:"`,
+      fix: 'Name a Lucide icon (:zap:, :hand:, :users:) or write the emoji itself.',
+    }));
   });
 }
 

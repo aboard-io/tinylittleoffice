@@ -196,11 +196,13 @@ export type { Finding, Measure } from './lint.ts';
  * What the eye would have seen in a document, said in words, so nothing need be opened to check it: a diagram's
  * connection that names no thing, a comma splitting a number into two things, a label too long for its box or
  * lying over another, a slide's bullets under a chart (not drawn), a headline shrunk or cut, a link too long to
- * paste. Each finding has its app, where it is ("slide 3"), its block, its kind, its words and what to do; a
+ * paste, a `:name:` that names no icon and no emoji (kind "icon"). Each finding has its app, where it is ("slide 3"), its block, its kind, its words and what to do; a
  * document fenced inside another is linted too. [] is a clean document. The measures are the layouts' own.
  */
 export async function lint(app: string, text: string, opts: LinkOptions = {}): Promise<import('./lint.ts').Finding[]> {
-  return (await import('./lint.ts')).lint(app, text, link(app, text, opts));
+  // The whole of Lucide first, so a `:name:` that names no icon is known for one (lint.ts, kind "icon").
+  const [m] = await Promise.all([import('./lint.ts'), import('./kit/draw/icons.ts').then((i) => i.loadIcons())]);
+  return m.lint(app, text, link(app, text, opts));
 }
 
 /** The numbers the layouts chose, so words can be set from them: per slide the headline's and the words' sizes, lines and what was cut; per diagram its things and connections, drawn and dropped, and how each label was set; and whether the link fits in a short link (`short: { fits, over }`). */

@@ -46,6 +46,7 @@ describe('each finding: a document that trips it, and one that does not', () => 
     ['sheet-circ', 'formula-error'],
     ['doc-link', 'doc-link'],
     ['image-no-alt', 'image-no-alt'],
+    ['icon', 'icon'],
   ])('%s', (name, kind) => {
     expect(kinds(name)).toContain(kind);
     expect(kinds(`${name}.ok`)).toStrictEqual([]);
@@ -76,6 +77,19 @@ describe('a host-kept picture', () => {
 });
 
 describe('what each finding says', () => {
+  test('a :name: that names no icon and no emoji, as Atlas wrote a deck’s (2026-11-23): named, in a deck and in a text, the API waiting for the whole of Lucide', async () => {
+    const deck = await apiLint('deck', '## :no-such-icon: Hello\n\n- Raise a hand :raised_hand_with_fingers:\n\n---\n\n## :paw-print: Fine :tada:\n');
+    expect(deck.map((f) => [f.kind, f.at, f.words])).toStrictEqual([
+      ['icon', 'slide 1', ':no-such-icon: names no icon and no emoji: it shows as the words ":no-such-icon:"'],
+      ['icon', 'slide 1', ':raised_hand_with_fingers: names no icon and no emoji: it shows as the words ":raised_hand_with_fingers:"'],
+    ]);
+    expect(deck[0].fix).toBe('Name a Lucide icon (:zap:, :hand:, :users:) or write the emoji itself.');
+    const text = await apiLint('write', '# Notes :no-such-icon:\n\nAt 10:30: see https://example.com/:x_y: and `:in_code:` :rocket: :raising_hand:\n');
+    expect(text.map((f) => [f.kind, f.at])).toStrictEqual([['icon', 'block 1']]);
+    // A deck fenced in a text is read as a deck.
+    expect((await apiLint('write', 'Words\n\n```deck\n## :no_such_code: Hi\n```\n')).map((f) => [f.app, f.kind])).toStrictEqual([['deck', 'icon']]);
+  });
+
   test('a slide of companion links, as an agent wrote one on 2026-10-12: each link to a document is named, at its slide, the same from the API', async () => {
     const { app, text } = fixture('doc-link');
     const found = lint(app, text);

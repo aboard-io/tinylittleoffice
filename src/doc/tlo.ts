@@ -29,6 +29,7 @@
  * escaping as little as it can and reading its own words back to check.
  */
 import { normalRuns, type Attrs, type Block, type ColType, type Column, type Dir, type Doc, type FenceBlock, type Head, type Run } from './model.ts';
+import { shortcodeEmoji } from './shortcodes.ts';
 
 /* ---------- attributes ---------- */
 
@@ -503,6 +504,7 @@ const MARKS: [string, 'b' | 'i' | 'u' | 's' | 'h'][] = [
 ];
 const LINK = /^\[((?:\\.|[^\]\\\n])+)\]\(\s*<?((?:https?:\/\/|mailto:|tel:|#)(?:[^()\s>]|\([^()\s>]*\))*)>?\s*\)/;
 const ICON = /^:([a-z][a-z0-9-]*):/;
+const SHORTCODE = /^:([a-z0-9][a-z0-9_]*):/;
 /** A web or mail address, as far as it can go without taking in a mark that follows it (read at a line's start, after a space, a "(" or a link's "["). */
 const URL = '(?:https?:\\/\\/|mailto:)(?:(?!\\*\\*|~~|==|\\+\\+|__|:[a-z][a-z0-9-]*:)[^\\s<`\\\\[\\]*])+';
 
@@ -605,6 +607,16 @@ export function parseInline(s: string, kept?: string[]): Run[] {
       }
     }
     if (c === ':') {
+      // An emoji's shortcode (`:raising_hand:`, src/doc/shortcodes.ts) is the emoji, words like any other: at a line's
+      // start, after a space, a bracket, a quote or a mark, never inside a word, a time or an address ("a:tada:",
+      // "10:100:", "/:tada:/"). No shortcode is an icon's name, so an icon is still read below.
+      const code = i && !/[\s(["'*_~=+]/.test(s[i - 1]) ? null : SHORTCODE.exec(s.slice(i));
+      const emoji = code && shortcodeEmoji(code[1]);
+      if (emoji) {
+        buf += emoji;
+        i += code[0].length;
+        continue;
+      }
       const m = ICON.exec(s.slice(i));
       if (m) {
         flush();
@@ -709,7 +721,7 @@ function escapePlain(t: string): string {
   return out
     .replace(/\[(?=(?:\\.|[^\]\\\n])*\]\()|\[(?![^\]]*\])/g, '\\[')
     .replace(/\^(?=\[|$)/g, '\\^')
-    .replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:')
+    .replace(/:(?=(?:[a-z][a-z0-9-]*|\d[a-z0-9]*):)/g, '\\:')
     .replace(/<(?=\/?u>)/g, '\\<');
 }
 
