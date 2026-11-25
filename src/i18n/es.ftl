@@ -218,18 +218,14 @@ leave-this-link-hides-characters-in = La dirección de este enlace contiene cara
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = Se abrió una copia en una pestaña nueva
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = Enlace de edición
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = Enlace de presentación
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = Modo vista previa
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = Copiar en un documento nuevo
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = Copiar enlace
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = Copia de { $title }
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = Cifrado en tu navegador. Nuestro servidor solo guarda el enlace cifrado y lo elimina cuando caduca.
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = Caduca en { $n ->
         [one] { $n } día
@@ -248,14 +244,10 @@ share-expires-in-n-minutes-date = Caduca en { $n ->
         [many] { $n } de minutos
        *[other] { $n } minutos
     } ({ $date })
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = Se abre como páginas para leer
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = Se abre en el editor
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = Abrir como vista previa de solo lectura.
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = Quien abra este enlace recibe su propia copia. Sus cambios no aparecerán en la tuya. Pídele que te devuelva su enlace.
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = Enlace corto que caduca
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = Este enlace caduca en { $n ->
         [one] { $n } día
@@ -304,14 +296,30 @@ share-n-short-links-kept-here = { $n ->
         [many] { $n } de enlaces cortos guardados aquí
        *[other] { $n } enlaces cortos guardados aquí
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = Enlace de vista
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = Se abre
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = Enlace copiado
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = No se pudo copiar
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = Compartir { $title }
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = ¡El enlace _es_ el documento!
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Office **no** es una herramienta de colaboración en línea. Tus archivos no se guardan en la nube, y **no hay sincronización entre usuarios ni dispositivos**.
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = Cada enlace convierte un documento entero en una sola URL larga, una instantánea de su contenido tal como está _ahora mismo._ Nadie más verá los cambios que hagas hasta que crees y compartas un enlace nuevo, y viceversa.
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = No volver a mostrar
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = El enlace está listo. Vuelve a pulsar «Compartir».
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = Acerca de { $option }
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = Enlace corto
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = Para crear un enlace corto, tenemos que guardar una copia **cifrada** de tu documento en nuestros servidores. La clave de cifrado pasa a formar parte de la URL y nunca sale de tu navegador; sin ella, no tenemos forma de leer tus datos.
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **Los enlaces cortos no se pueden editar ni eliminar antes de su fecha de caducidad.**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = Compartir…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -322,30 +330,24 @@ common-qr-code-of-this-document = Código QR del documento
 share-this-document-is-n-bytes = Este documento pesa { $n } bytes; el código QR más grande admite { $max }. Acórtalo en { $over } bytes y cabrá.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = Este documento tiene { $n } caracteres; un enlace corto admite { $max }. Acórtalo en { $over } y cabrá.
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = Caduca tras
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
-share-hour = Una hora
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
-share-day = Un día
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
-share-week = Una semana
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
-share-month = Un mes
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = Crear un enlace corto
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
+share-hour = una hora
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
+share-day = un día
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
+share-week = una semana
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
+share-month = un mes
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = Creando…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = Límite alcanzado: 100 enlaces cortos al día por dirección. Vuelve a intentarlo mañana.
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = Un enlace corto no se puede editar ni eliminar. Caduca automáticamente.
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = No se pudo acortar el enlace.
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = Este documento es demasiado largo para un enlace corto.
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = Hasta 100 enlaces cortos al día por dirección.
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = Quitar
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -359,8 +361,6 @@ share-new-noun-date-n = { $noun } { $date } n.º { $n }
 share-mastodon-server-like-mastodon-social = Un servidor de Mastodon, como mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = Cambiar
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = Copiar código para incrustar
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = Copiar enlace para presentar
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -373,10 +373,14 @@ share-opens-deck-already-presenting = Abre la presentación ya iniciada.
 share-post = Publicar
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = Publicar el enlace
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = Mostrar una vista previa de la primera página
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = Una imagen de la primera página y el título se guardan legibles en nuestro servidor durante un mes para que la red pueda obtenerlos. El documento en sí, no.
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = Compartir como tarjeta de vista previa
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = En apps y redes sociales, mostrar el título y una captura de tu documento junto con el enlace.
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = Estos datos se guardarán en nuestros servidores, visibles para cualquiera, durante un mes como máximo.
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = Acerca de las tarjetas de vista previa
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = Compartido sin vista previa: { $reason }
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -439,12 +443,10 @@ share-yes-counts-as-n-of-max = Sí, cuenta como { $n } de { $max }
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = Quien tenga el enlace necesitará la contraseña para abrirlo. No se puede restablecer. Si la pierdes, perderás el documento.
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = Cambiar contraseña
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = Creado el { $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = Quien tenga el enlace necesitará la contraseña para abrirlo, incluso tú. No se puede restablecer.
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **Si la pierdes, perderás el documento.**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = Escribe la contraseña para abrir este documento.
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -457,8 +459,6 @@ privacy-forget-everything-this-site-keeps = ¿Eliminar todo lo guardado en este 
 privacy-locked = Bloqueado
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = Documento bloqueado
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = Contraseña nueva
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = Sin contraseña
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -471,8 +471,6 @@ common-password = Contraseña
 privacy-password-removed = Se quitó la contraseña
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = Contraseña establecida. El enlace ahora está cifrado.
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = Contraseña…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = Preferencias
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -481,12 +479,6 @@ privacy-privacy = Privacidad
 privacy-nothing-saved-in-this-browser = No hay nada guardado en este navegador. Lo que aparece en la lista dura solo esta visita.
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = Protegido con contraseña
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = Quitar contraseña
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = Cifrando…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = Establecer contraseña
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = Enlaces cortos
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -497,8 +489,6 @@ privacy-short-links-made-here-until = Los enlaces cortos creados aquí, hasta qu
 privacy-their-names-and-links-for = Nombres y enlaces, que se muestran en la página de inicio.
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = El tema y los ajustes de los enlaces cortos.
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = Este documento tiene contraseña. El enlace, y cualquier enlace corto hecho a partir de él, está cifrado.
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = Este documento está bloqueado
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -517,8 +507,6 @@ privacy-your-browsers-history = El historial de tu navegador
 privacy-every-document-opened-here-in = Cada documento que abras, completo, salvo que tenga contraseña.
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = No podemos borrar esto
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = por { $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
         [one] { $n } documento
@@ -533,10 +521,8 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = { $n } guardadas
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = Copia esta contraseña y envíala aparte del enlace. No se volverá a mostrar.
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
-privacy-make-another = Crear otra
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
+privacy-make-another = Regenerar
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = Contraseña copiada
 

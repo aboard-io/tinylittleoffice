@@ -242,18 +242,14 @@ leave-this-link-hides-characters-in = يحتوي عنوان هذا الرابط 
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = نسخة فُتحت في تبويب جديد
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = رابط التحرير
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = رابط العرض
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = وضع المعاينة
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = نسخ إلى مستند جديد
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = نسخ الرابط
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = نسخة من { $title }
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = مشفَّر في متصفحك. لا يخزّن خادمنا إلا الرابط المشفَّر، ويحذفه عند انتهاء صلاحيته.
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = ينتهي خلال { $n ->
         [zero] { $n } يوم
@@ -281,14 +277,10 @@ share-expires-in-n-minutes-date = ينتهي خلال { $n ->
         [many] { $n } دقيقة
        *[other] { $n } دقيقة
     } ({ $date })
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = يُفتح كصفحات للقراءة
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = يُفتح في المحرر
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = يُفتح كمعاينة للقراءة فقط.
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = كل من يفتح هذا الرابط يحصل على نسخته الخاصة. لن تظهر تغييراته في نسختك. اطلب منه أن يرسل إليك رابطه.
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = رابط قصير مؤقت
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = ينتهي هذا الرابط خلال { $n ->
         [zero] { $n } يوم
@@ -363,14 +355,30 @@ share-n-short-links-kept-here = { $n ->
         [many] { $n } رابطًا قصيرًا محفوظًا هنا
        *[other] { $n } رابط قصير محفوظ هنا
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = رابط العرض
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = طريقة الفتح
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = تم نسخ الرابط
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = تعذّر النسخ
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = مشاركة { $title }
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = الرابط هو المستند نفسه!
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Office ليس أداة للتعاون عبر الإنترنت. لا تُخزَّن ملفاتك في السحابة، و**لا توجد مزامنة بين المستخدمين أو الأجهزة**.
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = يحوّل كل رابط المستند كله إلى عنوان URL طويل واحد، فيلتقط محتواه كما هو الآن. لن يرى أحد غيرك أي تغييرات تجريها حتى تنشئ رابطًا جديدًا وتشاركه، والعكس صحيح.
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = لا تعرض هذا مجددًا
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = الرابط جاهز. اضغط على «مشاركة» مرة أخرى.
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = حول { $option }
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = رابط قصير
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = لإنشاء رابط قصير، يجب أن نخزّن نسخة **مشفّرة** من مستندك على خوادمنا. يصبح مفتاح التشفير جزءًا من عنوان URL ولا يغادر متصفحك أبدًا؛ ومن دونه لا سبيل لنا إلى قراءة بياناتك.
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **لا يمكن تعديل الروابط القصيرة أو حذفها يدويًا قبل تاريخ انتهاء صلاحيتها.**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = مشاركة…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -388,30 +396,24 @@ share-this-document-is-n-characters = طول هذا المستند { $n ->
         [many] { $n } حرفًا
        *[other] { $n } حرف
     }، والرابط القصير يتسع لـ{ $max }. اختصره بمقدار { $over } ليناسب.
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = ينتهي بعد
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
 share-hour = ساعة
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
 share-day = يوم
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
 share-week = أسبوع
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
 share-month = شهر
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = إنشاء رابط قصير
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = جارٍ الإنشاء…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = تم بلوغ الحد: 100 رابط قصير يوميًا لكل عنوان. حاول مجددًا غدًا.
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = لا يمكن تعديل الرابط القصير أو حذفه. تنتهي صلاحيته تلقائيًا.
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = تعذّر اختصار الرابط.
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = هذا المستند أطول من أن يناسب رابطًا قصيرًا.
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = حتى 100 رابط قصير يوميًا لكل عنوان.
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = إزالة
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -425,8 +427,6 @@ share-new-noun-date-n = { $noun } جديد { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = خادم Mastodon، مثل mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = تغيير
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = نسخ شفرة التضمين
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = نسخ رابط بدء العرض
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -439,10 +439,14 @@ share-opens-deck-already-presenting = يفتح العرض التقديمي في 
 share-post = نشر
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = نشر الرابط
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = إظهار معاينة للصفحة الأولى
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = تبقى صورة الصفحة الأولى والعنوان مقروءة على خادمنا لمدة شهر ليتمكن موقع التواصل من جلبها. أما المستند نفسه فلا.
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = المشاركة كبطاقة معاينة
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = في التطبيقات والشبكات الاجتماعية، يُعرض عنوان مستندك ولقطة شاشة منه مع الرابط.
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = ستُخزَّن هذه البيانات على خوادمنا، ظاهرةً لأي أحد، لمدة تصل إلى شهر.
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = عن بطاقات المعاينة
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = تمت المشاركة دون معاينة: { $reason }
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -517,12 +521,10 @@ share-yes-counts-as-n-of-max = نعم، يُحتسب { $n } من { $max }
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = سيحتاج كل من لديه الرابط إلى كلمة المرور لفتحه. لا يمكن إعادة تعيينها. إذا فقدتها، يضيع المستند.
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = تغيير كلمة المرور
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = أُنشئ في { $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = سيحتاج كل من لديه الرابط إلى كلمة المرور لفتحه، بما في ذلك أنت. لا يمكن إعادة تعيينها.
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **إذا فقدتها، يضيع المستند.**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = أدخل كلمة المرور لفتح هذا المستند.
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -535,8 +537,6 @@ privacy-forget-everything-this-site-keeps = حذف كل ما هو محفوظ ف�
 privacy-locked = مقفل
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = مستند مقفل
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = كلمة مرور جديدة
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = بلا كلمة مرور
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -549,8 +549,6 @@ common-password = كلمة المرور
 privacy-password-removed = أُزيلت كلمة المرور
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = تم تعيين كلمة المرور. الرابط مشفَّر الآن.
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = كلمة المرور…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = التفضيلات
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -559,12 +557,6 @@ privacy-privacy = الخصوصية
 privacy-nothing-saved-in-this-browser = لا شيء محفوظ في هذا المتصفح. العناصر المدرجة تبقى لهذه الزيارة فقط.
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = محمي بكلمة مرور
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = إزالة كلمة المرور
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = جارٍ التشفير…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = تعيين كلمة المرور
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = الروابط القصيرة
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -575,8 +567,6 @@ privacy-short-links-made-here-until = الروابط القصيرة التي أ�
 privacy-their-names-and-links-for = الأسماء والروابط، وتظهر في الصفحة الرئيسية.
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = المظهر وإعدادات الروابط القصيرة.
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = لهذا المستند كلمة مرور. الرابط، وأي رابط قصير يُصنع منه، مشفَّر.
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = هذا المستند مقفل
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -595,8 +585,6 @@ privacy-your-browsers-history = سجل متصفحك
 privacy-every-document-opened-here-in = كل مستند تفتحه، كاملًا، إلا إذا كانت له كلمة مرور.
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = لا يمكننا مسح هذا
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = بواسطة { $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
         [zero] لا مستندات
@@ -617,10 +605,8 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = مضبوطة: { $n }
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = انسخ كلمة المرور هذه وأرسلها بعيدًا عن الرابط. لن تظهر مرة أخرى.
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
-privacy-make-another = إنشاء كلمة أخرى
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
+privacy-make-another = إعادة الإنشاء
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = تم نسخ كلمة المرور
 

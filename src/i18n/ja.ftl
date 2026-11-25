@@ -209,18 +209,14 @@ leave-this-link-hides-characters-in = このリンクのアドレスには隠れ
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = コピーを新しいタブで開きました
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = 編集用リンク
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = 発表用リンク
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = プレビューモード
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = 新しいドキュメントにコピー
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = リンクをコピー
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = { $title }のコピー
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = お使いのブラウザで暗号化されます。サーバーには暗号化されたリンクだけが保存され、期限が来ると削除されます。
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = あと{ $n ->
        *[other] { $n }日
@@ -233,14 +229,10 @@ share-expires-in-n-hours-date = あと{ $n ->
 share-expires-in-n-minutes-date = あと{ $n ->
        *[other] { $n }分
     }で期限切れ（{ $date }）
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = 閲覧用のページとして開く
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = エディタで開く
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = 閲覧専用のプレビューとして開きます。
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = このリンクを開いた人は、それぞれ自分のコピーを受け取ります。その人の変更はあなたのコピーには反映されません。リンクを送り返してもらってください。
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = 期限付きの短縮リンク
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = このリンクの有効期限はあと{ $n ->
        *[other] { $n }日
@@ -281,14 +273,30 @@ share-some-browsers = 古いブラウザ
 share-n-short-links-kept-here = ここに保管した短縮リンク { $n ->
        *[other] { $n }件
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = 表示用リンク
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = 開き方
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = リンクをコピーしました
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = コピーできませんでした
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = { $title }を共有
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = リンクこそがドキュメントです！
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Officeはオンラインの共同編集ツールではありません。ファイルはクラウドに保存されず、**ユーザー間や端末間の同期もありません**。
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = リンクはドキュメント全体を1つの長いURLに変換し、今この時点の内容のスナップショットを作ります。あなたが加えた変更は、新しいリンクを作って共有するまで他の誰にも見えません。逆もまた同じです。
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = 今後表示しない
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = リンクの準備ができました。もう一度「共有」を押してください。
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = { $option }について
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = 短縮リンク
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = 短縮リンクを作るには、ドキュメントの**暗号化された**コピーを当社のサーバーに保存する必要があります。暗号鍵はURLの一部になり、ブラウザーの外に出ることはありません。鍵がなければ、当社があなたのデータを読むことはできません。
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **短縮リンクは、有効期限が来るまで編集も削除もできません。**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = 共有…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -299,30 +307,24 @@ common-qr-code-of-this-document = ドキュメントのQRコード
 share-this-document-is-n-bytes = このドキュメントは{ $n }バイトで、QRコードに入る最大は{ $max }バイトです。{ $over }バイト短くすれば収まります。
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = このドキュメントは{ $n }文字で、短縮リンクに入る最大は{ $max }文字です。{ $over }文字短くすれば収まります。
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = 期限
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
 share-hour = 1時間
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
 share-day = 1日
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
 share-week = 1週間
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
 share-month = 1か月
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = 短縮リンクを作成
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = 作成中…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = 上限に達しました。1つのアドレスにつき1日100件の短縮リンクまでです。明日もう一度お試しください。
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = 短縮リンクは編集も削除もできません。期限が来ると自動で無効になります。
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = リンクを短縮できませんでした。
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = このドキュメントは短縮リンクにするには長すぎます。
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = 1つのアドレスにつき1日100件の短縮リンクまで。
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = 一覧から削除
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -336,8 +338,6 @@ share-new-noun-date-n = 新しい{ $noun } { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = mastodon.socialのようなMastodonサーバー
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = 変更
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = 埋め込みコードをコピー
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = 表示用リンクをコピー
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -350,10 +350,14 @@ share-opens-deck-already-presenting = 発表を始めた状態でプレゼンを
 share-post = 投稿
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = リンクを投稿
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = 1ページ目のプレビューを表示
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = 1ページ目の画像とタイトルは、SNSが取得できるよう1か月間サーバー上で読める状態で保管されます。ドキュメントそのものは保管されません。
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = プレビューカードとして共有
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = アプリやSNSで、リンクと一緒にドキュメントのタイトルとスクリーンショットを表示します。
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = このデータは誰でも見られる状態で、最長1か月間当社のサーバーに保存されます。
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = プレビューカードについて
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = プレビューなしで共有しました（{ $reason }）
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -408,12 +412,10 @@ share-yes-counts-as-n-of-max = はい、{ $max }のうち{ $n }として数え�
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = リンクを持っている人は、開くのにパスワードが必要です。パスワードはリセットできません。なくすとドキュメントは失われます。
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = パスワードを変更
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = 作成：{ $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = リンクを持っている人は、あなた自身も含めて、開くのにパスワードが必要です。パスワードはリセットできません。
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **なくすとドキュメントは失われます。**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = このドキュメントを開くには、パスワードを入力してください。
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -426,8 +428,6 @@ privacy-forget-everything-this-site-keeps = このブラウザに保存されて
 privacy-locked = ロック中
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = ロックされたドキュメント
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = 新しいパスワード
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = パスワードなし
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -440,8 +440,6 @@ common-password = パスワード
 privacy-password-removed = パスワードを解除しました
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = パスワードを設定しました。リンクは暗号化されています。
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = パスワード…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = 設定
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -450,12 +448,6 @@ privacy-privacy = プライバシー
 privacy-nothing-saved-in-this-browser = このブラウザには何も保存されていません。一覧の項目は、このページを開いている間だけ残ります。
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = パスワードで保護
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = パスワードを解除
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = 暗号化中…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = パスワードを設定
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = 短縮リンク
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -466,8 +458,6 @@ privacy-short-links-made-here-until = ここで作った短縮リンク（期限
 privacy-their-names-and-links-for = 名前とリンク。ホームに表示されます。
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = テーマと短縮リンクの設定。
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = このドキュメントにはパスワードがあります。リンクも、そこから作った短縮リンクも暗号化されています。
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = このドキュメントはロックされています
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -486,8 +476,6 @@ privacy-your-browsers-history = ブラウザの履歴
 privacy-every-document-opened-here-in = 開いたすべてのドキュメントの全文。パスワード付きのものは除きます。
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = これは当サイトでは消せません
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = 作成者：{ $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
        *[other] { $n }件
@@ -498,9 +486,7 @@ privacy-n-links = { $n ->
     }のリンク
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = { $n }件設定済み
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = このパスワードをコピーし、リンクとは別に送ってください。二度と表示されません。
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
 privacy-make-another = 再生成
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = パスワードをコピーしました

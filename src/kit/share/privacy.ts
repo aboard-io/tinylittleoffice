@@ -23,8 +23,11 @@ import { forgetAll, keepAll, library, type Kept } from './library.ts';
 import { keptLinks } from './kept-links.ts';
 import { keepOffline } from './offline.ts';
 
-/** The preferences this site may keep, by key; with them which documents have been told they are copies (kit/core/shell.ts). */
-export const PREFS = ['to-theme', 'tinyoffice.shortTtl', 'tinyoffice.size', 'tinyoffice.copiesSaid'];
+/**
+ * The preferences this site may keep, by key; with them which documents have been told they are copies (kit/core/shell.ts)
+ * and whether Share's card about links was put away (kit/ui/share-dialog.ts).
+ */
+export const PREFS = ['to-theme', 'tinyoffice.shortTtl', 'tinyoffice.size', 'tinyoffice.copiesSaid', 'tinyoffice.shareNoticeSeen'];
 /** Where the short links made here are kept. */
 const LINKS = 'tinyoffice.links';
 

@@ -473,7 +473,8 @@ export class ToShell extends LitElement {
     this.setTitle();
     const run = ++this.sealRun;
     if (!this.locker) return this.writeLink(app, encodeDoc(this.doc));
-    void pack(this.doc, this.locker).then((payload) => run === this.sealRun && app === this.app && this.writeLink(app, payload));
+    // Drawn again once sealed: the length Share and the meter read (payloadLength) is not reactive, and nothing else changes then.
+    void pack(this.doc, this.locker).then((payload) => run === this.sealRun && app === this.app && (this.writeLink(app, payload), this.requestUpdate()));
   }
   private writeLink(app: string, payload: string) {
     madeHere.add(routeHash(app, payload));
@@ -826,7 +827,7 @@ export class ToShell extends LitElement {
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands} .offers=${this.offersNow} .def=${def ?? null}></to-drawer>`}<to-toast></to-toast>
       ${
         def
-          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.outerTitle} .locked=${!!this.locker} .payloadLength=${this.payloadLength} .protect=${this.privacy?.renderProtect(!!this.locker) ?? nothing} .linkTo=${this.linkTo}></to-share>
+          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.docTitle} .locked=${!!this.locker} .payloadLength=${this.payloadLength} .protect=${this.privacy?.renderProtect(!!this.locker) ?? nothing} .linkTo=${this.linkTo}></to-share>
             <to-privacy doc .sealed=${this.sealed} ?protected=${!!this.locker} @to-unlock=${this.onUnlock} @to-lock=${this.onLock}></to-privacy>`
           : nothing
       }

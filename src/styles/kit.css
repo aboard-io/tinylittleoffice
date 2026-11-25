@@ -1039,36 +1039,157 @@
       text-align: end;
     }
   }
-  /* Edit link and Present link side by side where a column holds a name on one line, and one under the other where it
-     cannot (a phone, a large size): the pair was uneven when one name wrapped and the other sat centred against it
-     (Paul, 2026-10-12). Each copy's words start at its top, the icon beside the first line as an app's row has it. */
-  .to-share-links {
+  /* Words in a box: the card about links (issue #61) at the top until put away, quieter than the dialog, and an info
+     button's tooltip (kit/ui/info-tip.ts); their lines apart by the grid's gap, "Don't show again" at the card's end. */
+  .to-share-notice,
+  .to-tip {
+    gap: 0.5em;
+    padding: 0.75em 1em;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    color: var(--to-ink-2);
+    font-size: calc(0.875 * var(--to-scale));
+  }
+  .to-share-notice,
+  .to-tip:popover-open {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10em), 1fr));
+  }
+  :is(.to-share-notice, .to-tip) > * {
+    margin: 0;
+  }
+  .to-share-notice {
+    margin-bottom: 1em;
+    background: var(--to-surface-2);
+  }
+  /* (A .to-trust-line: the icon and the words on one line.) */
+  .to-share-notice h3 {
+    color: var(--to-ink);
+    font-size: var(--to-scale);
+  }
+  .to-share-notice h3 .to-icon {
+    color: var(--to-danger);
+  }
+  .to-notice-hide {
+    justify-self: end;
+  }
+  /* The first way out (Copy Link, or Share via… on a phone), tall and as wide as the row lets it; the others beside
+     it, each a button of its own, their icons alone. */
+  .to-share-go {
+    --to-touch: 3.2em;
+    display: flex;
     gap: 0.5em;
   }
-  .to-share-copy {
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 0.125em;
-    padding: 0.625em 0.75em;
-    white-space: normal;
-    text-align: left;
-  }
-  .to-share-copy > span {
-    display: inline-flex;
-    align-items: flex-start;
-    gap: 0.375em;
+  .to-share-go .primary {
+    flex: 1 1 auto;
+    gap: 0.4em;
+    padding: 0 0.5em;
+    font-size: calc(1.0625 * var(--to-scale));
     font-weight: 600;
   }
-  .to-share-copy small {
-    color: var(--to-ink-3);
-    font-size: calc(0.8125 * var(--to-scale));
-    font-weight: 400;
+  /* The first pressed-to-be: a shade over its accent, under its words. */
+  .to-share-go .primary:hover {
+    box-shadow: inset 0 0 0 9em #0002;
   }
-  .to-share-native {
-    grid-column: 1 / -1;
+  /* The icons beside it (a .to-tool each, the row's --to-touch square): the surface, in the accent. */
+  .to-share-alt {
+    background: var(--to-surface);
+    border-color: var(--to-accent);
+    color: var(--to-accent);
+  }
+  .to-share-alt:hover {
+    background: var(--to-accent-soft);
+  }
+  /* The switches that say what Copy link gives, one under another; what a switch shows when on starts under its words. */
+  .to-share-options {
+    margin-top: 0.5em;
+  }
+  .to-share-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+  .to-share-option > :not(:first-child) {
+    width: auto;
+  }
+  /* Under the switch's name, but on a phone: the switch is 3.3em of a field's size (0.8333 of the scale), then the
+     label's 0.75em gap, in the scale whatever the line's own size (a hint's is smaller). */
+  @media (min-width: 641px) {
+    .to-share-option > :not(:first-child) {
+      margin-inline-start: calc(3.5 * var(--to-scale));
+    }
+  }
+  @media (max-width: 640px) {
+    /* On a phone Copy Link's words alone: the longest (Ukrainian's) need the icon's room. */
+    .primary.to-copy-link .to-icon {
+      display: none;
+    }
+    /* And Regenerate its key alone (its name said all the same), so the whole password stays on the line. */
+    .to-password-another > span {
+      display: none;
+    }
+    .to-password-another {
+      width: var(--to-touch);
+      padding: 0;
+    }
+    /* The password smaller, with less room around it, so all of it stays in view on the line. (Read-only: no
+       keyboard comes for it, so a phone has no small field to zoom into.) */
+    .to-password-pill .to-password-made {
+      font-size: calc(0.8 * var(--to-scale));
+      padding-inline: 0.3em;
+    }
+  }
+  /* A switch, its name, and the info button right after the name. */
+  .to-share-option-head,
+  .to-share-option-head .to-switch {
+    display: flex;
+    align-items: center;
+    min-height: var(--to-touch);
+  }
+  .to-share-option-head {
+    gap: 0.25em;
+  }
+  /* A switch that cannot be turned (Share as Preview Card, with a password): there, and greyed. */
+  .to-switch:has(:disabled) {
+    opacity: 0.5;
+  }
+  /* The info button: a .to-tool, its icon alone in a small circle, still past the 24px a pointer needs. */
+  .to-tip-btn {
+    --to-touch: 1.75em;
+    border-radius: 50%;
+    border-color: transparent;
+    background: transparent;
+    color: var(--to-ink-3);
+  }
+  /* Its words: a box anchored under the button, flipped where the screen ends; centred where anchors are not known. */
+  .to-tip {
+    position: fixed;
+    inset: auto;
+    margin-top: 0.25em;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline;
+    width: max-content;
+    max-width: min(22em, calc(100vw - 2em));
+    /* Not the popover's own height: fit-content, which iOS 18's Safari takes as the whole screen. */
+    height: auto;
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow-pop);
+  }
+  /* Where anchors are not known (Safari before 26: iOS 18's): in the middle of the screen, its corner there and drawn
+     back by half of itself; its top alone set, so its height is its words' (with inset: 0 it would fill the screen). */
+  @supports not (position-area: block-end) {
+    .to-tip {
+      top: 50%;
+      left: 50%;
+      margin: 0;
+      translate: -50% -50%;
+    }
+  }
+  /* Share's heading on one line, cut with an ellipsis: a long title would take a phone's screen. */
+  .to-share-dialog h2 {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .to-share-section {
     margin-top: 1.25em;
@@ -1078,10 +1199,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.625em;
-  }
-  .to-share-section h3 {
-    margin: 0;
-    font-size: var(--to-scale);
   }
   .to-share-section .to-hint {
     margin: 0;
@@ -1153,6 +1270,9 @@
     opacity: 0;
     width: 1px;
     height: 1px;
+  }
+  .to-seg input:not(:checked) + span:hover {
+    background: var(--to-surface-2);
   }
   .to-seg input:checked + span {
     background: var(--to-accent-soft);
@@ -1551,6 +1671,9 @@
   /* ---- the toast ---- */
   .to-toast {
     position: fixed;
+    inset: auto;
+    margin: 0;
+    border: 0;
     left: 50%;
     bottom: max(1em, env(safe-area-inset-bottom));
     transform: translate(-50%, 0.5em);
@@ -1864,20 +1987,6 @@
     font-weight: 400;
     color: var(--to-ink-2);
   }
-  .to-share-made {
-    margin: 0 0 0.2857em;
-    color: var(--to-ink-2);
-    font-size: calc(0.875 * var(--to-scale));
-  }
-  .to-share-protect-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5em;
-    width: 100%;
-  }
-  .to-password,
   .to-unlock {
     display: flex;
     flex-direction: column;
@@ -1888,19 +1997,31 @@
      it where there is room, under it on a phone. */
   .to-password-shown {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 0.5em;
   }
+  /* The password and its Copy, one pill, the way Copy Link and the QR code are; Regenerate beside them, on the line. */
+  .to-password-pill {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* (Through the pill: the fields' own rule, input[type='text'], outranks the class alone.) */
+  .to-password-pill .to-password-made {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
+  .to-password-copy {
+    margin-inline-start: -1px;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+  }
   .to-password-made {
-    flex: 1 1 14em;
+    flex: 1 1 auto;
     min-width: 0;
     font-family: var(--to-font-mono);
     font-size: calc(1.0625 * var(--to-scale));
     text-align: center;
-  }
-  .to-password-another {
-    align-self: flex-start;
   }
   .to-unlock-field {
     font-size: var(--to-scale);
@@ -1911,8 +2032,7 @@
     min-width: 0;
     height: 3.6em;
   }
-  .to-unlock p,
-  .to-password p {
+  .to-unlock p {
     margin: 0;
   }
   .to-unlock-wrong {
@@ -2142,7 +2262,7 @@
      of the first line, moved down by half of what the line has over it and taking no more room for it, so a row of one
      line is as tall as it was and drawn where it was (its line in the middle of the row: align-content). A button's
      words never wrap (.to-btn). */
-  :is(.to-app-open, .to-field-words, .to-share-copy > span) > .to-icon:first-child {
+  :is(.to-app-open, .to-field-words) > .to-icon:first-child {
     --to-drop: max(0em, (1lh - var(--i, 1.25) * var(--to-scale)) / 2);
     margin-block: var(--to-drop) calc(-1 * var(--to-drop));
   }
@@ -2378,10 +2498,31 @@
   }
 
   /* ---- Share: post the link to a service; the show link; the embed code ---- */
-  .to-post {
+  /* The networks' four marks, one group never broken, then Email and Embed: one row where it holds them all, else two,
+     the buttons of each row sharing its width. */
+  .to-post,
+  .to-post-marks,
+  .to-post-more {
     display: flex;
-    flex-wrap: wrap;
     gap: 0.5em;
+  }
+  .to-post {
+    --to-touch: 3.2em;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  /* Each row's buttons as wide as each other, narrower all alike where the row is short of room (a phone under 380px);
+     Email and Embed with less padding, for their longer words (Arabic's Email). */
+  .to-post > *,
+  .to-post .to-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .to-post .to-btn {
+    flex-basis: 0;
+  }
+  .to-post-more .to-btn {
+    padding: 0 0.5em;
   }
   .to-mastodon {
     max-width: 26.25em;

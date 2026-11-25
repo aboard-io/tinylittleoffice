@@ -210,32 +210,24 @@ leave-this-link-hides-characters-in = 이 링크 주소에 숨겨진 문자가 �
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = 새 탭에서 사본을 열었습니다
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = 편집 링크
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = 발표 링크
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = 미리 보기 모드
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = 새 문서로 복사
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = 링크 복사
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = { $title } 사본
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = 브라우저에서 암호화됩니다. 서버에는 암호화된 링크만 저장되며, 만료되면 삭제됩니다.
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = { $n }일 후 만료 ({ $date })
 # en: ae9d408cb75f0f6745c4a64cb802e6442cc299f4
 share-expires-in-n-hours-date = { $n }시간 후 만료 ({ $date })
 # en: a202af448924971f4ffb4dc06ed405775781207e
 share-expires-in-n-minutes-date = { $n }분 후 만료 ({ $date })
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = 읽기용 페이지로 열립니다
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = 편집기에서 열립니다
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = 읽기 전용 미리 보기로 엽니다.
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = 이 링크를 여는 사람은 각자 자신의 사본을 받습니다. 그 사람이 수정한 내용은 내 문서에 나타나지 않습니다. 수정한 링크를 다시 보내 달라고 요청하세요.
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = 만료되는 짧은 링크
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = 이 링크는 { $n }일 후 만료됩니다
 # en: 5f55ae03e19eebbbd3a277a7647d0b2ac27c4ec8
@@ -268,14 +260,30 @@ share-nfc-sticker = NFC 스티커
 share-some-browsers = 이전 브라우저
 # en: 77437a6dfcf7562798d4a066e19fd698b357c1a8
 share-n-short-links-kept-here = 여기 보관된 짧은 링크 { $n }개
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = 보기 링크
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = 열리는 방식
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = 링크를 복사했습니다
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = 복사하지 못했습니다
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = { $title } 공유
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = 링크가 곧 문서입니다!
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Office는 온라인 협업 도구가 아닙니다. 파일은 클라우드에 저장되지 않으며, **사용자나 기기 간 동기화도 없습니다**.
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = 각 링크는 문서 전체를 하나의 긴 URL로 바꿔, 지금 이 순간의 내용을 스냅숏으로 담습니다. 수정한 내용은 새 링크를 만들어 공유하기 전까지 다른 누구에게도 보이지 않습니다. 반대의 경우도 마찬가지입니다.
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = 다시 표시 안 함
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = 링크가 준비되었습니다. '공유'를 다시 누르세요.
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = { $option } 정보
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = 짧은 링크
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = 짧은 링크를 만들려면 문서의 **암호화된** 사본을 저희 서버에 저장해야 합니다. 암호화 키는 URL의 일부가 되며 브라우저 밖으로 나가지 않습니다. 이 키가 없으면 저희는 데이터를 읽을 수 없습니다.
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **짧은 링크는 만료일 전에 수정하거나 삭제할 수 없습니다.**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = 공유…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -286,30 +294,24 @@ common-qr-code-of-this-document = 이 문서의 QR 코드
 share-this-document-is-n-bytes = 이 문서는 { $n }바이트이고, 가장 큰 QR 코드에는 { $max }바이트까지 들어갑니다. { $over }바이트를 줄이면 들어갑니다.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = 이 문서는 { $n }자이고, 짧은 링크에는 { $max }자까지 들어갑니다. { $over }자를 줄이면 들어갑니다.
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = 만료 기간
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
 share-hour = 1시간
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
 share-day = 1일
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
 share-week = 1주일
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
 share-month = 1개월
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = 짧은 링크 만들기
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = 만드는 중…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = 한도에 도달했습니다. 주소 하나당 하루에 짧은 링크를 100개까지 만들 수 있습니다. 내일 다시 시도하세요.
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = 짧은 링크는 수정하거나 삭제할 수 없습니다. 자동으로 만료됩니다.
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = 링크를 줄이지 못했습니다.
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = 이 문서는 너무 길어서 짧은 링크로 만들 수 없습니다.
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = 주소 하나당 하루에 짧은 링크를 100개까지 만들 수 있습니다.
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = 제거
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -323,8 +325,6 @@ share-new-noun-date-n = 새 { $noun } { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = mastodon.social 같은 마스토돈 서버
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = 변경
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = 임베드 코드 복사
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = 발표 링크 복사
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -337,10 +337,14 @@ share-opens-deck-already-presenting = 열면 바로 발표 모드로 시작합�
 share-post = 게시
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = 링크 게시
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = 첫 페이지 미리보기 표시
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = 첫 페이지 이미지와 제목은 소셜 네트워크가 가져갈 수 있도록 한 달 동안 서버에 공개 보관됩니다. 문서 자체는 보관되지 않습니다.
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = 미리 보기 카드로 공유
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = 앱과 소셜 네트워크에서 링크와 함께 문서의 제목과 스크린샷을 표시합니다.
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = 이 데이터는 누구나 볼 수 있는 상태로 최대 한 달 동안 저희 서버에 저장됩니다.
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = 미리 보기 카드 정보
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = 미리보기 없이 공유했습니다: { $reason }
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -395,12 +399,10 @@ share-yes-counts-as-n-of-max = 예, { $max } 중 { $n }로 계산됩니다
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = 링크가 있는 사람은 누구나 비밀번호를 입력해야 열 수 있습니다. 비밀번호는 재설정할 수 없습니다. 잃어버리면 문서도 사라집니다.
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = 비밀번호 변경
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = 만든 날짜: { $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = 링크가 있는 사람은 누구나, 본인을 포함해, 비밀번호를 입력해야 열 수 있습니다. 비밀번호는 재설정할 수 없습니다.
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **잃어버리면 문서도 사라집니다.**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = 이 문서를 열려면 비밀번호를 입력하세요.
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -413,8 +415,6 @@ privacy-forget-everything-this-site-keeps = 이 브라우저에 저장된 모든
 privacy-locked = 잠김
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = 잠긴 문서
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = 새 비밀번호
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = 비밀번호 없음
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -427,8 +427,6 @@ common-password = 비밀번호
 privacy-password-removed = 비밀번호를 해제했습니다
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = 비밀번호를 설정했습니다. 이제 링크가 암호화됩니다.
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = 비밀번호…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = 설정
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -437,12 +435,6 @@ privacy-privacy = 개인정보 보호
 privacy-nothing-saved-in-this-browser = 이 브라우저에는 아무것도 저장되어 있지 않습니다. 목록의 항목은 이번 방문 동안만 유지됩니다.
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = 비밀번호로 보호됨
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = 비밀번호 해제
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = 암호화하는 중…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = 비밀번호 설정
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = 짧은 링크
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -453,8 +445,6 @@ privacy-short-links-made-here-until = 여기서 만든 짧은 링크입니다. �
 privacy-their-names-and-links-for = 이름과 링크입니다. 홈 화면에 표시됩니다.
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = 테마와 짧은 링크 설정입니다.
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = 이 문서에는 비밀번호가 있습니다. 링크와 그 링크로 만든 짧은 링크는 모두 암호화되어 있습니다.
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = 이 문서는 잠겨 있습니다
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -473,18 +463,14 @@ privacy-your-browsers-history = 브라우저 기록
 privacy-every-document-opened-here-in = 비밀번호가 있는 문서를 제외하고, 여는 모든 문서의 전체 내용입니다.
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = 여기서 지울 수 없습니다
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = 작성자: { $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = 문서 { $n }개
 # en: 1a8f1553a9832c92927784f88f31a89cd991e803
 privacy-n-links = 링크 { $n }개
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = { $n }개 설정됨
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = 이 비밀번호를 복사해 링크와 따로 보내세요. 다시 표시되지 않습니다.
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
-privacy-make-another = 새로 만들기
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
+privacy-make-another = 다시 생성
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = 비밀번호를 복사했습니다
 

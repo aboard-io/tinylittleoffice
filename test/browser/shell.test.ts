@@ -675,8 +675,8 @@ test('the copies line and Share’s sentence follow the language: Haitian Creole
     const shell = await mount(`#/v1/write/${encodeDoc('Bonjou\n')}`);
     await until(() => !!shell.querySelector('to-write-editor'));
     await openShare(shell);
-    await until(() => !!shell.querySelector('.to-share-copies'));
-    expect(shell.querySelector('.to-share-copies')!.textContent).toBe(ht);
+    await until(() => !!shell.querySelector('.to-share-notice h3'));
+    expect(shell.querySelector('.to-share-notice h3')!.textContent).toBe('Lyen an se dokiman an!');
   } finally {
     await setLanguage(null);
     set.mockRestore();

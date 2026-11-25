@@ -350,14 +350,14 @@ test('a link from a newer Tiny Little Office says so', async () => {
   expect(shell.textContent).toContain('This link needs a newer version. Reload the page.');
 });
 
-test('the Share dialog’s head line: where the link fits with Copy, Max Link Sizes on a tap, red past the limit', async () => {
+test('the Share dialog’s line under Copy link: where the link fits, Max Link Sizes on a tap, red past the limit', async () => {
   const shell = await mount(`#/v1/write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   await shell.openShare();
   const fit = shell.querySelector('.to-share-fit')!;
   expect(fit.classList.contains('over')).toBe(false);
   expect(fit.querySelector('.to-fit-words')!.textContent).toContain('fits in a text message');
-  expect(fit.querySelector('.to-fit-copy')!.getAttribute('aria-label')).toBe('Copy link');
+  expect(fit.previousElementSibling!.matches('.to-share-go')).toBe(true);
   // A tap on the words opens Max Link Sizes in Share's place (Paul, 2026-10-16).
   const sizes = shell.querySelector<ToDialog>('to-dialog.to-rooms-dialog')!;
   expect(sizes.dialog.open).toBe(false);
@@ -379,7 +379,7 @@ test('the Share dialog’s head line: where the link fits with Copy, Max Link Si
   const line = over.querySelector('.to-share-fit')!;
   expect(line.classList.contains('over')).toBe(true);
   expect(line.textContent).toMatch(/characters over the link limit/);
-  expect(getComputedStyle(line.querySelector('.to-fit-words')!).color).not.toBe(getComputedStyle(over.querySelector('.to-share-links')!).color);
+  expect(getComputedStyle(line.querySelector('.to-fit-words')!).color).not.toBe(getComputedStyle(over.querySelector('.to-share-made, .to-share-options')!).color);
 });
 
 test('the Display Link draws a letter page at its paper’s width, centred, never stretched', async () => {

@@ -1,17 +1,19 @@
 /**
- * <to-share>: the Share dialog (Paul, 2026-10-09: "The short link function modal needs to be redesigned"). When the
- * document was first written and by whom; the head line, where the link fits, red past the link's limit, with Copy,
- * opening a table of the rooms it fits in (kit/share/limits.ts) on a hover or a tap; the sentence that says a link is a copy
- * (whoever opens it gets their own; their changes stay in their link); Edit link and Present link (each copies its link; Paul, 2026-10-12), and
- * the device's share sheet; Password (drawn by <to-privacy>, renderProtect, handed in as `protect`);
- * a short link that expires (the lifetimes as one row, Make, then the link with Copy; it cannot be changed or recalled
- * once made, so there is nothing more to do with it); posting the link to a service's compose box (through the link guard), under the
- * switch that sends a preview of the first page with it (kit/share/card.ts: the link then carries "/c/<id>"), a deck's show link; the QR code;
- * the embed code; the short links kept here.
+ * <to-share>: the Share dialog, "Share <title>" (issue #61, after Paul's of 2026-10-09). From the top: a card warning
+ * that the URL is the document (nothing kept on a server, nothing synced; other people's changes come back only as a
+ * new link), until "Don't show again"; the first way out, big: with a share sheet Share…, then Copy Link and the QR
+ * code as icons; without, Copy Link and the QR code; the line saying where the link fits, a tap on it opening a table of the rooms it fits in
+ * (kit/share/limits.ts); then the switches that say what every way out gives, each one's words behind an info button
+ * beside its name (kit/ui/info-tip.ts): Preview Mode (the Display Link, pages to read), Password (drawn by <to-privacy>,
+ * renderProtect, handed in as `protect`: it seals the document itself), Short Link (the lifetimes under "Expire after";
+ * made at the first press, then kept for that link and lifetime: it cannot be changed or recalled once made) and, with a
+ * share sheet, Share as Preview Card (the networks' and the sheet's preview card, kit/share/card.ts); the networks'
+ * compose boxes as their marks (through the link guard), Email and Embed, and without a share sheet Share as Preview
+ * Card under them; a deck's show link; the short links kept here.
  *
  * It gets the document through properties (`app`, `doc`, `heading`, `locked`, `payloadLength`, and
- * `linkTo`, the link the shell projects, made current first) and says back `to-link-copied` when the link (or the Display Link) is on the clipboard, so the document lives somewhere now. It is
- * drawn only while open.
+ * `linkTo`, the link the shell projects, made current first) and says back `to-link-copied` when the link (or the
+ * Display Link) is on the clipboard or shared, so the document lives somewhere now. It is drawn only while open.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -20,21 +22,21 @@ import { budgetFor, encodeDoc } from '../core/codec.ts';
 import type { AppDef } from '../core/app.ts';
 import type { Locker } from '../share/crypt.ts';
 import { withHead } from '../../doc/tlo.ts';
-import { readEnvelope } from '../core/envelope.ts';
 import { ensureIcons, icon, iconNames, UI } from '../draw/icons.ts';
 import { chosenLanguage, t } from '../core/i18n.ts';
-import { dateWords } from '../core/dates.ts';
 import { picture, raster, saveFile, slug, utf8 } from '../file/exports.ts';
 import { parseHash, routeHash } from '../core/route.ts';
 import { fitLine, fitWords, limitWords, roomFor, shown } from '../share/limits.ts';
-import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, type Shortened } from '../share/short.ts';
+import { DEFAULT_TTL, EXPIRIES, expiresLine, SHORT_LINK_MAX, shorten, shortLink, type Shortened } from '../share/short.ts';
+import { brand } from '../draw/brands.ts';
 import { dropKept, keepLink, keptLinks } from '../share/kept-links.ts';
 import { CARDS, cardFor, previewOn, setPreview, withCardId } from '../share/card.ts';
 import { pack } from '../share/privacy.ts';
 import { store } from '../core/store.ts';
 import { QR_MAX_BYTES, qrSvg } from '../draw/qr.ts';
-import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from '../share/share.ts';
+import { canShareNative, copyLater, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from '../share/share.ts';
 import { openLink } from './link-guard.ts';
+import { infoTip, marked } from './info-tip.ts';
 import { toast } from '../core/say.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
@@ -48,6 +50,21 @@ const savedTtl = () => {
   const n = Number(store.get(TTL_KEY));
   return EXPIRIES.some((x) => x.seconds === n) ? n : DEFAULT_TTL;
 };
+
+/** A phone or a tablet (a finger, no hover), whose share sheet copies the link itself: no Copy Link beside it. */
+const touch = () => typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+/**
+ * The share sheet's own picture: Apple's box with the arrow out of it on Apple's systems, the three linked nodes
+ * elsewhere (Android's). Read from the browser's platform where it says one ("macOS", "iOS"; Chromium's), else from its
+ * user agent (Safari's, an iPad's saying "Macintosh"), never from navigator.platform, which an emulator leaves as the host's.
+ */
+const sheetIcon = () => {
+  const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.userAgent;
+  return /macOS|iOS|Macintosh|iPhone|iPad|iPod/.test(platform) ? UI.shareUp : UI.share;
+};
+
+/** Where "Don't show again" under the card about links is remembered: on the device, Saved or Private (kit/core/store.ts). */
+const NOTICE_KEY = 'tinyoffice.shareNoticeSeen';
 
 /** Where the site is served from: the page's folder, less an app's own page ("/sheet/") or the embed page's. */
 export const siteDir = (): string => new URL(siteRoot()).pathname;
@@ -75,12 +92,13 @@ export class ToShare extends LitElement {
     payloadLength: { attribute: false },
     sizing: { state: true },
     protect: { attribute: false },
-    short: { state: true },
+    present: { state: true },
+    shortOn: { state: true },
     shortTtl: { state: true },
     busy: { state: true },
+    noticed: { state: true },
     posting: { state: true },
-    qrDisplay: { state: true },
-    shortDisplay: { state: true },
+    qr: { state: true },
     sharing: { state: true },
     askMastodon: { state: true },
     preview: { state: true },
@@ -94,21 +112,25 @@ export class ToShare extends LitElement {
   declare payloadLength: number;
   /** Max Link Sizes open: its table is drawn only then (the link it reads is asked of the shell, which writes the address when asked). */
   declare sizing: boolean;
-  /** The Password part, drawn by <to-privacy>. */
+  /** The Password switch, drawn by <to-privacy>. */
   declare protect: TemplateResult | typeof nothing;
-  declare short: Shortened | null;
+  /** The Preview Mode switch: every way out gives the Display Link. */
+  declare present: boolean;
+  /** The Short link switch: Copy link and the QR code give a short link to what they would give. */
+  declare shortOn: boolean;
   declare shortTtl: number;
   /** A short link is being made. */
   declare busy: boolean;
+  /** "Don't show again" pressed under the card about links. */
+  declare noticed: boolean;
   /**
    * The network whose preview card is being drawn and posted: its button says so, and every post button waits for it.
-   * Apart from `busy`: each is one button's work, and Make and the networks never wait for each other.
+   * Apart from `busy`: each is one button's work, and Copy link and the networks never wait for each other.
    */
-  declare posting: Service | null;
-  /** Which link the QR code holds, and which a short link opens: the Display Link, or the editing one. */
-  declare qrDisplay: boolean;
-  declare shortDisplay: boolean;
-  /** Open: what it shows (the QR code above all) is drawn only then. */
+  declare posting: Service | 'sheet' | null;
+  /** The link the QR code dialog holds, while it is open. */
+  declare qr: string;
+  /** Open: what it shows is drawn only then. */
   declare sharing: boolean;
   /** Mastodon asked for with no server known: the field for one shows. */
   declare askMastodon: boolean;
@@ -116,6 +138,10 @@ export class ToShare extends LitElement {
   declare preview: boolean;
   /** The link, made current first: the editing one, or the Display Link. */
   linkTo: (display: boolean) => string = () => location.href;
+  /** The short links made while the dialog was open, by what each opens and for how long, so a second Copy gives the same one. */
+  private made = new Map<string, Promise<Shortened>>();
+  /** The last short link made, said under the lifetimes with when it expires. */
+  private lastShort: { key: string; short: Shortened } | null = null;
 
   constructor() {
     super();
@@ -126,12 +152,13 @@ export class ToShare extends LitElement {
     this.payloadLength = 0;
     this.sizing = false;
     this.protect = nothing;
-    this.short = null;
+    this.present = false;
+    this.shortOn = false;
     this.shortTtl = savedTtl();
     this.busy = false;
+    this.noticed = store.get(NOTICE_KEY) === '1';
     this.posting = null;
-    this.qrDisplay = false;
-    this.shortDisplay = false;
+    this.qr = '';
     this.sharing = false;
     this.askMastodon = false;
     this.preview = CARDS && previewOn();
@@ -149,14 +176,47 @@ export class ToShare extends LitElement {
   private get named(): string {
     return this.locked ? t('common-locked-document') : this.heading;
   }
-  /** The link (or the Display Link) copied: said to the shell, which then no longer warns before the tab closes. */
-  private copyLink = async (link: string) => void ((await copyText(link)) && this.say('to-link-copied', null));
   get displayLink(): string {
     return this.linkTo(true);
   }
-  /** What a short link opens. */
-  private get shortTarget() {
-    return this.shortDisplay ? this.displayLink : this.link;
+  /** What every way out gives before any shortening: the editing link, or the Display Link with Preview Mode on. */
+  private get chosen(): string {
+    return this.present ? this.displayLink : this.link;
+  }
+  /** The short link for what Copy link gives, at the lifetime chosen: made once, kept in the list of those made here (for the visit under Private). */
+  private shortFor(target: string): Promise<string> {
+    const key = `${this.shortTtl} ${target}`;
+    let made = this.made.get(key);
+    if (!made) {
+      this.busy = true;
+      made = shorten(target, this.shortTtl).then((short) => {
+        keepLink({ link: short.short, title: this.locked ? '' : this.heading, made: Date.now(), expires: short.expires });
+        this.lastShort = { key, short };
+        return short;
+      });
+      made.catch(() => this.made.delete(key)).finally(() => (this.busy = false));
+      this.made.set(key, made);
+    }
+    return made.then((s) => s.short);
+  }
+  /** What Copy link and the QR code give, the switches read: the link, or a short link to it, made now (errors said). */
+  private async target(): Promise<string> {
+    return this.shortOn ? this.shortFor(this.chosen) : this.chosen;
+  }
+  /**
+   * Copy link: said to the shell, which then no longer warns before the tab closes. A short link is copied as it
+   * comes, asked for inside the press (copyLater); a failure to make one says why, over "Could not copy".
+   */
+  private async copyChosen() {
+    if (!this.shortOn) return void ((await copyText(this.chosen)) && this.say('to-link-copied', null));
+    let why = '';
+    const link = this.shortFor(this.chosen).catch((err: unknown) => {
+      why = err instanceof Error ? err.message : t('share-could-not-shorten-link');
+      throw err;
+    });
+    const ok = await copyLater(link);
+    if (why) toast(why);
+    if (ok) this.say('to-link-copied', null);
   }
 
   /** Open. */
@@ -173,40 +233,48 @@ export class ToShare extends LitElement {
     await this.updateComplete;
     await this.querySelector<ToDialog>('to-dialog.to-rooms-dialog')?.show();
   }
-  /** Max Link Sizes from Share's head line: Share steps aside for it and is back, as it was, when it closes (the kit's one modal at a time). */
-  private async handOverRooms(back: HTMLElement) {
+  /** A dialog opened from Share (Max Link Sizes, the QR code): Share steps aside for it and is back, as it was, when it closes (the kit's one modal at a time). */
+  private async handOverTo(cls: string, back: HTMLElement) {
     const share = this.querySelector<ToDialog>('to-dialog.to-share-dialog');
-    const rooms = this.querySelector<ToDialog>('to-dialog.to-rooms-dialog');
+    const next = this.querySelector<ToDialog>(`to-dialog.${cls}`);
+    if (share && next) await share.handOver(next, back);
+  }
+  private async handOverRooms(back: HTMLElement) {
     this.sizing = true;
     await this.updateComplete;
-    if (share && rooms) await share.handOver(rooms, back);
+    await this.handOverTo('to-rooms-dialog', back);
+  }
+  /** The QR code of what Copy link gives, in its own dialog; a short link made first if its switch is on. */
+  private async handOverQr(back: HTMLElement) {
+    try {
+      this.qr = await this.target();
+    } catch (err) {
+      return toast(err instanceof Error ? err.message : t('share-could-not-shorten-link'));
+    }
+    await this.updateComplete;
+    await this.handOverTo('to-qr-dialog', back);
   }
   close() {
     this.querySelector<ToDialog>('to-dialog.to-share-dialog')?.close();
   }
+  /** Closed for good (not stepped aside): the next Share begins plain, its switches off, no short link made yet. */
+  private onClose = () => {
+    this.made.clear();
+    this.lastShort = null;
+    this.present = false;
+    this.shortOn = false;
+    this.sharing = false;
+  };
 
   /** The lifetime chosen, remembered. */
   private setTtl(seconds: number) {
     this.shortTtl = seconds;
     store.set(TTL_KEY, String(seconds));
   }
-  /** A short link made: one request, errors said. */
-  private async shortDo(work: () => Promise<void>) {
-    this.busy = true;
-    try {
-      await work();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : t('share-could-not-shorten-link'));
-    } finally {
-      this.busy = false;
-    }
+  private hideNotice() {
+    this.noticed = true;
+    store.set(NOTICE_KEY, '1');
   }
-  /** A new short link, kept in the list of those made here (for the visit under Private). */
-  private makeShort = () =>
-    this.shortDo(async () => {
-      this.short = await shorten(this.shortTarget, this.shortTtl);
-      keepLink({ link: this.short.short, title: this.locked ? '' : this.heading, made: Date.now(), expires: this.short.expires });
-    });
   private async saveQr(svg: string, ext: 'png' | 'svg') {
     const file = `${(!this.locked && slug(this.heading)) || 'document'}-qr.${ext}`;
     if (ext === 'svg') return saveFile(file, 'image/svg+xml', utf8(svg));
@@ -215,43 +283,111 @@ export class ToShare extends LitElement {
     if (png) await saveFile(file, 'image/png', png);
   }
 
-  /** When the document was first written, and by whom: "Created 9 Oct 2026, 14:03 · by Paul". */
-  private madeLine(): string {
-    const env = readEnvelope(this.doc);
-    const lang = document.documentElement.lang || undefined;
-    const when =
-      env.created === null ? '' : t('privacy-created-date', { date: dateWords({ day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }, lang).format(env.created) });
-    const by = env.by ? t('privacy-by-name', { name: env.by }) : '';
-    return [when, by].filter(Boolean).join(' · ');
+  /**
+   * The card about links (issue #61), until "Don't show again", which is kept on the device whether or not the site
+   * keeps anything else (kit/core/store.ts): a link is a copy, never a shared document (Paul, 2026-10-11: "docs are not
+   * collaborative like Google Docs: that's fine. Communicate it in all the languages").
+   */
+  private renderNotice() {
+    if (this.noticed) return nothing;
+    return html`<aside class="to-share-notice" aria-labelledby="to-share-notice-h">
+      <h3 id="to-share-notice-h" class="to-trust-line">${icon(UI.warning, 18)}<span>${marked(t('share-link-is-the-document'))}</span></h3>
+      <p>${marked(t('share-notice-not-collaborative'))}</p>
+      <p>${marked(t('share-notice-each-link'))}</p>
+      <button type="button" class="to-btn to-notice-hide" @click=${() => this.hideNotice()}>${t('share-dont-show-again')}</button>
+    </aside>`;
   }
 
-  /** The one Share dialog: where the link fits, the two copies, the short link, the QR code, the short links kept here. */
-  private renderShare() {
-    const def = appOf(this.app)!;
-    const share = async () => {
-      await ensureIcons(iconNames(this.doc));
-      if (this.locked) return shareNative(this.named, this.link);
-      const link = await this.networkLink();
-      return shareNative(this.heading, link, await picture(def.view(this.doc, { still: true })));
-    };
-    const made = this.madeLine();
-    // A link is a copy, never a shared document (Paul, 2026-10-11: "docs are not collaborative like Google Docs: that's
-    // fine. Communicate it in all the languages"): said under the link, before the ways of sending it.
-    return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}
-      <p class="to-hint to-share-copies">${t('common-whoever-opens-this-link-gets')}</p>
-      <div class="to-share-links">
-        <button type="button" class="to-btn to-share-copy to-copy-link" @click=${() => void this.copyLink(this.link)}><span>${icon(UI.link, 18)}${t('share-edit-link')}</span><small>${t('share-opens-in-editor')}</small></button>
-        <button type="button" class="to-btn to-share-copy to-copy-display" @click=${() => void this.copyLink(this.displayLink)}><span>${icon(UI.view, 18)}${t('share-present-link')}</span><small>${t('share-opens-as-pages-to-read')}</small></button>
-        ${canShareNative() ? html`<button type="button" class="to-btn to-share-native" @click=${() => void share()}>${icon(UI.share, 18)}<span>${t('common-share')}</span></button>` : nothing}
+  /**
+   * The ways the link goes as it is, each a button of its own: with a share sheet, Share… first, then Copy Link (not on a
+   * phone or a tablet, whose sheet copies) and the QR code as icons; without, Copy Link first and the QR code. All give what the switches under them say.
+   */
+  private renderCopy() {
+    const over = this.shortOn && utf8(this.chosen).length > SHORT_LINK_MAX;
+    const making = this.shortOn && this.busy;
+    const wait = over || making || this.posting === 'sheet';
+    const label = making ? t('share-making') : t('share-copy-link');
+    const qr = html`<button type="button" class="to-btn to-tool to-share-alt to-qr-open" aria-haspopup="dialog" aria-label=${t('common-qr-code')} title=${t('common-qr-code')} ?disabled=${wait} @click=${(e: Event) => void this.handOverQr(e.currentTarget as HTMLElement)}>${icon(UI.qr, 22)}</button>`;
+    if (canShareNative())
+      return html`<div class="to-share-go">
+        <button type="button" class="to-btn primary to-share-via" ?disabled=${wait} @click=${() => void this.shareVia()}>${icon(sheetIcon(), 20)}<span>${making ? t('share-making') : t('common-share')}</span></button>
+        ${touch() ? nothing : html`<button type="button" class="to-btn to-tool to-share-alt to-copy-link" aria-label=${label} title=${label} ?disabled=${over || making} @click=${() => void this.copyChosen()}>${icon(UI.copy, 22)}</button>`}${qr}
+      </div>`;
+    return html`<div class="to-share-go">
+      <button type="button" class="to-btn primary to-copy-link" ?disabled=${over || making} @click=${() => void this.copyChosen()}>${icon(UI.copy, 20)}<span>${label}</span></button>${qr}
+    </div>`;
+  }
+
+  /**
+   * Share as Preview Card: where a third party draws the link (the networks, and the share sheet), the preview card goes
+   * with it (kit/share/card.ts). With a share sheet it is one of the switches; without, it is the networks' alone, under
+   * their buttons. A document with a password sends no card: the switch is there, off
+   * and greyed.
+   */
+  private renderPreviewSwitch() {
+    if (!CARDS) return nothing;
+    return html`<div class="to-share-option to-share-preview">
+      <div class="to-share-option-head">
+        <label class="to-switch">
+          <input type="checkbox" role="switch" .checked=${this.preview && !this.locked} ?disabled=${this.locked} @change=${(e: Event) => this.setPreview((e.target as HTMLInputElement).checked)} />
+          <span class="to-switch-words"><b>${t('share-show-preview-of-first-page')}</b></span>
+        </label>
+        ${infoTip('to-tip-preview', t('share-about-link-previews'), html`<p>${t('share-picture-of-first-page-and')}</p><p>${t('share-preview-kept-month')}</p>`)}
+      </div>
+    </div>`;
+  }
+
+  /** The switches: what every way out gives, each one's words behind its info button. */
+  private renderSwitches() {
+    return html`<div class="to-share-options">
+      <div class="to-share-option to-share-present">
+        <div class="to-share-option-head">
+          <label class="to-switch">
+            <input type="checkbox" role="switch" class="to-present-switch" .checked=${this.present} @change=${(e: Event) => (this.present = (e.target as HTMLInputElement).checked)} />
+            <span class="to-switch-words"><b>${t('share-present-link')}</b></span>
+          </label>
+          ${infoTip('to-tip-present', t('share-about', { option: t('share-present-link') }), t('share-opens-as-pages-to-read'))}
+        </div>
       </div>
       ${this.protect}
-      <section class="to-share-section to-share-short" aria-labelledby="to-share-short-h">
-        <h3 id="to-share-short-h">${t('share-short-link-that-expires')}</h3>
-        ${this.short ? this.renderMade(this.short) : this.renderMaker()}
-      </section>
+      ${this.renderShort()}
+      ${canShareNative() ? this.renderPreviewSwitch() : nothing}
+    </div>`;
+  }
+
+  /**
+   * Short link: its switch, and while on, the lifetimes under "Expire after" and the last one made with when it
+   * expires. Past what a short link holds (SHORT_LINK_MAX) a line says the numbers before anyone presses Copy (Paul,
+   * 2026-10-11), and Copy waits; the toast stays for a document grown since.
+   */
+  private renderShort() {
+    const n = utf8(this.chosen).length;
+    const over = n - SHORT_LINK_MAX;
+    const last = this.lastShort?.key === `${this.shortTtl} ${this.chosen}` ? this.lastShort.short : null;
+    const about = html`<p>${marked(t('share-short-link-warning'))}</p><p>${marked(t('share-short-link-fixed'))}</p>`;
+    return html`<div class="to-share-option to-share-short">
+      <div class="to-share-option-head">
+        <label class="to-switch">
+          <input type="checkbox" role="switch" class="to-short-switch" .checked=${this.shortOn} @change=${(e: Event) => (this.shortOn = (e.target as HTMLInputElement).checked)} />
+          <span class="to-switch-words"><b>${t('share-short-link-option')}</b></span>
+        </label>
+        ${infoTip('to-tip-short', t('share-about', { option: t('share-short-link-option') }), about)}
+      </div>
+      ${
+        this.shortOn
+          ? html`${this.renderTtl()}
+            ${over > 0 ? html`<p class="to-hint to-short-why">${t('share-this-document-is-n-characters', { n, max: SHORT_LINK_MAX, over })}</p>` : nothing}
+            ${last ? this.renderMade(last) : nothing}`
+          : nothing
+      }
+    </div>`;
+  }
+
+  /** The one Share dialog. */
+  private renderShare() {
+    return html`${this.renderNotice()}${this.renderCopy()}${this.renderFit()}
+      ${this.renderSwitches()}
       ${this.renderPost()}
-      ${this.renderQr()}
-      ${this.renderEmbedCode()}
       ${this.renderKept()}`;
   }
 
@@ -263,28 +399,35 @@ export class ToShare extends LitElement {
   }
 
   /**
-   * The link a network gets: with the switch on, the link carrying its preview card's id (drawn and posted once per
-   * link: kit/share/card.ts); with it off, or for a document with a password, the link alone. A card that could not be
-   * made is said in a toast, and the link goes without it.
+   * What a way out other than a copy gives (a network, Email, the share sheet): the link as the switches make it
+   * (Preview Mode, Short Link) and, where a third party draws it (`card`) with Share as Preview Card on and no password,
+   * its preview card's id (drawn and posted once per link: kit/share/card.ts): in the path, /c/<id>, of a long link; as
+   * ?c=<id> before the "#" of a short one, whose landing page says the card (tinier/tinier.ts). A card that could not be
+   * made is said in a toast, and the link goes without it; a short link that could not be made throws.
    */
-  private async networkLink(): Promise<string> {
-    const link = this.link;
-    if (this.locked || !this.preview) return link;
-    try {
-      await ensureIcons(iconNames(this.doc));
-      const site = `${location.origin}${siteDir()}`;
-      return withCardId(link, await cardFor(`${site}card`, link, appOf(this.app)!, this.doc, this.heading), site);
-    } catch (err) {
-      toast(t('share-shared-without-preview-reason', { reason: err instanceof Error ? err.message : '' }));
-      return link;
+  private async handoff(card: boolean): Promise<string> {
+    const base = this.chosen;
+    const site = `${location.origin}${siteDir()}`;
+    let id = '';
+    if (card && !this.locked && this.preview) {
+      try {
+        await ensureIcons(iconNames(this.doc));
+        id = await cardFor(`${site}card`, base, appOf(this.app)!, this.doc, this.heading);
+      } catch (err) {
+        toast(t('share-shared-without-preview-reason', { reason: err instanceof Error ? err.message : '' }));
+      }
     }
+    if (!this.shortOn) return id ? withCardId(base, id, site) : base;
+    const short = await this.shortFor(base);
+    const at = short.indexOf('#');
+    return id ? `${short.slice(0, at)}?c=${id}${short.slice(at)}` : short;
   }
   private setPreview(on: boolean) {
     this.preview = on;
     setPreview(on);
   }
   /**
-   * The link to a service's compose box: Bluesky, Mastodon (its server asked once), X, LinkedIn, Email; each opened through the link guard. Email never carries a preview.
+   * The link to a service's compose box: Bluesky, Mastodon (its server asked once), X, LinkedIn, Email; each opened through the link guard, the link as the switches make it (handoff). Email never carries a preview.
    * While a network's card is drawn and posted its button says 'Making the preview…' (Paul, 2026-10-12: "Make it look like the
    * button is working"), and a press on any post button does nothing.
    */
@@ -296,11 +439,14 @@ export class ToShare extends LitElement {
       void this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.to-mastodon-server')?.focus());
       return;
     }
-    if (service === 'email' || this.locked || !this.preview) return openLink(shareUrl(service, this.named, this.link, server));
+    const card = service !== 'email';
+    if (!this.shortOn && (!card || this.locked || !this.preview)) return openLink(shareUrl(service, this.named, this.chosen, server));
     let link: string;
     this.posting = service;
     try {
-      link = await this.networkLink();
+      link = await this.handoff(card);
+    } catch (err) {
+      return toast(err instanceof Error ? err.message : t('share-could-not-shorten-link'));
     } finally {
       this.posting = null;
     }
@@ -316,22 +462,49 @@ export class ToShare extends LitElement {
     this.askMastodon = false;
     void this.post('mastodon');
   }
+  /**
+   * Share…: the device's share sheet, given what the switches make (handoff, its preview card too) and a picture of
+   * the first page unless there is a password. The button waits while the link and the picture are made, and no longer:
+   * an open sheet (whose promise some browsers leave unsettled) never holds it. A sheet refused because the making took
+   * too long (the press it was asked in had passed) says to press again: the link is made by then, and the next press
+   * opens the sheet at once. Shared, it is said to the shell as a copy is: the document lives somewhere now.
+   */
+  private async shareVia() {
+    if (this.posting) return;
+    this.posting = 'sheet';
+    let link: string;
+    let png: Uint8Array | null = null;
+    try {
+      link = await this.handoff(true);
+      await ensureIcons(iconNames(this.doc));
+      if (!this.locked) png = await picture(appOf(this.app)!.view(this.doc, { still: true }));
+    } catch (err) {
+      return toast(err instanceof Error ? err.message : t('share-could-not-shorten-link'));
+    } finally {
+      this.posting = null;
+    }
+    const said = await shareNative(this.locked ? this.named : this.heading, link, png, `${(!this.locked && slug(this.heading)) || 'document'}.png`);
+    if (said === 'refused') toast(t('share-ready-press-again'));
+    if (said === 'shared') this.say('to-link-copied', null);
+  }
+  /** One post button: a network's mark (its name said, and shown while its preview is made), or Email's envelope and name. */
+  private postButton(s: Service) {
+    const busy = this.posting === s;
+    const words = busy ? t('share-making-preview') : SERVICE_NAMES[s];
+    if (s === 'email') return html`<button type="button" class="to-btn to-post-email" @click=${() => void this.post(s)}>${icon(UI.mail, 18)}<span>${words}</span></button>`;
+    return html`<button type="button" class="to-btn to-post-${s} ${busy ? '' : 'to-tool'}" aria-busy=${busy ? 'true' : nothing} aria-label=${words} title=${SERVICE_NAMES[s]} @click=${() => void this.post(s)}>${brand(s)}${busy ? html`<span>${words}</span>` : nothing}</button>`;
+  }
+  /** The networks' compose boxes, Email and Embed; without a share sheet, the preview card's switch under them. */
   private renderPost() {
     const server = mastodonHost(store.get(MASTODON_KEY) ?? '');
-    return html`<section class="to-share-section to-share-post" aria-labelledby="to-share-post-h">
-      <h3 id="to-share-post-h">${t('share-post-link')}</h3>
-      ${
-        this.locked || !CARDS
-          ? nothing
-          : html`<label class="to-switch to-share-preview">
-            <input type="checkbox" role="switch" .checked=${this.preview} @change=${(e: Event) => this.setPreview((e.target as HTMLInputElement).checked)} />
-            <span class="to-switch-words"><b>${t('share-show-preview-of-first-page')}</b><small>${t('share-picture-of-first-page-and')}</small></span>
-          </label>`
-      }
-      <div class="to-post">${SERVICES.map(
-        (s) =>
-          html`<button type="button" class="to-btn to-post-${s}" aria-busy=${this.posting === s ? 'true' : nothing} @click=${() => void this.post(s)}>${icon(s === 'email' ? UI.mail : UI.post, 16)}<span>${this.posting === s ? t('share-making-preview') : SERVICE_NAMES[s]}</span></button>`,
-      )}</div>
+    return html`<section class="to-share-section to-share-post" aria-label=${t('share-post-link')}>
+      <div class="to-post">
+        <div class="to-post-marks">${SERVICES.filter((s) => s !== 'email').map((s) => this.postButton(s))}</div>
+        <div class="to-post-more">
+          ${this.postButton('email')}
+          <button type="button" class="to-btn to-copy-embed" title=${t('share-pages-in-frame-on-another')} @click=${() => void copyText(embedCode(this.embedLink, this.named), t('share-embed-code-copied'))}>${icon(UI.code, 18)}<span>${t('share-embed')}</span></button>
+        </div>
+      </div>
       ${
         this.askMastodon || server
           ? html`<form class="to-share-field to-mastodon" @submit=${(e: Event) => this.setMastodon(e)}>
@@ -340,6 +513,7 @@ export class ToShare extends LitElement {
           </form>`
           : nothing
       }
+      ${canShareNative() ? nothing : this.renderPreviewSwitch()}
       ${this.app === 'deck' ? html`<button type="button" class="to-btn to-copy-show" @click=${() => void copyText(this.showLink)}>${icon(UI.play, 16)}<span>${t('share-copy-show-link')}</span></button><p class="to-hint">${t('share-opens-deck-already-presenting')}</p>` : nothing}
     </section>`;
   }
@@ -352,84 +526,48 @@ export class ToShare extends LitElement {
     u.hash = routeHash(this.app, payload, 'embed', false, null, lang ?? null);
     return u.href;
   }
-  private renderEmbedCode() {
-    return html`<section class="to-share-section to-share-embed" aria-labelledby="to-share-embed-h">
-      <h3 id="to-share-embed-h">${t('share-embed')}</h3>
-      <p class="to-hint">${t('share-pages-in-frame-on-another')}</p>
-      <button type="button" class="to-btn to-copy-embed" @click=${() => void copyText(embedCode(this.embedLink, this.named), t('share-embed-code-copied'))}>${icon(UI.code, 16)}<span>${t('share-copy-embed-code')}</span></button>
-    </section>`;
-  }
 
   /**
-   * The head line: where the link fits, red once it is past the link's limit, with Copy; a tap on the words opens
-   * Max Link Sizes (renderRooms) in Share's place.
+   * The line under Copy Link: where what it gives fits, red once the link is past the link's limit; a tap on the words
+   * opens Max Link Sizes (renderRooms) in Share's place. With Short Link on, the short link's own size: every one is as
+   * long as the next (its id and key), so it is known before one is made.
    */
   private renderFit() {
     const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(this.app)}/`);
-    const over = this.payloadLength - available;
+    const over = this.shortOn ? 0 : this.payloadLength - available;
+    const gives = this.shortOn ? shortLink('x'.repeat(7), 'x'.repeat(43)) : this.chosen;
     return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
-      <button type="button" class="to-btn to-fit-words" aria-haspopup="dialog" @click=${(e: Event) => void this.handOverRooms(e.currentTarget as HTMLElement)}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(this.link)}</button>
-      <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('share-copy-link')} title=${t('share-copy-link')} @click=${() => void this.copyLink(this.link)}>${icon(UI.copy, 18)}</button>
+      <button type="button" class="to-btn to-fit-words" aria-haspopup="dialog" @click=${(e: Event) => void this.handOverRooms(e.currentTarget as HTMLElement)}>${over > 0 ? t('shell-n-characters-over-link-limit', { n: over }) : fitLine(gives)}</button>
     </div>`;
   }
 
-  /** Link or Display Link: a pair of buttons, the one chosen pressed. */
-  private renderWhich(display: boolean, choose: (display: boolean) => void) {
-    return html`<div class="to-seg to-which" role="group" aria-label=${t('share-opens')}>
-      <button type="button" class="to-btn" aria-pressed=${String(!display)} @click=${() => choose(false)}>${icon(UI.link, 16)}<span>${t('common-link')}</span></button>
-      <button type="button" class="to-btn" aria-pressed=${String(display)} @click=${() => choose(true)}>${icon(UI.view, 16)}<span>${t('share-display-link')}</span></button>
-    </div>`;
-  }
-  /** The lifetimes, one row of segments (a radio group) writing shortTtl. */
+  /** "Expire after" (a hint, spaced and set in as the option's other lines are), then the lifetimes: one row of segments (a radio group) writing shortTtl. */
   private renderTtl() {
-    return html`<fieldset class="to-seg to-ttl"><legend class="sr-only">${t('share-expires-after')}</legend>${EXPIRIES.map(
-      (x) => html`<label><input type="radio" name="to-ttl" value=${x.seconds} .checked=${x.seconds === this.shortTtl} @change=${() => this.setTtl(x.seconds)} /><span>${x.name()}</span></label>`,
-    )}</fieldset>`;
+    return html`<span id="to-ttl-label" class="to-hint">${t('share-expires-after')}</span>
+      <div class="to-seg to-ttl" role="radiogroup" aria-labelledby="to-ttl-label">${EXPIRIES.map(
+        (x) => html`<label><input type="radio" name="to-ttl" value=${x.seconds} .checked=${x.seconds === this.shortTtl} @change=${() => this.setTtl(x.seconds)} /><span>${x.name()}</span></label>`,
+      )}</div>`;
   }
-  /** A link to copy: big, read-only, Copy at its right. */
-  private renderField(link: string, cls: string, label: string) {
-    return html`<div class="to-share-field">
-      <input type="text" class=${cls} readonly .value=${link} aria-label=${label} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} />
-      <button type="button" class="to-btn primary" @click=${() => void copyText(link)}>${icon(UI.copy, 16)}<span>${t('common-copy')}</span></button>
-    </div>`;
-  }
-  /**
-   * The lifetimes, which link, Make. Past what a short link holds (SHORT_LINK_MAX), Make is disabled and a line under it
-   * says the numbers before anyone presses it (Paul, 2026-10-11); the toast stays for a document grown since.
-   */
-  private renderMaker() {
-    const n = utf8(this.shortTarget).length;
-    const over = n - SHORT_LINK_MAX;
-    return html`${this.renderTtl()}
-      ${this.renderWhich(this.shortDisplay, (d) => (this.shortDisplay = d))}
-      <p class="to-hint to-short-fixed">${t('share-short-link-cannot-be-changed')}</p>
-      <p class="to-hint">${t('share-encrypted-here-service-holds-only')} ${t('share-up-to-hundred-links-day')}</p>
-      <button type="button" class="to-btn primary to-make" ?disabled=${this.busy || over > 0} @click=${() => void this.makeShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('share-making') : t('share-make-short-link')}</span></button>
-      ${over > 0 ? html`<p class="to-hint to-short-why">${t('share-this-document-is-n-characters', { n, max: SHORT_LINK_MAX, over })}</p>` : nothing}`;
-  }
-  /** Just made: the link to share, big, with Copy, and when it expires. */
+  /** The short link last made: big, read-only, Copy at its right, and when it expires. */
   private renderMade(short: Shortened) {
-    return html`${this.renderField(short.short, 'to-short-field', t('common-short-link'))}
+    return html`<div class="to-share-field">
+        <input type="text" class="to-short-field" readonly .value=${short.short} aria-label=${t('common-short-link')} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} />
+        <button type="button" class="to-btn" @click=${() => void copyText(short.short)}>${icon(UI.copy, 16)}<span>${t('common-copy')}</span></button>
+      </div>
       <p class="to-hint to-short-expires">${expiresLine(short.expires, Date.now(), document.documentElement.lang)}</p>`;
   }
-  /** The QR code, drawn here when the link fits in one; else why not, in a sentence. */
+  /** The QR code of what Copy link gave, drawn when the link fits in one; else why not, in a sentence. */
   private renderQr() {
-    const bytes = new TextEncoder().encode(this.qrDisplay ? this.displayLink : this.link);
+    const bytes = new TextEncoder().encode(this.qr);
     const fits = bytes.length <= QR_MAX_BYTES;
     const qr = fits ? qrSvg(bytes, 4) : '';
-    return html`<section class="to-share-section to-share-qr" aria-labelledby="to-share-qr-h">
-      <h3 id="to-share-qr-h">${t('common-qr-code')}</h3>
-      ${
-        fits
-          ? html`${this.renderWhich(this.qrDisplay, (d) => (this.qrDisplay = d))}
-            <div class="to-qr-code" role="img" aria-label=${t('common-qr-code-of-this-document')}>${unsafeSVG(qr)}</div>
-            <div class="to-row">
-              <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'png')}>${icon(UI.download, 16)}<span>PNG</span></button>
-              <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'svg')}>${icon(UI.download, 16)}<span>SVG</span></button>
-            </div>`
-          : html`<p class="to-hint to-qr-why">${t('share-this-document-is-n-bytes', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`
-      }
-    </section>`;
+    return fits
+      ? html`<div class="to-qr-code" role="img" aria-label=${t('common-qr-code-of-this-document')}>${unsafeSVG(qr)}</div>
+          <div class="to-row">
+            <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'png')}>${icon(UI.download, 16)}<span>PNG</span></button>
+            <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'svg')}>${icon(UI.download, 16)}<span>SVG</span></button>
+          </div>`
+      : html`<p class="to-hint to-qr-why">${t('share-this-document-is-n-bytes', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`;
   }
   /** The short links made on this device, folded: "2 short links kept here". */
   private renderKept() {
@@ -467,7 +605,8 @@ export class ToShare extends LitElement {
     }></to-dialog>`;
   }
   render() {
-    return html`<to-dialog class="to-share-dialog" heading=${this.heading} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>${this.renderRooms()}`;
+    return html`<to-dialog class="to-share-dialog" heading=${t('share-share-title', { title: this.heading })} @to-close=${this.onClose} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>${this.renderRooms()}
+      <to-dialog class="to-qr-dialog" heading=${t('common-qr-code')} @to-close=${() => (this.qr = '')} .body=${this.qr ? this.renderQr() : nothing}></to-dialog>`;
   }
 }
 customElements.define('to-share', ToShare);

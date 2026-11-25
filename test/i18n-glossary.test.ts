@@ -19,8 +19,6 @@ const ALLOW: { lang: string; term: string; key?: string; why: string }[] = [
   { lang: 'de', term: 'Download', key: 'export-download-ext', why: 'glossary: herunterladen as the verb' },
   { lang: 'it', term: 'Download', key: 'download-failed', why: 'the noun: Italian says "il download", Scarica is the verb on the button' },
   { lang: 'pt-br', term: 'Download', key: 'download-failed', why: 'the noun: Portuguese says "o download", Baixar is the verb on the button' },
-  { lang: 'hi', term: 'Present', key: 'share-present-link', why: 'the verb bends: प्रेज़ेंट करें is the command, प्रेज़ेंट करने का लिंक the link for presenting' },
-  { lang: 'ur', term: 'Present', key: 'share-present-link', why: 'the verb bends: پیش کریں is the command, پیش کرنے کا لنک the link for presenting' },
   // A verb that splits or bends round its object.
   { lang: 'de', term: 'Insert', key: 'trip-insert-place-by-name', why: 'einfügen is a separable verb: "Füge … ein"' },
   { lang: 'nl', term: 'Insert', key: 'trip-insert-place-by-name', why: 'invoegen is a separable verb: "Voeg … in"' },

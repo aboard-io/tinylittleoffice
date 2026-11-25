@@ -1,8 +1,8 @@
 // One modal at a time (the walks' first finding, `dialog-from-dialog`): a dialog opened from
 // inside another never stacks on it. The drawer hands over and does not come back: a row of it that opens a dialog
 // closes the drawer first, and when that dialog closes the focus is on the hamburger. Share hands over and comes
-// back: Password… closes Share, and when the password dialog closes (Cancel or done) Share is open again as it was,
-// the focus on Password….
+// back: the QR code closes Share, and when its dialog closes Share is open again as it was, the focus on the QR
+// button.
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { mount, openDrawerDoc, openShare, tick, until } from './helpers.ts';
@@ -88,15 +88,15 @@ test('the templates from the home page are as they were: over the page, the focu
   expect(stacked).toEqual([]);
 });
 
-test('Password… from Share: Share closes, the password dialog alone is open; closed, Share is back as it was, the focus on Password…', async () => {
+test('the QR code from Share: Share closes, the QR code dialog alone is open; closed, Share is back as it was, the focus on the QR button', async () => {
   const shell = await mount(doc());
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   await openShare(shell);
   const share = await only('to-share dialog');
-  // State to keep: the QR code's Display Link chosen, the body scrolled.
-  await until(() => !!share.querySelector('.to-share-qr .to-which'));
-  share.querySelectorAll<HTMLElement>('.to-share-qr .to-which button')[1].click();
-  await until(() => share.querySelectorAll('.to-share-qr .to-which button')[1].getAttribute('aria-pressed') === 'true');
+  // State to keep: Present link turned on, the body scrolled.
+  await until(() => !!share.querySelector('.to-present-switch'));
+  share.querySelector<HTMLInputElement>('.to-present-switch')!.click();
+  await until(() => share.querySelector<HTMLInputElement>('.to-present-switch')!.checked);
   // The body made shorter than what it holds, and scrolled part way down: kept across the step (the browser keeps a
   // closed dialog's scroll, Chromium and WebKit alike, since nothing is drawn again).
   const body = share.querySelector<HTMLElement>('.to-dialog-body')!;
@@ -105,44 +105,36 @@ test('Password… from Share: Share closes, the password dialog alone is open; c
   body.scrollTop = 80;
   const top = body.scrollTop;
   expect(top).toBeGreaterThan(0);
-  const open = share.querySelector<HTMLButtonElement>('.to-password-open')!;
+  const open = share.querySelector<HTMLButtonElement>('.to-qr-open')!;
   open.focus({ preventScroll: true });
   open.click();
-  const pw = await only('to-dialog.to-password-dialog dialog');
+  const qr = await only('to-dialog.to-qr-dialog dialog');
   expect(share.open).toBe(false);
   expect(stacked).toEqual([]);
-  // Cancel (its Close): Share is back.
-  pw.querySelector<HTMLElement>('.to-dialog-head button')!.click();
+  // Close: Share is back.
+  qr.querySelector<HTMLElement>('.to-dialog-head button')!.click();
   await only('to-share dialog');
-  await until(() => document.activeElement === share.querySelector('.to-password-open'));
-  expect(share.querySelectorAll('.to-share-qr .to-which button')[1].getAttribute('aria-pressed')).toBe('true');
+  await until(() => document.activeElement === share.querySelector('.to-qr-open'));
+  expect(share.querySelector<HTMLInputElement>('.to-present-switch')!.checked).toBe(true);
   expect(body.scrollTop).toBe(top);
   // Escape, the commonest way out: Share is back the same.
-  share.querySelector<HTMLButtonElement>('.to-password-open')!.click();
-  await only('to-dialog.to-password-dialog dialog');
+  share.querySelector<HTMLButtonElement>('.to-qr-open')!.click();
+  await only('to-dialog.to-qr-dialog dialog');
   await userEvent.keyboard('{Escape}');
   await only('to-share dialog');
-  await until(() => document.activeElement === share.querySelector('.to-password-open'));
+  await until(() => document.activeElement === share.querySelector('.to-qr-open'));
   expect(body.scrollTop).toBe(top);
-  expect(stacked).toEqual([]);
-  // Done (a password set): Share is back too, saying so.
-  share.querySelector<HTMLButtonElement>('.to-password-open')!.click();
-  await only('to-dialog.to-password-dialog dialog');
-  shell.querySelector<HTMLButtonElement>('.to-password-set')!.click();
-  await only('to-share dialog');
-  await until(() => share.querySelector('.to-share-protect .to-trust-line')!.textContent!.includes('Protected by a password'));
-  await until(() => document.activeElement === share.querySelector('.to-password-open'));
   expect(stacked).toEqual([]);
   // Share closed for good: it says so (to-close, which a step left behind would swallow), and the next Share begins
   // afresh as before, its body drawn anew, not the one kept across the steps.
-  const kept = share.querySelector('.to-share-qr')!;
+  const kept = share.querySelector('.to-share-options')!;
   share.close();
   await until(() => modals().length === 0);
   await until(() => !kept.isConnected);
   await openShare(shell);
   await only('to-share dialog');
-  await until(() => !!share.querySelector('.to-share-qr'));
-  expect(share.querySelector('.to-share-qr')).not.toBe(kept);
+  await until(() => !!share.querySelector('.to-share-options'));
+  expect(share.querySelector('.to-share-options')).not.toBe(kept);
   share.close();
   await until(() => modals().length === 0);
 });

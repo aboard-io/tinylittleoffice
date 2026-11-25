@@ -218,18 +218,14 @@ leave-this-link-hides-characters-in = Адреса цього посилання
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = Копію відкрито в новій вкладці
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = Посилання для редагування
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = Посилання для показу
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = Режим перегляду
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = Скопіювати в новий документ
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = Скопіювати посилання
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = Копія: { $title }
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = Шифрується у вашому браузері. Наш сервер зберігає лише зашифроване посилання й видаляє його, коли спливає термін.
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = Спливає через { $n ->
         [one] { $n } день
@@ -251,14 +247,10 @@ share-expires-in-n-minutes-date = Спливає через { $n ->
         [many] { $n } хвилин
        *[other] { $n } хвилини
     } ({ $date })
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = Відкривається як сторінки для читання
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = Відкривається в редакторі
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = Відкрити для перегляду без редагування.
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = Кожен, хто відкриє це посилання, отримає власну копію. Його зміни не з’являться у вашій. Попросіть надіслати вам його посилання.
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = Коротке посилання з терміном дії
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = Це посилання спливе через { $n ->
         [one] { $n } день
@@ -311,14 +303,30 @@ share-n-short-links-kept-here = { $n ->
         [many] { $n } коротких посилань збережено тут
        *[other] { $n } короткого посилання збережено тут
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = Посилання для показу
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = Відкривається
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = Посилання скопійовано
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = Не вдалося скопіювати
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = Поділитися: { $title }
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = Посилання — це _і є_ документ!
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Office — **не** інструмент для спільної роботи в інтернеті. Ваші файли не зберігаються в хмарі, і **синхронізації між людьми та пристроями немає**.
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = Кожне посилання перетворює весь документ на одну довгу URL-адресу — знімок його вмісту таким, яким він є _саме зараз._ Ваших подальших змін ніхто не побачить, доки ви не створите нове посилання й не поділитеся ним, і навпаки.
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = Більше не показувати
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = Посилання готове. Натисніть «Поділитися» ще раз.
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = Докладніше: { $option }
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = Коротке посилання
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = Щоб створити коротке посилання, нам потрібно зберігати на своїх серверах **зашифровану** копію вашого документа. Ключ шифрування стає частиною URL і ніколи не залишає ваш браузер; без нього ми ніяк не можемо прочитати ваші дані.
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **Коротке посилання не можна змінити чи видалити до завершення строку його дії.**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = Поділитися…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -329,30 +337,24 @@ common-qr-code-of-this-document = QR-код цього документа
 share-this-document-is-n-bytes = Цей документ важить { $n } байт, а найбільший QR-код вміщує { $max }. Скоротіть його на { $over } байт, і він поміститься.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = У цьому документі { $n } символів, а коротке посилання вміщує { $max }. Скоротіть його на { $over }, і він поміститься.
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = Спливає через
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
-share-hour = Годину
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
-share-day = День
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
-share-week = Тиждень
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
-share-month = Місяць
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = Зробити коротке посилання
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
+share-hour = годину
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
+share-day = день
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
+share-week = тиждень
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
+share-month = місяць
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = Створення…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = Досягнуто ліміту: 100 коротких посилань на день з однієї адреси. Спробуйте завтра.
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = Коротке посилання не можна змінити чи видалити. Його термін спливає автоматично.
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = Не вдалося скоротити посилання.
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = Цей документ задовгий для короткого посилання.
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = До 100 коротких посилань на день з однієї адреси.
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = Видалити
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -366,8 +368,6 @@ share-new-noun-date-n = Новий: { $noun } { $date } №{ $n }
 share-mastodon-server-like-mastodon-social = Сервер Mastodon, наприклад mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = Змінити
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = Скопіювати код вбудовування
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = Скопіювати посилання для показу
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -380,10 +380,14 @@ share-opens-deck-already-presenting = Відкриває презентацію 
 share-post = Опублікувати
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = Опублікувати посилання
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = Показувати прев’ю першої сторінки
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = Зображення першої сторінки й назва місяць зберігаються на нашому сервері у відкритому вигляді, щоб соцмережа могла їх отримати. Сам документ — ні.
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = Поділитися карткою попереднього перегляду
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = У застосунках і соцмережах показувати разом із посиланням назву та знімок екрана вашого документа.
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = Ці дані зберігатимуться на наших серверах до одного місяця й будуть видимі будь-кому.
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = Докладніше: картки попереднього перегляду
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = Надіслано без прев’ю: { $reason }
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -450,12 +454,10 @@ share-yes-counts-as-n-of-max = Так, рахується як { $n } із { $ma
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = Кожному, хто має посилання, знадобиться пароль, щоб його відкрити. Його не можна скинути. Якщо ви його втратите, документ зникне.
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = Змінити пароль
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = Створено { $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = Кожному, хто має посилання, знадобиться пароль, щоб його відкрити, зокрема й вам. Його не можна скинути.
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **Якщо ви його втратите, документ зникне.**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = Введіть пароль, щоб відкрити цей документ.
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -468,8 +470,6 @@ privacy-forget-everything-this-site-keeps = Видалити все, що збе
 privacy-locked = Заблоковано
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = Заблокований документ
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = Новий пароль
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = Без пароля
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -482,8 +482,6 @@ common-password = Пароль
 privacy-password-removed = Пароль видалено
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = Пароль установлено. Тепер посилання зашифроване.
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = Пароль…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = Налаштування
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -492,12 +490,6 @@ privacy-privacy = Приватність
 privacy-nothing-saved-in-this-browser = У цьому браузері нічого не збережено. Перелічене зберігається лише до кінця цього відвідування.
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = Захищено паролем
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = Видалити пароль
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = Шифрування…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = Задати пароль
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = Короткі посилання
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -508,8 +500,6 @@ privacy-short-links-made-here-until = Короткі посилання, ств�
 privacy-their-names-and-links-for = Назви та посилання, що показуються на головній сторінці.
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = Тема й налаштування коротких посилань.
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = У цього документа є пароль. Посилання й будь-яке коротке посилання з нього зашифровані.
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = Цей документ заблоковано
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -528,8 +518,6 @@ privacy-your-browsers-history = Історія вашого браузера
 privacy-every-document-opened-here-in = Кожен відкритий документ повністю, якщо він не захищений паролем.
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = Ми не можемо це очистити
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = автор: { $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
         [one] { $n } документ
@@ -546,10 +534,8 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = Задано: { $n }
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = Скопіюйте цей пароль і надішліть його окремо від посилання. Його більше не буде показано.
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
-privacy-make-another = Створити інший
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
+privacy-make-another = Створити заново
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = Пароль скопійовано
 

@@ -113,7 +113,7 @@ async function check(strings: Strings): Promise<string[]> {
   // The Share dialog.
   await openShare(shell);
   const share = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
-  await until(() => share.dialog.open && !!share.querySelector('.to-share-links'));
+  await until(() => share.dialog.open && !!share.querySelector('.to-share-go'));
   await settled();
   english();
   share.close();

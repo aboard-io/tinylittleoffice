@@ -215,18 +215,14 @@ leave-this-link-hides-characters-in = Adrès lyen sa a gen karaktè ki kache.
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = Yon kopi louvri nan yon lòt onglè
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = Lyen pou modifye
 # en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
 share-present-link = Lyen pou prezante
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = Kopye nan yon nouvo dokiman
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = Kopye lyen
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = Kopi { $title }
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = Chifre nan navigatè w. Sèvè nou an kenbe sèlman lyen chifre a, epi li efase l lè li ekspire.
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = Ekspire nan { $n ->
         [one] { $n } jou
@@ -244,12 +240,8 @@ share-expires-in-n-minutes-date = Ekspire nan { $n ->
     } ({ $date })
 # en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
 share-opens-as-pages-to-read = Louvri kòm paj pou li
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = Louvri nan editè a
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = Nenpòt moun ki louvri lyen sa a jwenn pwòp kopi pa l. Chanjman yo p ap parèt nan pa w. Mande yo voye lyen pa yo ba ou.
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = Lyen kout ki ekspire
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = Lyen sa a ekspire nan { $n ->
         [one] { $n } jou
@@ -294,14 +286,16 @@ share-n-short-links-kept-here = { $n ->
         [one] { $n } lyen kout ki sere isit la
        *[other] { $n } lyen kout ki sere isit la
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = Lyen Afichaj
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = Louvri
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = Lyen kopye
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = Pa t ka kopye
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = Pataje { $title }
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = Lyen an se dokiman an!
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = Pa montre sa ankò
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = Pataje…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -312,30 +306,24 @@ common-qr-code-of-this-document = Kòd QR dokiman sa a
 share-this-document-is-n-bytes = Dokiman sa a gen { $n } byte; pi gwo kòd QR a kenbe { $max }. Redui l ak { $over } byte epi l ap antre.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = Dokiman sa a gen { $n } karaktè; yon lyen kout kenbe { $max }. Redui l ak { $over } epi l ap antre.
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = Ekspire apre
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
-share-hour = Yon èdtan
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
-share-day = Yon jou
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
-share-week = Yon semèn
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
-share-month = Yon mwa
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = Fè yon lyen kout
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
+share-hour = yon èdtan
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
+share-day = yon jou
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
+share-week = yon semèn
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
+share-month = yon mwa
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = N ap kreye…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = Limit la rive: 100 lyen kout pa jou pou chak adrès. Eseye ankò demen.
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = Ou pa ka modifye ni efase yon lyen kout. Li ekspire otomatikman.
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = Pa t ka fè lyen an pi kout.
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = Dokiman sa a twò long pou yon lyen kout.
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = Jiska 100 lyen kout pa jou pou chak adrès.
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = Retire
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -349,8 +337,6 @@ share-new-noun-date-n = Nouvo { $noun } { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = Yon sèvè Mastodon, tankou mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = Chanje
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = Kopye kòd entegrasyon
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = Kopye lyen montre
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -427,10 +413,6 @@ share-yes-counts-as-n-of-max = Wi, li konte pou { $n } sou { $max }
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
 # en: 07fd5d289286fa4714b3f407db7875fac90b9952
 privacy-anyone-with-link-will-need = Nenpòt moun ki gen lyen an ap bezwen modpas la pou louvri l. Yo pa ka reyinisyalize l. Si w pèdi l, dokiman an pèdi.
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = Chanje modpas
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = Kreye { $date }
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = Antre modpas la pou louvri dokiman sa a.
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -443,8 +425,6 @@ privacy-forget-everything-this-site-keeps = Efase tout sa ki anrejistre nan navi
 privacy-locked = Bloke
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = Dokiman bloke
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = Nouvo modpas
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = Pa gen modpas
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -457,8 +437,6 @@ common-password = Modpas
 privacy-password-removed = Modpas retire
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = Modpas la mete. Lyen an chifre kounye a.
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = Modpas…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = Preferans
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -467,12 +445,6 @@ privacy-privacy = Vi prive
 privacy-nothing-saved-in-this-browser = Anyen pa anrejistre nan navigatè sa a. Sa ki nan lis la dire pou vizit sa a sèlman.
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = Pwoteje ak yon modpas
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = Retire modpas
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = N ap chifre…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = Mete modpas
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = Lyen kout
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -483,8 +455,6 @@ privacy-short-links-made-here-until = Lyen kout ki fèt isit la, jiskaske yo eks
 privacy-their-names-and-links-for = Non ak lyen, ki parèt sou paj akèy la.
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = Tèm ak paramèt lyen kout yo.
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = Dokiman sa a gen yon modpas. Lyen an, ak nenpòt lyen kout yo fè ak li, chifre.
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = Dokiman sa a bloke
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -503,8 +473,6 @@ privacy-your-browsers-history = Istwa navigatè ou a
 privacy-every-document-opened-here-in = Chak dokiman ou louvri, nèt, sof si li gen yon modpas.
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = Nou pa ka efase sa a
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = pa { $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
         [one] { $n } dokiman
@@ -517,8 +485,6 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = { $n } paramèt
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = Kopye modpas sa a epi voye l apa lyen an. Li p ap parèt ankò.
 # en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
 privacy-make-another = Fè yon lòt
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170

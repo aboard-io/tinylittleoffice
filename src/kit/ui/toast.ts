@@ -6,6 +6,9 @@
  * (made once per dialog), else by the page's own, chosen on the frame they are said (a dialog closed meanwhile is not
  * where the person is). A region is emptied, then given the words on the next frame, so the same words twice are said
  * twice.
+ *
+ * The toast seen is a manual popover, raised to the top layer each time it says something: a modal dialog is in that
+ * layer too, and drew over a toast the page held (issue #61: Share's Copy link seemed to do nothing on a computer).
  */
 import { LitElement, html } from 'lit';
 import { TOAST } from '../core/say.ts';
@@ -66,7 +69,15 @@ export class ToToast extends LitElement {
       if (region) region.textContent = words;
     });
     this.count(toastTime(words));
+    void this.updateComplete.then(() => this.raise());
   };
+  /** Shown again over whatever is on top now: a popover shown after a modal opened is above it. */
+  private raise() {
+    const seen = this.querySelector<HTMLElement>('.to-toast');
+    if (!seen?.showPopover) return;
+    if (seen.matches(':popover-open')) seen.hidePopover();
+    seen.showPopover();
+  }
   private count(ms: number) {
     clearTimeout(this.timer);
     this.ends = Date.now() + ms;
@@ -87,7 +98,7 @@ export class ToToast extends LitElement {
     this.count(ms);
   };
   render() {
-    return html`<div class="to-toast ${this.message ? 'shown' : ''}" aria-hidden="true" @pointerenter=${this.hold} @pointerleave=${this.go}>${this.message}</div>
+    return html`<div class="to-toast ${this.message ? 'shown' : ''}" popover="manual" aria-hidden="true" @pointerenter=${this.hold} @pointerleave=${this.go}>${this.message}</div>
       <div class="sr-only to-said" role="status"></div>`;
   }
 }

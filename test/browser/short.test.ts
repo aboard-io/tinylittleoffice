@@ -37,14 +37,21 @@ test('a short link made here: the lifetime from the row, the link big with Copy 
     return new Response(JSON.stringify({ id: 'qrstuvw', exp }), { status: 201, headers: { 'content-type': 'application/json' } });
   });
   const dialog = await open(shell);
-  // The lifetimes end at a month, and the section says the link cannot be changed or recalled.
-  expect([...section(shell).querySelectorAll('.to-ttl label')].map((l) => l.textContent)).toEqual(['An hour', 'A day', 'A week', 'A month']);
-  expect(section(shell).textContent).toContain('A short link can’t be edited or deleted. It expires automatically.');
+  // Its switch on: the lifetimes, ending at a month; the section says the link cannot be changed or recalled.
+  section(shell).querySelector<HTMLInputElement>('.to-short-switch')!.click();
+  await until(() => !!section(shell).querySelector('.to-ttl'));
+  expect([...section(shell).querySelectorAll('.to-ttl label')].map((l) => l.textContent)).toEqual(['an hour', 'a day', 'a week', 'a month']);
+  expect(section(shell).textContent).toContain('Short links cannot be manually edited or deleted before their expiration date.');
   expect(section(shell).querySelector(NOTHING_TO_OWN)).toBeNull();
   section(shell)
     .querySelector<HTMLInputElement>(`input[type=radio][value="${30 * 86400}"]`)!
     .click();
-  section(shell).querySelector<HTMLButtonElement>('.to-make')!.click();
+  // Copy link makes it, and copies it.
+  let copied = '';
+  const [clip, item] = [navigator.clipboard.writeText, navigator.clipboard.write];
+  navigator.clipboard.writeText = async (s: string) => void (copied = s);
+  navigator.clipboard.write = async (items: ClipboardItems) => void (copied = await (await items[0].getType('text/plain')).text());
+  dialog.querySelector<HTMLButtonElement>('.to-copy-link')!.click();
   await until(() => !!section(shell).querySelector('.to-short-field'));
 
   // One POST: ciphertext, its IV and the lifetime; no owner, nothing readable.
@@ -61,24 +68,24 @@ test('a short link made here: the lifetime from the row, the link big with Copy 
   expect(section(shell).querySelector('.to-short-expires')!.textContent).toMatch(/^Expires in 30 days \(/);
   expect(section(shell).querySelector(NOTHING_TO_OWN)).toBeNull();
 
-  // Copy at the field's right copies the short link.
-  let copied = '';
-  const clip = navigator.clipboard.writeText;
-  navigator.clipboard.writeText = async (s: string) => void (copied = s);
+  // Copy link put it on the clipboard; Copy at the field's right does too.
   try {
+    await until(() => copied === field.value);
+    copied = '';
     field.parentElement!.querySelector<HTMLButtonElement>('.to-btn')!.click();
     await until(() => copied === field.value);
   } finally {
     navigator.clipboard.writeText = clip;
+    navigator.clipboard.write = item;
   }
   // The address is the document and nothing else.
   expect(location.hash).toBe(before);
   expect(location.hash).not.toContain('?');
   dialog.close();
   await until(() => !shell.querySelector<ToShare>('to-share')!.sharing); // the dialog's close event, a task later
-  // Opened again: a new short link can be made; the one made is in the list kept here.
+  // Opened again: a new short link can be made (its switch, off again); the one made is in the list kept here.
   await open(shell);
-  expect(section(shell).querySelector('.to-make')).not.toBeNull();
+  expect(section(shell).querySelector<HTMLInputElement>('.to-short-switch')!.checked).toBe(false);
   expect(shell.querySelector('.to-kept-list summary')!.textContent).toBe('1 short link kept here');
 });
 
@@ -93,7 +100,7 @@ test('opened by a short link: its lifetime shown; an edit leaves the address the
   expect('owned' in shell).toBe(false);
 
   const dialog = await open(shell);
-  expect(section(shell).querySelector('.to-make')).not.toBeNull();
+  expect(section(shell).querySelector('.to-short-switch')).not.toBeNull();
   expect(section(shell).querySelector(NOTHING_TO_OWN)).toBeNull();
   expect(section(shell).textContent).not.toContain('You own');
   dialog.close();

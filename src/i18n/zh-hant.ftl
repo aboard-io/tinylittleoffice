@@ -212,18 +212,14 @@ leave-this-link-hides-characters-in = 此連結的網址含有隱藏字元。
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = 已在新分頁開啟副本
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = 編輯連結
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = 播放連結
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = 預覽模式
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = 複製成新文件
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = 複製連結
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = { $title }的副本
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = 在你的瀏覽器中加密。我們的伺服器只儲存加密後的連結，並在它到期時刪除。
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = { $n ->
        *[other] { $n } 天
@@ -236,14 +232,10 @@ share-expires-in-n-hours-date = { $n ->
 share-expires-in-n-minutes-date = { $n ->
        *[other] { $n } 分鐘
     }後到期（{ $date }）
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = 開啟為供閱讀的頁面
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = 在編輯器中開啟
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = 以唯讀預覽方式開啟。
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = 打開這個連結的每個人都會拿到自己的一份副本。他們的修改不會出現在你的副本中。請他們把自己的連結傳回給你。
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = 會到期的短連結
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = 此連結將在{ $n ->
        *[other] { $n } 天
@@ -284,14 +276,30 @@ share-some-browsers = 舊版瀏覽器
 share-n-short-links-kept-here = { $n ->
        *[other] { $n } 個短連結保留在此
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = 顯示連結
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = 開啟方式
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = 已複製連結
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = 無法複製
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = 分享「{ $title }」
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = 連結就是文件！
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Office 不是線上協作工具。你的檔案不會儲存在雲端，**使用者之間、裝置之間也不會同步**。
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = 每個連結都會把整份文件轉換成一個很長的 URL，相當於文件此刻內容的快照。你之後所做的修改，在你建立並分享新連結之前，其他人都看不到，反之亦然。
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = 不再顯示
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = 連結已準備好。請再按一次「分享」。
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = 關於{ $option }
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = 短連結
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = 要建立短連結，我們必須在伺服器上儲存一份**加密的**文件副本。加密金鑰會成為 URL 的一部分，而且永遠不會離開你的瀏覽器；沒有它，我們就無法讀取你的資料。
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **短連結在到期之前無法編輯或刪除。**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = 分享…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -302,30 +310,24 @@ common-qr-code-of-this-document = 此文件的 QR 碼
 share-this-document-is-n-bytes = 這份文件有 { $n } 位元組；最大的 QR 碼只能容納 { $max }。縮短 { $over } 位元組就能放得下。
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = 這份文件有 { $n } 個字元；短連結最多容納 { $max }。縮短 { $over } 個字元就能放得下。
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = 到期時間
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
 share-hour = 一小時
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
 share-day = 一天
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
 share-week = 一週
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
 share-month = 一個月
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = 製作短連結
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = 正在建立…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = 已達上限：每個位址每天最多 100 個短連結。請明天再試。
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = 短連結無法編輯或刪除。它會自動到期。
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = 無法縮短連結。
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = 這份文件太長，無法製成短連結。
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = 每個位址每天最多 100 個短連結。
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = 移除
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -339,8 +341,6 @@ share-new-noun-date-n = 新{ $noun } { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = Mastodon 伺服器，例如 mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = 更改
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = 複製嵌入程式碼
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = 複製播放連結
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -353,10 +353,14 @@ share-opens-deck-already-presenting = 開啟後直接進入播放。
 share-post = 發文
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = 發布連結
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = 顯示第一頁的預覽
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = 第一頁的圖片和標題會在我們的伺服器上以可讀形式保存一個月，讓社群網路可以取得。文件本身不會。
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = 以預覽卡片分享
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = 在 App 和社群網路中，隨連結顯示文件的標題和一張截圖。
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = 這些資料會儲存在我們的伺服器上，任何人都看得到，最長保留一個月。
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = 關於預覽卡片
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = 已分享，但沒有預覽：{ $reason }
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -411,12 +415,10 @@ share-yes-counts-as-n-of-max = 是，以 { $n }/{ $max } 計
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = 任何拿到連結的人都需要密碼才能開啟。密碼無法重設。一旦遺失，文件就沒了。
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = 更改密碼
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = 建立於 { $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = 任何拿到連結的人都需要密碼才能開啟，包括你自己。密碼無法重設。
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **一旦遺失，文件就沒了。**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = 請輸入密碼以開啟這份文件。
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -429,8 +431,6 @@ privacy-forget-everything-this-site-keeps = 刪除此瀏覽器中儲存的所有
 privacy-locked = 已鎖定
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = 已鎖定的文件
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = 新密碼
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = 沒有密碼
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -443,8 +443,6 @@ common-password = 密碼
 privacy-password-removed = 已移除密碼
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = 密碼已設定。連結現已加密。
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = 密碼…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = 偏好設定
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -453,12 +451,6 @@ privacy-privacy = 隱私
 privacy-nothing-saved-in-this-browser = 此瀏覽器中沒有儲存任何內容。列出的項目只在這次造訪中保留。
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = 已用密碼保護
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = 移除密碼
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = 正在加密…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = 設定密碼
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = 短連結
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -469,8 +461,6 @@ privacy-short-links-made-here-until = 在這裡建立的短連結，到期前都
 privacy-their-names-and-links-for = 名稱和連結，顯示在首頁上。
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = 主題和短連結設定。
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = 這份文件設有密碼。連結和由它產生的任何短連結都已加密。
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = 這份文件已鎖定
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -489,8 +479,6 @@ privacy-your-browsers-history = 瀏覽器的瀏覽紀錄
 privacy-every-document-opened-here-in = 你開啟的每一份文件的完整內容，設有密碼的除外。
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = 我們無法清除這一項
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = 作者：{ $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
        *[other] { $n } 份文件
@@ -501,10 +489,8 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = 已設定 { $n } 個
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = 複製這個密碼，並與連結分開傳送。它不會再顯示。
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
-privacy-make-another = 再產生一個
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
+privacy-make-another = 重新產生
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = 已複製密碼
 
