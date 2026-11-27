@@ -71,8 +71,14 @@ test('values are shown, the formula strip shows the raw formula, Enter moves dow
   expect(cell(el, 'B3').value).toBe('$1,650.00');
   cell(el, 'B3').focus();
   await el.updateComplete;
-  expect(cell(el, 'B3').value).toBe('=SUM(B1:B2)');
+  // The selected cell shows its value still, so a screen reader reads it as the focus comes; the formula is in the
+  // strip and the cell's description, and in the cell while it is edited in place (F2).
+  expect(cell(el, 'B3').value).toBe('$1,650.00');
+  expect(cell(el, 'B3').title).toContain('=SUM(B1:B2)');
   expect(el.querySelector<HTMLInputElement>('.sheet-fx .fx')!.value).toBe('=SUM(B1:B2)');
+  key(cell(el, 'B3'), 'F2');
+  await el.updateComplete;
+  expect(cell(el, 'B3').value).toBe('=SUM(B1:B2)');
   expect(el.querySelector('[aria-label="Selected cells"]')!.textContent).toBe('B3');
   await type(el, cell(el, 'B2'), '500');
   expect(cell(el, 'B3').value).toBe('$1,700.00');
@@ -731,6 +737,8 @@ test('a cell reached by a click has its words selected, so typing replaces them;
   await el.updateComplete;
   expect([a1.selectionStart, a1.selectionEnd]).toEqual([0, 4]);
   expect(key(a1, 'F2').defaultPrevented).toBe(true);
+  await el.updateComplete;
+  await new Promise((r) => setTimeout(r, 0));
   expect([a1.selectionStart, a1.selectionEnd]).toEqual([4, 4]);
   // A double tap edits rather than zooms.
   expect(getComputedStyle(a1).touchAction).toBe('manipulation');

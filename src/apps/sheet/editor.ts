@@ -1362,8 +1362,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
             }}
             @click=${(e: Event) => {
               if (!this.pressed) {
-                // A second tap edits the cell in place, the caret at the end of its formula; once it is, a tap places the caret.
-                if (this.again && !this.typingIn(r, c)) this.typeIn(r, c);
+                // A second tap edits the cell in place: the caret where it landed when the cell shows what it holds (its
+                // words), at the end of its formula when it shows a value; once it is edited in place, a tap places the caret.
+                if (this.again && !this.typingIn(r, c)) {
+                  if ((e.target as HTMLInputElement).value === raw) this.typing = [r, c];
+                  else this.typeIn(r, c);
+                }
                 this.again = false;
                 return;
               }
@@ -1378,7 +1382,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
               this.caret = this.typingIn(r, c) ? { r, c, pos: (e.target as HTMLInputElement).selectionStart ?? 0 } : null;
               this.leaving(e, r, c);
             }}
-            @input=${(e: InputEvent) => !e.isComposing && this.typed(r, c, this.typedValue(r, c, e.target as HTMLInputElement, e.inputType.startsWith('delete') ? '' : (e.data ?? e.dataTransfer?.getData('text/plain'))))}
+            @input=${(e: InputEvent) => !e.isComposing && this.typed(r, c, this.typedValue(r, c, e.target as HTMLInputElement, (e.inputType ?? '').startsWith('delete') ? '' : (e.data ?? e.dataTransfer?.getData('text/plain'))))}
             @compositionend=${(e: CompositionEvent) => this.typed(r, c, this.typedValue(r, c, e.target as HTMLInputElement, e.data))}
             @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c, this.inputCaret(e.target as HTMLInputElement))}
           />
