@@ -660,7 +660,8 @@ test('the row numbers are as narrow as their widest number and the heads are qui
     expect(getComputedStyle(x).borderRightWidth).toBe('0px');
     expect(getComputedStyle(x).borderBottomWidth).toBe('0px');
   }
-  expect(getComputedStyle(el.querySelector('.row-num')!).justifyContent).toBe('flex-end');
+  // Set as flex-end; the Chromium of Playwright 1.65 gives it back as flow-end (#60).
+  expect(getComputedStyle(el.querySelector('.row-num')!).justifyContent).toMatch(/^(flex|flow)-end$/);
   expect(css(el.querySelector<HTMLElement>('.col-head')!.getBoundingClientRect().height)).toBeCloseTo(32, 0);
   // A hundred rows and more: three digits, one digit wider.
   const narrow = side();
