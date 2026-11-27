@@ -39,20 +39,11 @@ for (const e of entries.filter((e) => e.kind !== 'sealed'))
     expect(opened(e)).toEqual({ app: e.app, sha256: e.sha256, display: e.kind === 'display' });
   });
 
-/**
- * The links known not to open, each with why; a decision, never a test made to pass. v1.0.0 (2026-10-11 21:20) sealed
- * with a password the person chose and a slow key derivation (600,000 rounds); f228ad07 (22:58, v1.1.0) made the app choose every
- * password and the key one HKDF pass, and reads only that. A link v1.0.0 sealed in those 98 minutes asks for its
- * password and opens nothing. Open question for Paul (2026-11-27): read them again, or say so where they land.
- */
-const UNOPENED = (e: Entry) => e.kind === 'sealed' && e.made.length === 1 && e.made[0] === 'v1.0.0';
-
 for (const e of entries.filter((e) => e.kind === 'sealed'))
   test(`opens with its password: ${label(e)}`, { timeout: 30_000 }, async () => {
     const route = parseHash(e.link.slice(e.link.indexOf('#')));
     expect(route).toMatchObject({ app: e.app, sealed: true });
     const u = await unseal(e.password!, route.payload);
-    if (UNOPENED(e)) return void expect(u, 'known not to open (UNOPENED); if it opens now, take it out of UNOPENED').toBeNull();
     expect(u, 'the password opens it').not.toBeNull();
     expect(sha(unpackDoc(u!.flag, u!.bytes))).toBe(e.sha256);
     expect(await unseal(`${e.password}x`, route.payload), 'and no other password').toBeNull();
