@@ -156,6 +156,13 @@ export const THEMES: Record<string, DeckTheme> = {
 
 export const themeOf = (id = ''): DeckTheme => THEMES[id] ?? THEMES[''];
 
+/**
+ * The plain theme as the stage shows it on a dark page (the slide is the page's own, its words the page's ink: style.css
+ * .deck-canvas), for what is drawn beside the stage, the rail's thumbnails (#25): the dark theme's ink, its second and
+ * third inks and its accent (styles/tokens.css). Never a file's: a slide written out is on paper.
+ */
+export const PLAIN_ON_DARK: DeckTheme = { ...THEMES[''], dark: true, paper: '#242428', ink: '#e8e8ec', muted: '#b6b6be', accent: '#90a4ff' };
+
 /** The colours a deck's icons can be, besides the theme's accent: the header says the name ("color: red"). */
 export const ICON_COLORS: Record<string, { name: () => string; hex: string }> = {
   black: { name: () => t('common-black'), hex: '#18181b' },

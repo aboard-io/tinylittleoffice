@@ -37,6 +37,16 @@ export function setTheme(th: Theme) {
   applyTheme();
 }
 
+/** Whether the page is drawn dark now (data-theme, as applyTheme sets it). */
+export const drawnDark = (): boolean => typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark';
+
+/** `fn` each time the page's theme changes, by a choice or by the device's; returns its undoing. */
+export function onTheme(fn: () => void): () => void {
+  const watch = new MutationObserver(fn);
+  watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  return () => watch.disconnect();
+}
+
 /** At load: the choice as it was left, and the device's changes followed while it is "auto". */
 export function initTheme() {
   applyTheme();

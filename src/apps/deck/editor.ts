@@ -68,6 +68,8 @@ import {
   type Slide,
 } from './model.ts';
 import { closingPage, emptySlide, wantsClosing, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
+import { PLAIN_ON_DARK } from './theme.ts';
+import { drawnDark, onTheme } from '../../kit/ui/theme.ts';
 import '../../kit/ui/bar.ts';
 import '../../kit/ui/doc-dialog.ts';
 import '../../kit/ui/insert.ts';
@@ -139,6 +141,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   /** When two fingers last lifted from the show: the tap a pinch may leave behind turns no slide. */
   private pinched = 0;
   private unpinch: (() => void) | null = null;
+  private unTheme: (() => void) | null = null;
   /** Where one finger came down on the show (a swipe's start), and when a swipe last turned a slide. */
   private swipe: { x: number; y: number } | null = null;
   private swiped = 0;
@@ -196,6 +199,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.addEventListener('text-selectall', this.onSelectAll);
     window.addEventListener('keydown', this.onShowKey);
     window.addEventListener(OPENED_EVENT, this.onOpened);
+    // The rail's thumbnails follow the page's theme (renderRail).
+    this.unTheme = onTheme(() => this.requestUpdate());
     // The show is a picture to two fingers (Paul, 2026-10-11: "I should be able to pinch zoom where appropriate in view
     // modes too"): the slide zooms in place about the fingers, kept in quarters when they lift, and the show scrolls.
     const zoomTo = (z: number) => {
@@ -226,6 +231,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     window.removeEventListener(OPENED_EVENT, this.onOpened);
     this.unpinch?.();
     this.unpinch = null;
+    this.unTheme?.();
+    this.unTheme = null;
     clearTimeout(this.settle);
   }
   protected read(doc: Doc): Slide[] {
@@ -991,7 +998,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const end = g ? null : this.end;
     const d = this.rows.drag;
     // The rail's thumbnails stand still (a deck of ten animations runs no clocks on the side) and are thumbnails: a trip on one asks OpenStreetMap for nothing.
-    const still: Look = { ...look, still: true, thumb: true };
+    // A plain deck on a dark page is drawn as the stage shows it, light words on the page's dark (#25).
+    const still: Look = { ...look, ...(!look.themed && drawnDark() ? { theme: PLAIN_ON_DARK } : {}), still: true, thumb: true };
     return html`<nav class="deck-rail" tabindex="-1" aria-label=${g ? t('common-pages') : t('deck-slides')} data-covers @keydown=${this.onRailKey}>
       ${Array.from({ length: n }, (_, i) => {
         const s = slides[i];
