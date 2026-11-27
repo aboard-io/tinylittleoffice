@@ -639,7 +639,9 @@
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     box-shadow: var(--to-shadow-pop);
-    max-height: calc(100dvh - 2em);
+    /* The window less the margin the dialog hangs from and as much under it, so its foot (the last row of a long body,
+       which scrolls) is always in the window (#64: less 2em alone left it 8dvh − 1em below the window's foot). */
+    max-height: calc(100dvh - 2 * max(1em, 8dvh));
     display: flex;
     flex-direction: column;
   }

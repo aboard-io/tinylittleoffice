@@ -1,7 +1,7 @@
 // <to-dialog> (kit/ui/dialog.ts): closed by Escape, the backdrop or its Close, it gives the focus back where it was when
 // it opened, even where the browser's own restoring finds nothing to give it to (a page in a frame had it).
 import { expect, test } from 'vitest';
-import { userEvent } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { html, render } from 'lit';
 import { until } from './helpers.ts';
 import '../../src/styles.css';
@@ -50,4 +50,31 @@ test('opened over a menu (which the dialog closes), it gives the focus back to t
   await userEvent.keyboard('{Escape}');
   await until(() => !dialog.dialog.open);
   expect(document.activeElement).toBe(document.querySelector('main.to-main'));
+});
+
+test('a dialog taller than the window has its foot in the window, a margin under it as over it, and its body scrolls to its end (#64)', async () => {
+  for (const [w, h] of [
+    [1280, 700],
+    [1280, 1000],
+    [800, 400],
+  ]) {
+    await page.viewport(w, h);
+    document.body.innerHTML = '';
+    const host = document.body.appendChild(document.createElement('div'));
+    const rows = Array.from({ length: 80 }, (_, i) => html`<p>Row ${i}</p>`);
+    render(html`<to-dialog heading="Long" .body=${html`${rows}<button class="last">Last</button>`}></to-dialog>`, host);
+    const dialog = document.querySelector<ToDialog>('to-dialog')!;
+    await dialog.show();
+    await dialog.updateComplete;
+    const inner = dialog.querySelector('.to-dialog-inner')!.getBoundingClientRect();
+    const tall = `${w}×${h}`;
+    expect(inner.bottom, tall).toBeLessThanOrEqual(innerHeight);
+    expect(Math.abs(innerHeight - inner.bottom - inner.top), tall).toBeLessThanOrEqual(1);
+    const last = dialog.querySelector<HTMLElement>('.last')!;
+    last.scrollIntoView({ block: 'end' });
+    const b = last.getBoundingClientRect();
+    expect(b.bottom, tall).toBeLessThanOrEqual(inner.bottom);
+    expect(b.top, tall).toBeGreaterThanOrEqual(inner.top);
+    dialog.dialog.close();
+  }
 });
