@@ -79,7 +79,7 @@ export const NETWORK = {
     carries:
       'Which squares of the map are on the screen or in the picture, and the site’s name as the referrer (the origin alone, as OpenStreetMap’s tile policy asks of a web page; never the page’s path or anything of the document)',
     stops: 'Map, in the Trip Planner’s bar, turned off: no map then asks for them, anywhere a trip is drawn; the home page’s pictures of the templates never do',
-    by: 'apps/trip/view.ts, kit/draw/raster.ts',
+    by: 'apps/trip/view.ts, kit/draw/tiles.ts, kit/draw/raster.ts',
     csp: ['img', 'connect'],
   },
   placeSearch: {
