@@ -9,7 +9,7 @@
  * lists it is the site's: the home page, the routes and pages the build writes, Insert ▾'s new documents, the drawer,
  * the API, the skill and its examples. The site never registers one.
  */
-import { lookup, type AppDef } from './app.ts';
+import { lookup, type AppDef, type Doc, type Handoff } from './app.ts';
 import { siteOf } from './route.ts';
 import write from '../../apps/write/def.ts';
 import sheet from '../../apps/sheet/def.ts';
@@ -31,6 +31,8 @@ const ALL: AppDef[] = [...SUITE];
 
 export const apps = (): AppDef[] => SUITE;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
+/** A document handed to another app: as the hand-off converts it, then as that app takes it (`AppDef.takes`). */
+export const handOff = (h: Handoff, doc: Doc): Doc => ((d, to) => (h.as && to?.takes ? to.takes(d, h.as) : d))(h.convert(doc), appOf(h.to));
 // A document's QR code (kit/draw/qr-picture.ts), a host-kept picture (kit/draw/image-picture.ts) and a document locked with a password (kit/share/locked.ts) are drawn by the hosts as documents they hold, though none is an app.
 lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : id === IMAGE_LANG ? imagePicture : id === LOCKED_LANG ? lockedDoc : undefined);
 

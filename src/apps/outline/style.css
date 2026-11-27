@@ -410,9 +410,6 @@
   .ol-row to-text .tx h4 {
     font: inherit;
   }
-  .ol-row[aria-level='1'] to-text .tx {
-    font-weight: 600;
-  }
 
   /* Another document under an item: a card with its app, its first line, a way out and a way to take it away. */
   .ol-doc {

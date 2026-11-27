@@ -57,7 +57,7 @@ import { ENVELOPE_KEYS, isoMinute } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from '../draw/icons.ts';
 import { chosenLanguage, languagePending, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { exportItems, formatsReady, printDoc, viewAs } from '../file/exports.ts';
-import { LINK_VERSION, onFlush, parseHash, routeHash, siteOf, withLang, withText } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash, siteOf, withLang, withoutCard, withText } from './route.ts';
 import { keeping, onPrivacy, reopen, setPrivate } from '../share/privacy.ts';
 import { copyText } from '../share/share.ts';
 import { trustButton, type ToPrivacy } from '../ui/privacy-dialog.ts';
@@ -274,18 +274,10 @@ export class ToShell extends LitElement {
     // Every link that leaves the site asks first.
     installLinkGuard();
     installPlainCopy();
-    // A link shared with a network carries its preview card's id for the network's fetcher alone: in its path, "/c/<id>"
-    // (kit/share/card.ts; the site's Worker serves that page with the card's tags), or, before 2026-10-15, as ?c= on the
-    // app's page. The document is the hash's. Gone from the address at once, so a link copied from here carries no
-    // stale card: the path becomes the app's own page (the hash names the app), or the site's root.
-    const here = new URL(location.href);
-    const shared = /^(.*\/)c\/[a-z0-9]{7}$/.exec(here.pathname);
-    if (shared) {
-      const app = parseHash(here.hash).app;
-      here.pathname = `${shared[1]}${app && appOf(app) ? `${app}/` : ''}`;
-    }
-    here.searchParams.delete('c');
-    if (here.href !== location.href) history.replaceState(history.state, '', here.href);
+    // A shared link's preview card's id (route.ts withoutCard) is gone from the address at once, so a link copied from
+    // here carries no stale card.
+    const here = withoutCard(location.href, (id) => !!appOf(id));
+    if (here !== location.href) history.replaceState(history.state, '', here);
     this.onHash();
   }
   disconnectedCallback() {
@@ -344,11 +336,14 @@ export class ToShell extends LitElement {
     this.changed = false;
     this.copied = false;
     this.payloadLength = withBreaks(payload).length;
+    // A link made by a newer Tiny Little Office is never read here: its payload is another format, which this one's
+    // codec could read as some other document without a word (raw deflate has no checksum). It says so, sealed or not.
     // A sealed payload cut short in a chat is said to be cut, as a plain one is, before any password is asked for.
-    this.unreadable = !!payload && (sealed ? !isWholeSeal(payload) : !decodeDoc(payload));
+    const newer = version > LINK_VERSION;
+    this.unreadable = !!payload && (newer || (sealed ? !isWholeSeal(payload) : !decodeDoc(payload)));
     this.sealed = def && sealed && !this.unreadable ? payload : '';
     this.locker = null;
-    this.doc = def ? (sealed ? '' : payload ? decodeDoc(payload) : def.blank()) : '';
+    this.doc = def ? (newer || sealed ? '' : payload ? decodeDoc(payload) : def.blank()) : '';
     this.edited = this.doc;
     this.envelope = takeHead(this.doc, ENVELOPE_KEYS)[0];
     // An icon the starter set lacks: the rest of Lucide is fetched, and everything is drawn again when it joins (onIcons).
@@ -364,7 +359,7 @@ export class ToShell extends LitElement {
     const hash = def && payload ? routeHash(def.id, payload) : '';
     this.kept.adopt(hash);
     this.copies = this.display && !this.kept.id && !madeHere.has(hash) && firstTold(docDigest(def!.id, this.envelope, hash));
-    this.newer = !!def && version > LINK_VERSION;
+    this.newer = !!def && newer;
     // Another version of this document the library holds: the newest of the same app and the same name, at another link.
     const title = def && hash && !this.kept.id && !this.unreadable ? def.title(this.doc) : '';
     this.other = title ? (library().find((k) => k.app === def!.id && k.hash !== hash && k.title === title) ?? null) : null;
@@ -829,7 +824,7 @@ export class ToShell extends LitElement {
       ? this.renderPlain(def)
       : html`<button type="button" class="to-btn to-skip" @click=${this.skip}>${def ? t('shell-skip-to-document') : t('shell-skip-to-apps')}</button>
           <to-chrome .doc=${def ? { def, title: this.docTitle, value: def.title(this.doc) || this.fresh, locked: !!this.sealed, trust: this.trust(), used: this.payloadLength } : null} .main=${this.renderMain(def)} .mainClass=${`to-main ${editing ? 'to-wide' : ''}`} .label=${def?.name ?? ''} ?barred=${editing} .fresh=${this.fresh && !def?.title(this.doc) ? this.fresh : ''}
-            .expires=${this.arrived ? this.expires : 0} .other=${this.other} ?newer=${this.newer && !this.unreadable}
+            .expires=${this.arrived ? this.expires : 0} .other=${this.other}
             @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands} .offers=${this.offersNow} .def=${def ?? null}></to-drawer>`}<to-toast></to-toast>
       ${

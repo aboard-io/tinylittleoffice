@@ -23,7 +23,7 @@ import { docJson, jsonDoc } from './doc/json.ts';
 import { decodeDoc, encodeDoc, packDoc, URL_LIMIT } from './kit/core/codec.ts';
 import { newLocker, seal } from './kit/share/crypt.ts';
 import { generatePassword } from './kit/share/passwords.ts';
-import { isLang, parseHash, routeHash } from './kit/core/route.ts';
+import { isLang, LINK_VERSION, parseHash, routeHash } from './kit/core/route.ts';
 import { appInHead, plainLink, readPlain, tloText } from './kit/core/plain.ts';
 import { diff, tally, type Change } from './kit/text/diff.ts';
 import { origin } from './kit/core/network.ts';
@@ -138,6 +138,8 @@ export function read(url: string): Read {
   const at = url.indexOf('#');
   const hash = at < 0 ? '#' + url : url.slice(at);
   const route = parseHash(hash);
+  // A newer Tiny Little Office's link holds another format, which this codec could read as some other document.
+  if (route.app && route.version > LINK_VERSION) throw new Error(`The link was made by a newer Tiny Little Office (#/v${route.version}/); open it on the site`);
   let app = route.app ?? '';
   let text = '';
   let view = route.view;

@@ -65,6 +65,47 @@
   .dg-thing.over {
     filter: drop-shadow(0 0 0.1875rem var(--to-accent)) drop-shadow(0 0 1px var(--to-accent));
   }
+  /* The thing Enter offers next: faint and dashed until it is tapped, and the lines that reach it with it. */
+  .ghost {
+    opacity: 0.45;
+  }
+  .ghost :is(rect, ellipse, polygon, path, polyline) {
+    stroke-dasharray: 4 3;
+  }
+  /* A swimlane's name, held at the frame's left as the picture scrolls across (the editor's onScroll sets --dg-pin). */
+  .dg-pin {
+    transform: translateX(var(--dg-pin, 0));
+  }
+  /* The shapes to choose from wrap onto a second line where one is too narrow for them all, a phone's (Paul,
+     2026-10-19: "Make it two lines"), rather than scroll some out of sight. */
+  .dg-context.shaping .to-context {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  /* Where a swimlane's step being dragged would go. */
+  .dg-slot {
+    stroke: var(--to-accent);
+    stroke-width: 3;
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+  .dg-slot[hidden] {
+    display: none;
+  }
+  /* A connection chosen (its words open, or the focus on it): a band of the accent along it, where its line takes
+     the pointer, and behind its words (Paul, 2026-10-18: "give it a halo of some kind so I know it's selected"). */
+  .dg-thing.edge:is(.on, :focus-visible) [stroke='transparent'] {
+    stroke: var(--to-accent);
+    stroke-opacity: 0.3;
+  }
+  .dg-thing.edge:is(.on, :focus-visible) rect[fill='transparent'] {
+    fill: var(--to-accent);
+    fill-opacity: 0.15;
+  }
+  /* The thing whose words are open: its words are the editor's over it, its icon still drawn. */
+  .dg-thing.on text {
+    visibility: hidden;
+  }
   .dg-thing.dragging {
     opacity: 0.7;
     cursor: grabbing;

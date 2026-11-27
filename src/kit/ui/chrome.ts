@@ -2,7 +2,7 @@
  * <to-chrome>: where things sit round a document. The page is never taller than the visible window: this element is
  * a column exactly the visual viewport's height (set from `visualViewport.height` as it resizes, the window put back
  * at its top whenever the browser slides it), with the header at its top, the banners under it (arriving by a short
- * link; another version kept here; a newer Tiny Little Office), and `.to-main` under them, which scrolls by itself and
+ * link; another version kept here), and `.to-main` under them, which scrolls by itself and
  * holds the document. The app's bar has a place of its own in the column, `.to-column.barred`: at the column's top on a
  * wide screen, under the header as it always was, and at its bottom under a finger, so on a phone it sits above the
  * keyboard as one scrolling row, wherever the words are scrolled. Every scroll-to goes through kit/ui/scroll.ts. The
@@ -160,7 +160,6 @@ export class ToChrome extends LitElement {
     expires: { type: Number },
     inDisplay: { type: Boolean },
     other: { attribute: false },
-    newer: { type: Boolean },
   };
   declare doc: DocHead | null;
   declare main: unknown;
@@ -184,9 +183,8 @@ export class ToChrome extends LitElement {
   /** Arrived by a short link that expires then (ms since the epoch); 0: no banner. */
   declare expires: number;
   declare inDisplay: boolean;
-  /** Another version of this document kept here, offered in a quiet line; `newer`: the link is from a newer Tiny Little Office. */
+  /** Another version of this document kept here, offered in a quiet line. */
   declare other: Kept | null;
-  declare newer: boolean;
   /**
    * The column the visible window's height, the window held at its top, the glide with the keyboard and `editing`: a
    * page's frame (kit/ui/page-frame.ts), which a host's page holds too; `indoc` is worked out beside it, the site's own.
@@ -208,7 +206,6 @@ export class ToChrome extends LitElement {
     this.expires = 0;
     this.inDisplay = false;
     this.other = null;
-    this.newer = false;
   }
   createRenderRoot() {
     return this;
@@ -320,9 +317,8 @@ export class ToChrome extends LitElement {
     </div>`;
   }
 
-  /** Another version of this document is kept on this device (or the link is from a newer Tiny Little Office): a quiet line above the document. */
+  /** Another version of this document is kept on this device: a quiet line above the document. */
   private renderOther() {
-    if (this.newer) return html`<div class="to-other" role="status"><p>${t('shell-this-link-was-made-by')}</p></div>`;
     const k = this.other;
     if (!k) return nothing;
     return html`<div class="to-other" role="region" aria-label=${t('shell-another-version')}>

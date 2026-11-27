@@ -76,6 +76,7 @@ Under Download, "Open in": the document as another app reads it, converted by a 
 | Word Processor | Outliner | Open as an outline |
 | Outliner | Presentation Builder | Show as slides |
 | Outliner | Diagram Maker | Draw as a mind map |
+| Outliner | Diagram Maker | Draw as swimlanes |
 | Outliner | Diagram Maker | Draw as an org chart |
 | Outliner | Diagram Maker | Draw as a family tree |
 | Outliner | Diagram Maker | Draw as a network |

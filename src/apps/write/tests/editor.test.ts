@@ -1178,3 +1178,20 @@ test('on a page that keeps no pictures (the site): a picture is a card saying so
   expect(labels.filter((l) => /Picture/.test(l))).toEqual([]);
   opener.click();
 });
+
+test('a numbered list’s numbers end before the words past 9 and past 99, at every depth (#56)', async () => {
+  const items = Array.from({ length: 120 }, (_, i) => `${i + 1}. Item ${i + 1}`).join('\n');
+  const { el } = await editor(`${items}\n   1. Under\n`);
+  const lis = [...el.querySelectorAll<HTMLLIElement>('to-text .tx li[data-n]')];
+  expect(lis.length).toBe(121);
+  const ctx = document.createElement('canvas').getContext('2d')!;
+  for (const li of [lis[0], lis[8], lis[9], lis[98], lis[99], lis[119], lis[120]]) {
+    const box = li.getBoundingClientRect();
+    const mark = getComputedStyle(li, '::before');
+    ctx.font = `${mark.fontWeight} ${mark.fontSize} ${mark.fontFamily}`;
+    const width = ctx.measureText(`${li.dataset.n}.`).width;
+    const left = box.left + parseFloat(mark.left);
+    const words = box.left + parseFloat(getComputedStyle(li).paddingLeft);
+    expect(left + width, `${li.dataset.n}.`).toBeLessThanOrEqual(words - 2);
+  }
+});

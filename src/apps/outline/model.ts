@@ -787,9 +787,6 @@ export function outlineText(v: OutlineView, appName: (id: string) => string = (i
   return lines.length ? lines.join('\n') + '\n' : '';
 }
 
-/** The plain nested list a mind map or a family tree is: no kinds of line, no joins, no documents. */
-const plainTree = (v: OutlineView): Block[] => v.items.filter((it) => !it.doc).map((it) => itemBlock(it.depth, it.runs, undefined, undefined, undefined, it.ord));
-
 /**
  * The outline as a deck: every item with something under it is a slide, its
  * words the headline and the level just under it the bullets (deeper levels
@@ -858,10 +855,16 @@ export const outlineToOrg = (v: OutlineView, head: Doc['head'] = {}): string => 
 /** The outline as a family tree: the generations nested, "Rose Hale (born 1926)" a name over its years. */
 export const outlineToFamily = (v: OutlineView, head: Doc['head'] = {}): string => peopleOf(v, 'family', head);
 
-/** The outline as a mind map: the plain tree, each join a cross-link as it was (its kind of line and its words). */
+/**
+ * The outline as a mind map: the tree, each item's line to the one above as it is (its arrow and its words, which a
+ * mind map reads as the outline writes them), each join a connection as it was. Swimlanes are this, made swimlanes
+ * by the Diagram Maker (Paul, 2026-10-18: "Can't I write a swimlane in outliner?"; def.ts).
+ */
 export function outlineToMind(v: OutlineView, head: Doc['head'] = {}): string {
+  const kind = 'mind';
+  const tree = v.items.filter((it) => !it.doc).map((it) => itemBlock(it.depth, it.runs, it.dir, it.label, undefined, it.ord));
   const edges: Block[] = liveLinks(v).map((l) => ({ k: 'edge', from: l.from, to: l.to, dir: l.dir, ...(l.label ? { label: l.label } : {}) }));
-  return write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'mind' }, blocks: [...plainTree(v), ...edges] });
+  return write({ head: { ...(head.title ? { title: head.title } : {}), kind }, blocks: [...tree, ...edges] });
 }
 
 /**

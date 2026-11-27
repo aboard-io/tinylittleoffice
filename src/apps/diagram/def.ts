@@ -9,7 +9,7 @@ import { apply, parse, write, type Doc as Kernel, type TextNode } from '../../do
 import { defineApp, lookup, type Doc } from '../../kit/core/app.ts';
 import { utf8 } from '../../kit/draw/draw.ts';
 import { t } from '../../kit/core/i18n.ts';
-import { diagramToOutline, edgesOf, isTree, kindOf, linesOf } from './model.ts';
+import { diagramToOutline, edgesOf, isTree, kindOf, linesOf, setKind, type KindId } from './model.ts';
 import { diagramPage, diagramSvg, layout, toDrawing } from './view.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
@@ -73,6 +73,8 @@ export default defineApp({
     return d.steps?.length ?? d.shapes.length;
   },
   exports: [{ ext: 'svg', label: () => t('common-picture-svg'), mime: 'image/svg+xml', shows: 'own', build: (doc) => utf8(diagramSvg(parse(doc))) }],
+  // Handed a diagram to make another kind (the Outliner's swimlanes), it changes kind as its own menu does.
+  takes: (doc, kind) => ((d) => write(setKind(d, kind as KindId).reduce(apply, d)))(parse(doc)),
   // Its picture as shapes to move about by hand.
   handoffs: [
     { to: 'outline', label: () => t('outline-show-as-outline'), convert: (doc) => diagramToOutline(parse(doc)) },

@@ -118,6 +118,22 @@ export function siteOf(href: string, isApp: (id: string) => boolean): string {
   return `${u.origin}${last && (isApp(last) || last === 'embed') ? dir.slice(0, -(last.length + 1)) : dir}`;
 }
 
+/**
+ * The address with a preview card's id taken out (kit/share/card.ts): a link shared with a network carries it for the
+ * network's fetcher alone, in its path ("/c/<id>", whose page becomes the app's own page when the hash names an app,
+ * or the site's root), or, before 2026-10-15, as ?c= on the app's page. The document is the hash's, untouched.
+ */
+export function withoutCard(href: string, isApp: (id: string) => boolean): string {
+  const here = new URL(href);
+  const shared = /^(.*\/)c\/[a-z0-9]{7}$/.exec(here.pathname);
+  if (shared) {
+    const app = parseHash(here.hash).app;
+    here.pathname = `${shared[1]}${app && isApp(app) ? `${app}/` : ''}`;
+  }
+  here.searchParams.delete('c');
+  return here.href;
+}
+
 /** The address with "text" in its query or taken out, the rest as it was ("?d?s=…" read as "?d&s=…"). */
 export function withText(hash: string, on: boolean): string {
   const at = hash.indexOf('?');

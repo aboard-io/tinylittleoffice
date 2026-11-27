@@ -86,6 +86,8 @@ export default defineApp({
   handoffs: [
     { to: 'deck', label: () => t('common-show-as-slides'), convert: convert(outlineToDeck) },
     { to: 'diagram', label: () => t('outline-draw-as-mind-map'), convert: convert(outlineToMind) },
+    // The tree, made swimlanes by the Diagram Maker's own change of kind: every line it draws kept.
+    { to: 'diagram', label: () => t('outline-draw-as-swimlanes'), convert: convert(outlineToMind), as: 'lanes' },
     { to: 'diagram', label: () => t('outline-draw-as-org-chart'), convert: convert(outlineToOrg) },
     { to: 'diagram', label: () => t('outline-draw-as-family-tree'), convert: convert(outlineToFamily) },
     { to: 'diagram', label: () => t('outline-draw-as-network'), convert: convert(outlineToNet) },

@@ -4,8 +4,8 @@
  * own: `layout()` places the shapes and Draw's `fitLabel` sets their words, as the page draws them, with the
  * fallback metrics the exports use (kit/draw/draw.ts `textWidth`); nothing here draws, and nothing needs a browser.
  *
- *   edge-end      a connection naming no thing in the list (a tree draws it not at all)
- *   edge-unused   a connection in a kind that draws none (lanes, timeline, venn, seating)
+ *   edge-end      a connection naming no thing in the list (a tree or swimlanes draws it not at all)
+ *   edge-unused   a connection in a kind that draws none (timeline, venn, seating)
  *   net-colon     "- Name: description" in a network, where the whole line is the thing's name
  *   comma-number  a comma inside a number in a Venn's or a table's list ("2,000" is two things)
  *   label-long    a thing's words too long for its box: set smaller, or cut short with "…"
@@ -15,7 +15,7 @@ import { parse, type Doc } from '../../doc/index.ts';
 import { isLink, linkEnds, paint, type Shape } from '../draw/model.ts';
 import { fitLabel } from '../draw/view.ts';
 import { INK, PAPER, SHADE, textWidth } from '../../kit/draw/draw.ts';
-import { edgesOf, isListed, isTree, kindOf, linesOf, nameOf, who, type KindId } from './model.ts';
+import { edgesOf, isListed, isTree, kindOf, linesOf, nameOf, stepName, stepNamed, who, type KindId } from './model.ts';
 import { layout, type DShape } from './view.ts';
 import type { Found } from '../../lint.ts';
 
@@ -37,9 +37,9 @@ const plainLabel = (label: string) => label.replace(/^:[a-z0-9-]+\s*/, '').repla
 /** The things a connection can name in this kind, by the name a connection uses. */
 function thingNames(doc: Doc): string[] {
   const seen = new Set<string>();
-  return linesOf(doc)
-    .map((l) => nameOf(l.all.words))
-    .filter((n) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()));
+  const lines = linesOf(doc);
+  const name = (l: (typeof lines)[number]) => (kindOf(doc) !== 'lanes' ? nameOf(l.all.words) : l.words.words ? stepName(lines, l) : '');
+  return lines.map(name).filter((n) => n && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()));
 }
 
 /** A label's words, the most of them that sit in the shape at their full size: the "few words" a thing of this box holds. */
@@ -84,16 +84,18 @@ export function lintDiagram(text: string): Found[] {
   const lines = linesOf(doc);
   const names = thingNames(doc);
   const known = new Set(names.map(who));
+  // A swimlane's step may be named by its words, or with its lane's.
+  const named = (n: string) => (kind === 'lanes' ? !!stepNamed(lines, n) : known.has(who(n)));
 
   // Connections: in a tree an end that names no thing is not drawn; in a list-like kind, none is.
   for (const e of edgesOf(doc)) {
     const what = `${kind === 'mind' ? 'A cross-link' : isTree(kind) ? 'A dotted line' : 'A connection'} from ${e.from} to ${e.to}`;
-    if (!isTree(kind) && kind !== 'net') {
+    if (!isTree(kind) && kind !== 'net' && kind !== 'lanes') {
       out.push({ block: e.at, kind: 'edge-unused', words: `${what} is not drawn: ${KIND_NAME[kind]} draws no connections`, fix: 'take it out, or say it in a thing’s words' });
       continue;
     }
-    const missing = [e.from, e.to].filter((n) => !known.has(who(n)));
-    if (isTree(kind) && missing.length)
+    const missing = [e.from, e.to].filter((n) => !named(n));
+    if ((isTree(kind) || kind === 'lanes') && missing.length)
       out.push({
         block: e.at,
         kind: 'edge-end',
@@ -188,7 +190,7 @@ export function measureDiagram(text: string): DiagramMeasure {
   const doc = parse(text);
   const d = layout(doc);
   const written = doc.blocks.filter((b) => b.k === 'edge').length;
-  const drawn = new Set(d.shapes.flatMap((s) => (s.hit?.k === 'edge' ? [s.hit.at] : []))).size;
+  const drawn = new Set(d.shapes.flatMap((s) => (s.hit?.k === 'edge' && !s.hit.branch ? [s.hit.at] : []))).size;
   const labels = d.shapes
     .filter((s) => s.text && !isLink(s.k) && s.hit && s.hit.k !== 'edge')
     .map((s) => {

@@ -85,10 +85,15 @@
     left: calc(var(--d, 0) * 1.5em + 0.25em);
     color: var(--to-ink-3);
   }
+  /* A number hangs: it ends just before the words, as a page's does (apps/write/view.ts), so "10." and "100." grow
+     to the left into the indent rather than over the words (#56). */
   to-text .tx li[data-n]::before {
     content: attr(data-n) '.';
     content: attr(data-n) '.' / '';
     font-variant-numeric: tabular-nums;
+    left: auto;
+    right: calc(100% - 1.5em - var(--d, 0) * 1.5em + 0.35em);
+    white-space: nowrap;
   }
   to-text .tx li[data-done]::before {
     content: '☐';

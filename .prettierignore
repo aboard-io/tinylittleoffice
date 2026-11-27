@@ -21,6 +21,7 @@ src/apps/trip/countries.ts
 scripts/country-boxes.json
 test/commands-covered.json
 test/doc/corpus/*.json
+test/links/corpus.json
 # The document's JSON Schema, written from the kernel's types by scripts/schema.ts.
 packages/doc/schema/
 # Each app's examples, as scripts/make-skill.ts writes them.
