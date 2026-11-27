@@ -344,10 +344,16 @@ test('opened from a link while the library keeps another version of the same doc
     expect(other.querySelector('.to-other')).toBeNull();
   }));
 
-test('a link from a newer Tiny Little Office says so', async () => {
-  const shell = await mount(`#/v2/write/${NOTES}`);
-  await shell.updateComplete;
-  expect(shell.textContent).toContain('This link needs a newer version. Reload the page.');
+test('a link from a newer Tiny Little Office says so, and is never read as a document, sealed or not', async () => {
+  // NOTES is a payload this codec reads; under #/v2/ it is another format's, and opening it would be a guess.
+  for (const hash of [`#/v2/write/${NOTES}`, '#/v2/write/EAbc_-12', `#/v9/write/${NOTES}?d`]) {
+    const shell = await mount(hash);
+    await shell.updateComplete;
+    expect(shell.textContent, hash).toContain('This link needs a newer version. Reload the page.');
+    expect(shell.querySelector('to-write-editor'), hash).toBeNull();
+    expect(shell.querySelector('.to-unlock-open'), hash).toBeNull();
+    expect(shell.querySelector('.to-other'), hash).toBeNull();
+  }
 });
 
 test('the Share dialog’s head line: where the link fits with Copy, Max Link Sizes on a tap, red past the limit', async () => {

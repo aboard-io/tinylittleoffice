@@ -10,7 +10,7 @@ import { appOf } from '../core/apps.ts';
 import { decodeDoc } from '../core/codec.ts';
 import { CROPPED, pageSvg } from '../draw/draw.ts';
 import { iconNamed, iconNames, iconsComplete, loadIcons } from '../draw/icons.ts';
-import { parseHash } from '../core/route.ts';
+import { LINK_VERSION, parseHash } from '../core/route.ts';
 
 /** A page with nothing on it, the shape of a sheet of paper. */
 const BLANK = pageSvg({ w: 85, h: 110, svg: '' }, CROPPED);
@@ -25,9 +25,10 @@ function previewOf(hash: string): string {
   if (had !== undefined) return had;
   let svg = BLANK;
   try {
-    const { app, payload } = parseHash(hash);
+    const { app, payload, version } = parseHash(hash);
     const def = app ? appOf(app) : undefined;
-    const doc = payload ? decodeDoc(payload) : '';
+    // A newer Tiny Little Office's link is not read here (its payload is another format): the blank card.
+    const doc = payload && version <= LINK_VERSION ? decodeDoc(payload) : '';
     if (doc && !iconsComplete() && iconNames(doc).some((n) => !iconNamed(n))) waiting.add(hash);
     const page = def && doc ? def.view(doc, { small: true, thumb: true })[0] : undefined;
     if (page) svg = pageSvg(page, CROPPED);

@@ -12,6 +12,7 @@ import { appOf } from '../src/kit/core/apps.ts';
 import { unpackDoc } from '../src/kit/core/codec.ts';
 import { parseHash, withoutCard } from '../src/kit/core/route.ts';
 import { unseal } from '../src/kit/share/crypt.ts';
+import { linkToFence } from '../src/kit/text/clipboard.ts';
 
 type Entry = { name: string; kind: string; app: string; link: string; sha256: string; bytes: number; password?: string; made: string[] };
 const { entries } = JSON.parse(readFileSync(new URL('links/corpus.json', import.meta.url), 'utf8')) as { entries: Entry[] };
@@ -89,6 +90,16 @@ test('a preview card’s id, in the path or the query, leaves the app’s page a
   // A card's page with no document is the site's root; a site not at a host's root keeps its folder.
   expect(withoutCard('https://tinylittleoffice.com/c/abc1234', isApp)).toBe('https://tinylittleoffice.com/');
   expect(withoutCard('https://aboard-io.github.io/tinylittleoffice/c/abc1234#/v1/write/yABC', isApp)).toBe('https://aboard-io.github.io/tinylittleoffice/write/#/v1/write/yABC');
+});
+
+test('a link a newer Tiny Little Office made is never read as a document here: refused, and kept as a link when pasted', () => {
+  // The same payloads under #/v2/: a newer format could share the flags and the alphabet, so this codec would guess.
+  for (const e of packed) {
+    const newer = e.link.replace('#/v1/', '#/v2/');
+    expect(() => read(newer), e.name).toThrow(/newer Tiny Little Office/);
+    expect(linkToFence(newer), e.name).toBeNull();
+  }
+  expect(linkToFence(packed[0].link)).not.toBeNull();
 });
 
 test('a link cut short says so, rather than opening as an empty document', () => {

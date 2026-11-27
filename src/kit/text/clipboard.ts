@@ -22,7 +22,7 @@
 import { column, isAtomic, isText, linkable, linkTarget, normalRuns, parse, plainText, refFence, write, type Block, type Column, type Run } from '../../doc/index.ts';
 import { lookup } from '../core/app.ts';
 import { decodeDoc } from '../core/codec.ts';
-import { parseHash, routeHash } from '../core/route.ts';
+import { LINK_VERSION, parseHash, routeHash } from '../core/route.ts';
 import { LOCKED_LANG, lockedFence, lockedOf } from '../share/locked.ts';
 import { MARKS, sliceBlocks, type Sel, type Shape } from './textops.ts';
 
@@ -500,8 +500,9 @@ const TLO_LINK = /^https?:\/\/\S+#\/v\d+\/[a-z][a-z0-9-]*(?:\.[A-Za-z0-9.]+)?\/\
 /** A Tiny Little Office link as the fence that holds its document (a locked one by its link, kit/share/locked.ts), or null when the link is not one, or cannot be read. */
 export function linkToFence(url: string): Block | null {
   if (!TLO_LINK.test(url)) return null;
-  const { app, payload, sealed } = parseHash(url.slice(url.indexOf('#')));
-  if (!app || !payload) return null;
+  const { app, payload, sealed, version } = parseHash(url.slice(url.indexOf('#')));
+  // A newer Tiny Little Office's link stays a link: its payload is a format this one does not read.
+  if (!app || !payload || version > LINK_VERSION) return null;
   if (sealed) return lockedOf(routeHash(app, payload)) ? lockedFence(app, payload) : null;
   const text = decodeDoc(payload);
   return text ? refFence(`${app}\n${text}`) : null;
