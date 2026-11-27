@@ -37,7 +37,7 @@
     "fuzz": "VITE_FUZZ_RUNS=2000 vitest run test/doc/properties.test.ts test/browser/paste-properties.test.ts",
     "deploy": "node scripts/deploy.mjs",
     "selfhost": "node --env-file-if-exists=.env selfhost/server.ts",
-    "selfhost:build": "docker compose build",
+    "selfhost:build": "env $(node scripts/version.ts --env) docker compose build",
     "selfhost:up": "docker compose up -d",
     "i18n:check": "node scripts/i18n-extract.ts --check",
     "i18n:extract": "node scripts/i18n-extract.ts",

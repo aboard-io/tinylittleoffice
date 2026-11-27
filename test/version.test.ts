@@ -1,6 +1,7 @@
 // /version.json (docs/threat-model.md, "Checking it yourself"): its shape, written from git and the policy's hashes, never the clock.
 import { test, expect } from 'vitest';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { gitFacts, versionJson, versionOf } from '../scripts/version.ts';
 import { commitUrl, isVersion, repoUrl } from '../src/kit/core/version.ts';
 
@@ -29,7 +30,23 @@ test('the facts come from the checkout: the full commit and the commit’s own d
 });
 
 test('outside a checkout there are no facts, and no error', () => {
-  expect(gitFacts('/')).toEqual({ commit: '', tag: '', built: '' });
+  expect(gitFacts('/', {})).toEqual({ commit: '', tag: '', built: '' });
+});
+
+test('outside a checkout (the self-hosted image), the facts the build is given, each only in its shape (#26)', () => {
+  const commit = 'a'.repeat(40);
+  expect(gitFacts('/', { TLO_COMMIT: commit, TLO_TAG: 'v1.2.42', TLO_BUILT: '2026-11-27T23:07:31Z' })).toEqual({ commit, tag: 'v1.2.42', built: '2026-11-27T23:07:31Z' });
+  expect(gitFacts('/', { TLO_COMMIT: commit, TLO_TAG: '', TLO_BUILT: '' })).toEqual({ commit, tag: '', built: '' });
+  expect(gitFacts('/', { TLO_COMMIT: commit, TLO_TAG: '<script>', TLO_BUILT: 'yesterday' })).toEqual({ commit, tag: '', built: '' });
+  expect(gitFacts('/', { TLO_COMMIT: 'abc', TLO_TAG: 'v1', TLO_BUILT: '2026-11-27T23:07:31Z' })).toEqual({ commit: '', tag: '', built: '' });
+  // A checkout's own facts win over anything given.
+  expect(gitFacts(root, { TLO_COMMIT: commit }).commit).not.toBe(commit);
+});
+
+test('--env prints the checkout’s facts as the image’s build takes them', () => {
+  const out = execFileSync('node', ['scripts/version.ts', '--env'], { cwd: root, encoding: 'utf8' }).trim();
+  const f = gitFacts(root);
+  expect(out).toBe(`COMMIT=${f.commit} TAG=${f.tag} BUILT=${f.built}`);
 });
 
 test('a commit and the repository itself link to their pages in the published source', () => {

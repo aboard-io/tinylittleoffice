@@ -9,6 +9,10 @@ services:
       args:
         SITE: ${SITE:-http://localhost:${PORT:-8000}}
         TINIER: ${TINIER:-http://localhost:${TINIER_PORT:-8001}}
+        # The commit built, for About and /version.json: npm run selfhost:build gives them (scripts/version.ts --env).
+        COMMIT: ${COMMIT:-}
+        TAG: ${TAG:-}
+        BUILT: ${BUILT:-}
     image: tinylittleoffice
     environment:
       BRAKE_KEY: ${BRAKE_KEY:?set BRAKE_KEY in .env or the environment (openssl rand -base64 32)}
