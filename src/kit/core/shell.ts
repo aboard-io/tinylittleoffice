@@ -57,7 +57,7 @@ import { ENVELOPE_KEYS, isoMinute } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from '../draw/icons.ts';
 import { chosenLanguage, languagePending, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { exportItems, formatsReady, printDoc, viewAs } from '../file/exports.ts';
-import { LINK_VERSION, onFlush, parseHash, routeHash, withLang, withText } from './route.ts';
+import { LINK_VERSION, onFlush, parseHash, routeHash, withLang, withoutCard, withText } from './route.ts';
 import { keeping, onPrivacy, pack, reopen, setPrivate } from '../share/privacy.ts';
 import { copyText } from '../share/share.ts';
 import { trustButton, type ToPrivacy } from '../ui/privacy-dialog.ts';
@@ -274,18 +274,10 @@ export class ToShell extends LitElement {
     // Every link that leaves the site asks first.
     installLinkGuard();
     installPlainCopy();
-    // A link shared with a network carries its preview card's id for the network's fetcher alone: in its path, "/c/<id>"
-    // (kit/share/card.ts; the site's Worker serves that page with the card's tags), or, before 2026-10-15, as ?c= on the
-    // app's page. The document is the hash's. Gone from the address at once, so a link copied from here carries no
-    // stale card: the path becomes the app's own page (the hash names the app), or the site's root.
-    const here = new URL(location.href);
-    const shared = /^(.*\/)c\/[a-z0-9]{7}$/.exec(here.pathname);
-    if (shared) {
-      const app = parseHash(here.hash).app;
-      here.pathname = `${shared[1]}${app && appOf(app) ? `${app}/` : ''}`;
-    }
-    here.searchParams.delete('c');
-    if (here.href !== location.href) history.replaceState(history.state, '', here.href);
+    // A shared link's preview card's id (route.ts withoutCard) is gone from the address at once, so a link copied from
+    // here carries no stale card.
+    const here = withoutCard(location.href, (id) => !!appOf(id));
+    if (here !== location.href) history.replaceState(history.state, '', here);
     this.onHash();
   }
   disconnectedCallback() {
