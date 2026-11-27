@@ -754,8 +754,8 @@ common-words = מילים
 write-words-on-page-headings-lists = מילים על דף: כותרות, רשימות, קישורים והערות, טבלה שמחשבת סכומים, להדפסה על Letter או A4.
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = מסמך
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = כותבים כאן.
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = מתחילים לכתוב…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = כותרת משנה
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

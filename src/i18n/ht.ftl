@@ -728,8 +728,8 @@ common-words = Mo
 write-words-on-page-headings-lists = Mo sou yon paj: tit, lis, lyen ak nòt, yon tablo ki fè adisyon, enprime sou fòma letter oswa A4.
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = Dokiman
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = Ekri la a.
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = Kòmanse ekri…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = Sou-tit
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

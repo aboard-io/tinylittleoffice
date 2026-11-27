@@ -756,8 +756,8 @@ write-words-on-page-headings-lists = Des mots sur une page : titres, listes, li
 # same
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = Document
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = Écrivez ici.
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = Commencez à écrire…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = Sous-titre
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e
