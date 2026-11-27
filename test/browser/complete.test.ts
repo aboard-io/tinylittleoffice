@@ -10,6 +10,7 @@ import { History } from '../../src/kit/text/history.ts';
 import { caret } from '../../src/kit/text/textops.ts';
 import type { TextOps, ToText } from '../../src/kit/text/text.ts';
 import { loadCompletions } from '../../src/kit/ui/complete.ts';
+import { LIBRARY } from '../../src/kit/draw/icons.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
 import { mount as mountShell, tick, until } from './helpers.ts';
 import '../../src/styles.css';
@@ -68,8 +69,14 @@ test('":ca" opens the list under the caret, the shortest names first once the li
   await loadCompletions();
   await userEvent.keyboard(' :ca');
   await until(() => !!pop(), 'the list never opened');
-  // The whole of Lucide: the shortest names lead, ties by name (icons-search.ts rankMatches).
-  expect(labels().slice(0, 3)).toEqual(['can', 'car', 'cat']);
+  // The whole of Lucide: the shortest names lead, ties by name (icons-search.ts rankMatches), whatever names this
+  // release of Lucide has ("cap" came in 1.79 between "can" and "car").
+  const shortest = Object.keys(LIBRARY)
+    .filter((n) => n.startsWith('ca'))
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))
+    .slice(0, 3);
+  expect(shortest).toContain('can');
+  expect(labels().slice(0, 3)).toEqual(shortest);
   expect(rows()[0].getAttribute('aria-selected')).toBe('true');
   expect(rows().length).toBeLessThanOrEqual(8);
   // The editor says what it completes with.
