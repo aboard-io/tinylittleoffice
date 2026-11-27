@@ -1212,3 +1212,17 @@ test('Find shows only the rows whose words hold the terms; a tap on one lifts th
   await el.updateComplete;
   expect(rows(el)).toEqual([0, 1, 2, 3, 4]);
 });
+
+test('bold is the words’ own at every level: a top-level item is not bold until it is made so (#65)', async () => {
+  const { el } = await editor('- Top\n  - Child\n- **Bold top**\n  - **Bold child**\n');
+  await until(() => el.querySelectorAll('.ol-row').length === 4);
+  const weight = (at: number, words: string) => {
+    const walk = document.createTreeWalker(row(el, at), NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.textContent === words) return Number(getComputedStyle(n.parentElement!).fontWeight);
+    throw new Error(`no "${words}"`);
+  };
+  expect(weight(0, 'Top')).toBe(weight(1, 'Child'));
+  expect(weight(0, 'Top')).toBeLessThan(600);
+  expect(weight(2, 'Bold top')).toBe(weight(3, 'Bold child'));
+  expect(weight(2, 'Bold top')).toBeGreaterThanOrEqual(600);
+});

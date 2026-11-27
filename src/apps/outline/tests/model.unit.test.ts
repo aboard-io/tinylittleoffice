@@ -456,6 +456,8 @@ test('OPML, plain text and Markdown, and the page', () => {
   for (const w of ['Launch', 'Product', 'Pricing', 'Marketing', 'Ops', 'Support', '→ sets', '↔', '— part of', 'the plan', 'Connections', 'Pricing  → feeds  Marketing', 'Spreadsheet', 'a | b'])
     expect(page.svg).toContain(w);
   expect(page.svg).toContain('font-weight="600">Launch</tspan>');
+  // Only the words made bold are drawn bold: a top-level item's plain words are not (#65).
+  expect(outlinePage(parse('- Top\n  - Child\n')).svg).not.toMatch(/font-weight="600"[^>]*>(Top|Child)</);
   expect(page.svg).toContain('baseline-shift="super"');
   expect(page.alt).toBe('Launch');
   expect(page.h).toBeGreaterThan(300);

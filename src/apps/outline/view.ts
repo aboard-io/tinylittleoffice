@@ -19,29 +19,29 @@ export const ARROW: Record<Dir, string> = { '--': '—', '->': '→', '<-': '←
 /** A run as drawn: a note's mark is its number, raised. */
 export type Piece = Run & { sup?: boolean };
 
-const pieceWidth = (p: Piece, px: number, bold: boolean) => (p.ic ? px : p.c ? monoWidth(p.t, px) : textWidth(p.t, p.sup ? px * 0.65 : px, bold || !!p.b));
+const pieceWidth = (p: Piece, px: number) => (p.ic ? px : p.c ? monoWidth(p.t, px) : textWidth(p.t, p.sup ? px * 0.65 : px, !!p.b));
 
 /** Rich words wrapped to a width: lines of pieces, broken between words, every mark kept on its piece. */
-export function wrapRuns(runs: Piece[], max: number, px: number, bold = false): Piece[][] {
+export function wrapRuns(runs: Piece[], max: number, px: number): Piece[][] {
   const lines: Piece[][] = [[]];
   let width = 0;
   for (const run of runs) {
     const pieces: Piece[] = run.ic || run.fn !== undefined || run.sup ? [run] : run.t.split(/(?<= )/).map((t) => ({ ...run, t }));
     for (const p of pieces) {
-      const w = pieceWidth({ ...p, t: p.t.trimEnd() }, px, bold);
+      const w = pieceWidth({ ...p, t: p.t.trimEnd() }, px);
       if (width && width + w > max) {
         lines.push([]);
         width = 0;
       }
       lines[lines.length - 1].push(p);
-      width += pieceWidth(p, px, bold);
+      width += pieceWidth(p, px);
     }
   }
   return lines;
 }
 
 /** One line of rich words as SVG: tspans carry the marks, a note's number is raised, a link is in the accent, an icon is its glyph. y is the baseline. */
-export function richText(x: number, y: number, pieces: Piece[], px: number, bold = false, fill = INK): string {
+export function richText(x: number, y: number, pieces: Piece[], px: number, fill = INK): string {
   let out = '';
   let at = x;
   let spans = '';
@@ -67,7 +67,7 @@ export function richText(x: number, y: number, pieces: Piece[], px: number, bold
       continue;
     }
     const attrs = [
-      p.b || bold ? 'font-weight="600"' : '',
+      p.b ? 'font-weight="600"' : '',
       p.i ? 'font-style="italic"' : '',
       p.c ? `font-family="${xml(MONO)}"` : '',
       p.u ? 'text-decoration="underline"' : p.s ? 'text-decoration="line-through"' : '',
@@ -77,7 +77,7 @@ export function richText(x: number, y: number, pieces: Piece[], px: number, bold
       .filter(Boolean)
       .join(' ');
     spans += `<tspan${attrs ? ' ' + attrs : ''}>${xml(p.t)}</tspan>`;
-    left += pieceWidth(p, px, bold);
+    left += pieceWidth(p, px);
   }
   flush();
   return out;
@@ -113,13 +113,14 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
     // The kind of line to the parent, and its name, small before the words.
     const kind = it.depth && (it.dir || it.label) ? `${ARROW[it.dir ?? '--']}${it.label ? ' ' + it.label : ''}` : '';
     const indent = kind ? textWidth(kind, px * 0.75) + 8 : 0;
-    const lines = wrapRuns(markNotes(it.runs, next), w - x - margin - indent, px, it.depth === 0);
+    // Bold is the words' own (#65): the top level is told by its marker, a filled dot or a bold number, never its words' weight.
+    const lines = wrapRuns(markNotes(it.runs, next), w - x - margin - indent, px);
     const n = plainText(it.runs).trim() ? count({ k: 'li', depth: it.depth, ...(it.ord ? { ord: true as const } : {}), runs: [] }) : undefined;
     // A numbered item's number stands where the dot would.
     if (n) svg += `<text x="${r(x - 6)}" y="${r(y + px)}" font-size="${r(px * 0.85)}" text-anchor="end" fill="${ACCENT}"${it.depth ? '' : ' font-weight="600"'}>${n}.</text>`;
     else svg += `<circle cx="${r(x - 12)}" cy="${r(y + px * 0.65)}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
     if (kind) svg += `<text x="${r(x)}" y="${r(y + px)}" font-size="${r(px * 0.75)}" fill="${ACCENT}">${xml(kind)}</text>`;
-    for (const line of lines) svg += richText(x + indent, (y += px * 1.45) - px * 0.45, line, px, it.depth === 0);
+    for (const line of lines) svg += richText(x + indent, (y += px * 1.45) - px * 0.45, line, px);
     y += px * 0.45;
   });
   if (!items.some((it) => plainText(it.runs).trim() || it.doc)) svg += `<text x="${margin}" y="${r(y + px)}" font-size="${r(px)}" fill="${MUTED}">${xml(t('outline-empty-outline'))}</text>`;
