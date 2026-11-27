@@ -67,6 +67,7 @@ How it is made, what it protects against and how to run your own copy are in [do
 When tinylittleoffice.com is down, the same tag runs on GitHub Pages at https://aboard-io.github.io/tinylittleoffice/
 (the [mirror](docs/mirror.md)): put that before the `<app>/#…` of a link and it opens there.
 
-A security problem should be reported privately, through the repository's Security tab, never as an issue.
+A security problem should be reported privately, through the repository's Security tab, never as an issue. How to
+report a bug or send a change is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Made by [Aboard](https://aboard.com). MIT License ([LICENSE](LICENSE)).
