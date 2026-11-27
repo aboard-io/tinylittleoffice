@@ -170,11 +170,11 @@ Turning Save in browser off (from the phone) removes all of it.
 
 **The map's provider.** The Trip Planner's map is OpenFreeMap's (its style, vector tiles, sprites and fonts, drawn
 here by MapLibre, which is fetched with the first map and is never part of the app file; since 2026-10-15, on issue
-#4), asked directly while the map is shown, with no referrer; place search goes to OpenStreetMap's Nominatim when a
-search is tapped, and a trip drawn anywhere else (a slide, a page, a card, an export) is drawn on OpenStreetMap's
-tiles, each naming the site as its referrer, the origin alone, as OpenStreetMap's usage policies ask (never the page's
-path or anything of the document; `docs/network.md` says why), all by the Trip Planner's Map switch. Those requests
-carry the reader's address to OpenFreeMap or OpenStreetMap, and which squares of the world the map shows.
+#4), asked directly while the map is shown, with no referrer, and a trip drawn anywhere else (a slide, a page, a card,
+an export) is drawn here from the same tiles, as a picture (since 2026-11-27); place search goes to OpenStreetMap's
+Nominatim when a search is tapped, naming the site as its referrer, the origin alone, as its usage policy asks (never
+the page's path or anything of the document; `docs/network.md` says why), all by the Trip Planner's Map switch. Those
+requests carry the reader's address to OpenFreeMap or OpenStreetMap, and which squares of the world the map shows.
 
 **The operator and the platform themselves.** See "What the host can see"; and above, the code.
 

@@ -148,7 +148,7 @@ test('a page is the network’s while there is one, kept afresh at its address; 
   // The card's words were never kept: offline, the page at its address answers, as the page with no card.
   expect(await w.ask(`${ROOT}write/?c=abc123&lang=fr`)).toBe(`fresh ${ROOT}write/`);
   // Not the site's, not a GET: the worker stays out of it.
-  expect(await w.ask('https://tile.openstreetmap.org/1/1/1.png')).toBeNull();
+  expect(await w.ask('https://tiles.openfreemap.org/planet/1/1/1.pbf')).toBeNull();
   expect(await w.ask(`${ROOT}card`, { method: 'POST', body: '{}' })).toBeNull();
 });
 

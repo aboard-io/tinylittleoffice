@@ -2,10 +2,9 @@
  * The sample documents' share cards (Paul, 2026-10-13: "make a lot of sample documents and then make a lot of
  * previews of them for social"): for each .tlo in samples/, the picture a network would show its link with, drawn as
  * the Share dialog draws it (src/kit/share/card.ts: the page its app puts on a card, across the card on its ground,
- * 1200 by 630), and the title and first words it posts beside it, with the document's link. A trip's map is on
- * OpenStreetMap's tiles, as it is in the dialog (the browser writes them into the picture): the tile host is the
- * one thing let through, for a handful of cards now and then, never in bulk. Chromium draws them, in the site's own
- * faces (scripts/plex.ts).
+ * 1200 by 630), and the title and first words it posts beside it, with the document's link. A trip's map is the plain
+ * ground here: its picture is drawn by MapLibre in the site's own page (apps/trip/picture.ts), which this is not, and
+ * nothing from the web is let through. Chromium draws them, in the site's own faces (scripts/plex.ts).
  *
  *   npm run samples            samples/cards/<name>.png, and manifest.json: name, app, title, text, link; kept in the tree, as public/og is
  */
@@ -14,7 +13,6 @@ import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from '../src/doc/index.ts';
 import { appOf } from '../src/kit/core/apps.ts';
-import { origin } from '../src/kit/core/network.ts';
 import { CARD_H, CARD_W, cardSvg, GROUND } from '../src/kit/draw/card.ts';
 import { cardWords } from '../src/kit/share/card.ts';
 import { link } from '../src/api.ts';
@@ -45,6 +43,6 @@ for (const f of readdirSync(dir)
   const title = def.title(text);
   manifest.push({ name, app, ...cardWords(def, text, title), link: link(app, text, { title }) });
 }
-await shoot(pages, undefined, [origin('tiles')]);
+await shoot(pages);
 writeFileSync(join(out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 console.log(`${pages.length} cards in samples/cards`);

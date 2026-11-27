@@ -65,22 +65,12 @@ export const NETWORK = {
   },
   openfreemap: {
     host: 'tiles.openfreemap.org',
-    what: 'The Trip Planner’s map: its style, its vector tiles, its sprites and its fonts, from OpenFreeMap (made for this; no key, no limit), drawn here by MapLibre, which is fetched with the first map and is never part of the app file',
+    what: 'A trip’s map, in the Trip Planner and drawn anywhere else (a slide, a page, an item, a card, an export): its style, its vector tiles, its sprites and its fonts, from OpenFreeMap (made for this; no key, no limit), drawn here by MapLibre, which is fetched with the first map and is never part of the app file; a map drawn as a picture is drawn once a visit',
     when: 'while shown',
-    carries: 'Which squares of the map are on the screen, and no referrer (the site sends none, and OpenFreeMap asks for none); nothing of the document',
-    stops: 'Map, in the Trip Planner’s bar, turned off: no map then asks for them; the home page’s pictures of the templates never do',
-    by: 'apps/trip/editor.ts',
-    csp: ['connect'],
-  },
-  tiles: {
-    host: 'tile.openstreetmap.org',
-    what: 'The pictures (tiles) under a trip’s map drawn anywhere but the Trip Planner itself (a slide, a page, an item, a card, an export), asked directly as OpenStreetMap’s policy asks: only the tiles its box needs; a picture made of that map (a card, a PDF, a PNG, a PowerPoint) asks them again to write them into it',
-    when: 'while shown',
-    carries:
-      'Which squares of the map are on the screen or in the picture, and the site’s name as the referrer (the origin alone, as OpenStreetMap’s tile policy asks of a web page; never the page’s path or anything of the document)',
+    carries: 'Which squares of the map are on the screen or in the picture, and no referrer (the site sends none, and OpenFreeMap asks for none); nothing of the document',
     stops: 'Map, in the Trip Planner’s bar, turned off: no map then asks for them, anywhere a trip is drawn; the home page’s pictures of the templates never do',
-    by: 'apps/trip/view.ts, kit/draw/tiles.ts, kit/draw/raster.ts',
-    csp: ['img', 'connect'],
+    by: 'apps/trip/maplibre.ts, apps/trip/editor.ts, apps/trip/picture.ts, kit/draw/maps.ts',
+    csp: ['connect'],
   },
   placeSearch: {
     host: 'nominatim.openstreetmap.org',

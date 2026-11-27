@@ -16,9 +16,10 @@ const directive = (csp: string, name: string) =>
     .find((d) => d[0] === name)
     ?.slice(1);
 
-test('img-src: the site, data:, blob: and the map’s tiles; no https: at large', () => {
-  // data: for the pages drawn here (a QR code, an icon, a page drawn to a picture); blob: for a file made here and shown.
-  expect(directive(csp, 'img-src')).toEqual(["'self'", 'data:', 'blob:', 'https://tile.openstreetmap.org']);
+test('img-src: the site, data: and blob:; no host, and no https: at large', () => {
+  // data: for the pages drawn here (a QR code, an icon, a page drawn to a picture, a trip's map drawn by MapLibre); blob:
+  // for a file made here and shown.
+  expect(directive(csp, 'img-src')).toEqual(["'self'", 'data:', 'blob:']);
   expect(directive(csp, 'script-src')).toContain("'sha256-x'");
   expect(fillHeaders(raw, { scripts: [] })).not.toMatch(/\{\{[\w-]+\}\}/);
 });
@@ -45,16 +46,8 @@ test('every directive that reaches the web is the site and the registry’s host
     const named = reaches().filter((o) => o.host === r.host);
     for (const d of ['img', 'connect'] as Directive[]) expect(sources(d).includes(`https://${r.host}`), `${r.host} ${d}`).toBe(named.some((o) => o.csp?.includes(d)));
   }
-  // The Trip Planner's map (OpenFreeMap's style, tiles, sprites and fonts, fetched by MapLibre); OpenStreetMap's tiles are
-  // fetched too, to be written into a picture of a map drawn elsewhere (kit/draw/raster.ts).
-  expect(directive(csp, 'connect-src')).toEqual([
-    "'self'",
-    'data:',
-    'https://tiles.openfreemap.org',
-    'https://tile.openstreetmap.org',
-    'https://nominatim.openstreetmap.org',
-    'https://tinier.tinylittleoffice.com',
-  ]);
+  // A trip's map, live and as a picture (OpenFreeMap's style, tiles, sprites and fonts, fetched by MapLibre).
+  expect(directive(csp, 'connect-src')).toEqual(["'self'", 'data:', 'https://tiles.openfreemap.org', 'https://nominatim.openstreetmap.org', 'https://tinier.tinylittleoffice.com']);
 });
 
 test('font-src: the site and nothing else; the type is IBM Plex, served by the site (public/fonts/)', () => {

@@ -100,12 +100,12 @@ test('no telemetry: no analytics, error-reporting, font-CDN or tag-manager host 
 test('the list: every entry says what, when, what it carries, what stops it and who asks; none is a picture, a frame or a film', () => {
   for (const r of reaches()) for (const k of ['host', 'what', 'carries', 'stops', 'by'] as const) expect(r[k], `${r.host} ${k}`).toMatch(/\S/);
   for (const r of reaches()) for (const d of r.csp ?? []) expect(['img', 'connect'], r.host).toContain(d);
-  // The one picture host is the map's: no host on the list serves a document's pictures.
+  // No host on the list serves pictures: a map's picture is drawn here (apps/trip/picture.ts), from what MapLibre fetches.
   expect(
     reaches()
       .filter((r) => r.csp?.includes('img'))
       .map((r) => r.host),
-  ).toEqual(['tile.openstreetmap.org']);
+  ).toEqual([]);
 });
 
 test('hostMatches: a "*." name, "*" and an exact name', () => {
@@ -116,9 +116,11 @@ test('hostMatches: a "*." name, "*" and an exact name', () => {
   expect(hostMatches('*.example.org', 'badexample.org')).toBe(false);
   // "*" names no host, and an exact name only itself.
   for (const h of ['*', 'example.org', '']) expect(hostMatches('*', h), h).toBe(false);
-  expect(hostMatches('tile.openstreetmap.org', 'TILE.openstreetmap.org')).toBe(true);
-  expect(hostMatches('tile.openstreetmap.org', 'x.tile.openstreetmap.org')).toBe(false);
-  expect(listed('tile.openstreetmap.org')).toBe(true);
+  expect(hostMatches('tiles.openfreemap.org', 'TILES.openfreemap.org')).toBe(true);
+  expect(hostMatches('tiles.openfreemap.org', 'x.tiles.openfreemap.org')).toBe(false);
+  expect(listed('tiles.openfreemap.org')).toBe(true);
+  // Nothing asks OpenStreetMap's tile servers, which are not for this (Paul, 2026-11-27).
+  expect(listed('tile.openstreetmap.org')).toBe(false);
   expect(listed('upload.wikimedia.org')).toBe(false);
 });
 

@@ -3,9 +3,10 @@
  * can import it: nothing here touches the DOM until it is called.
  */
 import { PAPER } from './draw.ts';
+import { withMaps } from './maps.ts';
 
-/** A picture from another site as a data: URL, asked as OpenStreetMap's policy asks: by the browser under its own name, naming the site as the referrer (the origin alone, never the page's path or anything of the document); null when it does not come. */
-export async function dataUrl(href: string): Promise<string | null> {
+/** A picture from another site as a data: URL, asked by the browser under its own name, naming the site as the referrer (the origin alone, never the page's path or anything of the document); null when it does not come. */
+async function dataUrl(href: string): Promise<string | null> {
   try {
     const res = await fetch(href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'strict-origin' });
     const blob = res.ok ? await res.blob() : null;
@@ -22,9 +23,9 @@ export async function dataUrl(href: string): Promise<string | null> {
 }
 
 /**
- * Each picture from another site in the markup (a map's tiles, apps/trip/view.ts: the only kind a page draws) written in
- * as a data: URL, since an SVG drawn as a picture asks no one for anything; one that does not come is taken out, and the
- * ground under it shows. Each asked once, all at once, and kept by no one but the browser's own cache.
+ * Each picture from another site in the markup (a host-kept picture, kit/draw/image-picture.ts) written in as a data:
+ * URL, since an SVG drawn as a picture asks no one for anything; one that does not come is taken out. Each asked once,
+ * all at once, and kept by no one but the browser's own cache. A map's box is drawn first (kit/draw/maps.ts withMaps).
  */
 async function inlineImages(svg: string): Promise<string> {
   const hrefs = [...new Set(Array.from(svg.matchAll(/<image href="(https:[^"]+)"/g), (m) => m[1]))];
@@ -36,11 +37,11 @@ async function inlineImages(svg: string): Promise<string> {
   });
 }
 
-/** SVG markup painted on a canvas of w by h at `scale`, over `paper` (or nothing when null); null where it cannot be drawn. A map's tiles are written in first. */
+/** SVG markup painted on a canvas of w by h at `scale`, over `paper` (or nothing when null); null where it cannot be drawn. A map's picture and other sites' pictures are written in first. */
 async function paint(svg: string, w: number, h: number, scale: number, paper: string | null): Promise<HTMLCanvasElement | null> {
   try {
     const img = new Image();
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await inlineImages(svg));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(await inlineImages(await withMaps(svg)));
     await img.decode();
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(w * scale);

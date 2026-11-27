@@ -4,8 +4,8 @@
 # The site is its own only source of code, style and type (font-src 'self': IBM Plex, public/fonts/); nothing may embed the editor (frame-ancestors 'none') but the
 # embed page, /embed/ (the embed view: the pages alone, for another site's frame), below. Where the site may reach is
 # filled in by scripts/headers.ts from src/kit/core/network.ts, the one list of every host (docs/network.md, /network):
-# {{img}} and {{connect}} are the hosts the list allows by each directive: the map's tiles, place search and the
-# short-link service. Nothing else: a document fetches nothing from any other site, so there is no frame-src or
+# {{img}} and {{connect}} are the hosts the list allows by each directive: the map's tiles (connect: a map's picture is
+# drawn here), place search and the short-link service. Nothing else: a document fetches nothing from any other site, so there is no frame-src or
 # media-src of the list's (default-src 'self' holds frames, films and sounds to the site's own).
 /*
   X-Content-Type-Options: nosniff

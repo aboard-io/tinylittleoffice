@@ -18,8 +18,8 @@
  * one a click (Space, the right arrow), each named with its note and the leg to it; Escape ends (as a slide
  * that holds a trip builds a stop a step: AppDef.steps).
  *
- * This is the one app that talks to the network by itself: while the map is on view its pictures come from
- * tile.openstreetmap.org (and, by the same Map switch, under a trip drawn anywhere: view.ts). The route itself lives only in the link. A trip with no stops opens on the country of the
+ * This is the one app that talks to the network by itself: while the map is on view its tiles come from OpenFreeMap
+ * (maplibre.ts; and, by the same Map switch, under a trip drawn anywhere: view.ts, picture.ts). The route itself lives only in the link. A trip with no stops opens on the country of the
  * site's language (home.ts: the browser's own region overriding it, New York City where neither says), never on the
  * whole world. Where I am, in the bar, asks the browser where the device is (once a tap, no watching, 5 s at most)
  * and centers the map there at a city's zoom; refused or unknown, the map goes to that country. The position is used
@@ -28,7 +28,7 @@
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
 import type * as ML from 'maplibre-gl';
-import mapWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { loaded, MAP_STYLE, maplibre, Z, type L } from './maplibre.ts';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { cmdMenu, cmdTool } from '../../kit/ui/bar.ts';
 import { drawnIn, runKey } from '../../kit/core/commands.ts';
@@ -79,25 +79,6 @@ const SEARCH = `${origin('placeSearch')}/search`;
 const DOUBLE = 300;
 /** A focused pin's nudge, in screen pixels (Shift: five times). */
 const NUDGE = 10;
-
-type L = typeof ML;
-/**
- * The map is MapLibre GL drawing OpenFreeMap's vector tiles (Paul, 2026-10-15, on issue #4, OpenFreeMap being made for
- * this where OpenStreetMap's tile servers are not: "It's fine to put the openfreemap renderer in, as long as we hot-load
- * it for that path"): the one large thing only this app needs, a file of its own in the build, fetched with the first
- * map and never part of the app file, with its stylesheet and its worker (a file of the site's own, as the policy's
- * worker-src asks; MapLibre would make one from a blob otherwise). A trip drawn on a page, a slide or a card is still
- * OpenStreetMap's raster tiles (view.ts): a picture needs pictures.
- */
-let loading: Promise<L> | null = null;
-let loaded: L | null = null;
-const maplibre = (): Promise<L> => (loading ??= Promise.all([import('maplibre-gl'), import('./maplibre.css')]).then(([m]) => (m.setWorkerUrl(mapWorker), (loaded = m))));
-/** The map's style: OpenFreeMap's Liberty, its tiles, sprites and fonts all on the one host (kit/core/network.ts). */
-const MAP_STYLE = `${origin('openfreemap')}/styles/liberty`;
-// (What the map says under itself, OpenFreeMap's, OpenMapTiles' and OpenStreetMap's names, comes with the tiles' own
-// description, as OpenFreeMap asks; written here too it would show twice.)
-/** MapLibre's tiles are 512px to Leaflet's 256: one level out shows the same ground, so a zoom written for Leaflet (home.ts) is one less here. */
-const Z = (zoom: number) => zoom - 1;
 
 export interface Place {
   name: string;
@@ -259,7 +240,7 @@ export class ToTripEditor extends DocElement<TripView> {
 
   /* ---------- the map ---------- */
 
-  /** The Map switch: the map shown or not, and with it whether a trip drawn anywhere (a slide, a page, a card) is on OpenStreetMap's tiles. */
+  /** The Map switch: the map shown or not, and with it whether a trip drawn anywhere (a slide, a page, a card) is on its map's picture. */
   toggleMap() {
     this.showMap = !this.showMap;
     setMapOn(this.showMap);

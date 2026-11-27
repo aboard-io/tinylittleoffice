@@ -35,7 +35,12 @@ export function sources(directive: Directive): string[] {
 export function fillHeaders(text: string, { scripts, tinier }: { scripts: string[]; tinier?: string }): string {
   const own = tinier && /^https?:\/\//.test(tinier) ? new URL(tinier).origin : '';
   const connect = sources('connect').map((s) => (own && s === origin('tinier') ? own : s));
-  return text.replaceAll('{{scripts}}', scripts.join(' ')).replaceAll('{{img}}', sources('img').join(' ')).replaceAll('{{connect}}', connect.join(' '));
+  // Each list with the space before it, so a directive the list allows no host by ends at its own sources ("blob:;").
+  const after = (list: string[]) => list.map((s) => ` ${s}`).join('');
+  return text
+    .replaceAll(' {{scripts}}', after(scripts))
+    .replaceAll(' {{img}}', after(sources('img')))
+    .replaceAll(' {{connect}}', after(connect));
 }
 
 /**

@@ -1,10 +1,12 @@
 /**
  * Trip drawn and written out, with no DOM: the page for print, PDF, PNG and thumbnails, and the two files a
- * map app or a GPS reads (GPX 1.1, GeoJSON). The page draws the route on OpenStreetMap's tiles at the zoom that
- * fits the stops (Paul, 2026-10-12: "The map shows the locations but not the map itself"), on a slide, a page, an
- * item, a card and every export alike, with the credit in the corner; with the Map switch off, and on the home
- * page's thumbnails, on a plain map of its own (Web Mercator, fitted to the stops, a graticule for scale) that asks
- * no one for anything. A picture made of it has the tiles written in first (kit/draw/raster.ts).
+ * map app or a GPS reads (GPX 1.1, GeoJSON). The page draws the route on a map at the zoom that fits the stops (Paul,
+ * 2026-10-12: "The map shows the locations but not the map itself"), on a slide, a page, an item, a card and every
+ * export alike, with the credit in the corner: the box is left for the map's picture (kit/draw/maps.ts), which
+ * picture.ts draws from OpenFreeMap with MapLibre (named the drawer by the site's shell, so the API never carries it), as the Trip Planner's own map is (Paul, 2026-11-27: off
+ * OpenStreetMap's tile servers, which are not for this); where none can be drawn (under node, with no network or no
+ * WebGL) the box stays the plain ground. With the Map switch off, and on the home page's thumbnails, a plain map of its
+ * own (Web Mercator, fitted to the stops, a graticule for scale) asks no one for anything.
  */
 import type { Page } from '../../kit/core/app.ts';
 import { origin } from '../../kit/core/network.ts';
@@ -13,9 +15,7 @@ import { ACCENT, clip, FAINT, LINE, MUTED, r, rect, SHADE, text, textWidth, xml 
 import { distanceKm, formatLeg, readTrip, routeKm, routeName, type TripView } from './model.ts';
 import type { Doc } from '../../doc/index.ts';
 
-/** Where the map's pictures come from: the editor's map and the drawn one alike. */
-const TILES = `${origin('tiles')}/{z}/{x}/{y}.png`;
-/** The Map switch (the Trip Planner's bar): whether a map anywhere asks OpenStreetMap for its tiles. Kept as the other settings are (under Saved; for the visit under Private): '0' off, on by default. */
+/** The Map switch (the Trip Planner's bar): whether a map anywhere asks OpenFreeMap for its tiles. Kept as the other settings are (under Saved; for the visit under Private): '0' off, on by default. */
 const MAP_KEY = 'tinyoffice.map';
 export const mapOn = () => store.get(MAP_KEY) !== '0';
 export const setMapOn = (on: boolean) => store.set(MAP_KEY, on ? '1' : '0');
@@ -46,31 +46,21 @@ function fitZoom(dx: number, dy: number, w: number, h: number, one: boolean): nu
   return MIN_ZOOM;
 }
 
-/** The tiles of zoom `z` that cover a box w × h whose top left is (x0, y0) in pixels of that zoom: only those, under its own clip. */
-function tilesSvg(z: number, x0: number, y0: number, w: number, h: number): string {
-  const n = 2 ** z;
-  let out = '';
-  for (let ty = Math.floor(y0 / TILE); ty < Math.ceil((y0 + h) / TILE); ty++) {
-    if (ty < 0 || ty >= n) continue;
-    for (let tx = Math.floor(x0 / TILE); tx < Math.ceil((x0 + w) / TILE); tx++) {
-      const href = TILES.replace('{z}', String(z))
-        .replace('{x}', String(((tx % n) + n) % n))
-        .replace('{y}', String(ty));
-      out += `<image href="${href}" x="${r(tx * TILE - x0)}" y="${r(ty * TILE - y0)}" width="${TILE}" height="${TILE}"/>`;
-    }
-  }
-  return `<svg width="${w}" height="${h}">${out}</svg>`;
-}
+/**
+ * The box a map's picture goes in (kit/draw/maps.ts): the ground at zoom `z` (Leaflet's 256-pixel tiles) whose top left
+ * is (x0, y0) in pixels of that zoom, w × h. It has no picture until one is drawn; the ground under it shows till then.
+ */
+const mapBox = (z: number, x0: number, y0: number, w: number, h: number): string => `<image data-map="${z}/${r(x0)}/${r(y0)}/${w}/${h}" x="0" y="0" width="${w}" height="${h}"/>`;
 
-/** OpenStreetMap's credit in the box's corner, a link to its copyright page, as under the editor's map. */
+/** The map's credit in the box's corner, as OpenFreeMap asks it said, a link to OpenStreetMap's copyright page. */
 function credit(w: number, h: number): string {
-  const words = '© OpenStreetMap';
+  const words = 'OpenFreeMap © OpenMapTiles © OpenStreetMap';
   const tw = textWidth(words, 10) + 8;
   return `<a href="${origin('osm')}/copyright" target="_blank" rel="noopener noreferrer">${rect(w - tw, h - 15, tw, 15, '#fff', 'opacity="0.8"')}${text(w - 4, h - 4, words, { px: 10, fill: MUTED, anchor: 'end' })}</a>`;
 }
 
 /**
- * The stops on a map `w` × `h`: the route and the numbered pins with their names, on OpenStreetMap's tiles (`tiles`), or
+ * The stops on a map `w` × `h`: the route and the numbered pins with their names, on the map's picture (`tiles`), or
  * on lines of latitude and longitude. Presented, the first `upTo` of them, on the map that fits them all.
  */
 export function mapSvg(v: TripView, w: number, h: number, upTo = Infinity, tiles = false): string {
@@ -87,7 +77,7 @@ export function mapSvg(v: TripView, w: number, h: number, upTo = Infinity, tiles
   const scale = tiles ? TILE * 2 ** z : (w - 160) / Math.max(x1 - x0, ((y1 - y0) * w) / h, s.length > 1 ? MIN_SPAN : 0.0004);
   const px = (lon: number) => w / 2 + (mx(lon) - cx) * scale;
   const py = (lat: number) => h / 2 + (my(lat) - cy) * scale;
-  if (tiles) out += tilesSvg(z, cx * scale - w / 2, cy * scale - h / 2, w, h);
+  if (tiles) out += mapBox(z, cx * scale - w / 2, cy * scale - h / 2, w, h);
   else {
     // The graticule, at a step that draws a few lines each way.
     const lonSpan = (w / scale) * 360;
@@ -116,7 +106,7 @@ export function mapSvg(v: TripView, w: number, h: number, upTo = Infinity, tiles
   return tiles ? out + credit(w, h) : out;
 }
 
-/** The route as a page: the map, then the stops in order with their notes and legs, and the total. Small: the map alone. `tiles`: on OpenStreetMap's tiles. */
+/** The route as a page: the map, then the stops in order with their notes and legs, and the total. Small: the map alone. `tiles`: on the map's picture. */
 export function tripPage(doc: Doc, small = false, upTo = Infinity, tiles = false): Page {
   const v = readTrip(doc);
   const W = 720;
