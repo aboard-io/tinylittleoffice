@@ -986,3 +986,32 @@ test('a deck too long for its closing code: the end card says so, rather than no
   const { el: short } = await editor('## Short\n\n- a\n');
   expect(short.querySelector('.deck-end')!.textContent).toContain('QR code of this deck');
 });
+
+test('on a dark page a plain deck’s thumbnails are light words on the dark, as the stage is, and follow the theme as it changes; a themed deck keeps its own (#25)', async () => {
+  const root = document.documentElement;
+  const was = root.dataset.theme;
+  const lum = (css: string) => {
+    const [r, g, b] = css.match(/\d+(\.\d+)?/g)!.map(Number);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const words = (el: HTMLElement) => getComputedStyle(el.querySelector('.deck-thumb svg text')!).fill;
+  const ground = (el: HTMLElement) => getComputedStyle(el.querySelector('.deck-thumb')!).backgroundColor;
+  try {
+    root.dataset.theme = 'dark';
+    const { el } = await editor('# Hello slide\n\n- one point\n');
+    await until(() => !!el.querySelector('.deck-thumb svg text'));
+    expect(lum(words(el)) - lum(ground(el))).toBeGreaterThan(120);
+    root.dataset.theme = 'light';
+    await until(() => lum(words(el)) < 100);
+    expect(lum(ground(el)) - lum(words(el))).toBeGreaterThan(120);
+    root.dataset.theme = 'dark';
+    await until(() => lum(words(el)) > 150);
+    // A theme of its own is drawn as it is, its paper under it, whatever the page's theme.
+    const themed = await editor('---\ntheme: boardroom\n---\n# Hello slide\n');
+    await until(() => !!themed.el.querySelector('.deck-thumb svg text'));
+    expect(themed.el.querySelector('.deck-thumb svg text')!.getAttribute('fill')).toBe('#0f172a');
+  } finally {
+    if (was === undefined) delete root.dataset.theme;
+    else root.dataset.theme = was;
+  }
+});

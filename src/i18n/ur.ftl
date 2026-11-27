@@ -738,8 +738,8 @@ common-words = الفاظ
 write-words-on-page-headings-lists = صفحے پر الفاظ: سرخیاں، فہرستیں، لنکس اور نوٹس، حساب کرنے والا جدول، لیٹر یا A4 پر پرنٹ کے لیے۔
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = دستاویز
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = یہاں لکھیں۔
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = لکھنا شروع کریں…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = ذیلی سرخی
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

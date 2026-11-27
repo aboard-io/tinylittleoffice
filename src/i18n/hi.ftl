@@ -737,8 +737,8 @@ common-words = शब्द
 write-words-on-page-headings-lists = पेज पर शब्द: हेडिंग, सूचियाँ, लिंक और नोट, जोड़ लगाने वाली टेबल, लेटर या A4 पर प्रिंट।
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = दस्तावेज़
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = यहाँ लिखें।
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = लिखना शुरू करें…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = सबहेडिंग
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

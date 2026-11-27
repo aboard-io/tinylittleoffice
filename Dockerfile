@@ -8,13 +8,15 @@ FROM node:24-slim AS build
 WORKDIR /src
 ARG SITE=http://localhost:8000
 ARG TINIER=http://localhost:8001
-ENV VITE_SITE_URL=${SITE}/ VITE_TINIER=${TINIER}/
+# The commit the image is built from, which the image's files alone cannot say (no .git): `npm run selfhost:build`
+# passes it from the checkout (scripts/version.ts --env), and About and /version.json name it.
+ARG COMMIT= TAG= BUILT=
+ENV VITE_SITE_URL=${SITE}/ VITE_TINIER=${TINIER}/ TLO_COMMIT=${COMMIT} TLO_TAG=${TAG} TLO_BUILT=${BUILT}
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 # The build without the checks before it (npm run build is the lint, then this): they read the tree through git, and
-# the image is made from the files alone. A commit is checked where it is made (CI, npm run deploy); so the copy names
-# no commit in About and /version.json.
+# the image is made from the files alone. A commit is checked where it is made (CI, npm run deploy).
 RUN npm run build:site
 
 # Only what the process runs: node itself (no npm, no yarn), the build, the server, and the services it runs (backends/cards/,

@@ -5,7 +5,7 @@
 import { PAPER } from './draw.ts';
 
 /** A picture from another site as a data: URL, asked as OpenStreetMap's policy asks: by the browser under its own name, naming the site as the referrer (the origin alone, never the page's path or anything of the document); null when it does not come. */
-async function dataUrl(href: string): Promise<string | null> {
+export async function dataUrl(href: string): Promise<string | null> {
   try {
     const res = await fetch(href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'strict-origin' });
     const blob = res.ok ? await res.blob() : null;

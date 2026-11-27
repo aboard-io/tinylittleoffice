@@ -622,8 +622,8 @@ common-words = লেখা
 write-words-on-page-headings-lists = পাতায় লেখা: শিরোনাম, তালিকা, লিংক ও টীকা, হিসাব করা টেবিল, লেটার বা A4 কাগজে ছাপার জন্য।
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = ডকুমেন্ট
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = এখানে লিখুন।
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = লেখা শুরু করুন…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = উপশিরোনাম
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

@@ -720,8 +720,8 @@ common-words = 文字
 write-words-on-page-headings-lists = 页面上的文字：标题、列表、链接和注释，会自动计算的表格，可按 Letter 或 A4 打印。
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = 文档
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = 在这里写。
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = 开始写作…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = 副标题
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

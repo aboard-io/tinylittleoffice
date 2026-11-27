@@ -698,8 +698,8 @@ common-words = 글
 write-words-on-page-headings-lists = 페이지에 쓰는 글입니다. 제목, 목록, 링크, 각주, 합계를 계산하는 표를 넣고 Letter나 A4 용지로 인쇄합니다.
 # en: e214b8a29923056887b7edf6635d90dcbb2abe88
 write-document = 문서
-# en: 6e660ac1c8b81a53e302f6bb0298551ec820eceb
-write-here = 여기에 쓰세요.
+# en: c8e96421471b1b78515795f2327d6cc3b45fd88d
+write-here = 글을 쓰기 시작하세요…
 # en: 6b8ad00f4398c3aa47f82637d019dad9e4f9da0c
 write-subheading = 소제목
 # en: 05058e0b630498611ebc41894f7b1670dcd5870e

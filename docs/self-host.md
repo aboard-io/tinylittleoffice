@@ -222,7 +222,8 @@ With Docker, from a checkout:
 
 ```sh
 echo "BRAKE_KEY=$(openssl rand -base64 32)" >> .env
-npm run selfhost:build   # docker compose build: npm ci and the build in one image, then a small one with node and dist/ alone
+npm run selfhost:build   # docker compose build: npm ci and the build in one image, then a small one with node and dist/ alone,
+                         # About naming the commit checked out (scripts/version.ts --env; plain `docker compose build` names none)
 npm run selfhost:up      # docker compose up -d: the site on :8000, the short links on :8001, the journal on :8002, the file on the volume data
 ```
 
