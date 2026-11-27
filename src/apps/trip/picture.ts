@@ -1,7 +1,7 @@
 /**
  * A trip's map as a picture (view.ts leaves the box, kit/draw/maps.ts asks for it): the ground drawn by MapLibre from
  * OpenFreeMap's tiles in Liberty's style, as the Trip Planner's own map is (maplibre.ts), on a map of the box's size off
- * the screen that takes no input, read back as a PNG once it is still, and taken away. One at a time, since a browser
+ * the screen that takes no input, read back as a JPEG once it is still, and taken away. One at a time, since a browser
  * keeps only so many WebGL pages at once; at twice the box's pixels, so a slide or a page in a file is sharp. Null where
  * it cannot be drawn: no WebGL, no network, a page whose policy asks no one, or nothing still within half a minute.
  */
@@ -11,6 +11,8 @@ import { MAP_STYLE, maplibre, Z } from './maplibre.ts';
 const PATIENCE = 30_000;
 /** The pixels drawn for each pixel of the box. */
 const SHARP = 2;
+/** The JPEG's quality: the streets' names and lines sharp, the ground's flat colours cheap. */
+const QUALITY = 0.82;
 
 /** A box "z/x/y/w/h" (kit/draw/maps.ts) as MapLibre's view of it: its centre in degrees, its zoom (512-pixel tiles), its size. */
 export function viewOf(box: string): { lon: number; lat: number; zoom: number; w: number; h: number } {
@@ -23,7 +25,7 @@ export function viewOf(box: string): { lon: number; lat: number; zoom: number; w
 
 let queue: Promise<unknown> = Promise.resolve();
 
-/** The box's ground as a PNG data: URL, or null. Each waits for the one before it. */
+/** The box's ground as a JPEG data: URL, or null. Each waits for the one before it. */
 export function drawMap(box: string, style: string = MAP_STYLE): Promise<string | null> {
   const run = queue.then(() => draw(box, style));
   queue = run.catch(() => null);
@@ -57,7 +59,8 @@ async function draw(box: string, style: string): Promise<string | null> {
       // A style that does not come (no network, a policy that asks no one) ends it at once; a tile that does not come is a gap in the ground.
       m.on('error', () => !m.isStyleLoaded() && (clearTimeout(late), done(false)));
     });
-    return still ? m.getCanvas().toDataURL('image/png') : null;
+    // A JPEG: a map has no clear ground, and every browser writes one (Safari writes no WebP); a quarter of a PNG's bytes (a slide's Brooklyn: 439 KB to 1.8 MB).
+    return still ? m.getCanvas().toDataURL('image/jpeg', QUALITY) : null;
   } catch {
     return null;
   } finally {

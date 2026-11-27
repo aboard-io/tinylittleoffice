@@ -68,7 +68,7 @@ import { opensDropped, unplain } from '../file/open.ts';
 import { parseCompare, type Side } from '../ui/compare.ts';
 import { toast } from './say.ts';
 import { installLinkGuard } from '../ui/link-guard.ts';
-import { drawsMaps, installMaps } from '../draw/maps.ts';
+import { installMaps } from '../draw/maps.ts';
 import { motion, reducedMotion } from '../draw/motion.ts';
 import { setSelfLink } from '../draw/qr-picture.ts';
 import { lockedCard } from '../share/locked.ts';
@@ -274,9 +274,7 @@ export class ToShell extends LitElement {
     );
     // Every link that leaves the site asks first.
     installLinkGuard();
-    // A map in a picture is drawn as it comes on the page (kit/draw/maps.ts), by MapLibre on OpenFreeMap, fetched with the
-    // first one (apps/trip/picture.ts): the site's alone, so the API's files never carry it.
-    drawsMaps((box) => import('../../apps/trip/picture.ts').then((m) => m.drawMap(box)));
+    // A map in a picture is drawn as it comes on the page (kit/draw/maps.ts), by the drawer the page names (main.ts).
     installMaps();
     installPlainCopy();
     // A shared link's preview card's id (route.ts withoutCard) is gone from the address at once, so a link copied from
