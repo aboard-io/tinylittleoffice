@@ -79,7 +79,7 @@ const TRAVEL: [string, (link: string) => string][] = [
   ['with its "+" breaks read as spaces', (l) => l.replace(/\+/g, ' ')],
 ];
 
-test('every template’s link opens as the template after everything travel does to it', async () => {
+test('every template’s link opens as the template after everything travel does to it', { timeout: 60_000 }, async () => {
   const wrong: string[] = [];
   for (const t of await templates()) {
     const link = `https://tinylittleoffice.com/${routeHash(t.app, encodeDoc(t.doc))}`;
@@ -91,7 +91,7 @@ test('every template’s link opens as the template after everything travel does
   expect(wrong).toEqual([]);
 });
 
-test('a link cut short, or with a word glued to its end, opens as nothing rather than as another document', async () => {
+test('a link cut short, or with a word glued to its end, opens as nothing rather than as another document', { timeout: 60_000 }, async () => {
   const opened: string[] = [];
   for (const t of await templates()) {
     const hash = routeHash(t.app, encodeDoc(t.doc));

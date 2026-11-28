@@ -23,7 +23,7 @@ import {
   type TableBlock,
 } from '../../src/doc/index.ts';
 import { apply } from '../../src/doc/ops.ts';
-import { decodeDoc, encodeDoc, packDoc, toBase62 } from '../../src/kit/core/codec.ts';
+import { decodeDoc, encodeDoc, toBase62, unwrap } from '../../src/kit/core/codec.ts';
 import { arbitraryDoc, arbitraryEdits, arbitraryOp, arbitraryText, readGrammar, RULES, RUNS, TLO_EBNF, textOf } from './tlo-grammar.ts';
 
 /** Long enough for RUNS cases of the slowest property (deflate at level 9 twice a case). */
@@ -309,7 +309,7 @@ test(
       if (!x) return;
       // v2 has no raw packing: what does not compress costs at most deflate's worst, nine bits a byte and a block's head.
       const most = Math.ceil((new TextEncoder().encode(x).length * 9) / 8) + 5;
-      expect(packDoc(x).bytes.length).toBeLessThanOrEqual(most);
+      expect(unwrap(payload).bytes.length).toBeLessThanOrEqual(most);
       expect(payload.length).toBeLessThanOrEqual(1 + 3 + toBase62(new Uint8Array(most)).length);
     });
   },
