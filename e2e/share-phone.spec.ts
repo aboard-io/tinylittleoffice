@@ -22,13 +22,16 @@ test('share: on a phone, one full-screen sheet; a tap chooses a lifetime; the ar
   await expect(dialog).toBeVisible();
   const box = (await dialog.boundingBox())!;
   expect([Math.round(box.x), Math.round(box.y), Math.round(box.width), Math.round(box.height)]).toEqual([0, 0, 390, 844]);
-  await expect(dialog.locator('.to-copy-link')).toBeVisible();
-  await expect(dialog.locator('.to-copy-display')).toBeVisible();
-  // A tap on "A month" chooses it.
-  await dialog.locator('.to-ttl label', { hasText: 'A month' }).tap();
+  // A phone's share sheet copies too: Share… first, the QR code beside it, and no Copy Link.
+  await expect(dialog.locator('.to-share-via.primary')).toBeVisible();
+  await expect(dialog.locator('.to-copy-link')).toHaveCount(0);
+  await expect(dialog.locator('.to-qr-open')).toBeVisible();
+  // The Short link switch shows the lifetimes; a tap on "a month" chooses it.
+  await dialog.locator('.to-short-switch').tap();
+  await dialog.locator('.to-ttl label', { hasText: 'a month' }).tap();
   await expect(dialog.locator('.to-ttl input:checked')).toHaveValue(String(30 * 86400));
   // A month is the longest life: no year.
-  await expect(dialog.locator('.to-ttl label')).toHaveText(['An hour', 'A day', 'A week', 'A month']);
+  await expect(dialog.locator('.to-ttl label')).toHaveText(['an hour', 'a day', 'a week', 'a month']);
   for (const b of await dialog.locator('button:visible').all()) {
     const r = (await b.boundingBox())!;
     expect(r.x).toBeGreaterThanOrEqual(0);

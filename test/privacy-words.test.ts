@@ -21,8 +21,9 @@ test('the words that say what is true are there', () => {
   const keys = Object.values(flatMessages(source, 'en'));
   expect(keys).toContain('Your browser’s history');
   expect(keys).toContain('Every document you open, in full, unless it has a password.');
-  // A short link is not promised to be recallable: it cannot be, and the Share dialog says so.
-  expect(keys).toContain('A short link can’t be edited or deleted. It expires automatically.');
+  // A short link is not promised to be recallable: it cannot be, and the Share dialog says so (in strong words: the
+  // message carries its marks, **…**).
+  expect(keys.some((k) => k.includes('Short links cannot be manually edited or deleted before their expiration date.'))).toBe(true);
   // The menu's switch says what it does both ways (Paul, 2026-10-11), and About's paragraphs are cut until he writes them.
   expect(keys).toContain('Turn off to remove all files and settings.');
   expect(keys).toContain('Save in browser and leave');

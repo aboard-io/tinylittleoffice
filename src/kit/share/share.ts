@@ -18,20 +18,52 @@ export async function copyText(text: string, said = t('share-link-copied')): Pro
   }
 }
 
+/**
+ * Words still being made (a short link) put on the clipboard as soon as they are: the copy is asked for inside the
+ * press, as a ClipboardItem holding the promise, so Safari, which allows a copy only while the press lasts, takes it
+ * too. Where there is no ClipboardItem, the words are written when they come.
+ */
+export async function copyLater(text: Promise<string>, said = t('share-link-copied')): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem === 'function') await navigator.clipboard.write([new ClipboardItem({ 'text/plain': text.then((s) => new Blob([s], { type: 'text/plain' })) })]);
+    else await navigator.clipboard.writeText(await text);
+    toast(said);
+    return true;
+  } catch {
+    toast(t('share-could-not-copy'));
+    return false;
+  }
+}
+
 /** Whether the device has a share sheet (a phone, mostly). */
 export const canShareNative = () => typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-/** The link, and a picture of the document if the device will take one, to the share sheet. */
-export async function shareNative(title: string, url: string, png?: Uint8Array | null) {
+/**
+ * Chromium on macOS (Chrome, Edge) says it takes files (canShare) and then never opens its sheet for a share holding
+ * one, rejecting it as though dismissed, a second or two later, so no timing tells the two apart (seen 2026-11-25:
+ * the link alone opens it there). It is given the link alone; every other sheet, Safari's on a Mac too, the picture.
+ */
+function sheetTakesFiles(): boolean {
+  const ua = (navigator as Navigator & { userAgentData?: { platform?: string; brands?: { brand: string }[] } }).userAgentData;
+  return !(ua?.platform === 'macOS' && ua.brands?.some((b) => b.brand === 'Chromium'));
+}
+
+/**
+ * The link, and a picture of the document if the device will take one, to the share sheet: shared, dismissed, or
+ * refused (the browser's NotAllowedError: the press it was asked in had passed, the link made first taking too long).
+ */
+export async function shareNative(title: string, url: string, png?: Uint8Array | null, file = 'document.png'): Promise<'shared' | 'dismissed' | 'refused'> {
   const data: ShareData = { title, text: title, url };
-  if (png) {
-    const file = new File([png as BlobPart], `${title || 'document'}.png`, { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) data.files = [file];
+  if (png && sheetTakesFiles()) {
+    // Its name a slug ("garden-plan.png"): a title's "#", slashes and spaces are no file name a sheet need take.
+    const picture = new File([png as BlobPart], file, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [picture] })) data.files = [picture];
   }
   try {
     await navigator.share(data);
-  } catch {
-    /* dismissed */
+    return 'shared';
+  } catch (err) {
+    return err instanceof DOMException && err.name === 'NotAllowedError' ? 'refused' : 'dismissed';
   }
 }
 

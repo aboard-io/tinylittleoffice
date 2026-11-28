@@ -26,36 +26,44 @@ afterEach(() => {
   store.remove('tinyoffice.shortTtl');
   store.remove('tinyoffice.links');
   store.remove('tinyoffice.preview');
+  localStorage.removeItem('tinyoffice.shareNoticeSeen');
   history.replaceState(null, '', location.pathname);
 });
 
 const dialogOf = (shell: HTMLElement) => shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
 async function open(shell: ToShell) {
   await openShare(shell);
-  await until(() => dialogOf(shell).dialog.open && !!dialogOf(shell).querySelector('.to-share-links'));
+  await until(() => dialogOf(shell).dialog.open && !!dialogOf(shell).querySelector('.to-share-go'));
   return dialogOf(shell);
+}
+/** The Short link switch turned on: the lifetimes show, and Copy link and the QR code give a short link. */
+async function shortOn(d: ToDialog) {
+  d.querySelector<HTMLInputElement>('.to-short-switch')!.click();
+  await until(() => !!d.querySelector('.to-share-short .to-ttl'));
 }
 async function written(shell: ToShell, doc = 'Hello\n') {
   const s = await mount(`#/v1/write/${encodeDoc(doc)}`);
   await until(() => !!s.querySelector('to-write-editor'));
   return s ?? shell;
 }
-/** What copyText hands the clipboard, while `body` runs. */
+/** What copyText (or copyLater, a ClipboardItem) hands the clipboard, while `body` runs. */
 async function clipboard(body: (copied: () => string) => Promise<void>) {
   let copied = '';
-  const clip = navigator.clipboard.writeText;
+  const [clip, item] = [navigator.clipboard.writeText, navigator.clipboard.write];
   navigator.clipboard.writeText = async (s: string) => void (copied = s);
+  navigator.clipboard.write = async (items: ClipboardItems) => void (copied = await (await items[0].getType('text/plain')).text());
   try {
     await body(() => copied);
   } finally {
     navigator.clipboard.writeText = clip;
+    navigator.clipboard.write = item;
   }
 }
 
 test('the head: the title, and where the link fits in one line', async () => {
   const shell = await written(null!, '---\ntitle: Notes\n---\nFirst words.\n');
   const d = await open(shell);
-  expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Notes');
+  expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Share Notes');
   expect(d.querySelector('.to-share-fit .to-fit-words')!.textContent!.trim()).toMatch(/^This link: [\d,]+ characters, (fits in a text message|too long for .+)$/);
   // The sizes are a dialog of their own, Max Link Sizes, never a table in Share itself.
   expect(d.querySelectorAll('table, dl').length).toBe(0);
@@ -123,60 +131,80 @@ test('the table of where the link fits states every limit, what it counts, and w
   expect(Object.keys(rows)).toHaveLength(15);
 });
 
-test('Edit link and Present link copy the two links (Paul, 2026-10-12); each says where it opens', async () => {
+test('Copy Link, big, copies the link; with Preview Mode on, the Display Link; the toast is seen over the dialog (issue #61)', async () => {
+  // No share sheet (Firefox, and this browser): Copy Link first, and the QR code.
   const shell = await written(null!);
   const d = await open(shell);
-  const [link, display] = [d.querySelector<HTMLButtonElement>('.to-copy-link')!, d.querySelector<HTMLButtonElement>('.to-copy-display')!];
-  expect(link.textContent).toContain('Edit link');
-  expect(display.textContent).toContain('Present link');
-  expect(link.querySelector('small')!.textContent).toBe('Opens in the editor');
-  expect(display.querySelector('small')!.textContent).toBe('Opens as pages to read');
-  // Equal, and at this phone's width (414) one under the other, each name on one line (Paul, 2026-10-12: the pair was
-  // uneven when a name wrapped beside the other); side by side at a desktop's width, below.
-  const [a, b] = [link.getBoundingClientRect(), display.getBoundingClientRect()];
-  expect(Math.round(a.width)).toBe(Math.round(b.width));
-  expect(a.bottom).toBeLessThanOrEqual(b.top);
-  expect(Math.round(a.width)).toBe(Math.round(d.querySelector('.to-share-links')!.getBoundingClientRect().width));
-  for (const btn of [link, display]) {
-    const range = document.createRange();
-    range.selectNodeContents(btn.querySelector('span')!.lastChild!);
-    expect(range.getClientRects().length, btn.textContent!.trim()).toBe(1);
-  }
-  // The icon sits beside the name's first line, not centred on a name that wraps.
-  for (const b of [link, display]) {
-    const words = b.querySelector('span')!.lastChild!;
-    const range = document.createRange();
-    range.selectNodeContents(words);
-    const first = range.getClientRects()[0];
-    const i = b.querySelector('svg')!.getBoundingClientRect();
-    expect(Math.abs((i.top + i.bottom) / 2 - (first.top + first.bottom) / 2), b.textContent!.trim()).toBeLessThan(first.height / 4);
-  }
+  const copy = d.querySelector<HTMLButtonElement>('.to-copy-link')!;
+  const qr = d.querySelector<HTMLButtonElement>('.to-qr-open')!;
+  expect(d.querySelector('.to-share-via')).toBeNull();
+  expect(copy.textContent!.trim()).toBe('Copy Link');
+  expect(copy.classList.contains('primary')).toBe(true);
+  expect(qr.getAttribute('aria-label')).toBe('QR code');
+  expect(qr.textContent!.trim()).toBe('');
+  // Two buttons on one line, apart, the row's width: Copy Link first, then the QR code.
+  const [c, q, row] = [copy, qr, d.querySelector('.to-share-go')!].map((e) => e.getBoundingClientRect());
+  expect(Math.round(c.left)).toBe(Math.round(row.left));
+  expect(Math.round(q.right)).toBe(Math.round(row.right));
+  expect(c.right).toBeLessThan(q.left);
+  expect(Math.round(c.top)).toBe(Math.round(q.top));
+  // The surface behind the icons, the accent behind Copy Link.
+  expect(getComputedStyle(qr).backgroundColor).not.toBe(getComputedStyle(copy).backgroundColor);
+  const present = d.querySelector<HTMLInputElement>('.to-present-switch')!;
+  expect(present.checked).toBe(false);
+  expect(present.closest('label')!.textContent!.trim()).toBe('Preview Mode');
+  // What it does, behind the info button right after its name.
+  const tip = present.closest('.to-share-option-head')!.querySelector<HTMLButtonElement>('.to-tip-btn')!;
+  expect(tip.getAttribute('aria-label')).toBe('About Preview Mode');
+  expect(document.getElementById(tip.getAttribute('aria-describedby')!)!.textContent).toBe('Open as a read-only preview.');
   await clipboard(async (copied) => {
-    display.click();
+    copy.click();
+    await until(() => copied() === shell.link);
+    present.click();
+    await shell.updateComplete;
+    copy.click();
     await until(() => copied() === shell.displayLink);
     expect(copied().endsWith('?d')).toBe(true);
-    link.click();
-    await until(() => copied() === shell.link);
   });
   await until(() => said() === 'Link copied');
+  // In the top layer, shown after the modal and so drawn over it. (Not found by elementFromPoint: the modal makes
+  // everything outside it inert, and an inert element is never hit, though it is drawn.)
+  expect(shell.querySelector<HTMLElement>('.to-toast')!.matches(':popover-open')).toBe(true);
 });
 
 // A link is a copy (Paul, 2026-10-11: "docs are not collaborative like Google Docs: that's fine. Communicate it in all the
-// languages"): one sentence under the link, before the ways of sending it.
-test('Share says a link is a copy: one sentence under the link, before the ways of sending it', async () => {
-  const shell = await written(null!);
-  const d = await open(shell);
-  const line = d.querySelector<HTMLElement>('.to-share-copies')!;
-  expect(line.textContent).toBe('Anyone who opens this link gets their own copy. Their changes won’t appear in yours. Ask them to send their link back.');
-  expect(line.previousElementSibling!.matches('.to-share-fit')).toBe(true);
-  expect(line.nextElementSibling!.matches('.to-share-links')).toBe(true);
+// languages"): said in the card at the top, until put away (issue #61).
+// A link is a copy (Paul, 2026-10-11: "docs are not collaborative like Google Docs: that's fine. Communicate it in all the
+// languages"): said in the card at the top, under a warning, until put away for good (issue #61).
+test('Share warns that the URL is the document, in a card at the top, until Don’t show again, which outlasts the visit', async () => {
+  let shell = await written(null!);
+  let d = await open(shell);
+  const card = d.querySelector<HTMLElement>('.to-share-notice')!;
+  expect(card.querySelector('h3')!.textContent).toBe('The link is the document!');
+  expect(card.querySelector('h3 em')!.textContent).toBe('is');
+  expect([...card.querySelectorAll('p')].map((p) => p.textContent)).toEqual([
+    'Tiny Little Office is not an online collaboration tool. Your files are not stored in the cloud, and there is no syncing between users or devices.',
+    'Each link converts an entire document into one long URL, creating a snapshot of its contents as they are right now. Any changes you make will not be visible to anyone else until you create and share a new link, and vice versa.',
+  ]);
+  expect([...card.querySelectorAll('p strong')].map((b) => b.textContent)).toEqual(['not', 'no syncing between users or devices']);
+  expect(card.nextElementSibling!.matches('.to-share-go')).toBe(true);
+  card.querySelector<HTMLButtonElement>('.to-notice-hide')!.click();
+  await until(() => !d.querySelector('.to-share-notice'));
+  // On the device even while nothing else is kept (Private): it says nothing of a document.
+  expect(localStorage.getItem('tinyoffice.shareNoticeSeen')).toBe('1');
+  d.close();
+  shell = await written(null!);
+  d = await open(shell);
+  expect(d.querySelector('.to-share-notice')).toBeNull();
 });
 
 test('the lifetimes: one row of segments, a week by default, the choice written to shortTtl and remembered', async () => {
   let shell = await written(null!);
   let d = await open(shell);
+  expect(d.querySelector('.to-ttl')).toBeNull();
+  await shortOn(d);
   const radios = () => [...d.querySelectorAll<HTMLInputElement>('.to-share-short .to-ttl input[type=radio]')];
-  expect(radios().map((r) => r.parentElement!.textContent)).toEqual(['An hour', 'A day', 'A week', 'A month']);
+  expect(radios().map((r) => r.parentElement!.textContent)).toEqual(['an hour', 'a day', 'a week', 'a month']);
   expect(radios().find((r) => r.checked)!.value).toBe(String(7 * 86400));
   expect(shell.querySelector<ToShare>('to-share')!.shortTtl).toBe(7 * 86400);
   // One row.
@@ -189,10 +217,11 @@ test('the lifetimes: one row of segments, a week by default, the choice written 
   shell = await written(null!);
   expect(shell.querySelector<ToShare>('to-share')!.shortTtl).toBe(30 * 86400);
   d = await open(shell);
+  await shortOn(d);
   expect(radios().find((r) => r.checked)!.value).toBe(String(30 * 86400));
 });
 
-test('Make calls the short service and shows the link in a read-only field with Copy', async () => {
+test('Copy link with Short link on makes one short link, copies it and shows it with Copy; a second press makes no other', async () => {
   const shell = await written(null!);
   const calls: { url: string; body: { ttl: number } }[] = [];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
@@ -200,13 +229,32 @@ test('Make calls the short service and shows the link in a read-only field with 
     return new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } });
   });
   const d = await open(shell);
-  // Said where the lifetime is chosen: it cannot be changed or recalled, and how many a day.
-  expect(d.querySelector('.to-share-short .to-short-fixed')!.textContent).toBe('A short link can’t be edited or deleted. It expires automatically.');
-  expect(d.querySelector('.to-share-short .to-short-fixed + .to-hint')!.textContent).toBe(
-    'Encrypted in your browser. Our server stores only the encrypted link and deletes it when it expires. Up to 100 short links a day per address.',
-  );
-  d.querySelector<HTMLButtonElement>('.to-make')!.click();
-  await until(() => !!d.querySelector('.to-short-field'));
+  // What a short link is, in the tooltip of the info button right after its name: said to a screen reader as its
+  // description, shown on a press, put away by Escape.
+  const about = d.querySelector<HTMLButtonElement>('.to-share-short .to-tip-btn')!;
+  expect(about.getAttribute('aria-label')).toBe('About Short Link');
+  const tip = document.getElementById(about.getAttribute('aria-describedby')!)!;
+  expect(tip.getAttribute('role')).toBe('tooltip');
+  expect([...tip.querySelectorAll('p')].map((p) => p.textContent)).toEqual([
+    'To create a short link, we must store an encrypted copy of your document on our servers. The encryption key becomes part of the URL and never leaves your browser; without it, there is no way for us to read your data.',
+    'Short links cannot be manually edited or deleted before their expiration date.',
+  ]);
+  expect(tip.matches(':popover-open')).toBe(false);
+  about.click();
+  await until(() => tip.matches(':popover-open'));
+  tip.hidePopover();
+  await shortOn(d);
+  // "Expire after" names the lifetimes.
+  expect(d.querySelector('#to-ttl-label')!.textContent).toBe('Expire after');
+  expect(d.querySelector('.to-ttl')!.getAttribute('aria-labelledby')).toBe('to-ttl-label');
+  expect(calls).toHaveLength(0);
+  await clipboard(async (copied) => {
+    d.querySelector<HTMLButtonElement>('.to-copy-link')!.click();
+    await until(() => copied().includes('/abcdefg#'));
+    await until(() => !!d.querySelector('.to-short-field'));
+    d.querySelector<HTMLButtonElement>('.to-copy-link')!.click();
+    await until(() => said() === 'Link copied');
+  });
   expect(calls.length).toBe(1);
   expect(calls[0].url).toMatch(/\/api$/);
   expect(calls[0].body.ttl).toBe(7 * 86400);
@@ -223,14 +271,16 @@ test('a short link says its limit before the press: over it, Make is disabled wi
   // Under it: Make is pressable and there is no hint.
   let shell = await written(null!);
   let d = await open(shell);
-  expect(d.querySelector<HTMLButtonElement>('.to-make')!.disabled).toBe(false);
+  await shortOn(d);
+  expect(d.querySelector<HTMLButtonElement>('.to-copy-link')!.disabled).toBe(false);
   expect(d.querySelector('.to-short-why')).toBeNull();
   expect(shell.querySelector('.to-meter')!.getAttribute('aria-label')).toMatch(/^[\d,]+ of [\d,]+ link characters left$/);
   // Past some browsers' limit but not a short link's: the header says how much a short link holds.
   shell = await written(null!, `${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`);
   expect(shell.querySelector('.to-meter')!.getAttribute('aria-label')).toMatch(/^[\d,]+ characters over the link limit; a short link holds 12,272$/);
   d = await open(shell);
-  expect(d.querySelector<HTMLButtonElement>('.to-make')!.disabled).toBe(false);
+  await shortOn(d);
+  expect(d.querySelector<HTMLButtonElement>('.to-copy-link')!.disabled).toBe(false);
   expect(d.querySelector('.to-short-why')).toBeNull();
   // Over it: random words, which do not compress, past what a short link holds.
   const words = Array.from({ length: 4000 }, () => Math.random().toString(36).slice(2, 8)).join(' ');
@@ -239,7 +289,11 @@ test('a short link says its limit before the press: over it, Make is disabled wi
   const n = new TextEncoder().encode(shell.link).length;
   expect(n).toBeGreaterThan(SHORT_LINK_MAX);
   const fmt = (x: number) => x.toLocaleString('en');
-  expect(d.querySelector<HTMLButtonElement>('.to-make')!.disabled).toBe(true);
+  // Copy link and the QR code wait while Short link is on, and are back with it off.
+  expect(d.querySelector<HTMLButtonElement>('.to-copy-link')!.disabled).toBe(false);
+  await shortOn(d);
+  expect(d.querySelector<HTMLButtonElement>('.to-copy-link')!.disabled).toBe(true);
+  expect(d.querySelector<HTMLButtonElement>('.to-qr-open')!.disabled).toBe(true);
   expect(d.querySelector('.to-short-why')!.textContent).toBe(
     `This document is ${fmt(n)} characters; a short link holds ${fmt(SHORT_LINK_MAX)}. Shorten it by ${fmt(n - SHORT_LINK_MAX)} and it will fit.`,
   );
@@ -267,8 +321,11 @@ test('every short link made is kept in the list folded under "n short links kept
   expect(kept.querySelector('li a')!.textContent).toBe('Old notes');
   expect(kept.querySelector('li small')!.textContent).toMatch(/^Expires in 3 days/);
 
-  d.querySelector<HTMLButtonElement>('.to-make')!.click();
-  await until(() => d.querySelector('.to-kept-list summary')?.textContent === '2 short links kept here');
+  await shortOn(d);
+  await clipboard(async () => {
+    d.querySelector<HTMLButtonElement>('.to-copy-link')!.click();
+    await until(() => d.querySelector('.to-kept-list summary')?.textContent === '2 short links kept here');
+  });
   const made = keptLinks().find((l) => l.link.includes('/abcdefg#'))!;
   expect(made).toMatchObject({ title: 'New notes', link: d.querySelector<HTMLInputElement>('.to-short-field')!.value });
   // Nothing about owning it: the link is all there is.
@@ -283,20 +340,27 @@ test('every short link made is kept in the list folded under "n short links kept
   dropKept(made.link);
 });
 
-test('the QR code: drawn inline when the link fits, with PNG and SVG; else one sentence why', async () => {
+test('the QR code: beside Copy link, its own dialog of what Copy link gives, with PNG and SVG; else one sentence why', async () => {
   let shell = await written(null!);
   let d = await open(shell);
-  const qr = () => d.querySelector('.to-share-qr')!;
-  expect(qr().querySelector('.to-qr-code svg')).not.toBeNull();
-  expect([...qr().querySelectorAll('button')].map((b) => b.textContent!.trim())).toContain('PNG');
-  expect([...qr().querySelectorAll('button')].map((b) => b.textContent!.trim())).toContain('SVG');
+  const qr = () => shell.querySelector<ToDialog>('to-dialog.to-qr-dialog')!;
+  d.querySelector<HTMLButtonElement>('.to-qr-open')!.click();
+  await until(() => qr().dialog.open && !!qr().querySelector('.to-qr-code svg'));
+  // Share steps aside for it, and is back when it closes.
+  expect(d.dialog.open).toBe(false);
+  expect([...qr().querySelectorAll('button')].map((b) => b.textContent!.trim())).toEqual(expect.arrayContaining(['PNG', 'SVG']));
+  qr().close();
+  await until(() => d.dialog.open);
   // Too much for any code: random words, which do not compress.
   const words = Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ');
   shell = await written(null!, `${words}\n`);
   expect(decodeDoc(location.hash.split('/').pop()!)).toContain(words.slice(0, 20));
   d = await open(shell);
+  d.querySelector<HTMLButtonElement>('.to-qr-open')!.click();
+  await until(() => qr().dialog.open && !!qr().querySelector('.to-qr-why'));
   expect(qr().querySelector('.to-qr-code')).toBeNull();
   expect(qr().querySelector('.to-qr-why')!.textContent).toMatch(/^This document is [\d,]+ bytes; the largest QR code holds/);
+  qr().close();
 });
 
 /* ---------- a preview with a link shared with a network ---------- */
@@ -338,14 +402,16 @@ test('with the switch on (it is, unless turned off), Bluesky uploads one card of
   const posted = cards();
   const opened = vi.spyOn(window, 'open').mockImplementation(() => null);
   const d = await open(shell);
+  // On a computer the networks' alone, under their buttons.
   const toggle = d.querySelector<HTMLInputElement>('.to-share-post .to-share-preview input[role=switch]')!;
   expect(toggle.checked).toBe(true);
-  expect(d.querySelector('.to-share-preview')!.textContent).toContain('Show a preview of the first page');
-  expect(d.querySelector('.to-share-preview small')!.textContent).toBe(
-    'A picture of the first page and the title are kept readable on our server for a month so the network can fetch them. The document itself is not.',
-  );
-  // At the top of the networks: before their buttons.
-  expect(d.querySelector('.to-share-preview')!.compareDocumentPosition(d.querySelector('.to-post')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(d.querySelector('.to-share-preview')!.textContent).toContain('Share as Preview Card');
+  const tip = d.querySelector('.to-share-preview .to-tip-btn')!;
+  expect([...document.getElementById(tip.getAttribute('aria-describedby')!)!.querySelectorAll('p')].map((p) => p.textContent)).toEqual([
+    'In apps and social networks, show the title and a screenshot of your document along with the link.',
+    'This data will be stored on our servers, visible to anyone, for up to a month.',
+  ]);
+  expect(d.querySelector('.to-post')!.compareDocumentPosition(d.querySelector('.to-share-preview')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const bluesky = await press(d, 'bluesky', opened);
   expect(new URL(bluesky).host).toBe('bsky.app');
   expect(posted).toHaveLength(1);
@@ -365,27 +431,25 @@ test('with the switch on (it is, unless turned off), Bluesky uploads one card of
   expect(new URL(x).searchParams.get('url')).toBe(link);
 });
 
-test('at 1100 wide the two copies are side by side, equal, each name on one line', async () => {
+test('at 1100 wide Copy Link and the QR code are one line, apart, each switch’s words beside it', async () => {
   await page.viewport(1100, 800);
   try {
     const shell = await written(null!);
     const d = await open(shell);
-    const [link, display] = [d.querySelector<HTMLButtonElement>('.to-copy-link')!, d.querySelector<HTMLButtonElement>('.to-copy-display')!];
-    const [a, b] = [link.getBoundingClientRect(), display.getBoundingClientRect()];
+    const [copy, qr] = [d.querySelector<HTMLButtonElement>('.to-copy-link')!, d.querySelector<HTMLButtonElement>('.to-qr-open')!];
+    const [a, b] = [copy.getBoundingClientRect(), qr.getBoundingClientRect()];
     expect(Math.round(a.top)).toBe(Math.round(b.top));
-    expect(Math.round(a.width)).toBe(Math.round(b.width));
-    expect(a.right).toBeLessThanOrEqual(b.left);
-    for (const btn of [link, display]) {
-      const range = document.createRange();
-      range.selectNodeContents(btn.querySelector('span')!.lastChild!);
-      expect(range.getClientRects().length, btn.textContent!.trim()).toBe(1);
+    expect(a.right).toBeLessThan(b.left);
+    for (const sw of d.querySelectorAll<HTMLInputElement>('.to-share-options input[role=switch]')) {
+      const words = sw.closest('label')!.querySelector('b')!.getBoundingClientRect();
+      expect(words.left).toBeGreaterThan(sw.getBoundingClientRect().right);
     }
   } finally {
     await page.viewport(414, 896);
   }
 });
 
-test('with the switch off, nothing is uploaded and the link has no card; the choice is kept; Edit link and Email never upload', async () => {
+test('with the switch off, nothing is uploaded and the link has no card; the choice is kept; Copy link and Email never upload', async () => {
   const shell = await written(null!, '---\ntitle: Quiet\n---\nNot for a feed.\n');
   const posted = cards();
   const opened = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -467,11 +531,12 @@ test('Paul, 2026-10-12: "Make it look like the button is working": Bluesky says 
   bluesky.click();
   await until(() => posted.length === 1 && bluesky.getAttribute('aria-busy') === 'true', 20_000, 'the card was never posted: it is drawn first, slowly under load');
   expect(bluesky.textContent!.trim()).toBe('Making the preview…');
+  expect(bluesky.getAttribute('aria-label')).toBe('Making the preview…');
   // The disabled look, but not disabled: it keeps the focus.
   expect(bluesky.disabled).toBe(false);
   expect(getComputedStyle(bluesky).opacity).toBe('0.5');
   expect(document.activeElement).toBe(bluesky);
-  expect(x.textContent!.trim()).toBe('X');
+  expect(x.getAttribute('aria-label')).toBe('X');
   expect(x.hasAttribute('aria-busy')).toBe(false);
   // A second press, on another network or on Email, opens nothing and posts nothing.
   x.click();
@@ -484,7 +549,8 @@ test('Paul, 2026-10-12: "Make it look like the button is working": Bluesky says 
   await until(guardOpen, 20_000, 'the link guard never asked after the upload was released');
   expect(document.querySelector('to-dialog.to-link-guard .lg-host')!.textContent).toBe('bsky.app');
   expect(document.querySelectorAll('to-dialog.to-link-guard dialog[open]')).toHaveLength(1);
-  expect(bluesky.textContent!.trim()).toBe('Bluesky');
+  expect(bluesky.getAttribute('aria-label')).toBe('Bluesky');
+  expect(bluesky.textContent!.trim()).toBe('');
   expect(bluesky.hasAttribute('aria-busy')).toBe(false);
   document.querySelector<HTMLButtonElement>('to-dialog.to-link-guard .lg-cancel')!.click();
   await until(() => !guardOpen());
@@ -522,21 +588,21 @@ test('an upload that fails while the button is busy: the toast says so, the word
   release();
   await until(guardOpen, 20_000, 'the link guard never asked after the upload was released');
   await until(() => said() === 'Shared without a preview: the server could not be reached');
-  expect(bluesky.textContent!.trim()).toBe('Bluesky');
+  expect(bluesky.getAttribute('aria-label')).toBe('Bluesky');
   expect(bluesky.hasAttribute('aria-busy')).toBe(false);
   document.querySelector<HTMLButtonElement>('to-dialog.to-link-guard .lg-go')!.click();
   await until(() => opened.mock.calls.length === 1);
   expect(linkIn(String(opened.mock.calls[0][0]))).toBe(shell.link);
 });
 
-test('the share sheet carries the card too; a document with a password shows no switch and makes no card', async () => {
+test('the share sheet carries the card too; a document with a password greys the switch out and makes no card', async () => {
   const shell = await written(null!, '---\ntitle: Sheet share\n---\nTo the phone.\n');
   const posted = cards();
   const sent: ShareData[] = [];
   Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => void sent.push(data) });
   onTestFinished(() => void delete (navigator as { share?: unknown }).share);
   const d = await open(shell);
-  d.querySelector<HTMLButtonElement>('.to-share-native')!.click();
+  d.querySelector<HTMLButtonElement>('.to-share-via')!.click();
   await until(() => sent.length === 1, 20_000, 'the share sheet never got the link: the card is drawn and posted first, slowly under load');
   expect(posted).toHaveLength(1);
   expect(sent[0].url).toBe(cardLink(shell.link, 'k8hwicw'));
@@ -544,10 +610,109 @@ test('the share sheet carries the card too; a document with a password shows no 
   const locked = await sealedSheet('Private sums');
   const opened = vi.spyOn(window, 'open').mockImplementation(() => null);
   const l = await open(locked);
-  expect(l.querySelector('.to-share-preview')).toBeNull();
+  const off = l.querySelector<HTMLInputElement>('.to-share-preview input')!;
+  expect([off.disabled, off.checked]).toEqual([true, false]);
   const bluesky = await press(l, 'bluesky', opened);
   expect(posted).toHaveLength(1);
   expect(linkIn(bluesky)).toBe(locked.link);
+});
+
+test('with a share sheet, Share… is the first button, then Copy Link and the QR code as icons, and Share as Preview Card among the switches', async () => {
+  const sent: ShareData[] = [];
+  Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => void sent.push(data) });
+  onTestFinished(() => void delete (navigator as { share?: unknown }).share);
+  store.set('tinyoffice.preview', '0');
+  const shell = await written(null!);
+  const d = await open(shell);
+  const go = [...d.querySelectorAll<HTMLButtonElement>('.to-share-go > .to-btn')];
+  expect(go.map((b) => b.className.match(/to-(share-via|qr-open|copy-link)/)![1])).toEqual(['share-via', 'copy-link', 'qr-open']);
+  expect(go[0].classList.contains('primary')).toBe(true);
+  expect(go[0].textContent!.trim()).toBe('Share…');
+  for (const b of go.slice(1)) expect([b.classList.contains('primary'), b.textContent!.trim()]).toEqual([false, '']);
+  expect(go[1].getAttribute('aria-label')).toBe('Copy Link');
+  expect(go[1].querySelector('svg')).not.toBeNull();
+  // On a phone or a tablet (a finger, no hover) the sheet copies: no Copy Link beside it.
+  const media = window.matchMedia;
+  window.matchMedia = (q: string) =>
+    q.includes('hover: none')
+      ? ({ matches: true, media: q, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false } as MediaQueryList)
+      : media.call(window, q);
+  onTestFinished(() => void (window.matchMedia = media));
+  shell.querySelector<ToShare>('to-share')!.requestUpdate();
+  await until(() => !d.querySelector('.to-copy-link'));
+  expect([...d.querySelectorAll('.to-share-go > .to-btn')].map((b) => b.className.match(/to-(share-via|qr-open|copy-link)/)![1])).toEqual(['share-via', 'qr-open']);
+  // Share as Preview Card is one of the switches here: the sheet sends the card too.
+  expect(d.querySelector('.to-share-options .to-share-preview')).not.toBeNull();
+  expect(d.querySelector('.to-share-post .to-share-preview')).toBeNull();
+  // It gives what the switches say: Preview Mode's Display Link here.
+  d.querySelector<HTMLInputElement>('.to-present-switch')!.click();
+  await shell.updateComplete;
+  go[0].click();
+  await until(() => sent.length === 1, 20_000);
+  expect(sent[0].url).toBe(shell.displayLink);
+});
+
+test('every way out gives what the switches say: a network posts the Display Link and the short link too', async () => {
+  // (Set before the shell: the dialog reads the choice as it is made.)
+  store.set('tinyoffice.preview', '0');
+  const shell = await written(null!, '---\ntitle: Switched\n---\nWords.\n');
+  const opened = vi.spyOn(window, 'open').mockImplementation(() => null);
+  const d = await open(shell);
+  d.querySelector<HTMLInputElement>('.to-present-switch')!.click();
+  await shell.updateComplete;
+  expect(linkIn(await press(d, 'bluesky', opened))).toBe(shell.displayLink);
+  vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } }));
+  await shortOn(d);
+  expect(linkIn(await press(d, 'bluesky', opened))).toMatch(/\/abcdefg#/);
+});
+
+/** The browser as another system says itself (navigator.userAgentData): Chromium on macOS, or elsewhere. */
+function claim(platform: string) {
+  Object.defineProperty(navigator, 'userAgentData', { configurable: true, value: { platform, brands: [{ brand: 'Chromium', version: '158' }], mobile: false } });
+  onTestFinished(() => void delete (navigator as { userAgentData?: unknown }).userAgentData);
+}
+
+test('an open share sheet holds nothing: the button is ready again, and the picture goes as a file named for the document', async () => {
+  claim('Windows');
+  const sent: ShareData[] = [];
+  // A sheet whose promise never settles (some browsers leave it so).
+  Object.defineProperty(navigator, 'share', { configurable: true, value: (data: ShareData) => (sent.push(data), new Promise(() => {})) });
+  Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+  onTestFinished(() => void (delete (navigator as { share?: unknown }).share, delete (navigator as { canShare?: unknown }).canShare));
+  store.set('tinyoffice.preview', '0');
+  const shell = await written(null!, '---\ntitle: Garden plan #2\n---\nTomatoes.\n');
+  const d = await open(shell);
+  const via = d.querySelector<HTMLButtonElement>('.to-share-via')!;
+  via.click();
+  await until(() => sent.length === 1, 20_000);
+  await shell.updateComplete;
+  expect(via.disabled).toBe(false);
+  expect(sent[0].files!.map((f) => f.name)).toEqual(['garden-plan-2.png']);
+});
+
+test('Chromium on macOS gets the link alone: its sheet never opens for a share holding a file', async () => {
+  claim('macOS');
+  const sent: ShareData[] = [];
+  Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: ShareData) => void sent.push(data) });
+  Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+  onTestFinished(() => void (delete (navigator as { share?: unknown }).share, delete (navigator as { canShare?: unknown }).canShare));
+  store.set('tinyoffice.preview', '0');
+  const shell = await written(null!, '---\ntitle: On a Mac\n---\nWords.\n');
+  const d = await open(shell);
+  d.querySelector<HTMLButtonElement>('.to-share-via')!.click();
+  await until(() => sent.length === 1, 20_000);
+  expect(sent[0].files).toBeUndefined();
+  expect(sent[0].url).toBe(shell.link);
+});
+
+test('a share sheet refused because the press had passed says to press again', async () => {
+  Object.defineProperty(navigator, 'share', { configurable: true, value: async () => Promise.reject(new DOMException('no gesture', 'NotAllowedError')) });
+  onTestFinished(() => void delete (navigator as { share?: unknown }).share);
+  store.set('tinyoffice.preview', '0');
+  const shell = await written(null!);
+  const d = await open(shell);
+  d.querySelector<HTMLButtonElement>('.to-share-via')!.click();
+  await until(() => said() === 'The link is ready. Press Share again.', 20_000);
 });
 
 /* ---------- a document with a password ---------- */
@@ -573,8 +738,9 @@ test('a sealed document says nothing of itself: Share… sends no picture and no
   Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
   onTestFinished(() => void (delete (navigator as { share?: unknown }).share, delete (navigator as { canShare?: unknown }).canShare));
   const d = await open(shell);
-  expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Locked document');
-  d.querySelector<HTMLButtonElement>('.to-share-native')!.click();
+  // Its own title in Share's head, a password or not: drawn here, never sent.
+  expect(d.querySelector('.to-dialog-head h2')!.textContent).toBe('Share Mutual aid contacts');
+  d.querySelector<HTMLButtonElement>('.to-share-via')!.click();
   await until(() => sent.length === 1, 20_000, 'the share sheet never got the link: the card is drawn and posted first, slowly under load');
   expect(sent[0].files).toBeUndefined();
   expect(`${sent[0].title} ${sent[0].text}`).not.toContain('Mutual aid');
@@ -594,12 +760,17 @@ test('a sealed document says nothing of itself: Share… sends no picture and no
   const w = window as unknown as { showSaveFilePicker?: unknown };
   const had = w.showSaveFilePicker;
   w.showSaveFilePicker = async (o: { suggestedName: string }) => (names.push(o.suggestedName), { createWritable: async () => ({ write: async () => {}, close: async () => {} }) });
+  const qr = shell.querySelector<ToDialog>('to-dialog.to-qr-dialog')!;
   try {
-    [...d.querySelectorAll<HTMLButtonElement>('.to-share-qr button')].find((b) => b.textContent!.trim() === 'SVG')!.click();
+    d.querySelector<HTMLButtonElement>('.to-qr-open')!.click();
+    await until(() => qr.dialog.open && !!qr.querySelector('.to-qr-code'));
+    [...qr.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.trim() === 'SVG')!.click();
     await until(() => names.length === 1);
   } finally {
     w.showSaveFilePicker = had;
   }
+  qr.close();
+  await until(() => d.dialog.open);
   expect(names).toEqual(['document-qr.svg']);
   // The embed code's frame is not named after it.
   await clipboard(async (copied) => {
@@ -610,8 +781,11 @@ test('a sealed document says nothing of itself: Share… sends no picture and no
   // A short link kept under Saved keeps no title.
   setKeeping(true);
   vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 7 * DAY }), { status: 201, headers: { 'content-type': 'application/json' } }));
-  d.querySelector<HTMLButtonElement>('.to-make')!.click();
-  await until(() => keptLinks().some((l) => l.link.includes('/abcdefg#')));
+  await shortOn(d);
+  await clipboard(async () => {
+    d.querySelector<HTMLButtonElement>('.to-copy-link')!.click();
+    await until(() => keptLinks().some((l) => l.link.includes('/abcdefg#')));
+  });
   const kept = keptLinks().find((l) => l.link.includes('/abcdefg#'))!;
   expect(kept.title).toBe('');
   dropKept(kept.link);

@@ -107,10 +107,8 @@ const RAISED: { key: string; slot: Slot; langs: string[]; why: string }[] = [
   { key: 'write-page-break', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'write-align-right', slot: 'menu', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'common-link', slot: 'dialog', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
-  { key: 'share-display-link', slot: 'dialog', langs: ['uk'], why: 'Ukrainian words run a third longer than English, as Russian’s do; the glossary’s term has no shorter form with the meaning' },
   { key: 'write-align-left', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   { key: 'write-align-right', slot: 'menu', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
-  { key: 'share-display-link', slot: 'dialog', langs: ['ru'], why: 'Russian words are about a third longer than English; the glossary’s term has no shorter form with the meaning' },
   // The Share dialog.
   { key: 'diagram-mind-map', slot: 'bar', langs: ['fr', 'it', 'ja'], why: 'carte mentale, mappa mentale, マインドマップ: the diagram’s name in each' },
 ];
@@ -197,7 +195,7 @@ async function dialogButtons(): Promise<Measure[]> {
   await until(() => !!shell.querySelector('to-write-editor'));
   await openShare(shell);
   const share = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
-  await until(() => share.dialog.open && !!share.querySelector('.to-share-links'));
+  await until(() => share.dialog.open && !!share.querySelector('.to-share-go'));
   await settled();
   const out: Measure[] = [];
   for (const b of share.querySelectorAll<HTMLElement>('.to-btn')) {
@@ -256,7 +254,7 @@ test('the slots are found: the bar commands that show their words, the menus’ 
     expect(line, m.cmd).toBeLessThan(374);
   }
   expect(bar[0].font).toMatch(/px/);
-  expect(measures.filter((m) => m.slot === 'dialog').map((m) => m.key)).toEqual(expect.arrayContaining(['share-edit-link']));
+  expect(measures.filter((m) => m.slot === 'dialog').map((m) => m.key)).toEqual(expect.arrayContaining(['share-copy-link']));
   // A row's words are its name alone, the instructions on its hint line (Paul, 2026-10-10): the pen's take one line,
   // and a row whose English did take two would give every language two.
   const pen = menu.find((m) => m.cmd === 'draw.insert.pen')!;

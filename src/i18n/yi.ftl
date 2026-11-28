@@ -223,18 +223,14 @@ leave-this-link-hides-characters-in = דער אדרעס פון דעם לינק �
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = א קאפיע האט זיך געעפנט אין א נייעם טאב
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = רעדאקטיר־לינק
 # en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
 share-present-link = פרעזענטיר־לינק
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = קאפירן אין א נייעם דאקומענט
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = קאפירן לינק
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = קאפיע פון { $title }
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = פארשליסלט אין אייער בראוזער. אונזער סערווער האלט נאר דעם פארשליסלטן לינק און מעקט אים אויס ווען ער גייט אויס.
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = גייט אויס אין { $n ->
         [one] { $n } טאג
@@ -252,12 +248,8 @@ share-expires-in-n-minutes-date = גייט אויס אין { $n ->
     } ({ $date })
 # en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
 share-opens-as-pages-to-read = עפנט זיך ווי זייטן צו לייענען
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = עפנט זיך אינעם רעדאקטאר
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = ווער עס עפנט דעם לינק באקומט זיין אייגענע קאפיע. זייערע ענדערונגען וועלן זיך נישט באווייזן אין אייערע. בעט זיי צוריקשיקן זייער לינק.
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = קורצער לינק וואס גייט אויס
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = דער לינק גייט אויס אין { $n ->
         [one] { $n } טאג
@@ -302,14 +294,16 @@ share-n-short-links-kept-here = { $n ->
         [one] { $n } קורצער לינק געהאלטן דא
        *[other] { $n } קורצע לינקס געהאלטן דא
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = ווייז־לינק
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = עפנט זיך
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = לינק קאפירט
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = נישט געקענט קאפירן
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = שעירן { $title }
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = דער לינק איז דער דאקומענט!
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = נישט ווייזן מער
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = שעירן…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -320,30 +314,24 @@ common-qr-code-of-this-document = QR קאוד פון דעם דאקומענט
 share-this-document-is-n-bytes = דער דאקומענט איז { $n } בייטס; דער גרעסטער QR קאוד האלט { $max }. מאכט אים קירצער מיט { $over } בייטס און ער וועט אריינגיין.
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = דער דאקומענט איז { $n } אותיות; א קורצער לינק האלט { $max }. מאכט אים קירצער מיט { $over } און ער וועט אריינגיין.
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = גייט אויס נאך
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
 share-hour = א שעה
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
 share-day = א טאג
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
 share-week = א וואך
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
 share-month = א חודש
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = מאכן א קורצן לינק
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = מען מאכט…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = די גרענעץ איז דערגרייכט: 100 קורצע לינקס א טאג פון איין אדרעס. פרובירט מארגן נאכאמאל.
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = מען קען נישט רעדאקטירן אדער אויסמעקן א קורצן לינק. ער גייט אויס פון זיך אליין.
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = נישט געקענט מאכן דעם לינק קירצער.
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = דער דאקומענט איז צו לאנג פאר א קורצן לינק.
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = ביז 100 קורצע לינקס א טאג פון איין אדרעס.
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = אראפנעמען
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -357,8 +345,6 @@ share-new-noun-date-n = { $noun } { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = א Mastodon סערווער, ווי mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = טוישן
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = קאפירן איינשטעל־קאוד
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = קאפירן פרעזענטיר־לינק
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -435,10 +421,6 @@ share-yes-counts-as-n-of-max = יא, רעכנט זיך ווי { $n } פון { $m
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
 # en: 07fd5d289286fa4714b3f407db7875fac90b9952
 privacy-anyone-with-link-will-need = יעדער מיטן לינק וועט דארפן דעם פאסווארד כדי אים צו עפענען. מען קען אים נישט צוריקשטעלן. אויב איר פארלירט אים, איז דער דאקומענט אוועק.
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = טוישן פאסווארד
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = געמאכט { $date }
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = שרייבט אריין דעם פאסווארד כדי צו עפענען דעם דאקומענט.
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -451,8 +433,6 @@ privacy-forget-everything-this-site-keeps = אויסמעקן אלעס וואס �
 privacy-locked = פארשלאסן
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = פארשלאסענער דאקומענט
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = נייער פאסווארד
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = קיין פאסווארד
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -465,8 +445,6 @@ common-password = פאסווארד
 privacy-password-removed = פאסווארד אראפגענומען
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = דער פאסווארד איז געשטעלט. דער לינק איז יעצט פארשליסלט.
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = פאסווארד…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = סעטינגס
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -475,12 +453,6 @@ privacy-privacy = פריוואטקייט
 privacy-nothing-saved-in-this-browser = גארנישט איז נישט געהיט אין דעם בראוזער. די זאכן אין דער ליסטע בלייבן נאר פאר דעם באזוך.
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = באשיצט מיט א פאסווארד
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = אראפנעמען פאסווארד
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = מען פארשליסלט…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = שטעלן פאסווארד
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = קורצע לינקס
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -491,8 +463,6 @@ privacy-short-links-made-here-until = די קורצע לינקס וואס זענ
 privacy-their-names-and-links-for = נעמען און לינקס, וואס ווערן געוויזן אויפן היים־בלאט.
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = טעמע און די סעטינגס פון קורצע לינקס.
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = דער דאקומענט האט א פאסווארד. דער לינק, און יעדער קורצער לינק פון אים, איז פארשליסלט.
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = דער דאקומענט איז פארשלאסן
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -511,8 +481,6 @@ privacy-your-browsers-history = אייער בראוזער'ס היסטאריע
 privacy-every-document-opened-here-in = יעדער דאקומענט וואס איר עפנט, אינגאנצן, סיידן ער האט א פאסווארד.
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = דאס קענען מיר נישט אויסמעקן
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = פון { $name }
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
         [one] { $n } דאקומענט
@@ -525,8 +493,6 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = { $n } געשטעלט
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = קאפירט דעם פאסווארד און שיקט אים באזונדער פונעם לינק. ער וועט מער נישט געוויזן ווערן.
 # en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
 privacy-make-another = מאכן נאך איינס
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170

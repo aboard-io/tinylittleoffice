@@ -148,12 +148,10 @@ leave-this-link-hides-characters-in = This link’s address contains hidden char
 ## sharing: the Share dialog (kit/core/shell.ts), where the link fits (kit/share/limits.ts), the arrival banner
 
 share-copy-opened-in-new-tab = A copy opened in a new tab
-share-edit-link = Edit link
-share-present-link = Present link
+share-present-link = Preview Mode
 share-copy-into-new-document = Copy into a new document
-share-copy-link = Copy link
+share-copy-link = Copy Link
 share-copy-of-title = Copy of { $title }
-share-encrypted-here-service-holds-only = Encrypted in your browser. Our server stores only the encrypted link and deletes it when it expires.
 share-expires-in-n-days-date = Expires in { $n ->
         [one] { $n } day
        *[other] { $n } days
@@ -166,10 +164,8 @@ share-expires-in-n-minutes-date = Expires in { $n ->
         [one] { $n } minute
        *[other] { $n } minutes
     } ({ $date })
-share-opens-as-pages-to-read = Opens as pages to read
-share-opens-in-editor = Opens in the editor
+share-opens-as-pages-to-read = Open as a read-only preview.
 common-whoever-opens-this-link-gets = Anyone who opens this link gets their own copy. Their changes won’t appear in yours. Ask them to send their link back.
-share-short-link-that-expires = Short link that expires
 share-this-link-expires-in-n = This link expires in { $n ->
         [one] { $n } day
        *[other] { $n } days
@@ -200,27 +196,41 @@ share-n-short-links-kept-here = { $n ->
         [one] { $n } short link kept here
        *[other] { $n } short links kept here
     }
-share-display-link = Display Link
-share-opens = Opens
 share-link-copied = Link copied
 share-could-not-copy = Could not copy
+# The Share dialog's heading, before the document's title.
+share-share-title = Share { $title }
+# The heading of the card at the top of the Share dialog.
+share-link-is-the-document = The link _is_ the document!
+# The card at the top of the Share dialog. **…** is strong and _…_ stressed (drawn so; leave them out where the language has no use for them).
+share-notice-not-collaborative = Tiny Little Office is **not** an online collaboration tool. Your files are not stored in the cloud, and there is **no syncing between users or devices**.
+share-notice-each-link = Each link converts an entire document into one long URL, creating a snapshot of its contents as they are _right now._ Any changes you make will not be visible to anyone else until you create and share a new link, and vice versa.
+# A button that puts away the card at the top of the Share dialog for good.
+share-dont-show-again = Don’t show again
+# Said when the share sheet would not open: the link took too long to make, and the press had passed. It is ready now.
+share-ready-press-again = The link is ready. Press Share again.
+# The label of the info button after a switch's name in the Share dialog: "About Preview Mode".
+share-about = About { $option }
+# The name of the Short Link switch in the Share dialog.
+share-short-link-option = Short Link
+# Said by the Short Link switch's info button. **…** is strong (drawn so).
+share-short-link-warning = To create a short link, we must store an **encrypted** copy of your document on our servers. The encryption key becomes part of the URL and never leaves your browser; without it, there is no way for us to read your data.
+# Said under it, a paragraph of its own.
+share-short-link-fixed = **Short links cannot be manually edited or deleted before their expiration date.**
 common-share = Share…
 common-qr-code = QR code
 common-qr-code-of-this-document = QR code of this document
 share-this-document-is-n-bytes = This document is { $n } bytes; the largest QR code holds { $max }. Shorten it by { $over } bytes and it will fit.
 share-this-document-is-n-characters = This document is { $n } characters; a short link holds { $max }. Shorten it by { $over } and it will fit.
-share-expires-after = Expires after
-share-hour = An hour
-share-day = A day
-share-week = A week
-share-month = A month
-share-make-short-link = Make a short link
+share-expires-after = Expire after
+share-hour = an hour
+share-day = a day
+share-week = a week
+share-month = a month
 share-making = Creating…
 share-hundred-links-day-from-one = Limit reached: 100 short links a day per address. Try again tomorrow.
-share-short-link-cannot-be-changed = A short link can’t be edited or deleted. It expires automatically.
 share-could-not-shorten-link = Could not shorten the link.
 share-this-document-is-too-long = This document is too long for a short link.
-share-up-to-hundred-links-day = Up to 100 short links a day per address.
 share-remove = Remove
 common-link = Link
 common-short-link = Short link
@@ -228,15 +238,18 @@ share-new-noun-date-n = New { $noun } { $date } #{ $n }
 # Files, compare, posting and embedding: the agent and sharing surface.
 share-mastodon-server-like-mastodon-social = A Mastodon server, like mastodon.social
 share-change = Change
-share-copy-embed-code = Copy embed code
 share-copy-show-link = Copy show link
 share-embed = Embed
 share-embed-code-copied = Embed code copied
 share-opens-deck-already-presenting = Opens the deck already presenting.
 share-post = Post
 share-post-link = Post the link
-share-show-preview-of-first-page = Show a preview of the first page
-share-picture-of-first-page-and = A picture of the first page and the title are kept readable on our server for a month so the network can fetch them. The document itself is not.
+share-show-preview-of-first-page = Share as Preview Card
+share-picture-of-first-page-and = In apps and social networks, show the title and a screenshot of your document along with the link.
+# Said under it, a paragraph of its own.
+share-preview-kept-month = This data will be stored on our servers, visible to anyone, for up to a month.
+# The label of the info button after the Share as Preview Card switch.
+share-about-link-previews = About preview cards
 share-shared-without-preview-reason = Shared without a preview: { $reason }
 share-making-preview = Making the preview…
 share-page-could-not-be-drawn = the page could not be drawn
@@ -281,36 +294,30 @@ share-yes-counts-as-n-of-max = Yes, counts as { $n } of { $max }
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-privacy-anyone-with-link-will-need = Anyone with the link will need the password to open it. It can’t be reset. If you lose it, the document is gone.
-privacy-change-password = Change password
-privacy-created-date = Created { $date }
+privacy-anyone-with-link-will-need = Anyone with the link will need the password to open it, including yourself. It can’t be reset.
+# Said under it, a paragraph of its own. **…** is strong (drawn so).
+privacy-if-you-lose-it = **If you lose it, the document is gone.**
 privacy-enter-password-to-open-this = Enter the password to open this document.
 privacy-forget-everything = Delete everything
 privacy-preview-sent-with-link-to = A preview sent with a link to a network is a picture of the first page, the title and the first words, readable on our server for a month. The document itself never goes there.
 privacy-forget-everything-this-site-keeps = Delete everything saved in this browser and stop saving? Your documents still exist in their links.
 privacy-locked = Locked
 common-locked-document = Locked document
-privacy-new-password = New password
 privacy-no-password = No password
 privacy-none = None
 privacy-opening = Opening…
 common-password = Password
 privacy-password-removed = Password removed
 privacy-password-set-link-holds-only = Password set. The link is now encrypted.
-privacy-password-ellipsis = Password…
 privacy-preferences = Preferences
 privacy-privacy = Privacy
 privacy-nothing-saved-in-this-browser = Nothing is saved in this browser. The items listed last only for this visit.
 privacy-protected-by-password = Protected by a password
-privacy-remove-password = Remove password
-privacy-sealing = Encrypting…
-privacy-set-password = Set password
 privacy-short-links = Short links
 privacy-set-password-in-share = Set a password, in Share
 privacy-short-links-made-here-until = The short links made here, until they expire.
 privacy-their-names-and-links-for = Names and links, shown on the home page.
 privacy-theme-lifetime-of-short-links = Theme and short-link settings.
-privacy-this-document-has-password-link = This document has a password. The link, and any short link made from it, is encrypted.
 common-this-document-is-locked = This document is locked
 privacy-this-document-is-locked-with = This document is locked with a password.
 privacy-unlock = Unlock
@@ -320,7 +327,6 @@ privacy-your-documents = Your documents
 privacy-your-browsers-history = Your browser’s history
 privacy-every-document-opened-here-in = Every document you open, in full, unless it has a password.
 privacy-not-ours-to-clear = We can’t clear this
-privacy-by-name = by { $name }
 common-n-documents = { $n ->
         [one] { $n } document
        *[other] { $n } documents
@@ -330,8 +336,7 @@ privacy-n-links = { $n ->
        *[other] { $n } links
     }
 privacy-n-set = { $n } set
-privacy-copy-this-and-send-it = Copy this password and send it separately from the link. It won’t be shown again.
-privacy-make-another = Make another
+privacy-make-another = Regenerate
 privacy-password-copied = Password copied
 
 ## a document locked with a password, placed inside another (kit/share/locked.ts, kit/ui/locked-doc.ts)

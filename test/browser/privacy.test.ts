@@ -1,4 +1,4 @@
-// Privacy (Paul, 2026-10-09): the unlock dialog, Password… and the re-seal on
+// Privacy (Paul, 2026-10-09): the unlock dialog, Share's Password switch and the re-seal on
 // every change, the state beside the title, and what the device holds.
 import { test, expect, afterEach, vi } from 'vitest';
 import { link, mount, privacyAlone, tick, until, said, openShare as openShareFromDrawer } from './helpers.ts';
@@ -104,30 +104,43 @@ test('Escape leaves a sealed document closed, its title hidden, with Unlock… t
   await until(() => d.dialog.open);
 });
 
-test('Password… shows a password the app made, with no field to type one; Set seals with it and it opens the document; removed, the plain link is back', async () => {
+test('the Password switch seals with a password the app made, shown read-only with nothing to type; Make another seals again; off, the plain link is back', async () => {
   const shell = await mount(`#/v1/write/${encodeDoc('Plain words.\n')}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   await openShare(shell);
-  expect(shell.querySelector('.to-share-protect .to-trust-line')!.textContent).toContain('No password');
-  shell.querySelector<HTMLButtonElement>('.to-password-open')!.click();
-  const pd = dialog(shell, 'to-password-dialog');
-  await until(() => pd.dialog.open);
+  const sw = () => shell.querySelector<HTMLInputElement>('.to-password-switch')!;
+  expect(sw().checked).toBe(false);
+  const tip = sw().closest('.to-share-option-head')!.querySelector('.to-tip-btn')!;
+  expect(tip.getAttribute('aria-label')).toBe('About Password');
+  const words = document.getElementById(tip.getAttribute('aria-describedby')!)!;
+  expect([...words.querySelectorAll('p')].map((p) => p.textContent)).toEqual([
+    'Anyone with the link will need the password to open it, including yourself. It can’t be reset.',
+    'If you lose it, the document is gone.',
+  ]);
+  expect(words.querySelector('p + p strong')!.textContent).toBe('If you lose it, the document is gone.');
+  expect(shell.querySelector('.to-password-made')).toBeNull();
+  sw().click();
+  await until(() => isSealed(payload()) && !!shell.querySelector('.to-password-made'));
+  expect(sw().checked).toBe(true);
   // Nothing to type in (Paul, 2026-10-11: "Only you can generate passwords for users"): one box, read-only, holding it.
-  const writable = [...pd.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')].filter((f) => !f.readOnly && !f.disabled);
+  const part = shell.querySelector('.to-share-protect')!;
+  const writable = [...part.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=checkbox]), textarea')].filter((f) => !f.readOnly && !f.disabled);
   expect(writable).toEqual([]);
-  expect(pd.querySelector('[contenteditable]')).toBeNull();
-  const box = pd.querySelector<HTMLInputElement>('.to-password-made')!;
-  expect(box.readOnly).toBe(true);
-  expect(box.value).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
-  expect(box.getAttribute('aria-label')).toBe('Password');
-  expect(pd.querySelector('.to-password-send')!.textContent).toBe('Copy this password and send it separately from the link. It won’t be shown again.');
-  // No strength line, no second field, nothing to compare.
-  expect(pd.querySelector('.to-password-cost, .to-password-differ, .to-password-new, .to-password-generate')).toBeNull();
-  const password = box.value;
-  const set = pd.querySelector<HTMLButtonElement>('.to-password-set')!;
-  expect(set.disabled).toBe(false);
-  set.click();
-  await until(() => isSealed(payload()) && !pd.dialog.open);
+  expect(part.querySelector('[contenteditable]')).toBeNull();
+  const box = () => shell.querySelector<HTMLInputElement>('.to-password-made')!;
+  expect(box().readOnly).toBe(true);
+  // One line: the password and its Copy (its icon alone, named) joined, Regenerate beside them.
+  const copy = shell.querySelector<HTMLButtonElement>('.to-password-copy')!;
+  const again = shell.querySelector<HTMLButtonElement>('.to-password-another')!;
+  expect(copy.getAttribute('aria-label')).toBe('Copy');
+  expect(copy.textContent!.trim()).toBe('');
+  expect(again.getAttribute('aria-label')).toBe('Regenerate');
+  expect(Math.round(copy.getBoundingClientRect().top)).toBe(Math.round(box().getBoundingClientRect().top));
+  expect(Math.round(again.getBoundingClientRect().top)).toBe(Math.round(box().getBoundingClientRect().top));
+  expect(box().scrollWidth).toBeLessThanOrEqual(box().clientWidth);
+  expect(box().value).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
+  expect(box().getAttribute('aria-label')).toBe('Password');
+  const password = box().value;
   expect(location.hash).not.toContain(encodeDoc('Plain words.\n').slice(1, 12));
   expect(decodeDoc(payload())).toBe('');
   const first = payload();
@@ -141,14 +154,18 @@ test('Password… shows a password the app made, with no field to type one; Set 
   expect((await unlock(password, payload()))!.text).toContain('More. Plain words.');
   // The links to share are the ciphertext too.
   expect(parseHash(new URL(shell.link).hash).payload).toBe(payload());
-  // Changing it is the same dialog with a new one made; Remove the password stays.
-  shell.querySelector<HTMLButtonElement>('.to-password-open')!.click();
-  await until(() => pd.dialog.open && !!shell.querySelector('.to-password-remove'));
-  expect(pd.querySelector<HTMLInputElement>('.to-password-made')!.value).not.toBe(password);
-  expect(pd.querySelector('.to-password-set')!.textContent!.trim()).toBe('Change password');
-  shell.querySelector<HTMLButtonElement>('.to-password-remove')!.click();
+  // Regenerate: a new password, shown, and the document sealed with it.
+  const before = payload();
+  shell.querySelector<HTMLButtonElement>('.to-password-another')!.click();
+  await until(() => box().value !== password && payload() !== before);
+  expect(await unlock(password, payload())).toBeNull();
+  expect((await unlock(box().value, payload()))!.text).toContain('More. Plain words.');
+  // Off: the password taken off, nothing shown.
+  sw().click();
   await until(() => !isSealed(payload()));
   expect(decodeDoc(payload())).toContain('More. Plain words.');
+  // The shell draws Share's part again as it takes the locker away, a frame after the address.
+  await until(() => !shell.querySelector('.to-password-made'));
 });
 
 test('Under Saved, a sealed document is kept as ciphertext, with no name; the home page calls it locked', async () => {
@@ -267,32 +284,24 @@ test("What this device holds names the browser's history: not ours to clear, eve
   expect(row.querySelector('.to-held-forget')).toBeNull();
 });
 
-test('Make another makes a new password; Copy puts the one shown on the clipboard and says so; the one shown is the one set', async () => {
+test('Copy puts the password shown on the clipboard and says so; the one shown is the one set', async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-text .tx'));
   await openShare(shell);
-  shell.querySelector<HTMLButtonElement>('.to-password-open')!.click();
-  await until(() => !!shell.querySelector('.to-password-dialog dialog[open]'));
-  const box = shell.querySelector<HTMLInputElement>('.to-password-made')!;
-  const first = box.value;
-  shell.querySelector<HTMLButtonElement>('.to-password-another')!.click();
-  await until(() => box.value !== first);
-  expect(box.value).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
+  shell.querySelector<HTMLInputElement>('.to-password-switch')!.click();
+  await until(() => !!shell.querySelector('.to-password-made') && isSealed(payload()));
+  const shown = shell.querySelector<HTMLInputElement>('.to-password-made')!.value;
   const written: string[] = [];
   const clip = navigator.clipboard.writeText;
   Object.defineProperty(navigator.clipboard, 'writeText', { value: (s: string) => (written.push(s), Promise.resolve()), configurable: true });
   try {
     shell.querySelector<HTMLButtonElement>('.to-password-copy')!.click();
     await until(() => written.length === 1);
-    expect(written[0]).toBe(box.value);
+    expect(written[0]).toBe(shown);
     await until(() => said() === 'Password copied');
   } finally {
     Object.defineProperty(navigator.clipboard, 'writeText', { value: clip, configurable: true });
   }
-  const shown = box.value;
-  shell.querySelector<HTMLButtonElement>('.to-password-set')!.click();
-  await until(() => isSealed(payload()));
-  expect(await unlock(first, payload())).toBeNull();
   expect(await unlock(shown, payload())).not.toBeNull();
 });
 
@@ -312,7 +321,7 @@ test('the state beside the title is a password alone; Share holds the password a
   expect(shell.querySelector('.to-header .to-trust')).toBeNull();
   await openShare(shell);
   const protect = shell.querySelector('.to-share-protect')!;
-  expect(protect.querySelector('h3')!.textContent).toBe('Password');
+  expect(protect.querySelector('.to-switch b')!.textContent).toBe('Password');
   expect(protect.querySelector('.to-sign, .to-sign-name, .to-unsign')).toBeNull();
   expect(protect.textContent).not.toMatch(/sign/i);
   // The menu's Privacy dialog: what the device holds, and no key among it.

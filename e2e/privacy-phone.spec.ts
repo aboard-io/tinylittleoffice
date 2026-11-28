@@ -84,9 +84,9 @@ test('the password the app made, on a phone: all of it in view inside 390px, Cop
   await expect(page.locator('to-write-editor to-text .tx')).toBeVisible();
   await page.locator('.to-burger').tap();
   await page.locator('.to-drawer-share').tap();
-  await page.locator('.to-password-open').tap();
-  const dialog = page.locator('to-dialog.to-password-dialog dialog[open]');
-  await expect(dialog).toBeVisible();
+  const dialog = page.locator('to-dialog.to-share-dialog dialog[open]');
+  await dialog.locator('.to-password-switch').tap();
+  await expect(dialog.locator('.to-password-made')).toBeVisible();
   const made = dialog.locator('.to-password-made');
   await expect(made).toHaveValue(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
   // The whole password shown, nothing scrolled out of the box, and the box inside the screen.
@@ -94,7 +94,7 @@ test('the password the app made, on a phone: all of it in view inside 390px, Cop
   expect(fit.over).toBeLessThanOrEqual(0);
   expect(fit.size).toBeGreaterThanOrEqual(16);
   expect(fit.readOnly).toBe(true);
-  for (const b of [made, dialog.locator('.to-password-copy'), dialog.locator('.to-password-another'), dialog.locator('.to-password-set')]) {
+  for (const b of [made, dialog.locator('.to-password-copy'), dialog.locator('.to-password-another')]) {
     const r = (await b.boundingBox())!;
     expect(r.x).toBeGreaterThanOrEqual(0);
     expect(r.x + r.width).toBeLessThanOrEqual(390.5);

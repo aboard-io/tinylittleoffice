@@ -226,12 +226,12 @@ async function allFit(nav: number) {
   shell.querySelector<HTMLElement>('.to-main')!.scrollTop = 0;
   await openShare(shell);
   const share = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
-  await until(() => share.dialog.open && !!share.querySelector('.to-share-links'));
+  await until(() => share.dialog.open && !!share.querySelector('.to-share-go'));
   await settled();
   const box = share.dialog.getBoundingClientRect();
   expect(box.left).toBeGreaterThanOrEqual(-0.5);
   expect(box.right).toBeLessThanOrEqual(innerWidth + 0.5);
-  for (const b of share.querySelectorAll<HTMLElement>('.to-share-links .to-btn')) {
+  for (const b of share.querySelectorAll<HTMLElement>('.to-share-go .to-btn')) {
     const r = b.getBoundingClientRect();
     if (r.width) expect(r.right, `share: "${b.textContent!.trim()}" reachable`).toBeLessThanOrEqual(box.right + 0.5);
   }

@@ -213,18 +213,14 @@ leave-this-link-hides-characters-in = اس لنک کے پتے میں چھپے ہ
 
 # en: 21697833514286cb120912c109ed55e870e44b01
 share-copy-opened-in-new-tab = کاپی نئے ٹیب میں کھل گئی
-# en: ae7b279c96200b853008a352fa110ac2565f3dc5
-share-edit-link = ترمیم کا لنک
-# en: 12355fc4c6eeb80306a7fe5199240b694bf2b85e
-share-present-link = پیش کرنے کا لنک
+# en: 48c482a6b10eaf7ebe1909317c6b505ba8a2ab0b
+share-present-link = پیش نظارہ موڈ
 # en: bba41b4c62a01956942830c32fc1498945c30fcd
 share-copy-into-new-document = نئی دستاویز میں کاپی کریں
-# en: 2f84eea5d45da4f1ce1760b85db18a854f4e1b39
+# en: 672d82d0a6fb8fb77975d9d8bb8db8c6489bf8a5
 share-copy-link = لنک کاپی کریں
 # en: 6e9d1ebfe7124caf277155d2f57b5a6787f30198
 share-copy-of-title = { $title } کی کاپی
-# en: 367f9cb75618d64b28286bdc4a5b8a3f4d7092f0
-share-encrypted-here-service-holds-only = آپ کے براؤزر میں ہی انکرپٹ ہوتا ہے۔ ہمارا سرور صرف انکرپٹڈ لنک رکھتا ہے اور میعاد ختم ہونے پر اسے حذف کر دیتا ہے۔
 # en: db4fb5a00a9a2172e9d45a362ff1b772884f64b5
 share-expires-in-n-days-date = { $n ->
         [one] { $n } دن
@@ -240,14 +236,10 @@ share-expires-in-n-minutes-date = { $n ->
         [one] { $n } منٹ
        *[other] { $n } منٹ
     } میں ختم ({ $date })
-# en: 0ef0475467d903f5adb0297bbc7979b7b0792d0c
-share-opens-as-pages-to-read = پڑھنے کے لیے صفحات کی صورت میں کھلتا ہے
-# en: 8744400a02796b44742f8f5e5b66216821eab90d
-share-opens-in-editor = ایڈیٹر میں کھلتا ہے
+# en: 1524286a797b4cba96016fac44042b5ec79c404b
+share-opens-as-pages-to-read = صرف پڑھنے کے لیے پیش نظارے کے طور پر کھولیں۔
 # en: 7fbbb75c4e853ef0e42da5fe316344fdf1a6143c
 common-whoever-opens-this-link-gets = جو بھی یہ لنک کھولے، اسے اپنی الگ کاپی ملتی ہے۔ اس کی تبدیلیاں آپ کی کاپی میں نظر نہیں آئیں گی۔ اس سے کہیں کہ اپنا لنک آپ کو واپس بھیجے۔
-# en: 94b01acececc033463cc7731d659fbcae11c2b47
-share-short-link-that-expires = ختم ہو جانے والا مختصر لنک
 # en: fed3d23d480dd0bfe5a0cfff4d9f3dae7857fbe6
 share-this-link-expires-in-n = یہ لنک { $n ->
         [one] { $n } دن
@@ -292,14 +284,30 @@ share-n-short-links-kept-here = { $n ->
         [one] یہاں رکھا ایک مختصر لنک
        *[other] یہاں رکھے { $n } مختصر لنکس
     }
-# en: fbdda8ea6ae4f71eb78a8bd78fa2746784806ffe
-share-display-link = ڈسپلے لنک
-# en: 54c374d4a68f528c4c4022d195a62e22b4bf57bb
-share-opens = کھلتا ہے
 # en: c2e98476efb5e35f50dae898c1b56d7085eee7da
 share-link-copied = لنک کاپی ہو گیا
 # en: 4dfbe46077fcd9769d6688a682515a0cf12a7d80
 share-could-not-copy = کاپی نہیں ہو سکا
+# en: c5d39978d81ebb96eb37880571be3bfd4ba3ea80
+share-share-title = { $title } شیئر کریں
+# en: e09246cf1ecd13ba75c92a5cfb21d9fedea1a4c9
+share-link-is-the-document = لنک ہی دستاویز ہے!
+# en: 3909ded1c8e79ed2c666b61956d6673ba56f736c
+share-notice-not-collaborative = Tiny Little Office آن لائن مل کر کام کرنے کا ٹول نہیں ہے۔ آپ کی فائلیں کلاؤڈ میں محفوظ نہیں ہوتیں، اور **صارفین یا آلات کے درمیان کوئی سنک نہیں ہوتا**۔
+# en: d72b42060f4ba0f53a9beef779dae02eecc71785
+share-notice-each-link = ہر لنک پوری دستاویز کو ایک لمبے URL میں بدل دیتا ہے، یعنی اس کے مواد کی اسی لمحے کی تصویر۔ آپ کی کی ہوئی تبدیلیاں کسی اور کو تب تک نظر نہیں آئیں گی جب تک آپ نیا لنک بنا کر شیئر نہ کریں، اور اسی طرح اس کے برعکس بھی۔
+# en: ad7023866e35e894ed29717e086a319588b310e5
+share-dont-show-again = دوبارہ نہ دکھائیں
+# en: 9248a76402a736f48a2329d117c61b67d2fb12c8
+share-ready-press-again = لنک تیار ہے۔ “شیئر” دوبارہ دبائیں۔
+# en: 8a7bd1b8708e414b919154656b2fd6bfea52faba
+share-about = { $option } کے بارے میں
+# en: 63786fa5a384c6314b89d6e8c96712b9b5ab7eae
+share-short-link-option = مختصر لنک
+# en: d2f9727e7622c8c1811edfa45682f85b5c8bb185
+share-short-link-warning = مختصر لنک بنانے کے لیے ہمیں آپ کی دستاویز کی ایک **خفیہ کردہ** کاپی اپنے سرورز پر رکھنی پڑتی ہے۔ خفیہ کاری کی کلید URL کا حصہ بن جاتی ہے اور کبھی آپ کے براؤزر سے باہر نہیں جاتی؛ اس کے بغیر ہمارے پاس آپ کا ڈیٹا پڑھنے کا کوئی طریقہ نہیں۔
+# en: 9b9c803d1a1d84d105c01e6de52b2aa396b4246e
+share-short-link-fixed = **مختصر لنک کو اس کی میعاد ختم ہونے سے پہلے نہ بدلا جا سکتا ہے نہ مٹایا جا سکتا ہے۔**
 # en: 24897bc1ceb803cb3796e491bc10a252f16a950f
 common-share = شیئر…
 # en: abba02fcdd8b9ce1dde7f39b5b6aa0bd741f0d57
@@ -310,30 +318,24 @@ common-qr-code-of-this-document = اس دستاویز کا QR کوڈ
 share-this-document-is-n-bytes = یہ دستاویز { $n } بائٹس کی ہے؛ سب سے بڑا QR کوڈ { $max } رکھ سکتا ہے۔ اسے { $over } بائٹس چھوٹا کریں تو سما جائے گی۔
 # en: 716ebea121ec7b8a4dd9ea47314131122cf0aab1
 share-this-document-is-n-characters = یہ دستاویز { $n } حروف کی ہے؛ مختصر لنک { $max } رکھ سکتا ہے۔ اسے { $over } چھوٹا کریں تو سما جائے گی۔
-# en: ae5014875f1eec5203f8744323723d2ee679d1cc
+# en: a9758522b7053b807231f2015d791bc1726e1558
 share-expires-after = میعاد
-# en: 1e1c72c2e33894ad38b820f1d4ed17ef478067be
+# en: 90335b649adeb76ebc45092a6c57be0d689110ab
 share-hour = ایک گھنٹہ
-# en: 4286c1f81faa848587ed38925e9b181e939f4998
+# en: 6744c1571488291dd18631e6a88081a3eb0db33d
 share-day = ایک دن
-# en: 51e2a8b00255a6db1c49b306e7ac28f2e6ac9a23
+# en: 60b480e48cb6fdc0f3cb26ff9dd7a65f45cefd24
 share-week = ایک ہفتہ
-# en: 6d17c3840dec7c16f42f223c4a5472efbbff08c1
+# en: 1f6df70edfee21ced329fa213430e856e7a6ec47
 share-month = ایک مہینہ
-# en: 38c22f9dbdb41d2131b4324b7722c45a1f543420
-share-make-short-link = مختصر لنک بنائیں
 # en: 94d7d8ee473f817fa4b57737e7a01ec3cd13d4d4
 share-making = بن رہا ہے…
 # en: 1c6c031b40782efe6b28678fc42d5569cc11e029
 share-hundred-links-day-from-one = حد پوری ہو گئی: ہر پتے سے روزانہ 100 مختصر لنکس۔ کل دوبارہ کوشش کریں۔
-# en: 0b5140c5b10a2b84301b5ef43056b7d89bd2187c
-share-short-link-cannot-be-changed = مختصر لنک میں ترمیم یا اسے حذف نہیں کیا جا سکتا۔ اس کی میعاد خود بخود ختم ہو جاتی ہے۔
 # en: 4d9182a72e391841c2817e9943cf2b07adf70220
 share-could-not-shorten-link = لنک چھوٹا نہیں ہو سکا۔
 # en: 4c0067d6b6bd96cdab1ae363ce342312a93834fd
 share-this-document-is-too-long = یہ دستاویز مختصر لنک کے لیے بہت لمبی ہے۔
-# en: a4d0b704a911979249dd2629e81a0205fab0aa44
-share-up-to-hundred-links-day = ہر پتے سے روزانہ 100 مختصر لنکس تک۔
 # en: e963907dac5cd5c017869b4c96c18021c9bd058b
 share-remove = ہٹائیں
 # en: d0517071aa376e797705058bbad4b658954b9930
@@ -347,8 +349,6 @@ share-new-noun-date-n = { $noun } { $date } #{ $n }
 share-mastodon-server-like-mastodon-social = ایک ماسٹوڈون سرور، جیسے mastodon.social
 # en: 64fbd995d3b6b156ee26ae3c03e6516434c34c12
 share-change = بدلیں
-# en: 2a07ce9a22d8e5dc1031e531518f04e50855319f
-share-copy-embed-code = ایمبیڈ کوڈ کاپی کریں
 # en: c3e1c83e5b4172d3c738e37cb69b76d93ce49b8b
 share-copy-show-link = شو لنک کاپی کریں
 # en: ad02e14e2841dfbd22ab2caa12b5541c5b01a53a
@@ -361,10 +361,14 @@ share-opens-deck-already-presenting = ڈیک کو پہلے ہی پیش کرتے 
 share-post = پوسٹ
 # en: c68fca11627c0ac342583c1782892518730cc40b
 share-post-link = لنک پوسٹ کریں
-# en: 82584c3ce64f57a310db6846c65628266a88c44d
-share-show-preview-of-first-page = پہلے صفحے کا پیش منظر دکھائیں
-# en: ac1624e1fa626a4ba8b8ee419f0cf118d53fa480
-share-picture-of-first-page-and = پہلے صفحے کی تصویر اور عنوان ایک مہینے تک ہمارے سرور پر پڑھنے کے قابل رہتے ہیں تاکہ نیٹ ورک انہیں لے سکے۔ دستاویز خود نہیں۔
+# en: ab26c1155cd70422f323c1ff1bdd9096dd29ac5d
+share-show-preview-of-first-page = پیش نظارہ کارڈ کے طور پر شیئر کریں
+# en: 50ccd133d6a7d580600d4a4629ef1b6e075565c3
+share-picture-of-first-page-and = ایپس اور سوشل نیٹ ورکس میں لنک کے ساتھ آپ کی دستاویز کا عنوان اور ایک اسکرین شاٹ دکھائیں۔
+# en: 2db940d9a9c77671b3944471a75eee9c8932a26a
+share-preview-kept-month = یہ ڈیٹا ہمارے سرورز پر زیادہ سے زیادہ ایک مہینے تک رہے گا، اور اسے کوئی بھی دیکھ سکے گا۔
+# en: f2e542b34859364c4b9096847da53aca98cddc7e
+share-about-link-previews = پیش نظارہ کارڈز کے بارے میں
 # en: 6a46f4b4b3f001e64ef9652412aa1ddbdeabc489
 share-shared-without-preview-reason = پیش منظر کے بغیر شیئر ہوا: { $reason }
 # en: 4def5924266f682e91bcdff1e5ba510a20a36902
@@ -423,12 +427,10 @@ share-yes-counts-as-n-of-max = ہاں، { $max } میں سے { $n } شمار ہ�
 ## privacy (kit/share/privacy.ts, kit/ui/privacy-dialog.ts): the password, what the device holds
 
 # The Share dialog's head line: "Created 9 Oct 2026, 14:03 · by Paul".
-# en: 07fd5d289286fa4714b3f407db7875fac90b9952
-privacy-anyone-with-link-will-need = جس کے پاس بھی لنک ہو، اسے کھولنے کے لیے پاس ورڈ چاہیے ہوگا۔ اسے ری سیٹ نہیں کیا جا سکتا۔ اگر یہ کھو گیا تو دستاویز بھی گئی۔
-# en: 8c684290ce0b8a8e6cee79a145e17554064a4760
-privacy-change-password = پاس ورڈ بدلیں
-# en: 5be0d11b94b1ba25b2579314f6af69649a900cde
-privacy-created-date = بنائی گئی { $date }
+# en: 0b273bbd5aac7d17d4164932d8b95134e55a075f
+privacy-anyone-with-link-will-need = جس کے پاس بھی لنک ہو، اسے کھولنے کے لیے پاس ورڈ چاہیے ہوگا، آپ کو بھی۔ اسے ری سیٹ نہیں کیا جا سکتا۔
+# en: 8ba49369dfe7d01c4c1c376517b80537b13a7da3
+privacy-if-you-lose-it = **اگر یہ کھو گیا تو دستاویز بھی گئی۔**
 # en: 39e64aebf907392389952dded5e20ab4836d876a
 privacy-enter-password-to-open-this = اس دستاویز کو کھولنے کے لیے پاس ورڈ لکھیں۔
 # en: 554393a215e479d023a30091a1394f7ca57690e1
@@ -441,8 +443,6 @@ privacy-forget-everything-this-site-keeps = اس براؤزر میں محفوظ 
 privacy-locked = لاک
 # en: a543040c9fee74b4b34282797abbf59e9d2c99b7
 common-locked-document = لاک دستاویز
-# en: d850ee188c7c55b64bc3624534de5c5051a57dc6
-privacy-new-password = نیا پاس ورڈ
 # en: 1851836868be57a15ca3684a090210f53c7a98f8
 privacy-no-password = پاس ورڈ نہیں
 # en: 6eef6648406c333a4035cd5e60d0bf2ecf2606d7
@@ -455,8 +455,6 @@ common-password = پاس ورڈ
 privacy-password-removed = پاس ورڈ ہٹا دیا گیا
 # en: ad1909e464528c140bf96a21ce9adda2464956c0
 privacy-password-set-link-holds-only = پاس ورڈ لگ گیا۔ لنک اب انکرپٹڈ ہے۔
-# en: dce69146962b392ae2b157aec604eface36e90c0
-privacy-password-ellipsis = پاس ورڈ…
 # en: 9dfd349ebee555eb8d652be20dad971cae439eca
 privacy-preferences = ترجیحات
 # en: cf01481f626d5127ec7732fcbdb29504f08abefd
@@ -465,12 +463,6 @@ privacy-privacy = رازداری
 privacy-nothing-saved-in-this-browser = اس براؤزر میں کچھ محفوظ نہیں ہے۔ فہرست کی چیزیں صرف اس بار کے لیے رہتی ہیں۔
 # en: 626a605da9dbcd888eadcad13deebd3a64011c0a
 privacy-protected-by-password = پاس ورڈ سے محفوظ
-# en: acef17d00b9a1b6e1e15e76d27ae53635928a7a6
-privacy-remove-password = پاس ورڈ ہٹائیں
-# en: 788f55b0957b15918c6aba279f4f0377a5a1db90
-privacy-sealing = انکرپٹ ہو رہا ہے…
-# en: 94408e41c12e924b82da7ea6e79e5cb69ac9e042
-privacy-set-password = پاس ورڈ لگائیں
 # en: f897cb67f049674308a073079bd85ad0649f8c82
 privacy-short-links = مختصر لنکس
 # en: c706d94b54ef0b520420dd58063cfc78bc88c7e3
@@ -481,8 +473,6 @@ privacy-short-links-made-here-until = یہاں بنائے گئے مختصر لن
 privacy-their-names-and-links-for = نام اور لنکس، جو ہوم پیج پر دکھائی دیتے ہیں۔
 # en: 5300fdca86b5b32fd463f73704e318a2b8fa9961
 privacy-theme-lifetime-of-short-links = تھیم اور مختصر لنکس کی سیٹنگز۔
-# en: 0c6a2cfe53459957b6899930a2e5cd46b6541cec
-privacy-this-document-has-password-link = اس دستاویز پر پاس ورڈ ہے۔ لنک، اور اس سے بنا ہر مختصر لنک، انکرپٹڈ ہے۔
 # en: 0d21e52aba49ee4331213463b46c2ece33ad3cf4
 common-this-document-is-locked = یہ دستاویز لاک ہے
 # en: 1dc606b1828a1e2f5bbbed9ed30fa3a80712e3d8
@@ -501,8 +491,6 @@ privacy-your-browsers-history = آپ کے براؤزر کی ہسٹری
 privacy-every-document-opened-here-in = آپ جو بھی دستاویز کھولیں، پوری کی پوری، جب تک اس پر پاس ورڈ نہ ہو۔
 # en: 18b8a03ed6567555edd5005aab5b090984f4b5bd
 privacy-not-ours-to-clear = ہم اسے مٹا نہیں سکتے
-# en: 3ca2d1d26637d42b974b313bb8ce231333179a9e
-privacy-by-name = { $name } کی طرف سے
 # en: a9e72cf83916d4381012a19b329292818f845a43
 common-n-documents = { $n ->
         [one] { $n } دستاویز
@@ -515,10 +503,8 @@ privacy-n-links = { $n ->
     }
 # en: 2ddd4097832d991c46023732a889beeb8ec4c29d
 privacy-n-set = { $n } مقرر
-# en: a97ce1edde4ad396d1cff34063087d0bf5d0e1a8
-privacy-copy-this-and-send-it = یہ پاس ورڈ کاپی کریں اور اسے لنک سے الگ بھیجیں۔ یہ دوبارہ نہیں دکھایا جائے گا۔
-# en: 7640428ae16fc2b673d689ddf6b1ea15eed407d3
-privacy-make-another = دوسرا بنائیں
+# en: b04c991e58e772a08c151e30f1b532d3f35bff50
+privacy-make-another = دوبارہ بنائیں
 # en: 9a0081f0b2bff82fac1961a403734134b9a3b170
 privacy-password-copied = پاس ورڈ کاپی ہو گیا
 

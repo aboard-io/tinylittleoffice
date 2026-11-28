@@ -1,8 +1,8 @@
 /**
  * <to-privacy>: a document's privacy, and the Privacy dialog. The shell's (with `doc`) holds everything about a
  * document's password, for every app: the unlock dialog a sealed link opens with (nothing of the document, its
- * title included, until the password is given); the Password dialog (set, change, take off: the document sealed
- * again at once); the Password part of the Share dialog (renderProtect, drawn there by <to-share>); the lock beside
+ * title included, until the password is given); the Share dialog's Password switch (set, change, take off: the
+ * document sealed again at once; renderProtect, drawn there by <to-share>); the lock beside
  * the title while there is a password (trustButton, drawn in the header); and the Privacy dialog, opened from that
  * lock: this document's password; what this device holds, item by item, each with Forget, the
  * browser's own history last (every document opened here, and not ours to clear), and Forget everything; and what our
@@ -22,6 +22,7 @@ import { forgetDocuments, forgetEverything, forgetLinks, forgetPrefs, holdings, 
 import type { Locker } from '../share/crypt.ts';
 import { generatePassword } from '../share/passwords.ts';
 import { unlockForm } from './locked-doc.ts';
+import { infoTip, marked } from './info-tip.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
 
@@ -59,7 +60,10 @@ export class ToPrivacy extends LitElement {
   declare wrong: boolean;
   /** A password being tried, or set. */
   declare busy: boolean;
-  /** The password the Password dialog shows: made here, a new one each time it opens and at Make another. */
+  /**
+   * The password Share shows under its switch: made here (at the switch, and at Regenerate) or given to open the
+   * link, and '' while it is not known (a document whose password was set before this visit, which holds only its key).
+   */
   declare made: string;
   private off = () => {};
   private offLang: () => void = () => {};
@@ -131,29 +135,25 @@ export class ToPrivacy extends LitElement {
         return;
       }
       this.dialogOf('to-unlock-dialog')?.close();
+      this.made = field.value;
       this.say('to-unlock', r);
     } finally {
       this.busy = false;
     }
   }
-  /** Password…, from the Share dialog: Share hands over to it and comes back when it closes (one modal at a time). A new password each time. */
-  private async passwordFrom(button: HTMLElement) {
-    this.made = generatePassword();
-    await this.updateComplete;
-    const next = this.dialogOf('to-password-dialog');
-    const over = button.closest<ToDialog>('to-dialog');
-    if (next) void (over ? over.handOver(next, button) : next.show());
-  }
-  /** A password set or changed (the document sealed again at once), or taken off (`password` empty). */
+  /**
+   * A password set or changed (the document sealed again at once), or taken off (`password` empty). `made` is set
+   * before the shell hears: Share's part is drawn by the shell, again as it takes the new locker.
+   */
   private async setPassword(password: string) {
     if (this.busy) return;
     this.busy = true;
     try {
       const locker: Locker | null = password ? await lockWith(password) : null;
       if (locker) remember(locker);
+      this.made = password;
       this.say('to-lock', locker);
       toast(password ? t('privacy-password-set-link-holds-only') : t('privacy-password-removed'));
-      this.dialogOf('to-password-dialog')?.close();
     } finally {
       this.busy = false;
     }
@@ -195,43 +195,38 @@ export class ToPrivacy extends LitElement {
   }
 
   /**
-   * Set a password, change it, or take it off. The app makes every password (Paul, 2026-10-11: "Only you can
-   * generate passwords for users. That keeps them secure"): one is shown, read-only, with Copy and Make another, and
-   * Set seals the document with it. Nothing to type, so nothing to mistype or to guess.
-   */
-  private renderPassword() {
-    const has = this.protected;
-    const submit = (e: Event) => {
-      e.preventDefault();
-      if (this.made) void this.setPassword(this.made);
-    };
-    return html`<form class="to-password" @submit=${submit}>
-      <p>${has ? t('privacy-this-document-has-password-link') : t('privacy-anyone-with-link-will-need')}</p>
-      <div class="to-password-shown">
-        <input type="text" class="to-password-made" readonly .value=${this.made} aria-label=${has ? t('privacy-new-password') : t('common-password')} autocomplete="off" spellcheck="false" autocapitalize="off" @focus=${(e: Event) => (e.target as HTMLInputElement).select()} />
-        <button type="button" class="to-btn to-password-copy" @click=${() => void copyText(this.made, t('privacy-password-copied'))}>${icon(UI.copy, 16)}<span>${t('common-copy')}</span></button>
-      </div>
-      <button type="button" class="to-btn to-password-another" ?disabled=${this.busy} @click=${() => (this.made = generatePassword())}>${icon(UI.key, 16)}<span>${t('privacy-make-another')}</span></button>
-      <p class="to-password-send to-hint">${t('privacy-copy-this-and-send-it')}</p>
-      <div class="to-row">
-        <button type="submit" class="to-btn primary to-password-set" ?disabled=${this.busy || !this.made}>${icon(UI.lock, 16)}<span>${this.busy ? t('privacy-sealing') : has ? t('privacy-change-password') : t('privacy-set-password')}</span></button>
-        ${has ? html`<button type="button" class="to-btn to-password-remove" ?disabled=${this.busy} @click=${() => void this.setPassword('')}>${icon(UI.unlock, 16)}<span>${t('privacy-remove-password')}</span></button>` : nothing}
-      </div>
-    </form>`;
-  }
-
-  /**
-   * The Share dialog's Password…: whether the document has one, and the button that sets, changes or takes it off.
-   * `has` is the shell's word, given as it draws: this element's own `protected` is set in the same pass, after.
+   * Share's Password: a switch (issue #61), on while the document has one, its words behind an info button. Turned on,
+   * it seals the document with a password the app makes (Paul, 2026-10-11: "Only you can generate passwords for users.
+   * That keeps them secure"), shown under it on one line: the password, read-only, joined to its Copy, and Regenerate,
+   * which seals it again with a new one. Turned off, it takes the password off. `has` is the shell's word, given as it
+   * draws: this element's own `protected` is set in the same pass, after.
    */
   renderProtect(has = this.protected): TemplateResult {
-    return html`<section class="to-share-section to-share-protect" aria-labelledby="to-share-protect-h">
-      <h3 id="to-share-protect-h">${t('common-password')}</h3>
-      <div class="to-share-protect-row">
-        <p class="to-trust-line quiet">${icon(has ? UI.lock : UI.unlock, 18)}<span>${has ? t('privacy-protected-by-password') : t('privacy-no-password')}</span></p>
-        <button type="button" class="to-btn to-password-open" aria-haspopup="dialog" @click=${(e: Event) => void this.passwordFrom(e.currentTarget as HTMLElement)}>${icon(UI.lock, 16)}<span>${t('privacy-password-ellipsis')}</span></button>
+    const made = has ? this.made : '';
+    return html`<div class="to-share-option to-share-protect">
+      <div class="to-share-option-head">
+        <label class="to-switch">
+          <input type="checkbox" role="switch" class="to-password-switch" .checked=${has} @change=${(e: Event) => void this.setPassword((e.target as HTMLInputElement).checked ? generatePassword() : '')} />
+          <span class="to-switch-words"><b>${t('common-password')}</b></span>
+        </label>
+        ${infoTip('to-tip-password', t('share-about', { option: t('common-password') }), html`<p>${t('privacy-anyone-with-link-will-need')}</p><p>${marked(t('privacy-if-you-lose-it'))}</p>`)}
       </div>
-    </section>`;
+      ${
+        has
+          ? html`<div class="to-password-shown">
+            ${
+              made
+                ? html`<div class="to-password-pill">
+                  <input type="text" class="to-password-made" readonly .value=${made} aria-label=${t('common-password')} autocomplete="off" spellcheck="false" autocapitalize="off" @focus=${(e: Event) => (e.target as HTMLInputElement).select()} />
+                  <button type="button" class="to-btn to-password-copy" aria-label=${t('common-copy')} title=${t('common-copy')} @click=${() => void copyText(made, t('privacy-password-copied'))}>${icon(UI.copy, 18)}</button>
+                </div>`
+                : html`<p class="to-trust-line quiet">${icon(UI.lock, 18)}<span>${t('privacy-protected-by-password')}</span></p>`
+            }
+            <button type="button" class="to-btn to-password-another" aria-label=${t('privacy-make-another')} @click=${() => void this.setPassword(generatePassword())}>${icon(UI.refresh, 16)}<span>${t('privacy-make-another')}</span></button>
+          </div>`
+          : nothing
+      }
+    </div>`;
   }
 
   render() {
@@ -239,8 +234,7 @@ export class ToPrivacy extends LitElement {
     const privacy = html`<to-dialog class="to-privacy-dialog" heading=${t('privacy-privacy')} .body=${held ? html`${this.doc ? this.renderDoc() : nothing}${this.renderDevice(held)}` : nothing}></to-dialog>`;
     if (!this.doc) return privacy;
     const unlocking = unlockForm({ wrong: this.wrong, busy: this.busy, submit: (e) => void this.tryPassword(e), input: () => (this.wrong = false) });
-    return html`${privacy}<to-dialog class="to-unlock-dialog" heading=${t('common-this-document-is-locked')} .body=${unlocking}></to-dialog>
-      <to-dialog class="to-password-dialog" heading=${t('common-password')} .body=${this.renderPassword()}></to-dialog>`;
+    return html`${privacy}<to-dialog class="to-unlock-dialog" heading=${t('common-this-document-is-locked')} .body=${unlocking}></to-dialog>`;
   }
 }
 customElements.define('to-privacy', ToPrivacy);
