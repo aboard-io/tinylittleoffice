@@ -210,6 +210,21 @@
   to-bar > * {
     flex: none;
   }
+  to-bar > [data-group-start] {
+    position: relative;
+    margin-inline-start: 0.75em;
+  }
+  to-bar > [data-group-start]::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -0.6em;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background: currentColor;
+    opacity: 0.2;
+    pointer-events: none;
+  }
   /* A label in the bar is one line, always (Paul, 2026-10-09: "The menu bars often wrap individual lines"). */
   to-bar .to-btn,
   to-bar .to-btn > span {

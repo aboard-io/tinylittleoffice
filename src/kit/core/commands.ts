@@ -63,7 +63,7 @@ export interface Command<C = any> {
   disabled?: (c: C) => boolean;
   /** A state it shows (aria-pressed in a bar, a check in a menu). */
   pressed?: (c: C) => boolean;
-  /** The context bar draws a gap between commands of different groups (§6's order: edit | copy, cut, paste | delete). */
+  /** Toolbars and context bars visually separate commands of different groups. */
   group?: string;
   /** In the context bar only while this holds too (the lists, over whole blocks of words), where the bar shows it always. */
   context?: (c: C) => boolean;
