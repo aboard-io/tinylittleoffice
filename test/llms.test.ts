@@ -136,10 +136,10 @@ test('the home page points a fetcher to /llms.txt, and the site serves it as tex
   expect(headers).toMatch(/\/llms\.txt\n(?: {2}.*\n)*? {2}Cache-Control: public, max-age=300\n/);
 });
 
-test('/api.js stays small: the apps, the lint and the examples are imported lazily, never by the entry; budgets.json holds the one file an import fetches to 34,000 bytes, its line since the shortcode table', () => {
+test('/api.js stays small: the apps, the lint and the examples are imported lazily, never by the entry; budgets.json holds the one file an import fetches to 43,000 bytes, its line since links became v2\'s and carry their dictionary', () => {
   const api = file('src/api.ts');
   const statics = [...api.matchAll(/^import (?!type)[^;]*? from '([^']+)'/gm)].map((m) => m[1]);
   for (const lazy of ['./kit/core/apps.ts', './lint.ts', './kit/text/text-layer.ts', './kit/file/exports.ts']) expect(statics).not.toContain(lazy);
   expect(statics.some((s) => s.startsWith('./apps/') || s.includes('examples'))).toBe(false);
-  expect(JSON.parse(file('budgets.json')).api).toBeLessThanOrEqual(34000);
+  expect(JSON.parse(file('budgets.json')).api).toBeLessThanOrEqual(43000);
 });
