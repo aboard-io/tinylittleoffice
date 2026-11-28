@@ -509,6 +509,28 @@ test('Tab and Shift+Tab go to the next and previous cell, row after row, the pag
   expect(key(a1, 'Tab', { shiftKey: true }).defaultPrevented).toBe(false);
 });
 
+test('a formula cell reached by the arrows, Tab or Shift+Tab holds its value as the focus comes to it, which a screen reader reads', async () => {
+  const { el } = await editor(SHEET);
+  // What each cell held at the moment the focus came to it: a screen reader reads it then, not after the next render.
+  const reached: string[] = [];
+  el.addEventListener('focusin', (e) => reached.push(`${(e.target as HTMLInputElement).getAttribute('aria-label')} ${(e.target as HTMLInputElement).value}`));
+  const b3 = cell(el, 'B3');
+  const from = async (start: string, k: string, o: KeyboardEventInit = {}) => {
+    cell(el, start).focus();
+    await el.updateComplete;
+    reached.length = 0;
+    key(cell(el, start), k, o);
+    await until(() => document.activeElement === b3);
+    await el.updateComplete;
+    expect(reached).toEqual(['B3 $1,650.00']);
+    expect(b3.value).toBe('$1,650.00');
+    expect(b3.title).toBe('=SUM(B1:B2)');
+  };
+  await from('B2', 'ArrowDown');
+  await from('A3', 'Tab');
+  await from('C3', 'Tab', { shiftKey: true });
+});
+
 test('Alt+Up/Down move the row (or the selected rows) past its neighbour, formulas following; the row menu has Move up and Move down', async () => {
   const { el, last } = await editor(SHEET);
   const a2 = cell(el, 'A2');
