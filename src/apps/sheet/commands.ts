@@ -141,7 +141,7 @@ const SHEET: Command<S>[] = [
     where: ['keys-only'],
     does: (s, e) => s.tabKey(e instanceof KeyboardEvent && e.shiftKey),
   }),
-  cmd('edit', 'sheet-edit-cell-caret-at-its', { at: 'cell', keys: 'F2', where: ['keys-only'], does: (s) => s.here?.at?.toEnd() }),
+  cmd('edit', 'sheet-edit-cell-caret-at-its', { at: 'cell', keys: 'F2', where: ['keys-only'], does: (s) => s.editHere() }),
   cmd('stretch', 'common-extend-selection', {
     at: 'cell',
     keys: 'Shift+ArrowUp / Shift+ArrowDown / Shift+ArrowLeft / Shift+ArrowRight',
