@@ -17,7 +17,7 @@ test('an app’s templates, Blank first: the one chosen comes back with its text
   await until(() => options().length === tpls.length + 1, 'the templates never arrived');
   expect(document.querySelector('to-template-picker dialog')!.getAttribute('aria-labelledby')).toBeTruthy();
   expect(options()[0].textContent).toContain('Blank');
-  expect(options()[1].querySelector('to-preview')!.getAttribute('hash')).toMatch(/^#\/v1\/write\//);
+  expect(options()[1].querySelector('to-preview')!.getAttribute('hash')).toMatch(/^#\/v2\/write\//);
   options()[2].click();
   expect(await picked).toStrictEqual({ app: 'write', id: tpls[1].id, title: tpls[1].name, text: tpls[1].doc });
   expect(document.querySelector('to-template-picker')).toBeNull();

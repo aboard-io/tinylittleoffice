@@ -35,7 +35,7 @@ async function tryPassword(root: ParentNode, pw: string) {
 test('the Word Processor: the locked card, a tap asks for the password, opened it draws the document; the link keeps the seal', async () => {
   const payload = await sealed();
   const text = write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'Before' }] }, lockedFence('write', payload), { k: 'p', runs: [{ t: 'After' }] }] });
-  const shell: ToShell = await mount(`#/v1/write/${encodeDoc(text)}`);
+  const shell: ToShell = await mount(`#/v2/write/${encodeDoc(text)}`);
   await until(() => !!shell.querySelector('to-write-editor to-locked-doc .to-locked-open svg'));
   const card = shell.querySelector('to-write-editor to-locked-doc')!;
   expect(card.querySelector('.to-locked-open svg')!.innerHTML).toContain('Locked with a password');
@@ -53,14 +53,14 @@ test('the Word Processor: the locked card, a tap asks for the password, opened i
   expect(card.querySelector('figcaption b')!.textContent).toBe('Salaries');
   // The outer document still holds the sealed link, and nothing of what it opened to.
   const now = decodeDoc(parseHash(location.hash).payload);
-  expect(now).toContain(`#/v1/write/${payload}`);
+  expect(now).toContain(`#/v2/write/${payload}`);
   expect(now).not.toContain('secret');
 });
 
 test('a slide: the locked card; a tap asks for the password, and opened, the slide draws the document', async () => {
   const payload = await sealed();
   const text = write({ head: {}, blocks: [{ k: 'h', level: 2, runs: [{ t: 'Numbers' }] }, lockedFence('write', payload)] });
-  const shell = await mount(`#/v1/deck/${encodeDoc(text)}`);
+  const shell = await mount(`#/v2/deck/${encodeDoc(text)}`);
   await until(() => !!shell.querySelector('to-deck-editor .deck-sub svg'));
   const sub = () => shell.querySelector<HTMLElement>('to-deck-editor .deck-sub')!;
   expect(sub().innerHTML).toContain('Locked with a password');
@@ -72,7 +72,7 @@ test('a slide: the locked card; a tap asks for the password, and opened, the sli
 
 test('the embed view of a locked link: the locked card and Unlock; the password shows the pages', async () => {
   const payload = await sealed();
-  const shell = await mount(`#/v1/write.embed/${payload}`);
+  const shell = await mount(`#/v2/write.embed/${payload}`);
   await until(() => !!shell.querySelector('.to-embed-locked .to-display-page svg'));
   expect(shell.querySelector('.to-embed-locked .to-display-page svg')!.innerHTML).toContain('Locked with a password');
   expect(shell.querySelector('.to-embed-title')!.textContent).toBe('Locked document');
@@ -86,7 +86,7 @@ test('the embed view of a locked link: the locked card and Unlock; the password 
 });
 
 test('the embed view of a link that cannot be read says so, rather than a blank page', async () => {
-  const shell = await mount('#/v1/write.embed/zzzzzz');
+  const shell = await mount('#/v2/write.embed/zzzzzz');
   await until(() => !!shell.querySelector('.to-empty'));
   expect(shell.querySelector('.to-empty')!.textContent).toContain('can’t be read');
   expect(shell.querySelector('.to-embed .to-display-page')).toBeNull();
@@ -116,7 +116,7 @@ test('a sealed document, unlocked: the tab title and the library carry no title;
   setKeeping(true);
   store.remove('tinyoffice.library');
   try {
-    const shell: ToShell = await mount(`#/v1/write/${await sealed()}`);
+    const shell: ToShell = await mount(`#/v2/write/${await sealed()}`);
     await until(() => document.title.startsWith('Locked document'));
     await tryPassword(shell, 'pw');
     await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));

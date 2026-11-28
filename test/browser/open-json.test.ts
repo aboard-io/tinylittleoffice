@@ -15,8 +15,8 @@ test('the .json a document downloads as opens as that document, in its app', asy
   expect(JSON.parse(json).head).toStrictEqual({ title: 'Costs', app: 'sheet' });
   await mount('');
   dropFile(new File([json], 'costs.json', { type: 'application/json' }));
-  await until(() => location.hash.startsWith('#/v1/sheet/'));
-  expect(location.hash).toBe(`#/v1/sheet/${encodeDoc(text)}`);
+  await until(() => location.hash.startsWith('#/v2/sheet/'));
+  expect(location.hash).toBe(`#/v2/sheet/${encodeDoc(text)}`);
 });
 
 test('a .json that is not a document is said so, and nothing opens', async () => {

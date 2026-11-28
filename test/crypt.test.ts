@@ -3,7 +3,7 @@
 import { test, expect } from 'vitest';
 import * as crypt from '../src/kit/share/crypt.ts';
 import { newLocker, seal, unseal, unsealWith } from '../src/kit/share/crypt.ts';
-import { decodeDoc, encodeDoc, isSealed, packDoc, toBase64Url, unpackDoc } from '../src/kit/core/codec.ts';
+import { decodeDoc, encodeDoc, isSealed, packDoc, toBase64Url, unpackDoc, unwrap, wrap } from '../src/kit/core/codec.ts';
 import { generatePassword } from '../src/kit/share/passwords.ts';
 
 const subtle = globalThis.crypto.subtle;
@@ -24,14 +24,15 @@ async function fixture(password: string, text: string): Promise<string> {
   return 'E' + toBase64Url(new Uint8Array([...salt, ...iv, ...ct]));
 }
 
-test('the parameters: a 16-byte salt, a 12-byte IV, "E" first; no iterations anywhere', async () => {
+test('the parameters: a 16-byte salt, a 12-byte IV, "e" and a checksum first; no iterations anywhere', async () => {
   // deriveKey(password, salt), newLocker(password), unseal(password, payload): nothing to say how slow.
   expect([crypt.deriveKey.length, crypt.newLocker.length, crypt.unseal.length]).toEqual([2, 1, 2]);
   const { flag, bytes } = packDoc('x');
   const sealed = await seal(await newLocker('pw'), flag, bytes);
-  expect(sealed[0]).toBe('E');
-  // salt 16 + iv 12 + (flag 1 + bytes + tag 16), base64url
-  expect(sealed.length - 1).toBe(Math.ceil(((16 + 12 + 1 + bytes.length + 16) * 4) / 3));
+  expect(sealed[0]).toBe('e');
+  // salt 16 + iv 12 + (flag 1 + bytes + tag 16), in base62 after the flag and three characters of checksum
+  expect(unwrap(sealed).bytes.length).toBe(16 + 12 + 1 + bytes.length + 16);
+  expect(sealed).toBe(wrap('e', unwrap(sealed).bytes));
 });
 
 test('a fixture sealed under HKDF by hand opens to its text, and only with its password', async () => {
@@ -79,7 +80,7 @@ test('re-sealed with the opened locker: the same salt, a fresh IV; a locker held
   const opened = (await unseal('pw', a))!;
   const b = await seal(opened.locker, flag, bytes);
   expect(a).not.toBe(b);
-  expect(a.slice(0, 22)).toBe(b.slice(0, 22));
+  expect(unwrap(a).bytes.slice(0, 16)).toEqual(unwrap(b).bytes.slice(0, 16));
   expect((await unsealWith(opened.locker, b))!.bytes).toEqual(bytes);
   // Another document's locker does not fit.
   expect(await unsealWith(await newLocker('pw'), b)).toBeNull();

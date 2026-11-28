@@ -1,9 +1,9 @@
-// The link's shape: "#/v1/<app>[.<view>][/<payload>][?d][&s=&x=]".
+// The link's shape: "#/v2/<app>[.<view>][/<payload>][?d][&s=&x=]". (v1's, "#/v1/…", read as ever)
 import { test, expect } from 'vitest';
 import { LINK, parseHash, routeHash, siteOf, withText } from '../src/kit/core/route.ts';
 
 test('a document link is read and written the same way', () => {
-  expect(LINK).toBe('#/v1/');
+  expect(LINK).toBe('#/v2/');
   expect(parseHash('#/v1/text/yABC')).toEqual({ app: 'text', payload: 'yABC', version: 1, view: '', display: false, arrived: null, sealed: false });
   expect(parseHash('#/v1/text.png/yABC')).toEqual({ app: 'text', payload: 'yABC', version: 1, view: 'png', display: false, arrived: null, sealed: false });
   expect(parseHash('#/v1/text')).toEqual({ app: 'text', payload: '', version: 1, view: '', display: false, arrived: null, sealed: false });
@@ -12,14 +12,17 @@ test('a document link is read and written the same way', () => {
   expect(parseHash('').app).toBeNull();
   expect(parseHash('#/').app).toBeNull();
   expect(parseHash('#/v1/Text/x').app).toBeNull();
-  expect(routeHash('text')).toBe('#/v1/text');
+  expect(routeHash('text')).toBe('#/v2/text');
+  expect(routeHash('text', 'wABC')).toBe('#/v2/text/wABC');
+  expect(routeHash('text', 'wABC', 'pdf')).toBe('#/v2/text.pdf/wABC');
+  // A payload a v1 link brought, unchanged, is written under v1 still: the library knows it, an older copy opens it.
   expect(routeHash('text', 'yABC')).toBe('#/v1/text/yABC');
-  expect(routeHash('text', 'yABC', 'pdf')).toBe('#/v1/text.pdf/yABC');
-  expect(parseHash(routeHash('text', 'yABC', 'pdf'))).toEqual({ app: 'text', payload: 'yABC', version: 1, view: 'pdf', display: false, arrived: null, sealed: false });
+  expect(routeHash('text', 'EAbc', '', true)).toBe('#/v1/text/EAbc?d');
+  expect(parseHash(routeHash('text', 'wABC', 'pdf'))).toEqual({ app: 'text', payload: 'wABC', version: 2, view: 'pdf', display: false, arrived: null, sealed: false });
 });
 
 test('the Display Link is "?d" after the payload, outside it; tinier hands a visitor on after it', () => {
-  expect(routeHash('text', 'yABC', '', true)).toBe('#/v1/text/yABC?d');
+  expect(routeHash('text', 'wABC', '', true)).toBe('#/v2/text/wABC?d');
   expect(parseHash('#/v1/text/yABC?d')).toEqual({ app: 'text', payload: 'yABC', version: 1, view: '', display: true, arrived: null, sealed: false });
   expect(parseHash(routeHash('text', 'yABC'))!.display).toBe(false);
   // tinier adds "?s=…" to the link it held, which may already end in "?d".
@@ -40,10 +43,10 @@ test('arriving by a short link: "?s=<id>&x=<expires>", from tinier for everyone,
   expect(parseHash('#/v1/text/yABC?x=1791000000000').arrived).toBeNull();
   expect(parseHash('#/v1/text/yABC?s=../etc&x=1').arrived).toBeNull();
   const arrived = { id: 'abcdefg', expires: 1791000000000 };
-  expect(routeHash('text', 'yABC', '', false, arrived)).toBe('#/v1/text/yABC?s=abcdefg&x=1791000000000');
-  const both = routeHash('text', 'yABC', '', true, arrived);
-  expect(both).toBe('#/v1/text/yABC?d&s=abcdefg&x=1791000000000');
-  expect(parseHash(both)).toEqual({ app: 'text', payload: 'yABC', version: 1, view: '', display: true, arrived, sealed: false });
+  expect(routeHash('text', 'wABC', '', false, arrived)).toBe('#/v2/text/wABC?s=abcdefg&x=1791000000000');
+  const both = routeHash('text', 'wABC', '', true, arrived);
+  expect(both).toBe('#/v2/text/wABC?d&s=abcdefg&x=1791000000000');
+  expect(parseHash(both)).toEqual({ app: 'text', payload: 'wABC', version: 2, view: '', display: true, arrived, sealed: false });
   // Other keys in the query (k, o) are not read: nothing but what it always was.
   const old = parseHash(`#/v1/text/yABC?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}&x=1791000000000`);
   expect(old).toEqual({ app: 'text', payload: 'yABC', version: 1, view: '', display: false, arrived, sealed: false });
@@ -80,13 +83,13 @@ test('a compare fragment and a link to compare take payloads with "~" or "-"', a
 
 test('the language rides in the link as "lang", beside every other parameter, and is absent when none was chosen', async () => {
   const { withLang } = await import('../src/kit/core/route.ts');
-  expect(routeHash('write', 'yABC', '', false, null, 'ht')).toBe('#/v1/write/yABC?lang=ht');
+  expect(routeHash('write', 'wABC', '', false, null, 'ht')).toBe('#/v2/write/wABC?lang=ht');
   expect(parseHash('#/v1/write/yABC?lang=ht')).toEqual({ app: 'write', payload: 'yABC', version: 1, view: '', display: false, arrived: null, sealed: false, lang: 'ht' });
   expect(parseHash(routeHash('write', 'yABC'))).not.toHaveProperty('lang');
-  expect(routeHash('write', 'yABC', '', false, null, null)).toBe('#/v1/write/yABC');
+  expect(routeHash('write', 'wABC', '', false, null, null)).toBe('#/v2/write/wABC');
   // Beside the Display Link and the short link's expiry, each round-trips.
-  const all = routeHash('write', 'yABC', '', true, { id: 'abcdefg', expires: 1791000000000 }, 'pt-br');
-  expect(all).toBe('#/v1/write/yABC?d&s=abcdefg&x=1791000000000&lang=pt-br');
+  const all = routeHash('write', 'wABC', '', true, { id: 'abcdefg', expires: 1791000000000 }, 'pt-br');
+  expect(all).toBe('#/v2/write/wABC?d&s=abcdefg&x=1791000000000&lang=pt-br');
   expect(parseHash(all)).toMatchObject({ display: true, arrived: { id: 'abcdefg', expires: 1791000000000 }, lang: 'pt-br' });
   expect(parseHash('#/v1/deck/yABC?show&lang=ar')).toMatchObject({ show: true, lang: 'ar' });
   expect(parseHash(routeHash('write', 'yABC', 'embed', false, null, 'ht'))).toMatchObject({ view: 'embed', lang: 'ht' });
@@ -115,17 +118,17 @@ test('a Display Link read as text is "&text" beside "?d": read, and put in or ta
 });
 
 test('a long payload is written with a "+" every 300 characters, for iMessage, and read without them; a link from before reads the same', () => {
-  const payload = 'y' + 'AbC9'.repeat(200);
+  const payload = 'w' + 'AbC9'.repeat(200);
   const hash = routeHash('write', payload, '', true);
-  expect(hash).toBe(`#/v1/write/${payload.slice(0, 300)}+${payload.slice(300, 600)}+${payload.slice(600)}?d`);
-  expect(parseHash(hash)).toEqual({ app: 'write', payload, version: 1, view: '', display: true, arrived: null, sealed: false });
-  expect(parseHash(`#/v1/write/${payload}?d`)).toEqual(parseHash(hash));
+  expect(hash).toBe(`#/v2/write/${payload.slice(0, 300)}+${payload.slice(300, 600)}+${payload.slice(600)}?d`);
+  expect(parseHash(hash)).toEqual({ app: 'write', payload, version: 2, view: '', display: true, arrived: null, sealed: false });
+  expect(parseHash(`#/v1/write/${payload}?d`)).toEqual({ ...parseHash(hash), version: 1 });
   // Written again, a link keeps one break in each place.
   expect(routeHash('write', parseHash(hash).payload, '', true)).toBe(hash);
   // A sealed payload is broken and read the same way.
   const sealed = 'E' + 'x'.repeat(400);
   expect(parseHash(routeHash('write', sealed))).toMatchObject({ payload: sealed, sealed: true });
-  expect(routeHash('write', 'yABC')).toBe('#/v1/write/yABC');
+  expect(routeHash('write', 'wABC')).toBe('#/v2/write/wABC');
 });
 
 // The document the bug was found with (Patrick Weaver, #2; Paul, 2026-10-14): the alphabet over and over, whose link
@@ -136,7 +139,7 @@ test('the alphabet document’s link runs no more than 300 letters and digits, a
   const doc = `---\ntitle: ${alphabet}\n---\n${alphabet.repeat(2000)}\n`;
   const hash = routeHash('write', encodeDoc(doc));
   expect(hash.length).toBeGreaterThan(600);
-  const runs = hash.slice('#/v1/write/'.length).split('+');
+  const runs = hash.slice('#/v2/write/'.length).split('+');
   expect(Math.max(...runs.map((p) => p.length))).toBeLessThanOrEqual(300);
   expect(hash.endsWith('+')).toBe(false);
   expect(decodeDoc(parseHash(hash).payload)).toBe(doc);

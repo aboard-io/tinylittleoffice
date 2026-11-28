@@ -20,12 +20,13 @@ test('doc round trip, short and long', () => {
 test('compression kicks in for repetitive text', () => {
   const d = 'The quick brown fox jumps over the lazy dog. '.repeat(40);
   const e = encodeDoc(d);
-  expect(e[0]).toBe('y');
+  expect(e[0]).toBe('w');
   expect(e.length).toBeLessThan(d.length / 4);
 });
 
-test('raw encoding used for tiny docs', () => {
-  expect(encodeDoc('x')[0]).toBe('r');
+test('a tiny document is a few characters; v1 wrote it raw, and that still reads', () => {
+  expect(encodeDoc('x').length).toBeLessThanOrEqual(9);
+  expect(decodeDoc('r' + toBase64Url(strToU8('x')))).toBe('x');
 });
 
 test('garbage decodes to empty', () => {
@@ -34,19 +35,20 @@ test('garbage decodes to empty', () => {
 });
 
 test('budget', () => {
-  const b = budgetFor('https://example.com/#/v1/text/');
-  expect(b.available).toBe(URL_LIMIT - 'https://example.com/#/v1/text/'.length);
+  const b = budgetFor('https://example.com/#/v2/text/');
+  expect(b.available).toBe(URL_LIMIT - 'https://example.com/#/v2/text/'.length);
 });
 
-test('the dictionary shortens everyday documents; plain deflate still reads', () => {
+test("the dictionary shortens everyday documents; plain deflate still reads, and so do v1's", () => {
   const memo = '# Quarterly memo\nThe team will meet on Monday to review the launch plan and the budget for next month.\n- Design review';
   const e = encodeDoc(memo);
-  expect(e[0]).toBe('y');
+  expect(e[0]).toBe('w');
   expect(decodeDoc(e)).toBe(memo);
   const old = 'z' + toBase64Url(deflateSync(strToU8(memo), { level: 9, mem: 12 }));
   expect(decodeDoc(old)).toBe(memo);
   expect(e.length).toBeLessThan(old.length * 0.8);
-  // (Frozen once v1 launches: then a payload made today must decode forever.)
+  expect(decodeDoc('y' + toBase64Url(deflateSync(strToU8(memo), { level: 9, mem: 12, dictionary: DICTIONARY })))).toBe(memo);
+  // (Frozen: a payload made today must decode forever.)
   expect(decodeDoc(encodeDoc('Launch plan for the team meeting on Monday'))).toBe('Launch plan for the team meeting on Monday');
 });
 

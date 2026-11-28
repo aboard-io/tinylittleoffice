@@ -11,7 +11,7 @@ test('sheet: on a phone, tapping cells neither scrolls the page nor moves the ba
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/sheet');
+  await page.goto('/#/v2/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await expect(cell('A1')).toBeVisible();
   const measure = () =>
@@ -40,7 +40,7 @@ test('sheet: on a phone, tapping cells neither scrolls the page nor moves the ba
   await cell('C3').tap();
   await expect(page.getByLabel('Formula')).toHaveValue('=A1+B2');
   await expect(page.getByLabel('Selected cells')).toHaveText('C3');
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/sheet\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/sheet\/[wv]/);
   const last = await measure();
   test.info().annotations.push({ type: 'measured', description: JSON.stringify({ first, last, seen }) });
   // The page stays where it was; the bar is one row, as tall as it started, and never over 56px; nothing is wider than the screen.
@@ -75,7 +75,7 @@ test('sheet: under a finger, a tap selects a cell whole, heads and row numbers a
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/sheet');
+  await page.goto('/#/v2/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('A1').tap();
   await cell('A1').fill('Rent');
@@ -128,7 +128,7 @@ test('sheet: on a phone, the row numbers are a narrow quiet side, a checkbox is 
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/sheet');
+  await page.goto('/#/v2/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await expect(cell('A1')).toBeVisible();
   // The side: as wide as two digits and 8px, unshaded and unruled; the heads 44px for the finger and as quiet.
@@ -180,7 +180,7 @@ test('sheet: on a phone, Money asks its currency in a dialog inside the screen, 
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/sheet');
+  await page.goto('/#/v2/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('B1').tap();
   await cell('B1').fill('1200');
@@ -223,7 +223,7 @@ test('sheet: with the keyboard up the header steps aside, the column heads are o
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.addInitScript(KEYBOARD);
-  await page.goto('/#/v1/sheet');
+  await page.goto('/#/v2/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await expect(cell('A1')).toBeVisible();
   const rows = Array.from({ length: 12 }, (_, i) => `Thing ${i + 1} | ${(i + 1) * 10}`).join('\n');

@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 test('on a phone Undo is on screen at the bar’s end, and a tap on it undoes what was typed', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
-  await page.goto('/#/v1/write');
+  await page.goto('/#/v2/write');
   const words = page.locator('to-write-editor to-text .tx');
   await expect(words).toBeVisible();
   await words.tap();

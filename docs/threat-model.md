@@ -8,7 +8,7 @@ the site can make is listed in `docs/network.md`.
 ## The shape of it
 
 A document is its link. The whole of it, compressed, sits after the `#` of
-`https://tinylittleoffice.com/<app>/#/v1/<app>/<payload>`, and a browser never sends the part after `#` to
+`https://tinylittleoffice.com/<app>/#/v2/<app>/<payload>`, and a browser never sends the part after `#` to
 any server. The site is static files on Cloudflare; there is no account, no database of documents in the
 clear and no server code that receives one. Two services exist besides the files, and nothing else of ours: the
 short-link service (`backends/tinier/`), which holds a document only when someone makes a short link, encrypted under a
@@ -150,7 +150,7 @@ sent in the same message as its link protects nothing, which the Password dialog
 link's are as long as the compressed document plus a fixed overhead.
 
 **Which app a document is.** The app's name is in the path (`/text/`), which the host sees, and in the
-route (`#/v1/text/…`). A password's tag does not cover it: someone who changes a sealed
+route (`#/v2/text/…`). A password's tag does not cover it: someone who changes a sealed
 link's app name changes what opens it, not what it says.
 
 **The cards, to a stranger.** A card is a picture of up to 400 KB (a PNG whole, read chunk by chunk with its checksums

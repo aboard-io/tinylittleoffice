@@ -23,7 +23,7 @@ import {
   type TableBlock,
 } from '../../src/doc/index.ts';
 import { apply } from '../../src/doc/ops.ts';
-import { decodeDoc, encodeDoc, packDoc, toBase64Url } from '../../src/kit/core/codec.ts';
+import { decodeDoc, encodeDoc, packDoc, toBase62 } from '../../src/kit/core/codec.ts';
 import { arbitraryDoc, arbitraryEdits, arbitraryOp, arbitraryText, readGrammar, RULES, RUNS, TLO_EBNF, textOf } from './tlo-grammar.ts';
 
 /** Long enough for RUNS cases of the slowest property (deflate at level 9 twice a case). */
@@ -300,15 +300,17 @@ test(
 /* ---------- the link codec ---------- */
 
 test(
-  'property: packing a document and reading it back is the document, and the encoding chosen is never longer than the raw',
+  "property: packing a document and reading it back is the document, and the packing is never longer than deflate's worst over the raw",
   () => {
     const texts = fc.oneof(arbitraryText(), fc.string({ unit: 'grapheme', maxLength: 300 }));
     holds('decodeDoc(encodeDoc(x)) = x', texts, (x) => {
       const payload = encodeDoc(x);
       expect(decodeDoc(payload)).toBe(x);
       if (!x) return;
-      expect(payload.length).toBeLessThanOrEqual(1 + toBase64Url(new TextEncoder().encode(x)).length);
-      expect(packDoc(x).bytes.length).toBeLessThanOrEqual(new TextEncoder().encode(x).length);
+      // v2 has no raw packing: what does not compress costs at most deflate's worst, nine bits a byte and a block's head.
+      const most = Math.ceil((new TextEncoder().encode(x).length * 9) / 8) + 5;
+      expect(packDoc(x).bytes.length).toBeLessThanOrEqual(most);
+      expect(payload.length).toBeLessThanOrEqual(1 + 3 + toBase62(new Uint8Array(most)).length);
     });
   },
   LONG,

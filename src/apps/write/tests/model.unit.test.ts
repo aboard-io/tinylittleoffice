@@ -191,7 +191,7 @@ test('the web page: the title large, the fields, the table of values, the notes 
   expect(html).toContain('<th scope="col">What</th>');
   expect(html).toContain('role="doc-endnotes"');
   expect(html).toContain('id="fn-1"');
-  expect(html).toContain('href="https://tinylittleoffice.com/#/v1/sheet/');
+  expect(html).toContain('href="https://tinylittleoffice.com/#/v2/sheet/');
   expect(html).toContain('<svg');
   expect(html).toContain('<li class="task done"><input type="checkbox" checked disabled>');
   expect(html).toContain('<meta name="generator" content="TinyLittleOffice">');

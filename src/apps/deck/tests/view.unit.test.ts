@@ -82,7 +82,7 @@ test('a document taller than its box is cut at the foot with "See more" to open 
   const tall = `## A letter\n\n\`\`\`write\n${Array.from({ length: 40 }, (_, i) => `Paragraph ${i + 1} of the letter, long enough to take a line.`).join('\n\n')}\n\`\`\`\n`;
   const page = slidePage(parse(tall), slidesOf(parse(tall))[0], lookOf(settingsOf(parse(tall))));
   expect(page.svg).toContain('See more →');
-  expect(page.svg).toMatch(/<a href="#\/v1\/write\/[^"]+" target="_blank" rel="noopener noreferrer" class="see-more">/);
+  expect(page.svg).toMatch(/<a href="#\/v2\/write\/[^"]+" target="_blank" rel="noopener noreferrer" class="see-more">/);
   // The page is drawn at the box's width, its foot cut: the inner svg's viewBox is shorter than the page.
   expect(page.svg).toMatch(/viewBox="0 0 816 \d+(\.\d+)?" preserveAspectRatio="xMinYMin meet"/);
   expect(page.svg).not.toMatch(/viewBox="0 0 816 1056"/);

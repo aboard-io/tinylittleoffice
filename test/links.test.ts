@@ -84,9 +84,9 @@ test('a preview card’s id, in the path or the query, leaves the app’s page a
 });
 
 test('a link a newer Tiny Little Office made is never read as a document here: refused, and kept as a link when pasted', () => {
-  // The same payloads under #/v2/: a newer format could share the flags and the alphabet, so this codec would guess.
+  // The same payloads under #/v3/: a newer format could share the flags and the alphabet, so this codec would guess.
   for (const e of packed) {
-    const newer = e.link.replace('#/v1/', '#/v2/');
+    const newer = e.link.replace(/#\/v\d+\//, '#/v3/');
     expect(() => read(newer), e.name).toThrow(/newer Tiny Little Office/);
     expect(linkToFence(newer), e.name).toBeNull();
   }

@@ -1,14 +1,15 @@
 /**
  * A password on a document. The packed text (kit/core/codec.ts) is encrypted with AES-256-GCM under a key
  * derived from the password by one HKDF-SHA-256 pass, and the link carries
- *   E<base64url(salt[16] | iv[12] | ciphertext)>
- * where the plaintext is the codec's flag byte followed by the packed bytes, so the tag authenticates the
+ *   e<crc><base62(salt[16] | iv[12] | ciphertext)>
+ * (v2's shape, kit/core/codec.ts wrap: the checksum tells a link cut short from a wrong password, before any is
+ * asked for; v1's links carried E<base64url(…)>, and open as they did), where the plaintext is the codec's flag byte followed by the packed bytes, so the tag authenticates the
  * flag too. Every password is one the app made (kit/share/passwords.ts: about 116 random bits), so the password is
  * the entropy and the KDF only turns it into a key: there is nothing to stretch, and opening costs a phone
  * nothing. Each edit runs AES-GCM with
  * a fresh IV. WebCrypto alone. docs/crypto/password.md gives the layout and why it is sound.
  */
-import { encodeDoc, fromBase64Url, isSealed, packDoc, toBase64Url, unpackDoc } from '../core/codec.ts';
+import { encodeDoc, fromBase64Url, isSealed, packDoc, unpackDoc, unwrap, wrap } from '../core/codec.ts';
 
 /** HKDF's info: names the format, so this key is for nothing else. */
 const INFO = new TextEncoder().encode('tinylittleoffice sealed v1');
@@ -56,15 +57,15 @@ export async function sealAt(locker: Locker, flag: string, bytes: Uint8Array, iv
   out.set(locker.salt, 0);
   out.set(iv, SALT_LEN);
   out.set(ct, SALT_LEN + IV_LEN);
-  return 'E' + toBase64Url(out);
+  return wrap('e', out);
 }
 
-/** A sealed payload's parts, or null for one too short or not base64url. */
+/** A sealed payload's parts, or null for one too short, or not its version's text, or (v2) whose checksum fails. */
 function parts(payload: string): { salt: Uint8Array; iv: Uint8Array; ct: Uint8Array } | null {
   if (!isSealed(payload)) return null;
   let all: Uint8Array;
   try {
-    all = fromBase64Url(payload.slice(1));
+    all = payload[0] === 'e' ? unwrap(payload).bytes : fromBase64Url(payload.slice(1));
   } catch {
     return null;
   }
@@ -72,7 +73,7 @@ function parts(payload: string): { salt: Uint8Array; iv: Uint8Array; ct: Uint8Ar
   return { salt: all.slice(0, SALT_LEN), iv: all.slice(SALT_LEN, SALT_LEN + IV_LEN), ct: all.slice(SALT_LEN + IV_LEN) };
 }
 
-/** Whether a payload has a sealed payload's shape at all: "E", base64url, and at least a salt, an IV, a flag and a tag. A link cut short in a chat fails here, before any password is asked for. */
+/** Whether a payload has a sealed payload's shape at all: "e" and its checksum (v1: "E" and base64url), and at least a salt, an IV, a flag and a tag. A link cut short in a chat fails here, before any password is asked for. */
 export const isWholeSeal = (payload: string): boolean => parts(payload) !== null;
 
 async function open(key: CryptoKey, iv: Uint8Array, ct: Uint8Array): Promise<{ flag: string; bytes: Uint8Array } | null> {

@@ -50,13 +50,13 @@ so the code does not need to know it is under a path. A build without these sett
 A document is everything after the `#`, so a link opens on either copy by changing what comes before it:
 
 ```text
-https://tinylittleoffice.com/outline/#/v1/outline/<payload>
-https://aboard-io.github.io/tinylittleoffice/outline/#/v1/outline/<payload>
+https://tinylittleoffice.com/outline/#/v2/outline/<payload>
+https://aboard-io.github.io/tinylittleoffice/outline/#/v2/outline/<payload>
 ```
 
 The site's address is `https://tinylittleoffice.com/` on one and `https://aboard-io.github.io/tinylittleoffice/` on the
 other; the rest, an app's page (`outline/`) and the fragment, is the same. A card link,
-`https://tinylittleoffice.com/c/<id>#/v1/…`, becomes the mirror's address followed by the fragment, the `c/<id>` left
+`https://tinylittleoffice.com/c/<id>#/v2/…`, becomes the mirror's address followed by the fragment, the `c/<id>` left
 out. A link with a password opens the same on both, and asks for the same password.
 
 ## The shortener

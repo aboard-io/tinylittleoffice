@@ -34,12 +34,12 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   expect((await axe(page)).violations).toEqual([]);
 
   await page.locator('.to-app-open').first().click();
-  await expect(page).toHaveURL(/#\/v1\/write$/);
+  await expect(page).toHaveURL(/#\/v2\/write$/);
   const area = page.locator('to-write-editor to-text .tx');
   await expect(area).toBeVisible();
   await area.click();
   await page.keyboard.type('A line written on the phone.');
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/write\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/write\/[wv]/);
   await expect(area.locator('p')).toHaveText('A line written on the phone.');
   // Done (the keyboard's, on a phone): the words let go, and the header, which steps aside on a phone while they have
   // the focus (kit/ui/chrome.ts), is back.

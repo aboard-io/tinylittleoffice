@@ -35,7 +35,7 @@ test("at every size on a phone the drawer's Download row opens its menu under it
   await page.viewport(390, 844);
   for (const at of [1, 1.5, 2, 2.5]) {
     keepSize(at);
-    const shell = await mount(`#/v1/write/${encodeDoc('# Notes\n\nWords.\n')}`);
+    const shell = await mount(`#/v2/write/${encodeDoc('# Notes\n\nWords.\n')}`);
     await until(() => !!shell.querySelector('to-write-editor'));
     await openDownload(shell);
     const b = shell.querySelector('.to-drawer-download > button')!.getBoundingClientRect();
@@ -90,7 +90,7 @@ async function shareSheet(body: (shared: ShareData[]) => Promise<void>) {
   }
 }
 
-const NOTES = `#/v1/write/${encodeDoc('---\ntitle: Notes\n---\n# Notes\n\nWords.\n')}`;
+const NOTES = `#/v2/write/${encodeDoc('---\ntitle: Notes\n---\n# Notes\n\nWords.\n')}`;
 const rows = (shell: HTMLElement) => [...shell.querySelectorAll<HTMLElement>('.to-drawer-download .to-menu-row')];
 const row = (shell: HTMLElement, name: string) => rows(shell).find((r) => r.getAttribute('aria-label') === name)!;
 const acts = (r: HTMLElement) => [...r.querySelectorAll<HTMLButtonElement>('[role=menuitem]')];
@@ -175,7 +175,7 @@ test('Copy link gives the link that downloads the file, and opening it downloads
     ]) {
       await openDownload(shell);
       acts(row(shell, name)).at(-1)!.click();
-      await until(() => copied().includes(`#/v1/write.${ext}/`));
+      await until(() => copied().includes(`#/v2/write.${ext}/`));
       links[ext] = copied();
     }
   });
@@ -239,7 +239,7 @@ test("the keys: Up and Down between rows, Left and Right between a row's actions
     key('ArrowDown');
     key('ArrowLeft');
     key('Enter');
-    await until(() => copied().includes('#/v1/write.pdf/'));
+    await until(() => copied().includes('#/v2/write.pdf/'));
   });
   await until(() => !menu(shell).matches(':popover-open'));
   expect(document.activeElement).toBe(button);
@@ -298,7 +298,7 @@ test('the table reads each format: View where the browser shows the file, Share 
     for (const [name, has] of Object.entries(want)) expect(kinds(row(shell, name)), name).toEqual(has);
     expect(menu(shell).getBoundingClientRect().right).toBeLessThanOrEqual(390);
     menu(shell).hidePopover();
-    shell = await mount(`#/v1/anim/${encodeDoc(appOf('anim')!.blank())}`);
+    shell = await mount(`#/v2/anim/${encodeDoc(appOf('anim')!.blank())}`);
     await until(() => !!shell.querySelector('to-anim-editor'));
     await openDownload(shell);
     expect(rows(shell).map((r) => r.getAttribute('aria-label'))).toEqual([
@@ -320,25 +320,25 @@ test('the table reads each format: View where the browser shows the file, Share 
 
 test('a ".<ext>" link downloads any of the app\'s formats, a kit\'s or its own, and an extension it has not opens the document plainly', async () => {
   const got = downloads();
-  const payload = NOTES.slice('#/v1/write/'.length);
+  const payload = NOTES.slice('#/v2/write/'.length);
   for (const ext of ['tlo', 'docx']) {
-    const shell = await mount(`#/v1/write.${ext}/${payload}`);
+    const shell = await mount(`#/v2/write.${ext}/${payload}`);
     await until(() => got.has(`notes.${ext}`), 8000);
     await until(() => !!shell.querySelector('to-write-editor') && parseHash(location.hash).view === '');
   }
   expect(got.get('notes.docx')!.type).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   expect(await got.get('notes.tlo')!.text()).toContain('app: write');
   // An animation's GIF, by its own link.
-  const anim = await mount(`#/v1/anim.gif/${encodeDoc(appOf('anim')!.blank())}`);
+  const anim = await mount(`#/v2/anim.gif/${encodeDoc(appOf('anim')!.blank())}`);
   await until(() => [...got.keys()].some((n) => n.endsWith('.gif')), 15000);
   await until(() => !!anim.querySelector('to-anim-editor'));
   // Its video, by its own link: the link waits for the browser to say it can make one.
-  await mount(`#/v1/anim.webm/${encodeDoc(appOf('anim')!.blank())}`);
+  await mount(`#/v2/anim.webm/${encodeDoc(appOf('anim')!.blank())}`);
   await until(() => [...got.keys()].some((n) => n.endsWith('.webm')), 15000);
   expect([...got.values()].find((f) => f.name.endsWith('.webm'))!.type).toBe('video/webm');
   // No such format: the document, and nothing else (no file, no word about it).
   got.clear();
-  const shell = await mount(`#/v1/write.nope/${payload}`);
+  const shell = await mount(`#/v2/write.nope/${payload}`);
   await until(() => !!shell.querySelector('to-write-editor') && parseHash(location.hash).view === '');
   await new Promise((r) => setTimeout(r, 300));
   expect(got.size).toBe(0);
@@ -379,7 +379,7 @@ test("the Print row's keys are a kbd beside its name under a mouse, and are not 
 
 test("where the browser makes a WebM, the Animator's Download table has the video after the GIF and the Deck's its film after the GIF film", async () => {
   await page.viewport(390, 844);
-  const anim = await mount(`#/v1/anim/${encodeDoc((await appOf('anim')!.templates())[0].doc)}`);
+  const anim = await mount(`#/v2/anim/${encodeDoc((await appOf('anim')!.templates())[0].doc)}`);
   await until(() => !!anim.querySelector('to-anim-editor'), 10_000);
   await openDownload(anim);
   await until(() => rows(anim).some((r) => r.getAttribute('aria-label') === 'Video (WebM)'));
@@ -387,7 +387,7 @@ test("where the browser makes a WebM, the Animator's Download table has the vide
   expect(labels(anim).slice(-3)).toEqual(['Animated GIF', 'Video (WebM)', 'Animated SVG']);
   expect(acts(row(anim, 'Video (WebM)')).map((b) => b.getAttribute('aria-label'))).toEqual(['View the .webm', 'Download the .webm', 'Copy a link that downloads the .webm']);
   menu(anim).hidePopover();
-  const deck = await mount(`#/v1/deck/${encodeDoc('## One\n\n- A\n- B\n')}`);
+  const deck = await mount(`#/v2/deck/${encodeDoc('## One\n\n- A\n- B\n')}`);
   await until(() => !!deck.querySelector('to-deck-editor'), 10_000);
   await openDownload(deck);
   await until(() => rows(deck).some((r) => r.getAttribute('aria-label') === 'A film of the deck (WebM)'));
@@ -398,7 +398,7 @@ test("where the browser makes a WebM, the Animator's Download table has the vide
 test('Mod+Shift+D on a phone opens the drawer with This document’s Download row brought to its top and the table under it', async () => {
   await page.viewport(390, 844);
   try {
-    const shell = await mount(`#/v1/write/${encodeDoc('# Notes\n\nWords.\n')}`);
+    const shell = await mount(`#/v2/write/${encodeDoc('# Notes\n\nWords.\n')}`);
     await until(() => !!shell.querySelector('to-write-editor'));
     const mac = /Mac|iPhone|iPad/.test(navigator.platform);
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'D', code: 'KeyD', shiftKey: true, ctrlKey: !mac, metaKey: mac, bubbles: true, cancelable: true }));

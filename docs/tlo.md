@@ -1,7 +1,7 @@
 # TLO: the document format
 
 Every Tiny Little Office document is one text, written in TLO: Markdown, with a few additions. The link holds
-this text, compressed (`#/v1/<app>/<payload>`); a `.tlo` file is this text. A language model writes it the way it
+this text, compressed (`#/v2/<app>/<payload>`; `#/v1/…`, before 2026-11-28, is read as ever); a `.tlo` file is this text. A language model writes it the way it
 writes any Markdown, and this page is its reference. A person never types it: every label, link, card and field
 is a form or direct manipulation, and the code writes the text (Paul, 2026-10-09: "I should never, ever, ever edit Markdown as a human. Only as an LLM agent.").
 
@@ -101,7 +101,7 @@ The shell's keys are `title`, `by` and `created` (and `app` in a `.tlo` file). A
   by its app where it sits. Under an outline item it says its depth: ```` ```sheet {depth=2} ````.
 - ```` ```qr ```` with nothing in it: the QR code of this document's own link, drawn afresh as the document
   changes; with an address in it, that address's code (Insert ▾ → QR code of this document).
-- ```` ```locked ```` holding a link's fragment, `#/v1/write/E…`: a document locked with a password, kept sealed. It is
+- ```` ```locked ```` holding a link's fragment, `#/v2/write/e…` (or v1's `#/v1/write/E…`): a document locked with a password, kept sealed. It is
   drawn as a locked card (its app and nothing more can be read) until its password is given in an editor.
 
 ## The document as JSON

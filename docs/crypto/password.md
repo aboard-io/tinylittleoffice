@@ -64,26 +64,32 @@ The bytes of a sealed payload, in order:
 salt (16) | iv (12) | AES-256-GCM(key, iv, flag | bytes) with the 16-byte tag last
 ```
 
-and its text form, which is what the link carries as `#/v1/<app>/<payload>`:
+and its text form, which is what the link carries as `#/v2/<app>/<payload>`:
 
 ```
-"E" + base64url(those bytes), no padding
+"e" + check + base62(those bytes)
 ```
 
-Base64url throughout Tiny Little Office is RFC 4648's URL alphabet with `~` for 62 where the RFC has `-`
-(`src/kit/core/codec.ts`): a hyphen is a place a line may break, so a long link full of them was cut when pasted.
-Reading takes `-` as 62 too; a link made before is the same bytes.
+where `check` is CRC-16/CCITT-FALSE (polynomial 0x1021, from 0xFFFF) over the byte `e` and those bytes, written as
+three base62 characters, and base62 is the alphabet `0-9A-Za-z`, big-endian, 32 bytes to 43 characters and a last
+block of k bytes in the fewest characters c with 62^c ≥ 256^k (`wrap` in `src/kit/core/codec.ts`). The check is not
+security: AES-GCM's tag is that. It tells a link cut short in a chat, or with a word glued to its end, from a wrong
+password, so the site says the link is damaged rather than asking for a password nothing can open.
+
+A link of version 1 (`#/v1/<app>/<payload>`, before 2026-11-28) carried the same bytes as `"E" + base64url(those
+bytes)`, no padding, and is opened as it always was. Its base64url is RFC 4648's URL alphabet with `~` for 62 where the
+RFC has `-` (a hyphen is a place a line may break); reading takes `-` as 62 too.
 
 The link writes a `+` after every 300 characters of any payload, sealed or not (`withBreaks` in codec.ts, written by
 `routeHash`): iMessage and Signal do not make a link of a run of more than 301 letters and digits. The breaks are
 outside the payload: reading takes them out before anything else, and a link without them is read the same.
 
-So a sealed payload is `E` and at least 60 characters (16 + 12 + 1 + 16 = 45 bytes for an empty document).
-Anything shorter, or not base64url, is not a sealed payload.
+So a sealed payload is `e`, its check and at least 61 characters (16 + 12 + 1 + 16 = 45 bytes for an empty document;
+v1's, `E` and at least 60). Anything shorter, or whose check fails, is not a sealed payload.
 
-**There is no separate version byte.** `E` says "sealed this way"; the `v1` in the route is the link format's
-version, outside the encryption. The plain (unsealed) payloads start with their flag letter, which is never
-`E`.
+**There is no separate version byte.** `e` (v1: `E`) says "sealed this way"; the `v2` in the route is the link
+format's version, outside the encryption. The plain (unsealed) payloads start with their flag letter, which is never
+`e` or `E`.
 
 ## What happens when
 
@@ -119,7 +125,8 @@ the plaintext, the ciphertext with its tag, and the sealed text. With any HKDF a
 ```
 key    = HKDF-SHA-256(ikm = passwordNfkcHex, salt = saltHex, info = "tinylittleoffice sealed v1", 32)  == keyHex
 out    = AES-256-GCM-encrypt(key, ivHex, plaintextHex, no AAD)                                        == ciphertextAndTagHex
-sealed = "E" + base64url(salt | iv | out)                                                              == sealed
+sealed = "e" + check + base62(salt | iv | out)                                                        == sealed
+         "E" + base64url(salt | iv | out), version 1's form                                          == sealedV1
 ```
 
 The file is written by the test's own helper from the inputs it names (`TLO_WRITE_VECTORS=1 npx vitest run

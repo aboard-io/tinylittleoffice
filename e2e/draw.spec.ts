@@ -12,7 +12,7 @@ import { link } from './link.ts';
 test('draw: a shape from a key and a click, then a pixel grid that becomes the background', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/draw');
+  await page.goto('/#/v2/draw');
   const canvas = page.locator('svg.draw-canvas');
   await expect(canvas).toBeVisible();
   const measure = () =>
@@ -38,7 +38,7 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * 0.2, y: box.height * 0.3 } });
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/draw\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/draw\/[wv]/);
   await expect(canvas.locator('.handle:not(.handle-hit)')).toBeVisible();
   const after = await measure();
   expect(after.bar).toBe(first.bar);
@@ -63,7 +63,7 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
 test("draw: a shape tapped has its contextual bar inside the screen, and the bar's Delete takes the shape away", async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/draw');
+  await page.goto('/#/v2/draw');
   const canvas = page.locator('svg.draw-canvas');
   await expect(canvas).toBeVisible();
   const touch = !!info.project.use.hasTouch;
@@ -140,7 +140,7 @@ test("draw: a shape tapped has its contextual bar inside the screen, and the bar
 test("draw by finger: two taps on a shape type its words; the fitted canvas and a shape keep the finger; the bar's Undo brings back a deleted shape, chosen", async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/draw');
+  await page.goto('/#/v2/draw');
   const canvas = page.locator('svg.draw-canvas');
   await expect(canvas).toBeVisible();
   const touch = !!info.project.use.hasTouch;
@@ -187,7 +187,7 @@ test("draw by finger: two taps on a shape type its words; the fitted canvas and 
 test("draw: the turn handle is in reach above a chosen shape and turns it; a finger's drag on the empty canvas with Select in hand chooses the shapes inside its box", async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/#/v1/draw');
+  await page.goto('/#/v2/draw');
   const canvas = page.locator('svg.draw-canvas');
   await expect(canvas).toBeVisible();
   const touch = !!info.project.use.hasTouch;

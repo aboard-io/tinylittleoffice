@@ -33,7 +33,7 @@ test('motion: a shape drawn, then moved at the last moment, keys itself there', 
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * 0.2, y: box.height * 0.3 } });
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/anim\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/anim\/[wv]/);
   expect(await value(page)).toMatch(/^Kind \| X \| Y \| W \| H \| Style \| Label\n--- \| --- \| --- \| --- \| --- \| --- \| ---\nr \| \d+ \| \d+ \| 12 \| 6 \| 0 \|\n$/);
 
   // Move mode: the last moment, then the rectangle dragged down and to the right. On a phone the chosen shape's bar is
@@ -105,7 +105,7 @@ test('motion: a tap chooses a shape and its contextual bar comes up under it, 44
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * 0.3, y: box.height * 0.3 } });
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/anim\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/anim\/[wv]/);
   await canvas.click({ position: { x: box.width - 4, y: box.height - 4 } });
   await page.getByRole('button', { name: 'Move', exact: true }).click();
   const stage = page.locator('svg.anim-stage');

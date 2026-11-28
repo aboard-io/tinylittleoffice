@@ -4,7 +4,7 @@
 // implementation to check itself against.
 import { test, expect } from 'vitest';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { fromBase64Url, toBase64Url } from '../src/kit/core/codec.ts';
+import { fromBase64Url, toBase64Url, unwrap, wrap } from '../src/kit/core/codec.ts';
 import { deriveKey, sealAt, unseal } from '../src/kit/share/crypt.ts';
 import { sealShortAt, shortLink, unshorten } from '../src/kit/share/short.ts';
 import { journalAddress, openEntry, PAD, readerKeys, sealEntryAt, verifierOf, writerKeys, type Kind } from '../src/kit/share/journal.ts';
@@ -20,7 +20,7 @@ const subtle = globalThis.crypto.subtle;
 const KDF = { name: 'HKDF', hash: 'SHA-256', info: 'tinylittleoffice sealed v1', keyBytes: 32, saltBytes: 16, normalize: 'NFKC' };
 const CIPHER = { name: 'AES-GCM', keyBits: 256, ivBytes: 12, tagBytes: 16, additionalData: null };
 const ABOUT =
-  "Tiny Little Office password sealing (src/kit/share/crypt.ts, docs/crypto/password.md). The password is one the app made (twenty characters from an alphabet of 56, about 116 bits); key = HKDF-SHA-256(ikm = NFKC(password) as UTF-8, salt, info = 'tinylittleoffice sealed v1' as UTF-8, 32 bytes); plaintext = the codec's flag byte then the document's bytes (flag 'r': UTF-8 as it is); sealed = 'E' + base64url without padding of salt[16] | iv[12] | AES-256-GCM(key, iv, plaintext) with its 16-byte tag last and no additional data. Fixed salts and IVs are for these vectors only: the site draws both from crypto.getRandomValues. Base64url here is RFC 4648's URL alphabet with '~' for 62 where the RFC has '-' (a hyphen is where a pasted link breaks a line), no padding; '-' is read as 62 too.";
+  "Tiny Little Office password sealing (src/kit/share/crypt.ts, docs/crypto/password.md). The password is one the app made (twenty characters from an alphabet of 56, about 116 bits); key = HKDF-SHA-256(ikm = NFKC(password) as UTF-8, salt, info = 'tinylittleoffice sealed v1' as UTF-8, 32 bytes); plaintext = the codec's flag byte then the document's bytes (flag 'r': UTF-8 as it is); sealed = 'e' + check + base62 of salt[16] | iv[12] | AES-256-GCM(key, iv, plaintext) with its 16-byte tag last and no additional data, where base62 is '0-9A-Za-z', big-endian, 32 bytes to 43 characters and a last block of k bytes in the fewest characters c with 62^c >= 256^k, and check is CRC-16/CCITT-FALSE over the byte 'e' then those bytes, in three base62 characters (src/kit/core/codec.ts wrap); sealedV1 is the same bytes as v1 links carry them, 'E' + base64url without padding, read and never written. Fixed salts and IVs are for these vectors only: the site draws both from crypto.getRandomValues. Base64url (v1) is RFC 4648's URL alphabet with '~' for 62 where the RFC has '-' (a hyphen is where a pasted link breaks a line), no padding; '-' is read as 62 too.";
 const INPUTS = [
   { password: 'Hq7wN-3mXkd-RtP9z-aVb4s', saltHex: '000102030405060708090a0b0c0d0e0f', ivHex: '101112131415161718191a1b', flag: 'r', document: '---\ntitle: Vector\n---\nThe note passed in class.\n' },
   {
@@ -50,7 +50,8 @@ async function passwordVector(v: (typeof INPUTS)[number]) {
     document: v.document,
     plaintextHex: hex(plain),
     ciphertextAndTagHex: hex(out),
-    sealed: 'E' + toBase64Url(new Uint8Array([...salt, ...iv, ...out])),
+    sealed: wrap('e', new Uint8Array([...salt, ...iv, ...out])),
+    sealedV1: 'E' + toBase64Url(new Uint8Array([...salt, ...iv, ...out])),
   };
 }
 
@@ -66,9 +67,11 @@ for (const [i, v] of (read('password.json').vectors as Record<string, string>[])
       iv = unhex(v.ivHex);
     // The kit's key is the vector's: AES-GCM under the raw key opens what the kit sealed.
     expect(await sealAt({ salt, key: await deriveKey(v.password, salt) }, v.flag, utf8(v.document), iv)).toBe(v.sealed);
-    // The layout: "E", then base64url of salt | iv | ciphertext and tag; AES-GCM by hand opens it.
-    expect(v.sealed[0]).toBe('E');
-    const all = b64(v.sealed.slice(1));
+    // The layout: "e", its checksum, then base62 of salt | iv | ciphertext and tag (v1: "E" and base64url of the
+    // same bytes); AES-GCM by hand opens it.
+    expect(v.sealed[0]).toBe('e');
+    const all = unwrap(v.sealed).bytes;
+    expect(hex(b64(v.sealedV1.slice(1)))).toBe(hex(all));
     expect(hex(all.slice(0, 16))).toBe(v.saltHex);
     expect(hex(all.slice(16, 28))).toBe(v.ivHex);
     expect(hex(all.slice(28))).toBe(v.ciphertextAndTagHex);
@@ -79,6 +82,8 @@ for (const [i, v] of (read('password.json').vectors as Record<string, string>[])
     expect(opened?.flag).toBe(v.flag);
     expect(new TextDecoder().decode(opened!.bytes)).toBe(v.document);
     expect(await unseal(v.password + ' ', v.sealed)).toBeNull();
+    // A v1 link's seal opens as it always did.
+    expect(new TextDecoder().decode((await unseal(v.password, v.sealedV1))!.bytes)).toBe(v.document);
   });
 }
 

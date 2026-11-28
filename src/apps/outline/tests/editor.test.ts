@@ -325,7 +325,7 @@ test('Insert puts a document under the chosen item; a tap below the last row sta
   expect(last()).toBe('- Launch\n  - Product\n    - Pricing\n\n```sheet {depth=1}\n```\n\n  - Marketing\n');
   const card = row(el, 3).querySelector<HTMLElement>('.ol-doc')!;
   expect(card.textContent).toContain('Spreadsheet');
-  expect(card.querySelector('a')!.getAttribute('href')).toMatch(/#\/v1\/sheet$/);
+  expect(card.querySelector('a')!.getAttribute('href')).toMatch(/#\/v2\/sheet$/);
   expect(document.activeElement).toBe(card);
   // Delete on the card takes it away; undo brings it back.
   card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }));
@@ -366,7 +366,7 @@ test('loose words arriving are made an outline with one undoable splice; a paste
   await el.updateComplete;
   await tick();
   const dt = new DataTransfer();
-  dt.setData('text/plain', 'https://tinylittleoffice.com/#/v1/draw');
+  dt.setData('text/plain', 'https://tinylittleoffice.com/#/v2/draw');
   textOf(el, 3).tx.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   await el.updateComplete;
   await tick();
@@ -968,7 +968,7 @@ test('Insert ▾ lists Tiny Little Office Doc and every other app, and no web em
   await pick(el, opener, 'Tiny Little Office Doc');
   await until(() => !!document.querySelector('.to-ask-doc .to-ask-url'));
   const box = document.querySelector<HTMLInputElement>('.to-ask-doc .to-ask-url')!;
-  box.value = 'https://tinylittleoffice.com/#/v1/draw/' + encodeDoc('rect 1 1 5 5\n');
+  box.value = 'https://tinylittleoffice.com/#/v2/draw/' + encodeDoc('rect 1 1 5 5\n');
   box.dispatchEvent(new Event('input', { bubbles: true }));
   await until(() => !document.querySelector<HTMLButtonElement>('.to-ask-doc .to-ask-ok')!.disabled);
   document.querySelector<HTMLButtonElement>('.to-ask-doc .to-ask-ok')!.click();
@@ -1178,8 +1178,8 @@ test('Agenda lists the things to do, sorted by status or by day; By status group
   try {
     await pick(el, el.querySelector<HTMLButtonElement>('.ol-view-as button')!, 'Calendar');
     await until(() => opened.length === 1);
-    expect(opened[0]).toMatch(/#\/v1\/cal\//);
-    expect(decodeDoc(opened[0].slice(opened[0].indexOf('#/v1/cal/') + '#/v1/cal/'.length))).toBe(
+    expect(opened[0]).toMatch(/#\/v2\/cal\//);
+    expect(decodeDoc(opened[0].slice(opened[0].indexOf('#/v2/cal/') + '#/v2/cal/'.length))).toBe(
       '---\nred: TODO\norange: DOING\ngreen: DONE\n---\n- 2027-03-09: Plan {color=red}\n- 2027-03-01: Draft {color=green}\n',
     );
   } finally {

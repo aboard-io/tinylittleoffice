@@ -35,7 +35,7 @@ test('a zip as Download everything wrote it, dropped on an empty device: the sam
   const file = zipFile({
     'write/launch-notes.tlo': launch,
     'sheet/untitled.tlo': sheet,
-    'write/locked.txt': `https://tinylittleoffice.example/#/v1/write/${locked}\n`,
+    'write/locked.txt': `https://tinylittleoffice.example/#/v2/write/${locked}\n`,
     'outline/errands.tlo': errands,
   });
   const shell = await mount('');
@@ -43,10 +43,10 @@ test('a zip as Download everything wrote it, dropped on an empty device: the sam
   dropFile(file);
   await until(() => toast() === '4 documents kept');
   expect(shape()).toEqual([
-    { app: 'write', title: 'Launch notes', hash: `#/v1/write/${encodeDoc(launch)}` },
-    { app: 'sheet', title: '', hash: `#/v1/sheet/${encodeDoc(sheet)}` },
-    { app: 'write', title: '', hash: `#/v1/write/${locked}` },
-    { app: 'outline', title: 'Errands', hash: `#/v1/outline/${encodeDoc(errands)}` },
+    { app: 'write', title: 'Launch notes', hash: `#/v2/write/${encodeDoc(launch)}` },
+    { app: 'sheet', title: '', hash: `#/v2/sheet/${encodeDoc(sheet)}` },
+    { app: 'write', title: '', hash: `#/v2/write/${locked}` },
+    { app: 'outline', title: 'Errands', hash: `#/v2/outline/${encodeDoc(errands)}` },
   ]);
   // The home page has them, nothing reloaded.
   await until(() => shell.querySelector('.to-home')!.textContent!.includes('Launch notes'));
@@ -74,8 +74,8 @@ test('under Private a zip lists its documents by app and name: Open the first, a
   expect([...body.querySelectorAll('.to-zip-docs a')].map((a) => a.textContent!.trim())).toEqual(['Plan', 'memo', 'Costs']);
   // Open the first.
   body.querySelector<HTMLButtonElement>('.to-zip-first')!.click();
-  await until(() => location.hash.startsWith('#/v1/write/') && !dialog().dialog.open);
-  expect(location.hash).toBe(`#/v1/write/${encodeDoc('---\ntitle: Plan\n---\nFirst.\n')}`);
+  await until(() => location.hash.startsWith('#/v2/write/') && !dialog().dialog.open);
+  expect(location.hash).toBe(`#/v2/write/${encodeDoc('---\ntitle: Plan\n---\nFirst.\n')}`);
   expect(keeping()).toBe(false);
   await tick(50); // the hashchange heard before the next shell is mounted
   // A name opens that one; one with no name of its own is called by its file's.
@@ -83,8 +83,8 @@ test('under Private a zip lists its documents by app and name: Open the first, a
   dropFile(zipFile(docs));
   await until(() => !!dialog()?.dialog?.open);
   [...dialog().querySelectorAll<HTMLAnchorElement>('.to-zip-docs a')].find((a) => a.textContent!.trim() === 'memo')!.click();
-  await until(() => !dialog().dialog.open && location.hash.startsWith('#/v1/write/'));
-  expect(location.hash).toBe(`#/v1/write/${encodeDoc('---\ntitle: memo\n---\nJust words.\n')}`);
+  await until(() => !dialog().dialog.open && location.hash.startsWith('#/v2/write/'));
+  expect(location.hash).toBe(`#/v2/write/${encodeDoc('---\ntitle: memo\n---\nJust words.\n')}`);
   await tick(50);
   // Keep them on this device.
   await mount('');
@@ -116,8 +116,8 @@ test('a zip of one document opens it, as that file would; a zip of none says so'
   setKeeping(true);
   await mount('');
   dropFile(zipFile({ 'sheet/costs.tlo': '---\ntitle: Costs\n---\na | b\n', 'README.txt': 'hi\n' }));
-  await until(() => location.hash.startsWith('#/v1/sheet/'));
-  expect(location.hash).toBe(`#/v1/sheet/${encodeDoc('---\ntitle: Costs\n---\na | b\n')}`);
+  await until(() => location.hash.startsWith('#/v2/sheet/'));
+  expect(location.hash).toBe(`#/v2/sheet/${encodeDoc('---\ntitle: Costs\n---\na | b\n')}`);
   expect(document.querySelector('to-dialog.to-zip-dialog')?.querySelector('dialog')?.open ?? false).toBe(false);
   await mount('');
   dropFile(zipFile({ 'README.txt': 'hi\n' }));

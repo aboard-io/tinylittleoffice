@@ -48,7 +48,7 @@ test('calendar: on a phone, a tap on a day opens the dialog over a grid that sta
   await expect(dialog).toBeHidden();
   expect(await value(page)).toMatch(/^- \d{4}-\d\d-\d\d: Dentist\n$/);
   await expect(page.locator('.cal-cell.today .cal-chip')).toHaveText('Dentist');
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/cal\/./);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/cal\/./);
   const after = await measure(page);
   expect([first, typing, after].map((s) => s.rows)).toEqual([1, 1, 1]);
   expect(new Set([first.bar, after.bar]).size).toBe(1);

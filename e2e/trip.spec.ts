@@ -48,7 +48,7 @@ test('trip: taps on the map add stops, pins mark them, a name is typed', async (
   await map.click({ position: { x: box.width * 0.6, y: box.height * 0.4 } });
   await expect(page.locator('.trip-stop')).toHaveCount(2);
   await expect(map.locator('.trip-pin')).toHaveCount(2);
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/trip\/./);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/trip\/./);
   await expect(page.locator('.trip-stop .trip-name .tx').first()).toHaveText('Here');
   await expect(page.locator('.trip-count')).toContainText('2 stops');
   const after = await measure();

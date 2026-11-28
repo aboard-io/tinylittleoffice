@@ -11,6 +11,7 @@ import { COUNTRIES } from '../../src/apps/trip/countries.ts';
 import { language, setLanguage, t } from '../../src/kit/core/i18n.ts';
 import { cdp, page } from 'vitest/browser';
 import { mount, openDrawerDoc, tick, until, settled } from './helpers.ts';
+import { LINK } from '../../src/kit/core/route.ts';
 
 type MapLike = {
   getCenter(): { lat: number; lng: number };
@@ -173,14 +174,14 @@ test('390×844 with a finger: Blank chosen on a blank trip leaves the focus wher
   await page.viewport(390, 844);
   await coarse(true);
   try {
-    const shell = await mount('#/v1/trip');
+    const shell = await mount(`${LINK}trip`);
     await until(() => !!shell.querySelector('.trip-map.maplibregl-map'), 8000);
     // The drawer lists no apps or templates (Paul, 2026-10-12): the blank trip from inside the trip is New trip, in This document.
     const drawer = await openDrawerDoc(shell);
     drawer.querySelector<HTMLAnchorElement>('.to-drawer-new')!.click();
     // (The map's canvas is its tab stop: MapLibre's keys listen there.)
     await until(() => document.activeElement === shell.querySelector('.trip-map .maplibregl-canvas'), 'Blank never opened the trip with its map in hand');
-    expect(location.hash).toBe('#/v1/trip');
+    expect(location.hash).toBe(`${LINK}trip`);
     expect(document.activeElement?.classList.contains('to-keyboard-hold')).toBe(false);
     expect(document.activeElement).toBe(shell.querySelector('.trip-map .maplibregl-canvas'));
   } finally {

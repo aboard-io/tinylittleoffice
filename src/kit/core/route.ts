@@ -1,6 +1,6 @@
 /**
- * The link: "#/v1/<app>/<payload>". The document lives after the "#", which a browser never sends to a
- * server. "#/v1/<app>.<view>/<payload>" opens the document as a view: a file to download on arrival
+ * The link: "#/v2/<app>/<payload>" ("#/v1/…" is read too: kit/core/codec.ts). The document lives after the "#", which a browser never sends to a
+ * server. "#/v2/<app>.<view>/<payload>" opens the document as a view: a file to download on arrival
  * ("text.pdf"), or a way of showing it.
  * "…?d" is the Display Link: the same document shown as its pages, to read or print, with an Edit button
  * (never inside the payload, so the document is the same bytes either way); "…?d&text" opens it as its words, reflowed,
@@ -10,24 +10,25 @@
  * tinier adds "?s=…" to whatever link it held, so "?d?s=…" reads as "?d&s=…".
  * A payload that starts "E" is sealed under a password (kit/share/crypt.ts): `sealed` says so, and the shell asks
  * for the password before anything of the document is shown. "…?show" is a
- * deck's show link: it opens presenting. "#/v1/<app>.embed/<payload>" is the embed view: the pages alone, for
+ * deck's show link: it opens presenting. "#/v2/<app>.embed/<payload>" is the embed view: the pages alone, for
  * another site's frame (served at "<site>embed/", the one address the site lets be framed).
  * "…?lang=<code>" is the language the page is in, when one was chosen in the menu (Paul, 2026-10-11: "Why are we
  * writing language at all instead of encoding the parameter in the link?"): the home page carries it too ("#/?lang=ht"),
  * a link opens in it, and nothing of it is written to the device. A link made by someone who never chose has none, and
  * opens in its reader's browser's language. (kit/core/i18n.ts; the shell keeps it in the address, withLang.)
  * The payload is written with a "+" after every 300 characters, for iMessage (kit/core/codec.ts withBreaks), and read
- * without them: a Route's payload never holds one, and a link written before them reads the same.
+ * without them, or anything else its version's letters do not hold (cleanPayload): a Route's payload never holds one.
  * Pure: the shell and the tests both read links through here.
  */
 
-import { isSealed, withBreaks, withoutBreaks } from './codec.ts';
+import { cleanPayload, isSealed, payloadVersion, withBreaks } from './codec.ts';
 
 /**
- * The version of the link format: 1 is a document's TLO text (docs/tlo.md), packed by kit/core/codec.ts and written in
- * base64url. Nothing older is read.
+ * The version of the link format, the one links are written in: a document's TLO text (docs/tlo.md) packed by
+ * kit/core/codec.ts, 2 in base62 with a checksum, 1 in base64url. Version 1 is read forever; nothing newer than this
+ * is read (a link a newer Tiny Little Office made says so).
  */
-export const LINK_VERSION = 1;
+export const LINK_VERSION = 2;
 /** What every document's link starts with, after the "#". */
 export const LINK = `#/v${LINK_VERSION}/`;
 
@@ -83,11 +84,12 @@ export function parseHash(hash: string): Route {
   const id = q.get('s') ?? '',
     x = q.get('x') ?? '';
   const arrived = /^[a-z0-9]{7}$/.test(id) && /^\d{1,15}$/.test(x) ? { id, expires: Number(x) } : null;
-  const payload = withoutBreaks(m[4] ?? '');
+  const version = parseInt(m[1], 10);
+  const payload = cleanPayload(m[4] ?? '');
   return {
     app: m[2],
     payload,
-    version: parseInt(m[1], 10),
+    version,
     view: m[3] ?? '',
     display: q.has('d'),
     arrived,
@@ -98,16 +100,22 @@ export function parseHash(hash: string): Route {
   };
 }
 
-/** The fragment for a document, optionally as a view; with `display`, the Display Link; with `arrived`, the short link it came by and when that expires; with `lang`, the language it opens in. */
+/**
+ * The fragment for a document, optionally as a view; with `display`, the Display Link; with `arrived`, the short link it
+ * came by and when that expires; with `lang`, the language it opens in. It is of the version its payload is: a payload
+ * packed now is v2's, and one a v1 link brought and nobody has changed stays under "#/v1/", so the library knows the
+ * link it kept and a copy of the site from before v2 still opens it.
+ */
 export function routeHash(app: string, payload = '', view = '', display = false, arrived: Route['arrived'] = null, lang: string | null = null): string {
   const parts = [...(display ? ['d'] : []), ...(arrived ? [`s=${arrived.id}`, `x=${arrived.expires}`] : []), ...(lang ? [`lang=${lang}`] : [])];
   const query = parts.length ? `?${parts.join('&')}` : '';
-  return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + withBreaks(payload) : ''}${query}`;
+  const prefix = payloadVersion(payload) === 1 ? '#/v1/' : LINK;
+  return `${prefix}${app}${view ? '.' + view : ''}${payload ? '/' + withBreaks(payload) : ''}${query}`;
 }
 
 /**
  * The site's own address, from any address of it: the page's folder, less an app's own page ("/sheet/") or the embed
- * page's ("/embed/"). The site need not be at a host's root: "https://aboard-io.github.io/tinylittleoffice/sheet/#/v1/…"
+ * page's ("/embed/"). The site need not be at a host's root: "https://aboard-io.github.io/tinylittleoffice/sheet/#/v2/…"
  * is a page of the site at "https://aboard-io.github.io/tinylittleoffice/", the mirror on GitHub Pages (docs/mirror.md).
  * `isApp` says whether a folder's name is an app's.
  */

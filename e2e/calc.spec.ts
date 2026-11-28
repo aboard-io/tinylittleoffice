@@ -28,7 +28,7 @@ test('calc: keys and the line, units from the engine under the policy, a graph',
   await expect(page.locator('.calc-live')).toHaveText('= 42');
   await page.locator('.calc-key[aria-label="="]').click();
   await expect(page.locator('.calc-ans')).toHaveText(['= 42']);
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/calc\/./);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/calc\/./);
   // The engine: mathjs, in the app file, run under a policy with no eval.
   await display.fill('3 inch to cm');
   await expect(page.locator('.calc-live')).toHaveText('= 7.62 cm');

@@ -48,13 +48,13 @@ const hashOf = (address: string) => address.slice(address.indexOf('#'));
 
 test('a link: the document is in its address, which moves with every edit, and the moved address opens to the same document', async () => {
   mains('a');
-  const opened = (await open('https://tinylittleoffice.com/write/#/v1/write'))!;
-  expect(opened).toMatchObject({ app: 'write', text: '', address: 'https://tinylittleoffice.com/write/#/v1/write' });
+  const opened = (await open('https://tinylittleoffice.com/write/#/v2/write'))!;
+  expect(opened).toMatchObject({ app: 'write', text: '', address: 'https://tinylittleoffice.com/write/#/v2/write' });
   const moved: string[] = [];
   const placed = await place(opened, document.querySelector('#a')!, (a) => moved.push(a));
   await type(placed.editor, 0, 'Hi');
   await until(() => moved.length > 0 && decodeDoc(parseHash(hashOf(moved.at(-1)!)).payload).trim() === 'Hi', 'the edit never moved the address');
-  expect(moved.at(-1)).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v1\/write\/./);
+  expect(moved.at(-1)).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v2\/write\/./);
   placed.close();
   expect((await open(moved.at(-1)!))!.text.trim()).toBe('Hi');
   expect(await open('https://tinylittleoffice.com/')).toBeNull();

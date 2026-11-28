@@ -25,11 +25,11 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 - `md=` may stand for `doc=`: it is the same text (TLO is Markdown). With no app in the path or the head, `md=` opens a text in the Word Processor.
 - The document's own head may name the app instead: a `doc` that begins `---%0Aapp: sheet%0A---` needs no app in the path (`https://tinylittleoffice.com/#doc=...`).
 
-Put the parameters after `#`, exactly as shown, never after `?`. On opening, the link is rewritten into its packed form, `#/v1/<app>/<payload>`, which is what the person shares onward. Give them the link you wrote; they need not know its format.
+Put the parameters after `#`, exactly as shown, never after `?`. On opening, the link is rewritten into its packed form, `#/v2/<app>/<payload>`, which is what the person shares onward. Give them the link you wrote; they need not know its format.
 
 Length: a QR code holds at most 2,953 characters and some chat apps cut a link past about 2,000. Keep the whole URL under 2,000 where you can; a short link (below) holds up to 12,272.
 
-The packed form: after `#/v1/<app>/` comes one letter and then base64url bytes (with `~` for 62 where RFC 4648 has `-`, so a pasted link never breaks at a hyphen; `-` is read too; and a `+` after every 300 characters, which reading ignores, so Messages and Signal, which break a link at a run of more than 301 letters and digits, deliver it whole): the document's TLO text deflated against a dictionary of TLO's own words (`y`), deflated (`z`), or raw (`r`). `?d` after it opens the pages to read rather than the editor; `?show` opens a deck presenting; `#/v1/<app>.<ext>/…` downloads the file as it opens. You never need to make these by hand: the plain form becomes the shortest of them when opened, and the API below makes them directly.
+The packed form: after `#/v2/<app>/` comes one letter, three characters of checksum, and the bytes in base62 (letters and digits only, so no chat or mail client escapes or breaks it; a `+` after every 300 characters, which reading ignores, so Messages and Signal, which break a link at a run of more than 301 letters and digits, deliver it whole): the document's TLO text deflated against a dictionary of TLO's own documents (`w`) or deflated (`v`). A link cut short or with something glued on says so rather than opening as another document. Links of the first version, `#/v1/<app>/…` (base64url; `y`, `z` or `r`), still open. `?d` after it opens the pages to read rather than the editor; `?show` opens a deck presenting; `#/v2/<app>.<ext>/…` downloads the file as it opens. You never need to make these by hand: the plain form becomes the shortest of them when opened, and the API below makes them directly.
 
 ## Sharing: a link is a copy
 

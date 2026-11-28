@@ -63,8 +63,8 @@ test('the Spreadsheet’s templates: asked for as a pointer comes over its row, 
   await until(() => names(row).length === 1 + want.length);
   expect(names(row)).toEqual(['Blank', ...want.map((x) => x.name)]);
   row.querySelectorAll<HTMLElement>('[role=option]')[2].click();
-  await until(() => location.hash.startsWith('#/v1/sheet/'));
-  expect(decodeDoc(location.hash.slice('#/v1/sheet/'.length))).toBe(want[1].doc);
+  await until(() => location.hash.startsWith('#/v2/sheet/'));
+  expect(decodeDoc(location.hash.slice('#/v2/sheet/'.length))).toBe(want[1].doc);
 });
 
 test('a language chosen while a list is open: the templates are forgotten, asked for again, and the open list says them in it', async () => {

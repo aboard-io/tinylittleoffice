@@ -20,6 +20,8 @@ const isTest = (path: string) => /(^|\/)tests\/|\.test\.ts$/.test(path);
 /** XML namespaces: names in an SVG, a .docx, a .pptx, an .xlsx or a .gpx file, never fetched. */
 const NAMESPACES = ['www.w3.org', 'schemas.openxmlformats.org', 'purl.org', 'www.topografix.com'];
 const LOCAL = ['localhost', '127.0.0.1'];
+/** Words, not addresses: v2's link dictionary is the text of documents (a template's link among it), never fetched. */
+const WORDS = 'src/kit/core/dictionary-v2.ts';
 
 /** The source without its comments: a line that is a comment, a block comment, an HTML comment, and a trailing " // …". */
 const code = (text: string) =>
@@ -45,7 +47,7 @@ test('every host the source reaches is on the list, or localhost, or a namespace
 test('src/ names a host only through src/kit/core/network.ts', () => {
   const named: string[] = [];
   for (const path of files('src')) {
-    if (isTest(path) || path === 'src/kit/core/network.ts') continue;
+    if (isTest(path) || path === 'src/kit/core/network.ts' || path === WORDS) continue;
     for (const host of hosts(code(readFileSync(join(root, path), 'utf8')))) if (!LOCAL.includes(host) && !NAMESPACES.includes(host)) named.push(`${path}: ${host}`);
   }
   expect(named).toEqual([]);

@@ -12,12 +12,12 @@ test('encode and decode are the codec; parse and write the kernel', () => {
 
 test('link makes the packed link, with a title and by in the head; read takes it back', () => {
   const url = link('sheet', 'Item | Cost:money\n--- | ---\nRent | 1200\n', { title: 'Budget', by: 'planner' });
-  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/sheet\/#\/v1\/sheet\/[yzr][A-Za-z0-9_~]+$/);
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/sheet\/#\/v2\/sheet\/[wv][A-Za-z0-9+]+$/);
   const r = read(url);
   const said = '---\ntitle: Budget\nby: planner\n---\nItem | Cost:money\n--- | ---\nRent | 1200\n';
   expect(r).toEqual({ app: 'sheet', view: '', text: said, json: toJson(said), title: 'Budget', by: 'planner', display: false });
   expect(fromJson(r.json)).toBe(said);
-  expect(link('write', 'x', { view: 'pdf', site: 'http://localhost:4178' })).toMatch(/^http:\/\/localhost:4178\/write\/#\/v1\/write\.pdf\//);
+  expect(link('write', 'x', { view: 'pdf', site: 'http://localhost:4178' })).toMatch(/^http:\/\/localhost:4178\/write\/#\/v2\/write\.pdf\//);
   expect(link('deck', '## A', { show: true }).endsWith('?show')).toBe(true);
   expect(read(link('write', 'x', { display: true })).display).toBe(true);
   // Only the fragment will do too.
@@ -29,7 +29,7 @@ test('link makes the packed link, with a title and by in the head; read takes it
 
 test('a link can open in a language: lang, beside the Display Link and the show link, read back', () => {
   const url = link('write', '# Bonjou\n', { lang: 'ht' });
-  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v1\/write\/[yzr][A-Za-z0-9_~]+\?lang=ht$/);
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v2\/write\/[wv][A-Za-z0-9+]+\?lang=ht$/);
   expect(read(url)).toMatchObject({ app: 'write', text: '# Bonjou\n', lang: 'ht' });
   expect(read(link('write', 'x'))).not.toHaveProperty('lang');
   expect(link('deck', '## A', { show: true, display: true, lang: 'pt-br' })).toMatch(/\?d&lang=pt-br&show$/);
@@ -87,7 +87,7 @@ test('seal: the app makes the password (Paul, 2026-10-11); the link holds cipher
   const { parseHash } = await import('../src/kit/core/route.ts');
   const sealed = await link('write', 'Salaries are up.\n', { title: 'Pay', seal: true });
   expect(sealed.password).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
-  expect(sealed.url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v1\/write\/E[A-Za-z0-9_~]+$/);
+  expect(sealed.url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v2\/write\/e[A-Za-z0-9+]+$/);
   expect(sealed.url).not.toContain('Salaries');
   const payload = parseHash(new URL(sealed.url).hash).payload;
   const opened = await unseal(sealed.password, payload);

@@ -44,7 +44,7 @@ test('the keyboard alone: home, an app, typing, a menu, undo, share', async ({ p
   // The home page: Tab reaches the first app, Enter opens it blank.
   await tabTo(page, (w) => w.startsWith('a.to-app-open|') && w.includes('Word Processor'));
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#\/v1\/write$/);
+  await expect(page).toHaveURL(/#\/v2\/write$/);
   const area = page.locator('to-write-editor to-text .tx');
   await expect(area).toBeVisible();
 
@@ -52,7 +52,7 @@ test('the keyboard alone: home, an app, typing, a menu, undo, share', async ({ p
   await tabTo(page, (w) => w.startsWith('div.tx'));
   await page.keyboard.type('Typed without a mouse.');
   await expect(area.locator('p').first()).toHaveText('Typed without a mouse.');
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/write\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/write\/[wv]/);
   const typed = page.url();
 
   // Download, by its key (the drawer's This document holds it): the drawer opens with the table on its first item,

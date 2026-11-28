@@ -31,7 +31,7 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   const first = await measure();
   await row(-1).tap();
   await page.keyboard.type('Launch');
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/outline\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/outline\/[wv]/);
   const seen: { bar: number; rows: number; pageTop: number }[] = [await measure()];
   // Enter for the next item, Tab to put it under, words in each.
   // (The caret lands in the new row a frame later, as Safari wants; a finger is never that quick, so the test waits as one would.)

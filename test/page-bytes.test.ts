@@ -33,5 +33,6 @@ test('the pages of three documents, and their thumbnails, are the same bytes as 
 // the pages name (2026-10-12: Hebrew and Yiddish). The Word Processor's thumbnail again when a page drawn small was
 // cut to what is on it (2026-10-13, Paul: the letter on a slide "incredibly tiny"); its pages are the same bytes. The
 // deck's pages again when its closing slide's words became plain English (2026-10-15: "Final slide: a QR code of this
-// deck"); its thumbnail is the same bytes.
-const EXPECTED = ['write: 7fa7e906573f1eb5 191769917eca34cf', 'deck: 9453962b7354650f 4591013f70b3b48d', 'draw: ae66f4e757ef97b9 ae66f4e757ef97b9'];
+// deck"); its thumbnail is the same bytes. The deck's pages again when links became v2's (2026-11-28, issue #23): that
+// QR code carries the new link; nothing else on them moved.
+const EXPECTED = ['write: 7fa7e906573f1eb5 191769917eca34cf', 'deck: 9b21d424f8d583a5 4591013f70b3b48d', 'draw: ae66f4e757ef97b9 ae66f4e757ef97b9'];

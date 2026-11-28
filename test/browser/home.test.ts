@@ -175,7 +175,7 @@ test('at the largest size on a phone, an app whose name wraps keeps its icon bes
 test('no search box under Private, a library in memory or not; none when Saved with nothing kept; the box once one is kept', async () => {
   const { keep, forgetAll } = await import('../../src/kit/share/library.ts');
   const { setKeeping, store } = await import('../../src/kit/core/store.ts');
-  const doc = { id: 'a', app: 'write', title: 'Plans', hash: `#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nGo.\n')}`, at: Date.now() };
+  const doc = { id: 'a', app: 'write', title: 'Plans', hash: `#/v2/write/${encodeDoc('---\ntitle: Plans\n---\nGo.\n')}`, at: Date.now() };
   try {
     // Private, a list written to the visit's memory as an old build did.
     setKeeping(false);
@@ -209,7 +209,7 @@ async function drive(lang: string | null) {
   const { setKeeping } = await import('../../src/kit/core/store.ts');
   setKeeping(true);
   forgetAll();
-  for (let i = 0; i < 7; i++) keep({ id: `d${i}`, app: 'write', title: `Plan ${i}`, hash: `#/v1/write/${encodeDoc(`---\ntitle: Plan ${i}\n---\nGo.\n`)}`, at: Date.now() - i });
+  for (let i = 0; i < 7; i++) keep({ id: `d${i}`, app: 'write', title: `Plan ${i}`, hash: `#/v2/write/${encodeDoc(`---\ntitle: Plan ${i}\n---\nGo.\n`)}`, at: Date.now() - i });
   const shell = await mount('');
   if (lang) {
     await setLanguage(lang);
@@ -360,7 +360,7 @@ test('390×844 with a finger: taps again where the templates button was, 120, 30
     await tick(600);
     await tap(x, y);
     await until(() => !open(), 'a tap 600 ms after the last chose nothing');
-    expect(hash()).toMatch(/^#\/v1\/outline/);
+    expect(hash()).toMatch(/^#\/v2\/outline/);
   } finally {
     await touch(false);
     document.querySelectorAll('dialog[open]').forEach((d) => (d as HTMLDialogElement).close());
@@ -384,7 +384,7 @@ test('390×844 with a finger: a tap 120 ms after the list opened, on an option 4
     await until(() => performance.now() - at >= 120, 2000);
     await tap(...away);
     await until(() => !open(), 'a tap away from the spot chose nothing');
-    expect(hash()).toMatch(/^#\/v1\/outline\//);
+    expect(hash()).toMatch(/^#\/v2\/outline\//);
   } finally {
     await touch(false);
   }
@@ -403,7 +403,7 @@ test('1100 wide with a mouse: a double click on the templates button leaves the 
     tpl.listbox.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     tpl.listbox.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await until(() => !open(), 'Enter chose nothing');
-    expect(hash()).toMatch(/^#\/v1\/outline/);
+    expect(hash()).toMatch(/^#\/v2\/outline/);
   } finally {
     document.querySelectorAll('dialog[open]').forEach((d) => (d as HTMLDialogElement).close());
   }

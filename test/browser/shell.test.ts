@@ -56,7 +56,7 @@ test('the home page lists the apps as rows, each with its templates', async () =
   const shell = await mount('');
   const tile = shell.querySelector('.to-app')!;
   expect(tile.querySelector('.to-app-name')!.textContent).toBe('Word Processor');
-  expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v1/write');
+  expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v2/write');
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
   // The button is the affordance alone, to the right of the name: no "Blank" written on every tile.
   expect(picker.textContent!.trim()).toBe('');
@@ -73,14 +73,14 @@ test('the home page lists the apps as rows, each with its templates', async () =
   expect(options[0].getAttribute('aria-selected')).toBe('true');
   // Choosing a template opens the app with that document.
   (options[4] as HTMLElement).click();
-  await until(() => location.hash.startsWith('#/v1/write/'));
-  expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Meeting {.title}');
+  await until(() => location.hash.startsWith('#/v2/write/'));
+  expect(decodeDoc(location.hash.slice('#/v2/write/'.length))).toContain('# Meeting {.title}');
 });
 
 test('the Diagram Maker lists a blank page a kind and no Blank of its own, its first kind chosen; the Word Processor still starts with Blank', async () => {
   const shell = await mount('');
   const tile = [...shell.querySelectorAll<HTMLElement>('.to-app')].find((x) => x.querySelector('.to-app-open .to-app-name')!.textContent === 'Diagram Maker')!;
-  expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v1/diagram');
+  expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v2/diagram');
   tile.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
   await until(() => !!tile.querySelector('[role=option] svg'));
   const options = [...tile.querySelectorAll('[role=option]')];
@@ -91,8 +91,8 @@ test('the Diagram Maker lists a blank page a kind and no Blank of its own, its f
   expect(options[0].getAttribute('aria-selected')).toBe('true');
   expect(options.filter((o) => o.getAttribute('aria-selected') === 'true').length).toBe(1);
   (options[0] as HTMLElement).click();
-  await until(() => location.hash.startsWith('#/v1/diagram/'));
-  expect(decodeDoc(location.hash.slice('#/v1/diagram/'.length))).toContain('kind: mind');
+  await until(() => location.hash.startsWith('#/v2/diagram/'));
+  expect(decodeDoc(location.hash.slice('#/v2/diagram/'.length))).toContain('kind: mind');
   // The Word Processor, beside it, keeps its Blank first.
   const home = await mount('');
   const write = home.querySelector<HTMLElement>('.to-app')!;
@@ -102,7 +102,7 @@ test('the Diagram Maker lists a blank page a kind and no Blank of its own, its f
 });
 
 test('the way home, followed from the keys, leaves the focus in the page’s column, not on nothing (walks: site at a phone, seed -557055075)', async () => {
-  const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Plans\n---\nWords.\n')}`);
+  const shell = await mount(`#/v2/write/${encodeDoc('---\ntitle: Plans\n---\nWords.\n')}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const home = shell.querySelector<HTMLAnchorElement>('a.to-here')!;
   home.focus();
@@ -144,7 +144,7 @@ test('the page’s first text, there before any script (index.html, scripts/seo.
 
 test('under Private an edit keeps nothing, and the home page shows no documents', async () => {
   expect(keeping()).toBe(false);
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await type(shell, 'Not kept');
   await tick(1000);
   expect(library()).toEqual([]);
@@ -156,7 +156,7 @@ test('under Private an edit keeps nothing, and the home page shows no documents'
 test('under Saved a document typed in Write is kept, listed under Write, opened again, updated in place, forgotten', () =>
   saved(async () => {
     // Opened blank, nothing is kept until something is typed.
-    let shell = await mount('#/v1/write');
+    let shell = await mount('#/v2/write');
     await tick(1000);
     expect(library()).toEqual([]);
     await type(shell, 'Launch notes');
@@ -196,7 +196,7 @@ test('under Saved a document typed in Write is kept, listed under Write, opened 
 
 test('more than five documents under an app: five, then "n more" unfolds the rest', () =>
   saved(async () => {
-    for (let i = 0; i < 8; i++) keep({ id: `d${i}`, app: 'write', title: i ? `Doc ${i}` : '', hash: `#/v1/write/y${i}`, at: Date.now() - i * 3600e3 });
+    for (let i = 0; i < 8; i++) keep({ id: `d${i}`, app: 'write', title: i ? `Doc ${i}` : '', hash: `#/v2/write/y${i}`, at: Date.now() - i * 3600e3 });
     const shell = await mount('');
     const write = shell.querySelector('.to-app')!;
     expect([...write.querySelectorAll('.to-drive-words > span')].map((s) => s.textContent)).toEqual(['Untitled', 'Doc 1', 'Doc 2', 'Doc 3', 'Doc 4']);
@@ -213,7 +213,7 @@ test('at 390px: one column, nothing wider than the screen, every tap target 44px
   await page.viewport(390, 844);
   try {
     await saved(async () => {
-      keep({ id: 'long', app: 'write', title: 'A document with a name far too long to fit on one line of a phone', hash: '#/v1/write/ylong', at: Date.now() });
+      keep({ id: 'long', app: 'write', title: 'A document with a name far too long to fit on one line of a phone', hash: '#/v2/write/ylong', at: Date.now() });
       const shell = await mount('');
       await tick(50);
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
@@ -231,12 +231,12 @@ test('at 390px: one column, nothing wider than the screen, every tap target 44px
 });
 
 test('a link opens its app, and every edit goes into the link', async () => {
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   // A new document is named at once: shown in the title box and the tab, written nowhere until a change.
   expect(document.title).toBe(`${fresh()} · Tiny Little Office`);
   expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe(fresh());
-  expect(location.hash).toBe('#/v1/write');
+  expect(location.hash).toBe('#/v2/write');
   expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('Home');
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
@@ -247,9 +247,9 @@ test('a link opens its app, and every edit goes into the link', async () => {
     await text.updateComplete;
   }
   // The link follows once typing pauses, and at once when it is read.
-  await until(() => /^#\/v1\/write\/[ryz]/.test(link()), 'the link never followed the typing');
+  await until(() => /^#\/v2\/write\/[wv]/.test(link()), 'the link never followed the typing');
   await shell.updateComplete;
-  expect(location.hash).toMatch(/^#\/v1\/write\/[ryz]/);
+  expect(location.hash).toMatch(/^#\/v2\/write\/[wv]/);
   // The first change carries the name into the head, and the time it was first written (the editor's own document is left as it was typed).
   expect(unstamped(decodeDoc(location.hash.split('/')[3]))).toBe(`---\ntitle: ${fresh()}\n---\nHello, link.\n`);
   expect(shell.editor!.value).toBe('Hello, link.\n');
@@ -270,7 +270,7 @@ test('a link opens its app, and every edit goes into the link', async () => {
 // The address is what the browser's history and its sync record: it is written when typing stops for fifteen seconds,
 // not at every gap between keys, and at once whenever it is read or the page is hidden (kit/core/shell.ts PAUSE).
 test('the link is written fifteen seconds after the typing stops, once; at once on the window’s blur, the page hidden, or a read', async () => {
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
@@ -290,7 +290,7 @@ test('the link is written fifteen seconds after the typing stops, once; at once 
     vi.advanceTimersByTime(10000);
     await key('b');
     vi.advanceTimersByTime(14999);
-    expect(location.hash).toBe('#/v1/write');
+    expect(location.hash).toBe('#/v2/write');
     expect(written).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(body()).toBe('ab\n');
@@ -323,7 +323,7 @@ test('the link is written fifteen seconds after the typing stops, once; at once 
 // A diagram's kind is chosen once, never typed: it is written at once, so a reload straight after keeps it (Paul,
 // 2026-10-18: "I switch to swimlanes. It works. I reload the URL, it's back to family tree").
 test('a diagram’s kind chosen is in the link at once, with no pause and no read', async () => {
-  const shell = await mount(`#/v1/diagram/${encodeDoc('---\nkind: family\n---\n- Ada + Charles\n  - Byron\n')}`);
+  const shell = await mount(`#/v2/diagram/${encodeDoc('---\nkind: family\n---\n- Ada + Charles\n  - Byron\n')}`);
   await until(() => !!shell.querySelector('to-diagram-editor .dg-kind > button'));
   const written = vi.spyOn(history, 'replaceState');
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -352,11 +352,11 @@ test('a link with ?c= opens its document, routed by the hash alone, and the addr
     return shell;
   };
   const doc = '---\ntitle: Shared\n---\nFrom a post.\n';
-  const shell = await arrive(`?c=k8hwicw#/v1/write/${encodeDoc(doc)}`);
+  const shell = await arrive(`?c=k8hwicw#/v2/write/${encodeDoc(doc)}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   expect(shell.querySelector('to-text .tx p')!.textContent).toBe('From a post.');
   expect(location.search).toBe('');
-  expect(location.hash).toBe(`#/v1/write/${encodeDoc(doc)}`);
+  expect(location.hash).toBe(`#/v2/write/${encodeDoc(doc)}`);
   // A link copied afterwards carries no stale card.
   expect(new URL(shell.link).search).toBe('');
   // The routing never reads the query: a card's id with no document is the home page; another query is left alone.
@@ -380,11 +380,11 @@ test('a link at /c/<id> opens its document and the address becomes the app’s p
   };
   try {
     const doc = '---\ntitle: Shared\n---\nFrom a post.\n';
-    const shell = await arrive(`${dir}c/k8hwicw#/v1/write/${encodeDoc(doc)}`);
+    const shell = await arrive(`${dir}c/k8hwicw#/v2/write/${encodeDoc(doc)}`);
     await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
     expect(shell.querySelector('to-text .tx p')!.textContent).toBe('From a post.');
     expect(location.pathname).toBe(`${dir}write/`);
-    expect(location.hash).toBe(`#/v1/write/${encodeDoc(doc)}`);
+    expect(location.hash).toBe(`#/v2/write/${encodeDoc(doc)}`);
     expect(new URL(shell.link).pathname).toBe(`${dir}write/`);
     const home = await arrive(`${dir}c/k8hwicw`);
     expect(home.querySelector('to-home')).not.toBeNull();
@@ -396,19 +396,19 @@ test('a link at /c/<id> opens its document and the address becomes the app’s p
 });
 
 test('an unreadable link is said so, not thrown', async () => {
-  const shell = await mount('#/v1/write/yNOTREALLY');
+  const shell = await mount('#/v2/write/yNOTREALLY');
   await shell.updateComplete;
   expect(shell.querySelector('.to-empty')!.textContent).toContain('can’t be read');
-  expect(shell.querySelector('.to-empty a')!.getAttribute('href')).toBe('#/v1/write');
+  expect(shell.querySelector('.to-empty a')!.getAttribute('href')).toBe('#/v2/write');
 });
 
 test('an unknown app is the home page', async () => {
-  const shell = await mount('#/v1/nothing/abc');
+  const shell = await mount('#/v2/nothing/abc');
   expect(shell.querySelector('to-home')).not.toBeNull();
 });
 
 test("Mod+Z is the editor's only from the editor: typed in a dialog's field, the header's title or the note box, it leaves the document alone", async () => {
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
@@ -419,7 +419,7 @@ test("Mod+Z is the editor's only from the editor: typed in a dialog's field, the
     await text.updateComplete;
   }
   // The link follows once typing pauses, and at once when it is read.
-  await until(() => /^#\/v1\/write\/./.test(link()), 'the link never followed the typing');
+  await until(() => /^#\/v2\/write\/./.test(link()), 'the link never followed the typing');
   await shell.updateComplete;
   const doc = () => decodeDoc(link().split('/')[3] ?? '');
   expect(unstamped(doc())).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
@@ -452,41 +452,41 @@ test("Mod+Z is the editor's only from the editor: typed in a dialog's field, the
 
 test('a document that arrives with no name is "Untitled"; a new one is numbered past the names the library holds for today', () =>
   saved(async () => {
-    let shell = await mount(`#/v1/write/${encodeDoc('Old words\n')}`);
+    let shell = await mount(`#/v2/write/${encodeDoc('Old words\n')}`);
     await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
     expect(document.title).toBe('Untitled document · Tiny Little Office');
     expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe('');
     expect(shell.querySelector<HTMLInputElement>('.to-title')!.placeholder).toBe('Untitled document');
-    keep({ id: 'a', app: 'write', title: fresh(1), hash: '#/v1/write/ya', at: Date.now() });
-    keep({ id: 'b', app: 'write', title: fresh(3), hash: '#/v1/write/yb', at: Date.now() });
-    keep({ id: 'c', app: 'sheet', title: `New Spreadsheet ${localDay()} #2`, hash: '#/v1/sheet/yc', at: Date.now() });
-    shell = await mount('#/v1/write');
+    keep({ id: 'a', app: 'write', title: fresh(1), hash: '#/v2/write/ya', at: Date.now() });
+    keep({ id: 'b', app: 'write', title: fresh(3), hash: '#/v2/write/yb', at: Date.now() });
+    keep({ id: 'c', app: 'sheet', title: `New Spreadsheet ${localDay()} #2`, hash: '#/v2/sheet/yc', at: Date.now() });
+    shell = await mount('#/v2/write');
     const box = shell.querySelector<HTMLInputElement>('.to-title')!;
     expect(box.value).toBe(fresh(2));
     // Edited, the name is chosen whole, to be typed over.
     box.focus();
     expect([box.selectionStart, box.selectionEnd]).toEqual([0, fresh(2).length]);
-    shell = await mount('#/v1/sheet');
+    shell = await mount('#/v2/sheet');
     expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe(`New Spreadsheet ${localDay()} #1`);
   }));
 
 test('the Link and the Display Link; the Display Link shows the pages, no editor and no bar, and Edit goes back', async () => {
   const payload = encodeDoc('---\ntitle: Notes\n---\nFirst words.\n');
-  const shell = await mount(`#/v1/write/${payload}`);
+  const shell = await mount(`#/v2/write/${payload}`);
   await until(() => !!shell.querySelector('to-write-editor'));
-  const base = `${location.origin}${location.pathname}#/v1/write/${payload}`;
+  const base = `${location.origin}${location.pathname}#/v2/write/${payload}`;
   expect(shell.link).toBe(base);
   expect(shell.displayLink).toBe(`${base}?d`);
 
   // Opened as the Display Link: the pages, the title, Edit; no header, no bar, no editor.
-  const display = await mount(`#/v1/write/${payload}?d`);
+  const display = await mount(`#/v2/write/${payload}?d`);
   await until(() => !!display.querySelector('.to-display-page svg'));
   expect(display.querySelector('.to-header, to-bar, to-write-editor, to-drawer')).toBeNull();
   expect(display.querySelector('.to-display-title')!.textContent).toBe('Notes');
   expect(display.querySelector('.to-display')!.textContent).toContain('First words.');
   expect(document.title).toBe('Notes · Tiny Little Office');
   const edit = display.querySelector<HTMLAnchorElement>('.to-display-edit')!;
-  expect(edit.getAttribute('href')).toBe(`#/v1/write/${payload}`);
+  expect(edit.getAttribute('href')).toBe(`#/v2/write/${payload}`);
   edit.click();
   await until(() => !!display.querySelector('to-write-editor to-text .tx p'));
   expect(display.querySelector('.to-display')).toBeNull();
@@ -496,7 +496,7 @@ test('the Link and the Display Link; the Display Link shows the pages, no editor
 test('a Display Link at 390px: the pages fit the screen', async () => {
   await page.viewport(390, 844);
   try {
-    const shell = await mount(`#/v1/write/${encodeDoc('Words on a phone.\n')}?d`);
+    const shell = await mount(`#/v2/write/${encodeDoc('Words on a phone.\n')}?d`);
     await until(() => !!shell.querySelector('.to-display-page svg'));
     await tick(50);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
@@ -511,7 +511,7 @@ test('a Display Link at 390px: the pages fit the screen', async () => {
 
 test('home rows at 1100 and at 390: one column of full-width rows, the same shape, no cards', () =>
   saved(async () => {
-    keep({ id: 'x', app: 'write', title: 'Kept here', hash: '#/v1/write/yx', at: Date.now() });
+    keep({ id: 'x', app: 'write', title: 'Kept here', hash: '#/v2/write/yx', at: Date.now() });
     const shapes: { lefts: number; widths: number[]; border: string; shadow: string }[] = [];
     for (const [w, h] of [
       [1100, 800],
@@ -555,32 +555,32 @@ test('the templates list has a Close at its top that dismisses it', async () => 
 
 test('§1 a document opens with the focus where a person starts: a new one, an opened one, from home and from the address; never the title box or the body', async () => {
   const typing = (shell: ToShell) => shell.querySelector<ToText>('to-write-editor to-text.write-text');
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await until(() => !!typing(shell)?.hasFocus());
   expect(document.activeElement).not.toBe(shell.querySelector('.to-title'));
   expect(typing(shell)!.sel?.focus).toEqual({ block: 0, offset: 0 });
   expect(document.scrollingElement!.scrollTop).toBe(0);
   // Another document in the same editor, from a link: its first words.
-  location.hash = `#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`;
+  location.hash = `#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`;
   await until(() => typing(shell)?.querySelector('h1')?.textContent === 'Plans');
   typing(shell)!.sel = { anchor: { block: 1, offset: 2 }, focus: { block: 1, offset: 2 } };
-  location.hash = `#/v1/write/${encodeDoc('# Other\n\nMore.\n')}`;
+  location.hash = `#/v2/write/${encodeDoc('# Other\n\nMore.\n')}`;
   await until(() => typing(shell)?.querySelector('h1')?.textContent === 'Other' && typing(shell)!.sel?.focus.block === 0);
   expect(typing(shell)!.hasFocus()).toBe(true);
   // From the home page: the Spreadsheet's A1.
   location.hash = '';
   await until(() => !!shell.querySelector('to-home'));
-  shell.querySelector<HTMLAnchorElement>('.to-app-open[href="#/v1/sheet"]')!.click();
+  shell.querySelector<HTMLAnchorElement>('.to-app-open[href="#/v2/sheet"]')!.click();
   await until(() => document.activeElement?.getAttribute('aria-label') === 'A1');
 });
 
 test('§1 display mode and a locked document focus nothing; unlocked, the document takes the focus', async () => {
   const payload = encodeDoc('---\ntitle: Notes\n---\nFirst words.\n');
-  const display = await mount(`#/v1/write/${payload}?d`);
+  const display = await mount(`#/v2/write/${payload}?d`);
   await until(() => !!display.querySelector('.to-display-page svg'));
   await tick(100);
   expect(document.activeElement).toBe(document.body);
-  const shell = await mount(`#/v1/write/${await pack('Secret words.\n', await lockWith('pw'))}`);
+  const shell = await mount(`#/v2/write/${await pack('Secret words.\n', await lockWith('pw'))}`);
   await until(() => !!document.querySelector('to-dialog.to-unlock-dialog dialog[open]'));
   await until(() => document.activeElement === shell.querySelector('.to-unlock-field'), 'the unlock field never took the focus');
   const field = shell.querySelector<HTMLInputElement>('.to-unlock-field')!;
@@ -593,12 +593,12 @@ test('§1 display mode and a locked document focus nothing; unlocked, the docume
 
 // A deck's reader can present it (Paul, 2026-10-10: on a phone there was no way to play a deck from its link without editing).
 test('a deck’s Display Link has Present beside Edit, the same link with ?show; a text’s has Edit alone', async () => {
-  const deck = await mount(`#/v1/deck/${encodeDoc('## One\n\n- a\n\n---\n\n## Two\n\n- b\n')}?d`);
+  const deck = await mount(`#/v2/deck/${encodeDoc('## One\n\n- a\n\n---\n\n## Two\n\n- b\n')}?d`);
   await until(() => !!deck.querySelector('.to-display-edit'));
   const present = deck.querySelector<HTMLAnchorElement>('.to-display-present')!;
   expect(present).not.toBeNull();
   expect(present.getAttribute('href')).toBe(`${deck.querySelector<HTMLAnchorElement>('.to-display-edit')!.getAttribute('href')}?show`);
-  const text = await mount(`#/v1/write/${encodeDoc('Words\n')}?d`);
+  const text = await mount(`#/v2/write/${encodeDoc('Words\n')}?d`);
   await until(() => !!text.querySelector('.to-display-edit'));
   expect(text.querySelector('.to-display-present')).toBeNull();
 });
@@ -609,7 +609,7 @@ test('a Display Link that arrived says once that it is a copy; one made here doe
   afterEachRemove();
   const words = 'Arrived words.\n';
   const line = (s: ToShell) => s.querySelector<HTMLElement>('.to-copies');
-  let display = await mount(`#/v1/write/${encodeDoc(words)}?d`);
+  let display = await mount(`#/v2/write/${encodeDoc(words)}?d`);
   await until(() => !!display.querySelector('.to-display-page svg'));
   expect(line(display)!.textContent).toContain('Anyone who opens this link gets their own copy.');
   // Under the header, above the pages; a line, not a dialog.
@@ -619,11 +619,11 @@ test('a Display Link that arrived says once that it is a copy; one made here doe
   await display.updateComplete;
   expect(line(display)).toBeNull();
   // Once a document: the same link again says nothing.
-  display = await mount(`#/v1/write/${encodeDoc(words)}?d`);
+  display = await mount(`#/v2/write/${encodeDoc(words)}?d`);
   await until(() => !!display.querySelector('.to-display-page svg'));
   expect(line(display)).toBeNull();
   // Made here and then shown as its pages: nothing to say.
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await type(shell, 'Made here.');
   location.hash = new URL(shell.displayLink).hash;
   await until(() => !!shell.querySelector('.to-display-page svg'));
@@ -634,7 +634,7 @@ test('a Display Link that arrived says once that it is a copy; one made here doe
 test('a Display Link of a document kept in the library has no line about copies', async () => {
   afterEachRemove();
   await saved(async () => {
-    const hash = `#/v1/write/${encodeDoc('Kept words.\n')}`;
+    const hash = `#/v2/write/${encodeDoc('Kept words.\n')}`;
     keep({ id: 'kept-copy', app: 'write', title: 'Kept words.', hash, at: Date.now() });
     const display = await mount(`${hash}?d`);
     await until(() => !!display.querySelector('.to-display-page svg'));
@@ -648,14 +648,14 @@ test('a Display Link of a document kept in the library has no line about copies'
 test('a document made here stays quiet after a reload: told by its created stamp, kept under Saved', async () => {
   afterEachRemove();
   await saved(async () => {
-    const shell = await mount('#/v1/write');
+    const shell = await mount('#/v2/write');
     await type(shell, 'Made here.');
-    const made = new URL(shell.displayLink).hash.match(/^#\/v1\/write\/([^?]+)/)![1];
+    const made = new URL(shell.displayLink).hash.match(/^#\/v2\/write\/([^?]+)/)![1];
     const text = decodeDoc(made);
     expect(text).toMatch(/\ncreated: /);
     expect(localStorage.getItem('tinyoffice.copiesSaid')).not.toBeNull();
     forgetAll();
-    const display = await mount(`#/v1/write/${encodeDoc(text.replace('Made here.', 'Made here, then reloaded.'))}?d`);
+    const display = await mount(`#/v2/write/${encodeDoc(text.replace('Made here.', 'Made here, then reloaded.'))}?d`);
     await until(() => !!display.querySelector('.to-display-page svg'));
     expect(display.querySelector('.to-copies')).toBeNull();
   });
@@ -670,10 +670,10 @@ test('the copies line and Share’s sentence follow the language: Haitian Creole
   await setLanguage('ht');
   try {
     const ht = 'Nenpòt moun ki louvri lyen sa a jwenn pwòp kopi pa l. Chanjman yo p ap parèt nan pa w. Mande yo voye lyen pa yo ba ou.';
-    const display = await mount(`#/v1/write/${encodeDoc('Mo ki rive.\n')}?d`);
+    const display = await mount(`#/v2/write/${encodeDoc('Mo ki rive.\n')}?d`);
     await until(() => !!display.querySelector('.to-display-page svg'));
     expect(display.querySelector('.to-copies p')!.textContent).toBe(ht);
-    const shell = await mount(`#/v1/write/${encodeDoc('Bonjou\n')}`);
+    const shell = await mount(`#/v2/write/${encodeDoc('Bonjou\n')}`);
     await until(() => !!shell.querySelector('to-write-editor'));
     await openShare(shell);
     await until(() => !!shell.querySelector('.to-share-copies'));

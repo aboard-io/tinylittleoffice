@@ -30,7 +30,7 @@ test('diagram: the first idea and a branch typed on the picture', async ({ page 
   const line = page.locator('to-text.dg-words .tx');
   await expect(line).toBeVisible();
   await line.pressSequentially('Launch');
-  await expect.poll(() => link(page)).toMatch(/#\/v1\/diagram\/[ryz]/);
+  await expect.poll(() => link(page)).toMatch(/#\/v2\/diagram\/[wv]/);
   await expect(page.locator('.dg-pic g.dg-thing')).toHaveCount(1);
   await line.press('Enter');
   await line.pressSequentially('Pricing');

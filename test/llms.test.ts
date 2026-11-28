@@ -32,7 +32,7 @@ test('/llms.txt is short: under 6 KB, its first screen under 1,500 tokens, with 
   // The plain form first, the API second.
   expect(short.indexOf('#doc=')).toBeLessThan(short.indexOf(API));
   // The packed form the site and the API's link write is named beside the plain one, so an agent knows both open.
-  expect(short).toContain('`#/v1/<app>/<payload>`; both open');
+  expect(short).toContain('`#/v2/<app>/<payload>`; both open');
 });
 
 test('/llms.txt has one example per app, a plain link each, and each lints clean', async () => {

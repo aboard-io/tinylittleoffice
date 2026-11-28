@@ -4,6 +4,7 @@
 import { test, expect, afterEach, vi } from 'vitest';
 import { link, mount, until, openShare } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/core/codec.ts';
+import { LINK } from '../../src/kit/core/route.ts';
 import { unshorten } from '../../src/kit/share/short.ts';
 import type { ToText } from '../../src/kit/text/text.ts';
 import type { ToShell } from '../../src/kit/core/shell.ts';
@@ -27,7 +28,7 @@ async function open(shell: ToShell) {
 const NOTHING_TO_OWN = '.to-update, .to-extend, .to-forget, .to-owner, .to-owner-field, .to-keep, .to-share-own';
 
 test('a short link made here: the lifetime from the row, the link big with Copy and its expiry; nothing to update or forget', async () => {
-  const shell = await mount(`#/v1/write/${encodeDoc('Hello')}`);
+  const shell = await mount(`${LINK}write/${encodeDoc('Hello')}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const before = location.hash;
   const exp = Date.now() + 30 * DAY;
@@ -85,11 +86,11 @@ test('a short link made here: the lifetime from the row, the link big with Copy 
 test('opened by a short link: its lifetime shown; an edit leaves the address the document alone; a key or o in the address is not read', async () => {
   const exp = Date.now() + 12 * DAY + 60_000;
   // A k and an o in the query are ignored.
-  const shell = await mount(`#/v1/write/${encodeDoc('Hello')}?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}&x=${exp}`);
+  const shell = await mount(`${LINK}write/${encodeDoc('Hello')}?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}&x=${exp}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   expect(shell.querySelector('.to-arrival-words')!.textContent).toBe('This link expires in 12 days');
   expect(shell.querySelector('.to-arrival-extend')).toBeNull();
-  expect(shell.link.endsWith(`#/v1/write/${encodeDoc('Hello')}`)).toBe(true);
+  expect(shell.link.endsWith(`${LINK}write/${encodeDoc('Hello')}`)).toBe(true);
   expect('owned' in shell).toBe(false);
 
   const dialog = await open(shell);
@@ -106,8 +107,8 @@ test('opened by a short link: its lifetime shown; an edit leaves the address the
     text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
     await text.updateComplete;
   }
-  await until(() => /^#\/v1\/write\/[A-Za-z0-9_~-]+$/.test(link()), 'the link never followed the edit');
+  await until(() => /^#\/v2\/write\/[A-Za-z0-9+]+$/.test(link()), 'the link never followed the edit');
   await shell.updateComplete;
-  expect(location.hash).toMatch(/^#\/v1\/write\/[A-Za-z0-9_~-]+$/);
+  expect(location.hash).toMatch(/^#\/v2\/write\/[A-Za-z0-9+]+$/);
   expect(location.hash).not.toMatch(/[?&][kos]=/);
 });

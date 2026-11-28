@@ -62,7 +62,7 @@ const lintOf = (app: string, text: string): Found[] => [...(LINTS[app]?.(text) ?
  * A link to a Tiny Little Office document: an app's plain link (`/<app>/#doc=`, `#md=`, with or without a title
  * before it), a packed one (`#/v1/<app>/`), or a short link of the site's own shortener.
  */
-const DOC_LINK = /https?:\/\/(?:www\.)?tinylittleoffice\.com\/(?:[a-z]+\/)?#(?:\/v1\/|[^\s)>]*?\b(?:doc|md)=)|https?:\/\/tinier\.tinylittleoffice\.com\/[\w~-]+/;
+const DOC_LINK = /https?:\/\/(?:www\.)?tinylittleoffice\.com\/(?:[a-z]+\/)?#(?:\/v\d+\/|[^\s)>]*?\b(?:doc|md)=)|https?:\/\/tinier\.tinylittleoffice\.com\/[\w~-]+/;
 
 /** Each paragraph or bullet whose words or links hold a link to a document that could be inside this one, as a fence. */
 function docLinks(doc: Doc): Found[] {

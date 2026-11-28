@@ -54,7 +54,7 @@ async function choose(shell: HTMLElement, words: string, action = 'Download') {
 test('a plain link becomes the packed link on arrival, the document and its name as written', async () => {
   const shell = await mount('#title=Shopping&app=outline&doc=-+%5B+%5D+Milk%0A-+%5Bx%5D+Eggs&by=chores-agent');
   await until(() => !!shell.querySelector('to-outline-editor'));
-  expect(location.hash).toMatch(/^#\/v1\/outline\/[yzr][A-Za-z0-9_~]+$/);
+  expect(location.hash).toMatch(/^#\/v2\/outline\/[wv][A-Za-z0-9+]+$/);
   expect(docNow()).toBe('---\nby: chores-agent\ntitle: Shopping\n---\n- [ ] Milk\n- [x] Eggs\n');
   expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe('Shopping');
   // md= with no app anywhere is a text.
@@ -64,7 +64,7 @@ test('a plain link becomes the packed link on arrival, the document and its name
 });
 
 test('Download gives every app a .tlo that names its app, Markdown, and the .pdf file; the links that download are copied', async () => {
-  const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Groceries\n---\n- [ ] Milk^[oat]\n')}`);
+  const shell = await mount(`#/v2/write/${encodeDoc('---\ntitle: Groceries\n---\n- [ ] Milk^[oat]\n')}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   const got = downloads();
   await choose(shell, 'Text (TLO)');
@@ -77,7 +77,7 @@ test('Download gives every app a .tlo that names its app, Markdown, and the .pdf
   expect(new TextDecoder('latin1').decode(pdf)).toContain('/Filter /DCTDecode');
   // An app with no Markdown of its own (a drawing) has the kit's: the text, notes in the reference form.
   const draw = await mount(
-    `#/v1/draw/${encodeDoc('---\ntitle: Boxes\nalt: Two boxes^[drawn by hand]\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 8 | 4 | 1 | A\n')}`,
+    `#/v2/draw/${encodeDoc('---\ntitle: Boxes\nalt: Two boxes^[drawn by hand]\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 8 | 4 | 1 | A\n')}`,
   );
   await until(() => !!draw.querySelector('to-draw-editor'));
   await choose(draw, 'Markdown');
@@ -85,15 +85,15 @@ test('Download gives every app a .tlo that names its app, Markdown, and the .pdf
   expect(await got.get('boxes.md')!.text()).toContain('Kind | X | Y | W | H | Style | Label');
   await clipboard(async (copied) => {
     await choose(draw, 'Picture (SVG)', 'Copy a link');
-    await until(() => copied().includes('#/v1/draw.svg/'));
+    await until(() => copied().includes('#/v2/draw.svg/'));
     expect(parseHash(new URL(copied()).hash).payload).toBe(parseHash(location.hash).payload);
     await choose(draw, 'PDF file', 'Copy a link');
-    await until(() => copied().includes('#/v1/draw.pdf/'));
+    await until(() => copied().includes('#/v2/draw.pdf/'));
   });
 });
 
 test('a .tlo dropped on the page opens as its own app and title; a .md dropped opens in the app open now', async () => {
-  const shell = await mount(`#/v1/write/${encodeDoc('Hello\n')}`);
+  const shell = await mount(`#/v2/write/${encodeDoc('Hello\n')}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   const drop = new DataTransfer();
   drop.items.add(new File(['---\ntitle: Packing\napp: outline\n---\n- [ ] Socks\n'], 'packing.tlo', { type: 'text/plain' }));
@@ -131,7 +131,7 @@ test('Compare: two links side by side, what the second changed marked, Swap, a l
   expect(cmp.querySelector('.to-empty')!.textContent).toContain('Paste a second link');
   // The second link pasted in.
   const second = cmp.querySelector<HTMLInputElement>('.cmp-b')!;
-  second.value = `https://tinylittleoffice.com/write/#/v1/write/${b}`;
+  second.value = `https://tinylittleoffice.com/write/#/v2/write/${b}`;
   second.dispatchEvent(new Event('change'));
   await until(() => location.hash === `#/compare/write/${a}/write/${b}`);
   await until(() => !!cmp.querySelector('.cmp-rows'));
@@ -163,7 +163,7 @@ test('Compare: two links side by side, what the second changed marked, Swap, a l
 
 /** The Share dialog of a document, open. */
 async function share(app: string, text: string): Promise<{ shell: ToShell; d: ToDialog }> {
-  const shell = await mount(`#/v1/${app}/${encodeDoc(text)}`);
+  const shell = await mount(`#/v2/${app}/${encodeDoc(text)}`);
   await until(() => !!shell.querySelector(`to-${app}-editor`));
   await openShare(shell);
   const d = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
@@ -231,29 +231,29 @@ test('Copy embed code: a lazy, no-referrer frame of the embed page; the embed vi
     expect(code).toContain('title="Notes"');
     const src = /src="([^"]+)"/.exec(code)![1].replace(/&amp;/g, '&');
     expect(new URL(src).pathname.endsWith('/embed/')).toBe(true);
-    expect(new URL(src).hash).toBe(`#/v1/write.embed/${parseHash(location.hash).payload}`);
+    expect(new URL(src).hash).toBe(`#/v2/write.embed/${parseHash(location.hash).payload}`);
   });
   await until(() => said() === 'Embed code copied');
   d.close();
   // The embed view itself.
-  const embedded = await mount(`#/v1/write.embed/${encodeDoc('---\ntitle: Notes\n---\nHello\n')}`);
+  const embedded = await mount(`#/v2/write.embed/${encodeDoc('---\ntitle: Notes\n---\nHello\n')}`);
   await until(() => !!embedded.querySelector('.to-embed .to-display-page svg'));
   expect(embedded.querySelector('to-write-editor, .to-header')).toBeNull();
   expect(embedded.querySelector('.to-embed-title')!.textContent).toBe('Notes');
   const openIt = embedded.querySelector<HTMLAnchorElement>('.to-embed-open')!;
   expect(openIt.target).toBe('_blank');
-  expect(new URL(openIt.href).hash).toBe(`#/v1/write/${encodeDoc('---\ntitle: Notes\n---\nHello\n')}`);
+  expect(new URL(openIt.href).hash).toBe(`#/v2/write/${encodeDoc('---\ntitle: Notes\n---\nHello\n')}`);
   void shell;
   // A plain link may ask for the embed view too (what /tinyoffice.js's embed() writes).
   const plain = await mount('#app=outline&view=embed&title=Packing&doc=-+%5B+%5D+Socks');
   await until(() => !!plain.querySelector('.to-embed .to-display-page svg'));
-  expect(location.hash).toMatch(/^#\/v1\/outline\.embed\//);
+  expect(location.hash).toMatch(/^#\/v2\/outline\.embed\//);
   expect(plain.querySelector('.to-embed-title')!.textContent).toBe('Packing');
 });
 
 test('a deck’s show link opens it presenting, its way out "Edit this deck"; Share copies it', async () => {
   const deck = '## :rocket: Launch {.title}\n\n---\n\n## Goals\n\n- Ship\n';
-  const shell = await mount(`#/v1/deck/${encodeDoc(deck)}?show`);
+  const shell = await mount(`#/v2/deck/${encodeDoc(deck)}?show`);
   await until(() => !!shell.querySelector('to-deck-editor .deck-show'));
   const out = [...shell.querySelectorAll<HTMLButtonElement>('.deck-show .ctl button')].find((b) => b.getAttribute('aria-label') === 'Edit this deck')!;
   expect(out).toBeTruthy();

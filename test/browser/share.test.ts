@@ -37,7 +37,7 @@ async function open(shell: ToShell) {
   return dialogOf(shell);
 }
 async function written(shell: ToShell, doc = 'Hello\n') {
-  const s = await mount(`#/v1/write/${encodeDoc(doc)}`);
+  const s = await mount(`#/v2/write/${encodeDoc(doc)}`);
   await until(() => !!s.querySelector('to-write-editor'));
   return s ?? shell;
 }
@@ -110,7 +110,7 @@ test('the table of where the link fits states every limit, what it counts, and w
   // Random words, which do not compress, past the 2,048 the header's meter counts to: that row says by how much, in red, and the browsers' still fit.
   d.close();
   // (Waited for longer than the helpers do: a document this size takes a while to open on a box busy with the other files.)
-  const long = await mount(`#/v1/write/${encodeDoc(`${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`)}`);
+  const long = await mount(`#/v2/write/${encodeDoc(`${Array.from({ length: 900 }, () => Math.random().toString(36).slice(2, 8)).join(' ')}\n`)}`);
   await until(() => !!long.querySelector('to-write-editor'), 10_000);
   await long.querySelector<ToShare>('to-share')!.showRooms();
   await until(() => !!long.querySelector('.to-rooms tr[data-target="link"]'), 10_000);
@@ -556,7 +556,7 @@ test('the share sheet carries the card too; a document with a password shows no 
 /** A sheet sealed with a password, opened with it: the shell's own document, its link ciphertext. */
 async function sealedSheet(title: string) {
   const text = `---\ntitle: ${title}\n---\nName | Phone\n--- | ---\nAda | 555 0101\n`;
-  const shell = await mount(`#/v1/sheet/${await pack(text, await lockWith('pw'))}`);
+  const shell = await mount(`#/v2/sheet/${await pack(text, await lockWith('pw'))}`);
   await until(() => !!shell.querySelector('to-dialog.to-unlock-dialog dialog[open] .to-unlock-field'));
   const field = shell.querySelector<HTMLInputElement>('.to-unlock-field')!;
   field.value = 'pw';
@@ -623,7 +623,7 @@ test('a sealed document says nothing of itself: Share… sends no picture and no
 async function arrive(days: number, extra = '', ready = 'to-write-editor', doc = '---\ntitle: Plans\n---\nWords.\n') {
   const now = new Date('2026-10-09T12:00:00Z').getTime();
   vi.useFakeTimers({ toFake: ['Date'], now });
-  const shell = await mount(`#/v1/write/${encodeDoc(doc)}?s=abcdefg${extra}&x=${now + days * DAY}`);
+  const shell = await mount(`#/v2/write/${encodeDoc(doc)}?s=abcdefg${extra}&x=${now + days * DAY}`);
   await until(() => !!shell.querySelector(ready));
   return shell;
 }
@@ -671,7 +671,7 @@ test('Copy into a new document opens the same document as a fresh plain link, "C
   expect(opened.length).toBe(1);
   const u = new URL(opened[0]);
   expect(u.hash).not.toContain('?');
-  const doc = decodeDoc(u.hash.replace('#/v1/write/', ''));
+  const doc = decodeDoc(u.hash.replace('#/v2/write/', ''));
   expect(doc).toContain('title: Copy of Plans');
   expect(doc).toContain('Words.');
   await until(() => said() === 'A copy opened in a new tab');

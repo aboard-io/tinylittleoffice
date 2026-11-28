@@ -5,7 +5,9 @@ import type { ToDialog } from '../../src/kit/ui/dialog.ts';
 import { test, expect, afterEach } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
-import { encodeDoc } from '../../src/kit/core/codec.ts';
+import { DICTIONARY, encodeDoc, toBase64Url } from '../../src/kit/core/codec.ts';
+import { LINK } from '../../src/kit/core/route.ts';
+import { deflateSync, strToU8 } from 'fflate';
 import { forgetAll, keep, library } from '../../src/kit/share/library.ts';
 import { setKeeping } from '../../src/kit/core/store.ts';
 import { remScale, size, stepSize } from '../../src/kit/ui/zoom.ts';
@@ -35,8 +37,8 @@ const NOTES = encodeDoc('---\ntitle: Harbour notes\n---\n# The quay\n\nThe café
 
 test('the home page searches the library: every word somewhere, the title and the lines that hold them, the words marked', () =>
   saved(async () => {
-    keep({ id: 'a', app: 'write', title: 'Harbour notes', hash: `#/v1/write/${NOTES}`, at: Date.now() - 1000 });
-    keep({ id: 'b', app: 'outline', title: 'Errands', hash: `#/v1/outline/${encodeDoc('- [ ] Post the letter\n- [ ] Buy coffee for the café\n')}`, at: Date.now() });
+    keep({ id: 'a', app: 'write', title: 'Harbour notes', hash: `${LINK}write/${NOTES}`, at: Date.now() - 1000 });
+    keep({ id: 'b', app: 'outline', title: 'Errands', hash: `${LINK}outline/${encodeDoc('- [ ] Post the letter\n- [ ] Buy coffee for the café\n')}`, at: Date.now() });
     const shell = await mount('');
     const box = shell.querySelector<HTMLInputElement>('to-home .to-search')!;
     expect(box.getAttribute('aria-label')).toBe('Search your documents');
@@ -60,7 +62,7 @@ test('the home page searches the library: every word somewhere, the title and th
     box.dispatchEvent(new Event('input'));
     await until(() => !!shell.querySelector('.to-found-docs a'));
     box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    await until(() => location.hash === `#/v1/write/${NOTES}`);
+    await until(() => location.hash === `${LINK}write/${NOTES}`);
   }));
 
 test('nothing kept, no search box', async () => {
@@ -69,7 +71,7 @@ test('nothing kept, no search box', async () => {
 });
 
 test('Mod+F finds in the document: the words marked, next and previous, Escape closes and the marks go', async () => {
-  const shell = await mount(`#/v1/write/${NOTES}`);
+  const shell = await mount(`${LINK}write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   expect(key('f')).toBe(false);
   const find = shell.querySelector<ToFind>('to-find')!;
@@ -116,7 +118,7 @@ test('Mod+F finds in the document: the words marked, next and previous, Escape c
 
 test('Find in a sheet goes from matching cell to matching cell, the focus left in the bar', async () => {
   const sheet = encodeDoc('| Item | Cost:money |\n|---|---|\n| Café supplies | 300 |\n| Rent | 1200 |\n| Rental van | 90 |\n');
-  const shell = await mount(`#/v1/sheet/${sheet}`);
+  const shell = await mount(`${LINK}sheet/${sheet}`);
   await until(() => !!shell.querySelector('to-sheet-editor #c0_0'));
   key('f');
   const find = shell.querySelector<ToFind>('to-find')!;
@@ -137,7 +139,7 @@ test('Find in a sheet goes from matching cell to matching cell, the focus left i
 });
 
 test('Find closed with nothing found (Escape or Close) gives the focus back where it was, never to nothing (walks: text at a desktop, seed 1880387784)', async () => {
-  const shell = await mount(`#/v1/write/${NOTES}`);
+  const shell = await mount(`${LINK}write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   const words = shell.querySelector<HTMLElement>('to-write-editor to-text .tx')!;
   words.focus();
@@ -157,7 +159,7 @@ test('Find closed with nothing found (Escape or Close) gives the focus back wher
 });
 
 test('Mod+/ and the menu open the keyboard shortcuts, read from the command registry: the app’s own, the words’, the page’s', async () => {
-  const shell = await mount(`#/v1/draw`);
+  const shell = await mount(`${LINK}draw`);
   await until(() => !!shell.querySelector('to-draw-editor'));
   expect(key('/')).toBe(false);
   const dialog = () => shell.querySelector<HTMLDialogElement>('to-dialog.to-keys-dialog dialog')!;
@@ -176,7 +178,7 @@ test('Mod+/ and the menu open the keyboard shortcuts, read from the command regi
   dialog().close();
   await until(() => !dialog().open);
   // The Word Processor's four.
-  const write = await mount(`#/v1/write`);
+  const write = await mount(`${LINK}write`);
   await until(() => !!write.querySelector('to-write-editor'));
   await shortcutsFound(write);
   const writeDialog = () => write.querySelector<HTMLDialogElement>('to-dialog.to-keys-dialog dialog')!;
@@ -210,22 +212,22 @@ async function shortcutsFound(shell: HTMLElement) {
 }
 
 test('Mod+S keeps the document under Save in browser, and says why not while it is off', async () => {
-  const shell = await mount(`#/v1/write/${NOTES}`);
+  const shell = await mount(`${LINK}write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   expect(key('s')).toBe(false);
   await until(() => toastSays(shell).startsWith('Save in browser is off'));
   await saved(async () => {
-    const again = await mount(`#/v1/write/${NOTES}`);
+    const again = await mount(`${LINK}write/${NOTES}`);
     await until(() => !!again.querySelector('to-write-editor'));
     key('s');
     await until(() => toastSays(again) === 'Saved on this device');
-    expect(library().map((k) => [k.title, k.hash])).toEqual([['Harbour notes', `#/v1/write/${NOTES}`]]);
+    expect(library().map((k) => [k.title, k.hash])).toEqual([['Harbour notes', `${LINK}write/${NOTES}`]]);
     expect((history.state as { kept: string }).kept).toBe(library()[0].id);
   });
 });
 
 test('the skip link is the first thing a Tab reaches, hidden until then, and takes the focus into the document', async () => {
-  const shell = await mount(`#/v1/write/${NOTES}`);
+  const shell = await mount(`${LINK}write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   const skip = shell.querySelector<HTMLButtonElement>('.to-skip')!;
   expect(shell.firstElementChild).toBe(skip);
@@ -326,9 +328,9 @@ test('the size of everything: 70% to 200% from the menu, on the root at 1.3 time
 
 test('opened from a link while the library keeps another version of the same document: a quiet line offers it', () =>
   saved(async () => {
-    const newer = `#/v1/write/${encodeDoc('---\ntitle: Harbour notes\n---\nThe newer words.\n')}`;
+    const newer = `${LINK}write/${encodeDoc('---\ntitle: Harbour notes\n---\nThe newer words.\n')}`;
     keep({ id: 'n', app: 'write', title: 'Harbour notes', hash: newer, at: Date.now() - 3600_000 });
-    const shell = await mount(`#/v1/write/${NOTES}`);
+    const shell = await mount(`${LINK}write/${NOTES}`);
     await until(() => !!shell.querySelector('.to-other'));
     const line = shell.querySelector('.to-other')!;
     expect(line.textContent).toContain('A different version of “Harbour notes” from 1 hour ago is saved on this device.');
@@ -339,14 +341,26 @@ test('opened from a link while the library keeps another version of the same doc
     const same = await mount(newer);
     await until(() => !!same.querySelector('to-write-editor'));
     expect(same.querySelector('.to-other')).toBeNull();
-    const other = await mount(`#/v1/write/${encodeDoc('---\ntitle: Elsewhere\n---\nWords.\n')}`);
+    const other = await mount(`${LINK}write/${encodeDoc('---\ntitle: Elsewhere\n---\nWords.\n')}`);
     await until(() => !!other.querySelector('to-write-editor'));
     expect(other.querySelector('.to-other')).toBeNull();
   }));
 
+test('a document kept from a v1 link opens by that link as itself: its address as it was, no other version offered', () =>
+  saved(async () => {
+    // The line offering another version is decided as the document opens, from whether the library knows its link.
+    const text = '---\ntitle: Old notes\n---\nKept before links were v2.\n';
+    const v1 = `#/v1/write/y${toBase64Url(deflateSync(strToU8(text), { level: 9, mem: 12, dictionary: DICTIONARY }))}`;
+    keep({ id: 'old', app: 'write', title: 'Old notes', hash: v1, at: Date.now() - 3600_000 });
+    const shell = await mount(v1);
+    await until(() => !!shell.querySelector('to-write-editor'));
+    expect(shell.querySelector('.to-other')).toBeNull();
+    expect(location.hash).toBe(v1);
+  }));
+
 test('a link from a newer Tiny Little Office says so, and is never read as a document, sealed or not', async () => {
-  // NOTES is a payload this codec reads; under #/v2/ it is another format's, and opening it would be a guess.
-  for (const hash of [`#/v2/write/${NOTES}`, '#/v2/write/EAbc_-12', `#/v9/write/${NOTES}?d`]) {
+  // NOTES is a payload this codec reads; under #/v3/ it is another format's, and opening it would be a guess.
+  for (const hash of [`#/v3/write/${NOTES}`, '#/v3/write/eAbc12', `#/v9/write/${NOTES}?d`]) {
     const shell = await mount(hash);
     await shell.updateComplete;
     expect(shell.textContent, hash).toContain('This link needs a newer version. Reload the page.');
@@ -357,7 +371,7 @@ test('a link from a newer Tiny Little Office says so, and is never read as a doc
 });
 
 test('the Share dialog’s head line: where the link fits with Copy, Max Link Sizes on a tap, red past the limit', async () => {
-  const shell = await mount(`#/v1/write/${NOTES}`);
+  const shell = await mount(`${LINK}write/${NOTES}`);
   await until(() => !!shell.querySelector('to-write-editor'));
   await shell.openShare();
   const fit = shell.querySelector('.to-share-fit')!;
@@ -379,7 +393,7 @@ test('the Share dialog’s head line: where the link fits with Copy, Max Link Si
   sizes.close();
   // A document past the link's limit: the line in red, said in characters over.
   const big = Array.from({ length: 3000 }, (_, i) => `${(i * 7919) % 10007}`).join(' ');
-  const over = await mount(`#/v1/write/${encodeDoc(big)}`);
+  const over = await mount(`${LINK}write/${encodeDoc(big)}`);
   await until(() => !!over.querySelector('to-write-editor'));
   await over.openShare();
   const line = over.querySelector('.to-share-fit')!;
@@ -390,7 +404,7 @@ test('the Share dialog’s head line: where the link fits with Copy, Max Link Si
 
 test('the Display Link draws a letter page at its paper’s width, centred, never stretched', async () => {
   await page.viewport(1100, 800);
-  const shell = await mount(`#/v1/write/${encodeDoc('Words on paper.\n')}?d`);
+  const shell = await mount(`${LINK}write/${encodeDoc('Words on paper.\n')}?d`);
   await until(() => !!shell.querySelector('.to-display-page svg'));
   const svg = shell.querySelector('.to-display-page svg')!.getBoundingClientRect();
   const w = Number(shell.querySelector('.to-display-page svg')!.getAttribute('viewBox')!.split(' ')[2]);

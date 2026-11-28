@@ -9,7 +9,7 @@ import { encodeDoc, packDoc } from '../src/kit/core/codec.ts';
 import { newLocker, seal, unseal } from '../src/kit/share/crypt.ts';
 import { linkToFence } from '../src/kit/text/clipboard.ts';
 import { forgetOpened, LOCKED_LANG, lockedFence, lockedOf, lockedPage, notOpened, setOpened } from '../src/kit/share/locked.ts';
-import { routeHash } from '../src/kit/core/route.ts';
+import { LINK, routeHash } from '../src/kit/core/route.ts';
 import { parse, write, type Block } from '../src/doc/index.ts';
 import { fenceLink } from '../src/apps/write/view.ts';
 
@@ -24,11 +24,11 @@ const outer = () => write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'Before' }]
 
 test('a sealed link goes in as itself, in a "locked" fence the text keeps byte for byte', () => {
   const f = linkToFence(link()) as Extract<Block, { k: 'fence' }>;
-  expect(f).toEqual({ k: 'fence', lang: LOCKED_LANG, body: `#/v1/write/${sealed}` });
+  expect(f).toEqual({ k: 'fence', lang: LOCKED_LANG, body: `${LINK}write/${sealed}` });
   expect(f).toEqual(lockedFence('write', sealed));
   expect(lockedOf(f.body)).toEqual({ app: 'write', payload: sealed });
   const text = outer();
-  expect(text).toContain('```locked\n#/v1/write/E');
+  expect(text).toContain(`\`\`\`locked\n${LINK}write/e`);
   expect(write(parse(text))).toBe(text);
   // Nothing of the document is in the outer one: not its title, not a word.
   expect(text).not.toContain('Salaries');

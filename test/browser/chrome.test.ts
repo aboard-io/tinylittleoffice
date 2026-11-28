@@ -43,7 +43,7 @@ afterEach(async () => {
   await page.viewport(414, 896);
 });
 
-async function write(hash = `#/v1/write/${encodeDoc(BIG)}`): Promise<{ shell: ToShell; text: ToText; main: HTMLElement; chrome: ToChrome }> {
+async function write(hash = `#/v2/write/${encodeDoc(BIG)}`): Promise<{ shell: ToShell; text: ToText; main: HTMLElement; chrome: ToChrome }> {
   const shell = await mount(hash);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx') && !!shell.querySelector('.to-editor to-bar button'));
   const text = shell.querySelector<ToText>('to-write-editor to-text')!;
@@ -126,7 +126,7 @@ test('390×844 with a finger: a visual viewport 300px shorter (a keyboard) makes
 test('390×844 with a finger: a tap in the words hides the header (the focus a document opens with does not); the burger floats at the top inline end, the bar at the bottom; a tap outside brings the header back', async () => {
   await page.viewport(390, 844);
   await coarse(true);
-  const { text, main, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const { text, main, chrome } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const header = chrome.querySelector<HTMLElement>('.to-header')!;
   const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
   // Opened with the focus in the words (the page's own, which raises no keyboard): the header stays.
@@ -167,7 +167,7 @@ test('390×844 with a finger and a keyboard: Enter on the outline’s last row, 
   await coarse(true);
   const vv = fakeViewport();
   const rows = Array.from({ length: 40 }, (_, i) => `- Row ${i + 1}`).join('\n') + '\n';
-  const shell = await mount(`#/v1/outline/${encodeDoc(rows)}`);
+  const shell = await mount(`#/v2/outline/${encodeDoc(rows)}`);
   await until(() => shell.querySelectorAll('.ol-row to-text').length === 40 && !!shell.querySelector('to-outline-editor to-bar'));
   const last = shell.querySelectorAll<HTMLElement>('.ol-row to-text')[39];
   await userEvent.click(last);
@@ -193,7 +193,7 @@ test('390×844 with a finger and a keyboard: the window slid (as iOS slides it f
   await coarse(true);
   const vv = fakeViewport();
   const rows = Array.from({ length: 40 }, (_, i) => `- Row ${i + 1}`).join('\n') + '\n';
-  const shell = await mount(`#/v1/outline/${encodeDoc(rows)}`);
+  const shell = await mount(`#/v2/outline/${encodeDoc(rows)}`);
   await until(() => shell.querySelectorAll('.ol-row to-text').length === 40 && !!shell.querySelector('to-outline-editor to-bar'));
   const row = shell.querySelectorAll<HTMLElement>('.ol-row to-text')[12];
   await userEvent.click(row);
@@ -224,7 +224,7 @@ test('390×844 with a finger and a keyboard: Enter at the end of a long text lan
   await page.viewport(390, 844);
   await coarse(true);
   const vv = fakeViewport();
-  const shell = await mount(`#/v1/write/${encodeDoc(BIG)}`);
+  const shell = await mount(`#/v2/write/${encodeDoc(BIG)}`);
   await until(() => !!shell.querySelector('to-write-editor to-bar') && shell.querySelectorAll('to-write-editor p').length > 100);
   const last = [...shell.querySelectorAll<HTMLElement>('to-write-editor to-text p')].pop()!;
   await userEvent.click(last);
@@ -252,8 +252,8 @@ test('390×844 with a finger: an app tapped on the home page opens editing, the 
   await page.viewport(390, 844);
   await coarse(true);
   const shell = await mount('');
-  await until(() => !!shell.querySelector('a.to-app-open[href="#/v1/write"]'));
-  await userEvent.click(shell.querySelector<HTMLElement>('a.to-app-open[href="#/v1/write"]')!);
+  await until(() => !!shell.querySelector('a.to-app-open[href="#/v2/write"]'));
+  await userEvent.click(shell.querySelector<HTMLElement>('a.to-app-open[href="#/v2/write"]')!);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   await until(() => document.activeElement?.classList.contains('tx') === true);
   const chrome = shell.querySelector('to-chrome')!;
@@ -269,7 +269,7 @@ test('390×844 with a finger: an app tapped on the home page opens editing, the 
   expect(room).toBeGreaterThan(40);
   const words = shell.querySelector<HTMLElement>('to-write-editor to-text .tx')!.getBoundingClientRect();
   expect(words.top).toBeGreaterThanOrEqual(main.getBoundingClientRect().top + room - 1);
-  const opened = await mount(`#/v1/write/${encodeDoc('Words\n')}`);
+  const opened = await mount(`#/v2/write/${encodeDoc('Words\n')}`);
   await until(() => document.activeElement?.classList.contains('tx') === true);
   await tick();
   await tick();
@@ -298,7 +298,7 @@ test('1440×900: the header stays while the words have the focus, and the bar is
 
 test('the drawer lists Share… and Download with a document open, and not on the home page; Share… opens the Share dialog', async () => {
   await page.viewport(390, 844);
-  const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const { shell } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const drawer = shell.querySelector<ToDrawer>('to-drawer')!;
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => drawer.dialog.open && !!drawer.querySelector('.to-drawer-doc'));
@@ -326,7 +326,7 @@ test('the drawer lists Share… and Download with a document open, and not on th
 test('the Outliner’s row dragged to the column’s edge scrolls the column', async () => {
   await page.viewport(390, 844);
   const items = Array.from({ length: 80 }, (_, i) => `- Item ${i + 1}`).join('\n');
-  const shell = await mount(`#/v1/outline/${encodeDoc(`${items}\n`)}`);
+  const shell = await mount(`#/v2/outline/${encodeDoc(`${items}\n`)}`);
   await until(() => shell.querySelectorAll('to-outline-editor .ol-handle').length > 40);
   await frame();
   const main = shell.querySelector<HTMLElement>('.to-main')!;
@@ -359,7 +359,7 @@ test('the Outliner’s row dragged to the column’s edge scrolls the column', a
 
 test('presenting a deck covers the chrome: the header, the burger and the bar are under the show', async () => {
   await page.viewport(390, 844);
-  const shell = await mount(`#/v1/deck/${encodeDoc('# One\n\n---\n\n# Two\n')}`);
+  const shell = await mount(`#/v2/deck/${encodeDoc('# One\n\n---\n\n# Two\n')}`);
   await until(() => !!shell.querySelector('to-deck-editor button.deck-present'));
   shell.querySelector<HTMLButtonElement>('to-deck-editor button.deck-present')!.click();
   await until(() => !!shell.querySelector('.deck-show'));
@@ -438,7 +438,7 @@ for (const [w, h] of [
 ] as const) {
   test(`${w}×${h}: the header is the title: no Share, no Download, and the title field takes the room they left`, async () => {
     await page.viewport(w, h);
-    const { chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+    const { chrome } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
     const header = chrome.querySelector<HTMLElement>('.to-header')!;
     expect(header.querySelector('.to-share, .to-download, to-menu')).toBeNull();
     const title = header.querySelector<HTMLElement>('.to-title')!;
@@ -457,7 +457,7 @@ for (const [w, h] of [
 test('390×844 with a finger: a tap in the words slides the burger to the very corner, translucent; a tap outside slides it back', async () => {
   await page.viewport(390, 844);
   await coarse(true);
-  const { text, main, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const { text, main, chrome } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
   const em = parseFloat(getComputedStyle(burger).fontSize);
   const home = burger.getBoundingClientRect();
@@ -481,7 +481,7 @@ test('390×844 with a finger: the drawer’s This document is a heading over ful
   await page.viewport(390, 844);
   await coarse(true);
   keyboard.seen = false;
-  const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const { shell } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const drawer = shell.querySelector<ToDrawer>('to-drawer')!;
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => drawer.dialog.open && !!drawer.querySelector('.to-drawer-doc'));
@@ -525,7 +525,7 @@ test('390×844 with a finger: the drawer’s This document is a heading over ful
 
 test('the keys: Mod+Shift+S opens Share, Mod+Shift+D the drawer with its Download table open', async () => {
   await page.viewport(1440, 900);
-  const { shell } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const { shell } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const press = (key: string) => window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
   press('S');
   await until(() => !!shell.querySelector('to-dialog.to-share-dialog dialog[open]'));
@@ -543,7 +543,7 @@ test('the keys: Mod+Shift+S opens Share, Mod+Shift+D the drawer with its Downloa
 test('390×844 with a finger, editing: the translucent burger is opaque under a hover, a key’s focus and while the drawer is open', async () => {
   await page.viewport(390, 844);
   await coarse(true);
-  const { shell, text, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const { shell, text, chrome } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
   const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
   const opacity = () => parseFloat(getComputedStyle(burger).opacity);
   text.tx.blur();
@@ -581,7 +581,7 @@ test('390×844 with a finger, reduced motion: the burger goes to the corner at o
   await coarse(true);
   await cdp().send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   try {
-    const { text, main, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+    const { text, main, chrome } = await write(`#/v2/write/${encodeDoc('# Plans\n\nWords.\n')}`);
     const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
     const em = parseFloat(getComputedStyle(burger).fontSize);
     const home = burger.getBoundingClientRect();
@@ -710,7 +710,7 @@ test('a header too narrow for all of it keeps a password’s lock beside the tit
 // hamburger on every document — sharing is very important"): one touch width before it, the header's words ending
 // before both; a tap opens the share dialog; the home page has none, nor has a locked document until it is opened.
 test('Share sits one touch width before the menu button on a document, opens the share dialog, and is not on the home page', async () => {
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await until(() => !!shell.querySelector('.to-share-btn') && !!shell.querySelector('.to-burger'));
   const share = shell.querySelector<HTMLButtonElement>('.to-share-btn')!;
   const burger = shell.querySelector<HTMLElement>('.to-burger')!;
@@ -736,7 +736,7 @@ test('Share sits one touch width before the menu button on a document, opens the
 // the header steps aside (Paul, 2026-10-13: "There's a big black area the cursor is in it. Then it focuses"): the same
 // selection written again makes it draw the caret where the words are (kit/ui/scroll.ts redrawCaret).
 test('the caret is drawn again where the words are: the same selection written once more, and nothing outside a box', async () => {
-  const shell = await mount('#/v1/write');
+  const shell = await mount('#/v2/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   const text = shell.querySelector<ToText>('to-text')!;
   text.focus();

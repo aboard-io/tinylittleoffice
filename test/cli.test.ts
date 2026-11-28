@@ -13,7 +13,7 @@ test('a link from a file, and the file back from the link', () => {
   const dir = mkdtempSync(join(tmpdir(), 'tlo-'));
   writeFileSync(join(dir, 'chores.tlo'), '---\ntitle: Chores\napp: outline\n---\n- [ ] Sweep\n- [x] Shop\n');
   const url = run(['link', join(dir, 'chores.tlo')]).trim();
-  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/outline\/#\/v1\/outline\/[yzr]/);
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/outline\/#\/v2\/outline\/[wv]/);
   expect(run(['read', url])).toBe('---\ntitle: Chores\n---\n- [ ] Sweep\n- [x] Shop\n');
   const out = join(dir, 'back.tlo');
   expect(run(['file', url, '--out', out]).trim()).toBe(out);
@@ -130,7 +130,7 @@ test('link --seal prints the link and, on a second line, the password the app ma
   const { parseHash } = await import('../src/kit/core/route.ts');
   const [url, password, ...more] = run(['link', 'write', '--seal', '--title', 'Pay'], 'Salaries are up.\n').trimEnd().split('\n');
   expect(more).toEqual([]);
-  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v1\/write\/E/);
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/write\/#\/v2\/write\/e/);
   expect(password).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
   const opened = await unseal(password, parseHash(new URL(url).hash).payload);
   expect(unpackDoc(opened!.flag, opened!.bytes)).toBe('---\ntitle: Pay\n---\nSalaries are up.\n');
