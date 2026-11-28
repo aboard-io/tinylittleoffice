@@ -3710,46 +3710,6 @@
       "name": "edge: one word sealed",
       "kind": "sealed",
       "app": "write",
-      "link": "https://tinylittleoffice.com/write/#/v1/write/EgN0VJ7g8aBYkuDehiURdl6kVPDrDMSb0xHLLRzeXRzDpbEgmX1Kw8WH4_Pb_8oOUVwSg",
-      "sha256": "66a045b452102c59d840ec097d59d9467e13a3f34f6494e539ffd32c1bb35f18",
-      "bytes": 6,
-      "password": "corpus-294fb06b",
-      "made": ["v1.0.0"]
-    },
-    {
-      "name": "edge: unicode sealed",
-      "kind": "sealed",
-      "app": "write",
-      "link": "https://tinylittleoffice.com/write/#/v1/write/EJq79ToKCgN6K5TURjVvroQc1_26dll9Pf5vR9N3Kpo4Z~1Zs8EsXMY1G5u4nUVPPa1cpgldgsiO5QO9Ljn3eC21Uq8WSqgw41~FqbSsu1gTRbYnju3joDF7SK__2Tq5YCajnyJSvv6L1LKaejxDmZyuFeg5LQWtRwsACcl5lsJzxVHpyhcbQmLm645LIRvnSjDrN",
-      "sha256": "e54e4299addabe280830f289d21db713c3cad3903f09419e9811667867c259fa",
-      "bytes": 102,
-      "password": "corpus-2fcf76a4",
-      "made": ["v1.0.0"]
-    },
-    {
-      "name": "edge: spaces kept sealed",
-      "kind": "sealed",
-      "app": "write",
-      "link": "https://tinylittleoffice.com/write/#/v1/write/ENRMkDRQprddOl9IR~8IUmt5DXMcSOYo28wZFbjg6FgQKfcm8v3PcrVY9lRyBuPma45mevl7UX0V_woG2tVsUerEJywwOrLwKfJLJdia6TmDfH5cPmYO5OZFCUri8JwnmTaQ",
-      "sha256": "3a6bae73ac813ee7a470954bdcccef97c8c5aa754adac0f67d6f7b7a7243f8a5",
-      "bytes": 58,
-      "password": "corpus-887ed647",
-      "made": ["v1.0.0"]
-    },
-    {
-      "name": "edge: long, past every break sealed",
-      "kind": "sealed",
-      "app": "write",
-      "link": "https://tinylittleoffice.com/write/#/v1/write/EM0PlGpbB4lZJ6R1vPW49sfpXbnl0qwuLK2UBlMgeA8MntJ7ptDX3i8qijavaQ6DcXfyTzRBtogtKyFhhgkCIY4X_0jBw3UtM0oPNWXTn_kcsMMeJaPh1W5lE90~SSXMdJt1fkQabNFcnxnBQj4BUrT3Vpxab6~7Etf_HVAQT4lMYyP1TJJu73Nwf1dMjnUjq~mTUWA_vJhtCdQEKzWFIYTRQfjheqBRPe4AkPrWiAuN9hlNyJZZD3Tfq_rt1BoYNWDnL7QDVad3HbVCoB1MWY1Wp0fTOquAuZa1xvJ9tkEP4i3BaYYj7qlGPyE_sNmuj47Pp_jCUHm31yV8a3ibOxyx8l1PyqKJJpgspva7XND9Me90NReMDQu07zLf80b5g~gCOhRcGxWn5l6JUArBhbCl2kacJl6pThfLnhFQqBnaqtVa_SzDocgUI0GW5WZ~mOR7gIOPff5C9yU7Yer784axku11hqEF_vgZiFEVHIt1IHdApL46Rjq0VNCmdTY0USXEqVhSEAw1e8lZleaK17g_9dDDNODs~URudZG_~lVYfAxYKBhRuoJogJJmdO908VIrhDgN2uKqyBYdg_TqwPPrfSxdt3oIx62mFT11lqIRcc9VOCsUceDtqx9B7lFRYooDvIB6xfRzSP~NEtX7AL1ID5Mjzp2A~XrmVG_SqXoonGjaiFddF~BAQ8odS2X75oEhYjuXRH21bb4lOK8DugUyLTrJXGA22iMqbxFrJ4RC3l7~5a34u6cI8ukfrEi1HfnJD5FXeY40Q5beQKFJFpkoKAxqSiNTZAexicg95wnGaTVKv9ZpcLk~TkIKE0anr_P~It2GQ8oP343iDoY6u0MSLFcsgC4OaFJT0Hd7jTq93_UgS33K6GwByfRT7ylVFLf~uyLmde7pH3GNVV1PjmLNJfUYuKITmR~QJdSqwGWhh27b5m7TikLJcm8stLG8PVK2cWL5xzsFvTAVeeoRTr36dKATuw~5nCLEA127nEUhjUGrx3BIYfC8OPD1l9fUbavw6e1mpKeMr_VU8mF~yhUfxG9JFnG0mNjuUwzJ4PL7dvjygipqJM6yXFGZZKvicCAD9cIKI5Hv4E9D9i85HRLP8YeRANEBRv00f9BUaHQcUTKB5SalLrKDxe9A4JnPmU0Z7trQl_MKJ2dV0k~XybC5eBMw1av42zGu_XTYmyeZCLw",
-      "sha256": "f9a2f1ee2769015b67ade193551d4e821b083e22406d93ff033e68b3ebdc54ff",
-      "bytes": 5152,
-      "password": "corpus-c73b7ac4",
-      "made": ["v1.0.0"]
-    },
-    {
-      "name": "edge: one word sealed",
-      "kind": "sealed",
-      "app": "write",
       "link": "https://tinylittleoffice.com/write/#/v1/write/E9WGoME~zYeNgCnyNkq8uyIMQ73HATQSK4Qms04RDJyp6e26Ej_sj71I70MlE248JvYbv",
       "sha256": "66a045b452102c59d840ec097d59d9467e13a3f34f6494e539ffd32c1bb35f18",
       "bytes": 6,

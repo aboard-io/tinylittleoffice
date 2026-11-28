@@ -21,9 +21,9 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 | `d3-sankey` | 0.12.3 | BSD-3-Clause | Sankey charts (src/kit/draw/chart.ts). SVG draws the picture, but no browser API lays out a flow: placing the nodes in columns and relaxing the links so they cross least is the library's whole job. | 10.8 KB (its own: 6.8 KB) |
 | `fflate` | 0.8.3 | MIT | The link codec and every zip (src/kit/core/codec.ts, src/kit/file/zip.ts). CompressionStream has no preset dictionary, which makes short documents 20 to 35 percent smaller, is asynchronous, and writes a gzip stream, not a zip archive (.docx, .xlsx, .pptx). | 16.1 KB |
 | `lit` | 3.3.3 | BSD-3-Clause | Every element's drawing (the kit and the editors). Custom elements are native; lit adds the drawing of a template again with only its changed parts, which the browser does not do, and reactive properties that ask for it. | 18.1 KB (its own: none) |
-| `lucide` | 1.57.0 | ISC | The icons (src/kit/draw/icons.ts). The browser has no icon set and emoji draw differently on every system; Lucide is SVG paths, each a module, and the whole set is in the app file, so a document may name any icon, online or off. | 461.5 KB |
-| `maplibre-gl` | 6.14.0 | BSD-3-Clause | A trip's map, the Trip Planner's (src/apps/trip/editor.ts) and as a picture under a trip drawn anywhere else (src/apps/trip/picture.ts), drawn from OpenFreeMap's vector tiles. The browser has no map: laying out and drawing vector tiles in WebGL, panning and pinch-zooming them, with markers and a route, is the library's whole job. A file of its own in the build, with its worker and its stylesheet, fetched with the first map and never part of the app file (Paul, 2026-10-15: "hot-load it for that path"). | 900.3 KB |
-| `mathjs` | 15.2.0 | Apache-2.0 | The Calculator's units, big numbers and algebra (src/apps/calc/math.ts). The browser's only expression reader is eval, which the page's policy forbids, and Intl formats units without converting them. A custom build, run only by the Calculator. | 469.0 KB (its own: 381.9 KB) |
+| `lucide` | 1.79.0 | ISC | The icons (src/kit/draw/icons.ts). The browser has no icon set and emoji draw differently on every system; Lucide is SVG paths, each a module, and the whole set is in the app file, so a document may name any icon, online or off. | 461.5 KB |
+| `maplibre-gl` | 6.19.0 | BSD-3-Clause | A trip's map, the Trip Planner's (src/apps/trip/editor.ts) and as a picture under a trip drawn anywhere else (src/apps/trip/picture.ts), drawn from OpenFreeMap's vector tiles. The browser has no map: laying out and drawing vector tiles in WebGL, panning and pinch-zooming them, with markers and a route, is the library's whole job. A file of its own in the build, with its worker and its stylesheet, fetched with the first map and never part of the app file (Paul, 2026-10-15: "hot-load it for that path"). | 900.3 KB |
+| `mathjs` | 15.3.0 | Apache-2.0 | The Calculator's units, big numbers and algebra (src/apps/calc/math.ts). The browser's only expression reader is eval, which the page's policy forbids, and Intl formats units without converting them. A custom build, run only by the Calculator. | 469.0 KB (its own: 381.9 KB) |
 
 ## What those bring with them
 
@@ -37,21 +37,21 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 | `@mapbox/tiny-sdf` | 2.3.0 | BSD-2-Clause | `maplibre-gl` | none |
 | `@mapbox/unitbezier` | 1.0.0 | BSD-2-Clause | `maplibre-gl` | none |
 | `@mapbox/vector-tile` | 3.0.0 | BSD-3-Clause | `maplibre-gl` | none |
-| `@maplibre/geojson-vt` | 6.2.0 | ISC | `maplibre-gl` | none |
-| `@maplibre/maplibre-gl-style-spec` | 26.4.4 | ISC | `maplibre-gl` | none |
+| `@maplibre/geojson-vt` | 6.3.3 | ISC | `maplibre-gl` | none |
+| `@maplibre/maplibre-gl-style-spec` | 26.9.0 | ISC | `maplibre-gl` | none |
 | `@maplibre/mlt` | 1.3.0 | (MIT OR Apache-2.0) | `maplibre-gl` | none |
-| `@maplibre/vt-pbf` | 4.3.2 | MIT | `maplibre-gl` | none |
+| `@maplibre/vt-pbf` | 4.3.3 | MIT | `maplibre-gl` | none |
 | `@types/geojson` | 7946.0.16 | MIT | `maplibre-gl` | none |
 | `@types/trusted-types` | 2.0.7 | MIT | `lit` | none |
 | `bidi-js` | 1.1.0 | MIT | `maplibre-gl` | none |
-| `complex.js` | 2.4.3 | MIT | `mathjs` | 11.2 KB |
+| `complex.js` | 2.4.2 | MIT | `mathjs` | 11.2 KB |
 | `d3-array` | 2.12.1 | BSD-3-Clause | `d3-sankey` | 838 B |
 | `d3-path` | 1.0.9 | BSD-3-Clause | `d3-sankey` | 2.0 KB |
 | `d3-shape` | 1.3.7 | BSD-3-Clause | `d3-sankey` | 1.2 KB |
 | `decimal.js` | 10.6.0 | MIT | `mathjs` | 37.7 KB |
 | `earcut` | 3.2.4 | ISC | `maplibre-gl` | none |
 | `escape-latex` | 1.2.0 | MIT | `mathjs` | 1.4 KB |
-| `fraction.js` | 5.3.4 | MIT | `mathjs` | 9.4 KB |
+| `fraction.js` | 5.2.1 | MIT | `mathjs` | 9.4 KB |
 | `gl-matrix` | 3.4.4 | MIT | `maplibre-gl` | none |
 | `internmap` | 1.0.1 | ISC | `d3-sankey` | none |
 | `javascript-natural-sort` | 0.7.1 | MIT | `mathjs` | none |
@@ -70,7 +70,8 @@ vendored: every byte of code comes from npm through the committed lockfile; the 
 | `seedrandom` | 3.0.5 | MIT | `mathjs` | none |
 | `tiny-emitter` | 2.1.0 | MIT | `mathjs` | 877 B |
 | `tinyqueue` | 3.0.0 | ISC | `maplibre-gl` | none |
-| `typed-function` | 4.2.2 | MIT | `mathjs` | 25.4 KB |
+| `typed-function` | 4.2.1 | MIT | `mathjs` | 25.4 KB |
+| `zustand` | 5.1.0 | MIT | `maplibre-gl` | not measured |
 
 ## Type
 

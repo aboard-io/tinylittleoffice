@@ -32,6 +32,9 @@ const byLink = new Map(had.entries.map((e) => [e.link, e]));
 for (const f of runs) {
   const { tag, entries } = JSON.parse(readFileSync(f, 'utf8'));
   for (const e of entries) {
+    // v1.0.0 sealed under a password the person chose, and was never public: f228ad07 (v1.1.0) made the app choose every
+    // password, under another key derivation, before anyone could seal a link (Paul, 2026-11-27).
+    if (tag === 'v1.0.0' && e.kind === 'sealed') continue;
     const at = byLink.get(e.link);
     if (at) { if (!at.made.includes(tag)) at.made.push(tag); continue; }
     byLink.set(e.link, { ...e, made: [tag] });
